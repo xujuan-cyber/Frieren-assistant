@@ -1,65 +1,72 @@
 <template>
-  <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg space-y-4">
-    <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">测试内容</h2>
-    </div>
-    
-    <div class="space-y-4">
-      <textarea
-        v-model="content"
-        rows="6"
-        class="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        placeholder="请输入需要测试的内容..."
-        :disabled="isLoading"
-        @input="$emit('update:modelValue', content)"
-      ></textarea>
-      
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span class="text-gray-700">模型:</span>
+  <div class="p-4 space-y-4 flex-1 min-h-0 flex flex-col">
+    <div class="flex items-center justify-between flex-none">
+      <h3 class="text-white/90 font-medium">测试内容</h3>
+      <div class="flex items-center space-x-2">
+        <span class="text-white/90 whitespace-nowrap">模型:</span>
+        <div class="relative min-w-[160px]">
           <select 
             v-model="selectedModel"
-            class="rounded-lg border border-gray-300 px-4 py-1.5 appearance-none bg-white bg-no-repeat bg-[right_8px_center] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==')]"
+            class="w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-1.5 text-white appearance-none cursor-pointer"
             :disabled="isLoading"
-            :style="{ minWidth: getSelectWidth(enabledModels) + 'px' }"
             @change="$emit('update:model', selectedModel)"
           >
-            <option v-for="model in enabledModels" 
-                    :key="model.key" 
-                    :value="model.key">
+            <option 
+              v-for="model in enabledModels" 
+              :key="model.key" 
+              :value="model.key"
+              class="bg-gray-900 text-white"
+            >
               {{ model.name }}
             </option>
           </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="w-4 h-4 text-white/60" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </div>
         </div>
-        
-        <button
-          @click="$emit('test')"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="isLoading || !content.trim()"
-        >
-          <span v-if="isLoading" class="animate-spin">⏳</span>
-          <span>{{ isLoading ? '测试中...' : '开始测试 →' }}</span>
-        </button>
       </div>
+    </div>
+
+    <div class="flex-1 min-h-0 relative">
+      <textarea
+        v-model="content"
+        class="w-full h-full p-4 rounded-xl bg-black/20 border border-purple-600/50 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-white placeholder-gray-500 resize-none"
+        placeholder="请输入要测试的内容..."
+        :disabled="isLoading"
+        @input="$emit('update:modelValue', content)"
+      ></textarea>
+    </div>
+
+    <div class="flex-none">
+      <button
+        @click="$emit('test')"
+        class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="isLoading || !content.trim()"
+      >
+        <span v-if="isLoading" class="animate-spin">⏳</span>
+        <span>{{ isLoading ? '测试中...' : '开始测试 →' }}</span>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch } from 'vue'
+import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
 
 const props = defineProps({
   modelValue: {
     type: String,
-    default: ''
+    required: true
   },
-  model: {
+  modelContent: {
     type: String,
-    default: ''
+    required: true
   },
   enabledModels: {
     type: Array,
-    default: () => []
+    required: true
   },
   isLoading: {
     type: Boolean,
@@ -70,21 +77,22 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'update:model', 'test'])
 
 const content = ref(props.modelValue)
-const selectedModel = ref(props.model)
+const selectedModel = ref(props.modelContent)
+
+// 在组件挂载时，如果没有选择模型则设置第一个为默认值
+onMounted(() => {
+  if (!selectedModel.value && props.enabledModels.length > 0) {
+    selectedModel.value = props.enabledModels[0].key
+    emit('update:model', selectedModel.value)
+  }
+})
 
 // 监听 props 变化
 watch(() => props.modelValue, (newVal) => {
   content.value = newVal
 })
 
-watch(() => props.model, (newVal) => {
+watch(() => props.modelContent, (newVal) => {
   selectedModel.value = newVal
 })
-
-// 计算下拉框宽度
-const getSelectWidth = (models) => {
-  if (!models.length) return 160
-  const maxLength = Math.max(...models.map(m => m.name.length))
-  return Math.max(160, maxLength * 12)  // 12px per character as estimation
-}
-</script> 
+</script>

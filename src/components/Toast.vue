@@ -1,54 +1,40 @@
 <template>
-  <Transition
-    enter-active-class="transform ease-out duration-300 transition"
-    enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-    enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
-    leave-active-class="transition ease-in duration-100"
-    leave-from-class="opacity-100"
-    leave-to-class="opacity-0"
-  >
-    <div
-      v-if="show"
-      class="fixed bottom-4 right-4 z-50 pointer-events-none flex items-center p-4 space-x-4 bg-gray-900 text-white rounded-lg shadow-lg"
-    >
-      <span class="text-sm font-medium">{{ message }}</span>
+  <Teleport to="body">
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+      <TransitionGroup
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform translate-x-full opacity-0"
+        enter-to-class="transform translate-x-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-x-0 opacity-100"
+        leave-to-class="transform translate-x-full opacity-0"
+      >
+        <div
+          v-for="toast in toasts"
+          :key="toast.id"
+          class="flex items-center space-x-2 px-4 py-2 rounded-lg shadow-lg max-w-sm"
+          :class="{
+            'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400': toast.type === 'success',
+            'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400': toast.type === 'error',
+            'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400': toast.type === 'info',
+            'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400': toast.type === 'warning'
+          }"
+        >
+          <span class="text-sm">{{ toast.message }}</span>
+          <button
+            @click="remove(toast.id)"
+            class="text-current opacity-60 hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
+        </div>
+      </TransitionGroup>
     </div>
-  </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
+import { useToast } from '../composables/useToast'
 
-const props = defineProps({
-  message: {
-    type: String,
-    required: true
-  },
-  duration: {
-    type: Number,
-    default: 2000
-  }
-})
-
-const show = ref(false)
-let timer = null
-
-// 显示提示
-const showToast = () => {
-  show.value = true
-  if (timer) clearTimeout(timer)
-  timer = setTimeout(() => {
-    show.value = false
-  }, props.duration)
-}
-
-// 监听消息变化
-watch(() => props.message, (newVal) => {
-  if (newVal) showToast()
-})
-
-// 组件卸载时清理定时器
-onUnmounted(() => {
-  if (timer) clearTimeout(timer)
-})
-</script> 
+const { toasts, remove } = useToast()
+</script>
