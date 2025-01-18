@@ -47,7 +47,7 @@
                 <div class="relative min-w-[160px]">
                   <select 
                     v-model="optimizeModel"
-                    class="w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-1.5 text-white appearance-none cursor-pointer"
+                    class="custom-select w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-1.5 text-white cursor-pointer"
                     :disabled="isOptimizing"
                   >
                     <option v-for="model in enabledModels" 
@@ -116,7 +116,9 @@
               ✕
             </button>
           </div>
-          <ModelManager @saved="handleConfigSaved" />
+          <div class="p-4">
+            <ModelManager @models-updated="handleModelsUpdated" />
+          </div>
         </div>
       </div>
     </Teleport>
@@ -170,8 +172,10 @@ onMounted(async () => {
   try {
     await promptManager.init();
     
-    // 加载已启用的模型
-    enabledModels.value = llmService.getEnabledModels();
+    // 加载所有模型并过滤出已启用的
+    const allModels = llmService.getAllModels();
+    enabledModels.value = allModels.filter(model => model.enabled);
+    
     if (enabledModels.value.length > 0) {
       selectedModel.value = enabledModels.value[0].key;
       optimizeModel.value = enabledModels.value[0].key;
@@ -186,9 +190,8 @@ onMounted(async () => {
         console.error('加载历史记录失败:', e)
       }
     }
-  } catch (e) {
-    error.value = '初始化失败: ' + e.message;
-    console.error('初始化失败:', e);
+  } catch (error) {
+    console.error('初始化失败:', error)
   }
 })
 
@@ -288,9 +291,40 @@ const handleConfigSaved = () => {
   toastMessage.value = '模型配置已保存'
 }
 
+// 处理模型列表更新
+const handleModelsUpdated = (allModels) => {
+  enabledModels.value = allModels.filter(model => model.enabled);
+  
+  // 如果当前选中的模型被禁用了，切换到第一个启用的模型
+  if (enabledModels.value.length > 0) {
+    const currentModelEnabled = enabledModels.value.some(m => m.key === selectedModel.value);
+    if (!currentModelEnabled) {
+      selectedModel.value = enabledModels.value[0].key;
+    }
+    
+    const currentOptimizeModelEnabled = enabledModels.value.some(m => m.key === optimizeModel.value);
+    if (!currentOptimizeModelEnabled) {
+      optimizeModel.value = enabledModels.value[0].key;
+    }
+  }
+};
+
 // 重用历史记录
 const reuseHistory = (item) => {
   prompt.value = item.original
   optimizedPrompt.value = item.optimized
 }
 </script>
+
+<style>
+.custom-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+}
+
+.custom-select::-ms-expand {
+  display: none;
+}
+</style>

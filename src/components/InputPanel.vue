@@ -7,7 +7,7 @@
         <div class="relative min-w-[160px]">
           <select 
             v-model="selectedModel"
-            class="w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-1.5 text-white appearance-none cursor-pointer"
+            class="custom-select w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-1.5 text-white cursor-pointer"
             :disabled="isLoading"
             @change="$emit('update:model', selectedModel)"
           >

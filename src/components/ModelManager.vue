@@ -2,23 +2,45 @@
   <div class="p-4">
     <!-- 已启用模型列表 -->
     <div class="mb-6">
-      <h3 class="text-lg font-semibold text-white/90 mb-3">已启用的模型</h3>
+      <h3 class="text-lg font-semibold text-white/90 mb-3">模型列表</h3>
       <div class="space-y-3">
-        <div v-for="model in enabledModels" :key="model.key" 
-             class="p-4 rounded-xl bg-black/20 border border-purple-600/50">
+        <div v-for="model in models" :key="model.key" 
+             :class="['p-4 rounded-xl border transition-colors',
+                     model.enabled 
+                       ? 'bg-black/20 border-purple-600/50' 
+                       : 'bg-black/10 border-gray-600/50']">
           <div class="flex items-center justify-between">
             <div>
-              <h4 class="font-medium text-white/90">{{ model.name }}</h4>
-              <p class="text-sm text-white/60">{{ model.model }}</p>
+              <div class="flex items-center gap-2">
+                <h4 class="font-medium" :class="model.enabled ? 'text-white/90' : 'text-white/60'">
+                  {{ model.name }}
+                </h4>
+                <span v-if="!model.enabled" 
+                      class="px-1.5 py-0.5 text-xs rounded bg-gray-600/20 text-gray-400">
+                  已禁用
+                </span>
+              </div>
+              <p class="text-sm" :class="model.enabled ? 'text-white/60' : 'text-white/40'">
+                {{ model.model }}
+              </p>
             </div>
             <div class="flex items-center space-x-2">
               <button @click="editModel(model.key)"
                       class="px-4 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors">
                 编辑
               </button>
-              <button @click="disableModel(model.key)"
-                      class="px-4 py-1.5 text-sm rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors">
-                禁用
+              <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
+                      :class="['px-4 py-1.5 text-sm rounded-lg transition-colors',
+                              model.enabled 
+                                ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                : 'bg-green-500/20 text-green-300 hover:bg-green-500/30']">
+                {{ model.enabled ? '禁用' : '启用' }}
+              </button>
+              <!-- 只对自定义模型显示删除按钮 -->
+              <button v-if="!isDefaultModel(model.key)" 
+                      @click="handleDelete(model.key)"
+                      class="px-4 py-1.5 text-sm rounded-lg bg-red-700/20 text-red-400 hover:bg-red-700/30 transition-colors">
+                删除
               </button>
             </div>
           </div>
@@ -111,10 +133,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, defineEmits } from 'vue';
 import { llmService } from '../services/llm';
+import { useToast } from '../composables/useToast';
 
-const enabledModels = ref([]);
+const toast = useToast();
+const emit = defineEmits(['modelsUpdated']);
+
+const models = ref([]);
 const isEditing = ref(false);
 const editingModel = ref(null);
 const newModel = ref({
@@ -125,9 +151,29 @@ const newModel = ref({
   apiKey: ''
 });
 
-// 加载已启用的模型
-const loadEnabledModels = () => {
-  enabledModels.value = llmService.getEnabledModels();
+// 加载所有模型
+const loadModels = () => {
+  models.value = llmService.getAllModels();
+  emit('modelsUpdated', models.value);
+};
+
+// 判断是否为默认模型
+const isDefaultModel = (key) => {
+  return ['openai', 'gemini', 'deepseek'].includes(key);
+};
+
+// 处理删除
+const handleDelete = async (key) => {
+  if (confirm(`确定要删除模型 ${key} 吗？此操作不可恢复。`)) {
+    try {
+      llmService.deleteModel(key);
+      loadModels();
+      toast.success('模型已删除');
+    } catch (error) {
+      console.error('删除模型失败:', error);
+      toast.error(`删除模型失败: ${error.message}`);
+    }
+  }
 };
 
 // 编辑模型
@@ -168,19 +214,36 @@ const saveEdit = () => {
       llmService.setApiKey(editingModel.value.key, editingModel.value.apiKey);
     }
 
-    loadEnabledModels();
+    loadModels();
     isEditing.value = false;
     editingModel.value = null;
+    toast.success('模型配置已更新');
   } catch (error) {
     console.error('更新模型失败:', error);
-    // TODO: 显示错误提示
+    toast.error(`更新模型失败: ${error.message}`);
+  }
+};
+
+// 启用模型
+const enableModel = async (key) => {
+  try {
+    llmService.enableModel(key);
+    loadModels();
+  } catch (error) {
+    console.error('启用模型失败:', error);
+    toast.error(`启用模型失败: ${error.message}`);
   }
 };
 
 // 禁用模型
-const disableModel = (key) => {
-  llmService.setApiKey(key, '');
-  loadEnabledModels();
+const disableModel = async (key) => {
+  try {
+    llmService.disableModel(key);
+    loadModels();
+  } catch (error) {
+    console.error('禁用模型失败:', error);
+    toast.error(`禁用模型失败: ${error.message}`);
+  }
 };
 
 // 添加自定义模型
@@ -195,7 +258,7 @@ const addCustomModel = () => {
     };
 
     llmService.addCustomModel(newModel.value.key, config);
-    loadEnabledModels();
+    loadModels();
 
     // 重置表单
     newModel.value = {
@@ -205,13 +268,14 @@ const addCustomModel = () => {
       defaultModel: '',
       apiKey: ''
     };
+    toast.success('模型添加成功');
   } catch (error) {
-    console.error('添加自定义模型失败:', error);
-    // TODO: 显示错误提示
+    console.error('添加模型失败:', error);
+    toast.error(`添加模型失败: ${error.message}`);
   }
 };
 
 onMounted(() => {
-  loadEnabledModels();
+  loadModels();
 });
 </script>
