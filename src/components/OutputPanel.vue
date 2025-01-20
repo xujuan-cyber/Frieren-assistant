@@ -1,82 +1,78 @@
+<!-- 输出面板组件 -->
 <template>
-  <div class="h-full flex flex-col">
-    <div class="flex-none p-4 border-b border-purple-100 dark:border-purple-800">
-      <div class="flex justify-between items-center">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">测试结果</h2>
-        <div class="flex items-center space-x-2">
-          <button
-            v-if="result"
-            @click="copyResult"
-            class="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm flex items-center space-x-1 transition-colors"
-          >
-            <span>复制结果</span>
-          </button>
-        </div>
-      </div>
+  <div class="flex flex-col h-full">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-white/90">测试结果</h3>
+      <button
+        v-if="result"
+        @click="copyResult"
+        class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
+      >
+        <span>📋</span>
+        <span class="hidden sm:inline">复制</span>
+      </button>
     </div>
-    
-    <div class="p-4 space-y-4 flex-1 min-h-0 flex flex-col">
-      <h3 class="text-white/90 font-medium flex-none">测试结果</h3>
-      
-      <div class="flex-1 min-h-0 relative">
-        <div v-if="error" class="absolute inset-0 flex items-center justify-center">
-          <div class="text-red-400 text-center">
-            <span class="block text-3xl mb-2">❌</span>
-            <p>{{ error }}</p>
-          </div>
-        </div>
 
-        <div v-else-if="!result" class="absolute inset-0 flex items-center justify-center">
-          <p class="text-white/50">等待测试结果...</p>
-        </div>
-
-        <div v-else class="absolute inset-0">
-          <textarea
-            :value="result"
-            class="w-full h-full p-4 bg-black/20 border border-purple-600/50 rounded-xl text-white/90 resize-none"
-            readonly
-          ></textarea>
+    <div class="flex-1 min-h-0 relative">
+      <div
+        v-if="loading"
+        class="absolute inset-0 flex items-center justify-center"
+      >
+        <div class="text-white/90 flex items-center space-x-2">
+          <span class="animate-spin">⏳</span>
+          <span>处理中...</span>
         </div>
       </div>
+
+      <div
+        v-else-if="error"
+        class="absolute inset-0 flex items-center justify-center"
+      >
+        <div class="text-red-500 flex items-center space-x-2">
+          <span>❌</span>
+          <span>{{ error }}</span>
+        </div>
+      </div>
+
+      <textarea
+        v-else
+        :value="result"
+        class="absolute inset-0 w-full h-full p-4 rounded-xl bg-black/20 border border-purple-600/50 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-white placeholder-gray-500 resize-none"
+        placeholder="测试结果将显示在这里..."
+        readonly
+      ></textarea>
     </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, ref } from 'vue'
-import { useToast } from '../composables/useToast'
+import { ref } from 'vue'
 
-const toast = useToast()
+// 定义props
 const props = defineProps({
-  result: {
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  error: {
     type: String,
     default: ''
   },
-  error: {
+  result: {
     type: String,
     default: ''
   }
 })
 
+// 复制结果
 const copyResult = async () => {
-  try {
-    await navigator.clipboard.writeText(props.result)
-    toast.success('复制成功')
-  } catch (e) {
-    console.error('复制失败:', e)
-    toast.error('复制失败')
+  if (props.result) {
+    try {
+      await navigator.clipboard.writeText(props.result)
+      // TODO: 显示复制成功提示
+    } catch (err) {
+      // TODO: 显示复制失败提示
+    }
   }
 }
-</script>
-
-<style scoped>
-textarea {
-  /* 隐藏滚动条但保持可滚动 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-textarea::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
-</style>
+</script> 

@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 
 class PromptManager {
   constructor() {
-    this.templateDir = '/src/prompts/templates';
+    this.templateDir = './src/prompts/templates';
     this.defaultTemplate = 'optimize';
     this.initialized = false;
     this.templateCache = new Map(); // 使用 Map 存储模板和其加载时间
@@ -117,6 +117,41 @@ class PromptManager {
   // 设置缓存超时时间
   setCacheTimeout(timeout) {
     this.cacheTimeout = timeout;
+  }
+
+  // 获取历史记录
+  getHistory() {
+    try {
+      const historyStr = localStorage.getItem('promptHistory');
+      return historyStr ? JSON.parse(historyStr) : [];
+    } catch (error) {
+      console.error('Failed to get history:', error);
+      return [];
+    }
+  }
+
+  // 添加到历史记录
+  addToHistory(prompt, result) {
+    try {
+      const history = this.getHistory();
+      history.unshift({
+        prompt,
+        result,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('promptHistory', JSON.stringify(history.slice(0, 50))); // 只保留最近50条记录
+    } catch (error) {
+      console.error('Failed to add to history:', error);
+    }
+  }
+
+  // 清除历史记录
+  clearHistory() {
+    try {
+      localStorage.removeItem('promptHistory');
+    } catch (error) {
+      console.error('Failed to clear history:', error);
+    }
   }
 }
 

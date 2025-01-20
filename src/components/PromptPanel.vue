@@ -1,22 +1,24 @@
 <template>
-  <div v-if="optimizedPrompt" class="h-full flex flex-col">
-    <div class="flex justify-between items-center flex-none mb-2">
-      <h3 class="text-white/90 font-medium">优化后Prompt</h3>
+  <div class="flex flex-col h-full">
+    <!-- 标题和按钮区域 -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 flex-none">
+      <h3 class="text-lg font-semibold text-white/90">优化后Prompt</h3>
       <button
+        v-if="optimizedPrompt"
         @click="copyPrompt"
-        class="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1 transition-colors"
+        class="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-2 transition-colors transform hover:scale-105"
       >
         <span>复制</span>
       </button>
     </div>
     
-    <div class="relative flex-1 min-h-0">
-      <div 
-        class="absolute inset-0 bg-black/20 rounded-xl border border-purple-600/50"
-      >
+    <!-- 内容区域 -->
+    <div class="flex-1 min-h-0 bg-black/20 rounded-xl border border-purple-600/50 transition-colors overflow-hidden">
+      <div class="h-full relative">
         <textarea
           :value="optimizedPrompt"
-          class="w-full h-full p-4 bg-transparent border-none focus:ring-0 resize-none text-white/90 placeholder-gray-400"
+          class="absolute inset-0 w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-purple-500/50 resize-none text-white/90 placeholder-gray-400 text-sm sm:text-base overflow-auto"
+          placeholder="优化后的提示词将显示在这里..."
           readonly
         ></textarea>
       </div>
@@ -39,6 +41,8 @@ const props = defineProps({
 const emit = defineEmits(['update:optimizedPrompt'])
 
 const copyPrompt = async () => {
+  if (!props.optimizedPrompt) return
+  
   try {
     await navigator.clipboard.writeText(props.optimizedPrompt)
     toast.success('复制成功')

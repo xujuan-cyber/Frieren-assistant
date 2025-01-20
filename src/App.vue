@@ -1,319 +1,219 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 to-purple-950">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 to-purple-950 flex flex-col">
     <!-- 顶部导航栏 -->
-    <header class="sticky top-0 z-40 bg-purple-800/90 backdrop-blur-sm border-b border-purple-700">
-      <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white">
+    <header class="flex-none sticky top-0 z-40 bg-purple-800/90 backdrop-blur-sm border-b border-purple-700 shadow-lg">
+      <div class="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+        <h1 class="text-xl sm:text-2xl font-bold text-white">
           Prompt Optimizer
         </h1>
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-4 sm:space-x-6">
           <button
             @click="showHistory = true"
-            class="text-white/80 hover:text-white transition-colors"
+            class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
-            📜 历史
+            <span>📜</span>
+            <span class="hidden sm:inline">历史</span>
           </button>
           <button
             @click="showConfig = true"
-            class="text-white/80 hover:text-white transition-colors"
+            class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
-            ⚙️ 设置
+            <span>⚙️</span>
+            <span class="hidden sm:inline">设置</span>
           </button>
         </div>
       </div>
     </header>
 
     <!-- 主要内容区域 -->
-    <main class="container mx-auto p-4">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 min-h-[calc(100vh-5rem)]">
+    <main class="flex-1 container mx-auto p-4 sm:p-6 overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-[calc(100vh-8rem)]">
         <!-- 提示词区 -->
-        <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col">
-          <div class="p-4 space-y-4 flex-1 min-h-0 flex flex-col">
-            <div class="h-[120px] flex flex-col space-y-2 flex-none">
-              <label class="text-white/90 font-medium flex-none">原始提示词</label>
-              <div class="relative flex-1 min-h-0">
-                <textarea
+        <div class="lg:col-span-5 flex flex-col min-h-0">
+          <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col h-full">
+            <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col flex-1">
+              <!-- 输入区域 -->
+              <div class="flex-none">
+                <InputPanel
                   v-model="prompt"
-                  class="absolute inset-0 w-full h-full p-4 rounded-xl bg-black/20 border border-purple-600/50 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-white placeholder-gray-500 resize-none"
+                  v-model:model="optimizeModel"
+                  :models="enabledModels"
+                  label="原始提示词"
                   placeholder="请输入需要优化的prompt..."
+                  model-label="优化模型"
+                  button-text="开始优化 →"
+                  loading-text="优化中..."
+                  :loading="isOptimizing"
                   :disabled="isOptimizing"
-                ></textarea>
+                  @submit="handleOptimizePrompt"
+                />
               </div>
-            </div>
-            
-            <div class="flex items-center justify-between flex-wrap gap-4 flex-none">
-              <div class="flex items-center space-x-2">
-                <span class="text-white/90 whitespace-nowrap">优化模型:</span>
-                <div class="relative min-w-[160px]">
-                  <select 
-                    v-model="optimizeModel"
-                    class="custom-select w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-1.5 text-white cursor-pointer"
-                    :disabled="isOptimizing"
-                  >
-                    <option v-for="model in enabledModels" 
-                            :key="model.key" 
-                            :value="model.key"
-                            class="bg-gray-900 text-white"
-                    >
-                      {{ model.name }}
-                    </option>
-                  </select>
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              <button
-                @click="handleOptimizePrompt"
-                class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-none"
-                :disabled="isOptimizing || !prompt.trim()"
-              >
-                <span v-if="isOptimizing" class="animate-spin">⏳</span>
-                <span>{{ isOptimizing ? '优化中...' : '开始优化 →' }}</span>
-              </button>
-            </div>
 
-            <PromptPanel 
-              :optimized-prompt="optimizedPrompt"
-              class="flex-1 min-h-0"
-            />
+              <!-- 优化结果区域 -->
+              <div class="flex-1 min-h-0">
+                <PromptPanel 
+                  :optimized-prompt="optimizedPrompt"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 输入区 -->
-        <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col">
-          <InputPanel
-            v-model="testContent"
-            :model-content="selectedModel"
-            :enabled-models="enabledModels"
-            :is-loading="isTesting"
-            @test="handleTest"
-            @update:model="selectedModel = $event"
-          />
-        </div>
+        <!-- 测试区域 -->
+        <div class="lg:col-span-7 flex flex-col min-h-0">
+          <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col h-full">
+            <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col flex-1">
+              <!-- 测试输入区域 -->
+              <div class="flex-none">
+                <InputPanel
+                  v-model="testContent"
+                  v-model:model="selectedModel"
+                  :models="enabledModels"
+                  label="测试内容"
+                  placeholder="请输入要测试的内容..."
+                  model-label="模型"
+                  button-text="开始测试 →"
+                  loading-text="测试中..."
+                  :loading="isTesting"
+                  :disabled="isTesting"
+                  @submit="handleTest"
+                />
+              </div>
 
-        <!-- 输出区 -->
-        <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col">
-          <OutputPanel
-            :result="testResult"
-            :error="error"
-          />
+              <!-- 测试结果区域 -->
+              <div class="flex-1 min-h-0">
+                <OutputPanel
+                  :loading="isTesting"
+                  :error="testError"
+                  :result="testResult"
+                  @copy="copyResult"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
 
-    <!-- API 配置弹窗 -->
+    <!-- 配置弹窗 -->
     <Teleport to="body">
-      <div v-if="showConfig" 
-           class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-purple-700/50">
-          <div class="flex justify-between items-center p-4 border-b border-purple-700/50">
-            <h2 class="text-xl font-semibold text-white">模型配置</h2>
-            <button @click="showConfig = false" class="text-white/60 hover:text-white transition-colors">
-              ✕
-            </button>
-          </div>
-          <div class="p-4">
-            <ModelManager @models-updated="handleModelsUpdated" />
-          </div>
-        </div>
-      </div>
+      <ModelManager
+        v-if="showConfig"
+        @close="showConfig = false"
+      />
     </Teleport>
-    
+
     <!-- 历史记录抽屉 -->
     <HistoryDrawer
-      v-if="showHistory"
       :show="showHistory"
-      :history="promptHistory"
+      :history="history"
       @close="showHistory = false"
-      @use="reuseHistory"
+      @select="handleSelectHistory"
     />
 
     <!-- 全局提示 -->
-    <Toast />
+    <Toast ref="toast" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
+import { llmService } from './services/llm'
+import { promptManager } from './services/promptManager'
 import ModelManager from './components/ModelManager.vue'
 import Toast from './components/Toast.vue'
 import HistoryDrawer from './components/HistoryDrawer.vue'
 import PromptPanel from './components/PromptPanel.vue'
 import InputPanel from './components/InputPanel.vue'
 import OutputPanel from './components/OutputPanel.vue'
-import { llmService } from './services/llm'
-import { promptManager } from './services/promptManager'
+import { useToast } from './composables/useToast'
 
-// 提示词相关状态
+// 状态
 const prompt = ref('')
 const optimizedPrompt = ref('')
-const isOptimizing = ref(false)
-const optimizeModel = ref('')
-
-// 测试相关状态
 const testContent = ref('')
 const testResult = ref('')
+const testError = ref('')
+const isOptimizing = ref(false)
 const isTesting = ref(false)
-
-// 通用状态
-const selectedModel = ref('')
-const error = ref('')
 const showConfig = ref(false)
-const toastMessage = ref('')
 const showHistory = ref(false)
-const enabledModels = ref([])
+const optimizeModel = ref('')
+const selectedModel = ref('')
+const history = ref([])
+const toast = useToast()
+const models = ref([])
 
-// 初始化
-onMounted(async () => {
-  try {
-    await promptManager.init();
-    
-    // 加载所有模型并过滤出已启用的
-    const allModels = llmService.getAllModels();
-    enabledModels.value = allModels.filter(model => model.enabled);
-    
-    if (enabledModels.value.length > 0) {
-      selectedModel.value = enabledModels.value[0].key;
-      optimizeModel.value = enabledModels.value[0].key;
-    }
-    
-    // 加载历史记录
-    const savedHistory = localStorage.getItem('promptHistory')
-    if (savedHistory) {
-      try {
-        promptHistory.value = JSON.parse(savedHistory)
-      } catch (e) {
-        console.error('加载历史记录失败:', e)
-      }
-    }
-  } catch (error) {
-    console.error('初始化失败:', error)
+// 计算属性
+const enabledModels = computed(() => 
+  models.value.filter(model => model.enabled)
+)
+
+// 方法
+const loadModels = async () => {
+  models.value = llmService.getAllModels()
+  
+  // 设置默认模型
+  const defaultModel = enabledModels.value[0]?.key
+  if (defaultModel) {
+    optimizeModel.value = defaultModel
+    selectedModel.value = defaultModel
   }
-})
+}
 
-// 优化提示词
 const handleOptimizePrompt = async () => {
-  if (!prompt.value.trim()) return
+  if (!prompt.value.trim() || isOptimizing.value) return
   
   isOptimizing.value = true
-  error.value = ''
-  optimizedPrompt.value = ''
-  
   try {
-    // 设置当前选择的模型
-    llmService.setProvider(optimizeModel.value)
-    // 使用新的 LLM 服务
-    const result = await llmService.optimizePrompt(prompt.value, 'optimize')
-    optimizedPrompt.value = result
-    
-    // 保存到历史记录
-    saveToHistory()
-  } catch (e) {
-    error.value = e.message || '优化失败，请稍后重试'
-    console.error('优化错误:', e)
+    optimizedPrompt.value = await llmService.optimizePrompt(prompt.value, 'optimize')
+    promptManager.addToHistory(prompt.value, optimizedPrompt.value)
+  } catch (err) {
+    toast.error('优化失败：' + err.message)
   } finally {
     isOptimizing.value = false
   }
 }
 
-// 使用优化后的提示词进行测试
 const handleTest = async () => {
-  if (!testContent.value.trim()) return
+  if (!testContent.value.trim() || isTesting.value) return
   
   isTesting.value = true
-  error.value = ''
-  testResult.value = ''
-  
+  testError.value = ''
   try {
-    // 设置当前选择的模型
-    llmService.setProvider(selectedModel.value)
-    // 使用优化后的提示词或原始提示词进行测试
-    const systemPrompt = optimizedPrompt.value || prompt.value
-    const result = await llmService.sendMessage([
-      { role: 'system', content: systemPrompt },
+    const messages = [
+      { role: 'system', content: optimizedPrompt.value || prompt.value },
       { role: 'user', content: testContent.value }
-    ])
-    testResult.value = result
-  } catch (e) {
-    error.value = e.message || '测试失败，请稍后重试'
-    console.error('测试错误:', e)
+    ]
+    testResult.value = await llmService.sendMessage(messages)
+  } catch (err) {
+    testError.value = '测试失败：' + err.message
   } finally {
     isTesting.value = false
   }
 }
 
-// 计算下拉框宽度
-const getSelectWidth = (models) => {
-  if (!models.length) return 160
-  const maxLength = Math.max(...models.map(m => m.name.length))
-  return Math.max(160, maxLength * 12)  // 12px per character as estimation
+const copyResult = async () => {
+  try {
+    await navigator.clipboard.writeText(testResult.value)
+    toast.success('复制成功')
+  } catch (err) {
+    toast.error('复制失败')
+  }
 }
 
-// 使用优化后的提示词
-const useOptimizedPrompt = () => {
-  // 可以在这里添加一些额外的逻辑
-  toastMessage.value = '已选择使用此提示词'
-}
-
-// 添加提示词历史记录功能
-const promptHistory = ref([])
-
-// 保存到历史记录
-const saveToHistory = () => {
-  const historyItem = {
-    id: Date.now(),
-    original: prompt.value,
-    optimized: optimizedPrompt.value,
-    timestamp: new Date().toISOString(),
-  }
-  promptHistory.value.unshift(historyItem)
-  
-  // 只保留最近的 10 条记录
-  if (promptHistory.value.length > 10) {
-    promptHistory.value.pop()
-  }
-  
-  // 保存到本地存储
-  localStorage.setItem('promptHistory', JSON.stringify(promptHistory.value))
-}
-
-// 处理配置保存
-const handleConfigSaved = () => {
-  // 重新加载已启用的模型
-  enabledModels.value = llmService.getEnabledModels();
-  if (enabledModels.value.length > 0 && !enabledModels.value.find(m => m.key === selectedModel.value)) {
-    selectedModel.value = enabledModels.value[0].key;
-  }
-  toastMessage.value = '模型配置已保存'
-}
-
-// 处理模型列表更新
-const handleModelsUpdated = (allModels) => {
-  enabledModels.value = allModels.filter(model => model.enabled);
-  
-  // 如果当前选中的模型被禁用了，切换到第一个启用的模型
-  if (enabledModels.value.length > 0) {
-    const currentModelEnabled = enabledModels.value.some(m => m.key === selectedModel.value);
-    if (!currentModelEnabled) {
-      selectedModel.value = enabledModels.value[0].key;
-    }
-    
-    const currentOptimizeModelEnabled = enabledModels.value.some(m => m.key === optimizeModel.value);
-    if (!currentOptimizeModelEnabled) {
-      optimizeModel.value = enabledModels.value[0].key;
-    }
-  }
-};
-
-// 重用历史记录
-const reuseHistory = (item) => {
-  prompt.value = item.original
+const handleSelectHistory = (item) => {
+  prompt.value = item.prompt
   optimizedPrompt.value = item.optimized
+  showHistory.value = false
 }
+
+// 生命周期
+onMounted(async () => {
+  await loadModels()
+  await promptManager.init()
+  history.value = promptManager.getHistory()
+})
 </script>
 
 <style>
