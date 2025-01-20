@@ -10,7 +10,7 @@ export const DEFAULT_MODELS = {
   },
   gemini: {
     name: 'Google Gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    baseUrl: 'https://geminiapi.always200.com/v1beta/openai/chat/completions',
     models: ['gemini-2.0-flash-exp'],
     defaultModel: 'gemini-2.0-flash-exp',
     envKey: 'VITE_GEMINI_API_KEY',
@@ -67,7 +67,7 @@ export function buildRequestConfig(provider, model, apiKey, messages) {
 
   const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`
+    'Authorization': 'Bearer ' + apiKey
   };
 
   return {
