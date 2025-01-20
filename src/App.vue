@@ -53,6 +53,8 @@
               <div class="flex-1 min-h-0">
                 <PromptPanel 
                   :optimized-prompt="optimizedPrompt"
+                  :is-iterating="isIterating"
+                  @iterate="handleIteratePrompt"
                 />
               </div>
             </div>
@@ -112,7 +114,7 @@
     />
 
     <!-- 全局提示 -->
-    <Toast ref="toast" />
+    <Toast />
   </div>
 </template>
 
@@ -135,14 +137,17 @@ const testContent = ref('')
 const testResult = ref('')
 const testError = ref('')
 const isOptimizing = ref(false)
+const isIterating = ref(false)
 const isTesting = ref(false)
 const showConfig = ref(false)
 const showHistory = ref(false)
 const optimizeModel = ref('')
 const selectedModel = ref('')
 const history = ref([])
-const toast = useToast()
 const models = ref([])
+
+// 初始化 toast
+const toast = useToast()
 
 // 计算属性
 const enabledModels = computed(() => 
@@ -166,12 +171,44 @@ const handleOptimizePrompt = async () => {
   
   isOptimizing.value = true
   try {
-    optimizedPrompt.value = await llmService.optimizePrompt(prompt.value, 'optimize')
-    promptManager.addToHistory(prompt.value, optimizedPrompt.value)
-  } catch (err) {
-    toast.error('优化失败：' + err.message)
+    const result = await llmService.optimizePrompt(prompt.value, 'optimize')
+    optimizedPrompt.value = result
+    promptManager.addToHistory(prompt.value, result, 'optimize')
+    toast.success('优化成功')
+  } catch (error) {
+    console.error('优化失败:', error)
+    toast.error(error.message || '优化失败')
   } finally {
     isOptimizing.value = false
+  }
+}
+
+const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
+  if (!originalPrompt || !iterateInput || isIterating.value) return
+
+  isIterating.value = true
+  try {
+    const result = await llmService.iteratePrompt(originalPrompt, iterateInput)
+    optimizedPrompt.value = result
+    
+    // 获取最近的历史记录作为父记录
+    const history = promptManager.getHistory()
+    const parentRecord = history[0] // 最新的记录将是父记录
+    
+    // 添加到历史记录，类型为iterate，并设置父记录ID
+    promptManager.addToHistory(
+      originalPrompt,
+      result,
+      'iterate',
+      parentRecord?.id
+    )
+    
+    toast.success('迭代优化成功')
+  } catch (error) {
+    console.error('迭代优化失败:', error)
+    toast.error(error.message || '迭代优化失败')
+  } finally {
+    isIterating.value = false
   }
 }
 

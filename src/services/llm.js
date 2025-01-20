@@ -227,6 +227,57 @@ export class LLMService {
     }
   }
 
+  async iteratePrompt(originalPrompt, iterateInput) {
+    if (!this.currentProvider) {
+      throw new Error('未设置当前提供商');
+    }
+
+    const config = this.models[this.currentProvider];
+    if (!config.enabled || !config.apiKey) {
+      throw new Error(`提供商 ${this.currentProvider} 未启用或缺少 API 密钥`);
+    }
+
+    try {
+      // 获取迭代优化模板
+      const template = await promptManager.getTemplate('iterate');
+      
+      // 构建消息
+      const messages = [
+        { role: 'system', content: template.template },
+        { role: 'user', content: `原始提示词：\n${originalPrompt}\n\n优化需求：\n${iterateInput}` }
+      ];
+
+      // 构建请求配置
+      const requestConfig = buildRequestConfig(
+        this.currentProvider,
+        config.defaultModel,
+        config.apiKey,
+        messages
+      );
+
+      // 发送请求
+      const response = await fetch(requestConfig.url, {
+        method: 'POST',
+        headers: requestConfig.headers,
+        body: JSON.stringify(requestConfig.body)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          `HTTP error! status: ${response.status}\n` +
+          `Details: ${errorData ? JSON.stringify(errorData) : '无错误详情'}`
+        );
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
+    } catch (error) {
+      console.error('迭代优化失败:', error);
+      throw error;
+    }
+  }
+
   // 发送聊天消息
   async sendMessage(messages) {
     if (!this.currentProvider) {

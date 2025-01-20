@@ -125,23 +125,52 @@ class PromptManager {
       const historyStr = localStorage.getItem('promptHistory');
       return historyStr ? JSON.parse(historyStr) : [];
     } catch (error) {
-      console.error('Failed to get history:', error);
+      console.error('获取历史记录失败:', error);
       return [];
     }
   }
 
   // 添加到历史记录
-  addToHistory(prompt, result) {
+  addToHistory(prompt, result, type = 'optimize', parentId = null) {
     try {
       const history = this.getHistory();
-      history.unshift({
+      const newRecord = {
+        id: Date.now().toString(),
         prompt,
         result,
+        type,
+        parentId,
         timestamp: Date.now()
-      });
+      };
+      
+      history.unshift(newRecord);
       localStorage.setItem('promptHistory', JSON.stringify(history.slice(0, 50))); // 只保留最近50条记录
+      return newRecord;
     } catch (error) {
-      console.error('Failed to add to history:', error);
+      console.error('添加历史记录失败:', error);
+      throw error;
+    }
+  }
+
+  // 获取迭代链
+  getIterationChain(recordId) {
+    try {
+      const history = this.getHistory();
+      const chain = [];
+      let currentId = recordId;
+
+      while (currentId) {
+        const record = history.find(h => h.id === currentId);
+        if (!record) break;
+        
+        chain.unshift(record);
+        currentId = record.parentId;
+      }
+
+      return chain;
+    } catch (error) {
+      console.error('获取迭代链失败:', error);
+      return [];
     }
   }
 
@@ -150,7 +179,8 @@ class PromptManager {
     try {
       localStorage.removeItem('promptHistory');
     } catch (error) {
-      console.error('Failed to clear history:', error);
+      console.error('清除历史记录失败:', error);
+      throw error;
     }
   }
 }

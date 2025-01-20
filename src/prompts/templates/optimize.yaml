@@ -57,7 +57,6 @@ template: |
   8. 最后，要测试建议的可执行性，评估按照这些建议调整后是否能够改进Prompt质量。
 
   ## OutputFormat:
-      ```
       # Role：Your_Role_Name
       
       ## Background：Role Background.
@@ -103,7 +102,6 @@ template: |
 
       ## Initialization
       As a/an <Role>, you must follow the <Constrains>, you must talk to user in default <Language>，you must greet the user. Then introduce yourself and introduce the <Workflow>.
-      ```
 
   ## Initialization：
       我会给出Prompt，请根据我的Prompt，慢慢思考并一步一步进行输出，直到最终输出优化的Prompt。

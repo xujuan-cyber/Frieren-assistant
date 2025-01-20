@@ -5,6 +5,22 @@ import App from '../../src/App.vue'
 import { llmService } from '../../src/services/llm'
 import { promptManager } from '../../src/services/promptManager'
 
+// Mock toast functions
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
+const mockInfo = vi.fn()
+const mockWarning = vi.fn()
+
+// Mock useToast
+vi.mock('../../src/composables/useToast', () => ({
+  useToast: () => ({
+    success: mockSuccess,
+    error: mockError,
+    info: mockInfo,
+    warning: mockWarning
+  })
+}))
+
 // Mock services
 vi.mock('../../src/services/llm', () => ({
   llmService: {
@@ -52,6 +68,10 @@ describe('App.vue', () => {
   beforeEach(() => {
     // 重置 mocks
     vi.clearAllMocks()
+    mockSuccess.mockClear()
+    mockError.mockClear()
+    mockInfo.mockClear()
+    mockWarning.mockClear()
     
     wrapper = mount(App, {
       global: {
@@ -112,7 +132,7 @@ describe('App.vue', () => {
       expect(wrapper.vm.optimizedPrompt).toBe(optimizedPrompt)
       
       // 验证历史记录添加
-      expect(promptManager.addToHistory).toHaveBeenCalledWith(testPrompt, optimizedPrompt)
+      expect(promptManager.addToHistory).toHaveBeenCalledWith(testPrompt, optimizedPrompt, 'optimize')
     })
 
     it('应该处理优化失败的情况', async () => {
