@@ -6,10 +6,9 @@
       <button
         v-if="result"
         @click="copyResult"
-        class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
+        class="px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-all transform hover:scale-105 flex items-center space-x-2"
       >
-        <span>📋</span>
-        <span class="hidden sm:inline">复制</span>
+        <span>复制</span>
       </button>
     </div>
 
@@ -37,9 +36,9 @@
       <textarea
         v-else
         :value="result"
+        @input="$emit('update:result', $event.target.value)"
         class="absolute inset-0 w-full h-full p-4 rounded-xl bg-black/20 border border-purple-600/50 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-white placeholder-gray-500 resize-none"
         placeholder="测试结果将显示在这里..."
-        readonly
       ></textarea>
     </div>
   </div>
@@ -47,6 +46,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useToast } from '../composables/useToast'
+
+const toast = useToast()
 
 // 定义props
 const props = defineProps({
@@ -64,15 +66,30 @@ const props = defineProps({
   }
 })
 
+// 定义事件
+const emit = defineEmits(['update:result'])
+
 // 复制结果
 const copyResult = async () => {
   if (props.result) {
     try {
       await navigator.clipboard.writeText(props.result)
-      // TODO: 显示复制成功提示
+      toast.success('复制成功')
     } catch (err) {
-      // TODO: 显示复制失败提示
+      toast.error('复制失败')
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+textarea {
+  /* 隐藏滚动条但保持可滚动 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+</style> 
