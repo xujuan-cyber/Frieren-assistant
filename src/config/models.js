@@ -23,6 +23,13 @@ export const DEFAULT_MODELS = {
     defaultModel: 'deepseek-chat',
     envKey: 'VITE_DEEPSEEK_API_KEY',
     enabled: false
+  },
+  test: {
+    name: 'Test Model',
+    baseUrl: 'https://test.api/chat/completions',
+    models: ['test-model'],
+    defaultModel: 'test-model',
+    enabled: true // 测试模型默认启用
   }
 };
 
@@ -66,9 +73,13 @@ export function buildRequestConfig(provider, model, apiKey, messages) {
   if (!config) throw new Error(`未知的提供商: ${provider}`);
 
   const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + apiKey
+    'Content-Type': 'application/json'
   };
+
+  // 如果提供了 apiKey 或模型配置中有 apiKey，则添加认证头
+  if (apiKey || config.apiKey) {
+    headers['Authorization'] = 'Bearer ' + (apiKey || config.apiKey);
+  }
 
   return {
     url: config.baseUrl,

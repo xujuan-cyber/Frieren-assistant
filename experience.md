@@ -432,3 +432,336 @@ beforeEach(() => {
 1. 在 `beforeEach` 中使用 `vi.clearAllMocks()`
 2. 使用 `mockReset` 或 `mockRestore` 重置特定的 mock
 3. 避免在测试套件级别共享可变的 mock 状态
+
+### 2024-03-22 模型选择状态同步
+1. 问题描述
+   - UI选择的模型与服务实际使用的模型不同步
+   - 导致请求使用了错误的模型
+
+2. 解决方案
+   - 在模型选择变更时同步更新服务状态
+   - 在初始化时确保正确设置provider
+   - 添加专门的状态同步处理函数
+
+3. 最佳实践
+   - UI状态变更时及时同步到服务层
+   - 关键状态需要在所有相关组件间保持一致
+   - 初始化时注意检查并同步所有相关状态
+   - 使用专门的处理函数管理状态更新
+
+4. 代码实现
+   ```js
+   // 模型选择更新处理
+   const handleModelChange = (model) => {
+     selectedModel.value = model
+     llmService.setProvider(model)
+   }
+   
+   // 初始化时同步状态
+   if (defaultModel) {
+     selectedModel.value = defaultModel
+     llmService.setProvider(defaultModel)
+   }
+   ```
+
+### 2024-03-22 组件状态独立性
+1. 问题描述
+   - 不同功能区域共享同一个数据源导致状态混乱
+   - 组件属性配置不完整导致功能失效
+
+2. 解决方案
+   - 为不同功能区域使用独立的数据源
+   - 确保组件所需的所有必要属性都已配置
+   - 使用正确的状态变量和事件处理器
+
+3. 最佳实践
+   - 避免不相关组件共享状态
+   - 组件属性要完整配置
+   - 使用清晰的命名区分不同区域的状态
+   - 保持状态的独立性和隔离性
+
+4. 代码示例
+   ```vue
+   <!-- 错误示例：共享状态 -->
+   <InputPanel v-model="sharedContent" />
+   <InputPanel v-model="sharedContent" />
+
+   <!-- 正确示例：独立状态 -->
+   <InputPanel v-model="promptContent" />
+   <InputPanel v-model="testContent" />
+   ```
+
+### 2024-03-22 API调用架构改进
+1. 问题描述
+   - 使用全局 currentProvider 导致状态管理复杂
+   - 模型切换需要同步多处状态
+   - 不够灵活，难以支持多模型并行使用
+
+2. 解决方案
+   - 移除全局 currentProvider
+   - 每次API调用时直接传入要使用的模型
+   - 简化状态管理，减少同步需求
+
+3. 最佳实践
+   - API调用时显式指定使用的模型
+   - 避免使用全局状态存储当前模型
+   - 保持服务层的无状态性
+   - 状态管理由调用方负责
+
+4. 代码示例
+   ```js
+   // 改进前：依赖全局状态
+   class LLMService {
+     async sendMessage(messages) {
+       const config = this.models[this.currentProvider];
+       // ...
+     }
+   }
+
+   // 改进后：显式传入模型
+   class LLMService {
+     async sendMessage(messages, model) {
+       const config = this.models[model];
+       // ...
+     }
+   }
+   ```
+
+5. 优势
+   - 代码更清晰，依赖关系明确
+   - 更容易测试，不需要管理全局状态
+   - 支持不同组件使用不同模型
+   - 减少状态同步错误
+
+# 开发经验总结
+
+## 2024-03-22 测试架构改进
+
+### 问题描述
+在重构 LLM 服务架构后，测试用例出现了多个问题：
+1. 测试用例仍在使用已移除的 `setApiKey` 和 `setProvider` 方法
+2. 测试提供商未在系统中注册，导致"未知的提供商"错误
+3. 环境变量处理方式不够优雅
+
+### 解决方案
+1. 架构调整：
+   - 添加测试提供商到 `DEFAULT_MODELS` 配置中
+   - 改进 `buildRequestConfig` 函数以更灵活地处理 API 密钥
+
+2. 测试用例改进：
+   - 移除对已废弃方法的依赖
+   - 使用 `updateModelConfig` 统一管理配置
+   - 在 API 调用时直接传递提供商参数
+   - 优化环境变量检查的处理方式
+
+### 代码示例
+```javascript
+// 1. 添加测试提供商配置
+export const DEFAULT_MODELS = {
+  // ... 其他提供商配置 ...
+  test: {
+    name: 'Test Model',
+    baseUrl: 'https://test.api/chat/completions',
+    models: ['test-model'],
+    defaultModel: 'test-model',
+    enabled: true // 测试模型默认启用
+  }
+};
+
+// 2. 改进 buildRequestConfig 函数
+export function buildRequestConfig(provider, model, apiKey, messages) {
+  const config = DEFAULT_MODELS[provider];
+  if (!config) throw new Error(`未知的提供商: ${provider}`);
+
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+
+  // 灵活处理 API 密钥
+  if (apiKey || config.apiKey) {
+    headers['Authorization'] = 'Bearer ' + (apiKey || config.apiKey);
+  }
+
+  return {
+    url: config.baseUrl,
+    headers,
+    body: {
+      model: model || config.defaultModel,
+      messages,
+      temperature: 0.7,
+      max_tokens: 2000
+    }
+  };
+}
+
+// 3. 测试用例改进示例
+describe('API 测试', () => {
+  beforeEach(() => {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      console.log('跳过测试：未设置 API_KEY 环境变量');
+      return;
+    }
+    
+    // 使用 updateModelConfig 更新配置
+    llmService.updateModelConfig(provider, { apiKey });
+  });
+
+  it('测试用例', async () => {
+    // 直接传递提供商参数
+    const response = await llmService.sendMessage(messages, provider);
+    expect(response).toBeDefined();
+  });
+});
+```
+
+### 最佳实践
+1. 配置管理：
+   - 将所有提供商配置集中在一处管理
+   - 为测试场景预留专门的提供商配置
+   - 使用统一的配置更新机制
+
+2. 测试用例编写：
+   - 避免在测试中使用已废弃的方法
+   - 优雅处理环境变量依赖
+   - 使用清晰的跳过测试提示
+   - 保持测试用例的独立性
+
+3. API 调用：
+   - 直接传递必要参数，避免依赖全局状态
+   - 灵活处理配置项，支持多种使用场景
+   - 提供清晰的错误提示
+
+### 收获
+1. 测试架构应该随着主架构的演进而更新
+2. 好的测试设计可以帮助发现架构中的问题
+3. 环境变量处理需要在便利性和健壮性之间找到平衡
+4. 统一的配置管理可以简化测试用例的编写和维护
+
+## 2024-03-22 Vite环境变量处理
+
+### 问题描述
+在集成测试中遇到环境变量读取问题：
+1. 测试用例使用 `process.env` 读取环境变量
+2. 实际环境变量是以 `VITE_` 前缀定义的
+3. 导致测试无法正确读取环境变量而被跳过
+
+### 解决方案
+1. 在 Vite 项目中使用 `import.meta.env` 读取环境变量
+2. 确保环境变量名称包含 `VITE_` 前缀
+3. 更新测试用例以匹配正确的环境变量访问方式
+
+### 代码示例
+```javascript
+// 错误示例：使用 process.env
+const apiKey = process.env.GEMINI_API_KEY;
+
+// 正确示例：使用 import.meta.env
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+```
+
+### 最佳实践
+1. 环境变量命名：
+   - Vite 项目中使用 `VITE_` 前缀
+   - 使用大写字母和下划线
+   - 名称要清晰表达用途
+
+2. 环境变量访问：
+   - 在 Vite 项目中统一使用 `import.meta.env`
+   - 避免使用 `process.env`
+   - 注意开发环境和生产环境的差异
+
+3. 测试用例编写：
+   - 正确处理环境变量依赖
+   - 提供清晰的跳过测试提示
+   - 验证环境变量存在性
+
+### 收获
+1. Vite 项目有其特定的环境变量处理方式
+2. 需要注意开发框架的特性和约定
+3. 统一的环境变量访问方式有助于代码维护
+4. 清晰的错误提示有助于问题诊断
+
+## 2024-03-22 组件状态同步
+
+### 问题描述
+在模型设置界面修改模型名称后，模型下拉选择框没有立即更新，需要页面刷新才能看到更改。这是由于：
+1. 组件间状态同步不完整
+2. 事件处理机制未正确实现
+3. 模型更新后的状态检查不够完善
+
+### 解决方案
+1. 事件通信：
+   - 子组件触发 `modelsUpdated` 事件
+   - 父组件监听并处理更新事件
+   - 确保所有模型操作后都触发更新
+
+2. 状态更新：
+   - 重新加载模型列表
+   - 检查当前选择的模型是否有效
+   - 必要时更新为默认模型
+
+### 代码示例
+```vue
+<!-- 父组件 -->
+<template>
+  <ModelManager
+    @modelsUpdated="loadModels"
+  />
+</template>
+
+<script setup>
+const loadModels = async () => {
+  models.value = llmService.getAllModels()
+  
+  // 设置默认模型
+  const defaultModel = enabledModels.value[0]?.key
+  if (defaultModel) {
+    // 检查当前选择的模型是否有效
+    if (!enabledModels.value.find(m => m.key === currentModel.value)) {
+      currentModel.value = defaultModel
+    }
+  }
+}
+</script>
+
+<!-- 子组件 -->
+<script setup>
+const emit = defineEmits(['modelsUpdated'])
+
+const updateModel = () => {
+  // 更新模型配置
+  llmService.updateModelConfig(...)
+  
+  // 触发更新事件
+  loadModels()
+}
+
+const loadModels = () => {
+  models.value = llmService.getAllModels()
+  emit('modelsUpdated', models.value)
+}
+</script>
+```
+
+### 最佳实践
+1. 组件通信：
+   - 使用事件机制进行组件间通信
+   - 明确定义事件名称和参数
+   - 确保事件在适当时机触发
+
+2. 状态管理：
+   - 集中管理共享状态
+   - 及时更新相关组件状态
+   - 处理无效状态的情况
+
+3. 数据校验：
+   - 检查数据有效性
+   - 提供合理的默认值
+   - 处理异常情况
+
+### 收获
+1. 组件间的状态同步需要特别注意
+2. 事件机制是组件通信的重要方式
+3. 状态更新后需要进行有效性检查
+4. 提供良好的用户体验需要及时的状态更新

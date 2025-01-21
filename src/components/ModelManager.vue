@@ -250,6 +250,7 @@ const enableModel = async (key) => {
   try {
     llmService.enableModel(key);
     loadModels();
+    toast.success('模型已启用');
   } catch (error) {
     console.error('启用模型失败:', error);
     toast.error(`启用模型失败: ${error.message}`);
@@ -261,6 +262,7 @@ const disableModel = async (key) => {
   try {
     llmService.disableModel(key);
     loadModels();
+    toast.success('模型已禁用');
   } catch (error) {
     console.error('禁用模型失败:', error);
     toast.error(`禁用模型失败: ${error.message}`);
@@ -280,7 +282,7 @@ const addCustomModel = () => {
 
     llmService.addCustomModel(newModel.value.key, config);
     loadModels();
-
+    
     // 重置表单
     newModel.value = {
       key: '',
@@ -289,7 +291,8 @@ const addCustomModel = () => {
       defaultModel: '',
       apiKey: ''
     };
-    toast.success('模型添加成功');
+    
+    toast.success('模型已添加');
   } catch (error) {
     console.error('添加模型失败:', error);
     toast.error(`添加模型失败: ${error.message}`);

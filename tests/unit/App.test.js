@@ -25,11 +25,11 @@ vi.mock('../../src/composables/useToast', () => ({
 vi.mock('../../src/services/llm', () => ({
   llmService: {
     getAllModels: vi.fn(() => [
-      { key: 'gemini', name: 'Google Gemini', enabled: true }
+      { key: 'test', name: 'Test Model', model: 'test-model', enabled: true }
     ]),
-    optimizePrompt: vi.fn(),
-    iteratePrompt: vi.fn(),
-    sendMessage: vi.fn()
+    optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
+    iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt')),
+    sendMessage: vi.fn(() => Promise.resolve('Test response'))
   }
 }))
 
@@ -104,6 +104,12 @@ describe('App.vue', () => {
       expect(wrapper.findComponent({ name: 'PromptPanel' }).exists()).toBe(true)
       expect(wrapper.findComponent({ name: 'OutputPanel' }).exists()).toBe(true)
     })
+
+    it('应该正确初始化', async () => {
+      expect(wrapper.vm.models.length).toBe(1)
+      expect(wrapper.vm.optimizeModel).toBe('test')
+      expect(wrapper.vm.selectedModel).toBe('test')
+    })
   })
 
   describe('提示词优化功能', () => {
@@ -127,7 +133,7 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证服务调用
-      expect(llmService.optimizePrompt).toHaveBeenCalledWith(testPrompt, 'optimize')
+      expect(llmService.optimizePrompt).toHaveBeenCalledWith(testPrompt, 'optimize', 'test')
       
       // 验证结果更新
       expect(wrapper.vm.optimizedPrompt).toBe(optimizedPrompt)
@@ -185,10 +191,13 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证服务调用
-      expect(llmService.sendMessage).toHaveBeenCalledWith([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: testContent }
-      ])
+      expect(llmService.sendMessage).toHaveBeenCalledWith(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: testContent }
+        ],
+        'test'
+      )
       
       // 验证结果更新
       expect(wrapper.vm.testResult).toBe(testResult)
@@ -218,10 +227,13 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证服务调用使用了原始提示词
-      expect(llmService.sendMessage).toHaveBeenCalledWith([
-        { role: 'system', content: originalPrompt },
-        { role: 'user', content: testContent }
-      ])
+      expect(llmService.sendMessage).toHaveBeenCalledWith(
+        [
+          { role: 'system', content: originalPrompt },
+          { role: 'user', content: testContent }
+        ],
+        'test'
+      )
     })
 
     it('应该处理测试失败的情况', async () => {

@@ -19,62 +19,59 @@ describe('LLM 服务通用测试', () => {
   describe('API 调用错误处理', () => {
     it('应该能正确处理无效的 API 密钥', async () => {
       // 添加测试模型
-      llmService.addCustomModel('test', {
+      const testModel = 'test';
+      llmService.addCustomModel(testModel, {
         name: 'Test Model',
         baseUrl: 'https://test.api/chat/completions',
         models: ['test-model'],
-        defaultModel: 'test-model'
+        defaultModel: 'test-model',
+        apiKey: 'invalid-key'
       });
-
-      llmService.setApiKey('test', 'invalid-key');
-      llmService.setProvider('test');
 
       const messages = [
         { role: 'user', content: '测试消息' }
       ];
 
-      await expect(llmService.sendMessage(messages))
+      await expect(llmService.sendMessage(messages, testModel))
         .rejects
         .toThrow();
     });
 
     it('应该能正确处理无效的 baseURL', async () => {
       // 添加测试模型
-      llmService.addCustomModel('test', {
+      const testModel = 'test';
+      llmService.addCustomModel(testModel, {
         name: 'Test Model',
         baseUrl: 'https://invalid.api/chat/completions',
         models: ['test-model'],
-        defaultModel: 'test-model'
+        defaultModel: 'test-model',
+        apiKey: 'test-key'
       });
-
-      llmService.setApiKey('test', 'test-key');
-      llmService.setProvider('test');
 
       const messages = [
         { role: 'user', content: '测试消息' }
       ];
 
-      await expect(llmService.sendMessage(messages))
+      await expect(llmService.sendMessage(messages, testModel))
         .rejects
         .toThrow();
     });
 
     it('应该能正确处理无效的消息格式', async () => {
       // 添加测试模型
-      llmService.addCustomModel('test', {
+      const testModel = 'test';
+      llmService.addCustomModel(testModel, {
         name: 'Test Model',
         baseUrl: 'https://test.api/chat/completions',
         models: ['test-model'],
-        defaultModel: 'test-model'
+        defaultModel: 'test-model',
+        apiKey: 'test-key'
       });
-
-      llmService.setApiKey('test', 'test-key');
-      llmService.setProvider('test');
 
       // 测试无效的消息格式
       await expect(llmService.sendMessage([
         { role: 'invalid', content: '测试消息' }
-      ]))
+      ], testModel))
         .rejects
         .toThrow();
     });
@@ -83,6 +80,7 @@ describe('LLM 服务通用测试', () => {
   describe('配置管理', () => {
     it('应该能正确处理模型配置更新', () => {
       // 添加测试模型
+      const testModel = 'test';
       const config = {
         name: 'Test Model',
         baseUrl: 'https://test.api/chat/completions',
@@ -90,8 +88,8 @@ describe('LLM 服务通用测试', () => {
         defaultModel: 'test-model'
       };
 
-      llmService.addCustomModel('test', config);
-      expect(llmService.getModel('test')).toBeDefined();
+      llmService.addCustomModel(testModel, config);
+      expect(llmService.getModel(testModel)).toBeDefined();
 
       // 更新配置
       const newConfig = {
@@ -99,8 +97,8 @@ describe('LLM 服务通用测试', () => {
         baseUrl: 'https://updated.api/chat/completions'
       };
 
-      llmService.updateModelConfig('test', newConfig);
-      const updatedModel = llmService.getModel('test');
+      llmService.updateModelConfig(testModel, newConfig);
+      const updatedModel = llmService.getModel(testModel);
       expect(updatedModel.name).toBe(newConfig.name);
       expect(updatedModel.baseUrl).toBe(newConfig.baseUrl);
     });

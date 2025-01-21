@@ -102,6 +102,7 @@
       <ModelManager
         v-if="showConfig"
         @close="showConfig = false"
+        @modelsUpdated="loadModels"
       />
     </Teleport>
 
@@ -119,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { llmService } from './services/llm'
 import { promptManager } from './services/promptManager'
 import ModelManager from './components/ModelManager.vue'
@@ -161,8 +162,13 @@ const loadModels = async () => {
   // 设置默认模型
   const defaultModel = enabledModels.value[0]?.key
   if (defaultModel) {
-    optimizeModel.value = defaultModel
-    selectedModel.value = defaultModel
+    // 如果当前选择的模型不在启用列表中，则更新为默认模型
+    if (!enabledModels.value.find(m => m.key === optimizeModel.value)) {
+      optimizeModel.value = defaultModel
+    }
+    if (!enabledModels.value.find(m => m.key === selectedModel.value)) {
+      selectedModel.value = defaultModel
+    }
   }
 }
 
@@ -171,10 +177,9 @@ const handleOptimizePrompt = async () => {
   
   isOptimizing.value = true
   try {
-    const result = await llmService.optimizePrompt(prompt.value, 'optimize')
+    const result = await llmService.optimizePrompt(prompt.value, 'optimize', optimizeModel.value)
     optimizedPrompt.value = result
     promptManager.addToHistory(prompt.value, result, 'optimize')
-    // 更新历史记录
     history.value = promptManager.getHistory()
     toast.success('优化成功')
   } catch (error) {
@@ -190,7 +195,7 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
 
   isIterating.value = true
   try {
-    const result = await llmService.iteratePrompt(originalPrompt, iterateInput)
+    const result = await llmService.iteratePrompt(originalPrompt, iterateInput, optimizeModel.value)
     optimizedPrompt.value = result
     
     // 获取最近的历史记录作为父记录
@@ -205,7 +210,6 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
       parentRecord?.id
     )
     
-    // 更新历史记录
     history.value = promptManager.getHistory()
     toast.success('迭代优化成功')
   } catch (error) {
@@ -226,7 +230,7 @@ const handleTest = async () => {
       { role: 'system', content: optimizedPrompt.value || prompt.value },
       { role: 'user', content: testContent.value }
     ]
-    testResult.value = await llmService.sendMessage(messages)
+    testResult.value = await llmService.sendMessage(messages, selectedModel.value)
   } catch (err) {
     testError.value = '测试失败：' + err.message
   } finally {
