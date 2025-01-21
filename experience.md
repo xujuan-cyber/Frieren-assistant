@@ -261,3 +261,174 @@ beforeEach(() => {
 - 使用清晰的命名约定
 - 将复杂逻辑抽取到 composable 中
 - 保持组件的单一职责
+
+## 数据结构一致性
+
+### 1. 命名规范
+- 在整个应用中保持一致的数据结构命名
+- 修改数据结构时需要同步更新所有相关组件
+- 使用TypeScript类型定义避免命名不一致
+
+### 2. 最佳实践
+1. 数据接口定义
+   ```typescript
+   // 集中定义数据接口
+   interface HistoryRecord {
+     id: string
+     prompt: string
+     result: string
+     type: 'optimize' | 'iterate'
+     parentId: string | null
+     timestamp: number
+   }
+   ```
+
+2. 组件通信
+   - 明确定义props和emit的数据格式
+   - 使用TypeScript类型检查
+   - 添加运行时验证
+
+3. 数据转换
+   - 在数据层统一处理格式转换
+   - 避免在组件中直接修改数据结构
+   - 提供清晰的数据转换方法
+
+### 3. 常见问题
+1. 数据结构不一致
+   - 症状：组件显示空白或功能失效
+   - 原因：属性名不匹配
+   - 解决：统一命名规范，添加类型检查
+
+2. 数据转换错误
+   - 症状：数据显示异常
+   - 原因：格式转换逻辑错误
+   - 解决：集中管理数据转换逻辑
+
+### 4. 测试策略
+1. 单元测试
+   - 测试数据结构的完整性
+   - 验证数据转换方法
+   - 检查边界情况
+
+2. 集成测试
+   - 测试组件间的数据传递
+   - 验证状态管理
+   - 测试用户交互流程
+
+## Vue响应式数据更新
+
+### 1. 响应式数据同步
+- 在数据变更后立即更新响应式引用
+- 避免依赖页面刷新更新数据
+- 确保UI状态与数据状态同步
+
+### 2. 最佳实践
+1. 数据更新时机
+   ```javascript
+   // 正确的做法：立即更新响应式数据
+   const handleAction = async () => {
+     try {
+       const result = await someAction()
+       // 立即更新响应式数据
+       data.value = result
+       // 更新相关状态
+       relatedData.value = promptManager.getRelatedData()
+     } catch (error) {
+       console.error(error)
+     }
+   }
+   ```
+
+2. 组件通信
+   - 使用props传递数据时确保父组件数据更新
+   - 子组件emit事件后更新相关状态
+   - 考虑使用computed处理派生状态
+
+3. 状态管理
+   - 集中管理共享状态
+   - 提供清晰的状态更新方法
+   - 保持状态更新的一致性
+
+### 3. 常见问题
+1. 数据更新不及时
+   - 症状：UI不能实时反映数据变化
+   - 原因：没有及时更新响应式引用
+   - 解决：在数据变更后立即更新
+
+2. 状态不同步
+   - 症状：组件间数据不一致
+   - 原因：更新不完整或时机不对
+   - 解决：确保所有相关状态同步更新
+
+### 4. 调试技巧
+1. Vue Devtools
+   - 监控组件状态变化
+   - 追踪数据流转过程
+   - 验证更新是否生效
+
+2. 响应式调试
+   - 使用watchEffect跟踪依赖
+   - 检查响应式引用是否正确
+   - 验证计算属性的依赖关系
+
+# Vue 测试经验总结
+
+## 1. 测试框架选择
+- 使用 Vitest 而不是 Jest 时，需要使用 `vi` 而不是 `jest` API
+- 常见的替换：
+  - `jest.clearAllMocks()` -> `vi.clearAllMocks()`
+  - `jest.spyOn()` -> `vi.spyOn()`
+  - `jest.fn()` -> `vi.fn()`
+
+## 2. Vue 组件测试注意事项
+### 2.1 数据修改
+- 使用 `setData` 可能会遇到对象不可扩展的问题
+- 推荐直接通过 `wrapper.vm` 修改数据，并使用 `nextTick` 等待更新：
+  ```js
+  // 不推荐
+  await wrapper.setData({ prop: value })
+  
+  // 推荐
+  wrapper.vm.prop = value
+  await nextTick()
+  ```
+
+### 2.2 事件处理
+- 异步事件处理需要使用 `await`
+- 验证事件处理结果时，应该等待所有异步操作完成
+
+### 2.3 Mock 使用
+- 在 `beforeEach` 中重置所有 mock
+- 使用 `mockResolvedValue` 和 `mockRejectedValue` 模拟异步操作
+- 使用 `mockReturnValue` 模拟同步操作
+- 使用 `mockImplementation` 自定义复杂的 mock 行为
+
+### 2.4 断言最佳实践
+- 验证函数调用时，使用 `toHaveBeenCalledWith` 检查参数
+- 验证函数是否被调用，使用 `toHaveBeenCalled` 或 `not.toHaveBeenCalled`
+- 验证异步操作后的状态变化，记得等待 `nextTick`
+
+## 3. 常见问题及解决方案
+### 3.1 对象不可扩展
+**问题**：使用 `setData` 时遇到 "Cannot add property, object is not extensible" 错误
+**原因**：Vue 3 的响应式系统使用 Proxy，某些对象可能被设置为不可扩展
+**解决方案**：
+1. 直接通过 `wrapper.vm` 修改数据
+2. 使用 `nextTick` 等待更新
+3. 确保数据结构在组件中已经定义
+
+### 3.2 异步操作处理
+**问题**：测试异步操作时结果不符合预期
+**原因**：没有正确等待异步操作完成
+**解决方案**：
+1. 使用 `async/await` 处理所有异步操作
+2. 在状态变化后使用 `nextTick`
+3. 确保 mock 的异步操作返回 Promise
+
+### 3.3 Mock 状态残留
+**问题**：测试之间的 mock 状态互相影响
+**原因**：没有正确重置 mock 状态
+**解决方案**：
+1. 在 `beforeEach` 中使用 `vi.clearAllMocks()`
+2. 使用 `mockReset` 或 `mockRestore` 重置特定的 mock
+3. 避免在测试套件级别共享可变的 mock 状态

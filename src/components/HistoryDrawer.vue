@@ -31,13 +31,13 @@
             <div class="space-y-2">
               <div class="text-sm font-medium text-white/90">原始提示词：</div>
               <div class="text-sm text-white/70 bg-black/20 rounded-lg p-3 border border-purple-600/20">
-                {{ item.original }}
+                {{ item.prompt }}
               </div>
             </div>
             <div class="space-y-2">
               <div class="text-sm font-medium text-white/90">优化结果：</div>
               <div class="text-sm text-white/70 bg-black/20 rounded-lg p-3 border border-purple-600/20 whitespace-pre-wrap">
-                {{ item.optimized }}
+                {{ item.result }}
               </div>
             </div>
             <div class="flex justify-end">

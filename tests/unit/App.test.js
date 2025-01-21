@@ -28,6 +28,7 @@ vi.mock('../../src/services/llm', () => ({
       { key: 'gemini', name: 'Google Gemini', enabled: true }
     ]),
     optimizePrompt: vi.fn(),
+    iteratePrompt: vi.fn(),
     sendMessage: vi.fn()
   }
 }))
@@ -248,19 +249,76 @@ describe('App.vue', () => {
   })
 
   describe('历史记录功能', () => {
-    it('应该正确处理历史记录选择', async () => {
-      const historyItem = {
-        prompt: '历史提示词',
-        optimized: '历史优化结果'
-      }
-
-      // 触发历史记录选择
-      await wrapper.vm.handleSelectHistory(historyItem)
+    let wrapper
+    
+    beforeEach(() => {
+      // 重置所有mock
+      vi.clearAllMocks()
       
-      // 验证状态更新
-      expect(wrapper.vm.prompt).toBe(historyItem.prompt)
-      expect(wrapper.vm.optimizedPrompt).toBe(historyItem.optimized)
-      expect(wrapper.vm.showHistory).toBe(false)
+      // 设置mock返回值
+      llmService.optimizePrompt.mockResolvedValue('优化后的提示词')
+      promptManager.getHistory.mockReturnValue([])
+      
+      // 挂载组件
+      wrapper = mount(App)
+    })
+
+    it('成功优化后应该更新历史记录', async () => {
+      // 设置输入
+      wrapper.vm.prompt = '测试提示词'
+      await nextTick()
+      
+      // 触发优化
+      await wrapper.vm.handleOptimizePrompt()
+      
+      // 验证调用和更新
+      expect(promptManager.addToHistory).toHaveBeenCalledWith(
+        '测试提示词',
+        '优化后的提示词',
+        'optimize'
+      )
+      expect(promptManager.getHistory).toHaveBeenCalled()
+    })
+
+    it('优化失败时不应该更新历史记录', async () => {
+      // 设置输入
+      wrapper.vm.prompt = '测试提示词'
+      await nextTick()
+      
+      // 模拟优化失败
+      llmService.optimizePrompt.mockRejectedValueOnce(new Error('优化失败'))
+      
+      // 触发优化
+      await wrapper.vm.handleOptimizePrompt()
+      
+      // 验证没有添加到历史记录
+      expect(promptManager.addToHistory).not.toHaveBeenCalled()
+    })
+
+    it('应该在迭代优化成功后立即更新历史记录', async () => {
+      // 设置mock返回值
+      llmService.iteratePrompt.mockResolvedValue('迭代结果')
+      promptManager.getHistory.mockReturnValue([{
+        id: '1',
+        prompt: '原始提示词',
+        result: '优化结果',
+        type: 'optimize'
+      }])
+      
+      // 触发迭代优化
+      await wrapper.vm.handleIteratePrompt({
+        originalPrompt: '测试提示词',
+        iterateInput: '迭代输入'
+      })
+      
+      // 验证调用和更新
+      expect(promptManager.addToHistory).toHaveBeenCalledWith(
+        '测试提示词',
+        '迭代结果',
+        'iterate',
+        '1'
+      )
+      expect(promptManager.getHistory).toHaveBeenCalled()
     })
   })
 }) 

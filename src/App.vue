@@ -110,7 +110,7 @@
       :show="showHistory"
       :history="history"
       @close="showHistory = false"
-      @select="handleSelectHistory"
+      @reuse="handleSelectHistory"
     />
 
     <!-- 全局提示 -->
@@ -174,6 +174,8 @@ const handleOptimizePrompt = async () => {
     const result = await llmService.optimizePrompt(prompt.value, 'optimize')
     optimizedPrompt.value = result
     promptManager.addToHistory(prompt.value, result, 'optimize')
+    // 更新历史记录
+    history.value = promptManager.getHistory()
     toast.success('优化成功')
   } catch (error) {
     console.error('优化失败:', error)
@@ -192,8 +194,8 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
     optimizedPrompt.value = result
     
     // 获取最近的历史记录作为父记录
-    const history = promptManager.getHistory()
-    const parentRecord = history[0] // 最新的记录将是父记录
+    const historyRecords = promptManager.getHistory()
+    const parentRecord = historyRecords[0] // 最新的记录将是父记录
     
     // 添加到历史记录，类型为iterate，并设置父记录ID
     promptManager.addToHistory(
@@ -203,6 +205,8 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
       parentRecord?.id
     )
     
+    // 更新历史记录
+    history.value = promptManager.getHistory()
     toast.success('迭代优化成功')
   } catch (error) {
     console.error('迭代优化失败:', error)
@@ -241,7 +245,7 @@ const copyResult = async () => {
 
 const handleSelectHistory = (item) => {
   prompt.value = item.prompt
-  optimizedPrompt.value = item.optimized
+  optimizedPrompt.value = item.result
   showHistory.value = false
 }
 
