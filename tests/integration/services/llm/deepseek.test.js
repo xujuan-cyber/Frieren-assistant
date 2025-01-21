@@ -1,4 +1,5 @@
-import { LLMService } from '../../../../src/services/llm';
+import { createLLMService } from '../../../../src/services/llm/service';
+import { ModelManager } from '../../../../src/services/model/manager';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -9,55 +10,51 @@ beforeAll(() => {
 });
 
 describe('DeepSeek API 测试', () => {
-  let llmService;
-  const provider = 'deepseek';
-
-  beforeEach(() => {
-    localStorage.clear();
-    llmService = new LLMService();
-  });
+  // 跳过没有设置 API 密钥的测试
+  const apiKey = process.env.VITE_DEEPSEEK_API_KEY;
+  if (!apiKey) {
+    it.skip('应该能正确调用 DeepSeek API', () => {});
+    it.skip('应该能正确处理多轮对话', () => {});
+    return;
+  }
 
   it('应该能正确调用 DeepSeek API', async () => {
-    const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      console.log('跳过测试：未设置 VITE_DEEPSEEK_API_KEY 环境变量');
-      return;
-    }
-    
+    const modelManager = new ModelManager();
+    const llmService = createLLMService(modelManager);
+
     // 更新 DeepSeek 配置
-    llmService.updateModelConfig(provider, {
-      apiKey
+    modelManager.updateModel('deepseek', {
+      apiKey,
+      enabled: true
     });
 
     const messages = [
-      { role: 'user', content: '你好，请用中文回复我' }
+      { role: 'user', content: '你好，我们来玩个游戏' }
     ];
 
-    const response = await llmService.sendMessage(messages, provider);
+    const response = await llmService.sendMessage(messages, 'deepseek');
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
   });
 
   it('应该能正确处理多轮对话', async () => {
-    const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      console.log('跳过测试：未设置 VITE_DEEPSEEK_API_KEY 环境变量');
-      return;
-    }
-    
+    const modelManager = new ModelManager();
+    const llmService = createLLMService(modelManager);
+
     // 更新 DeepSeek 配置
-    llmService.updateModelConfig(provider, {
-      apiKey
+    modelManager.updateModel('deepseek', {
+      apiKey,
+      enabled: true
     });
 
     const messages = [
-      { role: 'user', content: '你好，请用中文回复我' },
-      { role: 'assistant', content: '你好！我是 AI 助手，很高兴为你服务。' },
-      { role: 'user', content: '请问你是谁？' }
+      { role: 'user', content: '你好，我们来玩个游戏' },
+      { role: 'assistant', content: '好啊，你想玩什么游戏？' },
+      { role: 'user', content: '我们来玩猜数字游戏，1到100之间' }
     ];
 
-    const response = await llmService.sendMessage(messages, provider);
+    const response = await llmService.sendMessage(messages, 'deepseek');
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);

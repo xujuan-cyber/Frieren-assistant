@@ -1,5 +1,6 @@
-import { LLMService } from '../../../../src/services/llm';
-import { expect, describe, it, beforeEach } from 'vitest';
+import { LLMService } from '../../../../src/services/llm/service';
+import { ModelManager } from '../../../../src/services/model/manager';
+import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -10,97 +11,161 @@ beforeAll(() => {
 
 describe('LLM 服务通用测试', () => {
   let llmService;
+  let modelManager;
 
   beforeEach(() => {
     localStorage.clear();
+    modelManager = new ModelManager();
     llmService = new LLMService();
   });
 
   describe('API 调用错误处理', () => {
     it('应该能正确处理无效的 API 密钥', async () => {
-      // 添加测试模型
       const testModel = 'test';
-      llmService.addCustomModel(testModel, {
+      modelManager.addModel(testModel, {
         name: 'Test Model',
-        baseUrl: 'https://test.api/chat/completions',
+        baseURL: 'https://test.api/chat/completions',
         models: ['test-model'],
         defaultModel: 'test-model',
-        apiKey: 'invalid-key'
+        apiKey: 'invalid-key',
+        enabled: true
       });
 
       const messages = [
-        { role: 'user', content: '测试消息' }
+        { role: 'user', content: '你好，我们来玩个游戏' }
       ];
 
-      await expect(llmService.sendMessage(messages, testModel))
+      const config = await llmService.buildRequestConfig(modelManager.getModel(testModel), messages);
+      await expect(llmService.sendRequest(config))
         .rejects
         .toThrow();
     });
 
     it('应该能正确处理无效的 baseURL', async () => {
-      // 添加测试模型
       const testModel = 'test';
-      llmService.addCustomModel(testModel, {
+      modelManager.addModel(testModel, {
         name: 'Test Model',
-        baseUrl: 'https://invalid.api/chat/completions',
+        baseURL: 'https://invalid.api/chat/completions',
         models: ['test-model'],
         defaultModel: 'test-model',
-        apiKey: 'test-key'
+        apiKey: 'test-key',
+        enabled: true
       });
 
       const messages = [
-        { role: 'user', content: '测试消息' }
+        { role: 'user', content: '你好，我们来玩个游戏' }
       ];
 
-      await expect(llmService.sendMessage(messages, testModel))
+      const config = await llmService.buildRequestConfig(modelManager.getModel(testModel), messages);
+      await expect(llmService.sendRequest(config))
         .rejects
         .toThrow();
     });
 
     it('应该能正确处理无效的消息格式', async () => {
-      // 添加测试模型
       const testModel = 'test';
-      llmService.addCustomModel(testModel, {
+      modelManager.addModel(testModel, {
         name: 'Test Model',
-        baseUrl: 'https://test.api/chat/completions',
+        baseURL: 'https://test.api/chat/completions',
         models: ['test-model'],
         defaultModel: 'test-model',
-        apiKey: 'test-key'
+        apiKey: 'test-key',
+        enabled: true
       });
 
-      // 测试无效的消息格式
-      await expect(llmService.sendMessage([
-        { role: 'invalid', content: '测试消息' }
-      ], testModel))
-        .rejects
-        .toThrow();
+      await expect(async () => {
+        const config = await llmService.buildRequestConfig(modelManager.getModel(testModel), [
+          { role: 'invalid', content: '测试消息' }
+        ]);
+        await llmService.sendRequest(config);
+      }).rejects.toThrow('无效的消息格式');
+    });
+
+    it('应该能正确处理未启用的模型', async () => {
+      const testModel = 'test';
+      modelManager.addModel(testModel, {
+        name: 'Test Model',
+        baseURL: 'https://test.api/chat/completions',
+        models: ['test-model'],
+        defaultModel: 'test-model',
+        apiKey: 'test-key',
+        enabled: false
+      });
+
+      const messages = [
+        { role: 'user', content: '你好，我们来玩个游戏' }
+      ];
+
+      await expect(async () => {
+        await llmService.buildRequestConfig(modelManager.getModel(testModel), messages);
+      }).rejects.toThrow('模型未启用');
+    });
+
+    it('应该能正确处理空消息列表', async () => {
+      const testModel = 'test';
+      modelManager.addModel(testModel, {
+        name: 'Test Model',
+        baseURL: 'https://test.api/chat/completions',
+        models: ['test-model'],
+        defaultModel: 'test-model',
+        apiKey: 'test-key',
+        enabled: true
+      });
+
+      await expect(async () => {
+        await llmService.buildRequestConfig(modelManager.getModel(testModel), []);
+      }).rejects.toThrow('消息列表不能为空');
     });
   });
 
   describe('配置管理', () => {
     it('应该能正确处理模型配置更新', () => {
-      // 添加测试模型
       const testModel = 'test';
       const config = {
         name: 'Test Model',
-        baseUrl: 'https://test.api/chat/completions',
+        baseURL: 'https://test.api/chat/completions',
         models: ['test-model'],
-        defaultModel: 'test-model'
+        defaultModel: 'test-model',
+        apiKey: 'test-key',
+        enabled: true
       };
 
-      llmService.addCustomModel(testModel, config);
-      expect(llmService.getModel(testModel)).toBeDefined();
+      modelManager.addModel(testModel, config);
+      expect(modelManager.getModel(testModel)).toBeDefined();
 
-      // 更新配置
       const newConfig = {
         name: 'Updated Model',
-        baseUrl: 'https://updated.api/chat/completions'
+        baseURL: 'https://updated.api/chat/completions'
       };
 
-      llmService.updateModelConfig(testModel, newConfig);
-      const updatedModel = llmService.getModel(testModel);
+      modelManager.updateModel(testModel, newConfig);
+      const updatedModel = modelManager.getModel(testModel);
       expect(updatedModel.name).toBe(newConfig.name);
-      expect(updatedModel.baseUrl).toBe(newConfig.baseUrl);
+      expect(updatedModel.baseURL).toBe(newConfig.baseURL);
+      expect(updatedModel.models).toEqual(config.models);
+      expect(updatedModel.defaultModel).toBe(config.defaultModel);
+      expect(updatedModel.enabled).toBe(config.enabled);
+    });
+
+    it('应该能正确处理模型的启用和禁用', () => {
+      const testModel = 'test';
+      const config = {
+        name: 'Test Model',
+        baseURL: 'https://test.api/chat/completions',
+        models: ['test-model'],
+        defaultModel: 'test-model',
+        apiKey: 'test-key',
+        enabled: true
+      };
+
+      modelManager.addModel(testModel, config);
+      expect(modelManager.getModel(testModel).enabled).toBe(true);
+
+      modelManager.updateModel(testModel, { enabled: false });
+      expect(modelManager.getModel(testModel).enabled).toBe(false);
+
+      modelManager.updateModel(testModel, { enabled: true });
+      expect(modelManager.getModel(testModel).enabled).toBe(true);
     });
   });
 }); 

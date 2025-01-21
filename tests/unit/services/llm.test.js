@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LLMService } from '../../../src/services/llm';
+import { LLMService } from '../../../src/services/llm/service';
+import { ModelManager } from '../../../src/services/model/manager';
+import { RequestConfigError } from '../../../src/services/llm/errors';
 
 // Mock fetch
 global.fetch = vi.fn(() =>
@@ -62,29 +64,37 @@ vi.mock('../../../src/config/models', () => ({
   })
 }));
 
+// Mock ModelManager
+vi.mock('../../../src/services/model/manager', () => {
+  const mockModel = {
+    name: 'Test Model',
+    baseURL: 'https://test.api/chat',
+    models: ['test-model'],
+    defaultModel: 'test-model',
+    enabled: true,
+    apiKey: 'test-api-key'
+  };
+
+  return {
+    ModelManager: vi.fn().mockImplementation(() => ({
+      getModel: vi.fn().mockReturnValue(mockModel),
+      updateModel: vi.fn(),
+      addModel: vi.fn(),
+      deleteModel: vi.fn()
+    }))
+  };
+});
+
 describe('LLMService', () => {
   let llmService;
+  let modelManager;
   const testProvider = 'test';
 
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    llmService = new LLMService();
-  });
-
-  describe('初始化和配置', () => {
-    it('应该正确初始化默认模型', () => {
-      expect(llmService.models).toBeDefined();
-      expect(llmService.models.test).toBeDefined();
-      expect(llmService.models.test.enabled).toBe(true);
-    });
-
-    it('应该正确获取所有模型', () => {
-      const models = llmService.getAllModels();
-      expect(models).toBeInstanceOf(Array);
-      expect(models[0]).toHaveProperty('key', 'test');
-      expect(models[0]).toHaveProperty('name', 'Test Model');
-    });
+    modelManager = new ModelManager();
+    llmService = new LLMService(modelManager);
   });
 
   describe('API 调用', () => {
@@ -93,6 +103,7 @@ describe('LLMService', () => {
       const response = await llmService.sendMessage(messages, testProvider);
       expect(response).toBe('Mock response');
       expect(fetch).toHaveBeenCalled();
+      expect(modelManager.getModel).toHaveBeenCalledWith(testProvider);
     });
 
     it('应该正确处理优化请求', async () => {
@@ -100,6 +111,7 @@ describe('LLMService', () => {
       const response = await llmService.optimizePrompt(prompt, 'optimize', testProvider);
       expect(response).toBe('Mock response');
       expect(fetch).toHaveBeenCalled();
+      expect(modelManager.getModel).toHaveBeenCalledWith(testProvider);
     });
 
     it('应该正确处理迭代请求', async () => {
@@ -108,65 +120,51 @@ describe('LLMService', () => {
       const response = await llmService.iteratePrompt(originalPrompt, iterateInput, testProvider);
       expect(response).toBe('Mock response');
       expect(fetch).toHaveBeenCalled();
+      expect(modelManager.getModel).toHaveBeenCalledWith(testProvider);
+    });
+
+    it('应该正确处理不存在的模型', async () => {
+      modelManager.getModel.mockReturnValueOnce(undefined);
+      await expect(llmService.sendMessage([], testProvider))
+        .rejects
+        .toThrow(`模型 ${testProvider} 不存在`);
     });
 
     it('应该正确处理未启用的模型', async () => {
-      llmService.disableModel(testProvider);
+      modelManager.getModel.mockReturnValueOnce({
+        ...modelManager.getModel(),
+        enabled: false
+      });
       await expect(llmService.sendMessage([], testProvider))
         .rejects
-        .toThrow(`模型 ${testProvider} 未启用`);
-    });
-  });
-
-  describe('模型管理', () => {
-    it('应该正确处理模型的启用和禁用', () => {
-      llmService.disableModel(testProvider);
-      expect(llmService.models[testProvider].enabled).toBe(false);
-
-      llmService.enableModel(testProvider);
-      expect(llmService.models[testProvider].enabled).toBe(true);
+        .toThrow('模型未启用');
     });
 
-    it('应该正确处理自定义模型的添加', () => {
-      const validConfig = {
-        name: 'Custom Model',
-        baseUrl: 'https://api.custom.com/chat',
-        models: ['custom-model'],
-        defaultModel: 'custom-model'
-      };
-      llmService.addCustomModel('custom', validConfig);
-      expect(llmService.models.custom).toBeDefined();
-      expect(llmService.models.custom.enabled).toBe(true);
-
-      expect(() => llmService.addCustomModel('invalid', { name: 'Invalid' }))
-        .toThrow('无效的模型配置');
+    it('应该正确处理空消息列表', async () => {
+      await expect(llmService.sendMessage([], testProvider))
+        .rejects
+        .toThrow('消息列表不能为空');
     });
 
-    it('应该正确处理模型配置的更新', () => {
-      const updatedConfig = { name: 'Updated Model' };
-      llmService.updateModelConfig(testProvider, updatedConfig);
-      expect(llmService.models[testProvider].name).toBe(updatedConfig.name);
-
-      expect(() => llmService.updateModelConfig('invalid', {}))
-        .toThrow('未知的模型: invalid');
+    it('应该正确处理无效的消息格式', async () => {
+      const invalidMessages = [{ role: 'invalid', content: 'test' }];
+      await expect(llmService.sendMessage(invalidMessages, testProvider))
+        .rejects
+        .toThrow('无效的消息格式');
     });
 
-    it('应该正确处理模型的删除', () => {
-      const customConfig = {
-        name: 'Custom Model',
-        baseUrl: 'https://api.custom.com/chat',
-        models: ['custom-model'],
-        defaultModel: 'custom-model'
-      };
-      llmService.addCustomModel('custom', customConfig);
-      expect(llmService.models.custom).toBeDefined();
+    it('应该正确处理 API 错误', async () => {
+      global.fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error'
+        })
+      );
 
-      llmService.deleteModel('custom');
-      expect(llmService.models.custom).toBeUndefined();
-
-      // 不能删除默认模型
-      expect(() => llmService.deleteModel(testProvider))
-        .toThrow(`不能删除默认模型: ${testProvider}`);
+      await expect(llmService.sendMessage([{ role: 'user', content: 'test' }], testProvider))
+        .rejects
+        .toThrow('请求失败');
     });
   });
 });

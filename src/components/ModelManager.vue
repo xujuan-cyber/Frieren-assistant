@@ -85,7 +85,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
-              <input v-model="editingModel.baseUrl" type="url" required
+              <input v-model="editingModel.baseURL" type="url" required
                      class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
                      placeholder="https://api.example.com/v1/chat/completions"/>
             </div>
@@ -126,7 +126,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
-              <input v-model="newModel.baseUrl" type="url" required
+              <input v-model="newModel.baseURL" type="url" required
                      class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
                      placeholder="https://api.example.com/v1/chat/completions"/>
             </div>
@@ -155,7 +155,7 @@
 
 <script setup>
 import { ref, onMounted, defineEmits } from 'vue';
-import { llmService } from '../services/llm';
+import { modelManager } from '../services/model/manager';
 import { useToast } from '../composables/useToast';
 
 const toast = useToast();
@@ -167,14 +167,14 @@ const editingModel = ref(null);
 const newModel = ref({
   key: '',
   name: '',
-  baseUrl: '',
+  baseURL: '',
   defaultModel: '',
   apiKey: ''
 });
 
 // 加载所有模型
 const loadModels = () => {
-  models.value = llmService.getAllModels();
+  models.value = modelManager.getAllModels();
   emit('modelsUpdated', models.value);
 };
 
@@ -187,7 +187,7 @@ const isDefaultModel = (key) => {
 const handleDelete = async (key) => {
   if (confirm(`确定要删除模型 ${key} 吗？此操作不可恢复。`)) {
     try {
-      llmService.deleteModel(key);
+      modelManager.deleteModel(key);
       loadModels();
       toast.success('模型已删除');
     } catch (error) {
@@ -199,12 +199,12 @@ const handleDelete = async (key) => {
 
 // 编辑模型
 const editModel = (key) => {
-  const model = llmService.getModel(key);
+  const model = modelManager.getModel(key);
   if (model) {
     editingModel.value = {
       key,
       name: model.name,
-      baseUrl: model.baseUrl,
+      baseURL: model.baseURL,
       defaultModel: model.defaultModel,
       apiKey: ''  // 不显示原有的 API 密钥
     };
@@ -223,16 +223,16 @@ const saveEdit = () => {
   try {
     const config = {
       name: editingModel.value.name,
-      baseUrl: editingModel.value.baseUrl,
+      baseURL: editingModel.value.baseURL,
       models: [editingModel.value.defaultModel],
       defaultModel: editingModel.value.defaultModel
     };
 
-    llmService.updateModelConfig(editingModel.value.key, config);
+    modelManager.updateModel(editingModel.value.key, config);
     
     // 如果提供了新的 API 密钥，则更新
     if (editingModel.value.apiKey) {
-      llmService.setApiKey(editingModel.value.key, editingModel.value.apiKey);
+      modelManager.setApiKey(editingModel.value.key, editingModel.value.apiKey);
     }
 
     loadModels();
@@ -248,7 +248,7 @@ const saveEdit = () => {
 // 启用模型
 const enableModel = async (key) => {
   try {
-    llmService.enableModel(key);
+    modelManager.enableModel(key);
     loadModels();
     toast.success('模型已启用');
   } catch (error) {
@@ -260,7 +260,7 @@ const enableModel = async (key) => {
 // 禁用模型
 const disableModel = async (key) => {
   try {
-    llmService.disableModel(key);
+    modelManager.disableModel(key);
     loadModels();
     toast.success('模型已禁用');
   } catch (error) {
@@ -274,20 +274,20 @@ const addCustomModel = () => {
   try {
     const config = {
       name: newModel.value.name,
-      baseUrl: newModel.value.baseUrl,
+      baseURL: newModel.value.baseURL,
       models: [newModel.value.defaultModel],
       defaultModel: newModel.value.defaultModel,
       apiKey: newModel.value.apiKey
     };
 
-    llmService.addCustomModel(newModel.value.key, config);
+    modelManager.addModel(newModel.value.key, config);
     loadModels();
     
     // 重置表单
     newModel.value = {
       key: '',
       name: '',
-      baseUrl: '',
+      baseURL: '',
       defaultModel: '',
       apiKey: ''
     };

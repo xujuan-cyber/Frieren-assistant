@@ -88,7 +88,6 @@
                   :loading="isTesting"
                   :error="testError"
                   :result="testResult"
-                  @copy="copyResult"
                 />
               </div>
             </div>
@@ -121,8 +120,9 @@
 
 <script setup>
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
-import { llmService } from './services/llm'
-import { promptManager } from './services/promptManager'
+import { createLLMService } from './services/llm/service'
+import { createPromptService } from './services/prompt/service'
+import { modelManager } from './services/model/manager'
 import ModelManager from './components/ModelManager.vue'
 import Toast from './components/Toast.vue'
 import HistoryDrawer from './components/HistoryDrawer.vue'
@@ -130,6 +130,10 @@ import PromptPanel from './components/PromptPanel.vue'
 import InputPanel from './components/InputPanel.vue'
 import OutputPanel from './components/OutputPanel.vue'
 import { useToast } from './composables/useToast'
+
+// 初始化服务
+const llmService = createLLMService(modelManager)
+let promptService = null
 
 // 状态
 const prompt = ref('')
@@ -155,9 +159,19 @@ const enabledModels = computed(() =>
   models.value.filter(model => model.enabled)
 )
 
+// 初始化 promptService
+const initServices = async () => {
+  try {
+    promptService = await createPromptService(modelManager, llmService)
+  } catch (error) {
+    console.error('服务初始化失败:', error)
+    toast.error('服务初始化失败')
+  }
+}
+
 // 方法
 const loadModels = async () => {
-  models.value = llmService.getAllModels()
+  models.value = modelManager.getAllModels()
   
   // 设置默认模型
   const defaultModel = enabledModels.value[0]?.key
@@ -174,16 +188,29 @@ const loadModels = async () => {
 
 const handleOptimizePrompt = async () => {
   if (!prompt.value.trim() || isOptimizing.value) return
+  if (!promptService) {
+    toast.error('服务未初始化，请稍后重试')
+    return
+  }
   
   isOptimizing.value = true
   try {
-    const result = await llmService.optimizePrompt(prompt.value, 'optimize', optimizeModel.value)
+    console.log('开始优化提示词:', {
+      prompt: prompt.value,
+      modelKey: optimizeModel.value
+    })
+    const result = await promptService.optimizePrompt(prompt.value, optimizeModel.value)
+    console.log('优化结果:', result)
     optimizedPrompt.value = result
-    promptManager.addToHistory(prompt.value, result, 'optimize')
-    history.value = promptManager.getHistory()
+    history.value = promptService.getHistory()
     toast.success('优化成功')
   } catch (error) {
-    console.error('优化失败:', error)
+    console.error('优化失败:', {
+      error,
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    })
     toast.error(error.message || '优化失败')
   } finally {
     isOptimizing.value = false
@@ -192,25 +219,16 @@ const handleOptimizePrompt = async () => {
 
 const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
   if (!originalPrompt || !iterateInput || isIterating.value) return
+  if (!promptService) {
+    toast.error('服务未初始化，请稍后重试')
+    return
+  }
 
   isIterating.value = true
   try {
-    const result = await llmService.iteratePrompt(originalPrompt, iterateInput, optimizeModel.value)
+    const result = await promptService.iteratePrompt(originalPrompt, iterateInput, optimizeModel.value)
     optimizedPrompt.value = result
-    
-    // 获取最近的历史记录作为父记录
-    const historyRecords = promptManager.getHistory()
-    const parentRecord = historyRecords[0] // 最新的记录将是父记录
-    
-    // 添加到历史记录，类型为iterate，并设置父记录ID
-    promptManager.addToHistory(
-      originalPrompt,
-      result,
-      'iterate',
-      parentRecord?.id
-    )
-    
-    history.value = promptManager.getHistory()
+    history.value = promptService.getHistory()
     toast.success('迭代优化成功')
   } catch (error) {
     console.error('迭代优化失败:', error)
@@ -222,28 +240,24 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
 
 const handleTest = async () => {
   if (!testContent.value.trim() || isTesting.value) return
+  if (!promptService) {
+    toast.error('服务未初始化，请稍后重试')
+    return
+  }
   
   isTesting.value = true
   testError.value = ''
   try {
-    const messages = [
-      { role: 'system', content: optimizedPrompt.value || prompt.value },
-      { role: 'user', content: testContent.value }
-    ]
-    testResult.value = await llmService.sendMessage(messages, selectedModel.value)
+    const result = await promptService.testPrompt(
+      optimizedPrompt.value || prompt.value,
+      testContent.value,
+      selectedModel.value
+    )
+    testResult.value = result
   } catch (err) {
     testError.value = '测试失败：' + err.message
   } finally {
     isTesting.value = false
-  }
-}
-
-const copyResult = async () => {
-  try {
-    await navigator.clipboard.writeText(testResult.value)
-    toast.success('复制成功')
-  } catch (err) {
-    toast.error('复制失败')
   }
 }
 
@@ -253,11 +267,21 @@ const handleSelectHistory = (item) => {
   showHistory.value = false
 }
 
-// 生命周期
+// 生命周期钩子
 onMounted(async () => {
-  await loadModels()
-  await promptManager.init()
-  history.value = promptManager.getHistory()
+  await initServices()
+  loadModels()
+  // 加载历史记录
+  if (promptService) {
+    history.value = promptService.getHistory()
+  }
+})
+
+// 监听器
+watch(showConfig, (newVal) => {
+  if (!newVal) {
+    loadModels()
+  }
 })
 </script>
 

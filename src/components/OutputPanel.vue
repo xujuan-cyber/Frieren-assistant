@@ -5,7 +5,7 @@
       <h3 class="text-lg font-semibold text-white/90">测试结果</h3>
       <button
         v-if="result"
-        @click="copyResult"
+        @click="copySelectedText"
         class="px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-all transform hover:scale-105 flex items-center space-x-2"
       >
         <span>复制</span>
@@ -35,6 +35,7 @@
 
       <textarea
         v-else
+        ref="resultTextarea"
         :value="result"
         @input="$emit('update:result', $event.target.value)"
         class="absolute inset-0 w-full h-full p-4 rounded-xl bg-black/20 border border-purple-600/50 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-white placeholder-gray-500 resize-none"
@@ -49,6 +50,7 @@ import { ref } from 'vue'
 import { useToast } from '../composables/useToast'
 
 const toast = useToast()
+const resultTextarea = ref(null)
 
 // 定义props
 const props = defineProps({
@@ -69,15 +71,18 @@ const props = defineProps({
 // 定义事件
 const emit = defineEmits(['update:result'])
 
-// 复制结果
-const copyResult = async () => {
-  if (props.result) {
-    try {
-      await navigator.clipboard.writeText(props.result)
-      toast.success('复制成功')
-    } catch (err) {
-      toast.error('复制失败')
-    }
+// 复制选中的文本，如果没有选中则复制全部
+const copySelectedText = async () => {
+  if (!resultTextarea.value) return
+  
+  const selectedText = window.getSelection().toString()
+  const textToCopy = selectedText || props.result
+  
+  try {
+    await navigator.clipboard.writeText(textToCopy)
+    toast.success('复制成功')
+  } catch (err) {
+    toast.error('复制失败')
   }
 }
 </script>

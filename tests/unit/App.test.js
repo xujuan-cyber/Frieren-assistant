@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../../src/App.vue'
-import { llmService } from '../../src/services/llm'
-import { promptManager } from '../../src/services/promptManager'
+import { createLLMService } from '../../src/services/llm/service'
+import { createPromptService } from '../../src/services/prompt/service'
+import { modelManager } from '../../src/services/model/manager'
 
 // Mock toast functions
 const mockSuccess = vi.fn()
@@ -22,22 +23,32 @@ vi.mock('../../src/composables/useToast', () => ({
 }))
 
 // Mock services
-vi.mock('../../src/services/llm', () => ({
-  llmService: {
-    getAllModels: vi.fn(() => [
-      { key: 'test', name: 'Test Model', model: 'test-model', enabled: true }
-    ]),
-    optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
-    iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt')),
-    sendMessage: vi.fn(() => Promise.resolve('Test response'))
-  }
+const mockLLMService = {
+  sendMessage: vi.fn(() => Promise.resolve('Test response')),
+  optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
+  iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt'))
+}
+
+const mockPromptService = {
+  optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
+  iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt')),
+  testPrompt: vi.fn(() => Promise.resolve('Test response')),
+  getHistory: vi.fn(() => [])
+}
+
+vi.mock('../../src/services/llm/service', () => ({
+  createLLMService: vi.fn(() => mockLLMService)
 }))
 
-vi.mock('../../src/services/promptManager', () => ({
-  promptManager: {
-    init: vi.fn(),
-    getHistory: vi.fn(() => []),
-    addToHistory: vi.fn()
+vi.mock('../../src/services/prompt/service', () => ({
+  createPromptService: vi.fn(() => mockPromptService)
+}))
+
+vi.mock('../../src/services/model/manager', () => ({
+  modelManager: {
+    getAllModels: vi.fn(() => [
+      { key: 'test', name: 'Test Model', model: 'test-model', enabled: true }
+    ])
   }
 }))
 
@@ -58,9 +69,10 @@ const createComponent = (name, template = '<div><slot></slot></div>') => ({
     disabled: Boolean,
     optimizedPrompt: String,
     error: String,
-    result: String
+    result: String,
+    isIterating: Boolean
   },
-  emits: ['update:modelValue', 'update:model', 'submit', 'copy']
+  emits: ['update:modelValue', 'update:model', 'submit', 'copy', 'iterate']
 })
 
 describe('App.vue', () => {
@@ -89,12 +101,6 @@ describe('App.vue', () => {
   })
 
   describe('初始化', () => {
-    it('应该加载模型和历史记录', async () => {
-      expect(llmService.getAllModels).toHaveBeenCalled()
-      expect(promptManager.init).toHaveBeenCalled()
-      expect(promptManager.getHistory).toHaveBeenCalled()
-    })
-
     it('应该正确渲染标题', () => {
       expect(wrapper.find('h1').text()).toBe('Prompt Optimizer')
     })
@@ -106,6 +112,7 @@ describe('App.vue', () => {
     })
 
     it('应该正确初始化', async () => {
+      expect(modelManager.getAllModels).toHaveBeenCalled()
       expect(wrapper.vm.models.length).toBe(1)
       expect(wrapper.vm.optimizeModel).toBe('test')
       expect(wrapper.vm.selectedModel).toBe('test')
@@ -118,7 +125,7 @@ describe('App.vue', () => {
       const optimizedPrompt = '优化后的提示词'
 
       // 设置模拟返回值
-      llmService.optimizePrompt.mockResolvedValue(optimizedPrompt)
+      mockPromptService.optimizePrompt.mockResolvedValue(optimizedPrompt)
 
       // 找到第一个 InputPanel（提示词输入）
       const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
@@ -133,13 +140,13 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证服务调用
-      expect(llmService.optimizePrompt).toHaveBeenCalledWith(testPrompt, 'optimize', 'test')
+      expect(mockPromptService.optimizePrompt).toHaveBeenCalledWith(testPrompt, 'test')
       
       // 验证结果更新
       expect(wrapper.vm.optimizedPrompt).toBe(optimizedPrompt)
       
-      // 验证历史记录添加
-      expect(promptManager.addToHistory).toHaveBeenCalledWith(testPrompt, optimizedPrompt, 'optimize')
+      // 验证成功提示
+      expect(mockSuccess).toHaveBeenCalledWith('优化成功')
     })
 
     it('应该处理优化失败的情况', async () => {
@@ -147,7 +154,7 @@ describe('App.vue', () => {
       const errorMessage = '优化失败'
 
       // 设置模拟错误
-      llmService.optimizePrompt.mockRejectedValue(new Error(errorMessage))
+      mockPromptService.optimizePrompt.mockRejectedValue(new Error(errorMessage))
 
       // 找到输入面板
       const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
@@ -161,7 +168,7 @@ describe('App.vue', () => {
 
       // 验证错误状态
       expect(wrapper.vm.isOptimizing).toBe(false)
-      // 注意：Toast 组件的验证需要根据实际实现调整
+      expect(mockError).toHaveBeenCalledWith(errorMessage)
     })
   })
 
@@ -175,7 +182,7 @@ describe('App.vue', () => {
       wrapper.vm.optimizedPrompt = systemPrompt
 
       // 设置模拟返回值
-      llmService.sendMessage.mockResolvedValue(testResult)
+      mockPromptService.testPrompt.mockResolvedValue(testResult)
 
       // 找到测试输入面板（第二个 InputPanel）
       const inputPanels = wrapper.findAllComponents({ name: 'InputPanel' })
@@ -191,11 +198,9 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证服务调用
-      expect(llmService.sendMessage).toHaveBeenCalledWith(
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: testContent }
-        ],
+      expect(mockPromptService.testPrompt).toHaveBeenCalledWith(
+        systemPrompt,
+        testContent,
         'test'
       )
       
@@ -213,7 +218,7 @@ describe('App.vue', () => {
       wrapper.vm.optimizedPrompt = ''
 
       // 设置模拟返回值
-      llmService.sendMessage.mockResolvedValue(testResult)
+      mockPromptService.testPrompt.mockResolvedValue(testResult)
 
       // 找到测试输入面板
       const inputPanels = wrapper.findAllComponents({ name: 'InputPanel' })
@@ -227,11 +232,9 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证服务调用使用了原始提示词
-      expect(llmService.sendMessage).toHaveBeenCalledWith(
-        [
-          { role: 'system', content: originalPrompt },
-          { role: 'user', content: testContent }
-        ],
+      expect(mockPromptService.testPrompt).toHaveBeenCalledWith(
+        originalPrompt,
+        testContent,
         'test'
       )
     })
@@ -241,7 +244,7 @@ describe('App.vue', () => {
       const errorMessage = '测试失败'
 
       // 设置模拟错误
-      llmService.sendMessage.mockRejectedValue(new Error(errorMessage))
+      mockPromptService.testPrompt.mockRejectedValue(new Error(errorMessage))
 
       // 找到测试输入面板
       const inputPanels = wrapper.findAllComponents({ name: 'InputPanel' })
@@ -255,82 +258,52 @@ describe('App.vue', () => {
       await nextTick()
 
       // 验证错误状态
-      expect(wrapper.vm.testError).toBe('测试失败：' + errorMessage)
       expect(wrapper.vm.isTesting).toBe(false)
+      expect(wrapper.vm.testError).toBe('测试失败：' + errorMessage)
     })
   })
 
   describe('历史记录功能', () => {
-    let wrapper
-    
-    beforeEach(() => {
-      // 重置所有mock
-      vi.clearAllMocks()
-      
-      // 设置mock返回值
-      llmService.optimizePrompt.mockResolvedValue('优化后的提示词')
-      promptManager.getHistory.mockReturnValue([])
-      
-      // 挂载组件
-      wrapper = mount(App)
-    })
+    it('应该在优化成功后立即更新历史记录', async () => {
+      const testPrompt = '测试提示词'
+      const optimizedPrompt = '优化后的提示词'
+      const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
 
-    it('成功优化后应该更新历史记录', async () => {
-      // 设置输入
-      wrapper.vm.prompt = '测试提示词'
-      await nextTick()
-      
-      // 触发优化
-      await wrapper.vm.handleOptimizePrompt()
-      
-      // 验证调用和更新
-      expect(promptManager.addToHistory).toHaveBeenCalledWith(
-        '测试提示词',
-        '优化后的提示词',
-        'optimize'
-      )
-      expect(promptManager.getHistory).toHaveBeenCalled()
-    })
+      mockPromptService.optimizePrompt.mockResolvedValue(optimizedPrompt)
+      mockPromptService.getHistory.mockReturnValue(mockHistory)
 
-    it('优化失败时不应该更新历史记录', async () => {
-      // 设置输入
-      wrapper.vm.prompt = '测试提示词'
-      await nextTick()
-      
-      // 模拟优化失败
-      llmService.optimizePrompt.mockRejectedValueOnce(new Error('优化失败'))
-      
       // 触发优化
-      await wrapper.vm.handleOptimizePrompt()
+      const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
+      await inputPanel.vm.$emit('update:modelValue', testPrompt)
+      await inputPanel.vm.$emit('submit')
       
-      // 验证没有添加到历史记录
-      expect(promptManager.addToHistory).not.toHaveBeenCalled()
+      // 等待异步操作
+      await nextTick()
+
+      // 验证历史记录更新
+      expect(mockPromptService.getHistory).toHaveBeenCalled()
+      expect(wrapper.vm.history).toEqual(mockHistory)
     })
 
     it('应该在迭代优化成功后立即更新历史记录', async () => {
-      // 设置mock返回值
-      llmService.iteratePrompt.mockResolvedValue('迭代结果')
-      promptManager.getHistory.mockReturnValue([{
-        id: '1',
-        prompt: '原始提示词',
-        result: '优化结果',
-        type: 'optimize'
-      }])
+      const originalPrompt = '原始提示词'
+      const iterateInput = '迭代输入'
+      const iteratedPrompt = '迭代后的提示词'
+      const mockHistory = [{ id: '1', prompt: originalPrompt, result: iteratedPrompt }]
+
+      mockPromptService.iteratePrompt.mockResolvedValue(iteratedPrompt)
+      mockPromptService.getHistory.mockReturnValue(mockHistory)
+
+      // 触发迭代
+      const promptPanel = wrapper.findComponent({ name: 'PromptPanel' })
+      await promptPanel.vm.$emit('iterate', { originalPrompt, iterateInput })
       
-      // 触发迭代优化
-      await wrapper.vm.handleIteratePrompt({
-        originalPrompt: '测试提示词',
-        iterateInput: '迭代输入'
-      })
-      
-      // 验证调用和更新
-      expect(promptManager.addToHistory).toHaveBeenCalledWith(
-        '测试提示词',
-        '迭代结果',
-        'iterate',
-        '1'
-      )
-      expect(promptManager.getHistory).toHaveBeenCalled()
+      // 等待异步操作
+      await nextTick()
+
+      // 验证历史记录更新
+      expect(mockPromptService.getHistory).toHaveBeenCalled()
+      expect(wrapper.vm.history).toEqual(mockHistory)
     })
   })
 }) 

@@ -1,181 +1,207 @@
-# 项目经验总结
+# 项目经验总结（优化版）  
 
-## 📋 快速索引
-- [架构设计](#架构设计)
-- [错误处理](#错误处理)
-- [测试规范](#测试规范)
-- [Vue开发](#vue开发)
-- [工具使用](#工具使用)
+## 📋 快速索引  
+- [架构设计](#架构设计)  
+- [错误处理](#错误处理)  
+- [测试规范](#测试规范)  
+- [Vue开发](#vue开发)  
+- [工具与配置](#工具与配置)  
+- [关键重构经验](#关键重构经验)  
 
-## 架构设计
+---
 
-### API集成最佳实践
-- 配置与业务逻辑分离
-- 统一接口格式和认证机制
-- 提示词模板独立管理
-- 错误处理标准化
+## 架构设计  
 
-### 模块化设计规范
-```src/```目录结构：
-- ```api/```: 外部API封装
-- ```services/```: 业务逻辑
-- ```config/```: 配置文件
-- ```components/```: UI组件
-- ```prompts/```: 提示词模板
+### API集成规范  
+1. **配置分离**  
+   - 业务逻辑与API配置解耦  
+   - 统一接口格式（OpenAI兼容）  
+   - 独立管理提示词模板  
+   ```js
+   // 配置示例
+   export default {
+     baseURL: "https://api.openai.com/v1",
+     models: ["gpt-4", "gpt-3.5"]
+   }
+   ```
 
-### LLM服务架构
-1. API标准化
-   - 统一使用OpenAI格式接口
-   - 减少特殊适配代码
-   > 📝 Gemini API兼容说明：使用 ```https://generativelanguage.googleapis.com/v1beta/openai```
+2. **模块化结构**  
+   ```src
+   ├─ api/       # API封装
+   ├─ services/  # 业务逻辑
+   ├─ config/    # 全局配置
+   ├─ components/# UI组件
+   └─ prompts/   # 提示模板库
+   ```
 
-2. Provider设计
-   - 唯一标识：使用provider区分不同服务商
-   - 配置完整性：必需字段(name、baseURL、models、defaultModel、enabled、apiKey)
-   - 安全性：环境变量管理敏感信息
-   - 扩展性：支持动态配置更新
-   - 实例管理：使用缓存优化性能
+### LLM服务架构  
+| 设计要点          | 实现方案                     |
+|-------------------|----------------------------|
+| 接口标准化        | 统一使用OpenAI格式          |
+| 多服务商兼容      | Provider标识区分（如Gemini）|
+| 动态配置更新      | 支持热加载配置              |
+| 敏感信息管理      | 环境变量+本地加密存储       |
 
-## 错误处理
+---
 
-### ⚠️ 常见错误与解决方案
+## 错误处理  
 
-#### 1. 模板ID与模型key混淆
-**问题**：将模型key错误用作模板ID导致模板加载失败
-**解决**：
-- 明确区分模板ID和模型key
-- 使用固定功能ID(如'optimize')
-- 模型key仅用于API配置
+### 典型问题与修复  
+| 问题场景                  | 解决方案                     | 发生日期   |
+|--------------------------|----------------------------|------------|
+| 模板ID与模型Key混淆       | 明确功能ID与API Key分离     | 2024-03-22 |
+| 状态同步异常              | 增加状态同步处理函数        | 2024-03-22 |
+| 全局currentProvider污染   | 显式传递模型参数            | 2024-03-22 |
 
-#### 2. 状态同步问题 (2024-03-22)
-**问题**：UI选择的模型与服务实际使用的模型不同步
-**解决**：
-- 模型选择变更时同步更新服务状态
-- 初始化时确保正确设置provider
-- 添加专门的状态同步处理函数
+### 处理原则  
+1. **开发环境**：保留完整错误堆栈  
+2. **生产环境**：友好提示+日志记录  
+3. **通用规则**：  
+   ```js
+   try {
+     await apiCall();
+   } catch (err) {
+     console.error("[API Error]", err.context);
+     throw new Error("服务调用失败，请检查配置");
+   }
+   ```
 
-#### 3. 组件状态独立性 (2024-03-22)
-**问题**：不同功能区域共享状态导致混乱
-**解决**：
-- 为不同功能区域使用独立数据源
-- 确保组件属性配置完整
-- 使用清晰的命名区分状态
+---
 
-#### 4. API调用架构问题 (2024-03-22)
-**问题**：全局currentProvider导致状态管理复杂
-**解决**：
-- 移除全局currentProvider
-- API调用时显式传入模型参数
-- 简化状态管理，减少同步需求
+## 测试规范  
 
-### 错误处理原则
-- 开发环境保留原始错误信息
-- 避免过度包装错误信息
-- 直接展示具体错误信息
-- 包含充分的上下文信息
+### 核心要点  
+1. **环境变量**  
+   ```js
+   // Vite项目必须使用import.meta.env
+   const apiKey = import.meta.env.VITE_GEMINI_KEY; 
+   ```
 
-## 测试规范
+2. **测试架构**  
+   - 集中管理多服务商配置  
+   - 独立测试数据库  
+   - 模拟异常场景（网络错误/无效Token）  
 
-### 测试架构 (2024-03-22更新)
-1. 配置管理
-   - 将所有提供商配置集中管理
-   - 为测试场景预留专门配置
-   - 使用统一的配置更新机制
+3. **用例设计**  
+   ```js
+   describe("API测试", () => {
+     it("应正确处理多轮对话", async () => {
+       const response = await sendRequest(messages);
+       expect(response.content).toMatch(/优化建议/);
+     });
+   });
+   ```
 
-2. 测试用例编写
-   - 避免使用已废弃方法
-   - 优雅处理环境变量依赖
-   - 使用清晰的跳过测试提示
-   - 保持测试用例独立性
+---
 
-### 环境变量处理
-⚠️ **注意**: Vite项目中必须使用```import.meta.env```而非```process.env```
-```javascript
-// ❌ 错误示例
-const apiKey = process.env.GEMINI_API_KEY;
+## Vue开发  
 
-// ✅ 正确示例
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-```
+### 组件规范  
+1. **Composable使用**  
+   ```js
+   // 正确用法
+   const { data } = useFetch();
+   // 错误用法
+   onMounted(() => {
+     const { data } = useFetch(); // 禁止在生命周期内调用
+   });
+   ```
 
-### 测试文件组织
-- 按功能模块拆分测试文件
-- 使用目录结构组织不同类型测试
-- 每个文件关注特定功能
-- 相关文件集中管理
-
-## Vue开发
-
-### Composable使用规范
-1. 基本原则
-   - 顶层直接调用，避免在生命周期钩子中使用
-   - 返回函数直接使用，无需.value
-   - 返回的功能不需要ref包装
-
-2. 模板引用最佳实践
-   - 仅在必要时使用ref属性
-   - 优先使用composable提供的方法
-   - 优先使用响应式API
-
-### 组件通信规范
-1. Props和v-model
-   - Props保持只读
-   - 使用emit发送更新事件
-   - 计算属性处理双向绑定
-
-2. 状态同步
+2. **状态同步方案**  
    ```vue
    <!-- 父组件 -->
-   <template>
-     <ModelManager @modelsUpdated="loadModels" />
-   </template>
+   <ModelManager @update="handleModelUpdate" />
 
+   <!-- 子组件 -->
    <script setup>
-   const loadModels = async () => {
-     models.value = llmService.getAllModels()
-     // 检查当前模型有效性
-     if (!enabledModels.value.find(m => m.key === currentModel.value)) {
-       currentModel.value = enabledModels.value[0]?.key
-     }
+   const emit = defineEmits(['update']);
+   const updateModel = () => {
+     emit('update', newModels);
    }
    </script>
    ```
 
-### UI设计规范
-1. 布局设计
-   - Grid实现响应式布局
-   - Flex处理组件内部结构
-   - 统一使用Tailwind间距
+### UI设计准则  
+| 分类        | 规范                          |
+|------------|------------------------------|
+| 布局系统    | 基于Tailwind的响应式网格       |
+| 主题管理    | CSS变量+透明度层级控制         |
+| 交互反馈    | 加载状态/禁用状态/过渡动画      |
 
-2. 主题系统
-   - CSS变量管理主题色
-   - 合理使用透明度创建层次
-   - 深色主题避免纯黑
-   - 确保文本可读性
+---
 
-3. 交互反馈
-   - 清晰的加载状态
-   - 及时的操作反馈
-   - 合理的禁用状态
-   - 适度的过渡动画
+## 工具与配置  
 
-## 工具使用
+### NPM管理  
+```bash
+# 常用命令
+npm outdated          # 检查可更新包
+ncu -u "eslint*"      # 安全更新指定包
+```
 
-### NPM包版本管理
-1. 常用命令
-   ```bash
-   npm list --depth=0  # 查看直接依赖
-   npm outdated       # 查看可更新包
-   npm view [包名] versions  # 查看可用版本
+### 版本策略  
+| 符号 | 含义                | 示例          |
+|------|---------------------|---------------|
+| ^    | 允许小版本更新       | ^1.2.3 → 1.3.0|
+| ~    | 仅允许补丁更新       | ~1.2.3 → 1.2.4|
+
+### YAML处理  
+1. **常见错误**  
+   ```yaml
+   # 错误示例
+   -invalid: 缺少空格
+   tags: 
+     -test  # 列表格式错误
+   ```
+   
+2. **修复方案**  
+   ```yaml
+   # 正确格式
+   valid_key: "值"
+   tags:
+     - test
+     - template
    ```
 
-2. 版本规则
-   - ^: 兼容小版本更新(1.2.3 → 1.3.0)
-   - ~: 仅兼容补丁更新(1.2.3 → 1.2.4)
-   - *: 接受所有更新
+---
 
-3. 更新最佳实践
-   - 更新前提交代码备份
-   - 更新后运行测试验证
-   - 问题时回滚package.json
-   - 建议逐个包更新(ncu -u [包名])
+## 关键重构经验  
+
+### 服务层优化（2024-03-19）  
+1. **类型安全**  
+   ```ts
+   interface ModelConfig {
+     name: string;
+     baseURL: string;  // 非可选字段
+     models: string[];
+   }
+   ```
+
+2. **错误处理改进**  
+   - 统一继承自 `LLMError` 基类  
+   - 批量验证错误收集  
+   ```ts
+   class ValidationError extends LLMError {
+     constructor(errors: string[]) {
+       super(`配置验证失败: ${errors.join(', ')}`);
+     }
+   }
+   ```
+
+### 配置管理（2024-03-21）  
+1. **模型启用验证**  
+   ```ts
+   function validateConfig(config) {
+     if (!config.apiKey) {
+       throw new Error("API Key为必填项");
+     }
+   }
+   ```
+
+2. **环境变量处理**  
+   ```ts
+   /// <reference types="vite/client" />
+   interface ImportMetaEnv {
+     VITE_GEMINI_KEY: string;
+   }
+   ```
