@@ -52,7 +52,7 @@
               <!-- 优化结果区域 -->
               <div class="flex-1 min-h-0">
                 <PromptPanel 
-                  :optimized-prompt="optimizedPrompt"
+                  v-model:optimized-prompt="optimizedPrompt"
                   :is-iterating="isIterating"
                   @iterate="handleIteratePrompt"
                 />
@@ -248,8 +248,10 @@ const handleTest = async () => {
   isTesting.value = true
   testError.value = ''
   try {
+    // 使用当前显示的提示词（可能是手动修改过的）
+    const currentPrompt = optimizedPrompt.value || prompt.value
     const result = await promptService.testPrompt(
-      optimizedPrompt.value || prompt.value,
+      currentPrompt,
       testContent.value,
       selectedModel.value
     )

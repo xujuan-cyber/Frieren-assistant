@@ -26,8 +26,9 @@
     <div class="flex-1 min-h-0 bg-black/20 rounded-xl border border-purple-600/50 transition-colors overflow-hidden">
       <div class="h-full relative">
         <textarea
+          ref="promptTextarea"
           :value="optimizedPrompt"
-          @input="$emit('update:optimizedPrompt', $event.target.value)"
+          @input="handleInput"
           class="absolute inset-0 w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-purple-500/50 resize-none text-white/90 placeholder-gray-400 text-sm sm:text-base overflow-auto"
           placeholder="优化后的提示词将显示在这里..."
         ></textarea>
@@ -71,6 +72,8 @@ import { ref, defineProps, defineEmits } from 'vue'
 import { useToast } from '../composables/useToast'
 
 const toast = useToast()
+const promptTextarea = ref(null)
+
 const props = defineProps({
   optimizedPrompt: {
     type: String,
@@ -86,6 +89,12 @@ const emit = defineEmits(['update:optimizedPrompt', 'iterate'])
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
+
+// 处理输入变化
+const handleInput = (event) => {
+  const newValue = event.target.value
+  emit('update:optimizedPrompt', newValue)
+}
 
 const copyPrompt = async () => {
   if (!props.optimizedPrompt) return
