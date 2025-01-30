@@ -27,7 +27,7 @@ export class RecordNotFoundError extends HistoryError {
 export class StorageError extends HistoryError {
   constructor(
     message: string,
-    public operation: 'read' | 'write' | 'delete'
+    public operation: 'read' | 'write' | 'delete' | 'init'
   ) {
     super(message);
     this.name = 'StorageError';

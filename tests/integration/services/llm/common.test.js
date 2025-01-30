@@ -4,6 +4,8 @@ import { expect, describe, it, beforeEach, beforeAll, vi } from 'vitest';
 import { APIError, RequestConfigError } from '../../../../src/services/llm/errors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { ERROR_MESSAGES } from '../../../../src/services/llm/errors';
+import { createPromptService } from '../../../../src/services/prompt/factory';
 
 // 加载环境变量
 beforeAll(() => {
@@ -13,6 +15,7 @@ beforeAll(() => {
 describe('LLM 服务通用测试', () => {
   let llmService;
   let modelManager;
+  let promptService;
 
   beforeEach(() => {
     localStorage.clear();
@@ -25,6 +28,10 @@ describe('LLM 服务通用测试', () => {
         invoke: vi.fn().mockRejectedValue(new Error('API Error'))
       }))
     }));
+  });
+
+  beforeEach(async () => {
+    promptService = await createPromptService();
   });
 
   describe('API 调用错误处理', () => {
@@ -126,6 +133,13 @@ describe('LLM 服务通用测试', () => {
         await llmService.sendMessage([], testModel);
       }).rejects.toThrow(RequestConfigError);
     });
+
+    it('应正确处理无效的模型配置', async () => {
+      vi.spyOn(modelManager, 'getModel').mockReturnValue(undefined);
+      await expect(promptService.optimizePrompt('test', 'test-model')).rejects.toThrow(
+        ERROR_MESSAGES.MODEL_NOT_FOUND
+      );
+    });
   });
 
   describe('配置管理', () => {
@@ -178,6 +192,13 @@ describe('LLM 服务通用测试', () => {
 
       modelManager.updateModel(testModel, { enabled: true });
       expect(modelManager.getModel(testModel).enabled).toBe(true);
+    });
+  });
+
+  describe('边界条件测试', () => {
+    it('应处理空提示词输入', async () => {
+      await expect(promptService.optimizePrompt('', 'test-model'))
+        .rejects.toThrow(ERROR_MESSAGES.EMPTY_INPUT);
     });
   });
 }); 

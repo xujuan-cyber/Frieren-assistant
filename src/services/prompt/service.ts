@@ -6,6 +6,7 @@ import { LLMService, createLLMService } from '../llm/service';
 import { TemplateManager, templateManager as defaultTemplateManager } from '../template/manager';
 import { HistoryManager, historyManager as defaultHistoryManager } from '../history/manager';
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
+import { ERROR_MESSAGES } from '../llm/errors';
 
 /**
  * 提示词服务实现
@@ -43,15 +44,24 @@ export class PromptService implements IPromptService {
    */
   private validateInput(prompt: string, modelKey: string) {
     if (!prompt?.trim()) {
-      throw new OptimizationError('优化失败: 提示词不能为空', prompt);
+      throw new OptimizationError(
+        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.EMPTY_INPUT}`,
+        prompt
+      );
     }
 
     if (prompt.length > 5000) {
-      throw new OptimizationError('优化失败: 提示词长度超过限制', prompt);
+      throw new OptimizationError(
+        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: 提示词长度超过限制（最大5000字符）`,
+        prompt
+      );
     }
 
     if (!modelKey?.trim()) {
-      throw new OptimizationError('优化失败: 模型Key不能为空', prompt);
+      throw new OptimizationError(
+        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_KEY_REQUIRED}`,
+        prompt
+      );
     }
   }
 
@@ -69,13 +79,16 @@ export class PromptService implements IPromptService {
    */
   async optimizePrompt(prompt: string, modelKey: string): Promise<string> {
     try {
-      // 验证输入
+      // 前置验证
       this.validateInput(prompt, modelKey);
-
-      // 获取模型配置
+      
+      // 获取模型配置（使用统一错误）
       const modelConfig = this.modelManager.getModel(modelKey);
       if (!modelConfig) {
-        throw new ServiceDependencyError('模型不存在', 'ModelManager');
+        throw new OptimizationError(
+          `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_NOT_FOUND}`,
+          prompt
+        );
       }
 
       // 获取优化模板
@@ -119,10 +132,14 @@ export class PromptService implements IPromptService {
 
       return result;
     } catch (error) {
+      // 统一错误处理
       if (error instanceof OptimizationError) {
         throw error;
       }
-      throw new OptimizationError(`优化失败: ${error.message}`, prompt);
+      throw new OptimizationError(
+        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${error.message}`,
+        prompt
+      );
     }
   }
 
@@ -265,12 +282,18 @@ export async function createPromptService(
   templateManager: TemplateManager = defaultTemplateManager,
   historyManager: HistoryManager = defaultHistoryManager
 ): Promise<PromptService> {
-  // 确保模板管理器已初始化
   try {
-    if (!templateManager['initialized']) {
-      await templateManager.init();
-    }
-    return new PromptService(modelManager, llmService, templateManager, historyManager);
+    // 初始化依赖服务
+    await templateManager.init();
+    await historyManager.init();
+
+    // 创建并返回服务实例
+    return new PromptService(
+      modelManager,
+      llmService,
+      templateManager,
+      historyManager
+    );
   } catch (error) {
     console.error('创建 PromptService 失败:', error);
     throw new ServiceDependencyError(

@@ -7,7 +7,7 @@ export interface ModelConfig {
   /** API基础URL */
   baseURL: string;
   /** API密钥 */
-  apiKey: string;
+  apiKey?: string;
   /** 支持的模型列表 */
   models: string[];
   /** 默认模型 */
@@ -15,7 +15,7 @@ export interface ModelConfig {
   /** 是否启用 */
   enabled: boolean;
   /** 提供商 */
-  provider: 'openai' | 'gemini' | string;
+  provider: 'deepseek' | 'gemini' | 'custom' | string;
 }
 
 /**

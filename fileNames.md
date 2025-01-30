@@ -13,7 +13,12 @@
   - `ThemeToggle.vue` - 主题切换组件
   - `LoadingSpinner.vue` - 加载动画组件
 - `src/services/` - 业务逻辑服务目录
-  - `llm.js` - LLM服务实现
+  - `llm/` - LLM服务目录
+    - `service.ts` - LLM核心服务
+    - `errors.ts` - 错误处理常量
+    - `types.ts` - 类型定义
+  - `model/` - 模型配置管理目录
+  - `prompt/` - 提示词服务目录
   - `promptManager.js` - 提示词管理服务
   - `themeManager.js` - 主题管理服务
 - `src/config/` - 配置文件目录

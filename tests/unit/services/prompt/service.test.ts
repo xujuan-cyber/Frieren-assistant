@@ -7,13 +7,23 @@ import { createLLMService } from '../../../../src/services/llm/service';
 import { ModelConfig } from '../../../../src/services/model/types';
 import { Template } from '../../../../src/services/template/types';
 import { PromptRecord } from '../../../../src/services/history/types';
+import { LLMService } from '../../../../src/services/llm/service';
+import { OptimizationError, IterationError, TestError } from '../../../../src/services/prompt/errors';
 
 describe('PromptService', () => {
   let promptService: PromptService;
   let modelManager: ModelManager;
-  let llmService: any;
+  let llmService: LLMService;
   let templateManager: TemplateManager;
   let historyManager: HistoryManager;
+
+  const ERROR_MESSAGES = {
+    EMPTY_INPUT: '输入不能为空',
+    OPTIMIZATION_FAILED: '优化失败',
+    MODEL_NOT_FOUND: '模型未找到',
+    TEMPLATE_NOT_FOUND: '模板未找到',
+    TEMPLATE_EMPTY: '模板内容为空'
+  };
 
   const mockModelConfig: ModelConfig = {
     name: 'test-model',
@@ -33,12 +43,14 @@ describe('PromptService', () => {
     version: '1.0'
   };
 
-  beforeEach(() => {
-    // 基础设置
+  beforeEach(async () => {
     modelManager = new ModelManager();
     llmService = createLLMService(modelManager);
     templateManager = new TemplateManager();
     historyManager = new HistoryManager();
+
+    await templateManager.init();
+    await historyManager.init();
 
     vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
     vi.spyOn(llmService, 'buildRequestConfig').mockReturnValue({
@@ -164,10 +176,6 @@ describe('PromptService', () => {
   });
 
   describe('边界条件测试', () => {
-    beforeEach(() => {
-      promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
-    });
-
     it('当提示词为空字符串时应抛出错误', async () => {
       await expect(promptService.optimizePrompt('', 'test-model'))
         .rejects
@@ -207,10 +215,6 @@ describe('PromptService', () => {
   });
 
   describe('历史记录管理测试', () => {
-    beforeEach(() => {
-      promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
-    });
-
     it('应该正确记录优化历史', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
       vi.spyOn(llmService, 'sendRequest').mockResolvedValue('优化结果');
@@ -262,7 +266,7 @@ describe('PromptService', () => {
 describe('PromptService 模板管理器初始化测试', () => {
   let promptService: PromptService;
   let modelManager: ModelManager;
-  let llmService: any;
+  let llmService: LLMService;
   let templateManager: TemplateManager;
   let historyManager: HistoryManager;
 
@@ -284,12 +288,16 @@ describe('PromptService 模板管理器初始化测试', () => {
     version: '1.0'
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // 基础设置
     modelManager = new ModelManager();
     llmService = createLLMService(modelManager);
     templateManager = new TemplateManager();
     historyManager = new HistoryManager();
+
+    // 初始化管理器
+    await templateManager.init();
+    await historyManager.init();
 
     vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
     vi.spyOn(llmService, 'buildRequestConfig').mockReturnValue({

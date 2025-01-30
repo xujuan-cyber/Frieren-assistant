@@ -4,7 +4,7 @@ import { ModelManager } from '../model/manager';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from '@langchain/core/messages';
-import { APIError, RequestConfigError } from './errors';
+import { APIError, RequestConfigError, ERROR_MESSAGES } from './errors';
 
 /**
  * LLM服务实现 - 基于 LangChain
@@ -48,7 +48,7 @@ export class LLMService implements ILLMService {
       throw new RequestConfigError('模型提供商不能为空');
     }
     if (!modelConfig.apiKey) {
-      throw new RequestConfigError('API密钥不能为空');
+      throw new RequestConfigError(ERROR_MESSAGES.API_KEY_REQUIRED);
     }
     if (!modelConfig.defaultModel) {
       throw new RequestConfigError('默认模型不能为空');

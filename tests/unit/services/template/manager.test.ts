@@ -2,14 +2,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TemplateManager } from '../../../../src/services/template/manager';
 import { TemplateError, TemplateLoadError } from '../../../../src/services/template/errors';
 import { Template } from '../../../../src/services/template/types';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+
+vi.mock('fs/promises');
+vi.mock('path');
 
 describe('TemplateManager', () => {
   let manager: TemplateManager;
 
   beforeEach(() => {
     manager = new TemplateManager();
-    // Reset fetch mock
-    vi.stubGlobal('fetch', vi.fn());
+    vi.clearAllMocks();
   });
 
   const mockTemplate: Template = {
@@ -33,23 +37,16 @@ name: Test Template
 
   describe('init', () => {
     it('should initialize successfully', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(['optimize.yaml', 'test.yaml'])
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(join).mockReturnValue('test/path/_index.json');
+      vi.mocked(readFile).mockResolvedValueOnce(JSON.stringify(['optimize.yaml', 'test.yaml']));
 
       await manager.init();
-      expect(mockFetch).toHaveBeenCalledWith('./src/prompts/templates/_index.json');
+      expect(readFile).toHaveBeenCalledWith('test/path/_index.json', 'utf-8');
     });
 
     it('should throw error when index file is not found', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found'
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(join).mockReturnValue('test/path/_index.json');
+      vi.mocked(readFile).mockRejectedValueOnce(new Error('File not found'));
 
       await expect(manager.init())
         .rejects
@@ -57,11 +54,8 @@ name: Test Template
     });
 
     it('should throw error when default template is missing', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(['test.yaml'])
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(join).mockReturnValue('test/path/_index.json');
+      vi.mocked(readFile).mockResolvedValueOnce(JSON.stringify(['test.yaml']));
 
       await expect(manager.init())
         .rejects
@@ -71,33 +65,22 @@ name: Test Template
 
   describe('getTemplate', () => {
     beforeEach(async () => {
-      const mockFetch = vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(['optimize.yaml', 'test.yaml'])
-        });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(join)
+        .mockReturnValueOnce('test/path/_index.json')
+        .mockReturnValue('test/path/test.yaml');
+      vi.mocked(readFile)
+        .mockResolvedValueOnce(JSON.stringify(['optimize.yaml', 'test.yaml']))
+        .mockResolvedValue(mockTemplateYaml);
       await manager.init();
     });
 
     it('should get template successfully', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockTemplateYaml)
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
       const template = await manager.getTemplate('test');
       expect(template).toEqual(mockTemplate);
     });
 
     it('should throw error when template is not found', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found'
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(readFile).mockRejectedValueOnce(new Error('File not found'));
 
       await expect(manager.getTemplate('invalid'))
         .rejects
@@ -105,11 +88,7 @@ name: Test Template
     });
 
     it('should throw error when YAML is invalid', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(invalidTemplateYaml)
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(readFile).mockResolvedValueOnce(invalidTemplateYaml);
 
       await expect(manager.getTemplate('test'))
         .rejects
@@ -119,76 +98,42 @@ name: Test Template
 
   describe('cache management', () => {
     beforeEach(async () => {
-      const mockFetch = vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(['optimize.yaml', 'test.yaml'])
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          text: () => Promise.resolve(mockTemplateYaml)
-        });
-      vi.stubGlobal('fetch', mockFetch);
+      vi.mocked(join)
+        .mockReturnValueOnce('test/path/_index.json')
+        .mockReturnValue('test/path/test.yaml');
+      vi.mocked(readFile)
+        .mockResolvedValueOnce(JSON.stringify(['optimize.yaml', 'test.yaml']))
+        .mockResolvedValue(mockTemplateYaml);
       await manager.init();
       await manager.getTemplate('test');
     });
 
     it('should use cache for subsequent requests', async () => {
-      const mockFetch = vi.fn();
-      vi.stubGlobal('fetch', mockFetch);
-
       await manager.getTemplate('test');
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(readFile).toHaveBeenCalledTimes(2); // Once for init, once for first getTemplate
     });
 
     it('should bypass cache when force is true', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockTemplateYaml)
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
       await manager.loadTemplate('test.yaml', true);
-      expect(mockFetch).toHaveBeenCalled();
+      expect(readFile).toHaveBeenCalledTimes(3); // Once for init, once for first getTemplate, once for force load
     });
 
     it('should clear specific template cache', async () => {
       manager.clearCache('test');
-      
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockTemplateYaml)
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
       await manager.getTemplate('test');
-      expect(mockFetch).toHaveBeenCalled();
+      expect(readFile).toHaveBeenCalledTimes(3); // Once for init, once for first getTemplate, once after cache clear
     });
 
     it('should clear all cache', async () => {
       manager.clearCache();
-      
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockTemplateYaml)
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
       await manager.getTemplate('test');
-      expect(mockFetch).toHaveBeenCalled();
+      expect(readFile).toHaveBeenCalledTimes(3); // Once for init, once for first getTemplate, once after cache clear
     });
 
     it('should respect cache timeout', async () => {
       manager.setCacheTimeout(0); // Set timeout to 0 to force cache expiry
-      
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockTemplateYaml)
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
       await manager.getTemplate('test');
-      expect(mockFetch).toHaveBeenCalled();
+      expect(readFile).toHaveBeenCalledTimes(3); // Once for init, once for first getTemplate, once after cache timeout
     });
   });
 }); 

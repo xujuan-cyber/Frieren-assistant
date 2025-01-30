@@ -5,7 +5,7 @@ import { PromptRecord } from '../../../../src/services/history/types';
 
 describe('HistoryManager', () => {
   let manager: HistoryManager;
-  let mockStorage: { [key: string]: string } = {};
+  let mockStorage: Record<string, any> = {};
   
   const mockRecord: PromptRecord = {
     id: 'test-1',
@@ -17,7 +17,7 @@ describe('HistoryManager', () => {
     templateId: 'optimize'
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // 清理 mock storage
     mockStorage = {};
     
@@ -33,6 +33,7 @@ describe('HistoryManager', () => {
     });
     
     manager = new HistoryManager();
+    await manager.init();
   });
 
   describe('addRecord', () => {
