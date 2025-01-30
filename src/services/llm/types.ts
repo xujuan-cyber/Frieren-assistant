@@ -6,30 +6,22 @@ import { ModelConfig } from '../model/types';
 export type MessageRole = 'system' | 'user' | 'assistant';
 
 /**
- * 消息接口
+ * 消息类型
  */
 export interface Message {
-  /** 消息角色 */
-  role: MessageRole;
-  /** 消息内容 */
+  role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
 /**
- * 请求配置接口
+ * 请求配置类型
  */
 export interface RequestConfig {
-  /** 请求URL */
   url: string;
-  /** 请求头 */
   headers: Record<string, string>;
-  /** 请求体 */
   body: {
     model: string;
     messages: Message[];
-    temperature?: number;
-    max_tokens?: number;
-    [key: string]: any;
   };
 }
 
@@ -37,8 +29,22 @@ export interface RequestConfig {
  * LLM服务接口
  */
 export interface ILLMService {
-  /** 发送请求到LLM服务 */
-  sendRequest(config: RequestConfig): Promise<string>;
-  /** 构建请求配置 */
+  /**
+   * 构建请求配置
+   * @throws {RequestConfigError} 当配置无效时
+   */
   buildRequestConfig(modelConfig: ModelConfig, messages: Message[]): RequestConfig;
+
+  /**
+   * 发送请求
+   * @throws {APIError} 当请求失败时
+   */
+  sendRequest(config: RequestConfig): Promise<string>;
+
+  /**
+   * 发送消息
+   * @throws {RequestConfigError} 当参数无效时
+   * @throws {APIError} 当请求失败时
+   */
+  sendMessage(messages: Message[], provider: string): Promise<string>;
 } 

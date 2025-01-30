@@ -16,5 +16,10 @@ export default defineConfig({
         'tests/setup.js',
       ],
     },
+    typecheck: {
+      tsconfig: './tsconfig.json',
+      include: ['./tests/**/*.{ts,tsx}'],
+      exclude: ['node_modules']
+    }
   },
 })

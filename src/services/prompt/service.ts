@@ -39,10 +39,39 @@ export class PromptService implements IPromptService {
   }
 
   /**
+   * 验证输入参数
+   */
+  private validateInput(prompt: string, modelKey: string) {
+    if (!prompt?.trim()) {
+      throw new OptimizationError('优化失败: 提示词不能为空', prompt);
+    }
+
+    if (prompt.length > 5000) {
+      throw new OptimizationError('优化失败: 提示词长度超过限制', prompt);
+    }
+
+    if (!modelKey?.trim()) {
+      throw new OptimizationError('优化失败: 模型Key不能为空', prompt);
+    }
+  }
+
+  /**
+   * 验证LLM响应
+   */
+  private validateResponse(response: string, prompt: string) {
+    if (!response?.trim()) {
+      throw new OptimizationError('优化失败: LLM服务返回结果为空', prompt);
+    }
+  }
+
+  /**
    * 优化提示词
    */
   async optimizePrompt(prompt: string, modelKey: string): Promise<string> {
     try {
+      // 验证输入
+      this.validateInput(prompt, modelKey);
+
       // 获取模型配置
       const modelConfig = this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -73,6 +102,9 @@ export class PromptService implements IPromptService {
 
       // 发送请求
       const result = await this.llmService.sendRequest(requestConfig);
+
+      // 验证响应
+      this.validateResponse(result, prompt);
 
       // 保存历史记录
       this.historyManager.addRecord({

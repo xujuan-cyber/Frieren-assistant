@@ -7,6 +7,7 @@
 - [Vue开发](#vue开发)  
 - [工具与配置](#工具与配置)  
 - [关键重构经验](#关键重构经验)  
+- [API密钥管理经验](#api密钥管理经验)  
 
 ---
 
@@ -205,3 +206,269 @@ ncu -u "eslint*"      # 安全更新指定包
      VITE_GEMINI_KEY: string;
    }
    ```
+
+### LLM 服务重构经验
+
+#### LangChain 集成
+- 日期：[当前日期]
+- 场景：将原生 API 调用重构为 LangChain 实现
+- 主要改进：
+  1. 更好的可扩展性
+  2. 统一的接口抽象
+  3. 内置的错误处理
+  4. 支持高级特性
+
+#### 最佳实践
+1. 使用模型实例缓存提高性能
+2. 统一消息格式转换
+3. 保持公共接口稳定
+4. 分层错误处理
+
+#### 注意事项
+1. 需要安装相关依赖：
+   ```bash
+   npm install langchain @langchain/core @langchain/openai @langchain/anthropic
+   ```
+2. 不同模型提供商的配置参数可能不同
+3. 建议使用 TypeScript 获得更好的类型支持
+
+#### 未来扩展
+1. 支持更多模型提供商
+2. 添加高级功能：
+   - 链式调用
+   - 代理功能
+   - 向量存储
+   - 记忆管理
+3. 性能优化：
+   - 并发请求
+   - 流式响应
+   - 缓存策略
+
+---
+
+## API密钥管理经验
+
+### 设计决策
+1. 采用用户自管理API密钥的方式
+2. 启用OpenAI库的浏览器支持
+3. 提供完整的密钥管理指导
+
+### 原因
+1. 应用定位为个人工具
+2. 用户可以完全控制自己的API使用
+3. 避免后端服务的开销和维护
+4. 保持应用的简单性和可移植性
+
+### 安全考虑
+1. 密钥由用户自行创建和管理
+2. 建议用户为应用单独创建密钥
+3. 推荐在OpenAI平台设置使用限制
+4. 提供密钥安全使用的最佳实践指导
+
+### 用户体验优化
+1. 提供详细的API密钥获取教程
+2. 添加密钥验证功能
+3. 显示当前密钥的使用状态
+4. 提供密钥使用的安全提示
+
+### 技术实现
+```typescript
+const model = new OpenAI({
+  apiKey: userProvidedKey,
+  baseURL: modelConfig.baseURL,
+  dangerouslyAllowBrowser: true // 必要的配置
+});
+```
+
+### 最佳实践建议
+1. 在本地存储中加密保存密钥
+2. 提供清除密钥的功能
+3. 定期提醒用户检查密钥使用情况
+4. 提供密钥轮换的指导
+
+## 测试修复经验总结
+
+### 1. 常见测试失败原因
+- 方法名不匹配：实现变更后未同步更新测试用例
+- 错误消息不一致：测试期望与实际实现的错误消息格式不匹配
+- 模板验证逻辑不一致：测试用例未反映最新的业务逻辑
+
+### 2. 修复策略
+- 统一错误消息格式：确保测试用例与实际代码的错误消息完全匹配
+- 移除多余的模拟：删除不必要的模拟调用
+- 添加缺失的模拟：确保所有必要的依赖都被正确模拟
+
+### 3. 最佳实践
+- 错误消息管理：统一定义错误消息，避免分散管理
+- 测试用例维护：及时更新测试用例以反映最新的代码行为
+- Mock 策略：只模拟必要的方法，避免过度模拟
+- 测试覆盖：关注边界条件和异常场景的测试
+
+### 4. 改进建议
+- 使用常量定义错误消息
+- 完善错误处理的类型定义
+- 添加更多边界条件测试
+- 创建测试辅助函数简化重复设置
+
+### 5. 测试代码示例
+```typescript
+// 错误消息常量
+const ERROR_MESSAGES = {
+  TEMPLATE_NOT_FOUND: '模板不存在或无效',
+  MANAGER_NOT_INITIALIZED: '模板管理器未初始化',
+  MODEL_NOT_FOUND: '模型不存在'
+} as const;
+
+// 测试辅助函数
+function setupMocks(options: {
+  templateContent?: string,
+  modelExists?: boolean,
+  messageResult?: string
+}) {
+  const { templateContent, modelExists = true, messageResult } = options;
+  
+  if (modelExists) {
+    vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
+  } else {
+    vi.spyOn(modelManager, 'getModel').mockReturnValue(undefined);
+  }
+  
+  if (templateContent !== undefined) {
+    vi.spyOn(templateManager, 'getTemplate').mockResolvedValue({
+      ...mockTemplate,
+      template: templateContent
+    });
+  }
+  
+  if (messageResult) {
+    vi.spyOn(llmService, 'sendMessage').mockResolvedValue(messageResult);
+  }
+}
+```
+
+### 6. 测试改进经验（2024-03-22）
+
+#### 边界条件测试要点
+1. **输入验证**
+   - 空字符串处理
+   - 超长输入处理
+   - 特殊字符处理
+   - 无效参数处理
+
+2. **服务异常处理**
+   - 超时处理
+   - 空响应处理
+   - 网络错误处理
+   - 服务降级处理
+
+3. **状态记录验证**
+   - 历史记录完整性
+   - 状态变更正确性
+   - 关联关系准确性
+   - 时序记录准确性
+
+#### 测试代码组织
+```typescript
+describe('功能测试组', () => {
+  // 基础测试
+  describe('基本功能', () => {
+    it('正常场景', async () => {});
+    it('异常场景', async () => {});
+  });
+
+  // 边界条件
+  describe('边界条件', () => {
+    it('空输入', async () => {});
+    it('超长输入', async () => {});
+    it('特殊字符', async () => {});
+  });
+
+  // 状态管理
+  describe('状态管理', () => {
+    it('状态记录', async () => {});
+    it('状态查询', async () => {});
+    it('状态关联', async () => {});
+  });
+});
+```
+
+#### 测试优化技巧
+1. **Mock 优化**
+   ```typescript
+   // 统一的 Mock 设置
+   function setupServiceMocks(options: MockOptions) {
+     const {
+       templateContent,
+       modelResponse,
+       shouldFail
+     } = options;
+
+     if (shouldFail) {
+       vi.spyOn(service, 'call').mockRejectedValue(new Error('预期的错误'));
+     } else {
+       vi.spyOn(service, 'call').mockResolvedValue(modelResponse);
+     }
+   }
+   ```
+
+2. **错误处理验证**
+   ```typescript
+   // 统一的错误处理验证
+   expect(() => {
+     // 触发错误的操作
+   }).rejects.toThrow(expect.objectContaining({
+     name: 'ValidationError',
+     message: expect.stringContaining('预期的错误消息')
+   }));
+   ```
+
+3. **测试数据管理**
+   ```typescript
+   // 集中管理测试数据
+   const TEST_DATA = {
+     validPrompt: '有效的提示词',
+     invalidPrompt: '',
+     longPrompt: 'a'.repeat(10000),
+     specialChars: '!@#$%^&*()',
+   } as const;
+   ```
+
+#### 改进效果
+1. 测试覆盖率提升
+2. 边界场景更完善
+3. 代码可维护性提高
+4. 测试执行效率提升
+
+## LangChain消息类型修复经验
+
+### 问题描述
+在使用LangChain进行消息处理时,遇到类型不匹配的问题:
+```typescript
+Argument of type 'AIMessage' is not assignable to parameter of type 'AIMessageChunk'
+```
+
+### 原因分析
+1. LangChain的消息类型有多种,包括`AIMessage`和`AIMessageChunk`
+2. `AIMessageChunk`是专门用于流式响应的消息类型
+3. 在调用`invoke`方法时,返回类型为`AIMessageChunk`
+
+### 解决方案
+1. 将导入语句从`AIMessage`改为`AIMessageChunk`:
+```typescript
+import { AIMessageChunk } from '@langchain/core/messages'
+```
+
+2. 更新所有使用`AIMessage`的地方为`AIMessageChunk`
+
+### 最佳实践
+1. 使用正确的消息类型:
+   - `AIMessage`: 用于普通消息
+   - `AIMessageChunk`: 用于流式响应
+   - `HumanMessage`: 用于用户输入
+   - `SystemMessage`: 用于系统消息
+2. 在mock测试时确保使用正确的消息类型
+3. 参考LangChain文档中的类型定义
+
+### 相关文档
+- [LangChain消息类型文档](https://js.langchain.com/docs/api/schema/messages)
+- [LangChain流式响应文档](https://js.langchain.com/docs/modules/model_io/models/chat/streaming)

@@ -17,7 +17,8 @@ describe('ModelManager', () => {
       apiKey: 'test-key',
       models: ['test-model'],
       defaultModel: 'test-model',
-      enabled: true
+      enabled: true,
+      provider: 'openai'
     };
 
     // 创建一个新的 ModelManager 实例，但先清除默认模型

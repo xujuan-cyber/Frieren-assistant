@@ -26,7 +26,8 @@ describe('自定义模型测试', () => {
       models: ['custom-model'],
       defaultModel: 'custom-model',
       apiKey: 'test-api-key',
-      enabled: true
+      enabled: true,
+      provider: 'openai'
     };
 
     modelManager.addModel('custom', customConfig);
@@ -47,7 +48,8 @@ describe('自定义模型测试', () => {
       models: ['custom-model'],
       defaultModel: 'custom-model',
       apiKey: 'test-api-key',
-      enabled: true
+      enabled: true,
+      provider: 'openai'
     };
 
     modelManager.addModel('custom', initialConfig);
@@ -74,7 +76,8 @@ describe('自定义模型测试', () => {
       models: ['custom-model'],
       defaultModel: 'custom-model',
       apiKey: 'test-api-key',
-      enabled: true
+      enabled: true,
+      provider: 'openai'
     };
 
     modelManager.addModel('custom', customConfig);
@@ -97,7 +100,8 @@ describe('自定义模型测试', () => {
       models: ['custom-model'],
       defaultModel: 'custom-model',
       apiKey,
-      enabled: true
+      enabled: true,
+      provider: 'openai'
     };
 
     modelManager.addModel('custom', customConfig);
@@ -124,7 +128,8 @@ describe('自定义模型测试', () => {
       models: ['custom-model'],
       defaultModel: 'custom-model',
       apiKey,
-      enabled: true
+      enabled: true,
+      provider: 'openai'
     };
 
     modelManager.addModel('custom', customConfig);

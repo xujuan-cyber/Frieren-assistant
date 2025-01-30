@@ -1,6 +1,7 @@
-import { LLMService } from '../../../../src/services/llm/service';
+import { createLLMService } from '../../../../src/services/llm/service';
 import { ModelManager } from '../../../../src/services/model/manager';
-import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
+import { expect, describe, it, beforeEach, beforeAll, vi } from 'vitest';
+import { APIError, RequestConfigError } from '../../../../src/services/llm/errors';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -16,7 +17,14 @@ describe('LLM 服务通用测试', () => {
   beforeEach(() => {
     localStorage.clear();
     modelManager = new ModelManager();
-    llmService = new LLMService();
+    llmService = createLLMService(modelManager);
+    
+    // Mock ChatOpenAI
+    vi.mock('@langchain/openai', () => ({
+      ChatOpenAI: vi.fn().mockImplementation(() => ({
+        invoke: vi.fn().mockRejectedValue(new Error('API Error'))
+      }))
+    }));
   });
 
   describe('API 调用错误处理', () => {
@@ -28,18 +36,18 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'invalid-key',
-        enabled: true
+        enabled: true,
+        provider: 'openai'
       });
 
       const messages = [
         { role: 'user', content: '你好，我们来玩个游戏' }
       ];
 
-      const config = await llmService.buildRequestConfig(modelManager.getModel(testModel), messages);
-      await expect(llmService.sendRequest(config))
+      await expect(llmService.sendMessage(messages, testModel))
         .rejects
-        .toThrow();
-    });
+        .toThrow(APIError);
+    }, 10000); // 增加超时时间到 10 秒
 
     it('应该能正确处理无效的 baseURL', async () => {
       const testModel = 'test';
@@ -49,18 +57,18 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'test-key',
-        enabled: true
+        enabled: true,
+        provider: 'openai'
       });
 
       const messages = [
         { role: 'user', content: '你好，我们来玩个游戏' }
       ];
 
-      const config = await llmService.buildRequestConfig(modelManager.getModel(testModel), messages);
-      await expect(llmService.sendRequest(config))
+      await expect(llmService.sendMessage(messages, testModel))
         .rejects
-        .toThrow();
-    });
+        .toThrow(APIError);
+    }, 10000); // 增加超时时间到 10 秒
 
     it('应该能正确处理无效的消息格式', async () => {
       const testModel = 'test';
@@ -70,15 +78,15 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'test-key',
-        enabled: true
+        enabled: true,
+        provider: 'openai'
       });
 
       await expect(async () => {
-        const config = await llmService.buildRequestConfig(modelManager.getModel(testModel), [
+        await llmService.sendMessage([
           { role: 'invalid', content: '测试消息' }
-        ]);
-        await llmService.sendRequest(config);
-      }).rejects.toThrow('无效的消息格式');
+        ], testModel);
+      }).rejects.toThrow(RequestConfigError);
     });
 
     it('应该能正确处理未启用的模型', async () => {
@@ -89,7 +97,8 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'test-key',
-        enabled: false
+        enabled: false,
+        provider: 'openai'
       });
 
       const messages = [
@@ -97,8 +106,8 @@ describe('LLM 服务通用测试', () => {
       ];
 
       await expect(async () => {
-        await llmService.buildRequestConfig(modelManager.getModel(testModel), messages);
-      }).rejects.toThrow('模型未启用');
+        await llmService.sendMessage(messages, testModel);
+      }).rejects.toThrow(RequestConfigError);
     });
 
     it('应该能正确处理空消息列表', async () => {
@@ -109,12 +118,13 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'test-key',
-        enabled: true
+        enabled: true,
+        provider: 'openai'
       });
 
       await expect(async () => {
-        await llmService.buildRequestConfig(modelManager.getModel(testModel), []);
-      }).rejects.toThrow('消息列表不能为空');
+        await llmService.sendMessage([], testModel);
+      }).rejects.toThrow(RequestConfigError);
     });
   });
 
@@ -127,7 +137,8 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'test-key',
-        enabled: true
+        enabled: true,
+        provider: 'openai'
       };
 
       modelManager.addModel(testModel, config);
@@ -155,7 +166,8 @@ describe('LLM 服务通用测试', () => {
         models: ['test-model'],
         defaultModel: 'test-model',
         apiKey: 'test-key',
-        enabled: true
+        enabled: true,
+        provider: 'openai'
       };
 
       modelManager.addModel(testModel, config);

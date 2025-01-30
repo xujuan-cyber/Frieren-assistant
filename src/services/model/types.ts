@@ -14,6 +14,8 @@ export interface ModelConfig {
   defaultModel: string;
   /** 是否启用 */
   enabled: boolean;
+  /** 提供商 */
+  provider: 'openai' | 'gemini' | string;
 }
 
 /**

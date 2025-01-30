@@ -1,170 +1,101 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LLMService } from '../../../src/services/llm/service';
 import { ModelManager } from '../../../src/services/model/manager';
-import { RequestConfigError } from '../../../src/services/llm/errors';
-
-// Mock fetch
-global.fetch = vi.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({
-      choices: [{
-        message: {
-          content: 'Mock response'
-        }
-      }]
-    })
-  })
-);
-
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn()
-};
-global.localStorage = localStorageMock;
-
-// Mock promptManager
-vi.mock('../../../src/services/promptManager', () => ({
-  promptManager: {
-    getTemplate: () => Promise.resolve({ template: 'Mock template' })
-  }
-}));
-
-// Mock models module
-vi.mock('../../../src/config/models', () => ({
-  initializeModels: () => ({
-    test: {
-      name: 'Test Model',
-      baseUrl: 'https://test.api/chat',
-      models: ['test-model'],
-      defaultModel: 'test-model',
-      enabled: true,
-      apiKey: 'test-api-key'
-    }
-  }),
-  validateModelConfig: (config) => {
-    const required = ['name', 'baseUrl', 'models', 'defaultModel'];
-    return required.every(field => config[field]);
-  },
-  buildRequestConfig: (provider, model, apiKey, messages) => ({
-    url: 'https://test.api/chat',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: {
-      model,
-      messages,
-      temperature: 0.7,
-      max_tokens: 2000
-    }
-  })
-}));
-
-// Mock ModelManager
-vi.mock('../../../src/services/model/manager', () => {
-  const mockModel = {
-    name: 'Test Model',
-    baseURL: 'https://test.api/chat',
-    models: ['test-model'],
-    defaultModel: 'test-model',
-    enabled: true,
-    apiKey: 'test-api-key'
-  };
-
-  return {
-    ModelManager: vi.fn().mockImplementation(() => ({
-      getModel: vi.fn().mockReturnValue(mockModel),
-      updateModel: vi.fn(),
-      addModel: vi.fn(),
-      deleteModel: vi.fn()
-    }))
-  };
-});
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
+import { RequestConfigError, APIError } from '../../../src/services/llm/errors';
 
 describe('LLMService', () => {
   let llmService;
   let modelManager;
-  const testProvider = 'test';
+  const testProvider = 'test-provider';
+  const mockModelConfig = {
+    provider: 'openai',
+    apiKey: 'test-key',
+    baseURL: 'https://api.test.com',
+    defaultModel: 'test-model',
+    enabled: true
+  };
 
   beforeEach(() => {
-    localStorage.clear();
-    vi.clearAllMocks();
     modelManager = new ModelManager();
+    vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
     llmService = new LLMService(modelManager);
   });
 
-  describe('API 调用', () => {
-    it('应该正确发送消息', async () => {
-      const messages = [{ role: 'user', content: 'Test message' }];
-      const response = await llmService.sendMessage(messages, testProvider);
-      expect(response).toBe('Mock response');
-      expect(fetch).toHaveBeenCalled();
-      expect(modelManager.getModel).toHaveBeenCalledWith(testProvider);
+  describe('消息验证', () => {
+    it('应该正确验证消息格式', () => {
+      const validMessages = [
+        { role: 'system', content: 'test' },
+        { role: 'user', content: 'test' }
+      ];
+      expect(() => llmService['validateMessages'](validMessages)).not.toThrow();
     });
 
-    it('应该正确处理优化请求', async () => {
-      const prompt = 'Test prompt';
-      const response = await llmService.optimizePrompt(prompt, 'optimize', testProvider);
-      expect(response).toBe('Mock response');
-      expect(fetch).toHaveBeenCalled();
-      expect(modelManager.getModel).toHaveBeenCalledWith(testProvider);
+    it('当消息格式无效时应抛出错误', () => {
+      const invalidMessages = [
+        { role: 'invalid', content: 'test' }
+      ];
+      expect(() => llmService['validateMessages'](invalidMessages))
+        .toThrow('不支持的消息类型: invalid');
+    });
+  });
+
+  describe('模型配置验证', () => {
+    it('应该正确验证模型配置', () => {
+      expect(() => llmService['validateModelConfig'](mockModelConfig)).not.toThrow();
     });
 
-    it('应该正确处理迭代请求', async () => {
-      const originalPrompt = 'Original prompt';
-      const iterateInput = 'Iterate input';
-      const response = await llmService.iteratePrompt(originalPrompt, iterateInput, testProvider);
-      expect(response).toBe('Mock response');
-      expect(fetch).toHaveBeenCalled();
-      expect(modelManager.getModel).toHaveBeenCalledWith(testProvider);
+    it('当模型配置无效时应抛出错误', () => {
+      const invalidConfig = { ...mockModelConfig, apiKey: '' };
+      expect(() => llmService['validateModelConfig'](invalidConfig))
+        .toThrow('API密钥不能为空');
     });
+  });
 
-    it('应该正确处理不存在的模型', async () => {
-      modelManager.getModel.mockReturnValueOnce(undefined);
-      await expect(llmService.sendMessage([], testProvider))
-        .rejects
-        .toThrow(`模型 ${testProvider} 不存在`);
-    });
-
-    it('应该正确处理未启用的模型', async () => {
-      modelManager.getModel.mockReturnValueOnce({
-        ...modelManager.getModel(),
-        enabled: false
+  describe('请求配置构建', () => {
+    it('应该正确构建请求配置', () => {
+      const messages = [
+        { role: 'system', content: 'test' }
+      ];
+      const config = llmService.buildRequestConfig(mockModelConfig, messages);
+      expect(config).toEqual({
+        url: 'https://api.test.com/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-key'
+        },
+        body: {
+          model: 'test-model',
+          messages: [{ role: 'system', content: 'test' }]
+        }
       });
-      await expect(llmService.sendMessage([], testProvider))
-        .rejects
-        .toThrow('模型未启用');
+    });
+  });
+
+  describe('消息发送', () => {
+    it('应该正确发送消息', async () => {
+      const mockResponse = new AIMessage('test response');
+      vi.spyOn(ChatOpenAI.prototype, 'invoke').mockResolvedValue(mockResponse);
+
+      const messages = [
+        { role: 'system', content: 'test' },
+        { role: 'user', content: 'test' }
+      ];
+      const result = await llmService.sendMessage(messages, testProvider);
+      expect(result).toBe('test response');
     });
 
-    it('应该正确处理空消息列表', async () => {
-      await expect(llmService.sendMessage([], testProvider))
-        .rejects
-        .toThrow('消息列表不能为空');
-    });
+    it('当请求失败时应抛出错误', async () => {
+      vi.spyOn(ChatOpenAI.prototype, 'invoke').mockRejectedValue(new Error('API Error'));
 
-    it('应该正确处理无效的消息格式', async () => {
-      const invalidMessages = [{ role: 'invalid', content: 'test' }];
-      await expect(llmService.sendMessage(invalidMessages, testProvider))
+      const messages = [
+        { role: 'system', content: 'test' }
+      ];
+      await expect(llmService.sendMessage(messages, testProvider))
         .rejects
-        .toThrow('无效的消息格式');
-    });
-
-    it('应该正确处理 API 错误', async () => {
-      global.fetch.mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          statusText: 'Internal Server Error'
-        })
-      );
-
-      await expect(llmService.sendMessage([{ role: 'user', content: 'test' }], testProvider))
-        .rejects
-        .toThrow('请求失败');
+        .toThrow('发送消息失败: API Error');
     });
   });
 });
