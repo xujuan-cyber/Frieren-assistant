@@ -273,6 +273,220 @@ export class PromptService implements IPromptService {
   getIterationChain(recordId: string): PromptRecord[] {
     return this.historyManager.getIterationChain(recordId);
   }
+
+  async testPromptStream(
+    prompt: string,
+    testInput: string,
+    modelKey: string,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: () => void;
+      onError: (error: Error) => void;
+    }
+  ): Promise<void> {
+    try {
+      const modelConfig = this.modelManager.getModel(modelKey);
+      if (!modelConfig) {
+        throw new ServiceDependencyError('模型不存在', 'ModelManager');
+      }
+
+      const messages: Message[] = [
+        { role: 'system', content: prompt },
+        { role: 'user', content: testInput }
+      ];
+
+      await this.llmService.sendMessageStream(messages, modelKey, callbacks);
+
+      // 完成后保存历史记录
+      this.historyManager.addRecord({
+        id: Date.now().toString(),
+        prompt: testInput,
+        result: '流式响应',  // 可以考虑在回调中收集完整响应
+        type: 'test',
+        parentId: prompt,
+        timestamp: Date.now(),
+        modelKey,
+        templateId: 'test'
+      });
+    } catch (error) {
+      if (error instanceof TestError) {
+        throw error;
+      }
+      throw new TestError(
+        `测试失败: ${error.message}`,
+        prompt,
+        testInput
+      );
+    }
+  }
+
+  /**
+   * 优化提示词（流式）
+   */
+  async optimizePromptStream(
+    prompt: string,
+    modelKey: string,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: () => void;
+      onError: (error: Error) => void;
+    }
+  ): Promise<void> {
+    try {
+      // 前置验证
+      this.validateInput(prompt, modelKey);
+      
+      // 获取模型配置
+      const modelConfig = this.modelManager.getModel(modelKey);
+      if (!modelConfig) {
+        throw new OptimizationError(
+          `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_NOT_FOUND}`,
+          prompt
+        );
+      }
+
+      // 获取优化模板
+      let template;
+      try {
+        template = await this.templateManager.getTemplate('optimize');
+      } catch (error) {
+        throw new OptimizationError(`优化失败: ${error.message}`, prompt);
+      }
+
+      if (!template?.template) {
+        throw new OptimizationError('优化失败: 模板不存在或无效', prompt);
+      }
+
+      // 构建消息
+      const messages: Message[] = [
+        { role: 'system', content: template.template },
+        { role: 'user', content: prompt }
+      ];
+
+      // 使用流式调用
+      let result = '';
+      await this.llmService.sendMessageStream(
+        messages,
+        modelKey,
+        {
+          onToken: (token) => {
+            result += token;
+            callbacks.onToken(token);
+          },
+          onComplete: () => {
+            // 验证响应
+            this.validateResponse(result, prompt);
+
+            // 保存历史记录
+            this.historyManager.addRecord({
+              id: Date.now().toString(),
+              prompt,
+              result,
+              type: 'optimize',
+              timestamp: Date.now(),
+              modelKey,
+              templateId: 'optimize'
+            });
+
+            callbacks.onComplete();
+          },
+          onError: callbacks.onError
+        }
+      );
+    } catch (error) {
+      if (error instanceof OptimizationError) {
+        callbacks.onError(error);
+        throw error;
+      }
+      const wrappedError = new OptimizationError(
+        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${error.message}`,
+        prompt
+      );
+      callbacks.onError(wrappedError);
+      throw wrappedError;
+    }
+  }
+
+  /**
+   * 迭代优化提示词（流式）
+   */
+  async iteratePromptStream(
+    originalPrompt: string,
+    iterateInput: string,
+    modelKey: string,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: () => void;
+      onError: (error: Error) => void;
+    }
+  ): Promise<void> {
+    try {
+      // 获取模型配置
+      const modelConfig = this.modelManager.getModel(modelKey);
+      if (!modelConfig) {
+        throw new ServiceDependencyError('模型不存在', 'ModelManager');
+      }
+
+      // 获取迭代模板
+      let template;
+      try {
+        template = await this.templateManager.getTemplate('iterate');
+      } catch (error) {
+        throw new IterationError(`迭代失败: ${error.message}`, originalPrompt, iterateInput);
+      }
+
+      if (!template?.template) {
+        throw new IterationError('迭代失败: 模板不存在或无效', originalPrompt, iterateInput);
+      }
+
+      // 构建消息
+      const messages: Message[] = [
+        { role: 'system', content: template.template },
+        { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
+      ];
+
+      // 使用流式调用
+      let result = '';
+      await this.llmService.sendMessageStream(
+        messages,
+        modelKey,
+        {
+          onToken: (token) => {
+            result += token;
+            callbacks.onToken(token);
+          },
+          onComplete: () => {
+            // 保存历史记录
+            this.historyManager.addRecord({
+              id: Date.now().toString(),
+              prompt: iterateInput,
+              result,
+              type: 'iterate',
+              parentId: originalPrompt,
+              timestamp: Date.now(),
+              modelKey,
+              templateId: 'iterate'
+            });
+
+            callbacks.onComplete();
+          },
+          onError: callbacks.onError
+        }
+      );
+    } catch (error) {
+      if (error instanceof IterationError) {
+        callbacks.onError(error);
+        throw error;
+      }
+      const wrappedError = new IterationError(
+        `迭代失败: ${error.message}`,
+        originalPrompt,
+        iterateInput
+      );
+      callbacks.onError(wrappedError);
+      throw wrappedError;
+    }
+  }
 }
 
 // 导出工厂函数

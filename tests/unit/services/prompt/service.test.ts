@@ -10,6 +10,10 @@ import { PromptRecord } from '../../../../src/services/history/types';
 import { LLMService } from '../../../../src/services/llm/service';
 import { OptimizationError, IterationError, TestError } from '../../../../src/services/prompt/errors';
 
+// 模拟 fetch API
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
 describe('PromptService', () => {
   let promptService: PromptService;
   let modelManager: ModelManager;
@@ -44,13 +48,25 @@ describe('PromptService', () => {
   };
 
   beforeEach(async () => {
+    // 重置所有mock
+    mockFetch.mockReset();
+
+    // 模拟模板索引请求
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ['optimize.yaml']
+    });
+
+    // 模拟模板内容请求
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      text: async () => JSON.stringify(mockTemplate)
+    });
+
     modelManager = new ModelManager();
     llmService = createLLMService(modelManager);
     templateManager = new TemplateManager();
     historyManager = new HistoryManager();
-
-    await templateManager.init();
-    await historyManager.init();
 
     vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
     vi.spyOn(llmService, 'buildRequestConfig').mockReturnValue({
@@ -62,6 +78,10 @@ describe('PromptService', () => {
       }
     });
     vi.spyOn(llmService, 'sendRequest').mockResolvedValue('test result');
+
+    // 初始化管理器
+    await templateManager.init();
+    await historyManager.init();
 
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
   });

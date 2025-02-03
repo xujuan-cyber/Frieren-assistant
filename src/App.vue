@@ -85,6 +85,7 @@
               <!-- 测试结果区域 -->
               <div class="flex-1 min-h-0">
                 <OutputPanel
+                  ref="outputPanelRef"
                   :loading="isTesting"
                   :error="testError"
                   :result="testResult"
@@ -150,6 +151,21 @@ const optimizeModel = ref('')
 const selectedModel = ref('')
 const history = ref([])
 const models = ref([])
+const outputPanelRef = ref(null)
+
+// 流式输出处理器
+const streamHandler = {
+  onToken: (token) => {
+    testResult.value += token
+  },
+  onComplete: () => {
+    isTesting.value = false
+  },
+  onError: (error) => {
+    testError.value = error.message
+    isTesting.value = false
+  }
+}
 
 // 初始化 toast
 const toast = useToast()
@@ -194,16 +210,32 @@ const handleOptimizePrompt = async () => {
   }
   
   isOptimizing.value = true
+  optimizedPrompt.value = ''  // 清空之前的结果
+  
   try {
     console.log('开始优化提示词:', {
       prompt: prompt.value,
       modelKey: optimizeModel.value
     })
-    const result = await promptService.optimizePrompt(prompt.value, optimizeModel.value)
-    console.log('优化结果:', result)
-    optimizedPrompt.value = result
-    history.value = promptService.getHistory()
-    toast.success('优化成功')
+
+    // 使用流式调用
+    await promptService.optimizePromptStream(
+      prompt.value, 
+      optimizeModel.value,
+      {
+        onToken: (token) => {
+          optimizedPrompt.value += token;  // 直接更新到 optimizedPrompt
+        },
+        onComplete: () => {
+          // 更新历史记录
+          history.value = promptService.getHistory()
+          toast.success('优化成功')
+        },
+        onError: (error) => {
+          toast.error(error.message || '优化失败')
+        }
+      }
+    );
   } catch (error) {
     console.error('优化失败:', {
       error,
@@ -225,11 +257,28 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
   }
 
   isIterating.value = true
+  optimizedPrompt.value = ''  // 清空之前的结果
+  
   try {
-    const result = await promptService.iteratePrompt(originalPrompt, iterateInput, optimizeModel.value)
-    optimizedPrompt.value = result
-    history.value = promptService.getHistory()
-    toast.success('迭代优化成功')
+    // 使用流式调用
+    await promptService.iteratePromptStream(
+      originalPrompt,
+      iterateInput,
+      optimizeModel.value,
+      {
+        onToken: (token) => {
+          optimizedPrompt.value += token;  // 直接更新到 optimizedPrompt
+        },
+        onComplete: () => {
+          // 更新历史记录
+          history.value = promptService.getHistory()
+          toast.success('迭代优化成功')
+        },
+        onError: (error) => {
+          toast.error(error.message || '迭代优化失败')
+        }
+      }
+    );
   } catch (error) {
     console.error('迭代优化失败:', error)
     toast.error(error.message || '迭代优化失败')
@@ -239,29 +288,52 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
 }
 
 const handleTest = async () => {
-  if (!testContent.value.trim() || isTesting.value) return
-  if (!promptService) {
-    toast.error('服务未初始化，请稍后重试')
-    return
+  if (!selectedModel.value || !testContent.value || !optimizedPrompt.value) {
+    toast.error('请填写完整的测试信息');
+    return;
   }
-  
-  isTesting.value = true
-  testError.value = ''
+
+  console.log('开始测试:', {
+    model: selectedModel.value,
+    testContentLength: testContent.value.length,
+    optimizedPromptLength: optimizedPrompt.value.length
+  });
+
+  isTesting.value = true;
+  testError.value = '';
+
   try {
-    // 使用当前显示的提示词（可能是手动修改过的）
-    const currentPrompt = optimizedPrompt.value || prompt.value
-    const result = await promptService.testPrompt(
-      currentPrompt,
-      testContent.value,
-      selectedModel.value
-    )
-    testResult.value = result
-  } catch (err) {
-    testError.value = '测试失败：' + err.message
+    const messages = [
+      { role: 'system', content: optimizedPrompt.value },
+      { role: 'user', content: testContent.value }
+    ];
+
+    // 获取流式处理器
+    const streamHandlers = outputPanelRef.value?.handleStream();
+    console.log('获取到流式处理器:', !!streamHandlers);
+    
+    if (streamHandlers) {
+      console.log('使用流式调用');
+      // 使用流式调用
+      await llmService.sendMessageStream(
+        messages,
+        selectedModel.value,
+        streamHandlers
+      );
+    } else {
+      console.log('降级为非流式调用');
+      // 降级为非流式调用
+      const response = await llmService.sendMessage(messages, selectedModel.value);
+      testResult.value = response;
+    }
+  } catch (error) {
+    console.error('测试失败:', error);
+    testError.value = error.message || '测试过程中发生错误';
   } finally {
-    isTesting.value = false
+    console.log('测试完成');
+    isTesting.value = false;
   }
-}
+};
 
 const handleSelectHistory = (item) => {
   prompt.value = item.prompt

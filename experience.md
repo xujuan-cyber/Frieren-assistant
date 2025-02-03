@@ -8,6 +8,7 @@
 - [工具与配置](#工具与配置)  
 - [关键重构经验](#关键重构经验)  
 - [API密钥管理经验](#api密钥管理经验)  
+- [自定义API集成经验](#自定义API集成经验)  
 
 ---
 
@@ -472,3 +473,38 @@ import { AIMessageChunk } from '@langchain/core/messages'
 ### 相关文档
 - [LangChain消息类型文档](https://js.langchain.com/docs/api/schema/messages)
 - [LangChain流式响应文档](https://js.langchain.com/docs/modules/model_io/models/chat/streaming)
+
+## 自定义API集成经验
+
+### 配置要求
+1. API需要支持OpenAI兼容格式
+2. 响应格式需要符合以下结构：
+```json
+{
+  "choices": [{
+    "message": {
+      "content": "API响应内容"
+    }
+  }]
+}
+```
+
+### 环境变量配置
+```env
+# 自定义API配置
+VITE_CUSTOM_API_KEY=您的API密钥
+VITE_CUSTOM_API_BASE_URL=您的API基础URL
+```
+
+### 最佳实践
+1. 在添加新的API时，先进行兼容性测试
+2. 确保错误处理机制完善
+3. 添加必要的请求头和认证信息
+4. 实现请求重试机制
+5. 做好日志记录
+
+### 常见问题
+1. API格式不兼容：确保响应格式符合OpenAI标准
+2. 认证失败：检查API密钥配置
+3. 跨域问题：配置正确的CORS设置
+4. 超时处理：设置合理的超时时间

@@ -75,6 +75,7 @@ export class LLMService implements ILLMService {
       switch (modelConfig.provider) {
         case 'openai':
         case 'deepseek':
+        case 'custom':
           model = new ChatOpenAI({
             openAIApiKey: modelConfig.apiKey,
             modelName: modelConfig.defaultModel,
@@ -82,7 +83,8 @@ export class LLMService implements ILLMService {
               baseURL: modelConfig.baseURL
             },
             temperature: 0.7,
-            maxTokens: 2000
+            maxTokens: 2000,
+            streaming: true
           });
           break;
         case 'gemini':
@@ -90,7 +92,8 @@ export class LLMService implements ILLMService {
             apiKey: modelConfig.apiKey,
             modelName: modelConfig.defaultModel,
             maxOutputTokens: 2000,
-            temperature: 0.7
+            temperature: 0.7,
+            streaming: true
           });
           break;
         default:
@@ -216,6 +219,85 @@ export class LLMService implements ILLMService {
         throw error;
       }
       throw new APIError(`发送消息失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 发送消息（流式）
+   */
+  async sendMessageStream(
+    messages: Message[],
+    provider: string,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: () => void;
+      onError: (error: Error) => void;
+    }
+  ): Promise<void> {
+    try {
+      console.log('开始流式请求:', { provider, messagesCount: messages.length });
+      this.validateMessages(messages);
+      
+      const modelConfig = this.modelManager.getModel(provider);
+      if (!modelConfig) {
+        throw new RequestConfigError(`模型 ${provider} 不存在`);
+      }
+
+      const model = this.getModelInstance(modelConfig);
+      console.log('获取到模型实例:', { 
+        provider: modelConfig.provider,
+        model: modelConfig.defaultModel 
+      });
+      
+      // 转换消息格式
+      const langchainMessages = messages.map(msg => {
+        switch (msg.role) {
+          case 'system':
+            return new SystemMessage(msg.content);
+          case 'user':
+            return new HumanMessage(msg.content);
+          case 'assistant':
+            return new AIMessage(msg.content);
+          default:
+            throw new Error(`不支持的消息类型: ${msg.role}`);
+        }
+      });
+
+      // 使用流式调用
+      console.log('开始获取流式响应...');
+      const stream = await model.stream(langchainMessages);
+      console.log('成功获取到流式响应');
+      
+      try {
+        for await (const chunk of stream) {
+          if (chunk.content) {
+            const content = typeof chunk.content === 'string' 
+              ? chunk.content 
+              : chunk.content.toString();
+            
+            console.log('收到数据块:', { 
+              contentType: typeof chunk.content,
+              contentLength: content.length,
+              content: content.substring(0, 50) + '...' 
+            });
+
+            // 确保每个 token 都被正确处理
+            await callbacks.onToken(content);
+            // 添加小延迟，让 UI 有时间更新
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+        }
+        console.log('流式响应完成');
+        callbacks.onComplete();
+      } catch (error) {
+        console.error('流式处理过程中出错:', error);
+        callbacks.onError(error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('流式请求失败:', error);
+      callbacks.onError(error);
+      throw error;
     }
   }
 }

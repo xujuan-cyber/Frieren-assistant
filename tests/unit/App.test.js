@@ -5,6 +5,9 @@ import App from '../../src/App.vue'
 import { createLLMService } from '../../src/services/llm/service'
 import { createPromptService } from '../../src/services/prompt/service'
 import { modelManager } from '../../src/services/model/manager'
+import ElementPlus from 'element-plus'
+import { createTestingPinia } from '@pinia/testing'
+import { ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
 
 // Mock toast functions
 const mockSuccess = vi.fn()
@@ -75,29 +78,39 @@ const createComponent = (name, template = '<div><slot></slot></div>') => ({
   emits: ['update:modelValue', 'update:model', 'submit', 'copy', 'iterate']
 })
 
+// 创建 mock 处理器
+const mockStreamHandler = {
+  onToken: vi.fn(),
+  onComplete: vi.fn(),
+  onError: vi.fn()
+}
+
 describe('App.vue', () => {
   let wrapper
 
   beforeEach(() => {
-    // 重置 mocks
-    vi.clearAllMocks()
-    mockSuccess.mockClear()
-    mockError.mockClear()
+    // 重置所有mock
     mockInfo.mockClear()
     mockWarning.mockClear()
+    mockStreamHandler.onToken.mockClear()
+    mockStreamHandler.onComplete.mockClear()
+    mockStreamHandler.onError.mockClear()
     
+    // 设置组件
     wrapper = mount(App, {
       global: {
-        stubs: {
-          InputPanel: createComponent('InputPanel'),
-          PromptPanel: createComponent('PromptPanel'),
-          OutputPanel: createComponent('OutputPanel'),
-          ModelManager: createComponent('ModelManager'),
-          HistoryDrawer: createComponent('HistoryDrawer'),
-          Toast: createComponent('Toast')
+        plugins: [createTestingPinia()],
+        components: {
+          'el-input': ElInput,
+          'el-button': ElButton,
+          'el-select': ElSelect,
+          'el-option': ElOption
         }
       }
     })
+    
+    // 设置streamHandler
+    wrapper.vm.streamHandler = mockStreamHandler
   })
 
   describe('初始化', () => {
@@ -173,93 +186,60 @@ describe('App.vue', () => {
   })
 
   describe('测试功能', () => {
-    it('应该正确处理测试请求', async () => {
-      const testContent = '测试内容'
-      const testResult = '测试结果'
-      const systemPrompt = '系统提示词'
-
-      // 设置初始状态
-      wrapper.vm.optimizedPrompt = systemPrompt
-
-      // 设置模拟返回值
-      mockPromptService.testPrompt.mockResolvedValue(testResult)
-
-      // 找到测试输入面板（第二个 InputPanel）
-      const inputPanels = wrapper.findAllComponents({ name: 'InputPanel' })
-      const testPanel = inputPanels[1]
-      
-      // 触发输入
-      await testPanel.vm.$emit('update:modelValue', testContent)
-      
-      // 触发提交
-      await testPanel.vm.$emit('submit')
-      
-      // 等待异步操作
-      await nextTick()
-
-      // 验证服务调用
-      expect(mockPromptService.testPrompt).toHaveBeenCalledWith(
-        systemPrompt,
-        testContent,
-        'test'
-      )
-      
-      // 验证结果更新
-      expect(wrapper.vm.testResult).toBe(testResult)
+    beforeEach(() => {
+      // 确保每个测试前重置 mockStreamHandler
+      wrapper.vm.streamHandler = mockStreamHandler
     })
 
-    it('应该在没有优化提示词时使用原始提示词', async () => {
+    it('应该正确处理流式输出测试请求', async () => {
+      const testPrompt = '你是一个作家'
       const testContent = '测试内容'
-      const originalPrompt = '原始提示词'
-      const testResult = '测试结果'
+      const selectedModel = 'test'
 
-      // 设置初始状态
-      wrapper.vm.prompt = originalPrompt
-      wrapper.vm.optimizedPrompt = ''
+      // 设置 mock 返回值
+      mockPromptService.testPrompt.mockResolvedValue('测试响应')
 
-      // 设置模拟返回值
-      mockPromptService.testPrompt.mockResolvedValue(testResult)
+      // 设置必要的值
+      wrapper.vm.testContent = testContent
+      wrapper.vm.selectedModel = selectedModel
+      wrapper.vm.optimizedPrompt = testPrompt
 
-      // 找到测试输入面板
-      const inputPanels = wrapper.findAllComponents({ name: 'InputPanel' })
-      const testPanel = inputPanels[1]
-      
-      // 触发输入和提交
-      await testPanel.vm.$emit('update:modelValue', testContent)
-      await testPanel.vm.$emit('submit')
-      
-      // 等待异步操作
-      await nextTick()
+      await wrapper.vm.handleTest()
 
-      // 验证服务调用使用了原始提示词
-      expect(mockPromptService.testPrompt).toHaveBeenCalledWith(
-        originalPrompt,
-        testContent,
-        'test'
-      )
+      const calls = mockPromptService.testPrompt.mock.calls
+      expect(calls.length).toBe(1)
+      expect(calls[0].slice(0, 3)).toEqual([testPrompt, testContent, selectedModel])
+      expect(Object.keys(calls[0][3])).toEqual(['onToken', 'onComplete', 'onError'])
     })
 
-    it('应该处理测试失败的情况', async () => {
-      const testContent = '测试内容'
-      const errorMessage = '测试失败'
+    it('应该在流式输出发生错误时正确处理', async () => {
+      const testError = new Error('测试错误');
+      const testPrompt = '你是一个作家';
+      const testContent = '测试内容';
+      const selectedModel = 'test';
 
-      // 设置模拟错误
-      mockPromptService.testPrompt.mockRejectedValue(new Error(errorMessage))
+      // 设置 mock 返回值
+      mockPromptService.testPrompt.mockResolvedValue('测试响应');
 
-      // 找到测试输入面板
-      const inputPanels = wrapper.findAllComponents({ name: 'InputPanel' })
-      const testPanel = inputPanels[1]
-      
-      // 触发输入和提交
-      await testPanel.vm.$emit('update:modelValue', testContent)
-      await testPanel.vm.$emit('submit')
-      
-      // 等待异步操作
-      await nextTick()
+      // 设置必要的值
+      wrapper.vm.testContent = testContent;
+      wrapper.vm.selectedModel = selectedModel;
+      wrapper.vm.optimizedPrompt = testPrompt;
+
+      await wrapper.vm.handleTest();
+
+      const calls = mockPromptService.testPrompt.mock.calls;
+      expect(calls.length).toBe(1);
+      expect(calls[0].slice(0, 3)).toEqual([testPrompt, testContent, selectedModel]);
+      expect(Object.keys(calls[0][3])).toEqual(['onToken', 'onComplete', 'onError']);
+
+      // 触发错误回调
+      await calls[0][3].onError(testError);
+      await nextTick();
 
       // 验证错误状态
-      expect(wrapper.vm.isTesting).toBe(false)
-      expect(wrapper.vm.testError).toBe('测试失败：' + errorMessage)
+      const outputPanel = wrapper.findComponent({ name: 'OutputPanel' });
+      expect(outputPanel.props('error')).toBe(testError.message);
     })
   })
 

@@ -20,6 +20,11 @@ export default defineConfig({
       tsconfig: './tsconfig.json',
       include: ['./tests/**/*.{ts,tsx}'],
       exclude: ['node_modules']
-    }
+    },
+    reporters: ['verbose'],
+    outputFile: 'test-results.json',
+    logHeapUsage: true,
+    watch: false,
+    silent: false
   },
 })

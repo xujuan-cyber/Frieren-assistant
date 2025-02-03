@@ -5,12 +5,14 @@ import { ModelConfig } from './types';
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY || '';
+const CUSTOM_API_KEY = import.meta.env.VITE_CUSTOM_API_KEY || '';
 
 // 调试日志
 console.log('环境变量状态:', {
   OPENAI_API_KEY: !!OPENAI_API_KEY,
   GEMINI_API_KEY: !!GEMINI_API_KEY,
   DEEPSEEK_API_KEY: !!DEEPSEEK_API_KEY,
+  CUSTOM_API_KEY: !!CUSTOM_API_KEY,
   env: import.meta.env
 });
 
@@ -41,5 +43,14 @@ export const defaultModels: Record<string, ModelConfig> = {
     apiKey: DEEPSEEK_API_KEY,
     enabled: !!DEEPSEEK_API_KEY,
     provider: 'deepseek'
+  },
+  custom: {
+    name: '自定义API',
+    baseURL: import.meta.env.VITE_CUSTOM_API_BASE_URL,
+    models: [import.meta.env.VITE_CUSTOM_API_MODEL],
+    defaultModel: import.meta.env.VITE_CUSTOM_API_MODEL,
+    apiKey: CUSTOM_API_KEY,
+    enabled: !!CUSTOM_API_KEY,
+    provider: 'custom'
   }
 }; 

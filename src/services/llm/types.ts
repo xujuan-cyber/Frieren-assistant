@@ -1,4 +1,5 @@
 import { ModelConfig } from '../model/types';
+import { BaseMessage } from '@langchain/core/messages';
 
 /**
  * 消息角色类型
@@ -47,4 +48,19 @@ export interface ILLMService {
    * @throws {APIError} 当请求失败时
    */
   sendMessage(messages: Message[], provider: string): Promise<string>;
+
+  /**
+   * 发送流式消息
+   * @throws {RequestConfigError} 当参数无效时
+   * @throws {APIError} 当请求失败时
+   */
+  sendMessageStream(
+    messages: Message[], 
+    provider: string, 
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: () => void;
+      onError: (error: Error) => void;
+    }
+  ): Promise<void>;
 } 
