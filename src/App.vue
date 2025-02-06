@@ -8,6 +8,13 @@
         </h1>
         <div class="flex items-center space-x-4 sm:space-x-6">
           <button
+            @click="showTemplates = true"
+            class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
+          >
+            <span>📝</span>
+            <span class="hidden sm:inline">模板</span>
+          </button>
+          <button
             @click="showHistory = true"
             class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
@@ -34,9 +41,29 @@
             <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col flex-1">
               <!-- 输入区域 -->
               <div class="flex-none">
+                <div class="mb-4">
+                  <div class="flex justify-between items-center">
+                    <div class="text-sm text-white/60">
+                      当前模板: 
+                      <span v-if="selectedTemplate" class="text-purple-300">
+                        {{ selectedTemplate.name }}
+                      </span>
+                      <span v-else class="text-red-300">
+                        未选择模板
+                      </span>
+                    </div>
+                    <button
+                      @click="showTemplates = true"
+                      class="text-sm text-purple-300 hover:text-purple-200 transition-colors flex items-center space-x-1"
+                    >
+                      <span>📝</span>
+                      <span>选择模板</span>
+                    </button>
+                  </div>
+                </div>
                 <InputPanel
                   v-model="prompt"
-                  v-model:model="optimizeModel"
+                  v-model:selectedModel="optimizeModel"
                   :models="enabledModels"
                   label="原始提示词"
                   placeholder="请输入需要优化的prompt..."
@@ -69,7 +96,7 @@
               <div class="flex-none">
                 <InputPanel
                   v-model="testContent"
-                  v-model:model="selectedModel"
+                  v-model:selectedModel="selectedModel"
                   :models="enabledModels"
                   label="测试内容"
                   placeholder="请输入要测试的内容..."
@@ -106,6 +133,16 @@
       />
     </Teleport>
 
+    <!-- 模板管理弹窗 -->
+    <Teleport to="body">
+      <TemplateManager
+        v-if="showTemplates"
+        v-model="selectedTemplate"
+        @close="showTemplates = false"
+        @select="handleTemplateSelect"
+      />
+    </Teleport>
+
     <!-- 历史记录抽屉 -->
     <HistoryDrawer
       :show="showHistory"
@@ -124,7 +161,9 @@ import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { createLLMService } from './services/llm/service'
 import { createPromptService } from './services/prompt/service'
 import { modelManager } from './services/model/manager'
+import { templateManager } from './services/template/manager'
 import ModelManager from './components/ModelManager.vue'
+import TemplateManager from './components/TemplateManager.vue'
 import Toast from './components/Toast.vue'
 import HistoryDrawer from './components/HistoryDrawer.vue'
 import PromptPanel from './components/PromptPanel.vue'
@@ -147,8 +186,10 @@ const isIterating = ref(false)
 const isTesting = ref(false)
 const showConfig = ref(false)
 const showHistory = ref(false)
+const showTemplates = ref(false)
 const optimizeModel = ref('')
 const selectedModel = ref('')
+const selectedTemplate = ref(null)
 const history = ref([])
 const models = ref([])
 const outputPanelRef = ref(null)
@@ -209,33 +250,49 @@ const handleOptimizePrompt = async () => {
     return
   }
   
+  if (!selectedTemplate.value) {
+    toast.error('请先选择优化模板')
+    return
+  }
+  
   isOptimizing.value = true
   optimizedPrompt.value = ''  // 清空之前的结果
   
   try {
+    // 获取最新的模板内容
+    const latestTemplate = await templateManager.getTemplate(selectedTemplate.value.id)
+    if (!latestTemplate) {
+      throw new Error('模板不存在')
+    }
+
     console.log('开始优化提示词:', {
       prompt: prompt.value,
-      modelKey: optimizeModel.value
+      modelKey: optimizeModel.value,
+      template: latestTemplate
     })
 
     // 使用流式调用
     await promptService.optimizePromptStream(
       prompt.value, 
       optimizeModel.value,
+      latestTemplate.content,  // 使用最新的模板内容
       {
         onToken: (token) => {
-          optimizedPrompt.value += token;  // 直接更新到 optimizedPrompt
+          optimizedPrompt.value += token
         },
         onComplete: () => {
           // 更新历史记录
           history.value = promptService.getHistory()
           toast.success('优化成功')
+          isOptimizing.value = false
         },
         onError: (error) => {
+          console.error('优化过程出错:', error)
           toast.error(error.message || '优化失败')
+          isOptimizing.value = false
         }
       }
-    );
+    )
   } catch (error) {
     console.error('优化失败:', {
       error,
@@ -301,31 +358,30 @@ const handleTest = async () => {
 
   isTesting.value = true;
   testError.value = '';
+  testResult.value = '';
 
   try {
-    const messages = [
-      { role: 'system', content: optimizedPrompt.value },
-      { role: 'user', content: testContent.value }
-    ];
-
-    // 获取流式处理器
-    const streamHandlers = outputPanelRef.value?.handleStream();
-    console.log('获取到流式处理器:', !!streamHandlers);
-    
-    if (streamHandlers) {
-      console.log('使用流式调用');
-      // 使用流式调用
-      await llmService.sendMessageStream(
-        messages,
-        selectedModel.value,
-        streamHandlers
-      );
-    } else {
-      console.log('降级为非流式调用');
-      // 降级为非流式调用
-      const response = await llmService.sendMessage(messages, selectedModel.value);
-      testResult.value = response;
-    }
+    // 使用promptService.testPromptStream进行流式测试
+    await promptService.testPromptStream(
+      optimizedPrompt.value,
+      testContent.value,
+      selectedModel.value,
+      {
+        onToken: (token) => {
+          console.log('收到token:', token);
+          testResult.value += token;
+        },
+        onComplete: () => {
+          console.log('测试完成');
+          isTesting.value = false;
+        },
+        onError: (error) => {
+          console.error('测试出错:', error);
+          testError.value = error.message || '测试失败';
+          isTesting.value = false;
+        }
+      }
+    );
   } catch (error) {
     console.error('测试失败:', error);
     testError.value = error.message || '测试过程中发生错误';
@@ -339,6 +395,12 @@ const handleSelectHistory = (item) => {
   prompt.value = item.prompt
   optimizedPrompt.value = item.result
   showHistory.value = false
+}
+
+// 处理模板选择
+const handleTemplateSelect = (template) => {
+  selectedTemplate.value = template
+  toast.success(`已选择模板: ${template.name}`)
 }
 
 // 生命周期钩子

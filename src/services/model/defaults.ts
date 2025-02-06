@@ -7,15 +7,6 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY || '';
 const CUSTOM_API_KEY = import.meta.env.VITE_CUSTOM_API_KEY || '';
 
-// 调试日志
-console.log('环境变量状态:', {
-  OPENAI_API_KEY: !!OPENAI_API_KEY,
-  GEMINI_API_KEY: !!GEMINI_API_KEY,
-  DEEPSEEK_API_KEY: !!DEEPSEEK_API_KEY,
-  CUSTOM_API_KEY: !!CUSTOM_API_KEY,
-  env: import.meta.env
-});
-
 export const defaultModels: Record<string, ModelConfig> = {
   openai: {
     name: 'OpenAI',

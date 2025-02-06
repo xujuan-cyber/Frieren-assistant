@@ -1,51 +1,42 @@
 <!-- 输入面板组件 -->
 <template>
-  <div class="flex flex-col h-full">
-    <div class="h-[180px] flex flex-col space-y-2 flex-none">
-      <label class="text-white/90 font-medium flex-none">{{ label }}</label>
-      <div class="relative flex-1 min-h-0">
-        <textarea
-          :value="modelValue"
-          class="absolute inset-0 w-full h-full p-4 rounded-xl bg-black/20 border border-purple-600/50 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-white placeholder-gray-500 resize-none"
-          :placeholder="placeholder"
-          :disabled="disabled"
-          @input="$emit('update:modelValue', $event.target.value)"
-        ></textarea>
-      </div>
+  <div class="space-y-3">
+    <!-- 标题 -->
+    <div class="flex justify-between items-center">
+      <label class="block text-sm font-medium text-white/90">{{ label }}</label>
     </div>
-    
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 flex-none">
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-3">
-        <span class="text-white/90 whitespace-nowrap">{{ modelLabel }}:</span>
-        <div class="relative flex-1 sm:min-w-[180px]">
-          <select 
-            :value="model"
-            class="custom-select w-full rounded-lg bg-black/20 border border-purple-600/50 px-4 py-2 text-white cursor-pointer focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
-            :disabled="disabled"
-            @change="$emit('update:model', $event.target.value)"
-          >
-            <option v-for="model in models" 
-                    :key="model.key" 
-                    :value="model.key"
-                    class="bg-gray-900 text-white"
-            >
-              {{ model.name }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-            <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-          </div>
-        </div>
+
+    <!-- 输入框 -->
+    <div class="relative">
+      <textarea
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+        class="w-full px-4 py-3 bg-black/20 border border-purple-600/50 rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all resize-none"
+        :placeholder="placeholder"
+        rows="4"
+      ></textarea>
+    </div>
+
+    <!-- 模型选择和提交按钮 -->
+    <div class="flex items-center justify-between">
+      <div class="flex-1 max-w-[200px]">
+        <label class="block text-sm font-medium text-white/90 mb-1">{{ modelLabel }}</label>
+        <select
+          :value="selectedModel"
+          @input="$emit('update:selectedModel', $event.target.value)"
+          class="w-full px-3 py-1.5 bg-black/20 border border-purple-600/50 rounded-lg text-white custom-select"
+          :disabled="loading || disabled"
+        >
+          <option v-for="model in models" :key="model.key" :value="model.key">
+            {{ model.name }}
+          </option>
+        </select>
       </div>
-      
       <button
         @click="$emit('submit')"
-        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-none hover:shadow-lg hover:shadow-purple-500/20 transform hover:scale-105"
-        :disabled="disabled || !modelValue.trim()"
+        :disabled="loading || disabled || !modelValue.trim()"
+        class="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white rounded-lg transition-colors flex items-center space-x-2"
       >
-        <span v-if="loading" class="animate-spin">⏳</span>
         <span>{{ loading ? loadingText : buttonText }}</span>
       </button>
     </div>
@@ -53,41 +44,40 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
-// 定义props
 const props = defineProps({
   modelValue: {
     type: String,
-    default: ''
+    required: true
   },
-  model: {
+  selectedModel: {
     type: String,
-    default: ''
+    required: true
   },
   models: {
     type: Array,
-    default: () => []
+    required: true
   },
   label: {
     type: String,
     required: true
   },
-  modelLabel: {
-    type: String,
-    default: '模型'
-  },
   placeholder: {
     type: String,
     default: ''
   },
+  modelLabel: {
+    type: String,
+    required: true
+  },
   buttonText: {
     type: String,
-    default: '提交'
+    required: true
   },
   loadingText: {
     type: String,
-    default: '处理中...'
+    required: true
   },
   loading: {
     type: Boolean,
@@ -99,6 +89,5 @@ const props = defineProps({
   }
 })
 
-// 定义事件
-defineEmits(['update:modelValue', 'update:model', 'submit'])
+const emit = defineEmits(['update:modelValue', 'update:selectedModel', 'submit'])
 </script> 

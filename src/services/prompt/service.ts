@@ -326,6 +326,7 @@ export class PromptService implements IPromptService {
   async optimizePromptStream(
     prompt: string,
     modelKey: string,
+    template: string,
     callbacks: {
       onToken: (token: string) => void;
       onComplete: () => void;
@@ -345,21 +346,9 @@ export class PromptService implements IPromptService {
         );
       }
 
-      // 获取优化模板
-      let template;
-      try {
-        template = await this.templateManager.getTemplate('optimize');
-      } catch (error) {
-        throw new OptimizationError(`优化失败: ${error.message}`, prompt);
-      }
-
-      if (!template?.template) {
-        throw new OptimizationError('优化失败: 模板不存在或无效', prompt);
-      }
-
       // 构建消息
       const messages: Message[] = [
-        { role: 'system', content: template.template },
+        { role: 'system', content: template },
         { role: 'user', content: prompt }
       ];
 
@@ -435,13 +424,13 @@ export class PromptService implements IPromptService {
         throw new IterationError(`迭代失败: ${error.message}`, originalPrompt, iterateInput);
       }
 
-      if (!template?.template) {
+      if (!template?.content) {
         throw new IterationError('迭代失败: 模板不存在或无效', originalPrompt, iterateInput);
       }
 
       // 构建消息
       const messages: Message[] = [
-        { role: 'system', content: template.template },
+        { role: 'system', content: template.content },
         { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
       ];
 

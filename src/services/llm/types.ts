@@ -23,6 +23,10 @@ export interface RequestConfig {
   body: {
     model: string;
     messages: Message[];
+    tokenizer_config?: {
+      tokens_per_message: number;
+      tokens_per_name: number;
+    };
   };
 }
 

@@ -1,44 +1,68 @@
+import { z } from 'zod';
+
 /**
- * 模板接口
+ * 模板元数据
  */
-export interface Template {
-  /** 模板ID */
-  id?: string;
-  /** 模板名称 */
-  name: string;
-  /** 模板描述 */
-  description: string;
-  /** 模板内容 */
-  template: string;
-  /** 模板版本 */
-  version?: string;
-  /** 元数据 */
-  metadata?: Record<string, any>;
+export interface TemplateMetadata {
+  version: string;          // 模板版本
+  lastModified: number;     // 最后修改时间
+  author?: string;          // 作者（可选）
+  description?: string;     // 描述（可选）
 }
 
 /**
- * 缓存的模板接口
+ * 模板定义
  */
-export interface CachedTemplate {
-  /** 模板内容 */
-  template: Template;
-  /** 缓存时间戳 */
-  timestamp: number;
+export interface Template {
+  id: string;              // 模板唯一标识
+  name: string;            // 模板名称
+  content: string;         // 模板内容
+  metadata: TemplateMetadata;
+  isBuiltin?: boolean;     // 是否为内置模板
+}
+
+/**
+ * 模板来源类型
+ */
+export type TemplateSourceType = 'builtin' | 'localStorage';
+
+/**
+ * 模板管理器配置
+ */
+export interface TemplateManagerConfig {
+  storageKey?: string;     // localStorage存储键名
+  cacheTimeout?: number;   // 缓存超时时间
 }
 
 /**
  * 模板管理器接口
  */
 export interface ITemplateManager {
-  /** 获取模板 */
+  init(): Promise<void>;
   getTemplate(templateId: string): Promise<Template>;
-  /** 加载模板 */
-  loadTemplate(fileName: string, force?: boolean): Promise<Template>;
-  /** 清除缓存 */
+  saveTemplate(template: Template): Promise<void>;
+  deleteTemplate(templateId: string): Promise<void>;
+  listTemplates(): Promise<Template[]>;
+  exportTemplate(templateId: string): string;
+  importTemplate(templateJson: string): Promise<void>;
   clearCache(templateId?: string): void;
-  /** 设置缓存超时时间 */
-  setCacheTimeout(timeout: number): void;
 }
+
+/**
+ * 模板验证Schema
+ */
+export const templateSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  content: z.string().min(1),
+  metadata: z.object({
+    version: z.string(),
+    lastModified: z.number(),
+    author: z.string().optional(),
+    description: z.string().optional()
+  }),
+  isBuiltin: z.boolean().optional()
+});
 
 export class TemplateValidationError extends Error {
   constructor(message: string, public templateId: string, public errors: string[] = []) {

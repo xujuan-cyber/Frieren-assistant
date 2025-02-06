@@ -1,26 +1,29 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TemplateManager } from '../../../../src/services/template/manager';
-import { load } from 'js-yaml';
-
-// 模拟 fetch API
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+import { DEFAULT_TEMPLATES } from '../../../../src/services/template/defaults';
+import { Template } from '../../../../src/services/template/types';
+import { TemplateValidationError } from '../../../../src/services/template/errors';
 
 describe('TemplateManager', () => {
   let templateManager: TemplateManager;
 
-  const mockTemplate = {
-    name: '测试模板',
-    description: '这是一个测试模板',
-    template: 'Hello {{name}}',
-    variables: ['name']
+  // 模拟用户模板
+  const mockUserTemplate: Template = {
+    id: 'user-template',
+    name: '用户自定义模板',
+    content: '这是一个测试模板',
+    metadata: {
+      version: '1.0.0',
+      lastModified: Date.now(),
+      author: 'Test User',
+      description: '测试用的模板'
+    }
   };
 
   beforeEach(() => {
     console.log('开始新的测试用例');
     templateManager = new TemplateManager();
-    mockFetch.mockReset();
-    console.log('Mock fetch 已重置');
+    console.log('模板管理器已初始化');
   });
 
   afterEach(() => {
@@ -29,156 +32,187 @@ describe('TemplateManager', () => {
   });
 
   describe('初始化测试', () => {
-    it('应该正确初始化模板管理器', async () => {
-      console.log('测试: 正确初始化模板管理器');
-      // 模拟索引文件请求
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ['optimize.yaml', 'test.yaml']
-      });
-      console.log('Mock: 设置索引文件响应');
-
+    it('应该正确初始化内置模板', async () => {
+      console.log('测试: 初始化内置模板');
       await templateManager.init();
-      console.log('模板管理器初始化完成');
-
-      expect(mockFetch).toHaveBeenCalledWith('/templates/_index.json');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      console.log('验证: fetch 调用正确');
+      
+      const templates = await templateManager.listTemplates();
+      expect(templates).toHaveLength(Object.keys(DEFAULT_TEMPLATES).length);
+      expect(templates[0].isBuiltin).toBe(true);
+      console.log('验证: 内置模板加载正确');
     });
 
-    it('初始化失败时应该抛出错误', async () => {
-      console.log('测试: 初始化失败场景');
-      // 模拟请求失败
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: '404 Not Found'
-      });
-      console.log('Mock: 设置失败响应');
-
-      await expect(templateManager.init()).rejects.toThrow('加载模板索引失败');
-      console.log('验证: 正确抛出错误');
+    it('应该正确加载用户模板', async () => {
+      console.log('测试: 加载用户模板');
+      // 预先存储一个用户模板
+      localStorage.setItem('app:templates', JSON.stringify([mockUserTemplate]));
+      
+      await templateManager.init();
+      const templates = await templateManager.listTemplates();
+      
+      expect(templates).toHaveLength(Object.keys(DEFAULT_TEMPLATES).length + 1);
+      expect(templates.find(t => t.id === 'user-template')).toBeTruthy();
+      console.log('验证: 用户模板加载正确');
     });
   });
 
   describe('模板操作测试', () => {
     beforeEach(async () => {
       console.log('准备: 模板操作测试');
-      // 模拟成功初始化
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ['optimize.yaml']
-      });
       await templateManager.init();
-      console.log('模板管理器已初始化');
     });
 
-    it('应该能够获取默认模板', async () => {
-      console.log('测试: 获取默认模板');
-      // 模拟模板文件请求
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify(mockTemplate)
-      });
-      console.log('Mock: 设置模板响应');
-
-      const template = await templateManager.getTemplate();
-      console.log('获取到模板:', template);
-
-      expect(template).toEqual(mockTemplate);
-      expect(mockFetch).toHaveBeenCalledWith('/templates/optimize.yaml');
-      console.log('验证: 模板内容和请求路径正确');
+    it('应该能获取内置模板', async () => {
+      console.log('测试: 获取内置模板');
+      const template = await templateManager.getTemplate('optimize');
+      
+      expect(template).toBeDefined();
+      expect(template.id).toBe('optimize');
+      expect(template.isBuiltin).toBe(true);
+      console.log('验证: 内置模板获取正确');
     });
 
-    it('获取不存在的模板时应该抛出错误', async () => {
-      console.log('测试: 获取不存在的模板');
-      // 模拟请求失败
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: '404 Not Found'
-      });
-      console.log('Mock: 设置失败响应');
+    it('应该能保存和获取用户模板', async () => {
+      console.log('测试: 保存和获取用户模板');
+      const template = { ...mockUserTemplate };
+      await templateManager.saveTemplate(template);
+      
+      const saved = await templateManager.getTemplate('user-template');
+      expect(saved.id).toBe(template.id);
+      expect(saved.name).toBe(template.name);
+      expect(saved.content).toBe(template.content);
+      expect(saved.metadata.version).toBe(template.metadata.version);
+      console.log('验证: 用户模板保存和获取正确');
+    });
 
-      await expect(templateManager.getTemplate('nonexistent')).rejects.toThrow('加载模板失败');
-      console.log('验证: 正确抛出错误');
+    it('不应该覆盖内置模板', async () => {
+      console.log('测试: 尝试覆盖内置模板');
+      const badTemplate = { ...mockUserTemplate, id: 'optimize' };
+      
+      await expect(() => templateManager.saveTemplate(badTemplate))
+        .rejects.toThrow('不能覆盖内置模板');
+      console.log('验证: 正确阻止覆盖内置模板');
+    });
+
+    it('应该能删除用户模板', async () => {
+      console.log('测试: 删除用户模板');
+      await templateManager.saveTemplate(mockUserTemplate);
+      await templateManager.deleteTemplate('user-template');
+      
+      await expect(() => templateManager.getTemplate('user-template'))
+        .rejects.toThrow('模板 user-template 不存在');
+      console.log('验证: 用户模板删除正确');
+    });
+
+    it('不应该删除内置模板', async () => {
+      console.log('测试: 尝试删除内置模板');
+      await expect(() => templateManager.deleteTemplate('optimize'))
+        .rejects.toThrow('不能删除内置模板');
+      console.log('验证: 正确阻止删除内置模板');
     });
   });
 
-  describe('缓存测试', () => {
-    it('应该正确处理缓存超时', async () => {
-      console.log('测试: 缓存超时处理');
-      // 设置较短的缓存超时时间
-      templateManager.setCacheTimeout(100);
-      console.log('设置缓存超时时间: 100ms');
-      
-      // 模拟成功初始化
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ['optimize.yaml']
-      });
+  describe('模板验证测试', () => {
+    it('应该验证模板格式', async () => {
+      console.log('测试: 模板格式验证');
+      const invalidTemplate = {
+        id: '',  // 无效的ID
+        name: '测试模板',
+        content: '',  // 无效的内容
+        metadata: {
+          version: '1.0.0',
+          lastModified: Date.now()
+        }
+      } as Template;
+
+      await expect(() => templateManager.saveTemplate(invalidTemplate))
+        .rejects.toThrowError(TemplateValidationError);
+      console.log('验证: 正确拒绝无效模板');
+    });
+  });
+
+  describe('导入导出测试', () => {
+    beforeEach(async () => {
       await templateManager.init();
-      console.log('模板管理器已初始化');
-
-      // 模拟第一次请求
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify(mockTemplate)
-      });
-      const firstResult = await templateManager.getTemplate();
-      console.log('第一次获取模板:', firstResult);
-
-      // 等待缓存过期
-      console.log('等待缓存过期...');
-      await new Promise(resolve => setTimeout(resolve, 150));
-      console.log('缓存已过期');
-
-      // 模拟第二次请求
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify(mockTemplate)
-      });
-      const secondResult = await templateManager.getTemplate();
-      console.log('第二次获取模板:', secondResult);
-
-      // 验证fetch被调用了三次（一次初始化 + 两次模板请求）
-      expect(mockFetch).toHaveBeenCalledTimes(3);
-      expect(firstResult).toEqual(secondResult);
-      console.log('验证: 请求次数和结果一致');
     });
 
-    it('应该能够清除缓存', async () => {
-      console.log('测试: 清除缓存');
-      // 模拟成功初始化
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ['optimize.yaml']
-      });
+    it('应该能导出用户模板', async () => {
+      console.log('测试: 导出用户模板');
+      const template = { ...mockUserTemplate };
+      await templateManager.saveTemplate(template);
+      
+      const exported = templateManager.exportTemplate('user-template');
+      const parsed = JSON.parse(exported);
+      expect(parsed.id).toBe(template.id);
+      expect(parsed.name).toBe(template.name);
+      expect(parsed.content).toBe(template.content);
+      console.log('验证: 模板导出正确');
+    });
+
+    it('应该能导入用户模板', async () => {
+      console.log('测试: 导入用户模板');
+      const template = { ...mockUserTemplate };
+      const templateJson = JSON.stringify(template);
+      
+      await templateManager.importTemplate(templateJson);
+      const imported = await templateManager.getTemplate('user-template');
+      
+      expect(imported.id).toBe(template.id);
+      expect(imported.name).toBe(template.name);
+      expect(imported.content).toBe(template.content);
+      console.log('验证: 模板导入正确');
+    });
+
+    it('应该验证导入的模板', async () => {
+      console.log('测试: 验证导入模板');
+      const invalidTemplate = { ...mockUserTemplate, id: '' };
+      
+      await expect(() => templateManager.importTemplate(JSON.stringify(invalidTemplate)))
+        .rejects.toThrowError(TemplateValidationError);
+      console.log('验证: 正确拒绝无效的导入模板');
+    });
+  });
+
+  describe('列表和排序测试', () => {
+    it('应该正确排序模板列表', async () => {
+      console.log('测试: 模板列表排序');
       await templateManager.init();
-      console.log('模板管理器已初始化');
-
-      // 模拟第一次请求
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify(mockTemplate)
-      });
-      const firstResult = await templateManager.getTemplate();
-      console.log('第一次获取模板:', firstResult);
-
-      // 清除缓存
-      templateManager.clearCache();
-      console.log('缓存已清除');
-
-      // 模拟第二次请求
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify(mockTemplate)
-      });
-      const secondResult = await templateManager.getTemplate();
-      console.log('第二次获取模板:', secondResult);
-
-      // 验证fetch被调用了三次（一次初始化 + 两次模板请求）
-      expect(mockFetch).toHaveBeenCalledTimes(3);
-      expect(firstResult).toEqual(secondResult);
-      console.log('验证: 请求次数和结果一致');
+      
+      const baseTime = Date.now();
+      
+      // 创建两个时间戳不同的用户模板
+      const template1 = { 
+        ...mockUserTemplate,
+        id: 'user-template-1',
+        metadata: { 
+          ...mockUserTemplate.metadata,
+          lastModified: baseTime
+        }
+      };
+      
+      const template2 = {
+        ...mockUserTemplate,
+        id: 'user-template-2',
+        metadata: {
+          ...mockUserTemplate.metadata,
+          lastModified: baseTime + 1000
+        }
+      };
+      
+      await templateManager.saveTemplate(template1);
+      await templateManager.saveTemplate(template2);
+      
+      const templates = await templateManager.listTemplates();
+      
+      // 验证内置模板在前
+      expect(templates[0].isBuiltin).toBe(true);
+      
+      // 验证用户模板按时间倒序排序
+      const userTemplates = templates.filter(t => !t.isBuiltin);
+      expect(userTemplates[0].id).toBe('user-template-2');
+      expect(userTemplates[1].id).toBe('user-template-1');
+      
+      console.log('验证: 模板列表排序正确');
     });
   });
 }); 

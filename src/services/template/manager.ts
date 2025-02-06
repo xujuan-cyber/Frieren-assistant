@@ -1,19 +1,23 @@
-import { load } from 'js-yaml';
-import { ITemplateManager, Template, CachedTemplate } from './types';
-import { TemplateError, TemplateLoadError } from './errors';
+import { ITemplateManager, Template, TemplateManagerConfig, templateSchema } from './types';
+import { DEFAULT_TEMPLATES } from './defaults';
+import { TemplateError, TemplateValidationError, TemplateStorageError } from './errors';
 
 /**
  * 模板管理器实现
  */
 export class TemplateManager implements ITemplateManager {
-  private templateCache: Map<string, CachedTemplate>;
-  private templateDir: string;
-  private cacheTimeout: number;
+  private readonly builtinTemplates: Map<string, Template>;
+  private readonly userTemplates: Map<string, Template>;
+  private readonly config: Required<TemplateManagerConfig>;
 
-  constructor(templateDir = '/templates', cacheTimeout = 5 * 60 * 1000) {
-    this.templateCache = new Map();
-    this.templateDir = templateDir;
-    this.cacheTimeout = cacheTimeout;
+  constructor(config?: TemplateManagerConfig) {
+    this.builtinTemplates = new Map();
+    this.userTemplates = new Map();
+    this.config = {
+      storageKey: 'app:templates',
+      cacheTimeout: 5 * 60 * 1000,
+      ...config
+    };
   }
 
   /**
@@ -21,7 +25,24 @@ export class TemplateManager implements ITemplateManager {
    */
   async init(): Promise<void> {
     try {
-      await this.loadTemplateIndex();
+      // 需要先清空已有模板避免重复加载
+      this.builtinTemplates.clear();
+      this.userTemplates.clear();
+
+      // 加载内置模板需要深拷贝避免引用问题
+      for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
+        this.builtinTemplates.set(id, JSON.parse(JSON.stringify({
+          ...template,
+          isBuiltin: true
+        })));
+      }
+
+      // 增加加载后的验证
+      if (this.builtinTemplates.size === 0) {
+        throw new TemplateError('内置模板加载失败');
+      }
+
+      await this.loadUserTemplates();
     } catch (error) {
       throw new TemplateError(`初始化失败: ${error.message}`);
     }
@@ -30,43 +51,143 @@ export class TemplateManager implements ITemplateManager {
   /**
    * 获取模板
    */
-  async getTemplate(templateId: string = 'optimize'): Promise<Template> {
-    const fileName = `${templateId}.yaml`;
-    return this.loadTemplate(fileName);
+  async getTemplate(templateId: string): Promise<Template> {
+    // 增加空值校验
+    if (!templateId || typeof templateId !== 'string') {
+      throw new TemplateError('无效的模板ID');
+    }
+
+    // 优先检查用户模板
+    const template = this.userTemplates.get(templateId) || 
+                    this.builtinTemplates.get(templateId);
+    
+    if (!template) {
+      // 增加调试信息
+      console.debug('可用模板:', [...this.builtinTemplates.keys(), ...this.userTemplates.keys()]);
+      throw new TemplateError(`模板 ${templateId} 不存在`);
+    }
+    
+    // 返回深拷贝避免外部修改
+    return JSON.parse(JSON.stringify(template));
   }
 
   /**
-   * 加载模板
+   * 保存用户模板
    */
-  async loadTemplate(fileName: string, force = false): Promise<Template> {
-    const templateId = fileName.replace('.yaml', '');
-    const cached = this.templateCache.get(templateId);
-
-    // 使用缓存
-    if (!force && cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
-      return cached.template;
+  async saveTemplate(template: Template): Promise<void> {
+    // 增加ID格式校验
+    if (!/^[a-zA-Z0-9_-]{3,50}$/.test(template.id)) {
+      throw new TemplateValidationError('模板ID格式无效（3-50位字母数字）');
     }
 
-    try {
-      // 统一使用fetch加载模板
-      const response = await fetch(`${this.templateDir}/${fileName}`);
-      if (!response.ok) {
-        throw new TemplateLoadError(`加载模板失败: ${response.statusText}`, fileName);
-      }
-      const content = await response.text();
+    // 保留原始模板的不可变属性
+    if (this.userTemplates.has(template.id)) {
+      const original = this.userTemplates.get(template.id)!;
+      template = {
+        ...original,
+        ...template,
+        metadata: {
+          ...original.metadata,
+          ...template.metadata,
+          lastModified: Date.now()
+        }
+      };
+    }
+
+    // 验证模板
+    const result = templateSchema.safeParse(template);
+    if (!result.success) {
+      throw new TemplateValidationError(`模板验证失败: ${result.error.message}`);
+    }
       
-      // 使用js-yaml解析YAML
-      const template = load(content) as Template;
+    // 不允许覆盖内置模板
+    if (this.builtinTemplates.has(template.id)) {
+      throw new TemplateError(`不能覆盖内置模板: ${template.id}`);
+    }
 
-      // 更新缓存
-      this.templateCache.set(templateId, {
-        template,
-        timestamp: Date.now()
-      });
+    // 只在没有时间戳时设置
+    if (!template.metadata.lastModified) {
+      template.metadata.lastModified = Date.now();
+    }
+    
+    // 保存模板
+    this.userTemplates.set(template.id, { ...template, isBuiltin: false });
+    await this.persistUserTemplates();
+  }
 
-      return template;
+  /**
+   * 删除用户模板
+   */
+  async deleteTemplate(templateId: string): Promise<void> {
+    if (this.builtinTemplates.has(templateId)) {
+      throw new TemplateError(`不能删除内置模板: ${templateId}`);
+    }
+
+    if (!this.userTemplates.has(templateId)) {
+      throw new TemplateError(`模板不存在: ${templateId}`);
+    }
+
+    this.userTemplates.delete(templateId);
+    await this.persistUserTemplates();
+  }
+
+  /**
+   * 列出所有模板
+   */
+  async listTemplates(): Promise<Template[]> {
+    const templates = [
+      ...Array.from(this.builtinTemplates.values()),
+      ...Array.from(this.userTemplates.values())
+    ];
+    
+    return templates.sort((a, b) => {
+      // 内置模板排在前面
+      if (a.isBuiltin !== b.isBuiltin) {
+        return a.isBuiltin ? -1 : 1;
+      }
+      
+      // 非内置模板按时间戳倒序
+      if (!a.isBuiltin && !b.isBuiltin) {
+        const timeA = a.metadata.lastModified || 0;
+        const timeB = b.metadata.lastModified || 0;
+        return timeB - timeA;
+      }
+      
+      return 0;
+    });
+  }
+
+  /**
+   * 导出模板
+   */
+  exportTemplate(templateId: string): string {
+    const template = this.userTemplates.get(templateId) || 
+                    this.builtinTemplates.get(templateId);
+    if (!template) {
+      throw new TemplateError(`模板不存在: ${templateId}`);
+    }
+    return JSON.stringify(template, null, 2);
+  }
+
+  /**
+   * 导入模板
+   */
+  async importTemplate(templateJson: string): Promise<void> {
+    try {
+      const template = JSON.parse(templateJson) as Template;
+      const result = templateSchema.safeParse(template);
+      if (!result.success) {
+        throw new TemplateValidationError(`模板验证失败: ${result.error.message}`);
+      }
+      await this.saveTemplate(template);
     } catch (error) {
-      throw new TemplateLoadError(`加载模板失败: ${error.message}`, fileName);
+      if (error instanceof SyntaxError) {
+        throw new TemplateValidationError('模板格式无效');
+      }
+      if (error instanceof TemplateValidationError) {
+        throw error;
+      }
+      throw new TemplateError(`导入模板失败: ${error.message}`);
     }
   }
 
@@ -75,39 +196,56 @@ export class TemplateManager implements ITemplateManager {
    */
   clearCache(templateId?: string): void {
     if (templateId) {
-      this.templateCache.delete(templateId);
+      this.userTemplates.delete(templateId);
     } else {
-      this.templateCache.clear();
+      this.userTemplates.clear();
     }
   }
 
   /**
-   * 设置缓存超时时间
+   * 验证模板
    */
-  setCacheTimeout(timeout: number): void {
-    this.cacheTimeout = timeout;
+  private async validateTemplate(template: Template): Promise<void> {
+    const result = templateSchema.safeParse(template);
+    if (!result.success) {
+      throw new TemplateValidationError(`模板验证失败: ${result.error.message}`);
+    }
   }
 
   /**
-   * 加载模板索引
+   * 持久化用户模板
    */
-  private async loadTemplateIndex(): Promise<void> {
+  private async persistUserTemplates(): Promise<void> {
     try {
-      const response = await fetch(`${this.templateDir}/_index.json`);
-      if (!response.ok) {
-        throw new Error(`加载模板索引失败: ${response.statusText}`);
-      }
-      const templateFiles = await response.json() as string[];
+      const templates = Array.from(this.userTemplates.values());
+      localStorage.setItem(this.config.storageKey, JSON.stringify(templates));
+    } catch (error) {
+      throw new TemplateError(`保存模板失败: ${error.message}`);
+    }
+  }
 
-      // 验证默认模板是否存在
-      if (!templateFiles.includes('optimize.yaml')) {
-        throw new Error('默认模板 \'optimize\' 不存在');
+  /**
+   * 加载用户模板
+   */
+  private async loadUserTemplates(): Promise<void> {
+    try {
+      const data = localStorage.getItem(this.config.storageKey);
+      if (data) {
+        const templates = JSON.parse(data) as Template[];
+        templates.forEach(template => {
+          this.userTemplates.set(template.id, { ...template, isBuiltin: false });
+        });
       }
     } catch (error) {
-      throw new Error(`加载模板索引失败: ${error.message}`);
+      throw new TemplateError(`加载用户模板失败: ${error.message}`);
     }
   }
 }
 
 // 导出单例实例
-export const templateManager = new TemplateManager(); 
+export const templateManager = new TemplateManager();
+
+// 初始化模板管理器
+templateManager.init().catch(error => {
+  console.error('模板管理器初始化失败:', error);
+}); 

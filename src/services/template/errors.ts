@@ -1,5 +1,5 @@
 /**
- * 模板管理基础错误
+ * 模板错误基类
  */
 export class TemplateError extends Error {
   constructor(message: string) {
@@ -25,11 +25,7 @@ export class TemplateLoadError extends TemplateError {
  * 模板验证错误
  */
 export class TemplateValidationError extends TemplateError {
-  constructor(
-    message: string,
-    public templateId: string,
-    public errors: string[]
-  ) {
+  constructor(message: string) {
     super(message);
     this.name = 'TemplateValidationError';
   }
@@ -42,5 +38,15 @@ export class TemplateCacheError extends TemplateError {
   constructor(message: string) {
     super(message);
     this.name = 'TemplateCacheError';
+  }
+}
+
+/**
+ * 模板存储错误
+ */
+export class TemplateStorageError extends TemplateError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TemplateStorageError';
   }
 } 

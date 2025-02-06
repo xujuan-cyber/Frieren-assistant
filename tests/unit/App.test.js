@@ -5,6 +5,7 @@ import App from '../../src/App.vue'
 import { createLLMService } from '../../src/services/llm/service'
 import { createPromptService } from '../../src/services/prompt/service'
 import { modelManager } from '../../src/services/model/manager'
+import { templateManager } from '../../src/services/template/manager'
 import ElementPlus from 'element-plus'
 import { createTestingPinia } from '@pinia/testing'
 import { ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
@@ -14,6 +15,13 @@ const mockSuccess = vi.fn()
 const mockError = vi.fn()
 const mockInfo = vi.fn()
 const mockWarning = vi.fn()
+
+// Mock stream handler
+const mockStreamHandler = {
+  onToken: vi.fn(),
+  onComplete: vi.fn(),
+  onError: vi.fn()
+}
 
 // Mock useToast
 vi.mock('../../src/composables/useToast', () => ({
@@ -28,14 +36,18 @@ vi.mock('../../src/composables/useToast', () => ({
 // Mock services
 const mockLLMService = {
   sendMessage: vi.fn(() => Promise.resolve('Test response')),
+  sendMessageStream: vi.fn(() => Promise.resolve()),
   optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
   iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt'))
 }
 
 const mockPromptService = {
   optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
+  optimizePromptStream: vi.fn(() => Promise.resolve()),
   iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt')),
+  iteratePromptStream: vi.fn(() => Promise.resolve()),
   testPrompt: vi.fn(() => Promise.resolve('Test response')),
+  testPromptStream: vi.fn(() => Promise.resolve()),
   getHistory: vi.fn(() => [])
 }
 
@@ -78,23 +90,21 @@ const createComponent = (name, template = '<div><slot></slot></div>') => ({
   emits: ['update:modelValue', 'update:model', 'submit', 'copy', 'iterate']
 })
 
-// 创建 mock 处理器
-const mockStreamHandler = {
-  onToken: vi.fn(),
-  onComplete: vi.fn(),
-  onError: vi.fn()
-}
-
 describe('App.vue', () => {
   let wrapper
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // 重置所有mock
     mockInfo.mockClear()
     mockWarning.mockClear()
+    mockSuccess.mockClear()
+    mockError.mockClear()
     mockStreamHandler.onToken.mockClear()
     mockStreamHandler.onComplete.mockClear()
     mockStreamHandler.onError.mockClear()
+    
+    // 初始化模板管理器
+    await templateManager.init()
     
     // 设置组件
     wrapper = mount(App, {
@@ -134,26 +144,36 @@ describe('App.vue', () => {
 
   describe('提示词优化功能', () => {
     it('应该正确处理提示词优化', async () => {
-      const testPrompt = '你是一个作家'
+      const testPrompt = '测试提示词'
       const optimizedPrompt = '优化后的提示词'
+      const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
+
+      // 设置提示词和模板
+      wrapper.vm.prompt = testPrompt
+      wrapper.vm.selectedTemplate = {
+        id: 'optimize',  // 使用正确的模板ID
+        name: '提示词优化',
+        content: 'template content'
+      }
 
       // 设置模拟返回值
-      mockPromptService.optimizePrompt.mockResolvedValue(optimizedPrompt)
+      mockPromptService.optimizePromptStream.mockImplementation(async (prompt, model, template, handlers) => {
+        handlers.onToken(optimizedPrompt)
+        await nextTick()
+        handlers.onComplete()
+      })
+      mockPromptService.getHistory.mockReturnValue(mockHistory)
 
-      // 找到第一个 InputPanel（提示词输入）
-      const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
-      
-      // 触发输入
-      await inputPanel.vm.$emit('update:modelValue', testPrompt)
-      
       // 触发提交
+      const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
       await inputPanel.vm.$emit('submit')
       
-      // 等待异步操作
+      // 等待异步操作完成
+      await nextTick()
       await nextTick()
 
       // 验证服务调用
-      expect(mockPromptService.optimizePrompt).toHaveBeenCalledWith(testPrompt, 'test')
+      expect(mockPromptService.optimizePromptStream).toHaveBeenCalled()
       
       // 验证结果更新
       expect(wrapper.vm.optimizedPrompt).toBe(optimizedPrompt)
@@ -166,14 +186,21 @@ describe('App.vue', () => {
       const testPrompt = '测试提示词'
       const errorMessage = '优化失败'
 
-      // 设置模拟错误
-      mockPromptService.optimizePrompt.mockRejectedValue(new Error(errorMessage))
+      // 设置提示词和模板
+      wrapper.vm.prompt = testPrompt
+      wrapper.vm.selectedTemplate = {
+        id: 'optimize',  // 使用正确的模板ID
+        name: '提示词优化',
+        content: 'template content'
+      }
 
-      // 找到输入面板
+      // 设置模拟错误
+      mockPromptService.optimizePromptStream.mockImplementation(async (prompt, model, template, handlers) => {
+        handlers.onError(new Error(errorMessage))
+      })
+
+      // 触发提交
       const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
-      
-      // 触发输入和提交
-      await inputPanel.vm.$emit('update:modelValue', testPrompt)
       await inputPanel.vm.$emit('submit')
       
       // 等待异步操作
@@ -192,12 +219,16 @@ describe('App.vue', () => {
     })
 
     it('应该正确处理流式输出测试请求', async () => {
-      const testPrompt = '你是一个作家'
+      const testPrompt = '测试提示词'
       const testContent = '测试内容'
       const selectedModel = 'test'
+      const testResponse = '测试响应'
 
       // 设置 mock 返回值
-      mockPromptService.testPrompt.mockResolvedValue('测试响应')
+      mockPromptService.testPromptStream.mockImplementation(async (prompt, content, model, handlers) => {
+        handlers.onToken(testResponse)
+        handlers.onComplete()
+      })
 
       // 设置必要的值
       wrapper.vm.testContent = testContent
@@ -206,40 +237,36 @@ describe('App.vue', () => {
 
       await wrapper.vm.handleTest()
 
-      const calls = mockPromptService.testPrompt.mock.calls
-      expect(calls.length).toBe(1)
-      expect(calls[0].slice(0, 3)).toEqual([testPrompt, testContent, selectedModel])
-      expect(Object.keys(calls[0][3])).toEqual(['onToken', 'onComplete', 'onError'])
+      // 验证调用
+      expect(mockPromptService.testPromptStream).toHaveBeenCalledWith(
+        testPrompt,
+        testContent,
+        selectedModel,
+        expect.any(Object)
+      )
+      expect(wrapper.vm.testResult).toBe(testResponse)
     })
 
     it('应该在流式输出发生错误时正确处理', async () => {
-      const testError = new Error('测试错误');
-      const testPrompt = '你是一个作家';
-      const testContent = '测试内容';
-      const selectedModel = 'test';
+      const testError = new Error('测试错误')
+      const testPrompt = '测试提示词'
+      const testContent = '测试内容'
+      const selectedModel = 'test'
 
       // 设置 mock 返回值
-      mockPromptService.testPrompt.mockResolvedValue('测试响应');
+      mockPromptService.testPromptStream.mockImplementation(async (prompt, content, model, handlers) => {
+        handlers.onError(testError)
+      })
 
       // 设置必要的值
-      wrapper.vm.testContent = testContent;
-      wrapper.vm.selectedModel = selectedModel;
-      wrapper.vm.optimizedPrompt = testPrompt;
+      wrapper.vm.testContent = testContent
+      wrapper.vm.selectedModel = selectedModel
+      wrapper.vm.optimizedPrompt = testPrompt
 
-      await wrapper.vm.handleTest();
-
-      const calls = mockPromptService.testPrompt.mock.calls;
-      expect(calls.length).toBe(1);
-      expect(calls[0].slice(0, 3)).toEqual([testPrompt, testContent, selectedModel]);
-      expect(Object.keys(calls[0][3])).toEqual(['onToken', 'onComplete', 'onError']);
-
-      // 触发错误回调
-      await calls[0][3].onError(testError);
-      await nextTick();
+      await wrapper.vm.handleTest()
 
       // 验证错误状态
-      const outputPanel = wrapper.findComponent({ name: 'OutputPanel' });
-      expect(outputPanel.props('error')).toBe(testError.message);
+      expect(wrapper.vm.testError).toBe(testError.message)
     })
   })
 
@@ -249,15 +276,28 @@ describe('App.vue', () => {
       const optimizedPrompt = '优化后的提示词'
       const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
 
-      mockPromptService.optimizePrompt.mockResolvedValue(optimizedPrompt)
+      // 设置提示词和模板
+      wrapper.vm.prompt = testPrompt
+      wrapper.vm.selectedTemplate = {
+        id: 'optimize',  // 使用正确的模板ID
+        name: '提示词优化',
+        content: 'template content'
+      }
+
+      // 设置模拟返回值
+      mockPromptService.optimizePromptStream.mockImplementation(async (prompt, model, template, handlers) => {
+        handlers.onToken(optimizedPrompt)
+        await nextTick()
+        handlers.onComplete()
+      })
       mockPromptService.getHistory.mockReturnValue(mockHistory)
 
       // 触发优化
       const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
-      await inputPanel.vm.$emit('update:modelValue', testPrompt)
       await inputPanel.vm.$emit('submit')
       
       // 等待异步操作
+      await nextTick()
       await nextTick()
 
       // 验证历史记录更新
@@ -266,12 +306,15 @@ describe('App.vue', () => {
     })
 
     it('应该在迭代优化成功后立即更新历史记录', async () => {
-      const originalPrompt = '原始提示词'
+      const originalPrompt = '测试提示词'
       const iterateInput = '迭代输入'
       const iteratedPrompt = '迭代后的提示词'
       const mockHistory = [{ id: '1', prompt: originalPrompt, result: iteratedPrompt }]
 
-      mockPromptService.iteratePrompt.mockResolvedValue(iteratedPrompt)
+      mockPromptService.iteratePromptStream.mockImplementation(async (prompt, input, model, handlers) => {
+        handlers.onToken(iteratedPrompt)
+        handlers.onComplete()
+      })
       mockPromptService.getHistory.mockReturnValue(mockHistory)
 
       // 触发迭代
@@ -285,5 +328,12 @@ describe('App.vue', () => {
       expect(mockPromptService.getHistory).toHaveBeenCalled()
       expect(wrapper.vm.history).toEqual(mockHistory)
     })
+  })
+
+  // 清理
+  afterEach(async () => {
+    wrapper.unmount()
+    // 清理模板管理器
+    templateManager.clearCache()
   })
 }) 

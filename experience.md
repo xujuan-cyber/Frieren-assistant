@@ -508,3 +508,157 @@ VITE_CUSTOM_API_BASE_URL=您的API基础URL
 2. 认证失败：检查API密钥配置
 3. 跨域问题：配置正确的CORS设置
 4. 超时处理：设置合理的超时时间
+
+## 测试经验总结
+
+### 1. 测试数据管理
+- 每个测试用例使用独立的测试数据
+- 使用动态生成的唯一标识符避免冲突
+- 在添加新数据前确保清理已存在数据
+
+### 2. 初始化状态管理
+- 注意对象构造函数中的默认行为
+- 不能仅依赖 beforeEach 的清理
+- 需要手动处理默认值和持久化数据
+
+### 3. 存储机制处理
+- 注意 localStorage 等持久化存储的影响
+- 确保正确清理所有相关的存储数据
+- 考虑使用 mock 存储机制进行测试
+
+### 4. 测试用例隔离
+- 测试用例之间应该相互独立
+- 每个测试用例都应该可以独立运行
+- 避免测试用例之间的状态依赖
+
+## 测试重构经验（2024-03-22）
+
+### 1. 测试数据隔离的最佳实践
+- 使用动态生成的唯一标识符
+- 每个测试用例使用独立的数据空间
+- 避免测试用例之间的状态依赖
+
+### 2. 测试辅助函数设计
+```typescript
+// 示例：创建唯一标识符
+const getUniqueKey = (prefix: string) => `${prefix}-${Date.now()}`;
+
+// 示例：创建基础配置
+const createBaseConfig = (options?: Partial<Config>) => ({
+  ...defaultConfig,
+  ...options
+});
+```
+
+### 3. 测试代码组织
+- 将通用逻辑抽取为辅助函数
+- 使用 beforeEach 进行状态初始化
+- 保持测试用例的独立性和可读性
+
+### 4. 配置管理优化
+- 集中管理测试配置
+- 支持配置的部分覆盖
+- 便于统一修改和维护
+
+### 5. 改进效果
+- 提高了测试的可靠性
+- 减少了代码重复
+- 简化了测试维护
+- 提升了测试执行效率
+
+## 开发经验总结
+
+## 流式处理最佳实践
+
+### 1. 统一使用流式API
+- 避免使用非流式API
+- 不提供降级方案
+- 确保所有操作都支持流式处理
+
+### 2. 流式处理器设计
+```typescript
+// 标准流式处理器结构
+interface StreamHandlers {
+  onToken: (token: string) => void;   // 处理每个token
+  onComplete: () => void;             // 处理完成回调
+  onError: (error: Error) => void;    // 处理错误
+}
+
+// 使用示例
+const streamHandlers = {
+  onToken: (token) => {
+    result.value += token;  // 实时更新UI
+  },
+  onComplete: () => {
+    isLoading.value = false;
+    toast.success('处理完成');
+  },
+  onError: (error) => {
+    isLoading.value = false;
+    toast.error(error.message);
+  }
+};
+```
+
+### 3. 错误处理
+- 实时显示错误信息
+- 保持UI状态同步
+- 提供友好的错误提示
+
+### 4. 状态管理
+- 使用响应式变量
+- 实时更新处理状态
+- 正确处理加载状态
+
+### 5. 性能优化
+- 避免频繁的DOM更新
+- 使用防抖处理用户输入
+- 合理设置缓冲区大小
+
+### 6. 用户体验
+- 显示实时处理进度
+- 提供取消处理选项
+- 保持界面响应性
+
+## 注意事项
+1. 确保所有API都支持流式处理
+2. 处理网络异常情况
+3. 合理管理内存使用
+4. 保持代码可维护性
+
+## 最佳实践示例
+```typescript
+// 1. 定义处理器
+const createStreamHandlers = (options: {
+  onUpdate: (text: string) => void,
+  onSuccess: () => void,
+  onError: (error: Error) => void
+}) => ({
+  onToken: (token: string) => {
+    options.onUpdate(token);
+  },
+  onComplete: () => {
+    options.onSuccess();
+  },
+  onError: (error: Error) => {
+    options.onError(error);
+  }
+});
+
+// 2. 使用处理器
+const handleStream = async () => {
+  const handlers = createStreamHandlers({
+    onUpdate: (text) => {
+      result.value += text;
+    },
+    onSuccess: () => {
+      toast.success('处理完成');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    }
+  });
+
+  await service.processStream(input, handlers);
+};
+```
