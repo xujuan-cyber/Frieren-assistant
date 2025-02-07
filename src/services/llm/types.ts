@@ -67,4 +67,10 @@ export interface ILLMService {
       onError: (error: Error) => void;
     }
   ): Promise<void>;
+}
+
+export interface StreamHandlers {
+  onToken: (token: string) => void;
+  onComplete: () => void;
+  onError: (error: Error) => void;
 } 

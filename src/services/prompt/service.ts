@@ -1,5 +1,5 @@
 import { IPromptService } from './types';
-import { Message } from '../llm/types';
+import { Message, StreamHandlers } from '../llm/types';
 import { PromptRecord } from '../history/types';
 import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
 import { LLMService, createLLMService } from '../llm/service';
@@ -403,11 +403,8 @@ export class PromptService implements IPromptService {
     originalPrompt: string,
     iterateInput: string,
     modelKey: string,
-    callbacks: {
-      onToken: (token: string) => void;
-      onComplete: () => void;
-      onError: (error: Error) => void;
-    }
+    handlers: StreamHandlers,
+    template?: string
   ): Promise<void> {
     try {
       // 获取模型配置
@@ -417,20 +414,23 @@ export class PromptService implements IPromptService {
       }
 
       // 获取迭代模板
-      let template;
-      try {
-        template = await this.templateManager.getTemplate('iterate');
-      } catch (error) {
-        throw new IterationError(`迭代失败: ${error.message}`, originalPrompt, iterateInput);
+      let templateToUse;
+      if (template) {
+        templateToUse = template;
+      } else {
+        templateToUse = await this.templateManager.getTemplate('iterate');
       }
 
-      if (!template?.content) {
+      if (!templateToUse?.content) {
         throw new IterationError('迭代失败: 模板不存在或无效', originalPrompt, iterateInput);
       }
 
       // 构建消息
       const messages: Message[] = [
-        { role: 'system', content: template.content },
+        {
+          role: 'system',
+          content: templateToUse.content
+        },
         { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
       ];
 
@@ -442,7 +442,7 @@ export class PromptService implements IPromptService {
         {
           onToken: (token) => {
             result += token;
-            callbacks.onToken(token);
+            handlers.onToken(token);
           },
           onComplete: () => {
             // 保存历史记录
@@ -457,14 +457,14 @@ export class PromptService implements IPromptService {
               templateId: 'iterate'
             });
 
-            callbacks.onComplete();
+            handlers.onComplete();
           },
-          onError: callbacks.onError
+          onError: handlers.onError
         }
       );
     } catch (error) {
       if (error instanceof IterationError) {
-        callbacks.onError(error);
+        handlers.onError(error);
         throw error;
       }
       const wrappedError = new IterationError(
@@ -472,7 +472,7 @@ export class PromptService implements IPromptService {
         originalPrompt,
         iterateInput
       );
-      callbacks.onError(wrappedError);
+      handlers.onError(wrappedError);
       throw wrappedError;
     }
   }

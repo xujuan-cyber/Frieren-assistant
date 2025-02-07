@@ -8,6 +8,7 @@ export interface TemplateMetadata {
   lastModified: number;     // 最后修改时间
   author?: string;          // 作者（可选）
   description?: string;     // 描述（可选）
+  templateType: 'optimize' | 'iterate'; // 新增类型标识
 }
 
 /**
@@ -59,7 +60,8 @@ export const templateSchema = z.object({
     version: z.string(),
     lastModified: z.number(),
     author: z.string().optional(),
-    description: z.string().optional()
+    description: z.string().optional(),
+    templateType: z.enum(['optimize', 'iterate'])
   }),
   isBuiltin: z.boolean().optional()
 });

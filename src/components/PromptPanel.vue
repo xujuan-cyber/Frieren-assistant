@@ -39,6 +39,14 @@
     <div v-if="showIterateInput" class="mt-4">
       <div class="bg-black/20 rounded-xl border border-purple-600/50 p-4">
         <h4 class="text-sm font-medium text-white/90 mb-2">请输入需要优化的方向：</h4>
+        <div class="mb-3">
+          <TemplateSelect
+            :modelValue="selectedIterateTemplate"
+            @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
+            type="iterate"
+            @manage="$emit('openTemplateManager', 'iterate')"
+          />
+        </div>
         <div class="flex flex-col space-y-3">
           <textarea
             v-model="iterateInput"
@@ -70,6 +78,7 @@
 <script setup>
 import { ref, defineProps, defineEmits } from 'vue'
 import { useToast } from '../composables/useToast'
+import TemplateSelect from './TemplateSelect.vue'
 
 const toast = useToast()
 const promptTextarea = ref(null)
@@ -82,10 +91,14 @@ const props = defineProps({
   isIterating: {
     type: Boolean,
     default: false
+  },
+  selectedIterateTemplate: {
+    type: Object,
+    default: null
   }
 })
 
-const emit = defineEmits(['update:optimizedPrompt', 'iterate'])
+const emit = defineEmits(['update:optimizedPrompt', 'iterate', 'openTemplateManager', 'update:selectedIterateTemplate'])
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
@@ -109,6 +122,10 @@ const copyPrompt = async () => {
 }
 
 const handleIterate = () => {
+  if (!props.selectedIterateTemplate) {
+    toast.error('请先选择迭代模板')
+    return
+  }
   showIterateInput.value = true
 }
 
@@ -119,6 +136,10 @@ const cancelIterate = () => {
 
 const submitIterate = () => {
   if (!iterateInput.value.trim()) return
+  if (!props.selectedIterateTemplate) {
+    toast.error('请先选择迭代模板')
+    return
+  }
   
   emit('iterate', {
     originalPrompt: props.optimizedPrompt,

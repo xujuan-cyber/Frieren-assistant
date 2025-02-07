@@ -8,7 +8,7 @@
         </h1>
         <div class="flex items-center space-x-4 sm:space-x-6">
           <button
-            @click="showTemplates = true"
+            @click="openTemplateManager('optimize')"
             class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
             <span>📝</span>
@@ -42,24 +42,11 @@
               <!-- 输入区域 -->
               <div class="flex-none">
                 <div class="mb-4">
-                  <div class="flex justify-between items-center">
-                    <div class="text-sm text-white/60">
-                      当前模板: 
-                      <span v-if="selectedTemplate" class="text-purple-300">
-                        {{ selectedTemplate.name }}
-                      </span>
-                      <span v-else class="text-red-300">
-                        未选择模板
-                      </span>
-                    </div>
-                    <button
-                      @click="showTemplates = true"
-                      class="text-sm text-purple-300 hover:text-purple-200 transition-colors flex items-center space-x-1"
-                    >
-                      <span>📝</span>
-                      <span>选择模板</span>
-                    </button>
-                  </div>
+                  <TemplateSelect
+                    v-model="selectedOptimizeTemplate"
+                    type="optimize"
+                    @manage="openTemplateManager('optimize')"
+                  />
                 </div>
                 <InputPanel
                   v-model="prompt"
@@ -81,7 +68,9 @@
                 <PromptPanel 
                   v-model:optimized-prompt="optimizedPrompt"
                   :is-iterating="isIterating"
+                  v-model:selected-iterate-template="selectedIterateTemplate"
                   @iterate="handleIteratePrompt"
+                  @openTemplateManager="openTemplateManager"
                 />
               </div>
             </div>
@@ -137,7 +126,9 @@
     <Teleport to="body">
       <TemplateManager
         v-if="showTemplates"
-        v-model="selectedTemplate"
+        :template-type="currentType"
+        :selected-optimize-template="selectedOptimizeTemplate"
+        :selected-iterate-template="selectedIterateTemplate"
         @close="showTemplates = false"
         @select="handleTemplateSelect"
       />
@@ -170,10 +161,17 @@ import PromptPanel from './components/PromptPanel.vue'
 import InputPanel from './components/InputPanel.vue'
 import OutputPanel from './components/OutputPanel.vue'
 import { useToast } from './composables/useToast'
+import TemplateSelect from './components/TemplateSelect.vue'
 
 // 初始化服务
 const llmService = createLLMService(modelManager)
 let promptService = null
+
+// 添加模板选择的本地存储
+const STORAGE_KEYS = {
+  OPTIMIZE_TEMPLATE: 'app:selected-optimize-template',
+  ITERATE_TEMPLATE: 'app:selected-iterate-template'
+}
 
 // 状态
 const prompt = ref('')
@@ -187,9 +185,11 @@ const isTesting = ref(false)
 const showConfig = ref(false)
 const showHistory = ref(false)
 const showTemplates = ref(false)
+const currentType = ref('optimize')  // 默认为优化模板
 const optimizeModel = ref('')
 const selectedModel = ref('')
-const selectedTemplate = ref(null)
+const selectedOptimizeTemplate = ref(null)
+const selectedIterateTemplate = ref(null)
 const history = ref([])
 const models = ref([])
 const outputPanelRef = ref(null)
@@ -250,7 +250,7 @@ const handleOptimizePrompt = async () => {
     return
   }
   
-  if (!selectedTemplate.value) {
+  if (!selectedOptimizeTemplate.value) {
     toast.error('请先选择优化模板')
     return
   }
@@ -260,7 +260,7 @@ const handleOptimizePrompt = async () => {
   
   try {
     // 获取最新的模板内容
-    const latestTemplate = await templateManager.getTemplate(selectedTemplate.value.id)
+    const latestTemplate = await templateManager.getTemplate(selectedOptimizeTemplate.value.id)
     if (!latestTemplate) {
       throw new Error('模板不存在')
     }
@@ -318,6 +318,7 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
   
   try {
     // 使用流式调用
+    const template = selectedIterateTemplate.value;
     await promptService.iteratePromptStream(
       originalPrompt,
       iterateInput,
@@ -334,7 +335,8 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
         onError: (error) => {
           toast.error(error.message || '迭代优化失败')
         }
-      }
+      },
+      template
     );
   } catch (error) {
     console.error('迭代优化失败:', error)
@@ -397,19 +399,70 @@ const handleSelectHistory = (item) => {
   showHistory.value = false
 }
 
-// 处理模板选择
-const handleTemplateSelect = (template) => {
-  selectedTemplate.value = template
-  toast.success(`已选择模板: ${template.name}`)
+// 保存模板选择到本地存储
+const saveTemplateSelection = (template, type) => {
+  if (template) {
+    localStorage.setItem(
+      type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_TEMPLATE : STORAGE_KEYS.ITERATE_TEMPLATE,
+      template.id
+    )
+  }
+}
+
+// 修改模板选择处理函数
+const handleTemplateSelect = (template, type) => {
+  if (type === 'optimize') {
+    selectedOptimizeTemplate.value = template
+  } else {
+    selectedIterateTemplate.value = template
+  }
+  saveTemplateSelection(template, type)
+  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}模板: ${template.name}`)
+}
+
+// 打开模板管理器
+const openTemplateManager = (type = 'optimize') => {
+  currentType.value = type
+  showTemplates.value = true
 }
 
 // 生命周期钩子
 onMounted(async () => {
   await initServices()
   loadModels()
+  
   // 加载历史记录
   if (promptService) {
     history.value = promptService.getHistory()
+  }
+  
+  // 初始化模板选择
+  try {
+    // 加载优化模板
+    const optimizeTemplateId = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE) || 'optimize'
+    const optimizeTemplate = await templateManager.getTemplate(optimizeTemplateId)
+    if (optimizeTemplate) {
+      selectedOptimizeTemplate.value = optimizeTemplate
+    }
+    
+    // 加载迭代模板
+    const iterateTemplateId = localStorage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE) || 'iterate'
+    const iterateTemplate = await templateManager.getTemplate(iterateTemplateId)
+    if (iterateTemplate) {
+      selectedIterateTemplate.value = iterateTemplate
+    }
+  } catch (error) {
+    console.error('加载默认模板失败:', error)
+    toast.error('加载默认模板失败，将使用内置模板')
+    
+    // 如果加载失败，使用内置模板
+    try {
+      selectedOptimizeTemplate.value = await templateManager.getTemplate('optimize')
+      selectedIterateTemplate.value = await templateManager.getTemplate('iterate')
+    } catch (e) {
+      console.error('加载内置模板失败:', e)
+      toast.error('加载内置模板失败')
+    }
   }
 })
 

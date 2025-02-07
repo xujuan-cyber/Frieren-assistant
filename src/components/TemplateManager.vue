@@ -24,10 +24,44 @@
           </div>
         </div>
 
+        <!-- 新增类型切换标签 -->
+        <div class="flex space-x-4 mb-6 p-1 bg-gray-800/30 rounded-lg">
+          <button 
+            v-for="type in ['optimize', 'iterate']" 
+            :key="type"
+            @click="currentType = type"
+            class="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+            :class="[
+              currentType === type 
+                ? type === 'optimize'
+                  ? 'bg-purple-600/30 text-purple-300 shadow-lg shadow-purple-900/20' 
+                  : 'bg-teal-600/30 text-teal-300 shadow-lg shadow-teal-900/20'
+                : 'text-gray-400 hover:text-gray-300'
+            ]"
+          >
+            <div class="flex items-center justify-center space-x-2">
+              <span class="text-lg">{{ type === 'optimize' ? '🎯' : '🔄' }}</span>
+              <span>{{ type === 'optimize' ? '优化模板' : '迭代模板' }}</span>
+            </div>
+          </button>
+        </div>
+
         <!-- 模板列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white/90">模板列表</h3>
+            <h3 class="text-lg font-semibold flex items-center space-x-2">
+              <span class="text-white/90">
+                {{ currentType === 'optimize' ? '优化模板列表' : '迭代模板列表' }}
+              </span>
+              <span 
+                class="px-2 py-1 text-xs rounded-full"
+                :class="currentType === 'optimize' 
+                  ? 'bg-purple-600/20 text-purple-300'
+                  : 'bg-teal-600/20 text-teal-300'"
+              >
+                {{ filteredTemplates.length }}个模板
+              </span>
+            </h3>
             <button
               @click="showAddForm = true"
               class="px-4 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors"
@@ -36,10 +70,20 @@
             </button>
           </div>
           
-          <div class="space-y-3 max-h-[60vh] overflow-y-auto">
-            <div v-for="template in templates" :key="template.id" 
-                 class="p-4 rounded-xl border border-purple-600/50 bg-black/20"
-                 :class="{'border-purple-400': selectedTemplate?.id === template.id}">
+          <!-- 模板列表按类型过滤 -->
+          <div class="space-y-4 max-h-[60vh] overflow-y-auto px-1">
+            <div 
+              v-for="template in filteredTemplates"
+              :key="template.id"
+              class="group relative p-4 rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5"
+              :class="[
+                (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
+                  ? template.metadata.templateType === 'optimize'
+                    ? 'border-purple-500/50 bg-purple-900/10 shadow-lg shadow-purple-900/10'
+                    : 'border-teal-500/50 bg-teal-900/10 shadow-lg shadow-teal-900/10'
+                  : 'border-gray-700/50 hover:border-gray-600/60 bg-gray-800/20 hover:bg-gray-800/30'
+              ]"
+            >
               <div class="flex items-start justify-between">
                 <div>
                   <h4 class="font-medium text-white/90 flex items-center gap-2">
@@ -61,12 +105,12 @@
                     @click="selectTemplate(template)"
                     class="px-3 py-1.5 text-sm rounded-lg"
                     :class="[
-                      selectedTemplate?.id === template.id
+                      (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                         ? 'bg-purple-500/30 text-purple-200'
                         : 'bg-purple-600/20 text-purple-300 hover:bg-purple-600/30'
                     ]"
                   >
-                    {{ selectedTemplate?.id === template.id ? '已选择' : '选择' }}
+                    {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id ? '已选择' : '选择' }}
                   </button>
                   <button
                     @click="editTemplate(template)"
@@ -98,6 +142,18 @@
                   </button>
                 </div>
               </div>
+              <div 
+                class="absolute top-0 left-0 w-2 h-full rounded-l-xl"
+                :class="template.metadata.templateType === 'optimize' ? 'bg-purple-500/50' : 'bg-teal-500/50'"
+              ></div>
+              <span 
+                class="px-2 py-1 text-xs rounded-full capitalize"
+                :class="template.metadata.templateType === 'optimize' 
+                  ? 'bg-purple-600/20 text-purple-300'
+                  : 'bg-teal-600/20 text-teal-300'"
+              >
+                {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
+              </span>
             </div>
           </div>
         </div>
@@ -195,25 +251,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { templateManager } from '../services/template/manager'
 import { useToast } from '../composables/useToast'
 
-const toast = useToast()
-const emit = defineEmits(['close', 'select'])
-
 const props = defineProps({
-  modelValue: {
-    type: Object,
-    default: null
+  selectedOptimizeTemplate: Object,
+  selectedIterateTemplate: Object,
+  templateType: {
+    type: String,
+    required: true,
+    validator: (value) => ['optimize', 'iterate'].includes(value)
   }
 })
 
-const fileInput = ref(null)
+const emit = defineEmits(['close', 'select'])
+const toast = useToast()
+
 const templates = ref([])
+const currentType = ref(props.templateType)
 const showAddForm = ref(false)
 const editingTemplate = ref(null)
-const selectedTemplate = ref(props.modelValue)
 
 const form = ref({
   name: '',
@@ -272,7 +330,8 @@ const handleSubmit = async () => {
         version: '1.0.0',
         lastModified: Date.now(),
         description: form.value.description,
-        author: 'User'
+        author: 'User',
+        templateType: props.templateType
       }
     }
 
@@ -280,10 +339,14 @@ const handleSubmit = async () => {
     await loadTemplates()
     
     // 如果正在编辑的是当前选中的模板,则更新选中的模板
-    if (selectedTemplate.value?.id === templateData.id) {
+    if (props.selectedOptimizeTemplate?.id === templateData.id) {
       const updatedTemplate = await templateManager.getTemplate(templateData.id)
-      selectedTemplate.value = updatedTemplate
-      emit('select', updatedTemplate)
+      props.selectedOptimizeTemplate = updatedTemplate
+      emit('select', updatedTemplate, currentType.value)
+    } else if (props.selectedIterateTemplate?.id === templateData.id) {
+      const updatedTemplate = await templateManager.getTemplate(templateData.id)
+      props.selectedIterateTemplate = updatedTemplate
+      emit('select', updatedTemplate, currentType.value)
     }
     
     toast.success(editingTemplate.value ? '模板已更新' : '模板已添加')
@@ -365,12 +428,48 @@ const copyTemplate = (template) => {
 
 // 选择模板
 const selectTemplate = (template) => {
-  selectedTemplate.value = template
-  emit('select', template)
+  if (currentType.value === 'optimize') {
+    props.selectedOptimizeTemplate = template
+  } else if (currentType.value === 'iterate') {
+    props.selectedIterateTemplate = template
+  }
+  emit('select', template, currentType.value)
 }
+
+// 按类型过滤模板
+const filteredTemplates = computed(() => 
+  templates.value.filter(t => t.metadata.templateType === currentType.value)
+)
 
 // 生命周期钩子
 onMounted(() => {
   loadTemplates()
 })
-</script> 
+</script>
+
+<style scoped>
+.scroll-container {
+  max-height: 60vh;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
+}
+
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(139, 92, 246, 0.5);
+}
+</style> 

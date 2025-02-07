@@ -75,6 +75,11 @@ export class TemplateManager implements ITemplateManager {
    * 保存用户模板
    */
   async saveTemplate(template: Template): Promise<void> {
+    // 增加类型校验
+    if (!['optimize', 'iterate'].includes(template.metadata.templateType)) {
+      throw new TemplateValidationError('无效的模板类型');
+    }
+
     // 增加ID格式校验
     if (!/^[a-zA-Z0-9_-]{3,50}$/.test(template.id)) {
       throw new TemplateValidationError('模板ID格式无效（3-50位字母数字）');
@@ -239,6 +244,15 @@ export class TemplateManager implements ITemplateManager {
     } catch (error) {
       throw new TemplateError(`加载用户模板失败: ${error.message}`);
     }
+  }
+
+  /**
+   * 按类型列出模板
+   */
+  listTemplatesByType(type: 'optimize' | 'iterate'): Template[] {
+    return [...this.builtinTemplates.values(), ...this.userTemplates.values()].filter(
+      template => template.metadata.templateType === type
+    );
   }
 }
 
