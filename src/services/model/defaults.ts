@@ -28,9 +28,9 @@ export const defaultModels: Record<string, ModelConfig> = {
   },
   deepseek: {
     name: 'DeepSeek',
-    baseURL: 'https://api.deepseek.com/v1',
-    models: ['deepseek-chat'],
-    defaultModel: 'deepseek-chat',
+    baseURL: 'https://api.siliconflow.cn/v1',
+    models: ['deepseek-ai/DeepSeek-V3'],
+    defaultModel: 'deepseek-ai/DeepSeek-V3',
     apiKey: DEEPSEEK_API_KEY,
     enabled: !!DEEPSEEK_API_KEY,
     provider: 'deepseek'
