@@ -16,7 +16,8 @@ describe('TemplateManager', () => {
       version: '1.0.0',
       lastModified: Date.now(),
       author: 'Test User',
-      description: '测试用的模板'
+      description: '测试用的模板',
+      templateType: 'optimize'
     }
   };
 
@@ -64,10 +65,14 @@ describe('TemplateManager', () => {
 
     it('应该能获取内置模板', async () => {
       console.log('测试: 获取内置模板');
-      const template = await templateManager.getTemplate('optimize');
+      // 获取第一个optimize类型的模板
+      const templates = await templateManager.getTemplatesByType('optimize');
+      const optimizeTemplate = templates[0];
+      
+      const template = await templateManager.getTemplate(optimizeTemplate.id);
       
       expect(template).toBeDefined();
-      expect(template.id).toBe('optimize');
+      expect(template.metadata.templateType).toBe('optimize');
       expect(template.isBuiltin).toBe(true);
       console.log('验证: 内置模板获取正确');
     });
@@ -87,7 +92,11 @@ describe('TemplateManager', () => {
 
     it('不应该覆盖内置模板', async () => {
       console.log('测试: 尝试覆盖内置模板');
-      const badTemplate = { ...mockUserTemplate, id: 'optimize' };
+      // 获取第一个内置optimize模板的ID
+      const templates = await templateManager.getTemplatesByType('optimize');
+      const builtinTemplateId = templates[0].id;
+      
+      const badTemplate = { ...mockUserTemplate, id: builtinTemplateId };
       
       await expect(() => templateManager.saveTemplate(badTemplate))
         .rejects.toThrow('不能覆盖内置模板');
@@ -106,7 +115,11 @@ describe('TemplateManager', () => {
 
     it('不应该删除内置模板', async () => {
       console.log('测试: 尝试删除内置模板');
-      await expect(() => templateManager.deleteTemplate('optimize'))
+      // 获取第一个内置optimize模板的ID
+      const templates = await templateManager.getTemplatesByType('optimize');
+      const builtinTemplateId = templates[0].id;
+      
+      await expect(() => templateManager.deleteTemplate(builtinTemplateId))
         .rejects.toThrow('不能删除内置模板');
       console.log('验证: 正确阻止删除内置模板');
     });

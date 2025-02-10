@@ -260,22 +260,17 @@ const handleOptimizePrompt = async () => {
   
   try {
     // 获取最新的模板内容
-    const latestTemplate = await templateManager.getTemplate(selectedOptimizeTemplate.value.id)
-    if (!latestTemplate) {
-      throw new Error('模板不存在')
-    }
-
     console.log('开始优化提示词:', {
       prompt: prompt.value,
       modelKey: optimizeModel.value,
-      template: latestTemplate
+      template: selectedOptimizeTemplate.value
     })
 
     // 使用流式调用
     await promptService.optimizePromptStream(
       prompt.value, 
       optimizeModel.value,
-      latestTemplate.content,  // 使用最新的模板内容
+      selectedOptimizeTemplate.value.content,  // 直接使用当前选中的模板内容
       {
         onToken: (token) => {
           optimizedPrompt.value += token
@@ -439,30 +434,47 @@ onMounted(async () => {
   // 初始化模板选择
   try {
     // 加载优化模板
-    const optimizeTemplateId = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE) || 'optimize'
-    const optimizeTemplate = await templateManager.getTemplate(optimizeTemplateId)
-    if (optimizeTemplate) {
-      selectedOptimizeTemplate.value = optimizeTemplate
+    const optimizeTemplateId = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE)
+    if (optimizeTemplateId) {
+      const optimizeTemplate = await templateManager.getTemplate(optimizeTemplateId)
+      if (optimizeTemplate) {
+        selectedOptimizeTemplate.value = optimizeTemplate
+      }
+    }
+    
+    // 如果没有已保存的模板或加载失败，使用该类型的第一个模板
+    if (!selectedOptimizeTemplate.value) {
+      const optimizeTemplates = await templateManager.getTemplatesByType('optimize')
+      if (optimizeTemplates.length > 0) {
+        selectedOptimizeTemplate.value = optimizeTemplates[0]
+      }
     }
     
     // 加载迭代模板
-    const iterateTemplateId = localStorage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE) || 'iterate'
-    const iterateTemplate = await templateManager.getTemplate(iterateTemplateId)
-    if (iterateTemplate) {
-      selectedIterateTemplate.value = iterateTemplate
+    const iterateTemplateId = localStorage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE)
+    if (iterateTemplateId) {
+      const iterateTemplate = await templateManager.getTemplate(iterateTemplateId)
+      if (iterateTemplate) {
+        selectedIterateTemplate.value = iterateTemplate
+      }
     }
-  } catch (error) {
-    console.error('加载默认模板失败:', error)
-    toast.error('加载默认模板失败，将使用内置模板')
     
-    // 如果加载失败，使用内置模板
-    try {
-      selectedOptimizeTemplate.value = await templateManager.getTemplate('optimize')
-      selectedIterateTemplate.value = await templateManager.getTemplate('iterate')
-    } catch (e) {
-      console.error('加载内置模板失败:', e)
-      toast.error('加载内置模板失败')
+    // 如果没有已保存的模板或加载失败，使用该类型的第一个模板
+    if (!selectedIterateTemplate.value) {
+      const iterateTemplates = await templateManager.getTemplatesByType('iterate') 
+      if (iterateTemplates.length > 0) {
+        selectedIterateTemplate.value = iterateTemplates[0]
+      }
     }
+
+    // 如果仍然无法加载任何模板，显示错误
+    if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
+      throw new Error('无法加载默认模板')
+    }
+
+  } catch (error) {
+    console.error('加载模板失败:', error)
+    toast.error('加载模板失败')
   }
 })
 

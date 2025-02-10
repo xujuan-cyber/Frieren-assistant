@@ -254,6 +254,23 @@ export class TemplateManager implements ITemplateManager {
       template => template.metadata.templateType === type
     );
   }
+
+  /**
+   * 根据模板类型获取模板列表
+   * @param type 模板类型 ('optimize' | 'iterate')
+   * @returns 指定类型的模板列表
+   */
+  async getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]> {
+    try {
+      const templates = await this.listTemplates()
+      return templates.filter(template => 
+        template.metadata?.templateType === type
+      )
+    } catch (error) {
+      console.error('获取模板列表失败:', error)
+      throw new TemplateError('获取模板列表失败')
+    }
+  }
 }
 
 // 导出单例实例
