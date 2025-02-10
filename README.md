@@ -106,6 +106,18 @@ npm run build
 
 构建后的文件将生成在 `dist` 目录下
 
+### 发布到vercel
+```bash
+# 第一次使用需要安装vercel
+npm install -g vercel
+# 登录vercel
+vercel login
+
+# 发布项目
+vercel --prod
+
+```
+
 ## 使用说明
 
 1. 首次使用需要配置 API 密钥：

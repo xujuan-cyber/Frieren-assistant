@@ -96,8 +96,8 @@ export class ModelManager implements IModelManager {
       throw new ModelConfigError(`未知的模型: ${key}`);
     }
 
-    // 验证配置完整性
-    this.validateConfig(this.models[key]);
+    // 使用完整验证
+    this.validateEnableConfig(this.models[key]);
     
     this.models[key].enabled = true;
     this.saveToStorage();
@@ -119,16 +119,35 @@ export class ModelManager implements IModelManager {
    * 验证模型配置
    */
   private validateConfig(config: ModelConfig): void {
-    if (
-      !config.name ||
-      !config.baseURL ||
-      !config.apiKey ||
-      !Array.isArray(config.models) ||
-      config.models.length === 0 ||
-      !config.defaultModel ||
-      !config.models.includes(config.defaultModel)
-    ) {
-      throw new ModelConfigError('无效的模型配置：配置不完整或缺少必要字段');
+    const errors: string[] = [];
+    
+    if (!config.name) {
+      errors.push('缺少模型名称(name)');
+    }
+    if (!config.baseURL) {
+      errors.push('缺少基础URL(baseURL)');
+    }
+    if (!Array.isArray(config.models)) {
+      errors.push('模型列表(models)必须是数组');
+    } else if (config.models.length === 0) {
+      errors.push('模型列表(models)不能为空');
+    }
+    if (!config.defaultModel) {
+      errors.push('缺少默认模型(defaultModel)');
+    } else if (!config.models?.includes(config.defaultModel)) {
+      errors.push('默认模型必须在模型列表中');
+    }
+
+    if (errors.length > 0) {
+      throw new ModelConfigError('无效的模型配置：' + errors.join('、'));
+    }
+  }
+
+  private validateEnableConfig(config: ModelConfig): void {
+    this.validateConfig(config);
+    
+    if (!config.apiKey) {
+      throw new ModelConfigError('启用模型需要提供API密钥');
     }
   }
 

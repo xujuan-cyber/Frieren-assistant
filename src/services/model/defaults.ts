@@ -20,8 +20,8 @@ export const defaultModels: Record<string, ModelConfig> = {
   gemini: {
     name: 'Google Gemini',
     baseURL: 'https://geminiapi.always200.com/v1beta/openai',
-    models: ['gemini-2.0-flash-001'],
-    defaultModel: 'gemini-2.0-flash-001',
+    models: ['gemini-2.0-flash'],
+    defaultModel: 'gemini-2.0-flash',
     apiKey: GEMINI_API_KEY,
     enabled: !!GEMINI_API_KEY,
     provider: 'gemini'

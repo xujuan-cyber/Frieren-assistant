@@ -221,19 +221,23 @@ const cancelEdit = () => {
 // 保存编辑
 const saveEdit = () => {
   try {
+    // 获取原始配置
+    const originalConfig = modelManager.getModel(editingModel.value.key);
+    if (!originalConfig) {
+      throw new Error('找不到原始配置');
+    }
+
+    // 构建更新配置,保留原有的 apiKey
     const config = {
       name: editingModel.value.name,
       baseURL: editingModel.value.baseURL,
       models: [editingModel.value.defaultModel],
-      defaultModel: editingModel.value.defaultModel
+      defaultModel: editingModel.value.defaultModel,
+      apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey // 如果没有新的 apiKey,保留原有的
     };
 
+    // 更新配置
     modelManager.updateModel(editingModel.value.key, config);
-    
-    // 如果提供了新的 API 密钥，则更新
-    if (editingModel.value.apiKey) {
-      modelManager.setApiKey(editingModel.value.key, editingModel.value.apiKey);
-    }
 
     loadModels();
     isEditing.value = false;
