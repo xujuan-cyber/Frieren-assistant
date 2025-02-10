@@ -21,7 +21,7 @@ export interface PromptRecord {
   timestamp: number;
   /** 使用的模型key */
   modelKey: string;
-  /** 使用的模板ID */
+  /** 使用的提示词ID */
   templateId: string;
   /** 元数据 */
   metadata?: Record<string, any>;

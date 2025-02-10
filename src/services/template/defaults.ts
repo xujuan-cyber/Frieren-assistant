@@ -1,7 +1,7 @@
 import { Template } from './types';
 
 /**
- * 默认模板配置
+ * 默认提示词配置
  */
 export const DEFAULT_TEMPLATES: Record<string, Template> = {
   'builtin-optimize': {
@@ -120,7 +120,7 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
       version: '2.1.0',
       lastModified: Date.now(),
       author: 'System',
-      description: '内置的提示词优化模板，帮助用户创建高质量的提示词',
+      description: '内置的提示词优化提示词，帮助用户创建高质量的提示词',
       templateType: 'optimize'
     },
     isBuiltin: true
@@ -141,7 +141,7 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
       version: '1.1.0',
       lastModified: Date.now(),
       author: 'System',
-      description: '内置的简单优化模板，帮助用户创建高质量的提示词',
+      description: '内置的简单优化提示词，帮助用户创建高质量的提示词',
       templateType: 'optimize'
     },
     isBuiltin: true
@@ -202,7 +202,7 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
       version: '1.0.0',
       lastModified: Date.now(),
       author: 'System',
-      description: '在保持原有提示词核心意图的基础上进行定向优化的专业模板',
+      description: '在保持原有提示词核心意图的基础上进行定向优化的专业提示词',
       templateType: 'iterate'
     },
     isBuiltin: true

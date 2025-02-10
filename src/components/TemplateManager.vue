@@ -10,10 +10,10 @@
       <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-white/90">提示词模板管理</h2>
+          <h2 class="text-xl font-semibold text-white/90">功能提示词管理</h2>
           <div class="flex items-center space-x-4">
             <span v-if="selectedTemplate" class="text-sm text-purple-300">
-              当前模板: {{ selectedTemplate.name }}
+              当前提示词: {{ selectedTemplate.name }}
             </span>
             <button
               @click="$emit('close')"
@@ -41,17 +41,17 @@
           >
             <div class="flex items-center justify-center space-x-2">
               <span class="text-lg">{{ type === 'optimize' ? '🎯' : '🔄' }}</span>
-              <span>{{ type === 'optimize' ? '优化模板' : '迭代模板' }}</span>
+              <span>{{ type === 'optimize' ? '优化提示词' : '迭代提示词' }}</span>
             </div>
           </button>
         </div>
 
-        <!-- 模板列表 -->
+        <!-- 提示词列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold flex items-center space-x-2">
               <span class="text-white/90">
-                {{ currentType === 'optimize' ? '优化模板列表' : '迭代模板列表' }}
+                {{ currentType === 'optimize' ? '优化提示词列表' : '迭代提示词列表' }}
               </span>
               <span 
                 class="px-2 py-1 text-xs rounded-full"
@@ -59,18 +59,18 @@
                   ? 'bg-purple-600/20 text-purple-300'
                   : 'bg-teal-600/20 text-teal-300'"
               >
-                {{ filteredTemplates.length }}个模板
+                {{ filteredTemplates.length }}个提示词
               </span>
             </h3>
             <button
               @click="showAddForm = true"
               class="px-4 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors"
             >
-              添加模板
+              添加提示词
             </button>
           </div>
           
-          <!-- 模板列表按类型过滤 -->
+          <!-- 提示词列表按类型过滤 -->
           <div class="space-y-4 max-h-[60vh] overflow-y-auto px-1">
             <div 
               v-for="template in filteredTemplates"
@@ -121,11 +121,18 @@
                     编辑
                   </button>
                   <button
+                    @click="viewTemplate(template)"
+                    class="px-3 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors"
+                    v-if="template.isBuiltin"
+                  >
+                    查看
+                  </button>
+                  <button
                     @click="copyTemplate(template)"
                     class="px-3 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors"
                     v-if="template.isBuiltin"
                   >
-                    复制模板
+                    复制提示词
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
@@ -158,75 +165,94 @@
           </div>
         </div>
 
-        <!-- 添加/编辑模板表单 -->
-        <div v-if="showAddForm || editingTemplate" class="border-t border-purple-700/50 pt-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-white/90">
-              {{ editingTemplate ? '编辑模板' : '添加模板' }}
-            </h3>
-            <button
-              @click="cancelEdit"
-              class="text-white/60 hover:text-white/90 transition-colors"
-            >
-              取消
-            </button>
+        <!-- 使用 Teleport 将模态框传送到 body -->
+        <Teleport to="body">
+          <!-- 查看/编辑模态框 -->
+          <div v-if="showAddForm || editingTemplate || viewingTemplate" 
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
+               @click="cancelEdit">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            
+            <div class="relative bg-gray-900/95 rounded-xl shadow-2xl border border-purple-700/50 w-full max-w-2xl m-4 z-10"
+                 @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold text-white/90">
+                    {{ viewingTemplate ? '查看提示词' : (editingTemplate ? '编辑提示词' : '添加提示词') }}
+                  </h3>
+                  <button
+                    @click="cancelEdit"
+                    class="text-white/60 hover:text-white/90 transition-colors text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <form @submit.prevent="handleSubmit" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">提示词名称</label>
+                    <input
+                      v-model="form.name"
+                      type="text"
+                      required
+                      :readonly="viewingTemplate"
+                      class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                      :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
+                      placeholder="输入提示词名称"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">提示词内容</label>
+                    <textarea
+                      v-model="form.content"
+                      required
+                      :readonly="viewingTemplate"
+                      rows="8"
+                      class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all resize-none"
+                      :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
+                      placeholder="输入提示词内容"
+                    ></textarea>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">描述</label>
+                    <textarea
+                      v-model="form.description"
+                      :readonly="viewingTemplate"
+                      rows="3"
+                      class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all resize-none"
+                      :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
+                      placeholder="输入提示词描述（可选）"
+                    ></textarea>
+                  </div>
+
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      @click="cancelEdit"
+                      class="px-4 py-2 rounded-lg border border-gray-600/50 text-white/70 hover:text-white/90 hover:border-gray-500/60 transition-all"
+                    >
+                      {{ viewingTemplate ? '关闭' : '取消' }}
+                    </button>
+                    <button
+                      v-if="!viewingTemplate"
+                      type="submit"
+                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                    >
+                      {{ editingTemplate ? '保存修改' : '添加提示词' }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
-          
-          <form @submit.prevent="handleSubmit" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">模板名称</label>
-              <input
-                v-model="form.name"
-                type="text"
-                required
-                class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                placeholder="输入模板名称"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">模板内容</label>
-              <textarea
-                v-model="form.content"
-                required
-                rows="6"
-                class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all resize-none"
-                placeholder="输入模板内容"
-              ></textarea>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">描述</label>
-              <textarea
-                v-model="form.description"
-                rows="2"
-                class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all resize-none"
-                placeholder="输入模板描述（可选）"
-              ></textarea>
-            </div>
+        </Teleport>
 
-            <div class="flex justify-end space-x-3 pt-2">
-              <button
-                type="button"
-                @click="cancelEdit"
-                class="px-4 py-2 text-white/70 hover:text-white/90 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
-              >
-                {{ editingTemplate ? '保存修改' : '添加模板' }}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <!-- 导入模板 -->
+        <!-- 导入提示词 -->
         <div class="border-t border-purple-700/50 pt-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white/90">导入模板</h3>
+            <h3 class="text-lg font-semibold text-white/90">导入提示词</h3>
           </div>
           <div class="flex items-center space-x-3">
             <input
@@ -242,7 +268,7 @@
             >
               选择文件
             </button>
-            <span class="text-sm text-white/60">支持 .json 格式的模板文件</span>
+            <span class="text-sm text-white/60">支持 .json 格式的提示词文件</span>
           </div>
         </div>
       </div>
@@ -272,6 +298,7 @@ const templates = ref([])
 const currentType = ref(props.templateType)
 const showAddForm = ref(false)
 const editingTemplate = ref(null)
+const viewingTemplate = ref(null)
 
 const form = ref({
   name: '',
@@ -279,16 +306,16 @@ const form = ref({
   description: ''
 })
 
-// 加载模板列表
+// 加载提示词列表
 const loadTemplates = async () => {
   try {
-    // 确保模板管理器已初始化
+    // 确保提示词管理器已初始化
     await templateManager.init();
     templates.value = await templateManager.listTemplates();
-    console.log('加载到的模板:', templates.value);
+    console.log('加载到的提示词:', templates.value);
   } catch (error) {
-    console.error('加载模板失败:', error);
-    toast.error('加载模板失败');
+    console.error('加载提示词失败:', error);
+    toast.error('加载提示词失败');
   }
 }
 
@@ -298,9 +325,19 @@ const formatDate = (timestamp) => {
   return new Date(timestamp).toLocaleString('zh-CN')
 }
 
-// 编辑模板
+// 编辑提示词
 const editTemplate = (template) => {
   editingTemplate.value = template
+  form.value = {
+    name: template.name,
+    content: template.content,
+    description: template.metadata.description || ''
+  }
+}
+
+// 查看提示词
+const viewTemplate = (template) => {
+  viewingTemplate.value = template
   form.value = {
     name: template.name,
     content: template.content,
@@ -312,6 +349,7 @@ const editTemplate = (template) => {
 const cancelEdit = () => {
   showAddForm.value = false
   editingTemplate.value = null
+  viewingTemplate.value = null
   form.value = {
     name: '',
     content: '',
@@ -338,7 +376,7 @@ const handleSubmit = async () => {
     await templateManager.saveTemplate(templateData)
     await loadTemplates()
     
-    // 如果正在编辑的是当前选中的模板,则更新选中的模板
+    // 如果正在编辑的是当前选中的提示词,则更新选中的提示词
     if (props.selectedOptimizeTemplate?.id === templateData.id) {
       const updatedTemplate = await templateManager.getTemplate(templateData.id)
       props.selectedOptimizeTemplate = updatedTemplate
@@ -349,29 +387,29 @@ const handleSubmit = async () => {
       emit('select', updatedTemplate, currentType.value)
     }
     
-    toast.success(editingTemplate.value ? '模板已更新' : '模板已添加')
+    toast.success(editingTemplate.value ? '提示词已更新' : '提示词已添加')
     cancelEdit()
   } catch (error) {
-    console.error('保存模板失败:', error)
-    toast.error(`保存模板失败: ${error.message}`)
+    console.error('保存提示词失败:', error)
+    toast.error(`保存提示词失败: ${error.message}`)
   }
 }
 
 // 确认删除
 const confirmDelete = async (templateId) => {
-  if (confirm('确定要删除这个模板吗？此操作不可恢复。')) {
+  if (confirm('确定要删除这个提示词吗？此操作不可恢复。')) {
     try {
       await templateManager.deleteTemplate(templateId)
       await loadTemplates()
-      toast.success('模板已删除')
+      toast.success('提示词已删除')
     } catch (error) {
-      console.error('删除模板失败:', error)
-      toast.error(`删除模板失败: ${error.message}`)
+      console.error('删除提示词失败:', error)
+      toast.error(`删除提示词失败: ${error.message}`)
     }
   }
 }
 
-// 导出模板
+// 导出提示词
 const exportTemplate = (templateId) => {
   try {
     const templateJson = templateManager.exportTemplate(templateId)
@@ -384,14 +422,14 @@ const exportTemplate = (templateId) => {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    toast.success('模板已导出')
+    toast.success('提示词已导出')
   } catch (error) {
-    console.error('导出模板失败:', error)
-    toast.error(`导出模板失败: ${error.message}`)
+    console.error('导出提示词失败:', error)
+    toast.error(`导出提示词失败: ${error.message}`)
   }
 }
 
-// 导入模板
+// 导入提示词
 const handleFileImport = async (event) => {
   const file = event.target.files[0]
   if (!file) return
@@ -402,11 +440,11 @@ const handleFileImport = async (event) => {
       try {
         await templateManager.importTemplate(e.target.result)
         await loadTemplates()
-        toast.success('模板已导入')
+        toast.success('提示词已导入')
         event.target.value = '' // 清空文件输入
       } catch (error) {
-        console.error('导入模板失败:', error)
-        toast.error(`导入模板失败: ${error.message}`)
+        console.error('导入提示词失败:', error)
+        toast.error(`导入提示词失败: ${error.message}`)
       }
     }
     reader.readAsText(file)
@@ -416,7 +454,7 @@ const handleFileImport = async (event) => {
   }
 }
 
-// 复制内置模板
+// 复制内置提示词
 const copyTemplate = (template) => {
   showAddForm.value = true
   form.value = {
@@ -426,7 +464,7 @@ const copyTemplate = (template) => {
   }
 }
 
-// 选择模板
+// 选择提示词
 const selectTemplate = (template) => {
   if (currentType.value === 'optimize') {
     props.selectedOptimizeTemplate = template
@@ -436,7 +474,7 @@ const selectTemplate = (template) => {
   emit('select', template, currentType.value)
 }
 
-// 按类型过滤模板
+// 按类型过滤提示词
 const filteredTemplates = computed(() => 
   templates.value.filter(t => t.metadata.templateType === currentType.value)
 )
@@ -448,6 +486,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 添加过渡动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* 保持原有的滚动条样式 */
 .scroll-container {
   max-height: 60vh;
   scrollbar-width: thin;
@@ -462,12 +513,10 @@ onMounted(() => {
   background: transparent;
 }
 
-
 .scroll-container::-webkit-scrollbar-thumb {
   background-color: rgba(139, 92, 246, 0.3);
   border-radius: 3px;
 }
-
 
 .scroll-container::-webkit-scrollbar-thumb:hover {
   background-color: rgba(139, 92, 246, 0.5);

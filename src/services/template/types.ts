@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 /**
- * 模板元数据
+ * 提示词元数据
  */
 export interface TemplateMetadata {
-  version: string;          // 模板版本
+  version: string;          // 提示词版本
   lastModified: number;     // 最后修改时间
   author?: string;          // 作者（可选）
   description?: string;     // 描述（可选）
@@ -12,23 +12,23 @@ export interface TemplateMetadata {
 }
 
 /**
- * 模板定义
+ * 提示词定义
  */
 export interface Template {
-  id: string;              // 模板唯一标识
-  name: string;            // 模板名称
-  content: string;         // 模板内容
+  id: string;              // 提示词唯一标识
+  name: string;            // 提示词名称
+  content: string;         // 提示词内容
   metadata: TemplateMetadata;
-  isBuiltin?: boolean;     // 是否为内置模板
+  isBuiltin?: boolean;     // 是否为内置提示词
 }
 
 /**
- * 模板来源类型
+ * 提示词来源类型
  */
 export type TemplateSourceType = 'builtin' | 'localStorage';
 
 /**
- * 模板管理器配置
+ * 提示词管理器配置
  */
 export interface TemplateManagerConfig {
   storageKey?: string;     // localStorage存储键名
@@ -36,7 +36,7 @@ export interface TemplateManagerConfig {
 }
 
 /**
- * 模板管理器接口
+ * 提示词管理器接口
  */
 export interface ITemplateManager {
   init(): Promise<void>;
@@ -50,7 +50,7 @@ export interface ITemplateManager {
 }
 
 /**
- * 模板验证Schema
+ * 提示词验证Schema
  */
 export const templateSchema = z.object({
   id: z.string().min(1),

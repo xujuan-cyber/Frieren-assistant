@@ -147,7 +147,7 @@ export class HistoryManager implements IHistoryManager {
     if (!record.type) errors.push('缺少记录类型');
     if (!record.timestamp) errors.push('缺少时间戳');
     if (!record.modelKey) errors.push('缺少模型标识');
-    if (!record.templateId) errors.push('缺少模板标识');
+    if (!record.templateId) errors.push('缺少提示词标识');
 
     if (errors.length > 0) {
       throw new RecordValidationError('记录验证失败', errors);

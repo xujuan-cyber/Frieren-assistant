@@ -8,12 +8,12 @@
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="text-white/60">当前模板:</span>
+          <span class="text-white/60">优化功能提示词:</span>
           <span v-if="modelValue" class="text-purple-300 group-hover:text-purple-200">
             {{ modelValue.name }}
           </span>
           <span v-else class="text-red-300">
-            未选择模板
+            未选择提示词
           </span>
         </div>
         <span class="text-purple-300 group-hover:text-purple-200">
@@ -59,7 +59,7 @@
                  hover:bg-purple-600/30 transition-colors flex items-center justify-center space-x-1"
         >
           <span>📝</span>
-          <span>管理模板</span>
+          <span>配置提示词</span>
         </button>
       </div>
     </div>

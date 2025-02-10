@@ -3,7 +3,7 @@ import { DEFAULT_TEMPLATES } from './defaults';
 import { TemplateError, TemplateValidationError, TemplateStorageError } from './errors';
 
 /**
- * 模板管理器实现
+ * 提示词管理器实现
  */
 export class TemplateManager implements ITemplateManager {
   private readonly builtinTemplates: Map<string, Template>;
@@ -21,15 +21,15 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 初始化模板管理器
+   * 初始化提示词管理器
    */
   async init(): Promise<void> {
     try {
-      // 需要先清空已有模板避免重复加载
+      // 需要先清空已有提示词避免重复加载
       this.builtinTemplates.clear();
       this.userTemplates.clear();
 
-      // 加载内置模板需要深拷贝避免引用问题
+      // 加载内置提示词需要深拷贝避免引用问题
       for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
         this.builtinTemplates.set(id, JSON.parse(JSON.stringify({
           ...template,
@@ -39,7 +39,7 @@ export class TemplateManager implements ITemplateManager {
 
       // 增加加载后的验证
       if (this.builtinTemplates.size === 0) {
-        throw new TemplateError('内置模板加载失败');
+        throw new TemplateError('内置提示词加载失败');
       }
 
       await this.loadUserTemplates();
@@ -49,22 +49,22 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 获取模板
+   * 获取提示词
    */
   async getTemplate(templateId: string): Promise<Template> {
     // 增加空值校验
     if (!templateId || typeof templateId !== 'string') {
-      throw new TemplateError('无效的模板ID');
+      throw new TemplateError('无效的提示词ID');
     }
 
-    // 优先检查用户模板
+    // 优先检查用户提示词
     const template = this.userTemplates.get(templateId) || 
                     this.builtinTemplates.get(templateId);
     
     if (!template) {
       // 增加调试信息
-      console.debug('可用模板:', [...this.builtinTemplates.keys(), ...this.userTemplates.keys()]);
-      throw new TemplateError(`模板 ${templateId} 不存在`);
+      console.debug('可用提示词:', [...this.builtinTemplates.keys(), ...this.userTemplates.keys()]);
+      throw new TemplateError(`提示词 ${templateId} 不存在`);
     }
     
     // 返回深拷贝避免外部修改
@@ -72,20 +72,20 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 保存用户模板
+   * 保存用户提示词
    */
   async saveTemplate(template: Template): Promise<void> {
     // 增加类型校验
     if (!['optimize', 'iterate'].includes(template.metadata.templateType)) {
-      throw new TemplateValidationError('无效的模板类型');
+      throw new TemplateValidationError('无效的提示词类型');
     }
 
     // 增加ID格式校验
     if (!/^[a-zA-Z0-9_-]{3,50}$/.test(template.id)) {
-      throw new TemplateValidationError('模板ID格式无效（3-50位字母数字）');
+      throw new TemplateValidationError('提示词ID格式无效（3-50位字母数字）');
     }
 
-    // 保留原始模板的不可变属性
+    // 保留原始提示词的不可变属性
     if (this.userTemplates.has(template.id)) {
       const original = this.userTemplates.get(template.id)!;
       template = {
@@ -99,15 +99,15 @@ export class TemplateManager implements ITemplateManager {
       };
     }
 
-    // 验证模板
+    // 验证提示词
     const result = templateSchema.safeParse(template);
     if (!result.success) {
-      throw new TemplateValidationError(`模板验证失败: ${result.error.message}`);
+      throw new TemplateValidationError(`提示词验证失败: ${result.error.message}`);
     }
       
-    // 不允许覆盖内置模板
+    // 不允许覆盖内置提示词
     if (this.builtinTemplates.has(template.id)) {
-      throw new TemplateError(`不能覆盖内置模板: ${template.id}`);
+      throw new TemplateError(`不能覆盖内置提示词: ${template.id}`);
     }
 
     // 只在没有时间戳时设置
@@ -115,21 +115,21 @@ export class TemplateManager implements ITemplateManager {
       template.metadata.lastModified = Date.now();
     }
     
-    // 保存模板
+    // 保存提示词
     this.userTemplates.set(template.id, { ...template, isBuiltin: false });
     await this.persistUserTemplates();
   }
 
   /**
-   * 删除用户模板
+   * 删除用户提示词
    */
   async deleteTemplate(templateId: string): Promise<void> {
     if (this.builtinTemplates.has(templateId)) {
-      throw new TemplateError(`不能删除内置模板: ${templateId}`);
+      throw new TemplateError(`不能删除内置提示词: ${templateId}`);
     }
 
     if (!this.userTemplates.has(templateId)) {
-      throw new TemplateError(`模板不存在: ${templateId}`);
+      throw new TemplateError(`提示词不存在: ${templateId}`);
     }
 
     this.userTemplates.delete(templateId);
@@ -137,7 +137,7 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 列出所有模板
+   * 列出所有提示词
    */
   async listTemplates(): Promise<Template[]> {
     const templates = [
@@ -146,12 +146,12 @@ export class TemplateManager implements ITemplateManager {
     ];
     
     return templates.sort((a, b) => {
-      // 内置模板排在前面
+      // 内置提示词排在前面
       if (a.isBuiltin !== b.isBuiltin) {
         return a.isBuiltin ? -1 : 1;
       }
       
-      // 非内置模板按时间戳倒序
+      // 非内置提示词按时间戳倒序
       if (!a.isBuiltin && !b.isBuiltin) {
         const timeA = a.metadata.lastModified || 0;
         const timeB = b.metadata.lastModified || 0;
@@ -163,36 +163,36 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 导出模板
+   * 导出提示词
    */
   exportTemplate(templateId: string): string {
     const template = this.userTemplates.get(templateId) || 
                     this.builtinTemplates.get(templateId);
     if (!template) {
-      throw new TemplateError(`模板不存在: ${templateId}`);
+      throw new TemplateError(`提示词不存在: ${templateId}`);
     }
     return JSON.stringify(template, null, 2);
   }
 
   /**
-   * 导入模板
+   * 导入提示词
    */
   async importTemplate(templateJson: string): Promise<void> {
     try {
       const template = JSON.parse(templateJson) as Template;
       const result = templateSchema.safeParse(template);
       if (!result.success) {
-        throw new TemplateValidationError(`模板验证失败: ${result.error.message}`);
+        throw new TemplateValidationError(`提示词验证失败: ${result.error.message}`);
       }
       await this.saveTemplate(template);
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new TemplateValidationError('模板格式无效');
+        throw new TemplateValidationError('提示词格式无效');
       }
       if (error instanceof TemplateValidationError) {
         throw error;
       }
-      throw new TemplateError(`导入模板失败: ${error.message}`);
+      throw new TemplateError(`导入提示词失败: ${error.message}`);
     }
   }
 
@@ -208,29 +208,29 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 验证模板
+   * 验证提示词
    */
   private async validateTemplate(template: Template): Promise<void> {
     const result = templateSchema.safeParse(template);
     if (!result.success) {
-      throw new TemplateValidationError(`模板验证失败: ${result.error.message}`);
+      throw new TemplateValidationError(`提示词验证失败: ${result.error.message}`);
     }
   }
 
   /**
-   * 持久化用户模板
+   * 持久化用户提示词
    */
   private async persistUserTemplates(): Promise<void> {
     try {
       const templates = Array.from(this.userTemplates.values());
       localStorage.setItem(this.config.storageKey, JSON.stringify(templates));
     } catch (error) {
-      throw new TemplateError(`保存模板失败: ${error.message}`);
+      throw new TemplateError(`保存提示词失败: ${error.message}`);
     }
   }
 
   /**
-   * 加载用户模板
+   * 加载用户提示词
    */
   private async loadUserTemplates(): Promise<void> {
     try {
@@ -242,12 +242,12 @@ export class TemplateManager implements ITemplateManager {
         });
       }
     } catch (error) {
-      throw new TemplateError(`加载用户模板失败: ${error.message}`);
+      throw new TemplateError(`加载用户提示词失败: ${error.message}`);
     }
   }
 
   /**
-   * 按类型列出模板
+   * 按类型列出提示词
    */
   listTemplatesByType(type: 'optimize' | 'iterate'): Template[] {
     return [...this.builtinTemplates.values(), ...this.userTemplates.values()].filter(
@@ -256,9 +256,9 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * 根据模板类型获取模板列表
-   * @param type 模板类型 ('optimize' | 'iterate')
-   * @returns 指定类型的模板列表
+   * 根据提示词类型获取提示词列表
+   * @param type 提示词类型 ('optimize' | 'iterate')
+   * @returns 指定类型的提示词列表
    */
   async getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]> {
     try {
@@ -267,8 +267,8 @@ export class TemplateManager implements ITemplateManager {
         template.metadata?.templateType === type
       )
     } catch (error) {
-      console.error('获取模板列表失败:', error)
-      throw new TemplateError('获取模板列表失败')
+      console.error('获取提示词列表失败:', error)
+      throw new TemplateError('获取提示词列表失败')
     }
   }
 }
@@ -276,7 +276,7 @@ export class TemplateManager implements ITemplateManager {
 // 导出单例实例
 export const templateManager = new TemplateManager();
 
-// 初始化模板管理器
+// 初始化提示词管理器
 templateManager.init().catch(error => {
-  console.error('模板管理器初始化失败:', error);
+  console.error('提示词管理器初始化失败:', error);
 }); 

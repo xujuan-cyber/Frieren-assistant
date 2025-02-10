@@ -73,7 +73,7 @@ export class ModelConfigError extends LLMError {
 export const ERROR_MESSAGES = {
   API_KEY_REQUIRED: '优化失败: API密钥不能为空',
   MODEL_NOT_FOUND: '优化失败: 模型不存在',
-  TEMPLATE_INVALID: '优化失败: 模板格式无效',
+  TEMPLATE_INVALID: '优化失败: 提示词格式无效',
   EMPTY_INPUT: '优化失败: 提示词不能为空',
   OPTIMIZATION_FAILED: '优化失败',
   ITERATION_FAILED: '迭代失败',

@@ -123,7 +123,7 @@ const copyPrompt = async () => {
 
 const handleIterate = () => {
   if (!props.selectedIterateTemplate) {
-    toast.error('请先选择迭代模板')
+    toast.error('请先选择迭代提示词')
     return
   }
   showIterateInput.value = true
@@ -137,7 +137,7 @@ const cancelIterate = () => {
 const submitIterate = () => {
   if (!iterateInput.value.trim()) return
   if (!props.selectedIterateTemplate) {
-    toast.error('请先选择迭代模板')
+    toast.error('请先选择迭代提示词')
     return
   }
   

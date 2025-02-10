@@ -32,7 +32,7 @@ export class PromptService implements IPromptService {
       throw new ServiceDependencyError('LLM服务未初始化', 'LLMService');
     }
     if (!this.templateManager) {
-      throw new ServiceDependencyError('模板管理器未初始化', 'TemplateManager');
+      throw new ServiceDependencyError('提示词管理器未初始化', 'TemplateManager');
     }
     if (!this.historyManager) {
       throw new ServiceDependencyError('历史记录管理器未初始化', 'HistoryManager');
@@ -91,7 +91,7 @@ export class PromptService implements IPromptService {
         );
       }
 
-      // 获取优化模板
+      // 获取优化提示词
       let template;
       try {
         template = await this.templateManager.getTemplate('optimize');
@@ -101,7 +101,7 @@ export class PromptService implements IPromptService {
       }
 
       if (!template?.template) {
-        throw new OptimizationError('优化失败: 模板不存在或无效', prompt);
+        throw new OptimizationError('优化失败: 提示词不存在或无效', prompt);
       }
 
       // 构建消息
@@ -158,7 +158,7 @@ export class PromptService implements IPromptService {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }
 
-      // 获取迭代模板
+      // 获取迭代提示词
       let template;
       try {
         template = await this.templateManager.getTemplate('iterate');
@@ -168,7 +168,7 @@ export class PromptService implements IPromptService {
       }
 
       if (!template?.template) {
-        throw new IterationError('迭代失败: 模板不存在或无效', originalPrompt, iterateInput);
+        throw new IterationError('迭代失败: 提示词不存在或无效', originalPrompt, iterateInput);
       }
 
       // 构建消息
@@ -413,7 +413,7 @@ export class PromptService implements IPromptService {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }
 
-      // 获取迭代模板
+      // 获取迭代提示词
       let templateToUse;
       if (template) {
         templateToUse = template;
@@ -422,7 +422,7 @@ export class PromptService implements IPromptService {
       }
 
       if (!templateToUse?.content) {
-        throw new IterationError('迭代失败: 模板不存在或无效', originalPrompt, iterateInput);
+        throw new IterationError('迭代失败: 提示词不存在或无效', originalPrompt, iterateInput);
       }
 
       // 构建消息
@@ -500,7 +500,7 @@ export async function createPromptService(
   } catch (error) {
     console.error('创建 PromptService 失败:', error);
     throw new ServiceDependencyError(
-      `模板管理器初始化失败: ${error.message}`,
+      `提示词管理器初始化失败: ${error.message}`,
       'TemplateManager'
     );
   }

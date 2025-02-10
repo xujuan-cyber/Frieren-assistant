@@ -1,5 +1,5 @@
 /**
- * 模板错误基类
+ * 提示词错误基类
  */
 export class TemplateError extends Error {
   constructor(message: string) {
@@ -9,7 +9,7 @@ export class TemplateError extends Error {
 }
 
 /**
- * 模板加载错误
+ * 提示词加载错误
  */
 export class TemplateLoadError extends TemplateError {
   constructor(
@@ -22,7 +22,7 @@ export class TemplateLoadError extends TemplateError {
 }
 
 /**
- * 模板验证错误
+ * 提示词验证错误
  */
 export class TemplateValidationError extends TemplateError {
   constructor(message: string) {
@@ -32,7 +32,7 @@ export class TemplateValidationError extends TemplateError {
 }
 
 /**
- * 模板缓存错误
+ * 提示词缓存错误
  */
 export class TemplateCacheError extends TemplateError {
   constructor(message: string) {
@@ -42,7 +42,7 @@ export class TemplateCacheError extends TemplateError {
 }
 
 /**
- * 模板存储错误
+ * 提示词存储错误
  */
 export class TemplateStorageError extends TemplateError {
   constructor(message: string) {

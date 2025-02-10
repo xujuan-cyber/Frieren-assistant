@@ -12,21 +12,21 @@
             class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
             <span>📝</span>
-            <span class="hidden sm:inline">模板</span>
+            <span class="hidden sm:inline">功能提示词</span>
           </button>
           <button
             @click="showHistory = true"
             class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
             <span>📜</span>
-            <span class="hidden sm:inline">历史</span>
+            <span class="hidden sm:inline">历史记录</span>
           </button>
           <button
             @click="showConfig = true"
             class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
           >
             <span>⚙️</span>
-            <span class="hidden sm:inline">设置</span>
+            <span class="hidden sm:inline">模型管理</span>
           </button>
         </div>
       </div>
@@ -122,7 +122,7 @@
       />
     </Teleport>
 
-    <!-- 模板管理弹窗 -->
+    <!-- 提示词管理弹窗 -->
     <Teleport to="body">
       <TemplateManager
         v-if="showTemplates"
@@ -167,7 +167,7 @@ import TemplateSelect from './components/TemplateSelect.vue'
 const llmService = createLLMService(modelManager)
 let promptService = null
 
-// 添加模板选择的本地存储
+// 添加提示词选择的本地存储
 const STORAGE_KEYS = {
   OPTIMIZE_TEMPLATE: 'app:selected-optimize-template',
   ITERATE_TEMPLATE: 'app:selected-iterate-template'
@@ -185,7 +185,7 @@ const isTesting = ref(false)
 const showConfig = ref(false)
 const showHistory = ref(false)
 const showTemplates = ref(false)
-const currentType = ref('optimize')  // 默认为优化模板
+const currentType = ref('optimize')  // 默认为优化提示词
 const optimizeModel = ref('')
 const selectedModel = ref('')
 const selectedOptimizeTemplate = ref(null)
@@ -251,7 +251,7 @@ const handleOptimizePrompt = async () => {
   }
   
   if (!selectedOptimizeTemplate.value) {
-    toast.error('请先选择优化模板')
+    toast.error('请先选择优化提示词')
     return
   }
   
@@ -259,7 +259,7 @@ const handleOptimizePrompt = async () => {
   optimizedPrompt.value = ''  // 清空之前的结果
   
   try {
-    // 获取最新的模板内容
+    // 获取最新的提示词内容
     console.log('开始优化提示词:', {
       prompt: prompt.value,
       modelKey: optimizeModel.value,
@@ -270,7 +270,7 @@ const handleOptimizePrompt = async () => {
     await promptService.optimizePromptStream(
       prompt.value, 
       optimizeModel.value,
-      selectedOptimizeTemplate.value.content,  // 直接使用当前选中的模板内容
+      selectedOptimizeTemplate.value.content,  // 直接使用当前选中的提示词内容
       {
         onToken: (token) => {
           optimizedPrompt.value += token
@@ -394,7 +394,7 @@ const handleSelectHistory = (item) => {
   showHistory.value = false
 }
 
-// 保存模板选择到本地存储
+// 保存提示词选择到本地存储
 const saveTemplateSelection = (template, type) => {
   if (template) {
     localStorage.setItem(
@@ -404,7 +404,7 @@ const saveTemplateSelection = (template, type) => {
   }
 }
 
-// 修改模板选择处理函数
+// 修改提示词选择处理函数
 const handleTemplateSelect = (template, type) => {
   if (type === 'optimize') {
     selectedOptimizeTemplate.value = template
@@ -412,10 +412,10 @@ const handleTemplateSelect = (template, type) => {
     selectedIterateTemplate.value = template
   }
   saveTemplateSelection(template, type)
-  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}模板: ${template.name}`)
+  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${template.name}`)
 }
 
-// 打开模板管理器
+// 打开提示词管理器
 const openTemplateManager = (type = 'optimize') => {
   currentType.value = type
   showTemplates.value = true
@@ -431,9 +431,9 @@ onMounted(async () => {
     history.value = promptService.getHistory()
   }
   
-  // 初始化模板选择
+  // 初始化提示词选择
   try {
-    // 加载优化模板
+    // 加载优化提示词
     const optimizeTemplateId = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE)
     if (optimizeTemplateId) {
       const optimizeTemplate = await templateManager.getTemplate(optimizeTemplateId)
@@ -442,7 +442,7 @@ onMounted(async () => {
       }
     }
     
-    // 如果没有已保存的模板或加载失败，使用该类型的第一个模板
+    // 如果没有已保存的提示词或加载失败，使用该类型的第一个提示词
     if (!selectedOptimizeTemplate.value) {
       const optimizeTemplates = await templateManager.getTemplatesByType('optimize')
       if (optimizeTemplates.length > 0) {
@@ -450,7 +450,7 @@ onMounted(async () => {
       }
     }
     
-    // 加载迭代模板
+    // 加载迭代提示词
     const iterateTemplateId = localStorage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE)
     if (iterateTemplateId) {
       const iterateTemplate = await templateManager.getTemplate(iterateTemplateId)
@@ -459,7 +459,7 @@ onMounted(async () => {
       }
     }
     
-    // 如果没有已保存的模板或加载失败，使用该类型的第一个模板
+    // 如果没有已保存的提示词或加载失败，使用该类型的第一个提示词
     if (!selectedIterateTemplate.value) {
       const iterateTemplates = await templateManager.getTemplatesByType('iterate') 
       if (iterateTemplates.length > 0) {
@@ -467,14 +467,14 @@ onMounted(async () => {
       }
     }
 
-    // 如果仍然无法加载任何模板，显示错误
+    // 如果仍然无法加载任何提示词，显示错误
     if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
-      throw new Error('无法加载默认模板')
+      throw new Error('无法加载默认提示词')
     }
 
   } catch (error) {
-    console.error('加载模板失败:', error)
-    toast.error('加载模板失败')
+    console.error('加载提示词失败:', error)
+    toast.error('加载提示词失败')
   }
 })
 

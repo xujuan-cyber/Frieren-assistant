@@ -103,7 +103,7 @@ describe('App.vue', () => {
     mockStreamHandler.onComplete.mockClear()
     mockStreamHandler.onError.mockClear()
     
-    // 初始化模板管理器
+    // 初始化提示词管理器
     await templateManager.init()
     
     // 设置组件
@@ -148,10 +148,10 @@ describe('App.vue', () => {
       const optimizedPrompt = '优化后的提示词'
       const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
 
-      // 设置提示词和模板
+      // 设置提示词和提示词
       wrapper.vm.prompt = testPrompt
       wrapper.vm.selectedTemplate = {
-        id: 'optimize',  // 使用正确的模板ID
+        id: 'optimize',  // 使用正确的提示词ID
         name: '提示词优化',
         content: 'template content'
       }
@@ -186,10 +186,10 @@ describe('App.vue', () => {
       const testPrompt = '测试提示词'
       const errorMessage = '优化失败'
 
-      // 设置提示词和模板
+      // 设置提示词和提示词
       wrapper.vm.prompt = testPrompt
       wrapper.vm.selectedTemplate = {
-        id: 'optimize',  // 使用正确的模板ID
+        id: 'optimize',  // 使用正确的提示词ID
         name: '提示词优化',
         content: 'template content'
       }
@@ -276,10 +276,10 @@ describe('App.vue', () => {
       const optimizedPrompt = '优化后的提示词'
       const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
 
-      // 设置提示词和模板
+      // 设置提示词和提示词
       wrapper.vm.prompt = testPrompt
       wrapper.vm.selectedTemplate = {
-        id: 'optimize',  // 使用正确的模板ID
+        id: 'optimize',  // 使用正确的提示词ID
         name: '提示词优化',
         content: 'template content'
       }
@@ -333,7 +333,7 @@ describe('App.vue', () => {
   // 清理
   afterEach(async () => {
     wrapper.unmount()
-    // 清理模板管理器
+    // 清理提示词管理器
     templateManager.clearCache()
   })
 }) 

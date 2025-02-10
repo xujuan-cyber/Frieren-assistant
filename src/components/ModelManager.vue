@@ -67,86 +67,152 @@
           </div>
         </div>
 
-        <!-- 编辑模型 -->
-        <div v-if="isEditing">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold text-white/90">编辑模型</h3>
-            <button @click="cancelEdit" 
-                    class="text-sm text-white/60 hover:text-white/90 transition-colors">
-              取消
-            </button>
+        <!-- 使用 Teleport 将模态框传送到 body -->
+        <Teleport to="body">
+          <!-- 编辑模型弹窗 -->
+          <div v-if="isEditing" 
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
+               @click="cancelEdit">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            
+            <div class="relative bg-gray-900/95 rounded-xl shadow-2xl border border-purple-700/50 w-full max-w-2xl m-4 z-10"
+                 @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold text-white/90">编辑模型</h3>
+                  <button
+                    @click="cancelEdit"
+                    class="text-white/60 hover:text-white/90 transition-colors text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <form @submit.prevent="saveEdit" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">显示名称</label>
+                    <input v-model="editingModel.name" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: 自定义模型"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
+                    <input v-model="editingModel.baseURL" type="url" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="https://api.example.com/v1/chat/completions"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
+                    <input v-model="editingModel.defaultModel" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: gpt-3.5-turbo"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 密钥</label>
+                    <input v-model="editingModel.apiKey" type="password"
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="输入新的 API 密钥（留空则保持不变）"/>
+                  </div>
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      @click="cancelEdit"
+                      class="px-4 py-2 rounded-lg border border-gray-600/50 text-white/70 hover:text-white/90 hover:border-gray-500/60 transition-all"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                    >
+                      保存修改
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
-          <form @submit.prevent="saveEdit" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">显示名称</label>
-              <input v-model="editingModel.name" type="text" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="例如: 自定义模型"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
-              <input v-model="editingModel.baseURL" type="url" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="https://api.example.com/v1/chat/completions"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
-              <input v-model="editingModel.defaultModel" type="text" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="例如: gpt-3.5-turbo"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">API 密钥</label>
-              <input v-model="editingModel.apiKey" type="password"
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="输入新的 API 密钥（留空则保持不变）"/>
-            </div>
-            <button type="submit"
-                    class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors">
-              保存修改
-            </button>
-          </form>
-        </div>
 
-        <!-- 添加自定义模型 -->
-        <div v-else>
-          <h3 class="text-lg font-semibold text-white/90 mb-3">添加自定义模型</h3>
-          <form @submit.prevent="addCustomModel" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">模型标识</label>
-              <input v-model="newModel.key" type="text" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="例如: custom-model"/>
+          <!-- 添加模型弹窗 -->
+          <div v-if="showAddForm" 
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
+               @click="showAddForm = false">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            
+            <div class="relative bg-gray-900/95 rounded-xl shadow-2xl border border-purple-700/50 w-full max-w-2xl m-4 z-10"
+                 @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold text-white/90">添加自定义模型</h3>
+                  <button
+                    @click="showAddForm = false"
+                    class="text-white/60 hover:text-white/90 transition-colors text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <form @submit.prevent="addCustomModel" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">模型标识</label>
+                    <input v-model="newModel.key" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: custom-model"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">显示名称</label>
+                    <input v-model="newModel.name" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: 自定义模型"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
+                    <input v-model="newModel.baseURL" type="url" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="https://api.example.com/v1/chat/completions"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
+                    <input v-model="newModel.defaultModel" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: gpt-3.5-turbo"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 密钥</label>
+                    <input v-model="newModel.apiKey" type="password" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="输入 API 密钥"/>
+                  </div>
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      @click="showAddForm = false"
+                      class="px-4 py-2 rounded-lg border border-gray-600/50 text-white/70 hover:text-white/90 hover:border-gray-500/60 transition-all"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                    >
+                      添加模型
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">显示名称</label>
-              <input v-model="newModel.name" type="text" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="例如: 自定义模型"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
-              <input v-model="newModel.baseURL" type="url" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="https://api.example.com/v1/chat/completions"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
-              <input v-model="newModel.defaultModel" type="text" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="例如: gpt-3.5-turbo"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-white/90 mb-1.5">API 密钥</label>
-              <input v-model="newModel.apiKey" type="password" required
-                     class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                     placeholder="输入 API 密钥"/>
-            </div>
-            <button type="submit"
-                    class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors">
-              添加模型
-            </button>
-          </form>
+          </div>
+        </Teleport>
+
+        <!-- 添加模型按钮 -->
+        <div class="mt-6 border-t border-purple-700/50 pt-6">
+          <button
+            @click="showAddForm = true"
+            class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors flex items-center justify-center space-x-2"
+          >
+            <span>+</span>
+            <span>添加自定义模型</span>
+          </button>
         </div>
       </div>
     </div>
@@ -163,6 +229,7 @@ const emit = defineEmits(['modelsUpdated', 'close']);
 
 const models = ref([]);
 const isEditing = ref(false);
+const showAddForm = ref(false);
 const editingModel = ref(null);
 const newModel = ref({
   key: '',
@@ -296,6 +363,7 @@ const addCustomModel = () => {
       apiKey: ''
     };
     
+    showAddForm.value = false;
     toast.success('模型已添加');
   } catch (error) {
     console.error('添加模型失败:', error);
@@ -307,3 +375,17 @@ onMounted(() => {
   loadModels();
 });
 </script>
+
+<style scoped>
+/* 添加过渡动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+</style>
