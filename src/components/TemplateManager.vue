@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto"
+    class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center overflow-y-auto"
     @click="$emit('close')"
   >
     <div

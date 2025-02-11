@@ -8,7 +8,7 @@
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="text-white/60">优化功能提示词:</span>
+          <span class="text-white/60">{{ typeText }}:</span>
           <span v-if="modelValue" class="text-purple-300 group-hover:text-purple-200">
             {{ modelValue.name }}
           </span>
@@ -84,6 +84,10 @@ const vClickOutside = clickOutside
 const emit = defineEmits(['update:modelValue', 'manage'])
 
 const isOpen = ref(false)
+
+const typeText = computed(() => {
+  return props.type === 'iterate' ? '迭代功能提示词' : '优化功能提示词'
+})
 
 const templates = computed(() => 
   templateManager.listTemplatesByType(props.type)

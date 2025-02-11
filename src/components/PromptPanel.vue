@@ -35,50 +35,61 @@
       </div>
     </div>
 
-    <!-- 迭代优化输入框 -->
-    <div v-if="showIterateInput" class="mt-4">
-      <div class="bg-black/20 rounded-xl border border-purple-600/50 p-4">
-        <h4 class="text-sm font-medium text-white/90 mb-2">请输入需要优化的方向：</h4>
-        <div class="mb-3">
+    <!-- 迭代优化弹窗 -->
+    <Modal
+      v-model="showIterateInput"
+      @confirm="submitIterate"
+    >
+      <template #title>
+        {{ templateTitleText }}
+      </template>
+      
+      <div class="space-y-4">
+        <div>
+          <h4 class="text-sm font-medium text-white/90 mb-2">{{ templateSelectText }}</h4>
           <TemplateSelect
             :modelValue="selectedIterateTemplate"
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
-            type="iterate"
-            @manage="$emit('openTemplateManager', 'iterate')"
+            :type="templateType"
+            @manage="$emit('openTemplateManager', templateType)"
           />
         </div>
-        <div class="flex flex-col space-y-3">
+        
+        <div>
+          <h4 class="text-sm font-medium text-white/90 mb-2">请输入需要优化的方向：</h4>
           <textarea
             v-model="iterateInput"
             class="w-full bg-black/30 border-none rounded-lg p-3 text-white/90 placeholder-gray-400 text-sm resize-none focus:ring-2 focus:ring-purple-500/50"
             placeholder="例如：使提示词更简洁、增加特定功能描述等..."
             rows="3"
           ></textarea>
-          <div class="flex justify-end space-x-3">
-            <button
-              @click="cancelIterate"
-              class="px-4 py-2 text-sm text-white/70 hover:text-white/90 transition-colors"
-            >
-              取消
-            </button>
-            <button
-              @click="submitIterate"
-              class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!iterateInput.trim() || isIterating"
-            >
-              {{ isIterating ? '优化中...' : '确认优化' }}
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+      
+      <template #footer>
+        <button
+          @click="cancelIterate"
+          class="px-4 py-2 text-sm text-white/70 hover:text-white/90 transition-colors"
+        >
+          取消
+        </button>
+        <button
+          @click="submitIterate"
+          class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="!iterateInput.trim() || isIterating"
+        >
+          {{ isIterating ? '优化中...' : '确认优化' }}
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref, defineProps, defineEmits, computed } from 'vue'
 import { useToast } from '../composables/useToast'
 import TemplateSelect from './TemplateSelect.vue'
+import Modal from './Modal.vue'
 
 const toast = useToast()
 const promptTextarea = ref(null)
@@ -102,6 +113,17 @@ const emit = defineEmits(['update:optimizedPrompt', 'iterate', 'openTemplateMana
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
+const templateType = ref('iterate')
+
+// 计算标题文本
+const templateTitleText = computed(() => {
+  return '迭代功能提示词'
+})
+
+// 计算模板选择标题
+const templateSelectText = computed(() => {
+  return '请选择迭代提示词：'
+})
 
 // 处理输入变化
 const handleInput = (event) => {
