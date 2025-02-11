@@ -1,44 +1,44 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 to-purple-950 flex flex-col">
     <!-- 顶部导航栏 -->
-    <header class="flex-none sticky top-0 z-40 bg-purple-800/90 backdrop-blur-sm border-b border-purple-700 shadow-lg">
-      <div class="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
-        <h1 class="text-xl sm:text-2xl font-bold text-white">
+    <header class="flex-none sticky top-0 z-40 bg-purple-800/90 backdrop-blur-sm border-b border-purple-700/50 shadow-lg">
+      <div class="container mx-auto px-2 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
+        <h1 class="text-lg sm:text-xl font-bold text-white">
           Prompt Optimizer
         </h1>
-        <div class="flex items-center space-x-4 sm:space-x-6">
+        <div class="flex items-center gap-1 sm:gap-3">
           <button
             @click="openTemplateManager('optimize')"
-            class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
+            class="text-white/80 hover:text-white transition-colors flex items-center gap-1 hover:scale-105 transform px-1.5 py-1"
           >
-            <span>📝</span>
-            <span class="hidden sm:inline">功能提示词</span>
+            <span class="text-base sm:text-lg">📝</span>
+            <span class="hidden sm:inline text-sm">功能提示词</span>
           </button>
           <button
             @click="showHistory = true"
-            class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
+            class="text-white/80 hover:text-white transition-colors flex items-center gap-1 hover:scale-105 transform px-1.5 py-1"
           >
-            <span>📜</span>
-            <span class="hidden sm:inline">历史记录</span>
+            <span class="text-base sm:text-lg">📜</span>
+            <span class="hidden sm:inline text-sm">历史记录</span>
           </button>
           <button
             @click="showConfig = true"
-            class="text-white/80 hover:text-white transition-colors flex items-center space-x-2 hover:scale-105 transform"
+            class="text-white/80 hover:text-white transition-colors flex items-center gap-1 hover:scale-105 transform px-1.5 py-1"
           >
-            <span>⚙️</span>
-            <span class="hidden sm:inline">模型管理</span>
+            <span class="text-base sm:text-lg">⚙️</span>
+            <span class="hidden sm:inline text-sm">模型管理</span>
           </button>
         </div>
       </div>
     </header>
 
     <!-- 主要内容区域 -->
-    <main class="flex-1 container mx-auto p-4 sm:p-6 overflow-hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-[calc(100vh-8rem)]">
+    <main class="flex-1 container mx-auto p-2 sm:p-4 overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
         <!-- 提示词区 -->
-        <div class="lg:col-span-5 flex flex-col min-h-0">
-          <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col h-full">
-            <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col flex-1">
+        <div class="flex flex-col h-[calc(50vh-2rem)] lg:h-full">
+          <div class="bg-gray-900/50 backdrop-blur-sm rounded-lg shadow-lg border border-purple-700/30 overflow-hidden flex flex-col h-full">
+            <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 flex flex-col flex-1">
               <!-- 输入区域 -->
               <div class="flex-none">
                 <InputPanel
@@ -67,7 +67,7 @@
               </div>
 
               <!-- 优化结果区域 -->
-              <div class="flex-1 min-h-0">
+              <div class="flex-1 min-h-0 overflow-y-auto">
                 <PromptPanel 
                   v-model:optimized-prompt="optimizedPrompt"
                   :is-iterating="isIterating"
@@ -81,9 +81,9 @@
         </div>
 
         <!-- 测试区域 -->
-        <div class="lg:col-span-7 flex flex-col min-h-0">
-          <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-purple-700/50 overflow-hidden flex flex-col h-full">
-            <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col flex-1">
+        <div class="flex flex-col h-[calc(50vh-2rem)] lg:h-full">
+          <div class="bg-gray-900/50 backdrop-blur-sm rounded-lg shadow-lg border border-purple-700/30 overflow-hidden flex flex-col h-full">
+            <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 flex flex-col flex-1">
               <!-- 测试输入区域 -->
               <div class="flex-none">
                 <InputPanel
@@ -102,7 +102,7 @@
               </div>
 
               <!-- 测试结果区域 -->
-              <div class="flex-1 min-h-0">
+              <div class="flex-1 min-h-0 overflow-y-auto">
                 <OutputPanel
                   ref="outputPanelRef"
                   :loading="isTesting"
@@ -498,6 +498,29 @@ watch(showConfig, (newVal) => {
 }
 
 .custom-select::-ms-expand {
+  display: none;
+}
+
+/* 优化滚动条样式 */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 隐藏水平滚动条 */
+::-webkit-scrollbar-horizontal {
   display: none;
 }
 </style>
