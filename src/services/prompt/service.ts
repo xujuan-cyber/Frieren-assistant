@@ -100,13 +100,13 @@ export class PromptService implements IPromptService {
         throw new OptimizationError(`优化失败: ${error.message}`, prompt);
       }
 
-      if (!template?.template) {
+      if (!template?.content) {
         throw new OptimizationError('优化失败: 提示词不存在或无效', prompt);
       }
 
       // 构建消息
       const messages: Message[] = [
-        { role: 'system', content: template.template },
+        { role: 'system', content: template.content },
         { role: 'user', content: prompt }
       ];
 
@@ -122,9 +122,11 @@ export class PromptService implements IPromptService {
       // 保存历史记录
       this.historyManager.addRecord({
         id: Date.now().toString(),
-        prompt,
-        result,
+        originalPrompt: prompt,
+        optimizedPrompt: result,
         type: 'optimize',
+        chainId: Date.now().toString(),
+        version: 1,
         timestamp: Date.now(),
         modelKey,
         templateId: 'optimize'
@@ -167,13 +169,13 @@ export class PromptService implements IPromptService {
         throw new IterationError(`迭代失败: ${error.message}`, originalPrompt, iterateInput);
       }
 
-      if (!template?.template) {
+      if (!template?.content) {
         throw new IterationError('迭代失败: 提示词不存在或无效', originalPrompt, iterateInput);
       }
 
       // 构建消息
       const messages: Message[] = [
-        { role: 'system', content: template.template },
+        { role: 'system', content: template.content },
         { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
       ];
 
@@ -186,10 +188,12 @@ export class PromptService implements IPromptService {
       // 保存历史记录
       this.historyManager.addRecord({
         id: Date.now().toString(),
-        prompt: iterateInput,
-        result,
+        originalPrompt: iterateInput,
+        optimizedPrompt: result,
         type: 'iterate',
-        parentId: originalPrompt,
+        chainId: originalPrompt,
+        version: 1,
+        previousId: originalPrompt,
         timestamp: Date.now(),
         modelKey,
         templateId: 'iterate'
@@ -238,10 +242,11 @@ export class PromptService implements IPromptService {
       // 保存历史记录
       this.historyManager.addRecord({
         id: Date.now().toString(),
-        prompt: testInput,
-        result,
-        type: 'test',
-        parentId: prompt,
+        originalPrompt: prompt,
+        optimizedPrompt: result,
+        type: 'optimize',
+        chainId: prompt,
+        version: 1,
         timestamp: Date.now(),
         modelKey,
         templateId: 'test'
@@ -296,18 +301,8 @@ export class PromptService implements IPromptService {
       ];
 
       await this.llmService.sendMessageStream(messages, modelKey, callbacks);
-
-      // 完成后保存历史记录
-      this.historyManager.addRecord({
-        id: Date.now().toString(),
-        prompt: testInput,
-        result: '流式响应',  // 可以考虑在回调中收集完整响应
-        type: 'test',
-        parentId: prompt,
-        timestamp: Date.now(),
-        modelKey,
-        templateId: 'test'
-      });
+      
+      // 移除历史记录相关操作
     } catch (error) {
       if (error instanceof TestError) {
         throw error;
@@ -365,18 +360,6 @@ export class PromptService implements IPromptService {
           onComplete: () => {
             // 验证响应
             this.validateResponse(result, prompt);
-
-            // 保存历史记录
-            this.historyManager.addRecord({
-              id: Date.now().toString(),
-              prompt,
-              result,
-              type: 'optimize',
-              timestamp: Date.now(),
-              modelKey,
-              templateId: 'optimize'
-            });
-
             callbacks.onComplete();
           },
           onError: callbacks.onError
@@ -404,7 +387,7 @@ export class PromptService implements IPromptService {
     iterateInput: string,
     modelKey: string,
     handlers: StreamHandlers,
-    template?: string
+    template: { content: string } | string
   ): Promise<void> {
     try {
       // 获取模型配置
@@ -414,22 +397,20 @@ export class PromptService implements IPromptService {
       }
 
       // 获取迭代提示词
-      let templateToUse;
-      if (template) {
-        templateToUse = template;
+      let templateContent: string;
+      if (typeof template === 'string') {
+        templateContent = template;
+      } else if (template && typeof template.content === 'string') {
+        templateContent = template.content;
       } else {
-        templateToUse = await this.templateManager.getTemplate('iterate');
-      }
-
-      if (!templateToUse?.content) {
-        throw new IterationError('迭代失败: 提示词不存在或无效', originalPrompt, iterateInput);
+        throw new IterationError('迭代失败: 未提供有效的提示词模板', originalPrompt, iterateInput);
       }
 
       // 构建消息
       const messages: Message[] = [
         {
           role: 'system',
-          content: templateToUse.content
+          content: templateContent
         },
         { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
       ];
@@ -445,18 +426,6 @@ export class PromptService implements IPromptService {
             handlers.onToken(token);
           },
           onComplete: () => {
-            // 保存历史记录
-            this.historyManager.addRecord({
-              id: Date.now().toString(),
-              prompt: iterateInput,
-              result,
-              type: 'iterate',
-              parentId: originalPrompt,
-              timestamp: Date.now(),
-              modelKey,
-              templateId: 'iterate'
-            });
-
             handlers.onComplete();
           },
           onError: handlers.onError

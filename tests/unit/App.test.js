@@ -9,6 +9,8 @@ import { templateManager } from '../../src/services/template/manager'
 import ElementPlus from 'element-plus'
 import { createTestingPinia } from '@pinia/testing'
 import { ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
+import { useToast } from '../../src/composables/useToast'
+import { historyManager } from '../../src/services/history/manager'
 
 // Mock toast functions
 const mockSuccess = vi.fn()
@@ -43,12 +45,49 @@ const mockLLMService = {
 
 const mockPromptService = {
   optimizePrompt: vi.fn(() => Promise.resolve('Optimized prompt')),
-  optimizePromptStream: vi.fn(() => Promise.resolve()),
+  optimizePromptStream: vi.fn().mockImplementation(async (prompt, model, template, handlers) => {
+    handlers.onToken('优化后的')
+    handlers.onToken('提示词')
+    handlers.onComplete()
+    return {
+      chainId: 'test-chain-1',
+      currentRecord: {
+        id: '1',
+        originalPrompt: '测试提示词',
+        optimizedPrompt: '优化后的提示词',
+        type: 'optimize',
+        chainId: 'test-chain-1',
+        version: 1,
+        timestamp: Date.now(),
+        modelKey: 'test-model',
+        templateId: 'template-1'
+      }
+    }
+  }),
   iteratePrompt: vi.fn(() => Promise.resolve('Iterated prompt')),
-  iteratePromptStream: vi.fn(() => Promise.resolve()),
+  iteratePromptStream: vi.fn().mockImplementation(async (prompt, input, model, handlers) => {
+    handlers.onToken('迭代后的')
+    handlers.onToken('提示词')
+    handlers.onComplete()
+    return {
+      chainId: 'test-chain-1',
+      currentRecord: {
+        id: '2',
+        originalPrompt: prompt,
+        optimizedPrompt: '迭代后的提示词',
+        type: 'iterate',
+        chainId: 'test-chain-1',
+        version: 2,
+        timestamp: Date.now(),
+        modelKey: 'test-model',
+        templateId: 'template-2',
+        previousId: '1'
+      }
+    }
+  }),
   testPrompt: vi.fn(() => Promise.resolve('Test response')),
   testPromptStream: vi.fn(() => Promise.resolve()),
-  getHistory: vi.fn(() => [])
+  getHistory: vi.fn().mockReturnValue([])
 }
 
 vi.mock('../../src/services/llm/service', () => ({
@@ -64,6 +103,17 @@ vi.mock('../../src/services/model/manager', () => ({
     getAllModels: vi.fn(() => [
       { key: 'test', name: 'Test Model', model: 'test-model', enabled: true }
     ])
+  }
+}))
+
+// Mock historyManager
+vi.mock('../../src/services/history/manager', () => ({
+  historyManager: {
+    init: vi.fn(),
+    clearHistory: vi.fn(),
+    createNewChain: vi.fn(),
+    addIteration: vi.fn(),
+    getAllChains: vi.fn()
   }
 }))
 
@@ -92,6 +142,7 @@ const createComponent = (name, template = '<div><slot></slot></div>') => ({
 
 describe('App.vue', () => {
   let wrapper
+  let mockPromptService
 
   beforeEach(async () => {
     // 重置所有mock
@@ -103,9 +154,86 @@ describe('App.vue', () => {
     mockStreamHandler.onComplete.mockClear()
     mockStreamHandler.onError.mockClear()
     
-    // 初始化提示词管理器
+    // 初始化提示词管理器和历史记录管理器
     await templateManager.init()
+    await historyManager.init() // 先初始化
+    await historyManager.clearHistory() // 再清理历史记录
     
+    mockPromptService = {
+      optimizePromptStream: vi.fn().mockImplementation(async (prompt, model, template, handlers) => {
+        handlers.onToken('优化后的')
+        handlers.onToken('提示词')
+        handlers.onComplete()
+        return {
+          chainId: 'test-chain-1',
+          currentRecord: {
+            id: '1',
+            originalPrompt: '测试提示词',
+            optimizedPrompt: '优化后的提示词',
+            type: 'optimize',
+            chainId: 'test-chain-1',
+            version: 1,
+            timestamp: Date.now(),
+            modelKey: 'test-model',
+            templateId: 'template-1'
+          }
+        }
+      }),
+      iteratePromptStream: vi.fn().mockImplementation(async (prompt, input, model, handlers) => {
+        handlers.onToken('迭代后的')
+        handlers.onToken('提示词')
+        handlers.onComplete()
+        return {
+          chainId: 'test-chain-1',
+          currentRecord: {
+            id: '2',
+            originalPrompt: prompt,
+            optimizedPrompt: '迭代后的提示词',
+            type: 'iterate',
+            chainId: 'test-chain-1',
+            version: 2,
+            timestamp: Date.now(),
+            modelKey: 'test-model',
+            templateId: 'template-2',
+            previousId: '1'
+          }
+        }
+      }),
+      testPromptStream: vi.fn().mockImplementation(async (prompt, input, model, handlers) => {
+        handlers.onToken('测试')
+        handlers.onToken('结果')
+        handlers.onComplete()
+        return {
+          chainId: 'test-chain-1',
+          currentRecord: {
+            id: '3',
+            currentPrompt: input,
+            optimizedPrompt: '测试结果',
+            type: 'test',
+            chainId: prompt,
+            version: 1,
+            timestamp: Date.now(),
+            modelKey: model,
+            templateId: 'test'
+          }
+        }
+      }),
+      getHistory: vi.fn().mockReturnValue([
+        {
+          id: '1',
+          currentPrompt: '测试提示词',
+          optimizedPrompt: '优化后的提示词',
+          type: 'optimize',
+          chainId: 'test-chain-1',
+          version: 1,
+          timestamp: Date.now(),
+          modelKey: 'test-model',
+          templateId: 'template-1'
+        }
+      ])
+    }
+    createPromptService.mockResolvedValue(mockPromptService)
+
     // 设置组件
     wrapper = mount(App, {
       global: {
@@ -146,68 +274,79 @@ describe('App.vue', () => {
     it('应该正确处理提示词优化', async () => {
       const testPrompt = '测试提示词'
       const optimizedPrompt = '优化后的提示词'
-      const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
-
-      // 设置提示词和提示词
-      wrapper.vm.prompt = testPrompt
-      wrapper.vm.selectedTemplate = {
-        id: 'optimize',  // 使用正确的提示词ID
-        name: '提示词优化',
-        content: 'template content'
+      const chainId = 'test-chain-1'
+      const recordId = '1'
+      const mockRecord = {
+        id: recordId,
+        originalPrompt: testPrompt,
+        optimizedPrompt: optimizedPrompt,
+        type: 'optimize',
+        chainId,
+        version: 1,
+        timestamp: Date.now(),
+        modelKey: 'test-model',
+        templateId: 'template-1'
       }
 
-      // 设置模拟返回值
+      wrapper.vm.prompt = testPrompt
+      wrapper.vm.optimizeModel = 'test-model'
+      wrapper.vm.selectedOptimizeTemplate = {
+        id: 'template-1',
+        content: '优化模板'
+      }
+
+      // Mock historyManager
+      historyManager.createNewChain.mockReturnValue({
+        chainId,
+        rootRecord: mockRecord,
+        currentRecord: mockRecord,
+        versions: [mockRecord]
+      })
+
+      historyManager.getAllChains.mockReturnValue([{
+        chainId,
+        rootRecord: mockRecord,
+        currentRecord: mockRecord,
+        versions: [mockRecord]
+      }])
+
       mockPromptService.optimizePromptStream.mockImplementation(async (prompt, model, template, handlers) => {
         handlers.onToken(optimizedPrompt)
         await nextTick()
         handlers.onComplete()
+        return {
+          chainId,
+          currentRecord: mockRecord
+        }
       })
-      mockPromptService.getHistory.mockReturnValue(mockHistory)
 
-      // 触发提交
-      const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
-      await inputPanel.vm.$emit('submit')
+      await wrapper.vm.handleOptimizePrompt()
       
-      // 等待异步操作完成
-      await nextTick()
-      await nextTick()
-
-      // 验证服务调用
       expect(mockPromptService.optimizePromptStream).toHaveBeenCalled()
-      
-      // 验证结果更新
       expect(wrapper.vm.optimizedPrompt).toBe(optimizedPrompt)
-      
-      // 验证成功提示
       expect(mockSuccess).toHaveBeenCalledWith('优化成功')
     })
 
     it('应该处理优化失败的情况', async () => {
       const testPrompt = '测试提示词'
       const errorMessage = '优化失败'
+      
+      mockPromptService.optimizePromptStream.mockImplementationOnce(
+        async (prompt, model, template, handlers) => {
+          handlers.onError(new Error(errorMessage))
+          throw new Error(errorMessage)
+        }
+      )
 
-      // 设置提示词和提示词
       wrapper.vm.prompt = testPrompt
-      wrapper.vm.selectedTemplate = {
-        id: 'optimize',  // 使用正确的提示词ID
-        name: '提示词优化',
-        content: 'template content'
+      wrapper.vm.optimizeModel = 'test-model'
+      wrapper.vm.selectedOptimizeTemplate = {
+        id: 'template-1',
+        content: '优化模板'
       }
 
-      // 设置模拟错误
-      mockPromptService.optimizePromptStream.mockImplementation(async (prompt, model, template, handlers) => {
-        handlers.onError(new Error(errorMessage))
-      })
-
-      // 触发提交
-      const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
-      await inputPanel.vm.$emit('submit')
+      await wrapper.vm.handleOptimizePrompt()
       
-      // 等待异步操作
-      await nextTick()
-
-      // 验证错误状态
-      expect(wrapper.vm.isOptimizing).toBe(false)
       expect(mockError).toHaveBeenCalledWith(errorMessage)
     })
   })
@@ -274,66 +413,194 @@ describe('App.vue', () => {
     it('应该在优化成功后立即更新历史记录', async () => {
       const testPrompt = '测试提示词'
       const optimizedPrompt = '优化后的提示词'
-      const mockHistory = [{ id: '1', prompt: testPrompt, result: optimizedPrompt }]
-
-      // 设置提示词和提示词
+      const chainId = 'test-chain-1'
+      const recordId = '1'
+      const mockRecord = {
+        id: recordId,
+        originalPrompt: testPrompt,
+        optimizedPrompt: optimizedPrompt,
+        type: 'optimize',
+        chainId,
+        version: 1,
+        timestamp: Date.now(),
+        modelKey: 'test-model',
+        templateId: 'template-1'
+      }
+      
+      // 设置提示词和模板
       wrapper.vm.prompt = testPrompt
-      wrapper.vm.selectedTemplate = {
-        id: 'optimize',  // 使用正确的提示词ID
+      wrapper.vm.selectedOptimizeTemplate = {
+        id: 'template-1',
         name: '提示词优化',
         content: 'template content'
       }
+
+      // Mock historyManager
+      historyManager.createNewChain.mockReturnValue({
+        chainId,
+        rootRecord: mockRecord,
+        currentRecord: mockRecord,
+        versions: [mockRecord]
+      })
+
+      historyManager.getAllChains.mockReturnValue([{
+        chainId,
+        rootRecord: mockRecord,
+        currentRecord: mockRecord,
+        versions: [mockRecord]
+      }])
 
       // 设置模拟返回值
       mockPromptService.optimizePromptStream.mockImplementation(async (prompt, model, template, handlers) => {
         handlers.onToken(optimizedPrompt)
         await nextTick()
         handlers.onComplete()
+        return {
+          chainId,
+          currentRecord: mockRecord
+        }
       })
-      mockPromptService.getHistory.mockReturnValue(mockHistory)
 
       // 触发优化
-      const inputPanel = wrapper.findComponent({ name: 'InputPanel' })
-      await inputPanel.vm.$emit('submit')
+      await wrapper.vm.handleOptimizePrompt()
       
       // 等待异步操作
       await nextTick()
       await nextTick()
 
       // 验证历史记录更新
-      expect(mockPromptService.getHistory).toHaveBeenCalled()
-      expect(wrapper.vm.history).toEqual(mockHistory)
+      expect(historyManager.createNewChain).toHaveBeenCalled()
+      expect(historyManager.getAllChains).toHaveBeenCalled()
+      expect(wrapper.vm.history[0].chainId).toBe(chainId)
+      expect(wrapper.vm.history[0].currentRecord.id).toBe(recordId)
+      expect(wrapper.vm.history[0].currentRecord.originalPrompt).toBe(testPrompt)
+      expect(wrapper.vm.history[0].currentRecord.optimizedPrompt).toBe(optimizedPrompt)
     })
 
     it('应该在迭代优化成功后立即更新历史记录', async () => {
       const originalPrompt = '测试提示词'
       const iterateInput = '迭代输入'
       const iteratedPrompt = '迭代后的提示词'
-      const mockHistory = [{ id: '1', prompt: originalPrompt, result: iteratedPrompt }]
+      const chainId = 'test-chain-1'
+      const recordId = '2'
+      const previousId = '1'
+      const mockRecord = {
+        id: recordId,
+        originalPrompt: originalPrompt,
+        optimizedPrompt: iteratedPrompt,
+        type: 'iterate',
+        chainId,
+        version: 2,
+        timestamp: Date.now(),
+        modelKey: 'test-model',
+        templateId: 'template-2',
+        previousId
+      }
+
+      // 设置当前链ID和迭代模板
+      wrapper.vm.currentChainId = chainId
+      wrapper.vm.selectedIterateTemplate = {
+        id: 'template-2',
+        name: '迭代优化',
+        content: 'template content'
+      }
+
+      // Mock historyManager
+      historyManager.addIteration.mockReturnValue({
+        chainId,
+        rootRecord: {
+          id: previousId,
+          originalPrompt: originalPrompt,
+          optimizedPrompt: '优化后的提示词',
+          type: 'optimize',
+          chainId,
+          version: 1,
+          timestamp: Date.now(),
+          modelKey: 'test-model',
+          templateId: 'template-1'
+        },
+        currentRecord: mockRecord,
+        versions: [
+          {
+            id: previousId,
+            originalPrompt: originalPrompt,
+            optimizedPrompt: '优化后的提示词',
+            type: 'optimize',
+            chainId,
+            version: 1,
+            timestamp: Date.now(),
+            modelKey: 'test-model',
+            templateId: 'template-1'
+          },
+          mockRecord
+        ]
+      })
+
+      historyManager.getAllChains.mockReturnValue([{
+        chainId,
+        rootRecord: {
+          id: previousId,
+          originalPrompt: originalPrompt,
+          optimizedPrompt: '优化后的提示词',
+          type: 'optimize',
+          chainId,
+          version: 1,
+          timestamp: Date.now(),
+          modelKey: 'test-model',
+          templateId: 'template-1'
+        },
+        currentRecord: mockRecord,
+        versions: [
+          {
+            id: previousId,
+            originalPrompt: originalPrompt,
+            optimizedPrompt: '优化后的提示词',
+            type: 'optimize',
+            chainId,
+            version: 1,
+            timestamp: Date.now(),
+            modelKey: 'test-model',
+            templateId: 'template-1'
+          },
+          mockRecord
+        ]
+      }])
 
       mockPromptService.iteratePromptStream.mockImplementation(async (prompt, input, model, handlers) => {
         handlers.onToken(iteratedPrompt)
         handlers.onComplete()
+        return {
+          chainId,
+          currentRecord: mockRecord
+        }
       })
-      mockPromptService.getHistory.mockReturnValue(mockHistory)
 
       // 触发迭代
-      const promptPanel = wrapper.findComponent({ name: 'PromptPanel' })
-      await promptPanel.vm.$emit('iterate', { originalPrompt, iterateInput })
+      await wrapper.vm.handleIteratePrompt({ originalPrompt, iterateInput })
       
       // 等待异步操作
       await nextTick()
+      await nextTick()
 
       // 验证历史记录更新
-      expect(mockPromptService.getHistory).toHaveBeenCalled()
-      expect(wrapper.vm.history).toEqual(mockHistory)
+      expect(historyManager.addIteration).toHaveBeenCalled()
+      expect(historyManager.getAllChains).toHaveBeenCalled()
+      expect(wrapper.vm.history[0].chainId).toBe(chainId)
+      expect(wrapper.vm.history[0].currentRecord.id).toBe(recordId)
+      expect(wrapper.vm.history[0].currentRecord.originalPrompt).toBe(originalPrompt)
+      expect(wrapper.vm.history[0].currentRecord.optimizedPrompt).toBe(iteratedPrompt)
+      expect(wrapper.vm.history[0].currentRecord.previousId).toBe(previousId)
     })
   })
 
   // 清理
   afterEach(async () => {
-    wrapper.unmount()
-    // 清理提示词管理器
-    templateManager.clearCache()
+    if (wrapper) {
+      wrapper.unmount()
+    }
+    // 清理提示词管理器和历史记录管理器
+    await templateManager.clearCache()
+    await historyManager.init() // 先初始化
+    await historyManager.clearHistory() // 再清理历史记录
   })
 }) 

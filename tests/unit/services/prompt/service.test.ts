@@ -9,6 +9,7 @@ import { Template } from '../../../../src/services/template/types';
 import { PromptRecord } from '../../../../src/services/history/types';
 import { LLMService } from '../../../../src/services/llm/service';
 import { OptimizationError, IterationError, TestError } from '../../../../src/services/prompt/errors';
+import { v4 as uuidv4 } from 'uuid';
 
 // 模拟 fetch API
 const mockFetch = vi.fn();
@@ -42,8 +43,7 @@ describe('PromptService', () => {
   const mockTemplate: Template = {
     id: 'test',
     name: 'Test Template',
-    template: 'test template content',
-    description: 'test template',
+    content: 'test template content',
     version: '1.0'
   };
 
@@ -114,7 +114,7 @@ describe('PromptService', () => {
     it('当提示词内容为空时应抛出错误', async () => {
       const emptyTemplate = {
         ...mockTemplate,
-        template: ''
+        content: ''
       };
       vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(emptyTemplate);
 
@@ -163,12 +163,14 @@ describe('PromptService', () => {
     it('应该返回历史记录', () => {
       const mockHistory: PromptRecord[] = [{
         id: '1',
-        prompt: 'test prompt',
-        result: 'test result',
+        originalPrompt: 'test prompt',
+        optimizedPrompt: 'test result',
         type: 'optimize',
         timestamp: Date.now(),
         modelKey: 'test-model',
-        templateId: 'test'
+        templateId: 'test',
+        chainId: 'test-chain',
+        version: 1
       }];
       vi.spyOn(historyManager, 'getRecords').mockReturnValue(mockHistory);
 
@@ -181,12 +183,14 @@ describe('PromptService', () => {
     it('应该返回迭代链', () => {
       const mockChain: PromptRecord[] = [{
         id: '1',
-        prompt: 'test prompt',
-        result: 'test result',
+        originalPrompt: 'test prompt',
+        optimizedPrompt: 'test result',
         type: 'iterate',
         timestamp: Date.now(),
         modelKey: 'test-model',
-        templateId: 'test'
+        templateId: 'test',
+        chainId: 'test-chain',
+        version: 1
       }];
       vi.spyOn(historyManager, 'getIterationChain').mockReturnValue(mockChain);
 
@@ -244,8 +248,8 @@ describe('PromptService', () => {
 
       expect(addRecordSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'optimize',
-        prompt: 'test prompt',
-        result: '优化结果',
+        originalPrompt: 'test prompt',
+        optimizedPrompt: '优化结果',
         modelKey: 'test-model'
       }));
     });
@@ -259,10 +263,11 @@ describe('PromptService', () => {
 
       expect(addRecordSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'iterate',
-        prompt: 'iteration input',
-        result: '迭代结果',
+        originalPrompt: 'iteration input',
+        optimizedPrompt: '迭代结果',
         modelKey: 'test-model',
-        parentId: 'original'
+        chainId: 'original',
+        previousId: 'original'
       }));
     });
 
@@ -273,11 +278,11 @@ describe('PromptService', () => {
       await promptService.testPrompt('test prompt', 'test input', 'test-model');
 
       expect(addRecordSpy).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'test',
-        prompt: 'test input',
-        result: '测试结果',
+        type: 'optimize',
+        originalPrompt: 'test prompt',
+        optimizedPrompt: '测试结果',
         modelKey: 'test-model',
-        parentId: 'test prompt'
+        chainId: 'test prompt'
       }));
     });
   });
@@ -303,8 +308,7 @@ describe('PromptService 提示词管理器初始化测试', () => {
   const mockTemplate: Template = {
     id: 'test',
     name: 'Test Template',
-    template: 'test template content',
-    description: 'test template',
+    content: 'test template content',
     version: '1.0'
   };
 
@@ -353,7 +357,7 @@ describe('PromptService 提示词管理器初始化测试', () => {
     it('提示词管理器正确初始化但提示词内容为空时应抛出错误', async () => {
       const emptyTemplate = {
         ...mockTemplate,
-        template: ''
+        content: ''
       };
       vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(emptyTemplate);
       promptService = new PromptService(modelManager, llmService, templateManager, historyManager);

@@ -72,8 +72,11 @@
                   v-model:optimized-prompt="optimizedPrompt"
                   :is-iterating="isIterating"
                   v-model:selected-iterate-template="selectedIterateTemplate"
+                  :versions="currentVersions"
+                  :current-version-id="currentVersionId"
                   @iterate="handleIteratePrompt"
                   @openTemplateManager="openTemplateManager"
+                  @switchVersion="handleSwitchVersion"
                 />
               </div>
             </div>
@@ -137,12 +140,13 @@
       />
     </Teleport>
 
-    <!-- 历史记录抽屉 -->
-    <HistoryDrawer
+    <!-- 历史记录弹窗 -->
+    <HistoryModal
       :show="showHistory"
       :history="history"
       @close="showHistory = false"
       @reuse="handleSelectHistory"
+      @clear="handleClearHistory"
     />
 
     <!-- 全局提示 -->
@@ -159,12 +163,14 @@ import { templateManager } from './services/template/manager'
 import ModelManager from './components/ModelManager.vue'
 import TemplateManager from './components/TemplateManager.vue'
 import Toast from './components/Toast.vue'
-import HistoryDrawer from './components/HistoryDrawer.vue'
+import HistoryModal from './components/HistoryDrawer.vue'
 import PromptPanel from './components/PromptPanel.vue'
 import InputPanel from './components/InputPanel.vue'
 import OutputPanel from './components/OutputPanel.vue'
 import { useToast } from './composables/useToast'
 import TemplateSelect from './components/TemplateSelect.vue'
+import { historyManager } from './services/history/manager'
+import { v4 as uuidv4 } from 'uuid'
 
 // 初始化服务
 const llmService = createLLMService(modelManager)
@@ -196,6 +202,9 @@ const selectedIterateTemplate = ref(null)
 const history = ref([])
 const models = ref([])
 const outputPanelRef = ref(null)
+const currentChainId = ref('')
+const currentVersions = ref([])
+const currentVersionId = ref('')
 
 // 流式输出处理器
 const streamHandler = {
@@ -270,17 +279,42 @@ const handleOptimizePrompt = async () => {
     })
 
     // 使用流式调用
-    await promptService.optimizePromptStream(
+    const result = await promptService.optimizePromptStream(
       prompt.value, 
       optimizeModel.value,
-      selectedOptimizeTemplate.value.content,  // 直接使用当前选中的提示词内容
+      selectedOptimizeTemplate.value.content,
       {
         onToken: (token) => {
           optimizedPrompt.value += token
         },
         onComplete: () => {
-          // 更新历史记录
-          history.value = promptService.getHistory()
+          // 创建新记录链
+          console.log('创建新的历史记录链...')
+          const newRecord = historyManager.createNewChain({
+            id: uuidv4(),
+            originalPrompt: prompt.value,
+            optimizedPrompt: optimizedPrompt.value,
+            type: 'optimize',
+            modelKey: optimizeModel.value,
+            templateId: selectedOptimizeTemplate.value.id,
+            timestamp: Date.now(),
+            metadata: {}
+          });
+          
+          console.log('新记录链创建成功:', {
+            chainId: newRecord.chainId,
+            record: newRecord
+          })
+          
+          currentChainId.value = newRecord.chainId;
+          // 更新版本信息
+          currentVersions.value = newRecord.versions;
+          currentVersionId.value = newRecord.currentRecord.id;
+          history.value = historyManager.getAllChains();
+          console.log('历史记录已更新:', {
+            totalChains: history.value?.length
+          })
+          
           toast.success('优化成功')
           isOptimizing.value = false
         },
@@ -316,8 +350,7 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
   
   try {
     // 使用流式调用
-    const template = selectedIterateTemplate.value;
-    await promptService.iteratePromptStream(
+    const result = await promptService.iteratePromptStream(
       originalPrompt,
       iterateInput,
       optimizeModel.value,
@@ -326,15 +359,41 @@ const handleIteratePrompt = async ({ originalPrompt, iterateInput }) => {
           optimizedPrompt.value += token;  // 直接更新到 optimizedPrompt
         },
         onComplete: () => {
-          // 更新历史记录
-          history.value = promptService.getHistory()
+          // 添加迭代记录
+          console.log('添加迭代记录...', {
+            chainId: currentChainId.value,
+            originalPrompt,
+            iterateInput
+          })
+          
+          const updatedChain = historyManager.addIteration({
+            chainId: currentChainId.value,
+            originalPrompt: originalPrompt,
+            optimizedPrompt: optimizedPrompt.value,
+            iterationNote: iterateInput,
+            modelKey: optimizeModel.value,
+            templateId: selectedIterateTemplate.value.id
+          });
+          
+          console.log('迭代记录添加成功:', {
+            chain: updatedChain
+          })
+          
+          // 更新版本信息
+          currentVersions.value = updatedChain.versions;
+          currentVersionId.value = updatedChain.currentRecord.id;
+          history.value = historyManager.getAllChains();
+          console.log('历史记录已更新:', {
+            totalChains: history.value?.length
+          })
+          
           toast.success('迭代优化成功')
         },
         onError: (error) => {
           toast.error(error.message || '迭代优化失败')
         }
       },
-      template
+      selectedIterateTemplate.value
     );
   } catch (error) {
     console.error('迭代优化失败:', error)
@@ -392,9 +451,38 @@ const handleTest = async () => {
 };
 
 const handleSelectHistory = (item) => {
-  prompt.value = item.prompt
-  optimizedPrompt.value = item.result
-  showHistory.value = false
+  // 如果是迭代记录，需要找到原始的提示词
+  if (item.type === 'iterate') {
+    // 从历史记录中找到对应的链
+    const chain = history.value.find(c => c.chainId === item.chainId);
+    if (chain) {
+      prompt.value = chain.rootRecord.originalPrompt;
+      currentVersions.value = chain.versions;
+      currentVersionId.value = item.id;
+    }
+  } else {
+    prompt.value = item.originalPrompt;
+    const chain = history.value.find(c => c.chainId === item.chainId);
+    if (chain) {
+      currentVersions.value = chain.versions;
+      currentVersionId.value = item.id;
+    }
+  }
+  optimizedPrompt.value = item.optimizedPrompt;
+  showHistory.value = false;
+}
+
+// 添加清空历史记录的处理函数
+const handleClearHistory = async () => {
+  try {
+    await historyManager.clearHistory()
+    history.value = []
+    console.log('历史记录已清空')
+    toast.success('历史记录已清空')
+  } catch (error) {
+    console.error('清空历史记录失败:', error)
+    toast.error('清空历史记录失败')
+  }
 }
 
 // 保存提示词选择到本地存储
@@ -424,14 +512,34 @@ const openTemplateManager = (type = 'optimize') => {
   showTemplates.value = true
 }
 
+// 添加版本切换处理函数
+const handleSwitchVersion = (version) => {
+  optimizedPrompt.value = version.optimizedPrompt;
+  currentVersionId.value = version.id;
+}
+
 // 生命周期钩子
 onMounted(async () => {
   await initServices()
   loadModels()
   
-  // 加载历史记录
-  if (promptService) {
-    history.value = promptService.getHistory()
+  // 初始化历史记录管理器
+  try {
+    console.log('初始化历史记录管理器...')
+    await historyManager.init()
+    history.value = historyManager.getAllChains()
+    console.log('历史记录加载完成:', {
+      recordCount: history.value?.length,
+      chains: history.value?.map(chain => ({
+        chainId: chain.chainId,
+        versionsCount: chain.versions.length,
+        rootRecord: chain.rootRecord,
+        currentRecord: chain.currentRecord
+      }))
+    })
+  } catch (error) {
+    console.error('加载历史记录失败:', error)
+    toast.error('加载历史记录失败')
   }
   
   // 初始化提示词选择
@@ -486,6 +594,14 @@ watch(showConfig, (newVal) => {
   if (!newVal) {
     loadModels()
   }
+})
+
+// 添加历史记录显示状态监听
+watch(showHistory, (newVal) => {
+  console.log('历史记录显示状态变更:', {
+    show: newVal,
+    currentHistory: history.value?.length
+  })
 })
 </script>
 

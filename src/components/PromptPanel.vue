@@ -2,7 +2,24 @@
   <div class="flex flex-col h-full">
     <!-- 标题和按钮区域 -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 flex-none">
-      <h3 class="text-lg font-semibold text-white/90">优化后的提示词</h3>
+      <div class="flex items-center gap-3">
+        <h3 class="text-lg font-semibold text-white/90">优化后的提示词</h3>
+        <div v-if="versions && versions.length > 0" class="flex items-center gap-1">
+          <button
+            v-for="version in versions.slice().reverse()"
+            :key="version.id"
+            @click="switchVersion(version)"
+            class="px-2 py-1 text-xs rounded transition-colors"
+            :class="[
+              currentVersionId === version.id
+                ? 'bg-purple-600/30 text-purple-300 font-medium'
+                : 'text-white/50 hover:text-white/70'
+            ]"
+          >
+            V{{ version.version }}
+          </button>
+        </div>
+      </div>
       <div class="flex items-center space-x-4">
         <button
           v-if="optimizedPrompt"
@@ -106,10 +123,24 @@ const props = defineProps({
   selectedIterateTemplate: {
     type: Object,
     default: null
+  },
+  versions: {
+    type: Array,
+    default: () => []
+  },
+  currentVersionId: {
+    type: String,
+    default: ''
   }
 })
 
-const emit = defineEmits(['update:optimizedPrompt', 'iterate', 'openTemplateManager', 'update:selectedIterateTemplate'])
+const emit = defineEmits([
+  'update:optimizedPrompt',
+  'iterate',
+  'openTemplateManager',
+  'update:selectedIterateTemplate',
+  'switchVersion'
+])
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
@@ -171,6 +202,12 @@ const submitIterate = () => {
   // 重置输入
   iterateInput.value = ''
   showIterateInput.value = false
+}
+
+// 添加版本切换函数
+const switchVersion = (version) => {
+  if (version.id === props.currentVersionId) return
+  emit('switchVersion', version)
 }
 </script>
 
