@@ -81,7 +81,7 @@ const props = defineProps({
 })
 
 const vClickOutside = clickOutside
-const emit = defineEmits(['update:modelValue', 'manage'])
+const emit = defineEmits(['update:modelValue', 'manage', 'select'])
 
 const isOpen = ref(false)
 
@@ -95,6 +95,7 @@ const templates = computed(() =>
 
 const selectTemplate = (template) => {
   emit('update:modelValue', template)
+  emit('select', template, props.type)
   isOpen.value = false
 }
 </script> 

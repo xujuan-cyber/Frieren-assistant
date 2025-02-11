@@ -46,6 +46,7 @@
                     v-model="selectedOptimizeTemplate"
                     type="optimize"
                     @manage="openTemplateManager('optimize')"
+                    @select="handleTemplateSelect"
                   />
                 </div>
                 <InputPanel

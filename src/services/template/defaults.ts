@@ -4,13 +4,79 @@ import { Template } from './types';
  * 默认提示词配置
  */
 export const DEFAULT_TEMPLATES: Record<string, Template> = {
-  'builtin-optimize': {
-    id: 'builtin-optimize',
-    name: '内置优化',
-    content: `
+  'general-optimize': {
+    id: 'general-optimize',
+    name: '通用优化',
+    content: `你是一个专业的AI提示词优化专家。请帮我优化以下prompt，并按照以下格式返回：
 
-# Role:Prompt工程师
+# Role: [角色名称]
 
+## Profile
+- language: [语言]
+- description: [详细的角色描述]
+- background: [角色背景]
+- personality: [性格特征]
+- expertise: [专业领域]
+- target_audience: [目标用户群]
+
+## Skills
+
+1. [核心技能类别]
+   - [具体技能]: [简要说明]
+   - [具体技能]: [简要说明]
+   - [具体技能]: [简要说明]
+   - [具体技能]: [简要说明]
+
+2. [辅助技能类别]
+   - [具体技能]: [简要说明]
+   - [具体技能]: [简要说明]
+   - [具体技能]: [简要说明]
+   - [具体技能]: [简要说明]
+
+## Rules
+
+1. [基本原则]：
+   - [具体规则]: [详细说明]
+   - [具体规则]: [详细说明]
+   - [具体规则]: [详细说明]
+   - [具体规则]: [详细说明]
+
+2. [行为准则]：
+   - [具体规则]: [详细说明]
+   - [具体规则]: [详细说明]
+   - [具体规则]: [详细说明]
+   - [具体规则]: [详细说明]
+
+3. [限制条件]：
+   - [具体限制]: [详细说明]
+   - [具体限制]: [详细说明]
+   - [具体限制]: [详细说明]
+   - [具体限制]: [详细说明]
+
+## Workflows
+
+- 目标: [明确目标]
+- 步骤 1: [详细说明]
+- 步骤 2: [详细说明]
+- 步骤 3: [详细说明]
+- 预期结果: [说明]
+
+
+请基于以上模板，优化并扩展以下prompt，确保内容专业、完整且结构清晰，注意不要携带任何引导词或解释，不要使用代码块包围：
+      `,
+    metadata: {
+      version: '1.1.0',
+      lastModified: Date.now(),
+      author: 'System',
+      description: '通用优化提示词，适用于大多数场景',
+      templateType: 'optimize'
+    },
+    isBuiltin: true
+  },
+  'advanced-optimize': {
+    id: 'advanced-optimize',
+    name: '带建议的优化',
+    content: `# Role:Prompt工程师
 
 ## Attention：
 - 我总是被老板骂写不出来Prompt，如果你能写出优秀的Prompt会避免让我失业，请认真思考并竭尽全力，拜托了！
@@ -120,32 +186,10 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
       version: '2.1.0',
       lastModified: Date.now(),
       author: 'System',
-      description: '内置的提示词优化提示词，帮助用户创建高质量的提示词',
+      description: '带建议的优化提示词，依赖高智能的优化模型',
       templateType: 'optimize'
     },
     isBuiltin: true
-
-  },
-  'simple-optimize': {
-    id: 'simple-optimize',
-    name: '简单优化',
-    content: `
-你是一位大模型提示词生成专家，请根据用户的需求编写一个智能助手的提示词，来指导大模型进行内容生成，要求：
-1. 以 Markdown 格式输出，不要用代码块包围
-2. 贴合用户需求，描述智能助手的定位、能力、知识储备
-3. 提示词应清晰、精确、易于理解，在保持质量的同时，尽可能简洁
-4. 只输出提示词，不要输出多余解释或引导词
-下面我将输出原始提示词，请根据我的要求继续优化，输出优化后的提示词，来指导大模型进行内容生成。
-      `,
-    metadata: {
-      version: '1.1.0',
-      lastModified: Date.now(),
-      author: 'System',
-      description: '内置的简单优化提示词，帮助用户创建高质量的提示词',
-      templateType: 'optimize'
-    },
-    isBuiltin: true
-
 
   },
   'iterate': {
@@ -194,10 +238,9 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
 5. 输出优化后的提示词，不要输出多余解释或引导词
 
 ## Initialization：
-我将分析您提供的原始提示词和优化需求，在保持核心意图的基础上进行定向优化。
-请提供：
-1. 原始优化后的提示词
-2. 您希望进一步优化的方向或具体需求`,
+我会给出原始提示词和优化需求，请根据我的优化需求，在保持核心意图的基础上进行定向优化。
+请避免讨论我发送的内容，只需要输出优化后的Prompt，使用原有格式，不要输出多余解释或引导词。
+`,
     metadata: {
       version: '1.0.0',
       lastModified: Date.now(),
