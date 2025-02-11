@@ -17,14 +17,15 @@
       ></textarea>
     </div>
 
-    <!-- 模型选择和提交按钮 -->
-    <div class="flex items-center justify-between">
-      <div class="flex-1 max-w-[200px]">
-        <label class="block text-sm font-medium text-white/90 mb-1">{{ modelLabel }}</label>
+    <!-- 控制面板 -->
+    <div class="flex items-center space-x-4">
+      <!-- 模型选择 -->
+      <div class="w-[180px]">
+        <label class="block text-sm font-medium text-white/90 mb-1.5">{{ modelLabel }}</label>
         <select
           :value="selectedModel"
           @input="$emit('update:selectedModel', $event.target.value)"
-          class="w-full px-3 py-1.5 bg-black/20 border border-purple-600/50 rounded-lg text-white custom-select"
+          class="w-full h-10 px-3 bg-black/20 border border-purple-600/50 rounded-lg text-white custom-select hover:border-purple-500/70 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
           :disabled="loading || disabled"
         >
           <option v-for="model in models" :key="model.key" :value="model.key">
@@ -32,13 +33,24 @@
           </option>
         </select>
       </div>
-      <button
-        @click="$emit('submit')"
-        :disabled="loading || disabled || !modelValue.trim()"
-        class="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white rounded-lg transition-colors flex items-center space-x-2"
-      >
-        <span>{{ loading ? loadingText : buttonText }}</span>
-      </button>
+      
+      <!-- 提示词模板选择 -->
+      <div class="flex-1">
+        <label v-if="templateLabel" class="block text-sm font-medium text-white/90 mb-1.5">{{ templateLabel }}</label>
+        <slot name="template-select"></slot>
+      </div>
+
+      <!-- 提交按钮 -->
+      <div class="w-[140px]">
+        <div class="h-[29px]"><!-- 占位，与其他元素对齐 --></div>
+        <button
+          @click="$emit('submit')"
+          :disabled="loading || disabled || !modelValue.trim()"
+          class="w-full h-10 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+        >
+          <span>{{ loading ? loadingText : buttonText }}</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -70,6 +82,10 @@ const props = defineProps({
   modelLabel: {
     type: String,
     required: true
+  },
+  templateLabel: {
+    type: String,
+    default: ''
   },
   buttonText: {
     type: String,

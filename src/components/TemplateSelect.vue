@@ -2,21 +2,18 @@
   <div class="relative">
     <button
       @click.stop="isOpen = !isOpen"
-      class="w-full px-4 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 
-             border border-purple-600/30 hover:border-purple-600/50
-             transition-all duration-200 group"
+      class="template-select-button w-full h-10 px-3 bg-black/20 border border-purple-600/50 rounded-lg text-white hover:border-purple-500/70 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="text-white/60">{{ typeText }}:</span>
-          <span v-if="modelValue" class="text-purple-300 group-hover:text-purple-200">
+          <span v-if="modelValue" class="text-white">
             {{ modelValue.name }}
           </span>
-          <span v-else class="text-red-300">
-            未选择提示词
+          <span v-else class="text-white/50">
+            请选择提示词
           </span>
         </div>
-        <span class="text-purple-300 group-hover:text-purple-200">
+        <span class="text-purple-300">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
           </svg>
@@ -25,7 +22,8 @@
     </button>
 
     <div v-if="isOpen" 
-         class="absolute z-50 w-full mt-2 bg-gray-800/95 backdrop-blur-sm rounded-lg border border-purple-600/30 shadow-xl"
+         class="absolute z-50 min-w-[300px] w-max max-w-[90vw] mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg border border-purple-600/30 shadow-xl"
+         :style="dropdownStyle"
          @click.stop
          v-click-outside="() => isOpen = false"
     >
@@ -33,7 +31,7 @@
         <div v-for="template in templates" 
              :key="template.id"
              @click="selectTemplate(template)"
-             class="px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+             class="px-3 py-2 rounded-lg cursor-pointer transition-colors group relative"
              :class="[
                modelValue?.id === template.id
                  ? 'bg-purple-600/30 text-purple-200'
@@ -47,7 +45,8 @@
               内置
             </span>
           </div>
-          <p class="text-xs text-gray-400 mt-1 truncate">
+          <p class="text-xs text-gray-400 mt-1"
+             :title="template.metadata.description || '暂无描述'">
             {{ template.metadata.description || '暂无描述' }}
           </p>
         </div>
@@ -67,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { templateManager } from '../services/template/manager'
 import { clickOutside } from '../directives/clickOutside'
 
@@ -84,6 +83,57 @@ const vClickOutside = clickOutside
 const emit = defineEmits(['update:modelValue', 'manage', 'select'])
 
 const isOpen = ref(false)
+const dropdownStyle = ref({})
+
+// 计算下拉菜单位置
+const updateDropdownPosition = () => {
+  if (!isOpen.value) return
+  
+  // 获取按钮元素
+  const button = document.querySelector('.template-select-button')
+  if (!button) return
+
+  const buttonRect = button.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  
+  // 计算右侧剩余空间
+  const rightSpace = viewportWidth - buttonRect.right
+  
+  // 如果右侧空间不足，则向左对齐
+  if (rightSpace < 300) {
+    dropdownStyle.value = {
+      right: '0',
+      left: 'auto'
+    }
+  } else {
+    dropdownStyle.value = {
+      left: '0',
+      right: 'auto'
+    }
+  }
+}
+
+// 监听窗口大小变化
+const handleResize = () => {
+  updateDropdownPosition()
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+// 在打开下拉菜单时更新位置
+watch(isOpen, (newValue) => {
+  if (newValue) {
+    nextTick(() => {
+      updateDropdownPosition()
+    })
+  }
+})
 
 const typeText = computed(() => {
   return props.type === 'iterate' ? '迭代功能提示词' : '优化功能提示词'
@@ -98,4 +148,10 @@ const selectTemplate = (template) => {
   emit('select', template, props.type)
   isOpen.value = false
 }
-</script> 
+</script>
+
+<style scoped>
+.template-select-button {
+  position: relative;
+}
+</style> 

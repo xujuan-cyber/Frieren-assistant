@@ -41,14 +41,6 @@
             <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col flex-1">
               <!-- 输入区域 -->
               <div class="flex-none">
-                <div class="mb-4">
-                  <TemplateSelect
-                    v-model="selectedOptimizeTemplate"
-                    type="optimize"
-                    @manage="openTemplateManager('optimize')"
-                    @select="handleTemplateSelect"
-                  />
-                </div>
                 <InputPanel
                   v-model="prompt"
                   v-model:selectedModel="optimizeModel"
@@ -56,12 +48,22 @@
                   label="原始提示词"
                   placeholder="请输入需要优化的prompt..."
                   model-label="优化模型"
+                  template-label="优化提示词"
                   button-text="开始优化 →"
                   loading-text="优化中..."
                   :loading="isOptimizing"
                   :disabled="isOptimizing"
                   @submit="handleOptimizePrompt"
-                />
+                >
+                  <template #template-select>
+                    <TemplateSelect
+                      v-model="selectedOptimizeTemplate"
+                      type="optimize"
+                      @manage="openTemplateManager('optimize')"
+                      @select="handleTemplateSelect"
+                    />
+                  </template>
+                </InputPanel>
               </div>
 
               <!-- 优化结果区域 -->
