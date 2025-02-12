@@ -1,6 +1,18 @@
 # Prompt Optimizer (提示词优化器)
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer&env=VITE_GEMINI_API_KEY,VITE_DEEPSEEK_API_KEY&envDescription=API密钥配置&envLink=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer%23%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F)
+
 一个纯前端的提示词优化工具，帮助你优化和改进 AI 提示词。使用 Vue 3 + Vite 构建，支持多个 LLM 模型。
+
+## 一键部署
+
+1. 点击上方的 "Deploy with Vercel" 按钮
+2. 在Vercel中配置以下环境变量:
+   - `VITE_GEMINI_API_KEY`: Gemini API密钥
+     - 访问 [Google AI Studio](https://makersuite.google.com/app/apikey) 创建API密钥
+   - `VITE_DEEPSEEK_API_KEY`: DeepSeek API密钥
+     - 访问 [DeepSeek API](https://platform.deepseek.com/api_keys) 创建API密钥
+3. 完成部署
 
 ## 功能特点
 

@@ -1,0 +1,22 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "github": {
+    "silent": true
+  },
+  "env": {
+    "VITE_GEMINI_API_KEY": {
+      "description": "Gemini API密钥"
+    },
+    "VITE_DEEPSEEK_API_KEY": {
+      "description": "DeepSeek API密钥"
+    }
+  }
+} 
