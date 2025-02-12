@@ -30,10 +30,10 @@
         </div>
         
         <div class="flex-1 overflow-y-auto p-4 sm:p-6">
-          <template v-if="history && history.length > 0">
+          <template v-if="sortedHistory && sortedHistory.length > 0">
             <div class="space-y-4">
               <div
-                v-for="chain in history"
+                v-for="chain in sortedHistory"
                 :key="chain.chainId"
                 class="bg-black/20 rounded-xl border border-purple-600/50 overflow-hidden"
               >
@@ -70,6 +70,12 @@
                       </div>
                       <div class="flex items-center gap-2 flex-none">
                         <span v-if="record.type === 'iterate'" class="text-xs text-purple-400 px-2 py-0.5 rounded-full bg-purple-400/10">迭代</span>
+                        <button
+                          @click.stop="reuse(record, chain)"
+                          class="text-xs text-purple-300 hover:text-purple-100 transition-colors px-2 py-0.5 rounded border border-purple-300/20 hover:border-purple-300/40"
+                        >
+                          使用
+                        </button>
                         <button class="text-purple-300 hover:text-purple-100 transition-colors text-sm">
                           {{ expandedVersions[record.id] ? '收起' : '展开' }}
                         </button>
@@ -93,7 +99,7 @@
                       <!-- 使用按钮 -->
                       <div class="flex justify-end">
                         <button
-                          @click="reuse(record)"
+                          @click="reuse(record, chain)"
                           class="text-xs text-purple-300 hover:text-purple-100 transition-colors px-3 py-1 rounded border border-purple-300/20 hover:border-purple-300/40"
                         >
                           使用此版本
@@ -118,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import type { PropType } from 'vue'
 import type { PromptRecord, PromptRecordChain } from '../services/history/types'
 import { useToast } from '../composables/useToast'
@@ -139,12 +145,22 @@ console.log('HistoryDrawer props:', {
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'reuse', item: PromptRecord): void
+  (e: 'reuse', context: { 
+    record: PromptRecord, 
+    chainId: string,
+    rootPrompt: string 
+  }): void
   (e: 'clear'): void
 }>()
 
 const toast = useToast()
 const expandedVersions = ref<Record<string, boolean>>({})
+
+// 添加排序后的历史记录计算属性
+const sortedHistory = computed(() => {
+  if (!props.history) return []
+  return [...props.history].sort((a, b) => b.rootRecord.timestamp - a.rootRecord.timestamp)
+})
 
 // 切换版本展开/收起状态
 const toggleVersion = (recordId: string) => {
@@ -195,8 +211,12 @@ const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleString()
 }
 
-const reuse = (item: PromptRecord) => {
-  emit('reuse', item)
+const reuse = (record: PromptRecord, chain: PromptRecordChain) => {
+  emit('reuse', {
+    record,
+    chainId: chain.chainId,
+    rootPrompt: chain.rootRecord.originalPrompt
+  })
   emit('close')
 }
 

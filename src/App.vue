@@ -450,25 +450,34 @@ const handleTest = async () => {
   }
 };
 
-const handleSelectHistory = (item) => {
-  // 如果是迭代记录，需要找到原始的提示词
-  if (item.type === 'iterate') {
-    // 从历史记录中找到对应的链
-    const chain = history.value.find(c => c.chainId === item.chainId);
-    if (chain) {
-      prompt.value = chain.rootRecord.originalPrompt;
-      currentVersions.value = chain.versions;
-      currentVersionId.value = item.id;
-    }
-  } else {
-    prompt.value = item.originalPrompt;
-    const chain = history.value.find(c => c.chainId === item.chainId);
-    if (chain) {
-      currentVersions.value = chain.versions;
-      currentVersionId.value = item.id;
-    }
-  }
-  optimizedPrompt.value = item.optimizedPrompt;
+const handleSelectHistory = (context) => {
+  const { record, chainId, rootPrompt } = context;
+  
+  // 设置原始提示词
+  prompt.value = rootPrompt;
+  // 设置优化后的提示词
+  optimizedPrompt.value = record.optimizedPrompt;
+  
+  // 创建新的chain
+  const newRecord = historyManager.createNewChain({
+    id: uuidv4(),
+    originalPrompt: rootPrompt,
+    optimizedPrompt: record.optimizedPrompt,
+    type: 'optimize',
+    modelKey: record.modelKey,
+    templateId: record.templateId,
+    timestamp: Date.now(),
+    metadata: {}
+  });
+  
+  // 更新当前chain信息
+  currentChainId.value = newRecord.chainId;
+  currentVersions.value = newRecord.versions;
+  currentVersionId.value = newRecord.currentRecord.id;
+  
+  // 更新历史记录
+  history.value = historyManager.getAllChains();
+  
   showHistory.value = false;
 }
 
