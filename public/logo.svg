@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 背景圆形 -->
+    <circle cx="64" cy="64" r="60" fill="#4A90E2" opacity="0.1"/>
+    
+    <!-- 对话框形状 -->
+    <path d="M40 38h48c4.4 0 8 3.6 8 8v24c0 4.4-3.6 8-8 8H68l-12 12-12-12H40c-4.4 0-8-3.6-8-8V46c0-4.4 3.6-8 8-8z" 
+          fill="#4A90E2"/>
+    
+    <!-- AI文字 -->
+    <text x="64" y="64" 
+          font-family="Arial, sans-serif" 
+          font-size="24" 
+          font-weight="bold" 
+          fill="white" 
+          text-anchor="middle" 
+          dominant-baseline="middle">AI</text>
+    
+    <!-- 装饰性连接线 -->
+    <path d="M64 90v10" stroke="#4A90E2" stroke-width="4" stroke-linecap="round"/>
+    <path d="M56 96h16" stroke="#4A90E2" stroke-width="4" stroke-linecap="round"/>
+</svg> 
