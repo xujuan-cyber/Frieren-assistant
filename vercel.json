@@ -12,11 +12,7 @@
     "silent": true
   },
   "env": {
-    "VITE_GEMINI_API_KEY": {
-      "description": "Gemini API密钥"
-    },
-    "VITE_DEEPSEEK_API_KEY": {
-      "description": "DeepSeek API密钥"
-    }
+    "VITE_GEMINI_API_KEY": "",
+    "VITE_DEEPSEEK_API_KEY": ""
   }
 } 

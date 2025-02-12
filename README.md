@@ -101,7 +101,7 @@ prompt-optimizer-v3/
 npm install
 
 
-### 配置环境变量
+### 环境变量
 
 1. 在项目根目录创建 `.env.local` 文件
 2. 添加以下配置（也可以在应用内配置）：
