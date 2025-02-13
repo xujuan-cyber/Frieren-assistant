@@ -1,6 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "pnpm build:web",
+  "outputDirectory": "packages/web/dist",
+  "installCommand": "pnpm install",
   "framework": "vite",
   "rewrites": [
     {

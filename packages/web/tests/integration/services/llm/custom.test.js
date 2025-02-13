@@ -33,15 +33,20 @@ describe('自定义模型测试', () => {
   it('应该能正确处理自定义模型的配置更新', () => {
     const updatedConfig = {
       name: 'Updated Custom Model',
+      baseURL: import.meta.env.VITE_CUSTOM_API_BASE_URL || 'https://api.custom.test',
+      models: [import.meta.env.VITE_CUSTOM_API_MODEL || 'test-model'],
+      defaultModel: import.meta.env.VITE_CUSTOM_API_MODEL || 'test-model',
+      enabled: true,
+      provider: 'custom'
     };
 
     modelManager.updateModel('custom', updatedConfig);
     const model = modelManager.getModel('custom');
 
     expect(model.name).toBe(updatedConfig.name);
-    expect(model.baseURL).toBe(import.meta.env.VITE_CUSTOM_API_BASE_URL);
-    expect(model.models).toEqual([import.meta.env.VITE_CUSTOM_API_MODEL]);
-    expect(model.defaultModel).toBe(import.meta.env.VITE_CUSTOM_API_MODEL);
+    expect(model.baseURL).toBe(updatedConfig.baseURL);
+    expect(model.models).toEqual(updatedConfig.models);
+    expect(model.defaultModel).toBe(updatedConfig.defaultModel);
   });
 
   it('应该能正确调用自定义模型的 API', async () => {

@@ -26,30 +26,36 @@
 - 📋 一键复制优化结果
 - 🔄 历史记录管理
 - 📝 提示词模板管理
+- 🧩 Chrome浏览器插件支持（开发中）
 
 ## 项目结构
 
 ```
-prompt-optimizer-v3/
-├── src/                    # 源代码目录
-│   ├── api/               # API 接口封装
-│   ├── assets/            # 静态资源
-│   ├── components/        # Vue 组件
-│   ├── services/          # 业务逻辑服务
-│   │   ├── llm/          # LLM 服务封装
-│   │   ├── prompt/       # 提示词处理服务
-│   │   └── template/     # 模板管理服务
-│   ├── App.vue            # 根组件
-│   ├── main.js            # 入口文件
-│   └── style.css          # 全局样式
-├── public/                # 公共资源目录
-├── tools/                 # 工具脚本
-├── tests/                 # 测试文件
-├── .env.example          # 环境变量示例
-├── .env.local            # 本地环境变量（需自行创建）
-├── package.json          # 项目配置
-├── vite.config.js        # Vite 配置
-└── tailwind.config.js    # TailwindCSS 配置
+prompt-optimizer/
+├── packages/          # 项目包
+│   ├── web/          # Web版本
+│   ├── extension/    # Chrome插件版本
+│   └── core/         # 共享核心代码
+├── src/              # 源代码目录
+│   ├── api/         # API 接口封装
+│   ├── assets/      # 静态资源
+│   ├── components/  # Vue 组件
+│   ├── services/    # 业务逻辑服务
+│   │   ├── llm/    # LLM 服务封装
+│   │   ├── prompt/ # 提示词处理服务
+│   │   └── template/# 模板管理服务
+│   ├── App.vue      # 根组件
+│   ├── main.js      # 入口文件
+│   └── style.css    # 全局样式
+├── public/          # 公共资源目录
+├── tools/           # 工具脚本
+├── tests/           # 测试文件
+├── docs/           # 项目文档
+├── .env.example    # 环境变量示例
+├── .env.local      # 本地环境变量（需自行创建）
+├── package.json    # 项目配置
+├── vite.config.js  # Vite 配置
+└── tailwind.config.js # TailwindCSS 配置
 ```
 
 ## 功能清单
@@ -61,7 +67,12 @@ prompt-optimizer-v3/
   - [x] 一键清空输入
   - [x] 优化结果预览
   - [x] 提示词模板管理
-  
+- [ ] Chrome插件支持
+  - [ ] 选中文本快捷优化
+  - [ ] 右键菜单集成
+  - [ ] 快捷键支持
+  - [ ] 历史记录同步
+
 ### 设置与配置
 - [x] API 密钥管理
   - [x] 加密存储
@@ -132,6 +143,7 @@ vercel --prod
 
 ## 使用说明
 
+### Web版本
 1. 首次使用需要配置 API 密钥：
    - 点击右上角的 ⚙️ 设置按钮
    - 输入相应的 API 密钥
@@ -146,6 +158,17 @@ vercel --prod
    - 点击右上角的 📜 历史按钮
    - 可以查看之前的优化记录
    - 点击"重新使用"可以快速恢复历史提示词
+
+### Chrome插件版本（开发中）
+1. 从Chrome商店安装插件（即将上线）
+2. 配置API密钥：
+   - 点击插件图标
+   - 进入设置页面
+   - 配置相应API密钥
+3. 使用方式：
+   - 选中文本右键优化
+   - 点击插件图标使用完整功能
+   - 使用快捷键触发（可自定义）
 
 ## 技术栈
 
