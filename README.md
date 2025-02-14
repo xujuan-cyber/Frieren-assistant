@@ -26,6 +26,8 @@
 - 📋 一键复制优化结果
 - 🔄 历史记录管理
 - 📝 提示词模板管理
+- 🌊 流式响应支持
+- 🎯 精确的错误处理
 - 🧩 Chrome浏览器插件支持（开发中）
 
 ## 项目结构
@@ -33,30 +35,52 @@
 ```
 prompt-optimizer/
 ├── packages/          # 项目包
+│   ├── core/         # 核心功能包
+│   │   ├── src/
+│   │   │   ├── services/     # 核心服务实现
+│   │   │   │   ├── llm/      # LLM服务基类和接口
+│   │   │   │   ├── model/    # 模型管理核心
+│   │   │   │   └── template/ # 模板服务基础
+│   │   │   ├── types/        # 类型定义
+│   │   │   ├── errors/       # 错误处理基类
+│   │   │   └── utils/        # 工具函数
+│   │   └── tests/            # 核心功能测试
 │   ├── web/          # Web版本
-│   ├── extension/    # Chrome插件版本
-│   └── core/         # 共享核心代码
-├── src/              # 源代码目录
-│   ├── api/         # API 接口封装
-│   ├── assets/      # 静态资源
-│   ├── components/  # Vue 组件
-│   ├── services/    # 业务逻辑服务
-│   │   ├── llm/    # LLM 服务封装
-│   │   ├── prompt/ # 提示词处理服务
-│   │   └── template/# 模板管理服务
-│   ├── App.vue      # 根组件
-│   ├── main.js      # 入口文件
-│   └── style.css    # 全局样式
-├── public/          # 公共资源目录
-├── tools/           # 工具脚本
-├── tests/           # 测试文件
-├── docs/           # 项目文档
-├── .env.example    # 环境变量示例
-├── .env.local      # 本地环境变量（需自行创建）
-├── package.json    # 项目配置
-├── vite.config.js  # Vite 配置
-└── tailwind.config.js # TailwindCSS 配置
+│   │   ├── src/      # 源代码
+│   │   │   ├── services/  # Web平台特定服务
+│   │   │   │   ├── llm/   # LLM服务实现
+│   │   │   │   ├── model/ # 模型管理实现
+│   │   │   │   └── template/ # 模板服务实现
+│   │   │   └── components/   # Vue组件
+│   │   └── tests/    # Web功能测试
+│   └── extension/    # Chrome插件版本（开发中）
+│       └── src/      # 插件源代码
+├── docs/            # 项目文档
+├── tests/           # E2E测试
+└── tools/           # 工具脚本
 ```
+
+### 核心包职责
+
+#### Core包 (@prompt-optimizer/core)
+- 提供核心业务逻辑实现
+- 定义统一的接口规范
+- 实现平台无关的基础设施
+- 提供可复用的工具函数
+- 统一的错误处理机制
+- 类型定义和验证
+
+#### Web包 (@prompt-optimizer/web)
+- 实现Web平台UI
+- 继承和实现核心服务
+- 处理Web特定的功能
+- 提供用户交互界面
+
+#### 插件包 (@prompt-optimizer/extension)
+- 实现Chrome插件功能
+- 复用核心包的功能
+- 处理插件特定的API
+- 提供轻量级界面
 
 ## 功能清单
 
@@ -67,6 +91,8 @@ prompt-optimizer/
   - [x] 一键清空输入
   - [x] 优化结果预览
   - [x] 提示词模板管理
+  - [x] 流式响应支持
+  - [x] 精确错误处理
 - [ ] Chrome插件支持
   - [ ] 选中文本快捷优化
   - [ ] 右键菜单集成
@@ -176,6 +202,7 @@ vercel --prod
 - Vite - 下一代前端构建工具
 - TailwindCSS - 实用优先的 CSS 框架
 - Vue Composition API - 组合式 API
+- LangChain - LLM应用开发框架
 - LocalStorage - 本地数据持久化
 - CryptoJS - 数据加密
 - Markdown-it - Markdown 渲染
