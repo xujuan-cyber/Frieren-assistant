@@ -1,4 +1,4 @@
-import { ILLMService, Message, RequestConfig } from './types';
+import { ILLMService, Message } from './types';
 import { ModelConfig } from '../model/types';
 import { ModelManager } from '../model/manager';
 import { ChatOpenAI } from '@langchain/openai';
@@ -72,35 +72,27 @@ export class LLMService implements ILLMService {
       }
 
       let model;
-      switch (modelConfig.provider) {
-        case 'openai':
-        case 'deepseek':
-        case 'custom':
-          model = new ChatOpenAI({
+      if (modelConfig.provider === 'gemini') {
+        model = new ChatGoogleGenerativeAI({
+          apiKey: modelConfig.apiKey,
+          modelName: modelConfig.defaultModel,
+          maxOutputTokens: 2000,
+          temperature: 0.7,
+          streaming: true
+        });
+      } else {
+        model = new ChatOpenAI({
+          apiKey: modelConfig.apiKey,
+          modelName: modelConfig.defaultModel,
+          configuration: {
             apiKey: modelConfig.apiKey,
-            modelName: modelConfig.defaultModel,
-            configuration: {
-              apiKey: modelConfig.apiKey,
-              baseURL: modelConfig.baseURL
-            },
-            temperature: 0.7,
-            maxTokens: 2000,
-            streaming: true
-          });
-          break;
-        case 'gemini':
-          model = new ChatGoogleGenerativeAI({
-            apiKey: modelConfig.apiKey,
-            modelName: modelConfig.defaultModel,
-            maxOutputTokens: 2000,
-            temperature: 0.7,
-            streaming: true
-          });
-          break;
-        default:
-          throw new RequestConfigError(`不支持的模型提供商: ${modelConfig.provider}`);
+            baseURL: modelConfig.baseURL
+          },
+          temperature: 0.7,
+          maxTokens: 2000,
+          streaming: true
+        });
       }
-
       this.modelInstances.set(cacheKey, model);
       return model;
     } catch (error: any) {
@@ -136,60 +128,6 @@ export class LLMService implements ILLMService {
         throw error;
       }
       throw new APIError(`消息转换失败: ${error.message}`);
-    }
-  }
-
-  /**
-   * 构建请求配置
-   */
-  buildRequestConfig(modelConfig: ModelConfig, messages: Message[]): RequestConfig {
-    try {
-      this.validateModelConfig(modelConfig);
-      this.validateMessages(messages);
-
-      return {
-        url: `${modelConfig.baseURL}/chat/completions`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${modelConfig.apiKey}`
-        },
-        body: {
-          model: modelConfig.defaultModel,
-          messages: messages.map(({ role, content }) => ({ role, content }))
-        }
-      };
-    } catch (error: any) {
-      if (error instanceof RequestConfigError) {
-        throw error;
-      }
-      throw new APIError(`构建请求配置失败: ${error.message}`);
-    }
-  }
-
-  /**
-   * 发送请求
-   */
-  async sendRequest(config: RequestConfig): Promise<string> {
-    try {
-      const response = await fetch(config.url, {
-        method: 'POST',
-        headers: config.headers,
-        body: JSON.stringify(config.body)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (!data.choices?.[0]?.message?.content) {
-        throw new Error('响应格式无效');
-      }
-      
-      return data.choices[0].message.content;
-    } catch (error: any) {
-      throw new APIError(`请求失败: ${error.message}`);
     }
   }
 
@@ -310,7 +248,9 @@ export class LLMService implements ILLMService {
       if (!provider) {
         throw new RequestConfigError('模型提供商不能为空');
       }
-
+      console.log('测试连接provider:', { 
+        provider: provider,
+      });
       // 发送一个简单的测试消息
       const testMessages: Message[] = [
         {

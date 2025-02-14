@@ -80,33 +80,4 @@ describe('LLMService', () => {
         .toThrow('消息格式无效: 缺少必要字段');
     });
   });
-
-  describe('buildRequestConfig', () => {
-    it('should build valid request config', () => {
-      const config = service.buildRequestConfig(mockModelConfig, mockMessages);
-      expect(config).toEqual({
-        url: 'https://api.test.com/chat/completions',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-key'
-        },
-        body: {
-          model: 'model-1',
-          messages: mockMessages
-        }
-      });
-    });
-
-    it('should throw error for invalid model config', () => {
-      const invalidConfig = { ...mockModelConfig, apiKey: '' };
-      expect(() => service.buildRequestConfig(invalidConfig, mockMessages))
-        .toThrow(RequestConfigError);
-    });
-
-    it('should throw error for invalid messages', () => {
-      const invalidMessages: Message[] = [{ role: 'invalid' as any, content: 'test' }];
-      expect(() => service.buildRequestConfig(mockModelConfig, invalidMessages))
-        .toThrow(RequestConfigError);
-    });
-  });
 }); 

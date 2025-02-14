@@ -245,8 +245,28 @@ const newModel = ref({
 
 // 加载所有模型
 const loadModels = () => {
-  models.value = modelManager.getAllModels();
+  const allModels = modelManager.getAllModels();
+  models.value = Object.entries(allModels).map(([key, config]) => ({
+    key,
+    ...config,  // 保留所有原始配置
+    model: config.defaultModel  // 为了显示用
+  }));
   emit('modelsUpdated', models.value);
+};
+
+// 测试连接
+const testConnection = async (key) => {
+  try {
+    const model = modelManager.getModel(key);
+    if (!model) throw new Error('模型配置不存在');
+
+    const llm = createLLMService(modelManager);
+    await llm.testConnection(key);
+    toast.success('连接测试成功');
+  } catch (error) {
+    console.error('连接测试失败:', error);
+    toast.error(`连接测试失败: ${error.message}`);
+  }
 };
 
 // 判断是否为默认模型
@@ -292,24 +312,22 @@ const cancelEdit = () => {
 // 保存编辑
 const saveEdit = () => {
   try {
-    // 获取原始配置
     const originalConfig = modelManager.getModel(editingModel.value.key);
     if (!originalConfig) {
       throw new Error('找不到原始配置');
     }
 
-    // 构建更新配置,保留原有的 apiKey
     const config = {
       name: editingModel.value.name,
       baseURL: editingModel.value.baseURL,
       models: [editingModel.value.defaultModel],
       defaultModel: editingModel.value.defaultModel,
-      apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey // 如果没有新的 apiKey,保留原有的
+      apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey,
+      enabled: originalConfig.enabled,
+      provider: originalConfig.provider
     };
 
-    // 更新配置
     modelManager.updateModel(editingModel.value.key, config);
-
     loadModels();
     isEditing.value = false;
     editingModel.value = null;
@@ -317,30 +335,6 @@ const saveEdit = () => {
   } catch (error) {
     console.error('更新模型失败:', error);
     toast.error(`更新模型失败: ${error.message}`);
-  }
-};
-
-// 启用模型
-const enableModel = async (key) => {
-  try {
-    modelManager.enableModel(key);
-    loadModels();
-    toast.success('模型已启用');
-  } catch (error) {
-    console.error('启用模型失败:', error);
-    toast.error(`启用模型失败: ${error.message}`);
-  }
-};
-
-// 禁用模型
-const disableModel = async (key) => {
-  try {
-    modelManager.disableModel(key);
-    loadModels();
-    toast.success('模型已禁用');
-  } catch (error) {
-    console.error('禁用模型失败:', error);
-    toast.error(`禁用模型失败: ${error.message}`);
   }
 };
 
@@ -352,13 +346,14 @@ const addCustomModel = () => {
       baseURL: newModel.value.baseURL,
       models: [newModel.value.defaultModel],
       defaultModel: newModel.value.defaultModel,
-      apiKey: newModel.value.apiKey
+      apiKey: newModel.value.apiKey,
+      enabled: true,
+      provider: 'custom'
     };
 
     modelManager.addModel(newModel.value.key, config);
     loadModels();
-    
-    // 重置表单
+    showAddForm.value = false;
     newModel.value = {
       key: '',
       name: '',
@@ -366,42 +361,37 @@ const addCustomModel = () => {
       defaultModel: '',
       apiKey: ''
     };
-    
-    showAddForm.value = false;
-    toast.success('模型已添加');
+    toast.success('模型添加成功');
   } catch (error) {
     console.error('添加模型失败:', error);
     toast.error(`添加模型失败: ${error.message}`);
   }
 };
 
-// 测试连接
-const testConnection = async (key) => {
-  const model = modelManager.getModel(key);
-  if (!model) {
-    toast.error('模型不存在');
-    return;
-  }
-
-  if (!model.enabled) {
-    toast.error('请先启用模型');
-    return;
-  }
-
+// 启用/禁用模型
+const enableModel = (key) => {
   try {
-    toast.info('正在测试连接...');
-    const llmService = createLLMService(modelManager);
-    
-    // 发送一个简单的测试请求
-    await llmService.testConnection(key);
-    
-    toast.success('连接测试成功');
+    modelManager.enableModel(key);
+    loadModels();
+    toast.success('模型已启用');
   } catch (error) {
-    console.error('连接测试失败:', error);
-    toast.error(error.message || '连接测试失败');
+    console.error('启用模型失败:', error);
+    toast.error(`启用模型失败: ${error.message}`);
   }
 };
 
+const disableModel = (key) => {
+  try {
+    modelManager.disableModel(key);
+    loadModels();
+    toast.success('模型已禁用');
+  } catch (error) {
+    console.error('禁用模型失败:', error);
+    toast.error(`禁用模型失败: ${error.message}`);
+  }
+};
+
+// 初始化
 onMounted(() => {
   loadModels();
 });

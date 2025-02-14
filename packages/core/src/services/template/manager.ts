@@ -250,15 +250,7 @@ export class TemplateManager implements ITemplateManager {
    * @returns 指定类型的提示词列表
    */
   async getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]> {
-    try {
-      const templates = await this.listTemplates()
-      return templates.filter(template => 
-        template.metadata?.templateType === type
-      )
-    } catch (error) {
-      console.error('获取提示词列表失败:', error)
-      throw new TemplateError('获取提示词列表失败')
-    }
+    return this.listTemplatesByType(type);
   }
 }
 

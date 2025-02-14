@@ -109,11 +109,8 @@ export class PromptService implements IPromptService {
         { role: 'user', content: prompt }
       ];
 
-      // 构建请求配置
-      const requestConfig = this.llmService.buildRequestConfig(modelConfig, messages);
-
       // 发送请求
-      const result = await this.llmService.sendRequest(requestConfig);
+      const result = await this.llmService.sendMessage(messages, modelKey);
 
       // 验证响应
       this.validateResponse(result, prompt);
@@ -175,11 +172,8 @@ export class PromptService implements IPromptService {
         { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
       ];
 
-      // 构建请求配置
-      const requestConfig = this.llmService.buildRequestConfig(modelConfig, messages);
-
       // 发送请求
-      const result = await this.llmService.sendRequest(requestConfig);
+      const result = await this.llmService.sendMessage(messages, modelKey);
 
       // 保存历史记录
       this.historyManager.addRecord({
@@ -222,11 +216,8 @@ export class PromptService implements IPromptService {
         { role: 'user', content: testInput }
       ];
 
-      // 构建请求配置
-      const requestConfig = this.llmService.buildRequestConfig(modelConfig, messages);
-
       // 发送请求
-      const result = await this.llmService.sendRequest(requestConfig);
+      const result = await this.llmService.sendMessage(messages, modelKey);
 
       // 保存历史记录
       this.historyManager.addRecord({

@@ -62,33 +62,47 @@ describe('LLMService', () => {
     });
   });
 
-  describe('请求配置构建', () => {
-    it('应该正确构建请求配置', () => {
+  describe('发送消息', () => {
+    it('应该正确发送消息', async () => {
+      // 添加模型配置
+      modelManager.addModel({
+        key: testProvider,
+        ...mockModelConfig
+      });
+
       const messages = [
         { role: 'system', content: 'test' }
       ];
-      const config = llmService.buildRequestConfig(mockModelConfig, messages);
-      expect(config).toEqual({
-        url: 'https://api.test.com/chat/completions',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-key'
-        },
-        body: {
-          model: 'test-model',
-          messages: [{ role: 'system', content: 'test' }]
-        }
-      });
+
+      // 模拟 LangChain 的 invoke 方法
+      const mockInvoke = vi.fn().mockResolvedValue({ content: 'test response' });
+      vi.spyOn(llmService, 'getModelInstance').mockReturnValue({ invoke: mockInvoke });
+
+      const result = await llmService.sendMessage(messages, testProvider);
+      expect(result).toBe('test response');
+      expect(mockInvoke).toHaveBeenCalledWith(expect.any(Array));
     });
 
-    it('当消息为空时应抛出错误', () => {
-      expect(() => llmService.buildRequestConfig(mockModelConfig, []))
+    it('当提供商不存在时应抛出错误', async () => {
+      const messages = [
+        { role: 'system', content: 'test' }
+      ];
+      await expect(llmService.sendMessage(messages, 'non-existent-provider'))
+        .rejects
         .toThrow(RequestConfigError);
     });
 
-    it('当消息格式无效时应抛出错误', () => {
-      const invalidMessages = [{ role: 'invalid', content: 'test' }];
-      expect(() => llmService.buildRequestConfig(mockModelConfig, invalidMessages))
+    it('当消息格式无效时应抛出错误', async () => {
+      modelManager.addModel({
+        key: testProvider,
+        ...mockModelConfig
+      });
+
+      const invalidMessages = [
+        { role: 'invalid', content: 'test' }
+      ];
+      await expect(llmService.sendMessage(invalidMessages, testProvider))
+        .rejects
         .toThrow(RequestConfigError);
     });
   });
