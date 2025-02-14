@@ -278,7 +278,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { templateManager } from '../services/template/manager'
+import { templateManager } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 
 const props = defineProps({

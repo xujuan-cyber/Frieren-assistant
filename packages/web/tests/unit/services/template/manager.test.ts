@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { TemplateManager } from '../../../../src/services/template/manager';
-import { DEFAULT_TEMPLATES } from '../../../../src/services/template/defaults';
-import { Template } from '../../../../src/services/template/types';
-import { TemplateValidationError } from '../../../../src/services/template/errors';
+import { 
+  TemplateManager,
+  Template,
+  TemplateValidationError,
+  DEFAULT_TEMPLATES
+} from '@prompt-optimizer/core';
 
 describe('TemplateManager', () => {
   let templateManager: TemplateManager;
@@ -18,7 +20,8 @@ describe('TemplateManager', () => {
       author: 'Test User',
       description: '测试用的提示词',
       templateType: 'optimize'
-    }
+    },
+    isBuiltin: false
   };
 
   beforeEach(() => {
@@ -181,7 +184,8 @@ describe('TemplateManager', () => {
       const invalidTemplate = { ...mockUserTemplate, id: '' };
       
       await expect(() => templateManager.importTemplate(JSON.stringify(invalidTemplate)))
-        .rejects.toThrowError(TemplateValidationError);
+        .rejects
+        .toThrow(/提示词验证失败/);
       console.log('验证: 正确拒绝无效的导入提示词');
     });
   });

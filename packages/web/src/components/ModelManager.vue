@@ -44,6 +44,10 @@
                   </p>
                 </div>
                 <div class="flex items-center space-x-2">
+                  <button @click="testConnection(model.key)"
+                          class="px-4 py-1.5 text-sm rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 transition-colors">
+                    测试连接
+                  </button>
                   <button @click="editModel(model.key)"
                           class="px-4 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors">
                     编辑
@@ -221,7 +225,7 @@
 
 <script setup>
 import { ref, onMounted, defineEmits } from 'vue';
-import { modelManager } from '../services/model/manager';
+import { modelManager, createLLMService } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 
 const toast = useToast();
@@ -368,6 +372,33 @@ const addCustomModel = () => {
   } catch (error) {
     console.error('添加模型失败:', error);
     toast.error(`添加模型失败: ${error.message}`);
+  }
+};
+
+// 测试连接
+const testConnection = async (key) => {
+  const model = modelManager.getModel(key);
+  if (!model) {
+    toast.error('模型不存在');
+    return;
+  }
+
+  if (!model.enabled) {
+    toast.error('请先启用模型');
+    return;
+  }
+
+  try {
+    toast.info('正在测试连接...');
+    const llmService = createLLMService(modelManager);
+    
+    // 发送一个简单的测试请求
+    await llmService.testConnection(key);
+    
+    toast.success('连接测试成功');
+  } catch (error) {
+    console.error('连接测试失败:', error);
+    toast.error(error.message || '连接测试失败');
   }
 };
 

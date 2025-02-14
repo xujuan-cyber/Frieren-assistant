@@ -64,18 +64,4 @@ export const templateSchema = z.object({
     templateType: z.enum(['optimize', 'iterate'])
   }),
   isBuiltin: z.boolean().optional()
-});
-
-export class TemplateValidationError extends Error {
-  constructor(message: string, public templateId: string, public errors: string[] = []) {
-    super(message);
-    this.name = 'TemplateValidationError';
-  }
-}
-
-export class TemplateLoadError extends Error {
-  constructor(message: string, public templateId: string) {
-    super(message);
-    this.name = 'TemplateLoadError';
-  }
-} 
+}); 

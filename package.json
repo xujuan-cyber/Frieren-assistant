@@ -7,5 +7,14 @@
     "build:web": "pnpm --filter web build",
     "build:extension": "pnpm --filter extension build",
     "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.33",
+    "@langchain/google-genai": "^0.1.6",
+    "@langchain/openai": "^0.3.17",
+    "uuid": "^11.0.5"
   }
 }

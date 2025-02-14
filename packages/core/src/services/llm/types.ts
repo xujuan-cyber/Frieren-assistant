@@ -1,5 +1,4 @@
 import { ModelConfig } from '../model/types';
-import { BaseMessage } from '@langchain/core/messages';
 
 /**
  * 消息角色类型
@@ -67,6 +66,11 @@ export interface ILLMService {
       onError: (error: Error) => void;
     }
   ): Promise<void>;
+
+  /**
+   * 测试连接
+   */
+  testConnection(provider: string): Promise<void>;
 }
 
 export interface StreamHandlers {

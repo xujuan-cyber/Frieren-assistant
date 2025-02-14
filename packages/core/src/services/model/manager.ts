@@ -184,7 +184,8 @@ export class ModelManager implements IModelManager {
       }
     } catch (error) {
       console.error('加载模型配置失败:', error);
-      throw new Error('加载模型配置失败: ' + error);
+      // 不抛出错误，而是使用默认配置
+      this.models = { ...defaultModels };
     }
   }
 
@@ -196,7 +197,7 @@ export class ModelManager implements IModelManager {
       localStorage.setItem('models', JSON.stringify(this.models));
     } catch (error) {
       console.error('保存模型配置失败:', error);
-      throw new Error('保存模型配置失败: ' + error);
+      // 不抛出错误，继续使用内存中的配置
     }
   }
 }

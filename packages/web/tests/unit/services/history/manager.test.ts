@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HistoryManager } from '../../../../src/services/history/manager';
-import { HistoryError, RecordNotFoundError, StorageError } from '../../../../src/services/history/errors';
-import { PromptRecord } from '../../../../src/services/history/types';
+import { 
+  HistoryManager,
+  HistoryError,
+  RecordNotFoundError,
+  StorageError,
+  PromptRecord
+} from '@prompt-optimizer/core';
 
 describe('HistoryManager', () => {
   let manager: HistoryManager;

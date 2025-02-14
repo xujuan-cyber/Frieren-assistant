@@ -156,10 +156,13 @@
 
 <script setup>
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
-import { createLLMService } from './services/llm/service'
-import { createPromptService } from './services/prompt/service'
-import { modelManager } from './services/model/manager'
-import { templateManager } from './services/template/manager'
+import { 
+  createLLMService, 
+  createPromptService,
+  modelManager,
+  templateManager,
+  historyManager
+} from '@prompt-optimizer/core'
 import ModelManager from './components/ModelManager.vue'
 import TemplateManager from './components/TemplateManager.vue'
 import Toast from './components/Toast.vue'
@@ -169,7 +172,6 @@ import InputPanel from './components/InputPanel.vue'
 import OutputPanel from './components/OutputPanel.vue'
 import { useToast } from './composables/useToast'
 import TemplateSelect from './components/TemplateSelect.vue'
-import { historyManager } from './services/history/manager'
 import { v4 as uuidv4 } from 'uuid'
 
 // 初始化服务

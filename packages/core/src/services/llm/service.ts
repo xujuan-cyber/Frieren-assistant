@@ -77,9 +77,10 @@ export class LLMService implements ILLMService {
         case 'deepseek':
         case 'custom':
           model = new ChatOpenAI({
-            openAIApiKey: modelConfig.apiKey,
+            apiKey: modelConfig.apiKey,
             modelName: modelConfig.defaultModel,
             configuration: {
+              apiKey: modelConfig.apiKey,
               baseURL: modelConfig.baseURL
             },
             temperature: 0.7,
@@ -291,13 +292,41 @@ export class LLMService implements ILLMService {
         callbacks.onComplete();
       } catch (error) {
         console.error('流式处理过程中出错:', error);
-        callbacks.onError(error);
+        callbacks.onError(error instanceof Error ? error : new Error(String(error)));
         throw error;
       }
     } catch (error) {
       console.error('流式请求失败:', error);
-      callbacks.onError(error);
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
       throw error;
+    }
+  }
+
+  /**
+   * 测试连接
+   */
+  async testConnection(provider: string): Promise<void> {
+    try {
+      if (!provider) {
+        throw new RequestConfigError('模型提供商不能为空');
+      }
+
+      // 发送一个简单的测试消息
+      const testMessages: Message[] = [
+        {
+          role: 'user',
+          content: '请回答ok'
+        }
+      ];
+
+      // 使用 sendMessage 进行测试
+      await this.sendMessage(testMessages, provider);
+
+    } catch (error: any) {
+      if (error instanceof RequestConfigError || error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError(`连接测试失败: ${error.message}`);
     }
   }
 }

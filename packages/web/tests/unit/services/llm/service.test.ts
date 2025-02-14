@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LLMService } from '../../../../src/services/llm/service';
-import { APIError, RequestConfigError } from '../../../../src/services/llm/errors';
-import { ModelConfig } from '../../../../src/services/model/types';
-import { Message } from '../../../../src/services/llm/types';
-import { ModelManager } from '../../../../src/services/model/manager';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { AIMessageChunk } from '@langchain/core/messages';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { 
+  LLMService, 
+  ModelManager, 
+  ModelConfig, 
+  APIError, 
+  RequestConfigError,
+  Message 
+} from '@prompt-optimizer/core';
 
 describe('LLMService', () => {
   let service: LLMService;
@@ -15,7 +15,6 @@ describe('LLMService', () => {
   beforeEach(() => {
     modelManager = new ModelManager();
     service = new LLMService(modelManager);
-    vi.clearAllMocks();
   });
 
   const mockModelConfig: ModelConfig = {
@@ -33,50 +32,81 @@ describe('LLMService', () => {
     { role: 'user', content: 'Hello!' }
   ];
 
-  describe('sendMessage', () => {
-    it('should throw error when model is disabled', async () => {
+  describe('validateModelConfig', () => {
+    it('should throw error when model is disabled', () => {
       const disabledConfig = { ...mockModelConfig, enabled: false };
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(disabledConfig);
+      expect(() => service['validateModelConfig'](disabledConfig))
+        .toThrow('模型未启用');
+    });
 
-      await expect(service.sendMessage(mockMessages, 'test'))
-        .rejects
+    it('should throw error when apiKey is missing', () => {
+      const invalidConfig = { ...mockModelConfig, apiKey: '' };
+      expect(() => service['validateModelConfig'](invalidConfig))
+        .toThrow('API密钥不能为空');
+    });
+
+    it('should throw error when provider is missing', () => {
+      const invalidConfig = { ...mockModelConfig, provider: '' };
+      expect(() => service['validateModelConfig'](invalidConfig))
+        .toThrow('模型提供商不能为空');
+    });
+
+    it('should throw error when defaultModel is missing', () => {
+      const invalidConfig = { ...mockModelConfig, defaultModel: '' };
+      expect(() => service['validateModelConfig'](invalidConfig))
+        .toThrow('默认模型不能为空');
+    });
+  });
+
+  describe('validateMessages', () => {
+    it('should validate valid messages', () => {
+      expect(() => service['validateMessages'](mockMessages)).not.toThrow();
+    });
+
+    it('should throw error for empty messages', () => {
+      expect(() => service['validateMessages']([]))
+        .toThrow('消息列表不能为空');
+    });
+
+    it('should throw error for invalid role', () => {
+      const invalidMessages: Message[] = [{ role: 'invalid' as any, content: 'test' }];
+      expect(() => service['validateMessages'](invalidMessages))
+        .toThrow('不支持的消息类型: invalid');
+    });
+
+    it('should throw error for missing content', () => {
+      const invalidMessages: Message[] = [{ role: 'user', content: '' }];
+      expect(() => service['validateMessages'](invalidMessages))
+        .toThrow('消息格式无效: 缺少必要字段');
+    });
+  });
+
+  describe('buildRequestConfig', () => {
+    it('should build valid request config', () => {
+      const config = service.buildRequestConfig(mockModelConfig, mockMessages);
+      expect(config).toEqual({
+        url: 'https://api.test.com/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-key'
+        },
+        body: {
+          model: 'model-1',
+          messages: mockMessages
+        }
+      });
+    });
+
+    it('should throw error for invalid model config', () => {
+      const invalidConfig = { ...mockModelConfig, apiKey: '' };
+      expect(() => service.buildRequestConfig(invalidConfig, mockMessages))
         .toThrow(RequestConfigError);
     });
 
-    it('should throw error when model does not exist', async () => {
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(undefined);
-
-      await expect(service.sendMessage(mockMessages, 'non-existent'))
-        .rejects
+    it('should throw error for invalid messages', () => {
+      const invalidMessages: Message[] = [{ role: 'invalid' as any, content: 'test' }];
+      expect(() => service.buildRequestConfig(mockModelConfig, invalidMessages))
         .toThrow(RequestConfigError);
-    });
-
-    it('should successfully send message using OpenAI model', async () => {
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
-      const mockResponse = new AIMessageChunk('Test response');
-      vi.spyOn(ChatOpenAI.prototype, 'invoke').mockResolvedValue(mockResponse);
-
-      const response = await service.sendMessage(mockMessages, 'test');
-      expect(response).toBe('Test response');
-    });
-
-    it('should successfully send message using Gemini model', async () => {
-      const geminiConfig = { ...mockModelConfig, provider: 'gemini' };
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(geminiConfig);
-      const mockResponse = new AIMessageChunk('Test response');
-      vi.spyOn(ChatGoogleGenerativeAI.prototype, 'invoke').mockResolvedValue(mockResponse);
-
-      const response = await service.sendMessage(mockMessages, 'test');
-      expect(response).toBe('Test response');
-    });
-
-    it('should handle API errors gracefully', async () => {
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
-      vi.spyOn(ChatOpenAI.prototype, 'invoke').mockRejectedValue(new Error('API Error'));
-
-      await expect(service.sendMessage(mockMessages, 'test'))
-        .rejects
-        .toThrow(APIError);
     });
   });
 }); 

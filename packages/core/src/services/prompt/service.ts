@@ -79,7 +79,6 @@ export class PromptService implements IPromptService {
    */
   async optimizePrompt(prompt: string, modelKey: string): Promise<string> {
     try {
-      // 前置验证
       this.validateInput(prompt, modelKey);
       
       // 获取模型配置（使用统一错误）
@@ -96,8 +95,8 @@ export class PromptService implements IPromptService {
       try {
         template = await this.templateManager.getTemplate('optimize');
       } catch (error) {
-        // 包装错误消息
-        throw new OptimizationError(`优化失败: ${error.message}`, prompt);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new OptimizationError(`优化失败: ${errorMessage}`, prompt);
       }
 
       if (!template?.content) {
@@ -134,14 +133,8 @@ export class PromptService implements IPromptService {
 
       return result;
     } catch (error) {
-      // 统一错误处理
-      if (error instanceof OptimizationError) {
-        throw error;
-      }
-      throw new OptimizationError(
-        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${error.message}`,
-        prompt
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new OptimizationError(`优化失败: ${errorMessage}`, prompt);
     }
   }
 
@@ -154,6 +147,9 @@ export class PromptService implements IPromptService {
     modelKey: string
   ): Promise<string> {
     try {
+      this.validateInput(originalPrompt, modelKey);
+      this.validateInput(iterateInput, modelKey);
+      
       // 获取模型配置
       const modelConfig = this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -165,8 +161,8 @@ export class PromptService implements IPromptService {
       try {
         template = await this.templateManager.getTemplate('iterate');
       } catch (error) {
-        // 包装错误消息
-        throw new IterationError(`迭代失败: ${error.message}`, originalPrompt, iterateInput);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new IterationError(`迭代失败: ${errorMessage}`, originalPrompt, iterateInput);
       }
 
       if (!template?.content) {
@@ -201,26 +197,19 @@ export class PromptService implements IPromptService {
 
       return result;
     } catch (error) {
-      if (error instanceof IterationError) {
-        throw error;
-      }
-      throw new IterationError(
-        `迭代失败: ${error.message}`,
-        originalPrompt,
-        iterateInput
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new IterationError(`迭代失败: ${errorMessage}`, originalPrompt, iterateInput);
     }
   }
 
   /**
    * 测试提示词
    */
-  async testPrompt(
-    prompt: string,
-    testInput: string,
-    modelKey: string
-  ): Promise<string> {
+  async testPrompt(prompt: string, testInput: string, modelKey: string): Promise<string> {
     try {
+      this.validateInput(prompt, modelKey);
+      this.validateInput(testInput, modelKey);
+
       // 获取模型配置
       const modelConfig = this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -254,14 +243,8 @@ export class PromptService implements IPromptService {
 
       return result;
     } catch (error) {
-      if (error instanceof TestError) {
-        throw error;
-      }
-      throw new TestError(
-        `测试失败: ${error.message}`,
-        prompt,
-        testInput
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new TestError(`测试失败: ${errorMessage}`, prompt, testInput);
     }
   }
 
@@ -290,6 +273,9 @@ export class PromptService implements IPromptService {
     }
   ): Promise<void> {
     try {
+      this.validateInput(prompt, modelKey);
+      this.validateInput(testInput, modelKey);
+
       const modelConfig = this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
@@ -304,14 +290,8 @@ export class PromptService implements IPromptService {
       
       // 移除历史记录相关操作
     } catch (error) {
-      if (error instanceof TestError) {
-        throw error;
-      }
-      throw new TestError(
-        `测试失败: ${error.message}`,
-        prompt,
-        testInput
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new TestError(`测试失败: ${errorMessage}`, prompt, testInput);
     }
   }
 
@@ -329,7 +309,6 @@ export class PromptService implements IPromptService {
     }
   ): Promise<void> {
     try {
-      // 前置验证
       this.validateInput(prompt, modelKey);
       
       // 获取模型配置
@@ -366,16 +345,8 @@ export class PromptService implements IPromptService {
         }
       );
     } catch (error) {
-      if (error instanceof OptimizationError) {
-        callbacks.onError(error);
-        throw error;
-      }
-      const wrappedError = new OptimizationError(
-        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${error.message}`,
-        prompt
-      );
-      callbacks.onError(wrappedError);
-      throw wrappedError;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new OptimizationError(`优化失败: ${errorMessage}`, prompt);
     }
   }
 
@@ -390,6 +361,9 @@ export class PromptService implements IPromptService {
     template: { content: string } | string
   ): Promise<void> {
     try {
+      this.validateInput(originalPrompt, modelKey);
+      this.validateInput(iterateInput, modelKey);
+      
       // 获取模型配置
       const modelConfig = this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -432,17 +406,8 @@ export class PromptService implements IPromptService {
         }
       );
     } catch (error) {
-      if (error instanceof IterationError) {
-        handlers.onError(error);
-        throw error;
-      }
-      const wrappedError = new IterationError(
-        `迭代失败: ${error.message}`,
-        originalPrompt,
-        iterateInput
-      );
-      handlers.onError(wrappedError);
-      throw wrappedError;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new IterationError(`迭代失败: ${errorMessage}`, originalPrompt, iterateInput);
     }
   }
 }
@@ -455,22 +420,11 @@ export async function createPromptService(
   historyManager: HistoryManager = defaultHistoryManager
 ): Promise<PromptService> {
   try {
-    // 初始化依赖服务
     await templateManager.init();
     await historyManager.init();
-
-    // 创建并返回服务实例
-    return new PromptService(
-      modelManager,
-      llmService,
-      templateManager,
-      historyManager
-    );
+    return new PromptService(modelManager, llmService, templateManager, historyManager);
   } catch (error) {
-    console.error('创建 PromptService 失败:', error);
-    throw new ServiceDependencyError(
-      `提示词管理器初始化失败: ${error.message}`,
-      'TemplateManager'
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`初始化失败: ${errorMessage}`);
   }
 } 

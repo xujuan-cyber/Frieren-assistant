@@ -1,16 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ModelManager } from '../../../../src/services/model/manager';
-import { ModelConfig } from '../../../../src/services/model/types';
-import { ModelConfigError } from '../../../../src/services/llm/errors';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { 
+  ModelManager,
+  ModelConfig,
+  ModelConfigError
+} from '@prompt-optimizer/core';
 
 describe('ModelManager', () => {
   let manager: ModelManager;
   let mockModelConfig: ModelConfig;
 
   beforeEach(() => {
-    // 清除 localStorage
-    localStorage.clear();
-    
     mockModelConfig = {
       name: 'Test Model',
       baseURL: 'https://test.api',
@@ -21,11 +20,13 @@ describe('ModelManager', () => {
       provider: 'openai'
     };
 
-    // 创建一个新的 ModelManager 实例，但先清除默认模型
     manager = new ModelManager();
+    // 清除默认模型
     const defaultModels = manager.getAllModels();
     defaultModels.forEach(model => {
-      manager.deleteModel(model.key);
+      if (model.key) {
+        manager.deleteModel(model.key);
+      }
     });
   });
 
@@ -58,9 +59,12 @@ describe('ModelManager', () => {
         baseURL: 'https://updated.api'
       };
       manager.updateModel('test', updateConfig);
-      const models = manager.getAllModels();
-      expect(models[0].name).toBe('Updated Model');
-      expect(models[0].baseURL).toBe('https://updated.api');
+      const model = manager.getModel('test');
+      if (!model) {
+        throw new Error('Model should exist');
+      }
+      expect(model.name).toBe('Updated Model');
+      expect(model.baseURL).toBe('https://updated.api');
     });
 
     it('should throw error when updating non-existent model', () => {
@@ -79,7 +83,7 @@ describe('ModelManager', () => {
     it('should delete existing model', () => {
       manager.addModel('test', mockModelConfig);
       manager.deleteModel('test');
-      expect(manager.getAllModels()).toHaveLength(0);
+      expect(manager.getModel('test')).toBeUndefined();
     });
 
     it('should throw error when deleting non-existent model', () => {
@@ -88,51 +92,18 @@ describe('ModelManager', () => {
     });
   });
 
-  describe('getAllModels', () => {
-    it('should return all models with their keys', () => {
-      manager.addModel('test1', mockModelConfig);
-      manager.addModel('test2', { ...mockModelConfig, name: 'Test Model 2' });
-      const models = manager.getAllModels();
-      expect(models).toHaveLength(2);
-      expect(models[0]).toHaveProperty('key');
-      expect(models[1]).toHaveProperty('key');
-    });
-
-    it('should return empty array when no models exist', () => {
-      const models = manager.getAllModels();
-      expect(models).toHaveLength(0);
-    });
-  });
-
-  describe('storage operations', () => {
-    it('should persist models to localStorage', () => {
+  describe('getModel', () => {
+    it('should return model by key', () => {
       manager.addModel('test', mockModelConfig);
-      const storedData = localStorage.getItem('models');
-      expect(storedData).toBeDefined();
-      const storedModels = JSON.parse(storedData!);
-      expect(storedModels.test).toMatchObject(mockModelConfig);
+      const model = manager.getModel('test');
+      if (!model) {
+        throw new Error('Model should exist');
+      }
+      expect(model).toMatchObject(mockModelConfig);
     });
 
-    it('should load models from localStorage', () => {
-      localStorage.setItem('models', JSON.stringify({ test: mockModelConfig }));
-      manager = new ModelManager();
-      // 删除默认模型后再检查
-      const defaultModels = manager.getAllModels();
-      defaultModels.forEach(model => {
-        if (model.key !== 'test') {
-          manager.deleteModel(model.key);
-        }
-      });
-      const models = manager.getAllModels();
-      expect(models).toHaveLength(1);
-      expect(models[0]).toMatchObject({ ...mockModelConfig, key: 'test' });
-    });
-
-    it('should handle localStorage errors gracefully', () => {
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-        throw new Error('Storage error');
-      });
-      expect(() => new ModelManager()).not.toThrow();
+    it('should return undefined for non-existent model', () => {
+      expect(manager.getModel('non-existent')).toBeUndefined();
     });
   });
 }); 

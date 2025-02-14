@@ -6,9 +6,39 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      '@langchain/core':
+        specifier: ^0.3.33
+        version: 0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2))
+      '@langchain/google-genai':
+        specifier: ^0.1.6
+        version: 0.1.8(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(zod@3.24.2)
+      '@langchain/openai':
+        specifier: ^0.3.17
+        version: 0.3.17(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(ws@8.18.0)
+      uuid:
+        specifier: ^11.0.5
+        version: 11.0.5
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^5.2.1
+        version: 5.2.1(vite@6.1.0(@types/node@18.19.75)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.3))
 
   packages/core:
+    dependencies:
+      '@langchain/core':
+        specifier: ^0.3.33
+        version: 0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2))
+      '@langchain/google-genai':
+        specifier: ^0.1.6
+        version: 0.1.8(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(zod@3.24.2)
+      '@langchain/openai':
+        specifier: ^0.3.17
+        version: 0.3.17(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(ws@8.18.0)
+      uuid:
+        specifier: ^11.0.5
+        version: 11.0.5
     devDependencies:
       tsup:
         specifier: ^8.0.2

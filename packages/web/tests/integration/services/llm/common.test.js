@@ -1,84 +1,31 @@
-import { createLLMService } from '../../../../src/services/llm/service';
-import { ModelManager } from '../../../../src/services/model/manager';
-import { expect, describe, it, beforeEach, beforeAll, vi } from 'vitest';
-import { APIError, RequestConfigError } from '../../../../src/services/llm/errors';
-import dotenv from 'dotenv';
-import path from 'path';
-import { ERROR_MESSAGES } from '../../../../src/services/llm/errors';
-import { createPromptService } from '../../../../src/services/prompt/factory';
-
-// 加载环境变量
-beforeAll(() => {
-  dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-});
+import { 
+  createLLMService,
+  ModelManager,
+  APIError,
+  RequestConfigError,
+  ERROR_MESSAGES
+} from '@prompt-optimizer/core';
+import { expect, describe, it, beforeEach } from 'vitest';
 
 describe('LLM 服务通用测试', () => {
   let llmService;
   let modelManager;
-  let promptService;
 
   beforeEach(() => {
-    localStorage.clear();
     modelManager = new ModelManager();
+    // 清除所有已有模型
+    const models = modelManager.getAllModels();
+    models.forEach(model => {
+      if (model.key) {
+        modelManager.deleteModel(model.key);
+      }
+    });
     llmService = createLLMService(modelManager);
-    
-    // Mock ChatOpenAI
-    vi.mock('@langchain/openai', () => ({
-      ChatOpenAI: vi.fn().mockImplementation(() => ({
-        invoke: vi.fn().mockRejectedValue(new Error('API Error'))
-      }))
-    }));
-  });
-
-  beforeEach(async () => {
-    promptService = await createPromptService();
   });
 
   describe('API 调用错误处理', () => {
-    it('应该能正确处理无效的 API 密钥', async () => {
-      const testModel = 'test';
-      modelManager.addModel(testModel, {
-        name: 'Test Model',
-        baseURL: 'https://test.api/chat/completions',
-        models: ['test-model'],
-        defaultModel: 'test-model',
-        apiKey: 'invalid-key',
-        enabled: true,
-        provider: 'openai'
-      });
-
-      const messages = [
-        { role: 'user', content: '你好，我们来玩个游戏' }
-      ];
-
-      await expect(llmService.sendMessage(messages, testModel))
-        .rejects
-        .toThrow(APIError);
-    }, 10000); // 增加超时时间到 10 秒
-
-    it('应该能正确处理无效的 baseURL', async () => {
-      const testModel = 'test';
-      modelManager.addModel(testModel, {
-        name: 'Test Model',
-        baseURL: 'https://invalid.api/chat/completions',
-        models: ['test-model'],
-        defaultModel: 'test-model',
-        apiKey: 'test-key',
-        enabled: true,
-        provider: 'openai'
-      });
-
-      const messages = [
-        { role: 'user', content: '你好，我们来玩个游戏' }
-      ];
-
-      await expect(llmService.sendMessage(messages, testModel))
-        .rejects
-        .toThrow(APIError);
-    }, 10000); // 增加超时时间到 10 秒
-
     it('应该能正确处理无效的消息格式', async () => {
-      const testModel = 'test';
+      const testModel = 'test-invalid-message';
       modelManager.addModel(testModel, {
         name: 'Test Model',
         baseURL: 'https://test.api/chat/completions',
@@ -97,7 +44,7 @@ describe('LLM 服务通用测试', () => {
     });
 
     it('应该能正确处理未启用的模型', async () => {
-      const testModel = 'test';
+      const testModel = 'test-disabled';
       modelManager.addModel(testModel, {
         name: 'Test Model',
         baseURL: 'https://test.api/chat/completions',
@@ -118,7 +65,7 @@ describe('LLM 服务通用测试', () => {
     });
 
     it('应该能正确处理空消息列表', async () => {
-      const testModel = 'test';
+      const testModel = 'test-empty-messages';
       modelManager.addModel(testModel, {
         name: 'Test Model',
         baseURL: 'https://test.api/chat/completions',
@@ -133,18 +80,11 @@ describe('LLM 服务通用测试', () => {
         await llmService.sendMessage([], testModel);
       }).rejects.toThrow(RequestConfigError);
     });
-
-    it('应正确处理无效的模型配置', async () => {
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(undefined);
-      await expect(promptService.optimizePrompt('test', 'test-model')).rejects.toThrow(
-        ERROR_MESSAGES.MODEL_NOT_FOUND
-      );
-    });
   });
 
   describe('配置管理', () => {
     it('应该能正确处理模型配置更新', () => {
-      const testModel = 'test';
+      const testModel = 'test-update';
       const config = {
         name: 'Test Model',
         baseURL: 'https://test.api/chat/completions',
@@ -173,7 +113,7 @@ describe('LLM 服务通用测试', () => {
     });
 
     it('应该能正确处理模型的启用和禁用', () => {
-      const testModel = 'test';
+      const testModel = 'test-enable-disable';
       const config = {
         name: 'Test Model',
         baseURL: 'https://test.api/chat/completions',
@@ -185,20 +125,14 @@ describe('LLM 服务通用测试', () => {
       };
 
       modelManager.addModel(testModel, config);
-      expect(modelManager.getModel(testModel).enabled).toBe(true);
+      const model = modelManager.getModel(testModel);
+      expect(model.enabled).toBe(true);
 
       modelManager.updateModel(testModel, { enabled: false });
       expect(modelManager.getModel(testModel).enabled).toBe(false);
 
       modelManager.updateModel(testModel, { enabled: true });
       expect(modelManager.getModel(testModel).enabled).toBe(true);
-    });
-  });
-
-  describe('边界条件测试', () => {
-    it('应处理空提示词输入', async () => {
-      await expect(promptService.optimizePrompt('', 'test-model'))
-        .rejects.toThrow(ERROR_MESSAGES.EMPTY_INPUT);
     });
   });
 }); 

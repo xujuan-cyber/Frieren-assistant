@@ -1,4 +1,3 @@
-import { Message } from '../llm/types';
 import { PromptRecord } from '../history/types';
 
 /**

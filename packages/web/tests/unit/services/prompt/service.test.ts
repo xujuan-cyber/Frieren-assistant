@@ -1,15 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PromptService } from '../../../../src/services/prompt/service';
-import { ModelManager } from '../../../../src/services/model/manager';
-import { TemplateManager } from '../../../../src/services/template/manager';
-import { HistoryManager } from '../../../../src/services/history/manager';
-import { createLLMService } from '../../../../src/services/llm/service';
-import { ModelConfig } from '../../../../src/services/model/types';
-import { Template } from '../../../../src/services/template/types';
-import { PromptRecord } from '../../../../src/services/history/types';
-import { LLMService } from '../../../../src/services/llm/service';
-import { OptimizationError, IterationError, TestError } from '../../../../src/services/prompt/errors';
-import { v4 as uuidv4 } from 'uuid';
+import { vi, describe, beforeEach, it, expect } from 'vitest'
+import { 
+  createLLMService, 
+  LLMService, 
+  ModelManager, 
+  PromptService, 
+  TemplateManager, 
+  HistoryManager,
+  ModelConfig,
+  Template,
+  PromptRecord,
+  OptimizationError,
+  IterationError,
+  TestError
+} from '@prompt-optimizer/core'
+import { v4 as uuidv4 } from 'uuid'
 
 // 模拟 fetch API
 const mockFetch = vi.fn();
@@ -44,7 +48,11 @@ describe('PromptService', () => {
     id: 'test',
     name: 'Test Template',
     content: 'test template content',
-    version: '1.0'
+    metadata: {
+      version: '1.0',
+      lastModified: Date.now(),
+      templateType: 'optimize' as const
+    }
   };
 
   beforeEach(async () => {
@@ -309,7 +317,11 @@ describe('PromptService 提示词管理器初始化测试', () => {
     id: 'test',
     name: 'Test Template',
     content: 'test template content',
-    version: '1.0'
+    metadata: {
+      version: '1.0',
+      lastModified: Date.now(),
+      templateType: 'optimize' as const
+    }
   };
 
   beforeEach(async () => {

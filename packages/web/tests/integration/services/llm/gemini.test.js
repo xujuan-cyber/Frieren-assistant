@@ -1,5 +1,4 @@
-import { createLLMService } from '../../../../src/services/llm/service';
-import { ModelManager } from '../../../../src/services/model/manager';
+import { createLLMService, ModelManager } from '@prompt-optimizer/core';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';

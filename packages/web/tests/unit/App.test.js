@@ -2,15 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../../src/App.vue'
-import { createLLMService } from '../../src/services/llm/service'
-import { createPromptService } from '../../src/services/prompt/service'
-import { modelManager } from '../../src/services/model/manager'
-import { templateManager } from '../../src/services/template/manager'
+import { createLLMService, createPromptService, modelManager, templateManager, historyManager } from '@prompt-optimizer/core'
 import ElementPlus from 'element-plus'
 import { createTestingPinia } from '@pinia/testing'
 import { ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
 import { useToast } from '../../src/composables/useToast'
-import { historyManager } from '../../src/services/history/manager'
 
 // Mock toast functions
 const mockSuccess = vi.fn()
@@ -90,30 +86,48 @@ const mockPromptService = {
   getHistory: vi.fn().mockReturnValue([])
 }
 
-vi.mock('../../src/services/llm/service', () => ({
-  createLLMService: vi.fn(() => mockLLMService)
-}))
-
-vi.mock('../../src/services/prompt/service', () => ({
-  createPromptService: vi.fn(() => mockPromptService)
-}))
-
-vi.mock('../../src/services/model/manager', () => ({
+vi.mock('@prompt-optimizer/core', () => ({
+  createLLMService: vi.fn(() => mockLLMService),
+  createPromptService: vi.fn(() => mockPromptService),
   modelManager: {
     getAllModels: vi.fn(() => [
       { key: 'test', name: 'Test Model', model: 'test-model', enabled: true }
     ])
-  }
-}))
-
-// Mock historyManager
-vi.mock('../../src/services/history/manager', () => ({
+  },
   historyManager: {
     init: vi.fn(),
     clearHistory: vi.fn(),
     createNewChain: vi.fn(),
     addIteration: vi.fn(),
     getAllChains: vi.fn()
+  },
+  templateManager: {
+    init: vi.fn(),
+    clearCache: vi.fn(),
+    getTemplate: vi.fn(),
+    listTemplates: vi.fn(),
+    listTemplatesByType: vi.fn().mockReturnValue([
+      {
+        id: 'template-1',
+        name: '优化提示词',
+        content: '优化模板内容',
+        metadata: {
+          templateType: 'optimize',
+          version: '1.0',
+          lastModified: Date.now()
+        }
+      },
+      {
+        id: 'template-2',
+        name: '迭代提示词',
+        content: '迭代模板内容',
+        metadata: {
+          templateType: 'iterate',
+          version: '1.0',
+          lastModified: Date.now()
+        }
+      }
+    ])
   }
 }))
 

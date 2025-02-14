@@ -135,8 +135,13 @@ prompt-optimizer/
 - npm >= 7
 
 ### 安装依赖
-npm install
+```bash
+# 安装 pnpm（如果未安装）
+npm install -g pnpm
 
+# 安装项目依赖
+pnpm install
+```
 
 ### 环境变量
 
@@ -145,15 +150,38 @@ npm install
 VITE_GEMINI_API_KEY=你的Gemini API密钥
 VITE_DEEPSEEK_API_KEY=你的DeepSeek API密钥
 
+### 开发命令
+
+```bash
+# 启动 web 开发服务器
+pnpm dev:web
+
+# 启动 core 包开发模式（监听修改）
+pnpm dev:core
+
+# 构建项目
+pnpm build        # 构建所有包
+pnpm build:core   # 只构建 core 包
+pnpm build:web    # 只构建 web 包
+
+# 运行测试
+pnpm test         # 运行所有测试
+pnpm test:core    # 运行 core 包测试
+pnpm test:web     # 运行 web 包测试
+```
 
 ### 启动开发服务器
-npm run dev
+```bash
+pnpm dev:web
+```
 访问 `http://localhost:5173` 查看应用
 
 ### 构建生产版本
-npm run build
+```bash
+pnpm build
+```
 
-构建后的文件将生成在 `dist` 目录下
+构建后的文件将生成在 `packages/web/dist` 目录下
 
 ### 发布到vercel
 ```bash
@@ -164,7 +192,6 @@ vercel login
 
 # 发布项目
 vercel --prod
-
 ```
 
 ## 使用说明

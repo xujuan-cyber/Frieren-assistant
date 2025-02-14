@@ -67,7 +67,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { templateManager } from '../services/template/manager'
+import { templateManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
 
 const props = defineProps({
