@@ -1,55 +1,112 @@
 # 前端开发指南
 
-## 1. 项目结构
-- 遵循功能模块化组织
-- 保持目录结构清晰
-- 避免过深的嵌套
+## 1. 项目架构
 
-```javascript
-src/
-  ├── api/        // API接口
-  ├── assets/     // 静态资源
-  ├── components/ // 组件
-  ├── services/   // 业务逻辑
-  ├── config/     // 配置
-  └── styles/     // 样式
+### 1.1 包结构
+```
+packages/
+  ├── core/       # 核心功能包
+  └── web/        # Web前端包
 ```
 
-## 2. 组件开发规范
+### 1.2 Web包结构
+```
+web/
+  ├── src/
+  │   ├── components/  # Vue组件
+  │   ├── assets/      # 静态资源
+  │   └── styles/      # 样式
+  └── tests/           # 测试文件
+```
 
-### 2.1 命名规范
+## 2. 服务使用规范
+
+### 2.1 核心服务导入
+```typescript
+// 正确的导入方式
+import { 
+  createLLMService,
+  createPromptService,
+  modelManager,
+  templateManager,
+  historyManager 
+} from '@prompt-optimizer/core'
+
+// 错误的导入方式
+import { createLLMService } from '../services/llm'  // ❌ 不要直接从本地导入
+```
+
+### 2.2 服务初始化
+```typescript
+// 在组件中初始化服务
+const llmService = createLLMService()
+const promptService = createPromptService()
+
+// 使用全局单例
+const { models } = modelManager
+const { templates } = templateManager
+const { history } = historyManager
+```
+
+### 2.3 错误处理
+```typescript
+try {
+  await llmService.optimize(prompt)
+} catch (err) {
+  if (err instanceof APIError) {
+    // 处理API错误
+  } else if (err instanceof ValidationError) {
+    // 处理验证错误
+  } else {
+    // 处理其他错误
+  }
+}
+```
+
+## 3. 组件开发规范
+
+### 3.1 命名规范
 - 组件文件名：PascalCase
 - 组件名：PascalCase
 - Props：camelCase
 - 事件：camelCase
 - CSS类名：kebab-case
 
-### 2.2 组件结构
+### 3.2 组件结构
 ```vue
-<script setup>
-// 1. 导入
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+// 1. 类型导入
+import type { ModelConfig } from '@prompt-optimizer/core'
 
-// 2. Props定义
-const props = defineProps({
-  modelValue: String,
-  label: String
+// 2. 服务导入
+import { modelManager } from '@prompt-optimizer/core'
+
+// 3. Props定义
+interface Props {
+  modelConfig: ModelConfig
+  onSuccess?: (result: string) => void
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  onSuccess: undefined
 })
 
-// 3. Emits定义
-const emit = defineEmits(['update:modelValue'])
-
 // 4. 响应式数据
-const localValue = ref('')
+const models = ref(modelManager.getModels())
 
 // 5. 计算属性
-const computedValue = computed(() => {
-  return localValue.value.trim()
+const enabledModels = computed(() => {
+  return models.value.filter(m => m.enabled)
 })
 
 // 6. 方法
-const handleInput = (event) => {
-  emit('update:modelValue', event.target.value)
+const handleModelSelect = async (model: string) => {
+  try {
+    await modelManager.setActiveModel(model)
+    props.onSuccess?.(model)
+  } catch (err) {
+    // 错误处理
+  }
 }
 </script>
 
@@ -64,33 +121,21 @@ const handleInput = (event) => {
 </style>
 ```
 
-## 3. 样式指南
+## 4. 类型系统
 
-### 3.1 TailwindCSS使用
-- 优先使用工具类
-- 抽取重复样式为组件
-- 使用主题变量
-- 响应式设计优先
-
-### 3.2 CSS命名规范
-- 使用BEM命名法
-- 避免深层嵌套
-- 保持选择器简单
-
-## 4. TypeScript使用
-
-### 4.1 类型定义
-- 使用接口定义数据结构
-- 导出公共类型
-- 避免any类型
-
+### 4.1 类型导入
 ```typescript
-interface ModelConfig {
-  name: string
-  baseURL: string
-  models: string[]
-  defaultModel: string
-  enabled: boolean
+// 从核心包导入类型
+import type {
+  ModelConfig,
+  PromptConfig,
+  TemplateConfig,
+  LLMResponse
+} from '@prompt-optimizer/core'
+
+// 本地类型定义
+interface LocalConfig extends ModelConfig {
+  customField: string
 }
 ```
 
@@ -98,38 +143,65 @@ interface ModelConfig {
 - 启用严格模式
 - 使用类型断言
 - 处理空值情况
+- 避免any类型
 
-## 5. 性能优化
+## 5. 状态管理
 
-### 5.1 代码优化
-- 组件懒加载
-- 代码分割
-- 缓存优化
-- 避免内存泄漏
+### 5.1 服务状态
+- 使用核心包提供的管理器
+- 避免重复状态管理
+- 统一的状态更新流程
 
-### 5.2 构建优化
-- 压缩资源
-- Tree Shaking
-- 按需加载
-- 缓存策略
+### 5.2 组件状态
+- 使用组合式API
+- 保持状态最小化
+- 合理使用响应式
 
-## 6. 测试规范
+## 6. 性能优化
 
-### 6.1 单元测试
-- 测试组件行为
-- 测试业务逻辑
-- 模拟API调用
+### 6.1 导入优化
+```typescript
+// 按需导入
+import { createLLMService } from '@prompt-optimizer/core/llm'
+import { modelManager } from '@prompt-optimizer/core/model'
 
-### 6.2 集成测试
+// 避免导入整个包
+import * as Core from '@prompt-optimizer/core'  // ❌
+```
+
+### 6.2 渲染优化
+- 使用v-show代替v-if（频繁切换）
+- 合理使用计算属性
+- 避免不必要的监听
+
+## 7. 测试规范
+
+### 7.1 单元测试
+```typescript
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import ModelManager from './ModelManager.vue'
+import { modelManager } from '@prompt-optimizer/core'
+
+describe('ModelManager', () => {
+  it('should load models correctly', async () => {
+    const wrapper = mount(ModelManager)
+    const models = await modelManager.getModels()
+    expect(wrapper.text()).toContain(models[0].name)
+  })
+})
+```
+
+### 7.2 集成测试
 - 测试组件交互
-- 测试状态管理
-- 测试路由功能
+- 测试服务集成
+- 测试错误处理
 
-## 7. 代码审查清单
-- 代码格式规范
-- 命名规范
-- 注释完整性
-- 类型定义
-- 错误处理
-- 性能考虑
-- 测试覆盖 
+## 8. 代码审查清单
+- 正确的服务导入方式
+- 类型定义完整性
+- 错误处理完整性
+- 性能优化措施
+- 测试覆盖率
+- 代码规范遵守
+- 文档更新 
