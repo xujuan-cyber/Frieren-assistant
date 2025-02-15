@@ -84,7 +84,7 @@
           loading-text="测试中..."
           :loading="isTesting"
           :disabled="isTesting"
-          @submit="handleTest"
+          @submit="() => handleTest(optimizedPrompt)"
         />
       </div>
 
@@ -193,6 +193,7 @@ const {
   optimizeModel,
   currentVersions,
   currentVersionId,
+  currentChainId,
   handleOptimizePrompt,
   handleIteratePrompt,
   handleSwitchVersion,

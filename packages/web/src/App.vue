@@ -158,7 +158,8 @@ import {
   ContentCard,
   ActionButton,
   usePromptOptimizer,
-  usePromptTester
+  usePromptTester,
+  useToast
 } from '@prompt-optimizer/ui'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -192,6 +193,7 @@ const {
   optimizeModel,
   currentVersions,
   currentVersionId,
+  currentChainId,
   handleOptimizePrompt,
   handleIteratePrompt,
   handleSwitchVersion,
