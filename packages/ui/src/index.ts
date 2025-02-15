@@ -15,4 +15,7 @@ export { default as Modal } from './components/Modal.vue'
 export { default as ApiKeyConfig } from './components/ApiKeyConfig.vue'
 
 // 导出指令
-export { clickOutside } from './directives/clickOutside' 
+export { clickOutside } from './directives/clickOutside'
+
+// 导出组合式函数
+export { useToast } from './composables/useToast' 

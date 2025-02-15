@@ -173,9 +173,9 @@ import {
   HistoryDrawer,
   InputPanel,
   Modal,
-  ApiKeyConfig
+  ApiKeyConfig,
+  useToast
 } from '@prompt-optimizer/ui'
-import { useToast } from './composables/useToast'
 import { v4 as uuidv4 } from 'uuid'
 
 // 初始化服务
