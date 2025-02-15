@@ -1,6 +1,6 @@
 # Prompt Optimizer (提示词优化器) 🚀
 
-[![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer&env=VITE_GEMINI_API_KEY&envDescription=API密钥配置（可选）&envLink=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer%23%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F)
+[![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer&env=VITE_GEMINI_API_KEY&envDescription=API密钥配置（可选）&envLink=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer%23environment-variables)
 
 一个好用的提示词优化工具，帮助你优化和改进AI提示词，支持Web应用和Chrome插件。
 
@@ -14,7 +14,7 @@
 ## ✨ 核心特性
 
 - 🎯 智能优化：基于LangChain的提示词优化引擎
-- 🔄 多模型支持：集成Gemini Pro、DeepSeek、OpenAI等多个模型
+- 🔄 多模型支持：集成Gemini、DeepSeek、OpenAI等多个模型
 - 💾 本地存储：安全的历史记录和设置管理
 - 📱 跨平台：支持Web应用和Chrome插件
 - 🎨 优雅界面：响应式设计 + 流畅动画
@@ -22,12 +22,22 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 方式一：使用在线版本（推荐）
 
+1. 直接访问：[https://prompt.always200.com](https://prompt.always200.com)
+2. 或者一键部署到自己的Vercel：
+   [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer&env=VITE_GEMINI_API_KEY&envDescription=API密钥配置（可选）&envLink=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer%23environment-variables)
+
+### 方式二：安装Chrome插件
+1. 从Chrome商店安装（即将上线）
+2. 在任意页面右键即可使用提示词优化功能
+
+### 方式三：本地开发（面向开发者）
+如果你想参与开发，可以克隆源码到本地：
+
+环境要求：
 - Node.js >= 16
 - pnpm >= 8
-
-### 安装步骤
 
 ```bash
 # 1. 克隆项目
@@ -42,8 +52,28 @@ pnpm dev:web    # Web版
 pnpm dev:ext    # 插件版
 ```
 
-### 环境配置（可以在运行时配置）
+### 环境变量 {#environment-variables}
+可以通过以下两种方式配置API密钥：
 
+#### 1. 通过模型管理界面配置（推荐）
+1. 点击界面右上角的"⚙️设置"按钮
+2. 选择"模型管理"选项卡
+3. 点击需要配置的模型（如Gemini、DeepSeek等）
+4. 在弹出的配置框中输入对应的API密钥
+5. 点击"保存"即可
+
+支持的模型类型：
+- OpenAI
+- Gemini
+- DeepSeek
+- 自定义API（OpenAI兼容接口）
+
+注意事项：
+- API密钥会通过浏览器的安全存储机制加密保存
+- 建议使用HTTPS环境进行配置
+- 如使用自定义API，请确保接口格式兼容
+
+#### 2. 通过环境变量配置
 在 `packages/web` 目录下创建 `.env.local` 文件：
 
 ```env
@@ -116,8 +146,7 @@ pnpm test:ui            # 测试UI库
 - [x] 基础功能开发
 - [x] Web应用发布
 - [ ] Chrome插件发布
-- [ ] 更多模型支持
-- [ ] 提示词模板市场
+- [x] 自定义模型支持
 - [ ] 国际化支持
 
 ## 📖 相关文档
