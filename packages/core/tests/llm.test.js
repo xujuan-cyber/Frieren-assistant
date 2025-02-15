@@ -1,11 +1,28 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LLMService, ModelManager, RequestConfigError, APIError } from '@prompt-optimizer/core';
+
+// 模拟localStorage
+const localStorageMock = {
+  store: {},
+  getItem(key) {
+    return this.store[key] || null;
+  },
+  setItem(key, value) {
+    this.store[key] = value.toString();
+  },
+  clear() {
+    this.store = {};
+  }
+};
+
+global.localStorage = localStorageMock;
 
 describe('LLMService', () => {
   let llmService;
   let modelManager;
   const testProvider = 'test-provider';
   const mockModelConfig = {
+    name: 'Test Model',
     provider: 'openai',
     apiKey: 'test-key',
     baseURL: 'https://api.test.com',
@@ -15,6 +32,8 @@ describe('LLMService', () => {
   };
 
   beforeEach(() => {
+    // 重置localStorage
+    localStorageMock.clear();
     modelManager = new ModelManager();
     // 清除所有已有模型
     const models = modelManager.getAllModels();
@@ -65,10 +84,7 @@ describe('LLMService', () => {
   describe('发送消息', () => {
     it('应该正确发送消息', async () => {
       // 添加模型配置
-      modelManager.addModel({
-        key: testProvider,
-        ...mockModelConfig
-      });
+      modelManager.addModel(testProvider, mockModelConfig);
 
       const messages = [
         { role: 'system', content: 'test' }
@@ -93,10 +109,7 @@ describe('LLMService', () => {
     });
 
     it('当消息格式无效时应抛出错误', async () => {
-      modelManager.addModel({
-        key: testProvider,
-        ...mockModelConfig
-      });
+      modelManager.addModel(testProvider, mockModelConfig);
 
       const invalidMessages = [
         { role: 'invalid', content: 'test' }

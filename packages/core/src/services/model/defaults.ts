@@ -34,7 +34,7 @@ export const defaultModels: Record<string, ModelConfig> = {
   },
   gemini: {
     name: 'Google Gemini',
-    baseURL: 'https://geminiapi.always200.com/v1beta',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     models: ['gemini-2.0-flash'],
     defaultModel: 'gemini-2.0-flash',
     apiKey: GEMINI_API_KEY,

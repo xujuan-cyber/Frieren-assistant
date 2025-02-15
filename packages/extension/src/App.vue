@@ -167,6 +167,9 @@ import { v4 as uuidv4 } from 'uuid'
 const llmService = createLLMService(modelManager)
 let promptService = null
 
+// 初始化 toast
+const toast = useToast()
+
 // 添加提示词选择的本地存储
 const STORAGE_KEYS = {
   OPTIMIZE_TEMPLATE: 'app:selected-optimize-template',
