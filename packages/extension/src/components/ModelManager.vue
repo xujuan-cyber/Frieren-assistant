@@ -1,0 +1,412 @@
+<template>
+  <div
+    class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto"
+    @click="$emit('close')"
+  >
+    <div
+      class="relative bg-gray-900/90 backdrop-blur-sm rounded-xl shadow-xl border border-purple-700/50 w-full max-w-3xl m-4"
+      @click.stop
+    >
+      <div class="p-6 space-y-6">
+        <!-- 标题和关闭按钮 -->
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-white/90">模型设置</h2>
+          <button
+            @click="$emit('close')"
+            class="text-white/60 hover:text-white/90 transition-colors text-xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <!-- 已启用模型列表 -->
+        <div class="space-y-3">
+          <h3 class="text-lg font-semibold text-white/90">模型列表</h3>
+          <div class="space-y-3">
+            <div v-for="model in models" :key="model.key" 
+                 :class="['p-4 rounded-xl border transition-colors',
+                         model.enabled 
+                           ? 'bg-black/20 border-purple-600/50' 
+                           : 'bg-black/10 border-gray-600/50']">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-medium" :class="model.enabled ? 'text-white/90' : 'text-white/60'">
+                      {{ model.name }}
+                    </h4>
+                    <span v-if="!model.enabled" 
+                          class="px-1.5 py-0.5 text-xs rounded bg-gray-600/20 text-gray-400">
+                      已禁用
+                    </span>
+                  </div>
+                  <p class="text-sm" :class="model.enabled ? 'text-white/60' : 'text-white/40'">
+                    {{ model.model }}
+                  </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button @click="testConnection(model.key)"
+                          class="px-4 py-1.5 text-sm rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 transition-colors">
+                    测试连接
+                  </button>
+                  <button @click="editModel(model.key)"
+                          class="px-4 py-1.5 text-sm rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 transition-colors">
+                    编辑
+                  </button>
+                  <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
+                          :class="['px-4 py-1.5 text-sm rounded-lg transition-colors',
+                                  model.enabled 
+                                    ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                    : 'bg-green-500/20 text-green-300 hover:bg-green-500/30']">
+                    {{ model.enabled ? '禁用' : '启用' }}
+                  </button>
+                  <!-- 只对自定义模型显示删除按钮 -->
+                  <button v-if="!isDefaultModel(model.key)" 
+                          @click="handleDelete(model.key)"
+                          class="px-4 py-1.5 text-sm rounded-lg bg-red-700/20 text-red-400 hover:bg-red-700/30 transition-colors">
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 使用 Teleport 将模态框传送到 body -->
+        <Teleport to="body">
+          <!-- 编辑模型弹窗 -->
+          <div v-if="isEditing" 
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
+               @click="cancelEdit">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            
+            <div class="relative bg-gray-900/95 rounded-xl shadow-2xl border border-purple-700/50 w-full max-w-2xl m-4 z-10"
+                 @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold text-white/90">编辑模型</h3>
+                  <button
+                    @click="cancelEdit"
+                    class="text-white/60 hover:text-white/90 transition-colors text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <form @submit.prevent="saveEdit" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">显示名称</label>
+                    <input v-model="editingModel.name" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: 自定义模型"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
+                    <input v-model="editingModel.baseURL" type="url" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="https://api.example.com/v1/chat/completions"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
+                    <input v-model="editingModel.defaultModel" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: gpt-3.5-turbo"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 密钥</label>
+                    <input v-model="editingModel.apiKey" type="password"
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="输入新的 API 密钥（留空则保持不变）"/>
+                  </div>
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      @click="cancelEdit"
+                      class="px-4 py-2 rounded-lg border border-gray-600/50 text-white/70 hover:text-white/90 hover:border-gray-500/60 transition-all"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                    >
+                      保存修改
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- 添加模型弹窗 -->
+          <div v-if="showAddForm" 
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
+               @click="showAddForm = false">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            
+            <div class="relative bg-gray-900/95 rounded-xl shadow-2xl border border-purple-700/50 w-full max-w-2xl m-4 z-10"
+                 @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold text-white/90">添加自定义模型</h3>
+                  <button
+                    @click="showAddForm = false"
+                    class="text-white/60 hover:text-white/90 transition-colors text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <form @submit.prevent="addCustomModel" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">模型标识</label>
+                    <input v-model="newModel.key" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: custom-model"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">显示名称</label>
+                    <input v-model="newModel.name" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: 自定义模型"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
+                    <input v-model="newModel.baseURL" type="url" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="https://api.example.com/v1/chat/completions"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
+                    <input v-model="newModel.defaultModel" type="text" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="例如: gpt-3.5-turbo"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/90 mb-1.5">API 密钥</label>
+                    <input v-model="newModel.apiKey" type="password" required
+                           class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                           placeholder="输入 API 密钥"/>
+                  </div>
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      @click="showAddForm = false"
+                      class="px-4 py-2 rounded-lg border border-gray-600/50 text-white/70 hover:text-white/90 hover:border-gray-500/60 transition-all"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                    >
+                      添加模型
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
+        <!-- 添加模型按钮 -->
+        <div class="mt-6 border-t border-purple-700/50 pt-6">
+          <button
+            @click="showAddForm = true"
+            class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors flex items-center justify-center space-x-2"
+          >
+            <span>+</span>
+            <span>添加自定义模型</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, defineEmits } from 'vue';
+import { modelManager, createLLMService } from '@prompt-optimizer/core';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
+const emit = defineEmits(['modelsUpdated', 'close']);
+
+const models = ref([]);
+const isEditing = ref(false);
+const showAddForm = ref(false);
+const editingModel = ref(null);
+const newModel = ref({
+  key: '',
+  name: '',
+  baseURL: '',
+  defaultModel: '',
+  apiKey: ''
+});
+
+// 加载所有模型
+const loadModels = () => {
+  const allModels = modelManager.getAllModels();
+  models.value = Object.entries(allModels).map(([key, config]) => ({
+    key,
+    ...config,  // 保留所有原始配置
+    model: config.defaultModel  // 为了显示用
+  }));
+  emit('modelsUpdated', models.value);
+};
+
+// 测试连接
+const testConnection = async (key) => {
+  try {
+    const model = modelManager.getModel(key);
+    if (!model) throw new Error('模型配置不存在');
+
+    const llm = createLLMService(modelManager);
+    await llm.testConnection(key);
+    toast.success('连接测试成功');
+  } catch (error) {
+    console.error('连接测试失败:', error);
+    toast.error(`连接测试失败: ${error.message}`);
+  }
+};
+
+// 判断是否为默认模型
+const isDefaultModel = (key) => {
+  return ['openai', 'gemini', 'deepseek'].includes(key);
+};
+
+// 处理删除
+const handleDelete = async (key) => {
+  if (confirm(`确定要删除模型 ${key} 吗？此操作不可恢复。`)) {
+    try {
+      modelManager.deleteModel(key);
+      loadModels();
+      toast.success('模型已删除');
+    } catch (error) {
+      console.error('删除模型失败:', error);
+      toast.error(`删除模型失败: ${error.message}`);
+    }
+  }
+};
+
+// 编辑模型
+const editModel = (key) => {
+  const model = modelManager.getModel(key);
+  if (model) {
+    editingModel.value = {
+      key,
+      name: model.name,
+      baseURL: model.baseURL,
+      defaultModel: model.defaultModel,
+      apiKey: ''  // 不显示原有的 API 密钥
+    };
+    isEditing.value = true;
+  }
+};
+
+// 取消编辑
+const cancelEdit = () => {
+  isEditing.value = false;
+  editingModel.value = null;
+};
+
+// 保存编辑
+const saveEdit = () => {
+  try {
+    const originalConfig = modelManager.getModel(editingModel.value.key);
+    if (!originalConfig) {
+      throw new Error('找不到原始配置');
+    }
+
+    const config = {
+      name: editingModel.value.name,
+      baseURL: editingModel.value.baseURL,
+      models: [editingModel.value.defaultModel],
+      defaultModel: editingModel.value.defaultModel,
+      apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey,
+      enabled: originalConfig.enabled,
+      provider: originalConfig.provider
+    };
+
+    modelManager.updateModel(editingModel.value.key, config);
+    loadModels();
+    isEditing.value = false;
+    editingModel.value = null;
+    toast.success('模型配置已更新');
+  } catch (error) {
+    console.error('更新模型失败:', error);
+    toast.error(`更新模型失败: ${error.message}`);
+  }
+};
+
+// 添加自定义模型
+const addCustomModel = () => {
+  try {
+    const config = {
+      name: newModel.value.name,
+      baseURL: newModel.value.baseURL,
+      models: [newModel.value.defaultModel],
+      defaultModel: newModel.value.defaultModel,
+      apiKey: newModel.value.apiKey,
+      enabled: true,
+      provider: 'custom'
+    };
+
+    modelManager.addModel(newModel.value.key, config);
+    loadModels();
+    showAddForm.value = false;
+    newModel.value = {
+      key: '',
+      name: '',
+      baseURL: '',
+      defaultModel: '',
+      apiKey: ''
+    };
+    toast.success('模型添加成功');
+  } catch (error) {
+    console.error('添加模型失败:', error);
+    toast.error(`添加模型失败: ${error.message}`);
+  }
+};
+
+// 启用/禁用模型
+const enableModel = (key) => {
+  try {
+    modelManager.enableModel(key);
+    loadModels();
+    toast.success('模型已启用');
+  } catch (error) {
+    console.error('启用模型失败:', error);
+    toast.error(`启用模型失败: ${error.message}`);
+  }
+};
+
+const disableModel = (key) => {
+  try {
+    modelManager.disableModel(key);
+    loadModels();
+    toast.success('模型已禁用');
+  } catch (error) {
+    console.error('禁用模型失败:', error);
+    toast.error(`禁用模型失败: ${error.message}`);
+  }
+};
+
+// 初始化
+onMounted(() => {
+  loadModels();
+});
+</script>
+
+<style scoped>
+/* 添加过渡动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+</style>

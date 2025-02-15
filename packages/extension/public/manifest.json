@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Prompt Optimizer",
+  "description": "AI提示词优化工具",
+  "version": "1.0.0",
+  "action": {},
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ]
+} 

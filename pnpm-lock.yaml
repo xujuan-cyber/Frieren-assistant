@@ -50,6 +50,70 @@ importers:
         specifier: ^3.0.2
         version: 3.0.5(@types/node@18.19.75)(jiti@1.21.7)(jsdom@26.0.0)(yaml@2.7.0)
 
+  packages/extension:
+    dependencies:
+      '@langchain/anthropic':
+        specifier: ^0.3.12
+        version: 0.3.13(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))
+      '@langchain/core':
+        specifier: ^0.3.33
+        version: 0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2))
+      '@langchain/google-genai':
+        specifier: ^0.1.6
+        version: 0.1.8(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(zod@3.24.2)
+      '@langchain/openai':
+        specifier: ^0.3.17
+        version: 0.3.17(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(ws@8.18.0)
+      '@prompt-optimizer/core':
+        specifier: workspace:*
+        version: link:../core
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      element-plus:
+        specifier: ^2.9.3
+        version: 2.9.4(vue@3.5.13(typescript@5.7.3))
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
+      langchain:
+        specifier: ^0.3.12
+        version: 0.3.15(@langchain/anthropic@0.3.13(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2))))(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(@langchain/google-genai@0.1.8(@langchain/core@0.3.39(openai@4.83.0(ws@8.18.0)(zod@3.24.2)))(zod@3.24.2))(openai@4.83.0(ws@8.18.0)(zod@3.24.2))(ws@8.18.0)
+      uuid:
+        specifier: ^11.0.5
+        version: 11.0.5
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.13(typescript@5.7.3)
+    devDependencies:
+      '@tailwindcss/forms':
+        specifier: ^0.5.10
+        version: 0.5.10(tailwindcss@3.4.17)
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.16(tailwindcss@3.4.17)
+      '@vitejs/plugin-basic-ssl':
+        specifier: ^1.2.0
+        version: 1.2.0(vite@6.1.0(@types/node@18.19.75)(jiti@1.21.7)(yaml@2.7.0))
+      '@vitejs/plugin-vue':
+        specifier: ^5.2.1
+        version: 5.2.1(vite@6.1.0(@types/node@18.19.75)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.3))
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.4.20(postcss@8.5.2)
+      postcss:
+        specifier: ^8.5.1
+        version: 8.5.2
+      tailwindcss:
+        specifier: ^3.4.17
+        version: 3.4.17
+      vite:
+        specifier: ^6.0.7
+        version: 6.1.0(@types/node@18.19.75)(jiti@1.21.7)(yaml@2.7.0)
+      vitest:
+        specifier: ^3.0.2
+        version: 3.0.5(@types/node@18.19.75)(jiti@1.21.7)(jsdom@26.0.0)(yaml@2.7.0)
+
   packages/web:
     dependencies:
       '@langchain/anthropic':
