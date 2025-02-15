@@ -1,6 +1,6 @@
 # Prompt Optimizer (提示词优化器) 🚀
 
-[![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer&env=VITE_GEMINI_API_KEY&envDescription=API密钥配置（可选）&envLink=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer%23environment-variables)
+[![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
 一个好用的提示词优化工具，帮助你优化和改进AI提示词，支持Web应用和Chrome插件。
 
@@ -25,8 +25,8 @@
 ### 方式一：使用在线版本（推荐）
 
 1. 直接访问：[https://prompt.always200.com](https://prompt.always200.com)
-2. 或者一键部署到自己的Vercel：
-   [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer&env=VITE_GEMINI_API_KEY&envDescription=API密钥配置（可选）&envLink=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer%23environment-variables)
+2. 或者一键部署到自己的Vercel（API密钥可以稍后在设置界面配置）：
+   [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
 ### 方式二：安装Chrome插件
 1. 从Chrome商店安装（即将上线）
