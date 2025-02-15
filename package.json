@@ -9,6 +9,8 @@
     "test": "pnpm -r test"
   },
   "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/vue": "^1.0.31",
     "@vitejs/plugin-vue": "^5.2.1"
   },
   "dependencies": {

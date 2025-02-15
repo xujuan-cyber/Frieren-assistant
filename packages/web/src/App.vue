@@ -12,21 +12,21 @@
             class="text-white/80 hover:text-white transition-colors flex items-center gap-1 hover:scale-105 transform px-1.5 py-1"
           >
             <span class="text-base sm:text-lg">📝</span>
-            <span class="hidden sm:inline text-sm">功能提示词</span>
+            <span class="text-sm max-sm:hidden">功能提示词</span>
           </button>
           <button
             @click="showHistory = true"
             class="text-white/80 hover:text-white transition-colors flex items-center gap-1 hover:scale-105 transform px-1.5 py-1"
           >
             <span class="text-base sm:text-lg">📜</span>
-            <span class="hidden sm:inline text-sm">历史记录</span>
+            <span class="text-sm max-sm:hidden">历史记录</span>
           </button>
           <button
             @click="showConfig = true"
             class="text-white/80 hover:text-white transition-colors flex items-center gap-1 hover:scale-105 transform px-1.5 py-1"
           >
             <span class="text-base sm:text-lg">⚙️</span>
-            <span class="hidden sm:inline text-sm">模型管理</span>
+            <span class="text-sm max-sm:hidden">模型管理</span>
           </button>
         </div>
       </div>
@@ -141,10 +141,9 @@
     </Teleport>
 
     <!-- 历史记录弹窗 -->
-    <HistoryModal
-      :show="showHistory"
+    <HistoryDrawer
+      v-model:show="showHistory"
       :history="history"
-      @close="showHistory = false"
       @reuse="handleSelectHistory"
       @clear="handleClearHistory"
     />
@@ -155,6 +154,7 @@
 </template>
 
 <script setup>
+import '@prompt-optimizer/ui/style.css'
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { 
   createLLMService, 
@@ -163,15 +163,19 @@ import {
   templateManager,
   historyManager
 } from '@prompt-optimizer/core'
-import ModelManager from './components/ModelManager.vue'
-import TemplateManager from './components/TemplateManager.vue'
-import Toast from './components/Toast.vue'
-import HistoryModal from './components/HistoryDrawer.vue'
-import PromptPanel from './components/PromptPanel.vue'
-import InputPanel from './components/InputPanel.vue'
-import OutputPanel from './components/OutputPanel.vue'
+import {
+  Toast,
+  ModelManager,
+  OutputPanel,
+  PromptPanel,
+  TemplateManager,
+  TemplateSelect,
+  HistoryDrawer,
+  InputPanel,
+  Modal,
+  ApiKeyConfig
+} from '@prompt-optimizer/ui'
 import { useToast } from './composables/useToast'
-import TemplateSelect from './components/TemplateSelect.vue'
 import { v4 as uuidv4 } from 'uuid'
 
 // 初始化服务

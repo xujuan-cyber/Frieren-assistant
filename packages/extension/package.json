@@ -16,6 +16,7 @@
     "@langchain/google-genai": "^0.1.6",
     "@langchain/openai": "^0.3.17",
     "@prompt-optimizer/core": "workspace:*",
+    "@prompt-optimizer/ui": "workspace:*",
     "dotenv": "^16.4.7",
     "element-plus": "^2.9.3",
     "js-yaml": "^4.1.0",

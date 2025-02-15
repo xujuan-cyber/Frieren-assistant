@@ -2,7 +2,7 @@
   <div
     v-if="show"
     class="fixed inset-0 bg-black bg-opacity-50 z-45 flex items-center justify-center"
-    @click="$emit('close')"
+    @click="emit('update:show', false)"
   >
     <div
       class="w-full max-w-4xl h-[90vh] bg-gray-900/90 backdrop-blur-sm border border-purple-700/50 shadow-xl rounded-lg transform transition-all duration-300 ease-in-out"
@@ -22,7 +22,7 @@
             </button>
           </div>
           <button
-            @click.stop="$emit('close')"
+            @click.stop="emit('update:show', false)"
             class="text-white/60 hover:text-white/90 transition-colors text-xl"
           >
             ×
@@ -126,7 +126,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import type { PropType } from 'vue'
-import type { PromptRecord, PromptRecordChain } from '../services/history/types'
+import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 
 const props = defineProps({
@@ -144,7 +144,7 @@ console.log('HistoryDrawer props:', {
 })
 
 const emit = defineEmits<{
-  (e: 'close'): void
+  (e: 'update:show', value: boolean): void
   (e: 'reuse', context: { 
     record: PromptRecord, 
     chainId: string,
@@ -217,7 +217,7 @@ const reuse = (record: PromptRecord, chain: PromptRecordChain) => {
     chainId: chain.chainId,
     rootPrompt: chain.rootRecord.originalPrompt
   })
-  emit('close')
+  emit('update:show', false)
 }
 
 // 添加文本截断函数
