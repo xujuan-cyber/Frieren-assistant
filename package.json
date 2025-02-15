@@ -3,9 +3,23 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test"
+    "dev:core": "pnpm -F @prompt-optimizer/core dev",
+    "dev:ui": "pnpm -F @prompt-optimizer/ui dev",
+    "dev:web": "pnpm -F @prompt-optimizer/web dev",
+    "dev:ext": "pnpm -F @prompt-optimizer/extension dev",
+
+    "build:core": "pnpm -F @prompt-optimizer/core build",
+    "build:ui": "pnpm -F @prompt-optimizer/ui build",
+    "build:web": "pnpm -F @prompt-optimizer/web build",
+    "build:ext": "pnpm -F @prompt-optimizer/extension build",
+
+    "test:core": "pnpm -F @prompt-optimizer/core test",
+    "test:ui": "pnpm -F @prompt-optimizer/ui test",
+    "test:web": "pnpm -F @prompt-optimizer/web test",
+    "test:ext": "pnpm -F @prompt-optimizer/extension test",
+
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

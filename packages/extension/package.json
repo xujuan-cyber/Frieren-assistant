@@ -27,12 +27,15 @@
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
+    "@tsconfig/node18": "^18.2.4",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-basic-ssl": "^1.2.0",
     "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/tsconfig": "^0.5.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.7",
     "vitest": "^3.0.2"
   }
-} 
+}

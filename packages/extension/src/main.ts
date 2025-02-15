@@ -1,7 +1,10 @@
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
 import App from './App.vue'
+
+// 样式导入顺序很重要
+import 'element-plus/dist/index.css'
+import '@prompt-optimizer/ui/style.css'  // UI模块样式
 import './style.css'
 
 // 创建Vue应用
