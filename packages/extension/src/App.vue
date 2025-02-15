@@ -167,7 +167,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 // 初始化服务
 const llmService = createLLMService(modelManager)
-let promptService = null
+const promptServiceRef = ref(null)
 
 // 初始化 toast
 const toast = useToast()
@@ -204,7 +204,7 @@ const {
   handleSwitchVersion,
   saveTemplateSelection,
   initTemplateSelection
-} = usePromptOptimizer(modelManager, templateManager, historyManager, promptService)
+} = usePromptOptimizer(modelManager, templateManager, historyManager, promptServiceRef)
 
 const {
   testContent,
@@ -213,7 +213,7 @@ const {
   isTesting,
   selectedModel,
   handleTest
-} = usePromptTester(promptService)
+} = usePromptTester(promptServiceRef)
 
 // 计算属性
 const enabledModels = computed(() => 
@@ -223,7 +223,7 @@ const enabledModels = computed(() =>
 // 初始化 promptService
 const initServices = async () => {
   try {
-    promptService = await createPromptService(modelManager, llmService)
+    promptServiceRef.value = await createPromptService(modelManager, llmService)
   } catch (error) {
     console.error('服务初始化失败:', error)
     toast.error('服务初始化失败')
@@ -345,10 +345,19 @@ watch(showConfig, (newVal) => {
 
 // 添加历史记录显示状态监听
 watch(showHistory, (newVal) => {
+  if (newVal) {
+    // 打开历史记录时，重新获取最新数据
+    history.value = historyManager.getAllChains()
+  }
   console.log('历史记录显示状态变更:', {
     show: newVal,
     currentHistory: history.value?.length
   })
+})
+
+// 监听优化完成，更新历史记录
+watch([currentVersions], () => {
+  history.value = historyManager.getAllChains()
 })
 </script>
 
