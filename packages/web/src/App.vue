@@ -42,6 +42,7 @@
           :loading="isOptimizing"
           :disabled="isOptimizing"
           @submit="handleOptimizePrompt"
+          @configModel="showConfig = true"
         >
           <template #template-select>
             <TemplateSelect
@@ -85,6 +86,7 @@
           :loading="isTesting"
           :disabled="isTesting"
           @submit="() => handleTest(optimizedPrompt)"
+          @configModel="showConfig = true"
         />
       </div>
 

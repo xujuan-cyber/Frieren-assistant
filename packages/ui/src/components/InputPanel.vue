@@ -22,16 +22,13 @@
       <!-- 模型选择 -->
       <div class="min-w-[120px] w-fit">
         <label class="block text-sm font-medium text-white/90 mb-1.5">{{ modelLabel }}</label>
-        <select
-          :value="selectedModel"
-          @input="$emit('update:selectedModel', $event.target.value)"
-          class="w-full h-10 px-3 bg-black/20 border border-purple-600/50 rounded-lg text-white custom-select hover:border-purple-500/70 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+        <ModelSelect
+          :modelValue="selectedModel"
+          @update:modelValue="$emit('update:selectedModel', $event)"
+          :models="models"
           :disabled="loading || disabled"
-        >
-          <option v-for="model in models" :key="model.key" :value="model.key">
-            {{ model.name }}
-          </option>
-        </select>
+          @config="$emit('configModel')"
+        />
       </div>
       
       <!-- 提示词模板选择 -->
@@ -57,6 +54,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import ModelSelect from './ModelSelect.vue'
 
 const props = defineProps({
   modelValue: {
@@ -105,5 +103,5 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'update:selectedModel', 'submit'])
+const emit = defineEmits(['update:modelValue', 'update:selectedModel', 'submit', 'configModel'])
 </script> 
