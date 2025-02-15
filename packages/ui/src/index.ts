@@ -13,9 +13,14 @@ export { default as HistoryDrawer } from './components/HistoryDrawer.vue'
 export { default as InputPanel } from './components/InputPanel.vue'
 export { default as Modal } from './components/Modal.vue'
 export { default as ApiKeyConfig } from './components/ApiKeyConfig.vue'
+export { default as MainLayout } from './components/MainLayout.vue'
+export { default as ContentCard } from './components/ContentCard.vue'
+export { default as ActionButton } from './components/ActionButton.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'
 
 // 导出组合式函数
-export { useToast } from './composables/useToast' 
+export { useToast } from './composables/useToast'
+export { usePromptOptimizer } from './composables/usePromptOptimizer'
+export { usePromptTester } from './composables/usePromptTester' 

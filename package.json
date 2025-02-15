@@ -1,22 +1,13 @@
 {
-  "name": "prompt-optimizer-monorepo",
+  "name": "prompt-optimizer",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev:web": "pnpm --filter web dev",
-    "dev:extension": "pnpm --filter extension dev",
-    "build:web": "pnpm --filter web build",
-    "build:extension": "pnpm --filter extension build",
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
     "test": "pnpm -r test"
   },
   "devDependencies": {
-    "@types/node": "^22.13.4",
-    "@types/vue": "^1.0.31",
-    "@vitejs/plugin-vue": "^5.2.1"
-  },
-  "dependencies": {
-    "@langchain/core": "^0.3.33",
-    "@langchain/google-genai": "^0.1.6",
-    "@langchain/openai": "^0.3.17",
-    "uuid": "^11.0.5"
+    "typescript": "^5.0.0"
   }
 }
