@@ -104,14 +104,22 @@
   - 集成测试
   - 快照测试
   - 覆盖率报告
+  - 模拟功能(Mock/Spy)
+  - 异步测试支持
 - Vue Test Utils 2.4.x
   - 组件测试
   - 行为模拟
   - 事件测试
+  - 组合式函数测试
+  - Props/Emit测试
+  - 生命周期钩子测试
 - Playwright 1.41.x
   - E2E测试
   - 跨浏览器测试
   - 视觉回归测试
+  - 性能测试
+  - 网络请求模拟
+  - 并发测试支持
 
 ## 9. 构建和部署
 - pnpm 8.15.x
@@ -163,4 +171,23 @@
 - WebSocket支持
   - 实时通信
   - 心跳检测
-  - 自动重连 
+  - 自动重连
+
+## 13. 错误处理系统
+- 统一错误类型
+  - APIError
+  - ValidationError
+  - ConfigError
+  - StorageError
+- 错误恢复机制
+  - 自动重试
+  - 降级处理
+  - 错误边界
+- 错误监控
+  - 错误日志
+  - 性能监控
+  - 用户反馈
+- 调试工具
+  - Vue Devtools
+  - Chrome DevTools
+  - 网络分析 

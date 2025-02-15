@@ -8,7 +8,8 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'PromptOptimizerUI',
-      fileName: (format) => `index.${format === 'es' ? 'js' : 'umd.cjs'}`
+      fileName: (format) => `index.${format === 'es' ? 'js' : 'umd.cjs'}`,
+      formats: ['es']
     },
     rollupOptions: {
       external: ['vue'],
@@ -18,5 +19,6 @@ export default defineConfig({
         }
       }
     }
-  }
+  },
+  assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.svg']
 }) 

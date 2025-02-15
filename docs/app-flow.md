@@ -162,11 +162,21 @@
    // API错误处理
    const handleApiError = async (err: APIError) => {
      if (err.isRetryable) {
-       await retryOperation()
-     } else {
-       notifyUser(err.message)
-       logError(err)
+       const result = await retryWithBackoff(operation, {
+         maxRetries: 3,
+         initialDelay: 1000
+       })
+       return result
      }
+     
+     // 错误上报
+     errorMonitor.captureError(err)
+     
+     // 用户通知
+     toast.error(err.userMessage)
+     
+     // 降级处理
+     return fallbackOperation()
    }
    ```
 
@@ -174,9 +184,39 @@
    ```typescript
    // 验证错误处理
    const handleValidationError = (err: ValidationError) => {
-     showValidationMessage(err.message)
-     highlightInvalidField(err.field)
-     logValidationError(err)
+     // 字段验证
+     const fieldErrors = validateFields(err.fields)
+     
+     // UI更新
+     updateFormErrors(fieldErrors)
+     
+     // 焦点处理
+     focusFirstError(fieldErrors)
+     
+     // 错误提示
+     toast.warning(err.message)
+   }
+   ```
+
+3. 全局错误处理
+   ```typescript
+   // 全局错误处理
+   app.config.errorHandler = (err, vm, info) => {
+     // 错误分类
+     const errorType = classifyError(err)
+     
+     // 错误恢复
+     handleErrorRecovery(errorType, vm)
+     
+     // 错误上报
+     reportError(err, {
+       component: vm.$options.name,
+       info,
+       state: vm.$data
+     })
+     
+     // 用户反馈
+     showErrorFeedback(errorType)
    }
    ```
 
@@ -207,5 +247,51 @@
      } catch (err) {
        handleStateUpdateError(err)
      }
+   }
+   ```
+
+## 9. 测试流程
+1. 单元测试
+   ```typescript
+   // 组件测试
+   const testComponent = async () => {
+     const wrapper = mount(Component, {
+       props: { /* ... */ },
+       global: {
+         plugins: [/* ... */],
+         mocks: { /* ... */ }
+       }
+     })
+     
+     await wrapper.trigger('click')
+     expect(wrapper.emitted()).toHaveProperty('event')
+   }
+   ```
+
+2. 集成测试
+   ```typescript
+   // 服务集成测试
+   const testService = async () => {
+     const service = createService()
+     const result = await service.operation()
+     expect(result).toBeDefined()
+     
+     // 错误测试
+     await expect(
+       service.invalidOperation()
+     ).rejects.toThrow(ServiceError)
+   }
+   ```
+
+3. E2E测试
+   ```typescript
+   // 端到端测试
+   const testFlow = async ({ page }) => {
+     await page.goto('/')
+     await page.fill('#prompt', 'test prompt')
+     await page.click('#optimize')
+     await expect(
+       page.locator('#result')
+     ).toContainText('优化结果')
    }
    ``` 
