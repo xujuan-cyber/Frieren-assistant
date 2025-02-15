@@ -1,8 +1,9 @@
 import { ref } from 'vue'
 import { useToast } from './useToast'
+import type { Ref } from 'vue'
 import type { PromptService } from '../types'
 
-export function usePromptTester(promptService: PromptService | null) {
+export function usePromptTester(promptService: Ref<PromptService | null>) {
   const toast = useToast()
   
   // 状态
@@ -14,7 +15,7 @@ export function usePromptTester(promptService: PromptService | null) {
   
   // 测试提示词
   const handleTest = async (optimizedPrompt: string) => {
-    if (!promptService) {
+    if (!promptService.value) {
       toast.error('服务未初始化，请稍后重试')
       return
     }
@@ -29,7 +30,7 @@ export function usePromptTester(promptService: PromptService | null) {
     testResult.value = ''
 
     try {
-      await promptService.testPromptStream(
+      await promptService.value.testPromptStream(
         optimizedPrompt,
         testContent.value,
         selectedModel.value,

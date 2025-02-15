@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useToast } from './useToast'
 import { v4 as uuidv4 } from 'uuid'
+import type { Ref } from 'vue'
 import type {
   ModelManager,
   TemplateManager,
@@ -14,7 +15,7 @@ export function usePromptOptimizer(
   modelManager: ModelManager,
   templateManager: TemplateManager,
   historyManager: HistoryManager,
-  promptService: PromptService | null
+  promptService: Ref<PromptService | null>
 ) {
   const toast = useToast()
   
@@ -39,7 +40,7 @@ export function usePromptOptimizer(
   // 优化提示词
   const handleOptimizePrompt = async () => {
     if (!prompt.value.trim() || isOptimizing.value) return
-    if (!promptService) {
+    if (!promptService.value) {
       toast.error('服务未初始化，请稍后重试')
       return
     }
@@ -54,7 +55,7 @@ export function usePromptOptimizer(
     
     try {
       // 使用流式调用
-      await promptService.optimizePromptStream(
+      await promptService.value.optimizePromptStream(
         prompt.value, 
         optimizeModel.value,
         selectedOptimizeTemplate.value.content,
@@ -102,7 +103,7 @@ export function usePromptOptimizer(
   // 迭代优化
   const handleIteratePrompt = async ({ originalPrompt, iterateInput }: { originalPrompt: string, iterateInput: string }) => {
     if (!originalPrompt || !iterateInput || isIterating.value) return
-    if (!promptService) {
+    if (!promptService.value) {
       toast.error('服务未初始化，请稍后重试')
       return
     }
@@ -115,7 +116,7 @@ export function usePromptOptimizer(
     optimizedPrompt.value = ''  // 清空之前的结果
     
     try {
-      await promptService.iteratePromptStream(
+      await promptService.value.iteratePromptStream(
         originalPrompt,
         iterateInput,
         optimizeModel.value,
