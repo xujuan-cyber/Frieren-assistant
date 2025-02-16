@@ -31,8 +31,7 @@
       <div class="flex-none">
         <InputPanel
           v-model="prompt"
-          v-model:selectedModel="optimizeModel"
-          :models="enabledModels"
+          v-model:selectedModel="selectedOptimizeModel"
           label="原始提示词"
           placeholder="请输入需要优化的prompt..."
           model-label="优化模型"
@@ -44,6 +43,15 @@
           @submit="handleOptimizePrompt"
           @configModel="showConfig = true"
         >
+          <template #model-select>
+            <ModelSelect
+              ref="optimizeModelSelect"
+              :modelValue="selectedOptimizeModel"
+              @update:modelValue="selectedOptimizeModel = $event"
+              :disabled="isOptimizing"
+              @config="showConfig = true"
+            />
+          </template>
           <template #template-select>
             <TemplateSelect
               v-model="selectedOptimizeTemplate"
@@ -76,8 +84,7 @@
       <div class="flex-none">
         <InputPanel
           v-model="testContent"
-          v-model:selectedModel="selectedModel"
-          :models="enabledModels"
+          v-model:selectedModel="selectedTestModel"
           label="测试内容"
           placeholder="请输入要测试的内容..."
           model-label="模型"
@@ -87,7 +94,17 @@
           :disabled="isTesting"
           @submit="() => handleTest(optimizedPrompt)"
           @configModel="showConfig = true"
-        />
+        >
+          <template #model-select>
+            <ModelSelect
+              ref="testModelSelect"
+              :modelValue="selectedTestModel"
+              @update:modelValue="selectedTestModel = $event"
+              :disabled="isTesting"
+              @config="showConfig = true"
+            />
+          </template>
+        </InputPanel>
       </div>
 
       <!-- 测试结果区域 -->
@@ -109,6 +126,7 @@
           v-if="showConfig"
           @close="handleModelManagerClose"
           @modelsUpdated="handleModelsUpdated"
+          @select="handleModelSelect"
         />
       </Teleport>
 
@@ -137,7 +155,7 @@
 
 <script setup>
 import '@prompt-optimizer/ui/style.css'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { 
   createLLMService, 
   createPromptService,
@@ -152,10 +170,9 @@ import {
   PromptPanel,
   TemplateManager,
   TemplateSelect,
+  ModelSelect,
   HistoryDrawer,
   InputPanel,
-  Modal,
-  ApiKeyConfig,
   MainLayout,
   ContentCard,
   ActionButton,
@@ -172,22 +189,17 @@ const promptServiceRef = ref(null)
 // 初始化 toast
 const toast = useToast()
 
-// 添加提示词选择的本地存储
-const STORAGE_KEYS = {
-  OPTIMIZE_TEMPLATE: 'app:selected-optimize-template',
-  ITERATE_TEMPLATE: 'app:selected-iterate-template',
-  OPTIMIZE_MODEL: 'app:selected-optimize-model',
-  TEST_MODEL: 'app:selected-test-model'
-}
-
 // 状态
 const showConfig = ref(false)
 const showHistory = ref(false)
 const showTemplates = ref(false)
 const currentType = ref('optimize')  // 默认为优化提示词
 const history = ref([])
-const models = ref([])
 const outputPanelRef = ref(null)
+
+// 添加 ref
+const optimizeModelSelect = ref(null)
+const testModelSelect = ref(null)
 
 // 初始化组合式函数
 const {
@@ -197,7 +209,8 @@ const {
   isIterating,
   selectedOptimizeTemplate,
   selectedIterateTemplate,
-  optimizeModel,
+  selectedOptimizeModel,
+  selectedTestModel,
   currentVersions,
   currentVersionId,
   currentChainId,
@@ -205,7 +218,10 @@ const {
   handleIteratePrompt,
   handleSwitchVersion,
   saveTemplateSelection,
-  initTemplateSelection
+  initTemplateSelection,
+  handleModelSelect,
+  initModelSelection,
+  loadModels
 } = usePromptOptimizer(modelManager, templateManager, historyManager, promptServiceRef)
 
 const {
@@ -213,14 +229,8 @@ const {
   testResult,
   testError,
   isTesting,
-  selectedModel,
   handleTest
-} = usePromptTester(promptServiceRef)
-
-// 计算属性
-const enabledModels = computed(() => 
-  models.value.filter(model => model.enabled)
-)
+} = usePromptTester(promptServiceRef, selectedTestModel)
 
 // 初始化 promptService
 const initServices = async () => {
@@ -229,51 +239,6 @@ const initServices = async () => {
   } catch (error) {
     console.error('服务初始化失败:', error)
     toast.error('服务初始化失败')
-  }
-}
-
-// 方法
-const loadModels = async (updatedModelKey) => {
-  try {
-    models.value = modelManager.getAllModels()
-    
-    // 获取保存的模型选择
-    const savedOptimizeModel = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
-    const savedTestModel = localStorage.getItem(STORAGE_KEYS.TEST_MODEL)
-    
-    // 设置默认模型
-    const defaultModel = enabledModels.value[0]?.key
-    if (defaultModel) {
-      // 如果有更新的模型，优先使用它
-      if (updatedModelKey && enabledModels.value.find(m => m.key === updatedModelKey)) {
-        if (optimizeModel.value === updatedModelKey) {
-          optimizeModel.value = updatedModelKey
-        }
-        if (selectedModel.value === updatedModelKey) {
-          selectedModel.value = updatedModelKey
-        }
-      } 
-      // 否则，优先使用保存的选择，如果保存的选择无效才使用默认值
-      else {
-        if (!enabledModels.value.find(m => m.key === optimizeModel.value)) {
-          optimizeModel.value = (savedOptimizeModel && enabledModels.value.find(m => m.key === savedOptimizeModel)) 
-            ? savedOptimizeModel 
-            : defaultModel
-        }
-        if (!enabledModels.value.find(m => m.key === selectedModel.value)) {
-          selectedModel.value = (savedTestModel && enabledModels.value.find(m => m.key === savedTestModel))
-            ? savedTestModel
-            : defaultModel
-        }
-      }
-    }
-    
-    // 保存当前选择
-    saveModelSelection(optimizeModel.value, 'optimize')
-    saveModelSelection(selectedModel.value, 'test')
-  } catch (error) {
-    console.error('加载模型列表失败:', error)
-    toast.error('加载模型列表失败')
   }
 }
 
@@ -378,29 +343,26 @@ const handleTemplateManagerClose = async () => {
   showTemplates.value = false
 }
 
-// 添加模型选择的持久化
-const saveModelSelection = (model, type) => {
-  if (model) {
-    localStorage.setItem(
-      type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_MODEL : STORAGE_KEYS.TEST_MODEL,
-      model
-    )
-  }
+// 修改模型管理器关闭处理函数
+const handleModelManagerClose = async () => {
+  // 先更新数据
+  await loadModels()
+  // 刷新模型选择组件
+  optimizeModelSelect.value?.refresh()
+  testModelSelect.value?.refresh()
+  // 关闭界面
+  showConfig.value = false
 }
 
-// 监听模型选择变化
-watch(optimizeModel, (newVal) => {
-  saveModelSelection(newVal, 'optimize')
-})
-
-watch(selectedModel, (newVal) => {
-  saveModelSelection(newVal, 'test')
-})
+// 修改模型更新处理函数
+const handleModelsUpdated = (modelKey) => {
+  // 如果需要，可以在这里处理模型更新后的其他逻辑
+}
 
 // 生命周期钩子
 onMounted(async () => {
   await initServices()
-  loadModels()
+  await initModelSelection()
   
   // 初始化历史记录管理器
   try {
@@ -425,14 +387,6 @@ onMounted(async () => {
   await initTemplateSelection()
 })
 
-// 修改模型管理器关闭处理函数
-const handleModelManagerClose = async () => {
-  // 先加载最新的模型列表
-  await loadModels()
-  // 最后关闭界面
-  showConfig.value = false
-}
-
 // 添加历史记录显示状态监听
 watch(showHistory, (newVal) => {
   if (newVal) {
@@ -449,11 +403,6 @@ watch(showHistory, (newVal) => {
 watch([currentVersions], () => {
   history.value = historyManager.getAllChains()
 })
-
-// 添加模型更新处理函数
-const handleModelsUpdated = async (modelKey) => {
-  await loadModels(modelKey)
-}
 </script>
 
 <style>

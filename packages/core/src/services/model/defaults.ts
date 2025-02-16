@@ -71,7 +71,7 @@ export const defaultModels: Record<string, ModelConfig> = {
     provider: 'deepseek'
   },
   custom: {
-    name: '自定义API',
+    name: 'CUSTOM',
     baseURL: CUSTOM_API_BASE_URL,
     models: [CUSTOM_API_MODEL],
     defaultModel: CUSTOM_API_MODEL,

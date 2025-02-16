@@ -22,13 +22,7 @@
       <!-- 模型选择 -->
       <div class="min-w-[120px] w-fit">
         <label class="block text-sm font-medium text-white/90 mb-1.5">{{ modelLabel }}</label>
-        <ModelSelect
-          :modelValue="selectedModel"
-          @update:modelValue="$emit('update:selectedModel', $event)"
-          :models="models"
-          :disabled="loading || disabled"
-          @config="$emit('configModel')"
-        />
+        <slot name="model-select"></slot>
       </div>
       
       <!-- 提示词模板选择 -->
@@ -54,7 +48,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import ModelSelect from './ModelSelect.vue'
 
 const props = defineProps({
   modelValue: {
@@ -63,10 +56,6 @@ const props = defineProps({
   },
   selectedModel: {
     type: String,
-    required: true
-  },
-  models: {
-    type: Array,
     required: true
   },
   label: {

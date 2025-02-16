@@ -1,14 +1,17 @@
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useToast } from './useToast'
 import { v4 as uuidv4 } from 'uuid'
 import type { Ref } from 'vue'
-import type {
+import type { 
+  ModelConfig,
   ModelManager,
+  HistoryManager
+} from '@prompt-optimizer/core'
+import type {
   TemplateManager,
-  HistoryManager,
   PromptService,
   Template,
-  PromptChain
+  PromptChain,
 } from '../types'
 
 export function usePromptOptimizer(
@@ -26,7 +29,8 @@ export function usePromptOptimizer(
   const isIterating = ref(false)
   const selectedOptimizeTemplate = ref<Template | null>(null)
   const selectedIterateTemplate = ref<Template | null>(null)
-  const optimizeModel = ref('')
+  const selectedOptimizeModel = ref('')
+  const selectedTestModel = ref('')
   const currentChainId = ref('')
   const currentVersions = ref<PromptChain['versions']>([])
   const currentVersionId = ref('')
@@ -34,7 +38,9 @@ export function usePromptOptimizer(
   // 本地存储key
   const STORAGE_KEYS = {
     OPTIMIZE_TEMPLATE: 'app:selected-optimize-template',
-    ITERATE_TEMPLATE: 'app:selected-iterate-template'
+    ITERATE_TEMPLATE: 'app:selected-iterate-template',
+    OPTIMIZE_MODEL: 'app:selected-optimize-model',
+    TEST_MODEL: 'app:selected-test-model'
   } as const
   
   // 优化提示词
@@ -57,7 +63,7 @@ export function usePromptOptimizer(
       // 使用流式调用
       await promptService.value.optimizePromptStream(
         prompt.value, 
-        optimizeModel.value,
+        selectedOptimizeModel.value,
         selectedOptimizeTemplate.value.content,
         {
           onToken: (token: string) => {
@@ -72,7 +78,7 @@ export function usePromptOptimizer(
               originalPrompt: prompt.value,
               optimizedPrompt: optimizedPrompt.value,
               type: 'optimize',
-              modelKey: optimizeModel.value,
+              modelKey: selectedOptimizeModel.value,
               templateId: selectedOptimizeTemplate.value.id,
               timestamp: Date.now(),
               metadata: {}
@@ -119,7 +125,7 @@ export function usePromptOptimizer(
       await promptService.value.iteratePromptStream(
         originalPrompt,
         iterateInput,
-        optimizeModel.value,
+        selectedOptimizeModel.value,
         {
           onToken: (token: string) => {
             optimizedPrompt.value += token
@@ -132,7 +138,7 @@ export function usePromptOptimizer(
               originalPrompt: originalPrompt,
               optimizedPrompt: optimizedPrompt.value,
               iterationNote: iterateInput,
-              modelKey: optimizeModel.value,
+              modelKey: selectedOptimizeModel.value,
               templateId: selectedIterateTemplate.value.id
             });
             
@@ -216,6 +222,98 @@ export function usePromptOptimizer(
     }
   }
 
+  // 保存模型选择
+  const saveModelSelection = (model: string, type: 'optimize' | 'test') => {
+    if (model) {
+      localStorage.setItem(
+        type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_MODEL : STORAGE_KEYS.TEST_MODEL,
+        model
+      )
+    }
+  }
+
+  // 初始化模型选择
+  const initModelSelection = async () => {
+    try {
+      const enabledModels = modelManager.getAllModels().filter(m => m.enabled)
+      const defaultModel = enabledModels[0]?.key
+
+      if (defaultModel) {
+        // 加载优化模型选择
+        const savedOptimizeModel = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
+        selectedOptimizeModel.value = (savedOptimizeModel && enabledModels.find(m => m.key === savedOptimizeModel))
+          ? savedOptimizeModel
+          : defaultModel
+
+        // 加载测试模型选择
+        const savedTestModel = localStorage.getItem(STORAGE_KEYS.TEST_MODEL)
+        selectedTestModel.value = (savedTestModel && enabledModels.find(m => m.key === savedTestModel))
+          ? savedTestModel
+          : defaultModel
+
+        // 保存初始选择
+        saveModelSelection(selectedOptimizeModel.value, 'optimize')
+        saveModelSelection(selectedTestModel.value, 'test')
+      }
+    } catch (error: any) {
+      console.error('初始化模型选择失败:', error)
+      toast.error('初始化模型选择失败')
+    }
+  }
+
+  // 处理模型选择
+  const handleModelSelect = async (model: ModelConfig & { key: string }) => {
+    if (model) {
+      selectedOptimizeModel.value = model.key
+      selectedTestModel.value = model.key
+      
+      saveModelSelection(model.key, 'optimize')
+      saveModelSelection(model.key, 'test')
+      
+      toast.success(`已选择模型: ${model.name}`)
+    }
+  }
+
+  // 监听模型选择变化
+  watch(selectedOptimizeModel, (newVal) => {
+    if (newVal) {
+      saveModelSelection(newVal, 'optimize')
+    }
+  })
+
+  watch(selectedTestModel, (newVal) => {
+    if (newVal) {
+      saveModelSelection(newVal, 'test')
+    }
+  })
+
+  // 加载模型数据
+  const loadModels = async () => {
+    try {
+      // 获取最新的启用模型列表
+      const enabledModels = modelManager.getAllModels().filter(m => m.enabled)
+      const defaultModel = enabledModels[0]?.key
+
+      // 验证当前选中的模型是否仍然可用
+      if (!enabledModels.find(m => m.key === selectedOptimizeModel.value)) {
+        selectedOptimizeModel.value = defaultModel || ''
+      }
+      if (!enabledModels.find(m => m.key === selectedTestModel.value)) {
+        selectedTestModel.value = defaultModel || ''
+      }
+
+      toast.success('模型列表已更新')
+    } catch (error: any) {
+      console.error('加载模型列表失败:', error)
+      toast.error('加载模型列表失败')
+    }
+  }
+
+  // 在 onMounted 中初始化
+  onMounted(async () => {
+    await initModelSelection()
+  })
+
   return {
     // 状态
     prompt,
@@ -224,7 +322,8 @@ export function usePromptOptimizer(
     isIterating,
     selectedOptimizeTemplate,
     selectedIterateTemplate,
-    optimizeModel,
+    selectedOptimizeModel,
+    selectedTestModel,
     currentChainId,
     currentVersions,
     currentVersionId,
@@ -234,6 +333,10 @@ export function usePromptOptimizer(
     handleIteratePrompt,
     handleSwitchVersion,
     saveTemplateSelection,
-    initTemplateSelection
+    initTemplateSelection,
+    handleModelSelect,
+    saveModelSelection,
+    initModelSelection,
+    loadModels
   }
 } 

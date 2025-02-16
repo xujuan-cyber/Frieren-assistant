@@ -44,10 +44,6 @@
         >
           <div class="flex items-center justify-between">
             <span>{{ model.name }}</span>
-            <span v-if="!isDefaultModel(model.key)" 
-                  class="text-xs px-1.5 py-0.5 rounded bg-purple-600/20 text-purple-300">
-              自定义
-            </span>
           </div>
         </div>
       </div>
@@ -67,15 +63,12 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { modelManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
 
 const props = defineProps({
   modelValue: {
     type: String,
-    required: true
-  },
-  models: {
-    type: Array,
     required: true
   },
   disabled: {
@@ -87,21 +80,24 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'config'])
 
 const isOpen = ref(false)
+const refreshTrigger = ref(0)
 const vClickOutside = clickOutside
 
 // 获取选中的模型
-const getSelectedModel = computed(() => 
-  props.models.find(m => m.key === props.modelValue)
-)
+const getSelectedModel = computed(() => {
+  refreshTrigger.value
+  return modelManager.getAllModels().find(m => m.key === props.modelValue)
+})
 
 // 启用的模型列表
-const enabledModels = computed(() => 
-  props.models.filter(model => model.enabled)
-)
+const enabledModels = computed(() => {
+  refreshTrigger.value
+  return modelManager.getEnabledModels()
+})
 
 // 判断是否为默认模型
 const isDefaultModel = (key) => {
-  const model = props.models.find(m => m.key === key)
+  const model = modelManager.getAllModels().find(m => m.key === key)
   return model?.isDefault ?? false
 }
 
@@ -109,20 +105,38 @@ const isDefaultModel = (key) => {
 const toggleDropdown = () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    refreshTrigger.value++
+  }
 }
 
 // 选择模型
 const selectModel = (model) => {
   emit('update:modelValue', model.key)
   isOpen.value = false
+  refreshTrigger.value++
 }
 
+// 添加刷新方法
+const refresh = () => {
+  refreshTrigger.value++
+}
+
+// 暴露方法给父组件
+defineExpose({
+  refresh
+})
+
 // 监听模型数据变化，确保选中的模型仍然可用
-watch(() => props.models, () => {
-  if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
-    emit('update:modelValue', enabledModels.value[0]?.key || '')
-  }
-}, { deep: true })
+watch(
+  () => modelManager.getAllModels(),
+  () => {
+    if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
+      emit('update:modelValue', enabledModels.value[0]?.key || '')
+    }
+  }, 
+  { deep: true }
+)
 
 // 计算下拉框样式
 const dropdownStyle = computed(() => ({

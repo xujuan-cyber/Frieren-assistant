@@ -3,7 +3,10 @@ import { useToast } from './useToast'
 import type { Ref } from 'vue'
 import type { PromptService } from '../types'
 
-export function usePromptTester(promptService: Ref<PromptService | null>) {
+export function usePromptTester(
+  promptService: Ref<PromptService | null>,
+  selectedTestModel: Ref<string>
+) {
   const toast = useToast()
   
   // 状态
@@ -11,7 +14,6 @@ export function usePromptTester(promptService: Ref<PromptService | null>) {
   const testResult = ref('')
   const testError = ref('')
   const isTesting = ref(false)
-  const selectedModel = ref('')
   
   // 测试提示词
   const handleTest = async (optimizedPrompt: string) => {
@@ -20,7 +22,7 @@ export function usePromptTester(promptService: Ref<PromptService | null>) {
       return
     }
     
-    if (!selectedModel.value || !testContent.value || !optimizedPrompt) {
+    if (!selectedTestModel.value || !testContent.value || !optimizedPrompt) {
       toast.error('请填写完整的测试信息')
       return
     }
@@ -33,7 +35,7 @@ export function usePromptTester(promptService: Ref<PromptService | null>) {
       await promptService.value.testPromptStream(
         optimizedPrompt,
         testContent.value,
-        selectedModel.value,
+        selectedTestModel.value,
         {
           onToken: (token: string) => {
             testResult.value += token
@@ -61,7 +63,6 @@ export function usePromptTester(promptService: Ref<PromptService | null>) {
     testResult,
     testError,
     isTesting,
-    selectedModel,
     
     // 方法
     handleTest

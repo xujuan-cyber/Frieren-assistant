@@ -36,4 +36,6 @@ export interface IModelManager {
   enableModel(key: string): void;
   /** 禁用模型 */
   disableModel(key: string): void;
+  /** 获取启用的模型 */
+  getEnabledModels(): ModelConfig[];
 } 

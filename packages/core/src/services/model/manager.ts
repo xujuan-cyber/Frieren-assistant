@@ -18,6 +18,7 @@ export class ModelManager implements IModelManager {
    */
   private init(): void {
     try {
+      console.log('初始化模型管理器...');
       // 1. 先从本地存储加载所有模型配置
       const storedData = localStorage.getItem('models');
       if (storedData) {
@@ -41,8 +42,6 @@ export class ModelManager implements IModelManager {
       }
     } catch (error) {
       console.error('初始化模型管理器失败:', error);
-      // 如果出错，至少保证内置模型可用
-      this.models = { ...defaultModels };
     }
   }
 
@@ -50,10 +49,23 @@ export class ModelManager implements IModelManager {
    * 获取所有模型配置
    */
   getAllModels(): Array<ModelConfig & { key: string }> {
-    return Object.entries(this.models).map(([key, config]) => ({
+    // 每次获取都从存储重新加载最新数据
+    const storedData = localStorage.getItem('models');
+    if (storedData) {
+      try {
+        this.models = JSON.parse(storedData);
+      } catch (error) {
+        console.error('解析模型配置失败:', error);
+      }
+    }
+    
+    const returnValue = Object.entries(this.models).map(([key, config]) => ({
       ...config,
       key
     }));
+    console.log('获取所有模型配置:', returnValue);
+    return returnValue;
+
   }
 
   /**
@@ -82,7 +94,14 @@ export class ModelManager implements IModelManager {
     if (!this.models[key]) {
       throw new ModelConfigError(`模型 ${key} 不存在`);
     }
-    const updatedConfig = { ...this.models[key], ...config };
+    
+    // 合并配置时保留原有 enabled 状态
+    const updatedConfig = { 
+      ...this.models[key], 
+      ...config,
+      // 确保 enabled 属性存在
+      enabled: config.enabled !== undefined ? config.enabled : this.models[key].enabled
+    };
     
     // 如果更新了关键字段或尝试启用模型，需要验证配置
     if (
@@ -183,6 +202,13 @@ export class ModelManager implements IModelManager {
     } catch (error) {
       console.error('保存模型配置失败:', error);
     }
+  }
+
+  /**
+   * 获取所有已启用的模型配置
+   */
+  getEnabledModels(): Array<ModelConfig & { key: string }> {
+    return this.getAllModels().filter(model => model.enabled);
   }
 }
 

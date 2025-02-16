@@ -127,6 +127,7 @@
                     </button>
                     <button
                       type="submit"
+                      @click="() => console.log('保存按钮被点击')"
                       class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
                     >
                       保存修改
@@ -229,7 +230,7 @@ import { modelManager, createLLMService } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 
 const toast = useToast();
-const emit = defineEmits(['modelsUpdated', 'close']);
+const emit = defineEmits(['modelsUpdated', 'close', 'select']);
 
 const models = ref([]);
 const isEditing = ref(false);
@@ -246,9 +247,11 @@ const newModel = ref({
 // 加载所有模型
 const loadModels = async () => {
   try {
-    // 获取并排序模型列表
+    // 强制刷新模型数据
     const allModels = modelManager.getAllModels();
-    models.value = allModels.sort((a, b) => {
+    
+    // 使用深拷贝确保响应式更新
+    models.value = JSON.parse(JSON.stringify(allModels)).sort((a, b) => {
       // 启用的模型排在前面
       if (a.enabled !== b.enabled) {
         return a.enabled ? -1 : 1;
@@ -267,7 +270,7 @@ const loadModels = async () => {
       hasApiKey: !!m.apiKey
     })));
     
-    emit('modelsUpdated', models.value);
+    emit('modelsUpdated', models.value[0]?.key);
   } catch (error) {
     console.error('加载模型列表失败:', error);
     toast.error('加载模型列表失败');
@@ -331,11 +334,15 @@ const cancelEdit = () => {
 
 // 保存编辑
 const saveEdit = async () => {
+  console.log('开始保存编辑...');
+  console.log('编辑的模型数据:', editingModel.value);
+  
   try {
     const originalConfig = modelManager.getModel(editingModel.value.key)
     if (!originalConfig) {
       throw new Error('找不到原始配置')
     }
+    console.log('原始配置:', originalConfig);
 
     const config = {
       name: editingModel.value.name,
@@ -346,13 +353,22 @@ const saveEdit = async () => {
       enabled: originalConfig.enabled,
       provider: originalConfig.provider
     }
+    console.log('新配置:', config);
 
     await modelManager.updateModel(editingModel.value.key, config)
+    console.log('模型更新成功');
+    
     await loadModels()
+    console.log('模型列表已重新加载');
+    
+    emit('modelsUpdated', editingModel.value.key)
+    console.log('已触发 modelsUpdated 事件');
+    
     isEditing.value = false
     editingModel.value = null
-    // 通知父组件更新模型列表和选中状态
-    emit('modelsUpdated', editingModel.value.key)
+    
+    // 修改这里，传递被编辑的模型的 key
+    
     toast.success('模型配置已更新')
   } catch (error) {
     console.error('更新模型失败:', error)
@@ -376,6 +392,8 @@ const addCustomModel = async () => {
     await modelManager.addModel(newModel.value.key, config)
     await loadModels()
     showAddForm.value = false
+    // 修改这里，传递新添加的模型的 key
+    emit('modelsUpdated', newModel.value.key)
     newModel.value = {
       key: '',
       name: '',
@@ -398,6 +416,8 @@ const enableModel = async (key) => {
 
     await modelManager.enableModel(key)
     await loadModels()
+    // 修改这里，传递启用的模型的 key
+    emit('modelsUpdated', key)
     toast.success('模型已启用')
   } catch (error) {
     console.error('启用模型失败:', error)
@@ -412,11 +432,23 @@ const disableModel = async (key) => {
 
     await modelManager.disableModel(key)
     await loadModels()
+    // 修改这里，传递禁用的模型的 key
+    emit('modelsUpdated', key)
     toast.success('模型已禁用')
   } catch (error) {
     console.error('禁用模型失败:', error)
     toast.error(`禁用模型失败: ${error.message}`)
   }
+}
+
+// 添加选中模型的处理
+const selectedModel = ref(null)
+
+const handleSelectModel = (model) => {
+  if (model) {
+    emit('select', model)
+  }
+  handleClose()
 }
 
 // 初始化

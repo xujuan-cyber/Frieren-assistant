@@ -25,7 +25,7 @@ export interface PromptRecord {
   modelKey: string
   templateId: string
   timestamp: number
-  metadata: Record<string, any>
+  metadata?: Record<string, any>
 }
 
 export interface PromptChain {
