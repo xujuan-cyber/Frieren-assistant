@@ -237,6 +237,10 @@ const loadModels = async (updatedModelKey) => {
   try {
     models.value = modelManager.getAllModels()
     
+    // 获取保存的模型选择
+    const savedOptimizeModel = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
+    const savedTestModel = localStorage.getItem(STORAGE_KEYS.TEST_MODEL)
+    
     // 设置默认模型
     const defaultModel = enabledModels.value[0]?.key
     if (defaultModel) {
@@ -249,13 +253,17 @@ const loadModels = async (updatedModelKey) => {
           selectedModel.value = updatedModelKey
         }
       } 
-      // 否则，如果当前选择的模型不在可用列表中，则更新为默认模型
+      // 否则，优先使用保存的选择，如果保存的选择无效才使用默认值
       else {
         if (!enabledModels.value.find(m => m.key === optimizeModel.value)) {
-          optimizeModel.value = defaultModel
+          optimizeModel.value = (savedOptimizeModel && enabledModels.value.find(m => m.key === savedOptimizeModel)) 
+            ? savedOptimizeModel 
+            : defaultModel
         }
         if (!enabledModels.value.find(m => m.key === selectedModel.value)) {
-          selectedModel.value = defaultModel
+          selectedModel.value = (savedTestModel && enabledModels.value.find(m => m.key === savedTestModel))
+            ? savedTestModel
+            : defaultModel
         }
       }
     }
@@ -389,27 +397,10 @@ watch(selectedModel, (newVal) => {
   saveModelSelection(newVal, 'test')
 })
 
-// 恢复模型选择
-const restoreModelSelection = () => {
-  const savedOptimizeModel = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
-  const savedTestModel = localStorage.getItem(STORAGE_KEYS.TEST_MODEL)
-  
-  // 如果有保存的选择且模型仍然启用，则使用保存的选择
-  if (savedOptimizeModel && enabledModels.value.find(m => m.key === savedOptimizeModel)) {
-    optimizeModel.value = savedOptimizeModel
-  }
-  if (savedTestModel && enabledModels.value.find(m => m.key === savedTestModel)) {
-    selectedModel.value = savedTestModel
-  }
-}
-
 // 生命周期钩子
 onMounted(async () => {
   await initServices()
   loadModels()
-  
-  // 恢复模型选择
-  restoreModelSelection()
   
   // 初始化历史记录管理器
   try {
