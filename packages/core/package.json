@@ -30,6 +30,7 @@
     "@langchain/core": "^0.3.33",
     "@langchain/google-genai": "^0.1.6",
     "@langchain/openai": "^0.3.17",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "zod": "^3.22.4"
   }
 }

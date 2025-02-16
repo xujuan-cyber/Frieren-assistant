@@ -183,7 +183,7 @@ export class TemplateManager implements ITemplateManager {
       const template = JSON.parse(templateJson) as Template;
       const result = templateSchema.safeParse(template);
       if (!result.success) {
-        throw new TemplateValidationError(`提示词验证失败: ${result.error.errors.map(e => e.message).join(', ')}`);
+        throw new TemplateValidationError(`提示词验证失败: ${result.error.errors.map((e: { message: string }) => e.message).join(', ')}`);
       }
       this.userTemplates.set(template.id, template);
       await this.persistUserTemplates();

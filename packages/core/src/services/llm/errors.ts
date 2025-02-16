@@ -5,7 +5,10 @@ export class BaseError extends Error {
   constructor(message: string) {
     super(message);
     this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
+    // 检查 captureStackTrace 是否存在
+    if (Error.captureStackTrace && typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
 }
 
