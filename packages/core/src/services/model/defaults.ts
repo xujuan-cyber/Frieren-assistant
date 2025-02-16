@@ -3,14 +3,34 @@ import { ModelConfig } from './types';
 
 // 获取环境变量的辅助函数
 const getEnvVar = (key: string): string => {
+  // 1. 首先尝试 process.env
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key] || '';
   }
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+
+  // 2. 然后尝试 import.meta.env（Vite 环境）
+  try {
     // @ts-ignore
-    return import.meta.env[key] || '';
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      const value = import.meta.env[key];
+      if (value) return value;
+    }
+  } catch {
+    // 忽略错误
   }
+
+  // 3. 最后尝试 globalThis
+  try {
+    // @ts-ignore
+    if (typeof globalThis !== 'undefined' && globalThis[key]) {
+      // @ts-ignore
+      return globalThis[key];
+    }
+  } catch {
+    // 忽略错误
+  }
+
   return '';
 };
 
