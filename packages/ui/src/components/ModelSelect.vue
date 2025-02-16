@@ -88,61 +88,46 @@ const emit = defineEmits(['update:modelValue', 'config'])
 
 const isOpen = ref(false)
 const vClickOutside = clickOutside
-const refreshTrigger = ref(0)
-
-// 添加深度监听 models 变化
-watch(() => props.models, () => {
-  refreshTrigger.value++
-  // 如果当前选中的模型不在可用列表中，重置选择
-  if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
-    emit('update:modelValue', enabledModels.value[0]?.key || '')
-  }
-}, { deep: true })
-
-// 监听下拉框打开状态
-watch(isOpen, (newValue) => {
-  if (newValue) {
-    // 打开时强制刷新列表
-    refreshTrigger.value++
-  }
-})
-
-const dropdownStyle = computed(() => ({
-  minWidth: '100%'
-}))
 
 // 获取选中的模型
-const getSelectedModel = computed(() => {
-  refreshTrigger.value // 依赖刷新触发器
-  return props.models.find(m => m.key === props.modelValue)
-})
+const getSelectedModel = computed(() => 
+  props.models.find(m => m.key === props.modelValue)
+)
+
+// 启用的模型列表
+const enabledModels = computed(() => 
+  props.models.filter(model => model.enabled)
+)
 
 // 判断是否为默认模型
 const isDefaultModel = (key) => {
-  return ['openai', 'gemini', 'deepseek'].includes(key)
+  const model = props.models.find(m => m.key === key)
+  return model?.isDefault ?? false
 }
-
-// 添加启用模型的计算属性
-const enabledModels = computed(() => {
-  refreshTrigger.value // 依赖刷新触发器
-  return props.models.filter(model => model.enabled)
-})
 
 // 切换下拉框
 const toggleDropdown = () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    refreshTrigger.value++ // 打开时刷新
-  }
 }
 
 // 选择模型
 const selectModel = (model) => {
   emit('update:modelValue', model.key)
   isOpen.value = false
-  refreshTrigger.value++ // 选择后刷新
 }
+
+// 监听模型数据变化，确保选中的模型仍然可用
+watch(() => props.models, () => {
+  if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
+    emit('update:modelValue', enabledModels.value[0]?.key || '')
+  }
+}, { deep: true })
+
+// 计算下拉框样式
+const dropdownStyle = computed(() => ({
+  minWidth: '100%'
+}))
 </script>
 
 <style scoped>

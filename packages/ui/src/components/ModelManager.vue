@@ -246,45 +246,33 @@ const newModel = ref({
 // 加载所有模型
 const loadModels = async () => {
   try {
-    console.log('正在加载模型列表...')
-    
-    // 强制从本地存储重新加载
-    const storedData = localStorage.getItem('models')
-    if (storedData) {
-      const storedModels = JSON.parse(storedData)
-      Object.entries(storedModels).forEach(([key, config]) => {
-        if (modelManager.getModel(key)) {
-          modelManager.updateModel(key, config)
-        }
-      })
-    }
-    
-    // 获取最新数据
-    const allModels = modelManager.getAllModels()
-    console.log('原始模型数据:', allModels)
-    models.value = Object.entries(allModels).map(([key, config]) => ({
-      key,
-      ...config
-    })).sort((a, b) => {
+    // 获取并排序模型列表
+    const allModels = modelManager.getAllModels();
+    models.value = allModels.sort((a, b) => {
       // 启用的模型排在前面
       if (a.enabled !== b.enabled) {
-        return a.enabled ? -1 : 1
+        return a.enabled ? -1 : 1;
       }
       // 默认模型排在前面
       if (isDefaultModel(a.key) !== isDefaultModel(b.key)) {
-        return isDefaultModel(a.key) ? -1 : 1
+        return isDefaultModel(a.key) ? -1 : 1;
       }
-      return 0
-    })
+      return 0;
+    });
     
-    console.log('处理后的模型列表:', models.value)
-    // 通知父组件更新
-    emit('modelsUpdated', models.value)
+    console.log('处理后的模型列表:', models.value.map(m => ({
+      key: m.key,
+      name: m.name,
+      enabled: m.enabled,
+      hasApiKey: !!m.apiKey
+    })));
+    
+    emit('modelsUpdated', models.value);
   } catch (error) {
-    console.error('加载模型列表失败:', error)
-    toast.error('加载模型列表失败')
+    console.error('加载模型列表失败:', error);
+    toast.error('加载模型列表失败');
   }
-}
+};
 
 // 测试连接
 const testConnection = async (key) => {
@@ -388,8 +376,6 @@ const addCustomModel = async () => {
     await modelManager.addModel(newModel.value.key, config)
     await loadModels()
     showAddForm.value = false
-    // 通知父组件更新模型列表和选中状态
-    emit('modelsUpdated', newModel.value.key)
     newModel.value = {
       key: '',
       name: '',
@@ -412,8 +398,6 @@ const enableModel = async (key) => {
 
     await modelManager.enableModel(key)
     await loadModels()
-    // 通知父组件更新模型列表和选中状态
-    emit('modelsUpdated', key)
     toast.success('模型已启用')
   } catch (error) {
     console.error('启用模型失败:', error)
@@ -428,8 +412,6 @@ const disableModel = async (key) => {
 
     await modelManager.disableModel(key)
     await loadModels()
-    // 通知父组件更新模型列表和选中状态
-    emit('modelsUpdated', key)
     toast.success('模型已禁用')
   } catch (error) {
     console.error('禁用模型失败:', error)

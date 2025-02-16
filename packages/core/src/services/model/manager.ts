@@ -10,11 +10,40 @@ export class ModelManager implements IModelManager {
 
   constructor() {
     this.models = {};
-    // 加载默认模型配置
-    Object.entries(defaultModels).forEach(([key, config]) => {
-      this.models[key] = { ...config };
-    });
-    this.loadFromStorage();
+    this.init();
+  }
+
+  /**
+   * 初始化模型管理器
+   */
+  private init(): void {
+    try {
+      // 1. 先从本地存储加载所有模型配置
+      const storedData = localStorage.getItem('models');
+      if (storedData) {
+        this.models = JSON.parse(storedData);
+      }
+
+      // 2. 检查内置模型是否存在，不存在则添加到本地存储
+      let hasChanges = false;
+      Object.entries(defaultModels).forEach(([key, config]) => {
+        if (!this.models[key]) {
+          this.models[key] = {
+            ...config
+          };
+          hasChanges = true;
+        }
+      });
+
+      // 3. 如果有新增的内置模型，保存到本地存储
+      if (hasChanges) {
+        this.saveToStorage();
+      }
+    } catch (error) {
+      console.error('初始化模型管理器失败:', error);
+      // 如果出错，至少保证内置模型可用
+      this.models = { ...defaultModels };
+    }
   }
 
   /**
@@ -64,13 +93,7 @@ export class ModelManager implements IModelManager {
       config.apiKey !== undefined ||
       config.enabled
     ) {
-      try {
-        this.validateConfig(updatedConfig);
-      } catch (error) {
-        // 如果验证失败，恢复原始配置
-        this.models[key] = { ...this.models[key] };
-        throw error;
-      }
+      this.validateConfig(updatedConfig);
     }
     
     this.models[key] = updatedConfig;
@@ -152,44 +175,6 @@ export class ModelManager implements IModelManager {
   }
 
   /**
-   * 从本地存储加载配置
-   */
-  private loadFromStorage(): void {
-    try {
-      const storedData = localStorage.getItem('models');
-      if (storedData) {
-        const storedModels = JSON.parse(storedData);
-        // 合并存储的配置，保留默认模型的基本信息
-        Object.entries(storedModels).forEach(([key, config]) => {
-          if (defaultModels[key]) {
-            // 对于默认模型，保留环境变量中的 apiKey，如果存在的话
-            const envApiKey = this.models[key].apiKey;
-            this.models[key] = {
-              ...this.models[key],
-              apiKey: envApiKey || (config as ModelConfig).apiKey,
-              enabled: !!(envApiKey || (config as ModelConfig).apiKey)
-            };
-            
-            // 调试日志
-            console.log(`加载模型 ${key} 配置:`, {
-              apiKey: !!this.models[key].apiKey,
-              enabled: this.models[key].enabled,
-              fromEnv: !!envApiKey
-            });
-          } else {
-            // 对于自定义模型，完全使用存储的配置
-            this.models[key] = config as ModelConfig;
-          }
-        });
-      }
-    } catch (error) {
-      console.error('加载模型配置失败:', error);
-      // 不抛出错误，而是使用默认配置
-      this.models = { ...defaultModels };
-    }
-  }
-
-  /**
    * 保存配置到本地存储
    */
   private saveToStorage(): void {
@@ -197,7 +182,6 @@ export class ModelManager implements IModelManager {
       localStorage.setItem('models', JSON.stringify(this.models));
     } catch (error) {
       console.error('保存模型配置失败:', error);
-      // 不抛出错误，继续使用内存中的配置
     }
   }
 }
