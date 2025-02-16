@@ -84,6 +84,7 @@ const emit = defineEmits(['update:modelValue', 'manage', 'select'])
 
 const isOpen = ref(false)
 const dropdownStyle = ref({})
+const refreshTrigger = ref(0)
 
 // 计算下拉菜单位置
 const updateDropdownPosition = () => {
@@ -126,9 +127,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-// 在打开下拉菜单时更新位置
-watch(isOpen, (newValue) => {
+// 监听下拉框打开状态
+watch(isOpen, async (newValue) => {
   if (newValue) {
+    // 打开时刷新列表
+    refreshTrigger.value++
     nextTick(() => {
       updateDropdownPosition()
     })
@@ -139,14 +142,23 @@ const typeText = computed(() => {
   return props.type === 'iterate' ? '迭代功能提示词' : '优化功能提示词'
 })
 
-const templates = computed(() => 
-  templateManager.listTemplatesByType(props.type)
-)
+const templates = computed(() => {
+  // 使用 refreshTrigger 触发重新计算
+  refreshTrigger.value
+  return templateManager.listTemplatesByType(props.type)
+})
+
+// 添加手动刷新方法
+const refreshTemplates = () => {
+  refreshTrigger.value++
+}
 
 const selectTemplate = (template) => {
   emit('update:modelValue', template)
   emit('select', template, props.type)
   isOpen.value = false
+  // 选择后刷新列表
+  refreshTemplates()
 }
 </script>
 

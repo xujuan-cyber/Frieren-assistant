@@ -7,11 +7,11 @@
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span v-if="modelValue && getSelectedModel" class="text-white">
+          <span v-if="modelValue && getSelectedModel && getSelectedModel.enabled" class="text-white">
             {{ getSelectedModel.name }}
           </span>
           <span v-else class="text-white/50">
-            {{ !models.length ? '请配置模型' : '请选择模型' }}
+            {{ !enabledModels.length ? '请配置模型' : '请选择模型' }}
           </span>
         </div>
         <span class="text-purple-300">
@@ -29,10 +29,10 @@
          v-click-outside="() => isOpen = false"
     >
       <div class="p-2 max-h-64 overflow-y-auto">
-        <div v-if="!models.length" class="px-3 py-2 text-gray-400 text-sm">
+        <div v-if="!enabledModels.length" class="px-3 py-2 text-gray-400 text-sm">
           暂无可用模型
         </div>
-        <div v-else v-for="model in models" 
+        <div v-else v-for="model in enabledModels" 
              :key="model.key"
              @click="selectModel(model)"
              class="px-3 py-2 rounded-lg cursor-pointer transition-colors group relative"
@@ -66,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { clickOutside } from '../directives/clickOutside'
 
 const props = defineProps({
@@ -88,6 +88,24 @@ const emit = defineEmits(['update:modelValue', 'config'])
 
 const isOpen = ref(false)
 const vClickOutside = clickOutside
+const refreshTrigger = ref(0)
+
+// 添加深度监听 models 变化
+watch(() => props.models, () => {
+  refreshTrigger.value++
+  // 如果当前选中的模型不在可用列表中，重置选择
+  if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
+    emit('update:modelValue', enabledModels.value[0]?.key || '')
+  }
+}, { deep: true })
+
+// 监听下拉框打开状态
+watch(isOpen, (newValue) => {
+  if (newValue) {
+    // 打开时强制刷新列表
+    refreshTrigger.value++
+  }
+})
 
 const dropdownStyle = computed(() => ({
   minWidth: '100%'
@@ -95,6 +113,7 @@ const dropdownStyle = computed(() => ({
 
 // 获取选中的模型
 const getSelectedModel = computed(() => {
+  refreshTrigger.value // 依赖刷新触发器
   return props.models.find(m => m.key === props.modelValue)
 })
 
@@ -103,16 +122,26 @@ const isDefaultModel = (key) => {
   return ['openai', 'gemini', 'deepseek'].includes(key)
 }
 
+// 添加启用模型的计算属性
+const enabledModels = computed(() => {
+  refreshTrigger.value // 依赖刷新触发器
+  return props.models.filter(model => model.enabled)
+})
+
 // 切换下拉框
 const toggleDropdown = () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    refreshTrigger.value++ // 打开时刷新
+  }
 }
 
 // 选择模型
 const selectModel = (model) => {
   emit('update:modelValue', model.key)
   isOpen.value = false
+  refreshTrigger.value++ // 选择后刷新
 }
 </script>
 

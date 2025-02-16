@@ -107,8 +107,8 @@
       <Teleport to="body">
         <ModelManager
           v-if="showConfig"
-          @close="showConfig = false"
-          @modelsUpdated="loadModels"
+          @close="handleModelManagerClose"
+          @modelsUpdated="handleModelsUpdated"
         />
       </Teleport>
 
@@ -119,7 +119,7 @@
           :template-type="currentType"
           :selected-optimize-template="selectedOptimizeTemplate"
           :selected-iterate-template="selectedIterateTemplate"
-          @close="showTemplates = false"
+          @close="handleTemplateManagerClose"
           @select="handleTemplateSelect"
         />
       </Teleport>
@@ -175,7 +175,9 @@ const toast = useToast()
 // 添加提示词选择的本地存储
 const STORAGE_KEYS = {
   OPTIMIZE_TEMPLATE: 'app:selected-optimize-template',
-  ITERATE_TEMPLATE: 'app:selected-iterate-template'
+  ITERATE_TEMPLATE: 'app:selected-iterate-template',
+  OPTIMIZE_MODEL: 'app:selected-optimize-model',
+  TEST_MODEL: 'app:selected-test-model'
 }
 
 // 状态
@@ -231,19 +233,39 @@ const initServices = async () => {
 }
 
 // 方法
-const loadModels = async () => {
-  models.value = modelManager.getAllModels()
-  
-  // 设置默认模型
-  const defaultModel = enabledModels.value[0]?.key
-  if (defaultModel) {
-    // 如果当前选择的模型不在启用列表中，则更新为默认模型
-    if (!enabledModels.value.find(m => m.key === optimizeModel.value)) {
-      optimizeModel.value = defaultModel
+const loadModels = async (updatedModelKey) => {
+  try {
+    models.value = modelManager.getAllModels()
+    
+    // 设置默认模型
+    const defaultModel = enabledModels.value[0]?.key
+    if (defaultModel) {
+      // 如果有更新的模型，优先使用它
+      if (updatedModelKey && enabledModels.value.find(m => m.key === updatedModelKey)) {
+        if (optimizeModel.value === updatedModelKey) {
+          optimizeModel.value = updatedModelKey
+        }
+        if (selectedModel.value === updatedModelKey) {
+          selectedModel.value = updatedModelKey
+        }
+      } 
+      // 否则，如果当前选择的模型不在可用列表中，则更新为默认模型
+      else {
+        if (!enabledModels.value.find(m => m.key === optimizeModel.value)) {
+          optimizeModel.value = defaultModel
+        }
+        if (!enabledModels.value.find(m => m.key === selectedModel.value)) {
+          selectedModel.value = defaultModel
+        }
+      }
     }
-    if (!enabledModels.value.find(m => m.key === selectedModel.value)) {
-      selectedModel.value = defaultModel
-    }
+    
+    // 保存当前选择
+    saveModelSelection(optimizeModel.value, 'optimize')
+    saveModelSelection(selectedModel.value, 'test')
+  } catch (error) {
+    console.error('加载模型列表失败:', error)
+    toast.error('加载模型列表失败')
   }
 }
 
@@ -292,14 +314,18 @@ const handleClearHistory = async () => {
 }
 
 // 修改提示词选择处理函数
-const handleTemplateSelect = (template, type) => {
+const handleTemplateSelect = async (template, type) => {
+  // 获取最新的模板数据
+  const updatedTemplate = template ? await templateManager.getTemplate(template.id) : null
+  
   if (type === 'optimize') {
-    selectedOptimizeTemplate.value = template
+    selectedOptimizeTemplate.value = updatedTemplate
   } else {
-    selectedIterateTemplate.value = template
+    selectedIterateTemplate.value = updatedTemplate
   }
-  saveTemplateSelection(template, type)
-  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${template.name}`)
+  
+  await saveTemplateSelection(updatedTemplate, type)
+  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${updatedTemplate?.name || '无'}`)
 }
 
 // 打开提示词管理器
@@ -308,10 +334,82 @@ const openTemplateManager = (type = 'optimize') => {
   showTemplates.value = true
 }
 
+const loadTemplates = async () => {
+  try {
+    // 确保模板管理器重新初始化
+    await templateManager.init()
+    // 重新初始化模板选择
+    await initTemplateSelection()
+    
+    // 同步当前选中的模板
+    if (selectedOptimizeTemplate.value) {
+      const template = await templateManager.getTemplate(selectedOptimizeTemplate.value.id)
+      if (template) {
+        selectedOptimizeTemplate.value = template
+      }
+    }
+    if (selectedIterateTemplate.value) {
+      const template = await templateManager.getTemplate(selectedIterateTemplate.value.id)
+      if (template) {
+        selectedIterateTemplate.value = template
+      }
+    }
+    
+    toast.success('提示词列表已更新')
+  } catch (error) {
+    console.error('加载提示词失败:', error)
+    toast.error('加载提示词失败')
+  }
+}
+
+// 修改 handleTemplateManagerClose 方法
+const handleTemplateManagerClose = async () => {
+  // 先更新数据
+  await loadTemplates()
+  // 最后关闭界面
+  showTemplates.value = false
+}
+
+// 添加模型选择的持久化
+const saveModelSelection = (model, type) => {
+  if (model) {
+    localStorage.setItem(
+      type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_MODEL : STORAGE_KEYS.TEST_MODEL,
+      model
+    )
+  }
+}
+
+// 监听模型选择变化
+watch(optimizeModel, (newVal) => {
+  saveModelSelection(newVal, 'optimize')
+})
+
+watch(selectedModel, (newVal) => {
+  saveModelSelection(newVal, 'test')
+})
+
+// 恢复模型选择
+const restoreModelSelection = () => {
+  const savedOptimizeModel = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
+  const savedTestModel = localStorage.getItem(STORAGE_KEYS.TEST_MODEL)
+  
+  // 如果有保存的选择且模型仍然启用，则使用保存的选择
+  if (savedOptimizeModel && enabledModels.value.find(m => m.key === savedOptimizeModel)) {
+    optimizeModel.value = savedOptimizeModel
+  }
+  if (savedTestModel && enabledModels.value.find(m => m.key === savedTestModel)) {
+    selectedModel.value = savedTestModel
+  }
+}
+
 // 生命周期钩子
 onMounted(async () => {
   await initServices()
   loadModels()
+  
+  // 恢复模型选择
+  restoreModelSelection()
   
   // 初始化历史记录管理器
   try {
@@ -336,12 +434,13 @@ onMounted(async () => {
   await initTemplateSelection()
 })
 
-// 监听器
-watch(showConfig, (newVal) => {
-  if (!newVal) {
-    loadModels()
-  }
-})
+// 修改模型管理器关闭处理函数
+const handleModelManagerClose = async () => {
+  // 先加载最新的模型列表
+  await loadModels()
+  // 最后关闭界面
+  showConfig.value = false
+}
 
 // 添加历史记录显示状态监听
 watch(showHistory, (newVal) => {
@@ -359,6 +458,11 @@ watch(showHistory, (newVal) => {
 watch([currentVersions], () => {
   history.value = historyManager.getAllChains()
 })
+
+// 添加模型更新处理函数
+const handleModelsUpdated = async (modelKey) => {
+  await loadModels(modelKey)
+}
 </script>
 
 <style>

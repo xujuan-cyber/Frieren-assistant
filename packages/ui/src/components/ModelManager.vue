@@ -244,15 +244,47 @@ const newModel = ref({
 });
 
 // 加载所有模型
-const loadModels = () => {
-  const allModels = modelManager.getAllModels();
-  models.value = Object.entries(allModels).map(([key, config]) => ({
-    key,
-    ...config,  // 保留所有原始配置
-    model: config.defaultModel  // 为了显示用
-  }));
-  emit('modelsUpdated', models.value);
-};
+const loadModels = async () => {
+  try {
+    console.log('正在加载模型列表...')
+    
+    // 强制从本地存储重新加载
+    const storedData = localStorage.getItem('models')
+    if (storedData) {
+      const storedModels = JSON.parse(storedData)
+      Object.entries(storedModels).forEach(([key, config]) => {
+        if (modelManager.getModel(key)) {
+          modelManager.updateModel(key, config)
+        }
+      })
+    }
+    
+    // 获取最新数据
+    const allModels = modelManager.getAllModels()
+    console.log('原始模型数据:', allModels)
+    models.value = Object.entries(allModels).map(([key, config]) => ({
+      key,
+      ...config
+    })).sort((a, b) => {
+      // 启用的模型排在前面
+      if (a.enabled !== b.enabled) {
+        return a.enabled ? -1 : 1
+      }
+      // 默认模型排在前面
+      if (isDefaultModel(a.key) !== isDefaultModel(b.key)) {
+        return isDefaultModel(a.key) ? -1 : 1
+      }
+      return 0
+    })
+    
+    console.log('处理后的模型列表:', models.value)
+    // 通知父组件更新
+    emit('modelsUpdated', models.value)
+  } catch (error) {
+    console.error('加载模型列表失败:', error)
+    toast.error('加载模型列表失败')
+  }
+}
 
 // 测试连接
 const testConnection = async (key) => {
@@ -278,12 +310,12 @@ const isDefaultModel = (key) => {
 const handleDelete = async (key) => {
   if (confirm(`确定要删除模型 ${key} 吗？此操作不可恢复。`)) {
     try {
-      modelManager.deleteModel(key);
-      loadModels();
-      toast.success('模型已删除');
+      await modelManager.deleteModel(key)
+      await loadModels()
+      toast.success('模型已删除')
     } catch (error) {
-      console.error('删除模型失败:', error);
-      toast.error(`删除模型失败: ${error.message}`);
+      console.error('删除模型失败:', error)
+      toast.error(`删除模型失败: ${error.message}`)
     }
   }
 };
@@ -310,11 +342,11 @@ const cancelEdit = () => {
 };
 
 // 保存编辑
-const saveEdit = () => {
+const saveEdit = async () => {
   try {
-    const originalConfig = modelManager.getModel(editingModel.value.key);
+    const originalConfig = modelManager.getModel(editingModel.value.key)
     if (!originalConfig) {
-      throw new Error('找不到原始配置');
+      throw new Error('找不到原始配置')
     }
 
     const config = {
@@ -325,21 +357,23 @@ const saveEdit = () => {
       apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey,
       enabled: originalConfig.enabled,
       provider: originalConfig.provider
-    };
+    }
 
-    modelManager.updateModel(editingModel.value.key, config);
-    loadModels();
-    isEditing.value = false;
-    editingModel.value = null;
-    toast.success('模型配置已更新');
+    await modelManager.updateModel(editingModel.value.key, config)
+    await loadModels()
+    isEditing.value = false
+    editingModel.value = null
+    // 通知父组件更新模型列表和选中状态
+    emit('modelsUpdated', editingModel.value.key)
+    toast.success('模型配置已更新')
   } catch (error) {
-    console.error('更新模型失败:', error);
-    toast.error(`更新模型失败: ${error.message}`);
+    console.error('更新模型失败:', error)
+    toast.error(`更新模型失败: ${error.message}`)
   }
 };
 
 // 添加自定义模型
-const addCustomModel = () => {
+const addCustomModel = async () => {
   try {
     const config = {
       name: newModel.value.name,
@@ -349,47 +383,59 @@ const addCustomModel = () => {
       apiKey: newModel.value.apiKey,
       enabled: true,
       provider: 'custom'
-    };
+    }
 
-    modelManager.addModel(newModel.value.key, config);
-    loadModels();
-    showAddForm.value = false;
+    await modelManager.addModel(newModel.value.key, config)
+    await loadModels()
+    showAddForm.value = false
+    // 通知父组件更新模型列表和选中状态
+    emit('modelsUpdated', newModel.value.key)
     newModel.value = {
       key: '',
       name: '',
       baseURL: '',
       defaultModel: '',
       apiKey: ''
-    };
-    toast.success('模型添加成功');
+    }
+    toast.success('模型添加成功')
   } catch (error) {
-    console.error('添加模型失败:', error);
-    toast.error(`添加模型失败: ${error.message}`);
+    console.error('添加模型失败:', error)
+    toast.error(`添加模型失败: ${error.message}`)
   }
 };
 
 // 启用/禁用模型
-const enableModel = (key) => {
+const enableModel = async (key) => {
   try {
-    modelManager.enableModel(key);
-    loadModels();
-    toast.success('模型已启用');
-  } catch (error) {
-    console.error('启用模型失败:', error);
-    toast.error(`启用模型失败: ${error.message}`);
-  }
-};
+    const model = modelManager.getModel(key)
+    if (!model) throw new Error('模型配置不存在')
 
-const disableModel = (key) => {
-  try {
-    modelManager.disableModel(key);
-    loadModels();
-    toast.success('模型已禁用');
+    await modelManager.enableModel(key)
+    await loadModels()
+    // 通知父组件更新模型列表和选中状态
+    emit('modelsUpdated', key)
+    toast.success('模型已启用')
   } catch (error) {
-    console.error('禁用模型失败:', error);
-    toast.error(`禁用模型失败: ${error.message}`);
+    console.error('启用模型失败:', error)
+    toast.error(`启用模型失败: ${error.message}`)
   }
-};
+}
+
+const disableModel = async (key) => {
+  try {
+    const model = modelManager.getModel(key)
+    if (!model) throw new Error('模型配置不存在')
+
+    await modelManager.disableModel(key)
+    await loadModels()
+    // 通知父组件更新模型列表和选中状态
+    emit('modelsUpdated', key)
+    toast.success('模型已禁用')
+  } catch (error) {
+    console.error('禁用模型失败:', error)
+    toast.error(`禁用模型失败: ${error.message}`)
+  }
+}
 
 // 初始化
 onMounted(() => {

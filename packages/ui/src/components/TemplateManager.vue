@@ -306,16 +306,24 @@ const form = ref({
   description: ''
 })
 
+// 添加计算属性
+const selectedTemplate = computed(() => {
+  return currentType.value === 'optimize'
+    ? props.selectedOptimizeTemplate
+    : props.selectedIterateTemplate
+})
+
 // 加载提示词列表
 const loadTemplates = async () => {
   try {
-    // 确保提示词管理器已初始化
-    await templateManager.init();
-    templates.value = await templateManager.listTemplates();
-    console.log('加载到的提示词:', templates.value);
+    // 确保提示词管理器重新初始化
+    await templateManager.init()
+    const allTemplates = await templateManager.listTemplates()
+    templates.value = allTemplates
+    console.log('加载到的提示词:', templates.value)
   } catch (error) {
-    console.error('加载提示词失败:', error);
-    toast.error('加载提示词失败');
+    console.error('加载提示词失败:', error)
+    toast.error('加载提示词失败')
   }
 }
 
@@ -369,22 +377,29 @@ const handleSubmit = async () => {
         lastModified: Date.now(),
         description: form.value.description,
         author: 'User',
-        templateType: props.templateType
+        templateType: currentType.value
       }
     }
 
+    // 先保存模板
     await templateManager.saveTemplate(templateData)
+    
+    // 确保数据已更新
+    await templateManager.init()
+    
+    // 重新加载列表
     await loadTemplates()
     
-    // 如果正在编辑的是当前选中的提示词,则更新选中的提示词
-    if (props.selectedOptimizeTemplate?.id === templateData.id) {
+    // 如果编辑的是当前选中的提示词，只更新其内容
+    const isCurrentSelected = (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateData.id) ||
+                            (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateData.id)
+    
+    if (editingTemplate.value && isCurrentSelected) {
       const updatedTemplate = await templateManager.getTemplate(templateData.id)
-      props.selectedOptimizeTemplate = updatedTemplate
-      emit('select', updatedTemplate, currentType.value)
-    } else if (props.selectedIterateTemplate?.id === templateData.id) {
-      const updatedTemplate = await templateManager.getTemplate(templateData.id)
-      props.selectedIterateTemplate = updatedTemplate
-      emit('select', updatedTemplate, currentType.value)
+      if (updatedTemplate) {
+        // 通知父组件更新模板内容，但保持选中状态
+        emit('select', updatedTemplate, currentType.value)
+      }
     }
     
     toast.success(editingTemplate.value ? '提示词已更新' : '提示词已添加')
@@ -401,6 +416,14 @@ const confirmDelete = async (templateId) => {
     try {
       await templateManager.deleteTemplate(templateId)
       await loadTemplates()
+      
+      // 如果删除的是当前选中的提示词，清空选择
+      if (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateId) {
+        emit('select', null, 'optimize')
+      } else if (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateId) {
+        emit('select', null, 'iterate')
+      }
+      
       toast.success('提示词已删除')
     } catch (error) {
       console.error('删除提示词失败:', error)
@@ -466,11 +489,6 @@ const copyTemplate = (template) => {
 
 // 选择提示词
 const selectTemplate = (template) => {
-  if (currentType.value === 'optimize') {
-    props.selectedOptimizeTemplate = template
-  } else if (currentType.value === 'iterate') {
-    props.selectedIterateTemplate = template
-  }
   emit('select', template, currentType.value)
 }
 
