@@ -24,12 +24,12 @@
     <slot name="modals"></slot>
 
     <!-- 全局提示 -->
-    <Toast />
+    <ToastUI />
   </div>
 </template>
 
 <script setup>
-import { Toast } from '../index'
+import { ToastUI } from '../index'
 </script>
 
 <style>

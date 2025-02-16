@@ -1,10 +1,10 @@
 import { ref } from 'vue'
 import { useToast } from './useToast'
 import type { Ref } from 'vue'
-import type { PromptService } from '../types'
+import type { IPromptService } from '@prompt-optimizer/core'
 
 export function usePromptTester(
-  promptService: Ref<PromptService | null>,
+  promptService: Ref<IPromptService | null>,
   selectedTestModel: Ref<string>
 ) {
   const toast = useToast()

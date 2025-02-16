@@ -5,20 +5,21 @@ import type { Ref } from 'vue'
 import type { 
   ModelConfig,
   ModelManager,
-  HistoryManager
-} from '@prompt-optimizer/core'
-import type {
-  TemplateManager,
-  PromptService,
+  IHistoryManager,
   Template,
-  PromptChain,
-} from '../types'
+  PromptRecordChain,
+  IPromptService,
+  ITemplateManager
+} from '@prompt-optimizer/core'
+
+
+type PromptChain = PromptRecordChain
 
 export function usePromptOptimizer(
   modelManager: ModelManager,
-  templateManager: TemplateManager,
-  historyManager: HistoryManager,
-  promptService: Ref<PromptService | null>
+  templateManager: ITemplateManager,
+  historyManager: IHistoryManager,
+  promptService: Ref<IPromptService | null>
 ) {
   const toast = useToast()
   

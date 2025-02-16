@@ -47,6 +47,8 @@ export interface ITemplateManager {
   exportTemplate(templateId: string): string;
   importTemplate(templateJson: string): Promise<void>;
   clearCache(templateId?: string): void;
+  /** 根据类型获取提示词列表 */
+  getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]>;
 }
 
 /**

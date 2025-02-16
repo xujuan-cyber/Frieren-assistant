@@ -34,6 +34,16 @@ export interface PromptRecord {
 }
 
 /**
+ * 历史记录链类型
+ */
+export interface PromptRecordChain {
+  chainId: string;
+  rootRecord: PromptRecord;
+  currentRecord: PromptRecord;
+  versions: PromptRecord[];
+}
+
+/**
  * 历史记录管理器接口
  */
 export interface IHistoryManager {
@@ -51,12 +61,17 @@ export interface IHistoryManager {
   getIterationChain(recordId: string): PromptRecord[];
   /** 清除所有记录 */
   clearHistory(): void;
-}
-
-// 新增历史记录链类型
-export interface PromptRecordChain {
-  chainId: string;
-  rootRecord: PromptRecord;
-  currentRecord: PromptRecord;
-  versions: PromptRecord[];
+  /** 获取所有记录链 */
+  getAllChains(): PromptRecordChain[];
+  /** 创建新的记录链 */
+  createNewChain(record: Omit<PromptRecord, 'chainId' | 'version' | 'previousId'>): PromptRecordChain;
+  /** 添加迭代记录 */
+  addIteration(params: {
+    chainId: string;
+    originalPrompt: string;
+    optimizedPrompt: string;
+    iterationNote: string;
+    modelKey: string;
+    templateId: string;
+  }): PromptRecordChain;
 } 

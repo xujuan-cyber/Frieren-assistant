@@ -1,5 +1,5 @@
 <template>
-  <MainLayout>
+  <MainLayoutUI>
     <!-- 标题插槽 -->
     <template #title>
       Prompt Optimizer
@@ -7,17 +7,17 @@
 
     <!-- 操作按钮插槽 -->
     <template #actions>
-      <ActionButton
+      <ActionButtonUI
         icon="📝"
         text="功能提示词"
         @click="openTemplateManager('optimize')"
       />
-      <ActionButton
+      <ActionButtonUI
         icon="📜"
         text="历史记录"
         @click="showHistory = true"
       />
-      <ActionButton
+      <ActionButtonUI
         icon="⚙️"
         text="模型管理"
         @click="showConfig = true"
@@ -26,10 +26,10 @@
 
     <!-- 主要内容插槽 -->
     <!-- 提示词区 -->
-    <ContentCard>
+    <ContentCardUI>
       <!-- 输入区域 -->
       <div class="flex-none">
-        <InputPanel
+        <InputPanelUI
           v-model="prompt"
           v-model:selectedModel="selectedOptimizeModel"
           label="原始提示词"
@@ -44,7 +44,7 @@
           @configModel="showConfig = true"
         >
           <template #model-select>
-            <ModelSelect
+            <ModelSelectUI
               ref="optimizeModelSelect"
               :modelValue="selectedOptimizeModel"
               @update:modelValue="selectedOptimizeModel = $event"
@@ -53,19 +53,19 @@
             />
           </template>
           <template #template-select>
-            <TemplateSelect
+            <TemplateSelectUI
               v-model="selectedOptimizeTemplate"
               type="optimize"
               @manage="openTemplateManager('optimize')"
               @select="handleTemplateSelect"
             />
           </template>
-        </InputPanel>
+        </InputPanelUI>
       </div>
 
       <!-- 优化结果区域 -->
       <div class="flex-1 min-h-0 overflow-y-auto">
-        <PromptPanel 
+        <PromptPanelUI 
           v-model:optimized-prompt="optimizedPrompt"
           :is-iterating="isIterating"
           v-model:selected-iterate-template="selectedIterateTemplate"
@@ -76,13 +76,13 @@
           @switchVersion="handleSwitchVersion"
         />
       </div>
-    </ContentCard>
+    </ContentCardUI>
 
     <!-- 测试区域 -->
-    <ContentCard>
+    <ContentCardUI>
       <!-- 测试输入区域 -->
       <div class="flex-none">
-        <InputPanel
+        <InputPanelUI
           v-model="testContent"
           v-model:selectedModel="selectedTestModel"
           label="测试内容"
@@ -96,7 +96,7 @@
           @configModel="showConfig = true"
         >
           <template #model-select>
-            <ModelSelect
+            <ModelSelectUI
               ref="testModelSelect"
               :modelValue="selectedTestModel"
               @update:modelValue="selectedTestModel = $event"
@@ -104,25 +104,25 @@
               @config="showConfig = true"
             />
           </template>
-        </InputPanel>
+        </InputPanelUI>
       </div>
 
       <!-- 测试结果区域 -->
       <div class="flex-1 min-h-0 overflow-y-auto">
-        <OutputPanel
+        <OutputPanelUI
           ref="outputPanelRef"
           :loading="isTesting"
           :error="testError"
           :result="testResult"
         />
       </div>
-    </ContentCard>
+    </ContentCardUI>
 
     <!-- 弹窗插槽 -->
     <template #modals>
       <!-- 配置弹窗 -->
       <Teleport to="body">
-        <ModelManager
+        <ModelManagerUI
           v-if="showConfig"
           @close="handleModelManagerClose"
           @modelsUpdated="handleModelsUpdated"
@@ -132,7 +132,7 @@
 
       <!-- 提示词管理弹窗 -->
       <Teleport to="body">
-        <TemplateManager
+        <TemplateManagerUI
           v-if="showTemplates"
           :template-type="currentType"
           :selected-optimize-template="selectedOptimizeTemplate"
@@ -143,14 +143,14 @@
       </Teleport>
 
       <!-- 历史记录弹窗 -->
-      <HistoryDrawer
+      <HistoryDrawerUI
         v-model:show="showHistory"
         :history="history"
         @reuse="handleSelectHistory"
         @clear="handleClearHistory"
       />
     </template>
-  </MainLayout>
+  </MainLayoutUI>
 </template>
 
 <script setup>
@@ -164,18 +164,18 @@ import {
   historyManager
 } from '@prompt-optimizer/core'
 import {
-  Toast,
-  ModelManager,
-  OutputPanel,
-  PromptPanel,
-  TemplateManager,
-  TemplateSelect,
-  ModelSelect,
-  HistoryDrawer,
-  InputPanel,
-  MainLayout,
-  ContentCard,
-  ActionButton,
+  ToastUI,
+  ModelManagerUI,
+  OutputPanelUI,
+  PromptPanelUI,
+  TemplateManagerUI,
+  TemplateSelectUI,
+  ModelSelectUI,
+  HistoryDrawerUI,
+  InputPanelUI,
+  MainLayoutUI,
+  ContentCardUI,
+  ActionButtonUI,
   usePromptOptimizer,
   usePromptTester,
   useToast,

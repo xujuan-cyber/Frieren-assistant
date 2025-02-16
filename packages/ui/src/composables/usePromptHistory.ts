@@ -1,10 +1,12 @@
 import { ref, watch, type Ref } from 'vue'
 import { useToast } from './useToast'
 import { v4 as uuidv4 } from 'uuid'
-import type { HistoryManager, PromptChain } from '../types'
+import type { IHistoryManager, PromptRecordChain } from '@prompt-optimizer/core'
+
+type PromptChain = PromptRecordChain
 
 export function usePromptHistory(
-  historyManager: HistoryManager,
+  historyManager: IHistoryManager,
   prompt: Ref<string>,
   optimizedPrompt: Ref<string>,
   currentChainId: Ref<string>,
