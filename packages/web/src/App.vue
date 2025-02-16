@@ -178,9 +178,9 @@ import {
   ActionButton,
   usePromptOptimizer,
   usePromptTester,
-  useToast
+  useToast,
+  usePromptHistory
 } from '@prompt-optimizer/ui'
-import { v4 as uuidv4 } from 'uuid'
 
 // 初始化服务
 const llmService = createLLMService(modelManager)
@@ -194,8 +194,6 @@ const showConfig = ref(false)
 const showHistory = ref(false)
 const showTemplates = ref(false)
 const currentType = ref('optimize')  // 默认为优化提示词
-const history = ref([])
-const outputPanelRef = ref(null)
 
 // 添加 ref
 const optimizeModelSelect = ref(null)
@@ -232,6 +230,20 @@ const {
   handleTest
 } = usePromptTester(promptServiceRef, selectedTestModel)
 
+const {
+  history,
+  handleSelectHistory,
+  handleClearHistory,
+  initHistory
+} = usePromptHistory(
+  historyManager,
+  prompt,
+  optimizedPrompt,
+  currentChainId,
+  currentVersions,
+  currentVersionId
+)
+
 // 初始化 promptService
 const initServices = async () => {
   try {
@@ -239,50 +251,6 @@ const initServices = async () => {
   } catch (error) {
     console.error('服务初始化失败:', error)
     toast.error('服务初始化失败')
-  }
-}
-
-const handleSelectHistory = (context) => {
-  const { record, chainId, rootPrompt } = context;
-  
-  // 设置原始提示词
-  prompt.value = rootPrompt;
-  // 设置优化后的提示词
-  optimizedPrompt.value = record.optimizedPrompt;
-  
-  // 创建新的chain
-  const newRecord = historyManager.createNewChain({
-    id: uuidv4(),
-    originalPrompt: rootPrompt,
-    optimizedPrompt: record.optimizedPrompt,
-    type: 'optimize',
-    modelKey: record.modelKey,
-    templateId: record.templateId,
-    timestamp: Date.now(),
-    metadata: {}
-  });
-  
-  // 更新当前chain信息
-  currentChainId.value = newRecord.chainId;
-  currentVersions.value = newRecord.versions;
-  currentVersionId.value = newRecord.currentRecord.id;
-  
-  // 更新历史记录
-  history.value = historyManager.getAllChains();
-  
-  showHistory.value = false;
-}
-
-// 添加清空历史记录的处理函数
-const handleClearHistory = async () => {
-  try {
-    await historyManager.clearHistory()
-    history.value = []
-    console.log('历史记录已清空')
-    toast.success('历史记录已清空')
-  } catch (error) {
-    console.error('清空历史记录失败:', error)
-    toast.error('清空历史记录失败')
   }
 }
 
@@ -365,43 +333,10 @@ onMounted(async () => {
   await initModelSelection()
   
   // 初始化历史记录管理器
-  try {
-    console.log('初始化历史记录管理器...')
-    await historyManager.init()
-    history.value = historyManager.getAllChains()
-    console.log('历史记录加载完成:', {
-      recordCount: history.value?.length,
-      chains: history.value?.map(chain => ({
-        chainId: chain.chainId,
-        versionsCount: chain.versions.length,
-        rootRecord: chain.rootRecord,
-        currentRecord: chain.currentRecord
-      }))
-    })
-  } catch (error) {
-    console.error('加载历史记录失败:', error)
-    toast.error('加载历史记录失败')
-  }
+  await initHistory()
   
   // 初始化提示词选择
   await initTemplateSelection()
-})
-
-// 添加历史记录显示状态监听
-watch(showHistory, (newVal) => {
-  if (newVal) {
-    // 打开历史记录时，重新获取最新数据
-    history.value = historyManager.getAllChains()
-  }
-  console.log('历史记录显示状态变更:', {
-    show: newVal,
-    currentHistory: history.value?.length
-  })
-})
-
-// 监听优化完成，更新历史记录
-watch([currentVersions], () => {
-  history.value = historyManager.getAllChains()
 })
 </script>
 
