@@ -177,20 +177,24 @@ export function usePromptOptimizer(
   }
   
   // 初始化提示词选择
-  const initTemplateSelection = async () => {
+  const initTemplateSelection = () => {
     try {
       // 加载优化提示词
       const optimizeTemplateId = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE)
       if (optimizeTemplateId) {
-        const optimizeTemplate = await templateManager.getTemplate(optimizeTemplateId)
-        if (optimizeTemplate) {
-          selectedOptimizeTemplate.value = optimizeTemplate
+        try {
+          const optimizeTemplate = templateManager.getTemplate(optimizeTemplateId)
+          if (optimizeTemplate) {
+            selectedOptimizeTemplate.value = optimizeTemplate
+          }
+        } catch (error) {
+          console.warn('加载已保存的优化提示词失败:', error)
         }
       }
       
       // 如果没有已保存的提示词或加载失败，使用该类型的第一个提示词
       if (!selectedOptimizeTemplate.value) {
-        const optimizeTemplates = await templateManager.getTemplatesByType('optimize')
+        const optimizeTemplates = templateManager.listTemplatesByType('optimize')
         if (optimizeTemplates.length > 0) {
           selectedOptimizeTemplate.value = optimizeTemplates[0]
         }
@@ -199,15 +203,19 @@ export function usePromptOptimizer(
       // 加载迭代提示词
       const iterateTemplateId = localStorage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE)
       if (iterateTemplateId) {
-        const iterateTemplate = await templateManager.getTemplate(iterateTemplateId)
-        if (iterateTemplate) {
-          selectedIterateTemplate.value = iterateTemplate
+        try {
+          const iterateTemplate = templateManager.getTemplate(iterateTemplateId)
+          if (iterateTemplate) {
+            selectedIterateTemplate.value = iterateTemplate
+          }
+        } catch (error) {
+          console.warn('加载已保存的迭代提示词失败:', error)
         }
       }
       
       // 如果没有已保存的提示词或加载失败，使用该类型的第一个提示词
       if (!selectedIterateTemplate.value) {
-        const iterateTemplates = await templateManager.getTemplatesByType('iterate') 
+        const iterateTemplates = templateManager.listTemplatesByType('iterate')
         if (iterateTemplates.length > 0) {
           selectedIterateTemplate.value = iterateTemplates[0]
         }
@@ -217,7 +225,7 @@ export function usePromptOptimizer(
       if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
         throw new Error('无法加载默认提示词')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('加载提示词失败:', error)
       toast.error('加载提示词失败')
     }
@@ -234,7 +242,7 @@ export function usePromptOptimizer(
   }
 
   // 初始化模型选择
-  const initModelSelection = async () => {
+  const initModelSelection = () => {
     try {
       const enabledModels = modelManager.getAllModels().filter(m => m.enabled)
       const defaultModel = enabledModels[0]?.key
@@ -256,7 +264,7 @@ export function usePromptOptimizer(
         saveModelSelection(selectedOptimizeModel.value, 'optimize')
         saveModelSelection(selectedTestModel.value, 'test')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('初始化模型选择失败:', error)
       toast.error('初始化模型选择失败')
     }
@@ -312,7 +320,8 @@ export function usePromptOptimizer(
 
   // 在 onMounted 中初始化
   onMounted(async () => {
-    await initModelSelection()
+    initModelSelection()
+    initTemplateSelection()  // 添加模板初始化
   })
 
   return {

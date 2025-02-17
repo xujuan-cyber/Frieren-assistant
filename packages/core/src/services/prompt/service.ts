@@ -404,15 +404,13 @@ export class PromptService implements IPromptService {
 }
 
 // 导出工厂函数
-export async function createPromptService(
+export function createPromptService(
   modelManager: ModelManager = defaultModelManager,
   llmService: LLMService = createLLMService(modelManager),
   templateManager: TemplateManager = defaultTemplateManager,
   historyManager: HistoryManager = defaultHistoryManager
-): Promise<PromptService> {
+): PromptService {
   try {
-    await templateManager.init();
-    await historyManager.init();
     return new PromptService(modelManager, llmService, templateManager, historyManager);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -17,12 +17,25 @@ export { default as ApiKeyConfigUI } from './components/ApiKeyConfig.vue'
 export { default as MainLayoutUI } from './components/MainLayout.vue'
 export { default as ContentCardUI } from './components/ContentCard.vue'
 export { default as ActionButtonUI } from './components/ActionButton.vue'
+export { default as OptimizePanelUI } from './components/OptimizePanel.vue'
+export { default as TestPanelUI } from './components/TestPanel.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'
 
 // 导出组合式函数
-export { useToast } from './composables/useToast'
 export { usePromptOptimizer } from './composables/usePromptOptimizer'
 export { usePromptTester } from './composables/usePromptTester'
-export { usePromptHistory } from './composables/usePromptHistory' 
+export { useToast } from './composables/useToast'
+export { usePromptHistory } from './composables/usePromptHistory'
+export { useModals } from './composables/useModals'
+
+// 从core重新导出需要的内容
+export {
+    templateManager,
+    modelManager,
+    historyManager,
+    createLLMService,
+    createPromptService
+  } from '@prompt-optimizer/core'
+  

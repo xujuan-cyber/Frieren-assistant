@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // 加载环境变量
   const env = loadEnv(mode, process.cwd())
@@ -11,7 +11,11 @@ export default defineConfig(({ mode }) => {
     plugins: [vue()],
     server: {
       port: 18181,
-      host: true
+      host: true,
+      fs: {
+        // 允许为工作区依赖提供服务
+        allow: ['..']
+      }
     },
     build: {
       rollupOptions: {
@@ -22,12 +26,16 @@ export default defineConfig(({ mode }) => {
     },
     publicDir: 'public',
     resolve: {
+      preserveSymlinks: true,
       alias: {
-        '@': resolve(__dirname, 'src')
+        '@': resolve(__dirname, 'src'),
+        '@prompt-optimizer/ui': resolve(__dirname, '../ui'),
+        '@prompt-optimizer/ui/dist/style.css': resolve(__dirname, '../ui/dist/style.css')
       }
     },
     optimizeDeps: {
-      include: ['@prompt-optimizer/core']
+      // 包含工作区依赖
+      include: ['@prompt-optimizer/ui', 'element-plus']
     },
     define: {
       'process.env': {
@@ -39,4 +47,4 @@ export default defineConfig(({ mode }) => {
       }
     }
   }
-})
+}) 

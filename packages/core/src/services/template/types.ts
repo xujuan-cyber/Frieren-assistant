@@ -39,16 +39,35 @@ export interface TemplateManagerConfig {
  * 提示词管理器接口
  */
 export interface ITemplateManager {
-  init(): Promise<void>;
-  getTemplate(templateId: string): Promise<Template>;
-  saveTemplate(template: Template): Promise<void>;
-  deleteTemplate(templateId: string): Promise<void>;
-  listTemplates(): Promise<Template[]>;
+  /** 获取指定ID的模板 */
+  getTemplate(templateId: string): Template;
+  
+  /** 保存模板 */
+  saveTemplate(template: Template): void;
+  
+  /** 删除模板 */
+  deleteTemplate(templateId: string): void;
+  
+  /** 列出所有模板 */
+  listTemplates(): Template[];
+  
+  /** 导出模板 */
   exportTemplate(templateId: string): string;
-  importTemplate(templateJson: string): Promise<void>;
+  
+  /** 导入模板 */
+  importTemplate(templateJson: string): void;
+  
+  /** 清除缓存 */
   clearCache(templateId?: string): void;
-  /** 根据类型获取提示词列表 */
-  getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]>;
+  
+  /** 按类型列出模板 */
+  listTemplatesByType(type: 'optimize' | 'iterate'): Template[];
+  
+  /** 
+   * 根据类型获取模板列表（已废弃）
+   * @deprecated 使用 listTemplatesByType 替代
+   */
+  getTemplatesByType(type: 'optimize' | 'iterate'): Template[];
 }
 
 /**

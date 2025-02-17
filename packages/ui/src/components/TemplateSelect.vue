@@ -121,6 +121,7 @@ const handleResize = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  refreshTemplates()
 })
 
 onBeforeUnmount(() => {
@@ -138,13 +139,10 @@ watch(isOpen, async (newValue) => {
   }
 })
 
-const typeText = computed(() => {
-  return props.type === 'iterate' ? '迭代功能提示词' : '优化功能提示词'
-})
-
 const templates = computed(() => {
   // 使用 refreshTrigger 触发重新计算
   refreshTrigger.value
+  console.log('重新计算templates', templateManager.listTemplatesByType(props.type))
   return templateManager.listTemplatesByType(props.type)
 })
 
@@ -152,6 +150,11 @@ const templates = computed(() => {
 const refreshTemplates = () => {
   refreshTrigger.value++
 }
+
+// 暴露刷新方法给父组件
+defineExpose({
+  refresh: refreshTemplates
+})
 
 const selectTemplate = (template) => {
   emit('update:modelValue', template)

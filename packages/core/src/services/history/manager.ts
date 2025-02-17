@@ -13,7 +13,7 @@ export class HistoryManager implements IHistoryManager {
   /**
    * 初始化历史记录管理器
    */
-  async init(): Promise<void> {
+  init(): void {
     try {
       // 验证存储是否可用
       const testKey = '_test_storage_';

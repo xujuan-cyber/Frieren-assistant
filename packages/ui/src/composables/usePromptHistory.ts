@@ -53,9 +53,8 @@ export function usePromptHistory(
     }
   }
 
-  const initHistory = async () => {
+  const initHistory = () => {
     try {
-      await historyManager.init()
       history.value = historyManager.getAllChains()
     } catch (error) {
       console.error('加载历史记录失败:', error)

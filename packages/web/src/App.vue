@@ -154,16 +154,10 @@
 </template>
 
 <script setup>
-import '@prompt-optimizer/ui/style.css'
-import { ref, onMounted, watch } from 'vue'
-import { 
-  createLLMService, 
-  createPromptService,
-  modelManager,
-  templateManager,
-  historyManager
-} from '@prompt-optimizer/core'
+import '@prompt-optimizer/ui/dist/style.css'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import {
+  // UI组件
   ToastUI,
   ModelManagerUI,
   OutputPanelUI,
@@ -176,10 +170,17 @@ import {
   MainLayoutUI,
   ContentCardUI,
   ActionButtonUI,
+  // composables
   usePromptOptimizer,
   usePromptTester,
   useToast,
-  usePromptHistory
+  usePromptHistory,
+  // 服务
+  createLLMService,
+  createPromptService,
+  modelManager,
+  templateManager,
+  historyManager
 } from '@prompt-optimizer/ui'
 
 // 初始化服务
@@ -198,6 +199,28 @@ const currentType = ref('optimize')  // 默认为优化提示词
 // 添加 ref
 const optimizeModelSelect = ref(null)
 const testModelSelect = ref(null)
+
+// 初始化基础服务
+const initBaseServices = () => {
+  try {
+    console.log('开始初始化基础服务...')
+    
+    // 初始化历史记录管理器（同步操作）
+    console.log('初始化历史记录管理器...')
+    historyManager.init()
+
+    // 获取并验证模板列表
+    const templates = templateManager.listTemplates()
+    console.log('模板列表:', templates)
+  } catch (error) {
+    console.error('初始化基础服务失败:', error)
+    toast.error('初始化失败：' + (error instanceof Error ? error.message : String(error)))
+    throw error
+  }
+}
+
+// 先初始化基础服务
+initBaseServices()
 
 // 初始化组合式函数
 const {
@@ -244,29 +267,79 @@ const {
   currentVersionId
 )
 
-// 初始化 promptService
-const initServices = async () => {
+// 初始化其他服务
+const initOtherServices = () => {
   try {
-    promptServiceRef.value = await createPromptService(modelManager, llmService)
+    console.log('初始化其他服务...')
+    
+    // 初始化其他数据（同步操作）
+    console.log('初始化模型选择...')
+    initModelSelection()
+    
+    console.log('初始化历史记录...')
+    initHistory()
+    
+    console.log('初始化模板选择...')
+    initTemplateSelection()
+    
+    // 创建提示词服务
+    console.log('创建提示词服务...')
+    promptServiceRef.value = createPromptService(modelManager, llmService, templateManager, historyManager)
+    
+    console.log('初始化完成', {
+      optimizeTemplate: selectedOptimizeTemplate.value?.name,
+      iterateTemplate: selectedIterateTemplate.value?.name
+    })
   } catch (error) {
-    console.error('服务初始化失败:', error)
-    toast.error('服务初始化失败')
+    console.error('初始化其他服务失败:', error)
+    toast.error('初始化失败：' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
+// 生命周期钩子
+onMounted(() => {
+  initOtherServices()
+})
+
 // 修改提示词选择处理函数
-const handleTemplateSelect = async (template, type) => {
-  // 获取最新的模板数据
-  const updatedTemplate = template ? await templateManager.getTemplate(template.id) : null
-  
-  if (type === 'optimize') {
-    selectedOptimizeTemplate.value = updatedTemplate
-  } else {
-    selectedIterateTemplate.value = updatedTemplate
+const handleTemplateSelect = (template, type) => {
+  try {
+    console.log('选择模板:', { 
+      template: template ? {
+        id: template.id,
+        name: template.name,
+        type: template.metadata?.templateType
+      } : null, 
+      type 
+    })
+
+    // 解构模板ID，避免直接使用Proxy对象
+    const templateId = String(template.id)    
+    const updatedTemplate = templateManager.getTemplate(templateId)
+    console.log('获取到更新后的模板:', updatedTemplate ? {
+      id: updatedTemplate.id,
+      name: updatedTemplate.name,
+      type: updatedTemplate.metadata?.templateType
+    } : null)
+    
+    if (!updatedTemplate) {
+      throw new Error(`无法加载模板: ${templateId}`)
+    }
+    
+    if (type === 'optimize') {
+      selectedOptimizeTemplate.value = updatedTemplate
+      console.log('已更新优化模板:', selectedOptimizeTemplate.value?.name)
+    } else {
+      selectedIterateTemplate.value = updatedTemplate
+      console.log('已更新迭代模板:', selectedIterateTemplate.value?.name)
+    }
+    
+    saveTemplateSelection(updatedTemplate, type)
+    toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${updatedTemplate.name || '无'}`)
+  } catch (error) {
+    console.error('选择提示词失败:', error)
+    toast.error('选择提示词失败：' + (error instanceof Error ? error.message : String(error)))
   }
-  
-  await saveTemplateSelection(updatedTemplate, type)
-  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${updatedTemplate?.name || '无'}`)
 }
 
 // 打开提示词管理器
@@ -275,39 +348,15 @@ const openTemplateManager = (type = 'optimize') => {
   showTemplates.value = true
 }
 
-const loadTemplates = async () => {
-  try {
-    // 确保模板管理器重新初始化
-    await templateManager.init()
-    // 重新初始化模板选择
-    await initTemplateSelection()
-    
-    // 同步当前选中的模板
-    if (selectedOptimizeTemplate.value) {
-      const template = await templateManager.getTemplate(selectedOptimizeTemplate.value.id)
-      if (template) {
-        selectedOptimizeTemplate.value = template
-      }
-    }
-    if (selectedIterateTemplate.value) {
-      const template = await templateManager.getTemplate(selectedIterateTemplate.value.id)
-      if (template) {
-        selectedIterateTemplate.value = template
-      }
-    }
-    
-    toast.success('提示词列表已更新')
-  } catch (error) {
-    console.error('加载提示词失败:', error)
-    toast.error('加载提示词失败')
-  }
-}
+// 监听模板选择变化
+watch([selectedOptimizeTemplate, selectedIterateTemplate], () => {
+  console.log('模板选择已更新:', {
+    optimize: selectedOptimizeTemplate.value?.name,
+    iterate: selectedIterateTemplate.value?.name
+  })
+})
 
-// 修改 handleTemplateManagerClose 方法
-const handleTemplateManagerClose = async () => {
-  // 先更新数据
-  await loadTemplates()
-  // 最后关闭界面
+const handleTemplateManagerClose = () => {
   showTemplates.value = false
 }
 
@@ -326,18 +375,6 @@ const handleModelManagerClose = async () => {
 const handleModelsUpdated = (modelKey) => {
   // 如果需要，可以在这里处理模型更新后的其他逻辑
 }
-
-// 生命周期钩子
-onMounted(async () => {
-  await initServices()
-  await initModelSelection()
-  
-  // 初始化历史记录管理器
-  await initHistory()
-  
-  // 初始化提示词选择
-  await initTemplateSelection()
-})
 </script>
 
 <style>

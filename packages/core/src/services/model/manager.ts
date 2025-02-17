@@ -63,7 +63,6 @@ export class ModelManager implements IModelManager {
       ...config,
       key
     }));
-    console.log('获取所有模型配置:', returnValue);
     return returnValue;
 
   }

@@ -48,7 +48,7 @@ export interface PromptRecordChain {
  */
 export interface IHistoryManager {
   /** 初始化历史记录管理器 */
-  init(): Promise<void>;
+  init(): void;
   /** 添加记录 */
   addRecord(record: PromptRecord): void;
   /** 获取所有记录 */

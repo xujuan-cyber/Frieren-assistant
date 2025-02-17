@@ -314,11 +314,9 @@ const selectedTemplate = computed(() => {
 })
 
 // 加载提示词列表
-const loadTemplates = async () => {
+const loadTemplates = () => {
   try {
-    // 确保提示词管理器重新初始化
-    await templateManager.init()
-    const allTemplates = await templateManager.listTemplates()
+    const allTemplates = templateManager.listTemplates()
     templates.value = allTemplates
     console.log('加载到的提示词:', templates.value)
   } catch (error) {
@@ -366,7 +364,7 @@ const cancelEdit = () => {
 }
 
 // 提交表单
-const handleSubmit = async () => {
+const handleSubmit = () => {
   try {
     const templateData = {
       id: editingTemplate.value?.id || `template-${Date.now()}`,
@@ -382,20 +380,17 @@ const handleSubmit = async () => {
     }
 
     // 先保存模板
-    await templateManager.saveTemplate(templateData)
-    
-    // 确保数据已更新
-    await templateManager.init()
+    templateManager.saveTemplate(templateData)
     
     // 重新加载列表
-    await loadTemplates()
+    loadTemplates()
     
     // 如果编辑的是当前选中的提示词，只更新其内容
     const isCurrentSelected = (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateData.id) ||
                             (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateData.id)
     
     if (editingTemplate.value && isCurrentSelected) {
-      const updatedTemplate = await templateManager.getTemplate(templateData.id)
+      const updatedTemplate = templateManager.getTemplate(templateData.id)
       if (updatedTemplate) {
         // 通知父组件更新模板内容，但保持选中状态
         emit('select', updatedTemplate, currentType.value)
@@ -411,11 +406,11 @@ const handleSubmit = async () => {
 }
 
 // 确认删除
-const confirmDelete = async (templateId) => {
+const confirmDelete = (templateId) => {
   if (confirm('确定要删除这个提示词吗？此操作不可恢复。')) {
     try {
-      await templateManager.deleteTemplate(templateId)
-      await loadTemplates()
+      templateManager.deleteTemplate(templateId)
+      loadTemplates()
       
       // 如果删除的是当前选中的提示词，清空选择
       if (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateId) {
@@ -453,16 +448,16 @@ const exportTemplate = (templateId) => {
 }
 
 // 导入提示词
-const handleFileImport = async (event) => {
+const handleFileImport = (event) => {
   const file = event.target.files[0]
   if (!file) return
 
   try {
     const reader = new FileReader()
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       try {
-        await templateManager.importTemplate(e.target.result)
-        await loadTemplates()
+        templateManager.importTemplate(e.target.result)
+        loadTemplates()
         toast.success('提示词已导入')
         event.target.value = '' // 清空文件输入
       } catch (error) {
