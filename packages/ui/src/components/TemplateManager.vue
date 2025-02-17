@@ -410,13 +410,16 @@ const confirmDelete = (templateId) => {
   if (confirm('确定要删除这个提示词吗？此操作不可恢复。')) {
     try {
       templateManager.deleteTemplate(templateId)
+      
+      // 获取删除后的模板列表
+      const remainingTemplates = templateManager.listTemplatesByType(currentType.value)
       loadTemplates()
       
-      // 如果删除的是当前选中的提示词，清空选择
+      // 如果删除的是当前选中的提示词，自动切换到第一个可用的模板
       if (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateId) {
-        emit('select', null, 'optimize')
+        emit('select', remainingTemplates[0] || null, 'optimize')
       } else if (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateId) {
-        emit('select', null, 'iterate')
+        emit('select', remainingTemplates[0] || null, 'iterate')
       }
       
       toast.success('提示词已删除')

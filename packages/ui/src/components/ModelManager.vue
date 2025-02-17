@@ -245,7 +245,7 @@ const newModel = ref({
 });
 
 // 加载所有模型
-const loadModels = async () => {
+const loadModels = () => {
   try {
     // 强制刷新模型数据
     const allModels = modelManager.getAllModels();
@@ -301,8 +301,8 @@ const isDefaultModel = (key) => {
 const handleDelete = async (key) => {
   if (confirm(`确定要删除模型 ${key} 吗？此操作不可恢复。`)) {
     try {
-      await modelManager.deleteModel(key)
-      await loadModels()
+      modelManager.deleteModel(key)
+      loadModels()
       toast.success('模型已删除')
     } catch (error) {
       console.error('删除模型失败:', error)
@@ -355,11 +355,9 @@ const saveEdit = async () => {
     }
     console.log('新配置:', config);
 
-    await modelManager.updateModel(editingModel.value.key, config)
-    console.log('模型更新成功');
+    modelManager.updateModel(editingModel.value.key, config)
     
-    await loadModels()
-    console.log('模型列表已重新加载');
+    loadModels()
     
     emit('modelsUpdated', editingModel.value.key)
     console.log('已触发 modelsUpdated 事件');
@@ -389,8 +387,8 @@ const addCustomModel = async () => {
       provider: 'custom'
     }
 
-    await modelManager.addModel(newModel.value.key, config)
-    await loadModels()
+    modelManager.addModel(newModel.value.key, config)
+    loadModels()
     showAddForm.value = false
     // 修改这里，传递新添加的模型的 key
     emit('modelsUpdated', newModel.value.key)
@@ -414,8 +412,8 @@ const enableModel = async (key) => {
     const model = modelManager.getModel(key)
     if (!model) throw new Error('模型配置不存在')
 
-    await modelManager.enableModel(key)
-    await loadModels()
+    modelManager.enableModel(key)
+    loadModels()
     // 修改这里，传递启用的模型的 key
     emit('modelsUpdated', key)
     toast.success('模型已启用')
@@ -430,8 +428,8 @@ const disableModel = async (key) => {
     const model = modelManager.getModel(key)
     if (!model) throw new Error('模型配置不存在')
 
-    await modelManager.disableModel(key)
-    await loadModels()
+    modelManager.disableModel(key)
+    loadModels()
     // 修改这里，传递禁用的模型的 key
     emit('modelsUpdated', key)
     toast.success('模型已禁用')
@@ -441,15 +439,6 @@ const disableModel = async (key) => {
   }
 }
 
-// 添加选中模型的处理
-const selectedModel = ref(null)
-
-const handleSelectModel = (model) => {
-  if (model) {
-    emit('select', model)
-  }
-  handleClose()
-}
 
 // 初始化
 onMounted(() => {

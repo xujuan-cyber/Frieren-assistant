@@ -313,29 +313,16 @@ const handleTemplateSelect = (template, type) => {
       type 
     })
 
-    // 解构模板ID，避免直接使用Proxy对象
-    const templateId = String(template.id)    
-    const updatedTemplate = templateManager.getTemplate(templateId)
-    console.log('获取到更新后的模板:', updatedTemplate ? {
-      id: updatedTemplate.id,
-      name: updatedTemplate.name,
-      type: updatedTemplate.metadata?.templateType
-    } : null)
-    
-    if (!updatedTemplate) {
-      throw new Error(`无法加载模板: ${templateId}`)
-    }
-    
     if (type === 'optimize') {
-      selectedOptimizeTemplate.value = updatedTemplate
-      console.log('已更新优化模板:', selectedOptimizeTemplate.value?.name)
+      selectedOptimizeTemplate.value = template
     } else {
-      selectedIterateTemplate.value = updatedTemplate
-      console.log('已更新迭代模板:', selectedIterateTemplate.value?.name)
+      selectedIterateTemplate.value = template
     }
     
-    saveTemplateSelection(updatedTemplate, type)
-    toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${updatedTemplate.name || '无'}`)
+    saveTemplateSelection(template, type)
+    if (template) {
+      toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${template.name}`)
+    }
   } catch (error) {
     console.error('选择提示词失败:', error)
     toast.error('选择提示词失败：' + (error instanceof Error ? error.message : String(error)))
@@ -357,6 +344,13 @@ watch([selectedOptimizeTemplate, selectedIterateTemplate], () => {
 })
 
 const handleTemplateManagerClose = () => {
+  // 确保所有模板选择器都刷新状态
+  const templateSelectors = document.querySelectorAll('template-select')
+  templateSelectors.forEach(selector => {
+    if (selector.__vueParentComponent?.ctx?.refresh) {
+      selector.__vueParentComponent.ctx.refresh()
+    }
+  })
   showTemplates.value = false
 }
 

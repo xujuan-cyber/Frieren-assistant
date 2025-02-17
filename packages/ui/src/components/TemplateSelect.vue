@@ -146,9 +146,35 @@ const templates = computed(() => {
   return templateManager.listTemplatesByType(props.type)
 })
 
-// 添加手动刷新方法
+// 添加对模板列表变化的监听
+watch(
+  templates,  // 监听模板列表
+  (newTemplates) => {
+    // 如果当前选中的模板不在列表中，自动切换到第一个
+    if (props.modelValue && !newTemplates.find(t => t.id === props.modelValue.id)) {
+      console.log('当前选中的模板已不存在，切换到新的模板', {
+        current: props.modelValue?.id,
+        available: newTemplates.map(t => t.id)
+      })
+      
+      const firstTemplate = newTemplates.find(t => t.metadata.templateType === props.type)
+      emit('update:modelValue', firstTemplate || null)
+      emit('select', firstTemplate || null, props.type)
+    }
+  },
+  { deep: true }
+)
+
+// 改进刷新方法
 const refreshTemplates = () => {
   refreshTrigger.value++
+  // 刷新时也检查当前选中状态
+  const currentTemplates = templateManager.listTemplatesByType(props.type)
+  if (props.modelValue && !currentTemplates.find(t => t.id === props.modelValue.id)) {
+    const firstTemplate = currentTemplates[0]
+    emit('update:modelValue', firstTemplate || null)
+    emit('select', firstTemplate || null, props.type)
+  }
 }
 
 // 暴露刷新方法给父组件
