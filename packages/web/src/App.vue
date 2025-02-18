@@ -153,9 +153,8 @@
   </MainLayoutUI>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import '@prompt-optimizer/ui/dist/style.css'
-import { ref, onMounted, watch, nextTick } from 'vue'
 import {
   // UI组件
   ToastUI,
@@ -175,52 +174,44 @@ import {
   usePromptTester,
   useToast,
   usePromptHistory,
+  useServiceInitializer,
+  useTemplateManager,
+  useModelManager,
+  useHistoryManager,
+  useModelSelectors,
   // 服务
-  createLLMService,
-  createPromptService,
   modelManager,
   templateManager,
   historyManager
 } from '@prompt-optimizer/ui'
 
-// 初始化服务
-const llmService = createLLMService(modelManager)
-const promptServiceRef = ref(null)
-
 // 初始化 toast
 const toast = useToast()
 
-// 状态
-const showConfig = ref(false)
-const showHistory = ref(false)
-const showTemplates = ref(false)
-const currentType = ref('optimize')  // 默认为优化提示词
+// 初始化服务
+const {
+  promptServiceRef
+} = useServiceInitializer(modelManager, templateManager, historyManager)
 
-// 添加 ref
-const optimizeModelSelect = ref(null)
-const testModelSelect = ref(null)
+// 初始化模型选择器
+const {
+  optimizeModelSelect,
+  testModelSelect
+} = useModelSelectors()
 
-// 初始化基础服务
-const initBaseServices = () => {
-  try {
-    console.log('开始初始化基础服务...')
-    
-    // 初始化历史记录管理器（同步操作）
-    console.log('初始化历史记录管理器...')
-    historyManager.init()
-
-    // 获取并验证模板列表
-    const templates = templateManager.listTemplates()
-    console.log('模板列表:', templates)
-  } catch (error) {
-    console.error('初始化基础服务失败:', error)
-    toast.error('初始化失败：' + (error instanceof Error ? error.message : String(error)))
-    throw error
-  }
-}
-
-// 先初始化基础服务
-initBaseServices()
+// 初始化模型管理器
+const {
+  showConfig,
+  selectedOptimizeModel,
+  selectedTestModel,
+  handleModelManagerClose,
+  handleModelsUpdated,
+  handleModelSelect
+} = useModelManager({
+  modelManager,
+  optimizeModelSelect,
+  testModelSelect
+})
 
 // 初始化组合式函数
 const {
@@ -230,20 +221,21 @@ const {
   isIterating,
   selectedOptimizeTemplate,
   selectedIterateTemplate,
-  selectedOptimizeModel,
-  selectedTestModel,
   currentVersions,
   currentVersionId,
   currentChainId,
   handleOptimizePrompt,
   handleIteratePrompt,
   handleSwitchVersion,
-  saveTemplateSelection,
-  initTemplateSelection,
-  handleModelSelect,
-  initModelSelection,
-  loadModels
-} = usePromptOptimizer(modelManager, templateManager, historyManager, promptServiceRef)
+  saveTemplateSelection
+} = usePromptOptimizer(
+  modelManager,
+  templateManager,
+  historyManager,
+  promptServiceRef,
+  selectedOptimizeModel,
+  selectedTestModel
+)
 
 const {
   testContent,
@@ -253,11 +245,11 @@ const {
   handleTest
 } = usePromptTester(promptServiceRef, selectedTestModel)
 
+// 初始化历史记录管理器
 const {
   history,
-  handleSelectHistory,
-  handleClearHistory,
-  initHistory
+  handleSelectHistory: handleSelectHistoryBase,
+  handleClearHistory: handleClearHistoryBase
 } = usePromptHistory(
   historyManager,
   prompt,
@@ -267,142 +259,32 @@ const {
   currentVersionId
 )
 
-// 初始化其他服务
-const initOtherServices = () => {
-  try {
-    console.log('初始化其他服务...')
-    
-    // 初始化其他数据（同步操作）
-    console.log('初始化模型选择...')
-    initModelSelection()
-    
-    console.log('初始化历史记录...')
-    initHistory()
-    
-    console.log('初始化模板选择...')
-    initTemplateSelection()
-    
-    // 创建提示词服务
-    console.log('创建提示词服务...')
-    promptServiceRef.value = createPromptService(modelManager, llmService, templateManager, historyManager)
-    
-    console.log('初始化完成', {
-      optimizeTemplate: selectedOptimizeTemplate.value?.name,
-      iterateTemplate: selectedIterateTemplate.value?.name
-    })
-  } catch (error) {
-    console.error('初始化其他服务失败:', error)
-    toast.error('初始化失败：' + (error instanceof Error ? error.message : String(error)))
-  }
-}
+// 初始化历史记录管理器UI
+const {
+  showHistory,
+  handleSelectHistory,
+  handleClearHistory
+} = useHistoryManager(
+  historyManager,
+  prompt,
+  optimizedPrompt,
+  currentChainId,
+  currentVersions,
+  currentVersionId,
+  handleSelectHistoryBase
+)
 
-// 生命周期钩子
-onMounted(() => {
-  initOtherServices()
+// 初始化模板管理器
+const {
+  showTemplates,
+  currentType,
+  handleTemplateSelect,
+  openTemplateManager,
+  handleTemplateManagerClose
+} = useTemplateManager({
+  selectedOptimizeTemplate,
+  selectedIterateTemplate,
+  saveTemplateSelection,
+  templateManager
 })
-
-// 修改提示词选择处理函数
-const handleTemplateSelect = (template, type) => {
-  try {
-    console.log('选择模板:', { 
-      template: template ? {
-        id: template.id,
-        name: template.name,
-        type: template.metadata?.templateType
-      } : null, 
-      type 
-    })
-
-    if (type === 'optimize') {
-      selectedOptimizeTemplate.value = template
-    } else {
-      selectedIterateTemplate.value = template
-    }
-    
-    saveTemplateSelection(template, type)
-    if (template) {
-      toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${template.name}`)
-    }
-  } catch (error) {
-    console.error('选择提示词失败:', error)
-    toast.error('选择提示词失败：' + (error instanceof Error ? error.message : String(error)))
-  }
-}
-
-// 打开提示词管理器
-const openTemplateManager = (type = 'optimize') => {
-  currentType.value = type
-  showTemplates.value = true
-}
-
-// 监听模板选择变化
-watch([selectedOptimizeTemplate, selectedIterateTemplate], () => {
-  console.log('模板选择已更新:', {
-    optimize: selectedOptimizeTemplate.value?.name,
-    iterate: selectedIterateTemplate.value?.name
-  })
-})
-
-const handleTemplateManagerClose = () => {
-  // 确保所有模板选择器都刷新状态
-  const templateSelectors = document.querySelectorAll('template-select')
-  templateSelectors.forEach(selector => {
-    if (selector.__vueParentComponent?.ctx?.refresh) {
-      selector.__vueParentComponent.ctx.refresh()
-    }
-  })
-  showTemplates.value = false
-}
-
-// 修改模型管理器关闭处理函数
-const handleModelManagerClose = async () => {
-  // 先更新数据
-  await loadModels()
-  // 刷新模型选择组件
-  optimizeModelSelect.value?.refresh()
-  testModelSelect.value?.refresh()
-  // 关闭界面
-  showConfig.value = false
-}
-
-// 修改模型更新处理函数
-const handleModelsUpdated = (modelKey) => {
-  // 如果需要，可以在这里处理模型更新后的其他逻辑
-}
 </script>
-
-<style>
-.custom-select {
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  background-image: none !important;
-}
-
-.custom-select::-ms-expand {
-  display: none;
-}
-
-/* 优化滚动条样式 */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* 隐藏水平滚动条 */
-::-webkit-scrollbar-horizontal {
-  display: none;
-}
-</style>

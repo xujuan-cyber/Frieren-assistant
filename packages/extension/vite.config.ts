@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      '@prompt-optimizer/ui': resolve(__dirname, '../ui'),
+      '@prompt-optimizer/ui/dist/style.css': resolve(__dirname, '../ui/dist/style.css')
     },
   },
   base: './',  // 使用相对路径

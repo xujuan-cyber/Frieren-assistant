@@ -153,17 +153,10 @@
   </MainLayoutUI>
 </template>
 
-<script setup>
-import '@prompt-optimizer/ui/style.css'
-import { ref, onMounted, watch } from 'vue'
-import { 
-  createLLMService, 
-  createPromptService,
-  modelManager,
-  templateManager,
-  historyManager
-} from '@prompt-optimizer/core'
+<script setup lang="ts">
+import '@prompt-optimizer/ui/dist/style.css'
 import {
+  // UI组件
   ToastUI,
   ModelManagerUI,
   OutputPanelUI,
@@ -176,28 +169,49 @@ import {
   MainLayoutUI,
   ContentCardUI,
   ActionButtonUI,
+  // composables
   usePromptOptimizer,
   usePromptTester,
   useToast,
-  usePromptHistory
+  usePromptHistory,
+  useServiceInitializer,
+  useTemplateManager,
+  useModelManager,
+  useHistoryManager,
+  useModelSelectors,
+  // 服务
+  modelManager,
+  templateManager,
+  historyManager
 } from '@prompt-optimizer/ui'
-
-// 初始化服务
-const llmService = createLLMService(modelManager)
-const promptServiceRef = ref(null)
 
 // 初始化 toast
 const toast = useToast()
 
-// 状态
-const showConfig = ref(false)
-const showHistory = ref(false)
-const showTemplates = ref(false)
-const currentType = ref('optimize')  // 默认为优化提示词
+// 初始化服务
+const {
+  promptServiceRef
+} = useServiceInitializer(modelManager, templateManager, historyManager)
 
-// 添加 ref
-const optimizeModelSelect = ref(null)
-const testModelSelect = ref(null)
+// 初始化模型选择器
+const {
+  optimizeModelSelect,
+  testModelSelect
+} = useModelSelectors()
+
+// 初始化模型管理器
+const {
+  showConfig,
+  selectedOptimizeModel,
+  selectedTestModel,
+  handleModelManagerClose,
+  handleModelsUpdated,
+  handleModelSelect
+} = useModelManager({
+  modelManager,
+  optimizeModelSelect,
+  testModelSelect
+})
 
 // 初始化组合式函数
 const {
@@ -207,20 +221,21 @@ const {
   isIterating,
   selectedOptimizeTemplate,
   selectedIterateTemplate,
-  selectedOptimizeModel,
-  selectedTestModel,
   currentVersions,
   currentVersionId,
   currentChainId,
   handleOptimizePrompt,
   handleIteratePrompt,
   handleSwitchVersion,
-  saveTemplateSelection,
-  initTemplateSelection,
-  handleModelSelect,
-  initModelSelection,
-  loadModels
-} = usePromptOptimizer(modelManager, templateManager, historyManager, promptServiceRef)
+  saveTemplateSelection
+} = usePromptOptimizer(
+  modelManager,
+  templateManager,
+  historyManager,
+  promptServiceRef,
+  selectedOptimizeModel,
+  selectedTestModel
+)
 
 const {
   testContent,
@@ -230,11 +245,11 @@ const {
   handleTest
 } = usePromptTester(promptServiceRef, selectedTestModel)
 
+// 初始化历史记录管理器
 const {
   history,
-  handleSelectHistory,
-  handleClearHistory,
-  initHistory
+  handleSelectHistory: handleSelectHistoryBase,
+  handleClearHistory: handleClearHistoryBase
 } = usePromptHistory(
   historyManager,
   prompt,
@@ -244,134 +259,32 @@ const {
   currentVersionId
 )
 
-// 初始化 promptService
-const initServices = async () => {
-  try {
-    promptServiceRef.value = await createPromptService(modelManager, llmService)
-  } catch (error) {
-    console.error('服务初始化失败:', error)
-    toast.error('服务初始化失败')
-  }
-}
+// 初始化历史记录管理器UI
+const {
+  showHistory,
+  handleSelectHistory,
+  handleClearHistory
+} = useHistoryManager(
+  historyManager,
+  prompt,
+  optimizedPrompt,
+  currentChainId,
+  currentVersions,
+  currentVersionId,
+  handleSelectHistoryBase
+)
 
-// 修改提示词选择处理函数
-const handleTemplateSelect = async (template, type) => {
-  // 获取最新的模板数据
-  const updatedTemplate = template ? await templateManager.getTemplate(template.id) : null
-  
-  if (type === 'optimize') {
-    selectedOptimizeTemplate.value = updatedTemplate
-  } else {
-    selectedIterateTemplate.value = updatedTemplate
-  }
-  
-  await saveTemplateSelection(updatedTemplate, type)
-  toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${updatedTemplate?.name || '无'}`)
-}
-
-// 打开提示词管理器
-const openTemplateManager = (type = 'optimize') => {
-  currentType.value = type
-  showTemplates.value = true
-}
-
-const loadTemplates = async () => {
-  try {
-    // 确保模板管理器重新初始化
-    await templateManager.init()
-    // 重新初始化模板选择
-    await initTemplateSelection()
-    
-    // 同步当前选中的模板
-    if (selectedOptimizeTemplate.value) {
-      const template = await templateManager.getTemplate(selectedOptimizeTemplate.value.id)
-      if (template) {
-        selectedOptimizeTemplate.value = template
-      }
-    }
-    if (selectedIterateTemplate.value) {
-      const template = await templateManager.getTemplate(selectedIterateTemplate.value.id)
-      if (template) {
-        selectedIterateTemplate.value = template
-      }
-    }
-    
-    toast.success('提示词列表已更新')
-  } catch (error) {
-    console.error('加载提示词失败:', error)
-    toast.error('加载提示词失败')
-  }
-}
-
-// 修改 handleTemplateManagerClose 方法
-const handleTemplateManagerClose = async () => {
-  // 先更新数据
-  await loadTemplates()
-  // 最后关闭界面
-  showTemplates.value = false
-}
-
-// 修改模型管理器关闭处理函数
-const handleModelManagerClose = async () => {
-  // 先更新数据
-  await loadModels()
-  // 刷新模型选择组件
-  optimizeModelSelect.value?.refresh()
-  testModelSelect.value?.refresh()
-  // 关闭界面
-  showConfig.value = false
-}
-
-// 修改模型更新处理函数
-const handleModelsUpdated = (modelKey) => {
-  // 如果需要，可以在这里处理模型更新后的其他逻辑
-}
-
-// 生命周期钩子
-onMounted(async () => {
-  await initServices()
-  await initModelSelection()
-  
-  // 初始化历史记录管理器
-  await initHistory()
-  
-  // 初始化提示词选择
-  await initTemplateSelection()
+// 初始化模板管理器
+const {
+  showTemplates,
+  currentType,
+  handleTemplateSelect,
+  openTemplateManager,
+  handleTemplateManagerClose
+} = useTemplateManager({
+  selectedOptimizeTemplate,
+  selectedIterateTemplate,
+  saveTemplateSelection,
+  templateManager
 })
 </script>
-
-<style>
-.custom-select {
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  background-image: none !important;
-}
-
-.custom-select::-ms-expand {
-  display: none;
-}
-
-/* 优化滚动条样式 */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* 隐藏水平滚动条 */
-::-webkit-scrollbar-horizontal {
-  display: none;
-}
-</style>
