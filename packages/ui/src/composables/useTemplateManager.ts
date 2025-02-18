@@ -22,7 +22,7 @@ export interface TemplateManagerHooks {
 export interface TemplateManagerOptions {
   selectedOptimizeTemplate: Ref<Template | null>
   selectedIterateTemplate: Ref<Template | null>
-  saveTemplateSelection: (template: Template | null, type: string) => void
+  saveTemplateSelection: (template: Template, type: 'optimize' | 'iterate') => void
   templateManager: TemplateManager
 }
 
@@ -104,8 +104,8 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
         selectedIterateTemplate.value = template
       }
       
-      saveTemplateSelection(template, type)
       if (template) {
+        saveTemplateSelection(template, type as 'optimize' | 'iterate')
         toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${template.name}`)
       }
     } catch (error) {
