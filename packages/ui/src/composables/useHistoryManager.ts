@@ -1,5 +1,4 @@
-import { ref, onMounted } from 'vue'
-import type { Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import type { HistoryManager } from '@prompt-optimizer/core'
 
 export interface HistoryManagerHooks {
@@ -23,20 +22,6 @@ export function useHistoryManager(
     handleSelectHistoryBase(historyItem)
     showHistory.value = false
   }
-
-  // 初始化历史记录
-  const initHistory = () => {
-    try {
-      historyManager.init()
-    } catch (error) {
-      console.error('初始化历史记录失败:', error)
-    }
-  }
-
-  // 在 mounted 时自动初始化
-  onMounted(() => {
-    initHistory()
-  })
 
   return {
     showHistory,

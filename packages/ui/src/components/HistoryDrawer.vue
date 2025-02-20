@@ -14,7 +14,7 @@
           <div class="flex items-center gap-4">
             <h2 class="text-lg font-semibold text-white/90">历史记录</h2>
             <button
-              v-if="history && history.length > 0"
+              v-if="sortedHistory && sortedHistory.length > 0"
               @click.stop="handleClear"
               class="text-sm text-white/60 hover:text-white/90 transition-colors px-2 py-1 rounded border border-white/20 hover:border-white/40"
             >
@@ -127,20 +127,16 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import type { PropType } from 'vue'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
+import { historyManager } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 
 const props = defineProps({
-  show: Boolean,
-  history: {
-    type: Array as PropType<PromptRecordChain[]>,
-    default: () => []
-  }
+  show: Boolean
 })
 
 // 添加日志
 console.log('HistoryDrawer props:', {
-  show: props.show,
-  historyLength: props.history?.length
+  show: props.show
 })
 
 const emit = defineEmits<{
@@ -158,8 +154,7 @@ const expandedVersions = ref<Record<string, boolean>>({})
 
 // 添加排序后的历史记录计算属性
 const sortedHistory = computed(() => {
-  if (!props.history) return []
-  return [...props.history].sort((a, b) => b.rootRecord.timestamp - a.rootRecord.timestamp)
+  return historyManager.getAllChains().sort((a, b) => b.rootRecord.timestamp - a.rootRecord.timestamp)
 })
 
 // 切换版本展开/收起状态
@@ -178,25 +173,8 @@ const handleClear = async () => {
   }
 }
 
-// 监听历史记录变化
-watch(() => props.history, (newHistory) => {
-  console.log('History updated:', {
-    length: newHistory?.length,
-    chains: newHistory?.map(chain => ({
-      chainId: chain.chainId,
-      versionsCount: chain.versions.length
-    }))
-  })
-  
-  // 重置所有版本的展开状态为 false
-  expandedVersions.value = {}
-  
-  console.log('展开状态已重置:', expandedVersions.value)
-}, { immediate: true, deep: true })
-
 // 监听显示状态变化
 watch(() => props.show, (newShow) => {
-  console.log('HistoryDrawer visibility changed:', newShow)
   if (!newShow) {
     // 关闭时重置所有展开状态
     expandedVersions.value = {}
@@ -228,5 +206,4 @@ const truncateText = (text: string, maxLength: number) => {
 </script>
 
 <style scoped>
-/* 删除之前的样式，使用Tailwind的transform和transition类 */
 </style> 

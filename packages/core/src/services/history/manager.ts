@@ -8,30 +8,16 @@ import { v4 as uuidv4 } from 'uuid';
 export class HistoryManager implements IHistoryManager {
   private readonly storageKey = 'prompt_history';
   private readonly maxRecords = 50; // 最多保存50条记录
-  private initialized = false;
 
-  /**
-   * 初始化历史记录管理器
-   */
-  init(): void {
+  constructor() {
     try {
       // 验证存储是否可用
       const testKey = '_test_storage_';
       localStorage.setItem(testKey, 'test');
       localStorage.removeItem(testKey);
-      this.initialized = true;
     } catch (error) {
-      console.error('初始化历史记录管理器失败:', error);
-      throw new StorageError('初始化失败: 存储不可用', 'init');
-    }
-  }
-
-  /**
-   * 检查初始化状态
-   */
-  private checkInitialized(): void {
-    if (!this.initialized) {
-      throw new StorageError('历史记录管理器未初始化', 'init');
+      console.error('存储不可用:', error);
+      throw new StorageError('存储不可用', 'storage');
     }
   }
 
@@ -39,7 +25,6 @@ export class HistoryManager implements IHistoryManager {
    * 添加记录
    */
   addRecord(record: PromptRecord): void {
-    this.checkInitialized();
     try {
       this.validateRecord(record);
       const history = this.getRecords();
@@ -57,7 +42,6 @@ export class HistoryManager implements IHistoryManager {
    * 获取所有记录
    */
   getRecords(): PromptRecord[] {
-    this.checkInitialized();
     try {
       const historyStr = localStorage.getItem(this.storageKey);
       return historyStr ? JSON.parse(historyStr) : [];
@@ -71,7 +55,6 @@ export class HistoryManager implements IHistoryManager {
    * 获取指定记录
    */
   getRecord(id: string): PromptRecord {
-    this.checkInitialized();
     const history = this.getRecords();
     const record = history.find(r => r.id === id);
     if (!record) {
@@ -84,7 +67,6 @@ export class HistoryManager implements IHistoryManager {
    * 删除记录
    */
   deleteRecord(id: string): void {
-    this.checkInitialized();
     const records = this.getRecords();
     const index = records.findIndex(record => record.id === id);
     if (index === -1) {
@@ -102,32 +84,25 @@ export class HistoryManager implements IHistoryManager {
    * 获取迭代链
    */
   getIterationChain(recordId: string): PromptRecord[] {
-    this.checkInitialized();
-    try {
-      const history = this.getRecords();
-      const chain: PromptRecord[] = [];
-      let currentId = recordId;
+    const history = this.getRecords();
+    const chain: PromptRecord[] = [];
+    let currentId = recordId;
 
-      while (currentId) {
-        const record = history.find(r => r.id === currentId);
-        if (!record) break;
-        
-        chain.unshift(record);
-        currentId = record.previousId ?? '';
-      }
-
-      return chain;
-    } catch (error) {
-      console.error('获取迭代链失败:', error);
-      throw new StorageError('获取迭代链失败', 'read');
+    while (currentId) {
+      const record = history.find(r => r.id === currentId);
+      if (!record) break;
+      
+      chain.unshift(record);
+      currentId = record.previousId ?? '';
     }
+
+    return chain;
   }
 
   /**
    * 清除所有记录
    */
   clearHistory(): void {
-    this.checkInitialized();
     try {
       localStorage.removeItem(this.storageKey);
     } catch (error) {

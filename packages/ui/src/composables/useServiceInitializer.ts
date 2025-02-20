@@ -16,10 +16,6 @@ export function useServiceInitializer(
   const initBaseServices = () => {
     try {
       console.log('开始初始化基础服务...')
-      
-      // 初始化历史记录管理器（同步操作）
-      console.log('初始化历史记录管理器...')
-      historyManager.init()
 
       // 获取并验证模板列表
       const templates = templateManager.listTemplates()
