@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LLMService, ModelManager, RequestConfigError, APIError } from '@prompt-optimizer/core';
+import { LLMService, ModelManager, RequestConfigError, APIError } from '../src';
 
 // 模拟localStorage
 const localStorageMock = {

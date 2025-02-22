@@ -14,7 +14,7 @@ import {
   TestError,
   APIError,
   TemplateError
-} from '@prompt-optimizer/core'
+} from '../../../src'
 
 // 模拟 fetch API
 const mockFetch = vi.fn();
@@ -38,7 +38,7 @@ describe('PromptService', () => {
   };
 
   const mockTemplate: Template = {
-    id: 'test',
+    id: 'general-optimize',
     name: 'Test Template',
     content: 'test template content',
     metadata: {
@@ -48,7 +48,7 @@ describe('PromptService', () => {
     }
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // 重置所有mock
     mockFetch.mockReset();
     vi.clearAllMocks();
@@ -74,15 +74,12 @@ describe('PromptService', () => {
     vi.spyOn(llmService, 'sendMessage').mockResolvedValue(JSON.stringify({ content: 'test result' }));
 
     // 初始化管理器
-    await templateManager.init();
-    await historyManager.init();
-
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
   });
 
   describe('optimizePrompt', () => {
     it('应该成功优化提示词', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化后的提示词');
 
       const result = await promptService.optimizePrompt('test prompt', 'test-model');
@@ -90,7 +87,9 @@ describe('PromptService', () => {
     });
 
     it('当提示词管理器未初始化时应抛出错误', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockRejectedValue(new Error('提示词管理器未初始化'));
+      vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
+        throw new Error('提示词管理器未初始化');
+      });
 
       await expect(promptService.optimizePrompt('test prompt', 'test-model'))
         .rejects
@@ -98,7 +97,9 @@ describe('PromptService', () => {
     });
 
     it('当提示词不存在时应抛出错误', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockRejectedValue(new Error('提示词不存在'));
+      vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
+        throw new Error('提示词不存在');
+      });
 
       await expect(promptService.optimizePrompt('test prompt', 'test-model'))
         .rejects
@@ -110,7 +111,7 @@ describe('PromptService', () => {
         ...mockTemplate,
         content: ''
       };
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(emptyTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(emptyTemplate);
 
       await expect(promptService.optimizePrompt('test prompt', 'test-model'))
         .rejects
@@ -120,7 +121,7 @@ describe('PromptService', () => {
 
   describe('iteratePrompt', () => {
     it('应该成功迭代提示词', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代后的提示词');
 
       const result = await promptService.iteratePrompt('test prompt', 'test input', 'test-model');
@@ -128,7 +129,9 @@ describe('PromptService', () => {
     });
 
     it('当提示词管理器未初始化时应抛出错误', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockRejectedValue(new Error('提示词管理器未初始化'));
+      vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
+        throw new Error('提示词管理器未初始化');
+      });
 
       await expect(promptService.iteratePrompt('test prompt', 'test input', 'test-model'))
         .rejects
@@ -214,7 +217,7 @@ describe('PromptService', () => {
     });
 
     it('当LLM服务返回空结果时应抛出错误', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('');
 
       await expect(promptService.optimizePrompt('test prompt', 'test-model'))
@@ -223,7 +226,7 @@ describe('PromptService', () => {
     });
 
     it('当LLM服务超时时应抛出错误', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockRejectedValue(new APIError('请求超时'));
 
       await expect(promptService.optimizePrompt('test prompt', 'test-model'))
@@ -234,7 +237,7 @@ describe('PromptService', () => {
 
   describe('历史记录管理测试', () => {
     it('应该正确记录优化历史', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化结果');
       const addRecordSpy = vi.spyOn(historyManager, 'addRecord');
 
@@ -250,7 +253,7 @@ describe('PromptService', () => {
     });
 
     it('应该正确记录迭代历史', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
       const addRecordSpy = vi.spyOn(historyManager, 'addRecord');
 
@@ -286,7 +289,13 @@ describe('PromptService', () => {
   describe('提示词管理器初始化测试', () => {
     describe('提示词管理器初始化场景', () => {
       it('提示词管理器未初始化时应抛出错误', async () => {
+        // 创建一个未初始化的模板管理器
         templateManager = new TemplateManager();
+        // 模拟getTemplate方法抛出错误
+        vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
+          throw new Error('提示词管理器未初始化');
+        });
+        
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         await expect(promptService.optimizePrompt('test', 'test-model'))
@@ -295,7 +304,9 @@ describe('PromptService', () => {
       });
 
       it('optimize提示词不存在时应抛出错误', async () => {
-        vi.spyOn(templateManager, 'getTemplate').mockRejectedValue(new Error('提示词不存在'));
+        vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
+          throw new Error('提示词不存在');
+        });
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         await expect(promptService.optimizePrompt('test', 'test-model'))
@@ -305,7 +316,7 @@ describe('PromptService', () => {
 
       it('提示词管理器正确初始化但提示词内容为空时应抛出错误', async () => {
         const emptyTemplate = { ...mockTemplate, content: '' };
-        vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(emptyTemplate);
+        vi.spyOn(templateManager, 'getTemplate').mockReturnValue(emptyTemplate);
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         await expect(promptService.optimizePrompt('test', 'test-model'))
@@ -314,7 +325,7 @@ describe('PromptService', () => {
       });
 
       it('提示词管理器初始化成功时应正常执行', async () => {
-        vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+        vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
         vi.spyOn(llmService, 'sendMessage').mockResolvedValue('test result');
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
@@ -324,21 +335,20 @@ describe('PromptService', () => {
     });
 
     describe('提示词管理器状态检查', () => {
-      it('应该能检测到提示词管理器的初始化状态', async () => {
+      it('应该能检测到提示词管理器的初始化状态', () => {
         templateManager = new TemplateManager();
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        await expect(templateManager.getTemplate('test'))
-          .rejects
-          .toThrow(TemplateError);
+        expect(() => {
+           templateManager.getTemplate('non-existent-template');
+        }).toThrow(/提示词 non-existent-template 不存在/);
       });
 
       it('提示词管理器初始化后应该能正常工作', async () => {
-        vi.spyOn(templateManager, 'getTemplate').mockResolvedValue(mockTemplate);
+        vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
         vi.spyOn(llmService, 'sendMessage').mockResolvedValue('test result');
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        await templateManager.init();
         const result = await promptService.optimizePrompt('test', 'test-model');
         expect(result).toBe('test result');
       });

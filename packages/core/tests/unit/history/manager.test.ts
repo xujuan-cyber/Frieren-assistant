@@ -4,7 +4,8 @@ import {
   HistoryError,
   RecordNotFoundError,
   StorageError,
-  PromptRecord
+  PromptRecord,
+  RecordValidationError
 } from '@prompt-optimizer/core';
 
 describe('HistoryManager', () => {
@@ -36,7 +37,7 @@ describe('HistoryManager', () => {
     templateId: 'template-2'
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // 清理 mock storage
     mockStorage = {};
     
@@ -48,11 +49,14 @@ describe('HistoryManager', () => {
       }),
       removeItem: vi.fn((key: string) => {
         delete mockStorage[key];
+      }),
+      clear: vi.fn(() => {
+        mockStorage = {};
       })
     });
     
+    // 初始化管理器
     manager = new HistoryManager();
-    await manager.init();
   });
 
   describe('addRecord', () => {

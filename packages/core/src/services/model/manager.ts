@@ -18,7 +18,6 @@ export class ModelManager implements IModelManager {
    */
   private init(): void {
     try {
-      console.log('初始化模型管理器...');
       // 1. 先从本地存储加载所有模型配置
       const storedData = localStorage.getItem('models');
       if (storedData) {
