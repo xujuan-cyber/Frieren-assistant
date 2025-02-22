@@ -12,6 +12,7 @@ describe('Gemini API 测试', () => {
   // 跳过没有设置 API 密钥的测试
   const apiKey = process.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
+    console.log('跳过 Gemini 测试：未设置 VITE_GEMINI_API_KEY 环境变量');
     it.skip('应该能正确调用 Gemini API', () => {});
     it.skip('应该能正确处理多轮对话', () => {});
     return;
@@ -28,14 +29,14 @@ describe('Gemini API 测试', () => {
     });
 
     const messages = [
-      { role: 'user', content: '你好，我们来玩个游戏' }
+      { role: 'user', content: '你好，请用一句话介绍你自己' }
     ];
 
     const response = await llmService.sendMessage(messages, 'gemini');
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  });
+  }, 25000);
 
   it('应该能正确处理多轮对话', async () => {
     const modelManager = new ModelManager();
@@ -57,5 +58,5 @@ describe('Gemini API 测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, { timeout: 10000 });
+  }, 25000);
 }); 

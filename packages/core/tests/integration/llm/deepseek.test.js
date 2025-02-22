@@ -12,6 +12,7 @@ describe('DeepSeek API 测试', () => {
   // 跳过没有设置 API 密钥的测试
   const apiKey = process.env.VITE_DEEPSEEK_API_KEY;
   if (!apiKey) {
+    console.log('跳过 DeepSeek 测试：未设置 VITE_DEEPSEEK_API_KEY 环境变量');
     it.skip('应该能正确调用 DeepSeek API', () => {});
     it.skip('应该能正确处理多轮对话', () => {});
     return;

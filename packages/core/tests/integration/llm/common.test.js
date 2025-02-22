@@ -5,7 +5,20 @@ import {
   RequestConfigError,
   ERROR_MESSAGES
 } from '@prompt-optimizer/core';
-import { expect, describe, it, beforeEach } from 'vitest';
+import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// 加载环境变量
+beforeAll(() => {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+  console.log('环境变量加载状态:', {
+    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+    CUSTOM_API_KEY: !!process.env.VITE_CUSTOM_API_KEY,
+    GEMINI_API_KEY: !!process.env.VITE_GEMINI_API_KEY,
+    DEEPSEEK_API_KEY: !!process.env.VITE_DEEPSEEK_API_KEY
+  });
+});
 
 describe('LLM 服务通用测试', () => {
   let llmService;

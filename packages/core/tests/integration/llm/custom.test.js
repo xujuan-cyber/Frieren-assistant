@@ -25,24 +25,24 @@ describe('自定义模型测试', () => {
     expect(model.name).toBe('Custom');
     
     // 处理环境变量可能为空的情况
-    if (import.meta.env.VITE_CUSTOM_API_BASE_URL) {
-      expect(model.baseURL).toBe(import.meta.env.VITE_CUSTOM_API_BASE_URL);
+    if (process.env.VITE_CUSTOM_API_BASE_URL) {
+      expect(model.baseURL).toBe(process.env.VITE_CUSTOM_API_BASE_URL);
     }
     
-    if (import.meta.env.VITE_CUSTOM_API_MODEL) {
-      expect(model.models).toEqual([import.meta.env.VITE_CUSTOM_API_MODEL]);
-      expect(model.defaultModel).toBe(import.meta.env.VITE_CUSTOM_API_MODEL);
+    if (process.env.VITE_CUSTOM_API_MODEL) {
+      expect(model.models).toEqual([process.env.VITE_CUSTOM_API_MODEL]);
+      expect(model.defaultModel).toBe(process.env.VITE_CUSTOM_API_MODEL);
     }
     
-    expect(model.enabled).toBe(!!import.meta.env.VITE_CUSTOM_API_KEY);
+    expect(model.enabled).toBe(!!process.env.VITE_CUSTOM_API_KEY);
   });
 
   it('应该能正确处理自定义模型的配置更新', () => {
     const updatedConfig = {
       name: 'Updated Custom Model',
-      baseURL: import.meta.env.VITE_CUSTOM_API_BASE_URL || 'https://api.custom.test',
-      models: [import.meta.env.VITE_CUSTOM_API_MODEL || 'test-model'],
-      defaultModel: import.meta.env.VITE_CUSTOM_API_MODEL || 'test-model',
+      baseURL: process.env.VITE_CUSTOM_API_BASE_URL || 'https://api.custom.test',
+      models: [process.env.VITE_CUSTOM_API_MODEL || 'test-model'],
+      defaultModel: process.env.VITE_CUSTOM_API_MODEL || 'test-model',
       enabled: true,
       provider: 'custom'
     };
@@ -57,7 +57,7 @@ describe('自定义模型测试', () => {
   });
 
   it('应该能正确调用自定义模型的 API', async () => {
-    if (!import.meta.env.VITE_CUSTOM_API_KEY) {
+    if (!process.env.VITE_CUSTOM_API_KEY) {
       console.log('跳过测试：未设置 VITE_CUSTOM_API_KEY 环境变量');
       return;
     }
@@ -73,7 +73,7 @@ describe('自定义模型测试', () => {
   }, 5000);
 
   it('应该能正确处理自定义模型的多轮对话', async () => {
-    if (!import.meta.env.VITE_CUSTOM_API_KEY) {
+    if (!process.env.VITE_CUSTOM_API_KEY) {
       console.log('跳过测试：未设置 VITE_CUSTOM_API_KEY 环境变量');
       return;
     }
