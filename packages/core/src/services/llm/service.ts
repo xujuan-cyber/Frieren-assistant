@@ -1,6 +1,6 @@
 import { ILLMService, Message } from './types';
 import { ModelConfig } from '../model/types';
-import { ModelManager } from '../model/manager';
+import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from '@langchain/core/messages';
@@ -272,6 +272,6 @@ export class LLMService implements ILLMService {
 }
 
 // 导出工厂函数
-export function createLLMService(modelManager: ModelManager): LLMService {
+export function createLLMService(modelManager: ModelManager = defaultModelManager): LLMService {
   return new LLMService(modelManager);
 } 

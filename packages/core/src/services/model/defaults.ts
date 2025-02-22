@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 import { ModelConfig } from './types';
 
 // 获取环境变量的辅助函数
@@ -10,9 +9,9 @@ const getEnvVar = (key: string): string => {
 
   // 2. 然后尝试 import.meta.env（Vite 环境）
   try {
-    // @ts-ignore
+    // @ts-ignore - 在构建时忽略此错误
     if (typeof import.meta !== 'undefined' && import.meta.env) {
-      // @ts-ignore
+      // @ts-ignore - 在构建时忽略此错误
       const value = import.meta.env[key];
       if (value) return value;
     }
@@ -20,17 +19,7 @@ const getEnvVar = (key: string): string => {
     // 忽略错误
   }
 
-  // 3. 最后尝试 globalThis
-  try {
-    // @ts-ignore
-    if (typeof globalThis !== 'undefined' && globalThis[key]) {
-      // @ts-ignore
-      return globalThis[key];
-    }
-  } catch {
-    // 忽略错误
-  }
-
+  // 3. 最后返回空字符串
   return '';
 };
 
