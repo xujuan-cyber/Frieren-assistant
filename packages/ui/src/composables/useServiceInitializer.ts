@@ -1,7 +1,7 @@
 import { ref, onMounted } from 'vue'
 import { useToast } from './useToast'
 import type { ModelManager, TemplateManager, HistoryManager, PromptService } from '@prompt-optimizer/core'
-import { createLLMService, createPromptService } from '../services'
+import { createLLMService, createPromptService } from '@prompt-optimizer/core'
 
 export function useServiceInitializer(
   modelManager: ModelManager,

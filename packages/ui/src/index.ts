@@ -1,9 +1,14 @@
-// 导入样式
+﻿// 导入样式
 import 'element-plus/dist/index.css'
 import './styles/index.css'
 import './styles/scrollbar.css'
 import './styles/common.css'
 
+/**
+ * 组件导出
+ * 注意：所有组件导出时都添加了UI后缀，以便与其他库的组件区分
+ * 例如：Toast.vue 导出为 ToastUI
+ */
 // Components
 export { default as ToastUI } from './components/Toast.vue'
 export { default as ModelManagerUI } from './components/ModelManager.vue'
@@ -32,7 +37,3 @@ export {
     createLLMService,
     createPromptService
 } from '@prompt-optimizer/core'
-
-// 导出服务
-export * from './services'
-  

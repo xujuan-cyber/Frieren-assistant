@@ -19,9 +19,11 @@
   "files": [
     "dist"
   ],
+  "readme": "在Windows环境下，请使用分号(;)而不是&&作为命令分隔符，或使用build:win脚本",
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
+    "build:win": "vite build",
     "test": "vitest"
   },
   "dependencies": {
