@@ -24,18 +24,17 @@
     "clean:vite:ui": "rimraf packages/ui/node_modules/.vite",
     "clean:vite:web": "rimraf packages/web/node_modules/.vite",
     "clean:vite:ext": "rimraf packages/extension/node_modules/.vite",
-    "clean:vite": "run-s clean:vite:core clean:vite:ui clean:vite:web clean:vite:ext",
-    "clean": "run-s clean:core clean:ui clean:web clean:ext clean:vite",
+    "clean:vite": "rimraf packages/*/node_modules/.vite",
+    "clean": "rimraf packages/*/dist && rimraf packages/*/node_modules/.vite",
     "setup:install": "pnpm install",
-    "dev:setup": "run-s clean build:core build:ui",
+    "dev:setup": "rimraf packages/*/dist && pnpm build:core && pnpm build:ui",
     "dev:parallel": "concurrently -k -p \"[{name}]\" -n \"UI,WEB\" \"pnpm run watch:ui\" \"pnpm run dev:web\"",
-    "dev": "run-s dev:setup dev:parallel",
-    "dev:fresh": "run-s clean setup:install dev"
+    "dev": "pnpm dev:setup && pnpm dev:parallel",
+    "dev:fresh": "pnpm clean && pnpm setup:install && pnpm dev"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "npm-run-all": "^4.1.5",
     "rimraf": "^4.4.1",
     "typescript": "^5.0.0"
   },
@@ -58,5 +57,10 @@
     "lodash-unified": "^1.0.3",
     "memoize-one": "^6.0.0",
     "normalize-wheel-es": "^1.2.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@langchain/core": "0.3.40"
+    }
   }
 }

@@ -30,7 +30,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': resolve(__dirname, 'src'),
         '@prompt-optimizer/ui': resolve(__dirname, '../ui'),
-        '@prompt-optimizer/ui/dist/style.css': resolve(__dirname, '../ui/dist/style.css')
+        '@prompt-optimizer/ui/dist/style.css': resolve(__dirname, '../ui/dist/style.css'),
+        '@prompt-optimizer/ui/style.css': resolve(__dirname, '../ui/dist/style.css')
       }
     },
     optimizeDeps: {
