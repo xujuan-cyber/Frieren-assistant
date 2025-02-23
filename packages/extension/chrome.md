@@ -9,8 +9,8 @@
 - **英文**：Prompt Optimizer
 
 ### 插件简短描述（132字符以内）
-- **中文**：一键优化AI提示词，纯客户端应用无需自有服务器，本地处理数据并直接调用AI模型API，支持多种AI模型。
-- **英文**：Optimize AI prompts with one click. Pure client-side app with no proprietary servers, directly calling AI APIs from your browser.
+- **中文**：智能提示词增强工具：一键优化、改进提示词质量，提升AI回复准确度。多模型支持(OpenAI/Gemini/DeepSeek)，纯客户端处理确保数据安全，无需中间服务器。
+- **英文**：Smart prompt enhancement tool: One-click optimization to improve prompt quality and AI response accuracy. Multi-model support (OpenAI/Gemini/DeepSeek), client-side processing for data security, no intermediary servers.
 
 ### 版本号
 1.0.0
@@ -26,7 +26,6 @@
 
 **核心功能：**
 
-✅ **一键优化** - 在任意网页选中文本，右键即可优化提示词
 ✅ **纯客户端架构** - 无自有服务器，所有数据存储和处理在本地完成
 ✅ **直接API调用** - 优化请求直接从您的浏览器发送到AI服务提供商，不经过中间服务器
 ✅ **多模型支持** - 集成OpenAI、Gemini、DeepSeek等多个主流AI模型
@@ -146,13 +145,13 @@ While this extension is a pure client-side application, the prompt optimization 
 ## 其他必要信息
 
 ### 网站URL
-https://prompt.always200.com
+https://github.com/linshenkx/prompt-optimizer
 
 ### 支持页面URL
 https://github.com/linshenkx/prompt-optimizer/issues
 
 ### 隐私政策URL
-https://prompt.always200.com/privacy-policy
+https://github.com/linshenkx/prompt-optimizer/blob/main/packages/extension/privacy-policy.md
 
 ## 提交清单
 

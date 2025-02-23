@@ -1,3 +1,6 @@
+# dist
+packages/extension/*.zip
+
 # Logs
 logs
 *.log
