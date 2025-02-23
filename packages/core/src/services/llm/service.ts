@@ -10,7 +10,6 @@ import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
  */
 export class LLMService implements ILLMService {
   private openAIInstances: Map<string, OpenAI> = new Map();
-  private geminiInstances: Map<string, GenerativeModel> = new Map();
 
   constructor(private modelManager: ModelManager) {}
 
@@ -84,14 +83,7 @@ export class LLMService implements ILLMService {
    * 获取Gemini实例
    */
   private getGeminiModel(modelConfig: ModelConfig, systemInstruction?: string): GenerativeModel {
-    const cacheKey = `${modelConfig.provider}-${modelConfig.defaultModel}${systemInstruction ? '-with-system' : ''}`;
-    
-    if (this.geminiInstances.has(cacheKey)) {
-      return this.geminiInstances.get(cacheKey)!;
-    }
-
     const apiKey = modelConfig.apiKey || '';
-    
     const genAI = new GoogleGenerativeAI(apiKey);
     
     // 创建模型配置
@@ -110,10 +102,7 @@ export class LLMService implements ILLMService {
       modelOptions.systemInstruction = systemInstruction;
     }
     
-    const model = genAI.getGenerativeModel(modelOptions);
-    
-    this.geminiInstances.set(cacheKey, model);
-    return model;
+    return genAI.getGenerativeModel(modelOptions);
   }
 
   /**

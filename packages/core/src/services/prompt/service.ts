@@ -93,7 +93,7 @@ export class PromptService implements IPromptService {
       // 获取优化提示词
       let template;
       try {
-        template = await this.templateManager.getTemplate('general-optimize');
+        template = this.templateManager.getTemplate('general-optimize');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new OptimizationError(`优化失败: ${errorMessage}`, prompt);
