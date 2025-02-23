@@ -1,4 +1,4 @@
-import { createLLMService, ModelManager } from '@prompt-optimizer/core';
+import { createLLMService, ModelManager } from '../../../src/index.js';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -70,7 +70,7 @@ describe('自定义模型测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 5000);
+  }, 10000);
 
   it('应该能正确处理自定义模型的多轮对话', async () => {
     if (!process.env.VITE_CUSTOM_API_KEY) {

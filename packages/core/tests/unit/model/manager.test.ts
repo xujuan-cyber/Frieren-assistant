@@ -3,7 +3,7 @@ import {
   ModelManager,
   ModelConfig,
   ModelConfigError
-} from '@prompt-optimizer/core';
+} from '../../../src/index';
 
 describe('ModelManager', () => {
   let manager: ModelManager;

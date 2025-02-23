@@ -6,7 +6,7 @@ import {
   APIError, 
   RequestConfigError,
   Message 
-} from '@prompt-optimizer/core';
+} from '../../../src/index';
 
 describe('LLMService', () => {
   let service: LLMService;

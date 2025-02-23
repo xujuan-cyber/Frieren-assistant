@@ -4,7 +4,7 @@ import {
   APIError,
   RequestConfigError,
   ERROR_MESSAGES
-} from '@prompt-optimizer/core';
+} from '../../../src/index.js';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';

@@ -42,7 +42,7 @@ export const defaultModels: Record<string, ModelConfig> = {
     provider: 'openai'
   },
   gemini: {
-    name: 'Google Gemini',
+    name: 'Gemini',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     models: ['gemini-2.0-flash'],
     defaultModel: 'gemini-2.0-flash',

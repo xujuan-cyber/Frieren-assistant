@@ -1,4 +1,4 @@
-import { createLLMService, ModelManager } from '@prompt-optimizer/core';
+import { createLLMService, ModelManager } from '../../../src/index.js';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -36,7 +36,7 @@ describe('DeepSeek API 测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 25000);
+  }, 10000);
 
   it('应该能正确处理多轮对话', async () => {
     const modelManager = new ModelManager();
@@ -58,5 +58,5 @@ describe('DeepSeek API 测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 25000);
+  }, 10000);
 }); 

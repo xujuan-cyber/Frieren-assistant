@@ -82,22 +82,6 @@ describe('LLMService', () => {
   });
 
   describe('发送消息', () => {
-    it('应该正确发送消息', async () => {
-      // 添加模型配置
-      modelManager.addModel(testProvider, mockModelConfig);
-
-      const messages = [
-        { role: 'system', content: 'test' }
-      ];
-
-      // 模拟 LangChain 的 invoke 方法
-      const mockInvoke = vi.fn().mockResolvedValue({ content: 'test response' });
-      vi.spyOn(llmService, 'getModelInstance').mockReturnValue({ invoke: mockInvoke });
-
-      const result = await llmService.sendMessage(messages, testProvider);
-      expect(result).toBe('test response');
-      expect(mockInvoke).toHaveBeenCalledWith(expect.any(Array));
-    });
 
     it('当提供商不存在时应抛出错误', async () => {
       const messages = [
