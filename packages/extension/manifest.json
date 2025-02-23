@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "提示词优化器",
+  "name__MSG_@@ui_locale": "Prompt Optimizer",
+  "version": "1.0.0",
+  "description": "智能提示词增强工具：一键优化、改进提示词质量，提升AI回复准确度。多模型支持(OpenAI/Gemini/DeepSeek)，纯客户端处理确保数据安全，无需中间服务器。",
+  "description__MSG_@@ui_locale": "Smart prompt enhancement tool: One-click optimization to improve prompt quality and AI response accuracy. Multi-model support (OpenAI/Gemini/DeepSeek), client-side processing for data security, no intermediary servers.",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "提示词优化器"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.deepseek.com/*",
+    "https://api.siliconflow.cn/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "homepage_url": "https://github.com/linshenkx/prompt-optimizer",
+  "author": "linshenkx",
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "keywords": [
+    "AI",
+    "prompt",
+    "提示词",
+    "优化",
+    "ChatGPT",
+    "Gemini",
+    "DeepSeek",
+    "纯客户端",
+    "本地存储",
+    "生产力"
+  ],
+  "offline_enabled": true,
+  "incognito": "split",
+  "short_name": "提示词优化器",
+  "minimum_chrome_version": "88"
+} 
