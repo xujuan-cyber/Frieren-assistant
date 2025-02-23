@@ -22,10 +22,7 @@ export default defineConfig({
           'element-plus': 'ElementPlus',
           'uuid': 'uuid'
         },
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'style.css') return 'style.css';
-          return `assets/${assetInfo.name}`;
-        }
+        assetFileNames: 'style.css'
       }
     },
     cssCodeSplit: false
