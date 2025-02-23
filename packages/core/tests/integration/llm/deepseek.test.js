@@ -36,7 +36,7 @@ describe('DeepSeek API 测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 10000);
+  }, 25000);
 
   it('应该能正确处理多轮对话', async () => {
     const modelManager = new ModelManager();
@@ -58,5 +58,5 @@ describe('DeepSeek API 测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 10000);
+  }, 25000);
 }); 

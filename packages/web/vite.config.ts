@@ -4,8 +4,8 @@ import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // 加载环境变量
-  const env = loadEnv(mode, process.cwd())
+  // 加载环境变量（从项目根目录加载）
+  const env = loadEnv(mode, resolve(process.cwd(), '../../'))
   
   return {
     plugins: [vue()],

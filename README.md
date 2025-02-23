@@ -76,7 +76,7 @@ pnpm dev:ext    # 插件版
 - 如使用自定义API，请确保接口格式兼容OpenAI标准
 
 #### 2. 通过环境变量配置
-在 `packages/web` 目录下创建 `.env.local` 文件：
+在项目根目录创建 `.env.local` 文件（复制 `.env.example` 并修改）：
 
 ```env
 # OpenAI API配置
@@ -113,21 +113,27 @@ prompt-optimizer/
 
 ```bash
 # === 开发环境 ===
-pnpm dev:core              # 开发核心包
-pnpm dev:ui               # 开发UI库
-pnpm dev:web              # 开发Web版
-pnpm dev:ext              # 开发插件版
+pnpm dev               # 主开发命令：构建core/ui并运行web应用（推荐使用）
+pnpm dev:web           # 仅运行web应用（需先构建core和ui）
+pnpm dev:ext           # 开发浏览器插件
+pnpm dev:fresh         # 完整重置项目并重新启动开发环境
 
 # === 构建打包 ===
-pnpm build:core           # 构建核心包
-pnpm build:ui            # 构建UI库
-pnpm build:web           # 构建Web版
-pnpm build:ext           # 构建插件版
+pnpm build             # 构建所有包
+pnpm build:core        # 构建核心包
+pnpm build:ui          # 构建UI库
+pnpm build:web         # 构建Web版
+pnpm build:ext         # 构建插件版
 
 # === 测试相关 ===
-pnpm test                # 运行所有测试
-pnpm test:core           # 测试核心包
-pnpm test:ui            # 测试UI库
+pnpm test              # 运行所有测试
+pnpm test:core         # 测试核心包
+pnpm test:ui           # 测试UI库
+pnpm test:web          # 测试Web应用
+
+# === 清理与重置 ===
+pnpm clean             # 清理所有构建产物
+pnpm dev:fresh         # 完整重置项目并重新启动开发环境
 ```
 
 ## 📚 技术栈

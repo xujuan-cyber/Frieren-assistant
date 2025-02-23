@@ -70,7 +70,7 @@ describe('自定义模型测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 10000);
+  }, 25000);
 
   it('应该能正确处理自定义模型的多轮对话', async () => {
     if (!process.env.VITE_CUSTOM_API_KEY) {
@@ -88,5 +88,5 @@ describe('自定义模型测试', () => {
     expect(response).toBeDefined();
     expect(typeof response).toBe('string');
     expect(response.length).toBeGreaterThan(0);
-  }, 5000);
+  }, 25000);
 }); 

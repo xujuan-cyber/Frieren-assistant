@@ -21,10 +21,10 @@
   ],
   "readme": "在Windows环境下，请使用分号(;)而不是&&作为命令分隔符，或使用build:win脚本",
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "vite",
     "build": "vite build",
     "build:win": "vite build",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "dependencies": {
     "@prompt-optimizer/core": "workspace:*",
@@ -34,11 +34,13 @@
   },
   "devDependencies": {
     "@types/uuid": "^10.0.0",
-    "@vitejs/plugin-vue": "^4.2.3",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.5",
     "@vue/tsconfig": "^0.5.1",
+    "jsdom": "^22.1.0",
     "typescript": "^5.0.0",
-    "vite": "^4.4.9",
+    "vite": "^6.2.0",
     "vite-plugin-dts": "^3.7.3",
-    "vitest": "^0.34.3"
+    "vitest": "^3.0.7"
   }
 }
