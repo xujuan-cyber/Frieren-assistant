@@ -3,6 +3,7 @@ import 'element-plus/dist/index.css'
 import './styles/index.css'
 import './styles/scrollbar.css'
 import './styles/common.css'
+import './styles/theme.css'
 
 /**
  * 组件导出

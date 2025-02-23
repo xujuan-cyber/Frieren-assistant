@@ -2,6 +2,11 @@
   "name": "prompt-optimizer",
   "version": "0.0.1",
   "private": true,
+  "engines": {
+    "node": "^18.0.0",
+    "npm": "请使用pnpm代替npm",
+    "yarn": "请使用pnpm代替yarn"
+  },
   "scripts": {
     "build:core": "pnpm -F @prompt-optimizer/core build",
     "build:ui": "pnpm -F @prompt-optimizer/ui build",

@@ -154,7 +154,6 @@
 </template>
 
 <script setup lang="ts">
-import '../../../packages/ui/dist/style.css'
 import {
   // UI组件
   ToastUI,

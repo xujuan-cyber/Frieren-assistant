@@ -39,6 +39,8 @@
 - Node.js >= 16
 - pnpm >= 8
 
+> **重要提示：** 本项目强制使用pnpm作为包管理器，请勿使用npm或yarn安装依赖，以确保依赖版本一致性。
+
 ```bash
 # 1. 克隆项目
 git clone https://github.com/linshenkx/prompt-optimizer.git

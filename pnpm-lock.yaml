@@ -85,7 +85,7 @@ importers:
         specifier: ^0.21.0
         version: 0.21.0
       openai:
-        specifier: ^4.28.0
+        specifier: ^4.83.0
         version: 4.83.0(ws@8.18.0)(zod@3.24.2)
       uuid:
         specifier: ^11.0.5
