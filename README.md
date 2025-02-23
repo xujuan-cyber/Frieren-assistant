@@ -9,7 +9,7 @@
 - Web版：[https://prompt.always200.com](https://prompt.always200.com)
 - Chrome插件：[Chrome商店地址]
 
-![项目截图](images/screenshot.png)
+![项目截图](images/main.png)
 
 ## ✨ 核心特性
 
