@@ -103,7 +103,7 @@
                     <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
                     <input v-model="editingModel.baseURL" type="url" required
                            class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                           placeholder="https://api.example.com/v1/chat/completions"/>
+                           placeholder="https://api.example.com/v1"/>
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>

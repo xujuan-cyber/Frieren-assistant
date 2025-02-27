@@ -69,9 +69,15 @@ export class LLMService implements ILLMService {
 
     const apiKey = modelConfig.apiKey || '';
     
+    // 处理baseURL，如果以'/chat/completions'结尾则去掉
+    let processedBaseURL = modelConfig.baseURL;
+    if (processedBaseURL?.endsWith('/chat/completions')) {
+      processedBaseURL = processedBaseURL.slice(0, -'/chat/completions'.length);
+    }
+
     const instance = new OpenAI({
       apiKey: apiKey,
-      baseURL: modelConfig.baseURL,
+      baseURL: processedBaseURL,
       dangerouslyAllowBrowser: true
     });
     
