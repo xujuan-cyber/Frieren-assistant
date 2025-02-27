@@ -51,8 +51,9 @@ cd prompt-optimizer
 pnpm install
 
 # 3. 启动开发服务
-pnpm dev:web    # Web版
-pnpm dev:ext    # 插件版
+pnpm dev               # 主开发命令：构建core/ui并运行web应用（推荐使用）
+pnpm dev:fresh         # 完整重置项目并重新启动开发环境(core/ui有更新时推荐使用)
+
 ```
 
 ### 环境变量 {#environment-variables}
@@ -116,7 +117,6 @@ prompt-optimizer/
 # === 开发环境 ===
 pnpm dev               # 主开发命令：构建core/ui并运行web应用（推荐使用）
 pnpm dev:web           # 仅运行web应用（需先构建core和ui）
-pnpm dev:ext           # 开发浏览器插件
 pnpm dev:fresh         # 完整重置项目并重新启动开发环境
 
 # === 构建打包 ===
@@ -165,7 +165,7 @@ pnpm dev:fresh         # 完整重置项目并重新启动开发环境
 
 - [x] 基础功能开发
 - [x] Web应用发布
-- [ ] Chrome插件发布
+- [x] Chrome插件发布
 - [x] 自定义模型支持
 - [x] 多模型支持优化
 - [ ] 国际化支持
