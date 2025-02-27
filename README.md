@@ -7,7 +7,7 @@
 ## 📌 在线体验
 
 - Web版：[https://prompt.always200.com](https://prompt.always200.com)
-- Chrome插件：[Chrome商店地址]
+- Chrome插件：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 ![项目截图](images/main.png)
 
