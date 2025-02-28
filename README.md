@@ -180,6 +180,9 @@ pnpm dev:fresh         # 完整重置项目并重新启动开发环境
 - [项目状态](docs/project-status.md) - 当前进度和计划
 - [产品需求](docs/prd.md) - 产品需求文档
 
+## Star趋势图
+[![Star History Chart](https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date)](https://star-history.com/#linshenkx/prompt-optimizer&Date)
+
 ## 🤝 参与贡献
 
 1. Fork 本仓库

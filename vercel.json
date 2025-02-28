@@ -1,8 +1,7 @@
 {
-  "buildCommand": "pnpm build:core && pnpm build:ui && pnpm build:web",
+  "buildCommand": "if [[ $(pwd) == */packages/extension ]]; then cd ../.. && pnpm build && mkdir -p packages/extension/packages/web && cp -r packages/web/dist packages/extension/packages/web/dist; else pnpm build; fi",
   "outputDirectory": "packages/web/dist",
-  "installCommand": "pnpm install",
-  "framework": "vite",
+  "installCommand": "pwd && if [[ $(pwd) == */packages/extension ]]; then cd ../.. && pnpm install; else pnpm install; fi",
   "rewrites": [
     {
       "source": "/(.*)",
@@ -13,7 +12,5 @@
     "silent": true
   },
   "env": {
-    "VITE_GEMINI_API_KEY": "",
-    "VITE_DEEPSEEK_API_KEY": ""
   }
 } 
