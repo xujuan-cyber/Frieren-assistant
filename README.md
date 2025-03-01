@@ -23,24 +23,58 @@
 
 ## 🚀 快速开始
 
-### 方式一：使用在线版本（推荐）
+### 1. 使用在线版本（推荐）
 
 1. 直接访问：[https://prompt.always200.com](https://prompt.always200.com)
-2. 或者一键部署到自己的Vercel（API密钥可以稍后在设置界面配置）：
+2. 或者一键部署到自己的Vercel：
    [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-### 方式二：安装Chrome插件
-1. 从Chrome商店安装（即将上线）
-2. 在任意页面右键即可使用提示词优化功能
+### 2. 安装Chrome插件
+1. 从Chrome商店安装（由于审批较慢，可能不是最新的）
+2. 点击图标即可打开提示词优化器
 
-### 方式三：本地开发（面向开发者）
-如果你想参与开发，可以克隆源码到本地：
+### 3. Docker部署
+```bash
+# 运行容器（默认配置）
+docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
 
-环境要求：
-- Node.js >= 18
-- pnpm >= 8
+# 运行容器（配置API密钥）
+docker run -d -p 80:80 \
+  -e VITE_OPENAI_API_KEY=your_key \
+  --restart unless-stopped \
+  --name prompt-optimizer \
+  linshen/prompt-optimizer
+```
 
-> **重要提示：** 本项目强制使用pnpm作为包管理器，请勿使用npm或yarn安装依赖，以确保依赖版本一致性。
+## ⚙️ API密钥配置
+
+### 方式一：通过界面配置（推荐）
+1. 点击界面右上角的"⚙️设置"按钮
+2. 选择"模型管理"选项卡
+3. 点击需要配置的模型（如OpenAI、Gemini、DeepSeek等）
+4. 在弹出的配置框中输入对应的API密钥
+5. 点击"保存"即可
+
+支持的模型：
+- OpenAI (gpt-3.5-turbo, gpt-4)
+- Gemini (gemini-2.0-flash)
+- DeepSeek (DeepSeek-V3)
+- 自定义API（OpenAI兼容接口）
+
+### 方式二：通过环境变量配置
+Docker部署时通过 `-e` 参数配置环境变量：
+```bash
+-e VITE_OPENAI_API_KEY=your_key
+-e VITE_GEMINI_API_KEY=your_key
+-e VITE_DEEPSEEK_API_KEY=your_key
+-e VITE_SILICONFLOW_API_KEY=your_key
+-e VITE_CUSTOM_API_KEY=your_custom_api_key
+-e VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
+-e VITE_CUSTOM_API_MODEL=your_custom_model_name 
+```
+
+## 本地开发
+详细文档可查看 [开发文档](dev.md)
 
 ```bash
 # 1. 克隆项目
@@ -51,115 +85,10 @@ cd prompt-optimizer
 pnpm install
 
 # 3. 启动开发服务
-pnpm dev               # 主开发命令：构建core/ui并运行web应用（推荐使用）
-pnpm dev:fresh         # 完整重置项目并重新启动开发环境(core/ui有更新时推荐使用)
-
+pnpm dev               # 主开发命令：构建core/ui并运行web应用
+pnpm dev:web          # 仅运行web应用
+pnpm dev:fresh        # 完整重置并重新启动开发环境
 ```
-
-### 环境变量 {#environment-variables}
-可以通过以下两种方式配置API密钥：
-
-#### 1. 通过模型管理界面配置（推荐）
-1. 点击界面右上角的"⚙️设置"按钮
-2. 选择"模型管理"选项卡
-3. 点击需要配置的模型（如OpenAI、Gemini、DeepSeek等）
-4. 在弹出的配置框中输入对应的API密钥
-5. 点击"保存"即可
-
-支持的模型类型：
-- OpenAI (gpt-3.5-turbo, gpt-4)
-- Gemini (gemini-2.0-flash)
-- DeepSeek (DeepSeek-V3)
-- 自定义API（OpenAI兼容接口）
-
-注意事项：
-- API密钥会通过浏览器的安全存储机制加密保存
-- 建议使用HTTPS环境进行配置
-- 如使用自定义API，请确保接口格式兼容OpenAI标准
-
-#### 2. 通过环境变量配置
-在项目根目录创建 `.env.local` 文件（复制 `.env.example` 并修改）：
-
-```env
-# OpenAI API配置
-VITE_OPENAI_API_KEY=your_openai_api_key
-
-# Gemini API配置
-VITE_GEMINI_API_KEY=your_gemini_api_key
-
-# DeepSeek API配置
-VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
-
-# 自定义API配置（可选）
-VITE_CUSTOM_API_KEY=your_custom_api_key
-VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
-VITE_CUSTOM_API_MODEL=your_custom_model_name
-```
-
-## 📦 项目结构
-
-```
-prompt-optimizer/
-├── packages/                # 多包工程
-│   ├── core/               # 核心功能
-│   ├── ui/                 # UI组件库
-│   ├── web/               # Web应用
-│   └── extension/         # Chrome插件
-├── docs/                  # 项目文档
-└── tests/                 # 测试用例
-```
-
-详细的项目结构可查看 [项目结构文档](docs/project-structure.md)
-
-## 🛠️ 开发命令
-
-```bash
-# === 开发环境 ===
-pnpm dev               # 主开发命令：构建core/ui并运行web应用（推荐使用）
-pnpm dev:web           # 仅运行web应用（需先构建core和ui）
-pnpm dev:fresh         # 完整重置项目并重新启动开发环境
-
-# === 构建打包 ===
-pnpm build             # 构建所有包
-pnpm build:core        # 构建核心包
-pnpm build:ui          # 构建UI库
-pnpm build:web         # 构建Web版
-pnpm build:ext         # 构建插件版
-
-# === 测试相关 ===
-pnpm test              # 运行所有测试
-pnpm test:core         # 测试核心包
-pnpm test:ui           # 测试UI库
-pnpm test:web          # 测试Web应用
-
-# === 清理与重置 ===
-pnpm clean             # 清理所有构建产物
-pnpm dev:fresh         # 完整重置项目并重新启动开发环境
-```
-
-## 📚 技术栈
-
-- 🔧 **核心框架**
-  - TypeScript 5.x
-  - Vue 3.5.x
-  - Vite 6.x
-  
-- 🤖 **AI模型集成**
-  - OpenAI Node.js SDK
-  - Google Generative AI SDK
-  - DeepSeek API
-  
-- 🎨 **UI框架**
-  - TailwindCSS 3.4.x
-  - Element Plus 2.9.x
-
-- 📦 **工程化**
-  - pnpm Workspace
-  - Vitest 3.x
-  - ESLint
-  - Prettier
-
-详细的技术栈可查看 [技术开发指南](docs/technical-development-guide.md)
 
 ## 🗺️ 开发路线
 
