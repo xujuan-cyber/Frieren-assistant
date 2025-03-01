@@ -119,8 +119,15 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [项目状态](docs/project-status.md) - 当前进度和计划
 - [产品需求](docs/prd.md) - 产品需求文档
 
-## Star趋势图
-[![Star History Chart](https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date)](https://star-history.com/#linshenkx/prompt-optimizer&Date)
+## Star History
+
+<a href="https://star-history.com/#linshenkx/prompt-optimizer&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date" />
+ </picture>
+</a>
 
 ## 🤝 参与贡献
 
