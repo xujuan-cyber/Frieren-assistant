@@ -1,15 +1,25 @@
 # Prompt Optimizer (提示词优化器) 🚀
 
-[![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
+<div align="center">
 
-一个好用的提示词优化工具，帮助你优化和测试AI提示词，支持Web应用和Chrome插件。
+[![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/linshen/prompt-optimizer)](https://hub.docker.com/r/linshen/prompt-optimizer)
+[![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-## 📌 在线体验
+[在线体验](https://prompt.always200.com) | [安装指南](#-快速开始) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
-- Web版：[https://prompt.always200.com](https://prompt.always200.com)
-- Chrome插件：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+</div>
 
-![项目截图](images/main.png)
+## 📖 项目简介
+
+Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更好的AI提示词，提升AI输出质量。支持Web应用和Chrome插件两种使用方式。
+
+### 🎥 功能演示
+
+<div align="center">
+  <img src="images/main.png" alt="功能演示" width="80%">
+</div>
 
 ## ✨ 核心特性
 
@@ -122,7 +132,11 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 
 ## 📄 开源协议
 
-本项目采用 MIT 协议 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 [MIT](LICENSE) 协议开源。
+
+---
+
+如果这个项目对你有帮助，请考虑给它一个 Star ⭐️
 
 ## 👥 联系我们
 
