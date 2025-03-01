@@ -30,7 +30,7 @@
    [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
 ### 2. 安装Chrome插件
-1. 从Chrome商店安装（由于审批较慢，可能不是最新的）
+1. 从Chrome商店安装（由于审批较慢，可能不是最新的）：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 2. 点击图标即可打开提示词优化器
 
 ### 3. Docker部署
