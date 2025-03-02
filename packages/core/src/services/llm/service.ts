@@ -10,8 +10,6 @@ import { isVercel, getProxyUrl } from '../../utils/environment';
  * LLM服务实现 - 基于官方SDK
  */
 export class LLMService implements ILLMService {
-  private openAIInstances: Map<string, OpenAI> = new Map();
-
   constructor(private modelManager: ModelManager) {}
 
   /**
@@ -62,11 +60,6 @@ export class LLMService implements ILLMService {
    * 获取OpenAI实例
    */
   private getOpenAIInstance(modelConfig: ModelConfig, isStream: boolean = false): OpenAI {
-    const cacheKey = `${modelConfig.provider}-${modelConfig.defaultModel}-${isStream ? 'stream' : 'normal'}`;
-    
-    if (this.openAIInstances.has(cacheKey)) {
-      return this.openAIInstances.get(cacheKey)!;
-    }
 
     const apiKey = modelConfig.apiKey || '';
     
@@ -100,7 +93,6 @@ export class LLMService implements ILLMService {
 
     const instance = new OpenAI(config);
     
-    this.openAIInstances.set(cacheKey, instance);
     return instance;
   }
 
