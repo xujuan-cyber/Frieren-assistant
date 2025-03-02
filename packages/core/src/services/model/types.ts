@@ -16,6 +16,8 @@ export interface ModelConfig {
   enabled: boolean;
   /** 提供商 */
   provider: 'deepseek' | 'gemini' | 'custom' | string;
+  /** 是否使用Vercel代理 */
+  useVercelProxy?: boolean;
 }
 
 /**

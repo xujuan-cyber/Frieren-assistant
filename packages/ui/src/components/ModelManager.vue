@@ -117,6 +117,17 @@
                            class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
                            placeholder="输入新的 API 密钥（留空则保持不变）"/>
                   </div>
+                  <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
+                    <input 
+                      :id="`vercel-proxy-${editingModel.key}`" 
+                      v-model="editingModel.useVercelProxy" 
+                      type="checkbox"
+                      class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
+                    />
+                    <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium text-white/90">
+                      使用Vercel代理 (解决跨域问题，有一定风险，请谨慎使用)
+                    </label>
+                  </div>
                   <div class="flex justify-end space-x-3 pt-4">
                     <button
                       type="button"
@@ -174,7 +185,7 @@
                     <label class="block text-sm font-medium text-white/90 mb-1.5">API 地址</label>
                     <input v-model="newModel.baseURL" type="url" required
                            class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
-                           placeholder="https://api.example.com/v1/chat/completions"/>
+                           placeholder="https://api.example.com/v1"/>
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-white/90 mb-1.5">默认模型名称</label>
@@ -187,6 +198,17 @@
                     <input v-model="newModel.apiKey" type="password" required
                            class="w-full px-4 py-2 rounded-xl bg-black/20 border border-purple-600/50 text-white placeholder-white/30 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
                            placeholder="输入 API 密钥"/>
+                  </div>
+                  <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
+                    <input 
+                      id="new-model-vercel-proxy" 
+                      v-model="newModel.useVercelProxy" 
+                      type="checkbox"
+                      class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
+                    />
+                    <label for="new-model-vercel-proxy" class="text-sm font-medium text-white/90">
+                      使用Vercel代理 (解决跨域问题，有一定风险，请谨慎使用)
+                    </label>
                   </div>
                   <div class="flex justify-end space-x-3 pt-4">
                     <button
@@ -226,7 +248,7 @@
 
 <script setup>
 import { ref, onMounted, defineEmits } from 'vue';
-import { modelManager, createLLMService } from '@prompt-optimizer/core';
+import { modelManager, createLLMService, checkVercelApiAvailability, resetVercelStatusCache } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 
 const toast = useToast();
@@ -241,8 +263,26 @@ const newModel = ref({
   name: '',
   baseURL: '',
   defaultModel: '',
-  apiKey: ''
+  apiKey: '',
+  useVercelProxy: false
 });
+// 是否支持Vercel代理
+const vercelProxyAvailable = ref(false);
+
+// 检测Vercel代理是否可用
+const checkVercelProxy = async () => {
+  try {
+    // 先重置缓存，确保每次都重新检测
+    resetVercelStatusCache();
+    // 使用core中的检测函数
+    const available = await checkVercelApiAvailability();
+    vercelProxyAvailable.value = available;
+    console.log('Vercel代理检测结果:', vercelProxyAvailable.value);
+  } catch (error) {
+    console.log('Vercel代理不可用:', error);
+    vercelProxyAvailable.value = false;
+  }
+};
 
 // 加载所有模型
 const loadModels = () => {
@@ -320,7 +360,8 @@ const editModel = (key) => {
       name: model.name,
       baseURL: model.baseURL,
       defaultModel: model.defaultModel,
-      apiKey: ''  // 不显示原有的 API 密钥
+      apiKey: '',  // 不显示原有的 API 密钥
+      useVercelProxy: model.useVercelProxy
     };
     isEditing.value = true;
   }
@@ -351,7 +392,8 @@ const saveEdit = async () => {
       defaultModel: editingModel.value.defaultModel,
       apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey,
       enabled: originalConfig.enabled,
-      provider: originalConfig.provider
+      provider: originalConfig.provider,
+      useVercelProxy: editingModel.value.useVercelProxy
     }
     console.log('新配置:', config);
 
@@ -364,9 +406,7 @@ const saveEdit = async () => {
     
     isEditing.value = false
     editingModel.value = null
-    
-    // 修改这里，传递被编辑的模型的 key
-    
+        
     toast.success('模型配置已更新')
   } catch (error) {
     console.error('更新模型失败:', error)
@@ -384,7 +424,8 @@ const addCustomModel = async () => {
       defaultModel: newModel.value.defaultModel,
       apiKey: newModel.value.apiKey,
       enabled: true,
-      provider: 'custom'
+      provider: 'custom',
+      useVercelProxy: newModel.value.useVercelProxy
     }
 
     modelManager.addModel(newModel.value.key, config)
@@ -397,7 +438,8 @@ const addCustomModel = async () => {
       name: '',
       baseURL: '',
       defaultModel: '',
-      apiKey: ''
+      apiKey: '',
+      useVercelProxy: false
     }
     toast.success('模型添加成功')
   } catch (error) {
@@ -443,6 +485,7 @@ const disableModel = async (key) => {
 // 初始化
 onMounted(() => {
   loadModels();
+  checkVercelProxy();
 });
 </script>
 

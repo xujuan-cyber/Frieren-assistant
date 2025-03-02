@@ -4,6 +4,7 @@ import { ModelManager, modelManager as defaultModelManager } from '../model/mana
 import { APIError, RequestConfigError, ERROR_MESSAGES } from './errors';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { isVercel, getProxyUrl } from '../../utils/environment';
 
 /**
  * LLM服务实现 - 基于官方SDK
@@ -60,8 +61,8 @@ export class LLMService implements ILLMService {
   /**
    * 获取OpenAI实例
    */
-  private getOpenAIInstance(modelConfig: ModelConfig): OpenAI {
-    const cacheKey = `${modelConfig.provider}-${modelConfig.defaultModel}`;
+  private getOpenAIInstance(modelConfig: ModelConfig, isStream: boolean = false): OpenAI {
+    const cacheKey = `${modelConfig.provider}-${modelConfig.defaultModel}-${isStream ? 'stream' : 'normal'}`;
     
     if (this.openAIInstances.has(cacheKey)) {
       return this.openAIInstances.get(cacheKey)!;
@@ -75,11 +76,29 @@ export class LLMService implements ILLMService {
       processedBaseURL = processedBaseURL.slice(0, -'/chat/completions'.length);
     }
 
-    const instance = new OpenAI({
+    // 使用代理处理跨域问题
+    let finalBaseURL = processedBaseURL;
+    // 如果模型配置启用了Vercel代理且当前环境是Vercel，则使用代理
+    // 允许所有API包括OpenAI使用代理
+    if (modelConfig.useVercelProxy === true && isVercel() && processedBaseURL) {
+      finalBaseURL = getProxyUrl(processedBaseURL, isStream);
+      console.log(`使用${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+    }
+
+    // 创建OpenAI实例配置
+    const config: any = {
       apiKey: apiKey,
-      baseURL: processedBaseURL,
+      baseURL: finalBaseURL,
       dangerouslyAllowBrowser: true
-    });
+    };
+    
+    // 为流式请求添加额外配置
+    if (isStream) {
+      config.timeout = 30000; // 添加更短的超时时间，避免长时间等待
+      config.maxRetries = 2;  // 添加更积极的重试策略
+    }
+
+    const instance = new OpenAI(config);
     
     this.openAIInstances.set(cacheKey, instance);
     return instance;
@@ -88,27 +107,34 @@ export class LLMService implements ILLMService {
   /**
    * 获取Gemini实例
    */
-  private getGeminiModel(modelConfig: ModelConfig, systemInstruction?: string): GenerativeModel {
+  private getGeminiModel(modelConfig: ModelConfig, systemInstruction?: string, isStream: boolean = false): GenerativeModel {
     const apiKey = modelConfig.apiKey || '';
     const genAI = new GoogleGenerativeAI(apiKey);
     
     // 创建模型配置
     const modelOptions: any = {
-      model: modelConfig.defaultModel,
-      generationConfig: {
-        maxOutputTokens: 2000,
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-      }
+      model: modelConfig.defaultModel
     };
     
     // 如果有系统指令，添加到模型配置中
     if (systemInstruction) {
       modelOptions.systemInstruction = systemInstruction;
     }
-    
-    return genAI.getGenerativeModel(modelOptions);
+
+    // 处理baseURL，如果以'/v1beta'结尾则去掉
+    let processedBaseURL = modelConfig.baseURL;
+    if (processedBaseURL?.endsWith('/v1beta')) {
+      processedBaseURL = processedBaseURL.slice(0, -'/v1beta'.length);
+    }
+    // 使用代理处理跨域问题
+    let finalBaseURL = processedBaseURL;
+    // 如果模型配置启用了Vercel代理且当前环境是Vercel，则使用代理
+    // 允许所有API包括OpenAI使用代理
+    if (modelConfig.useVercelProxy === true && isVercel() && processedBaseURL) {
+      finalBaseURL = getProxyUrl(processedBaseURL, isStream);
+      console.log(`使用${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+    }
+    return genAI.getGenerativeModel( modelOptions,{"baseUrl": finalBaseURL});
   }
 
   /**
@@ -143,7 +169,7 @@ export class LLMService implements ILLMService {
       : '';
     
     // 获取带有系统指令的模型实例
-    const model = this.getGeminiModel(modelConfig, systemInstruction);
+    const model = this.getGeminiModel(modelConfig, systemInstruction, false);
     
     // 过滤出用户和助手消息
     const conversationMessages = messages.filter(msg => msg.role !== 'system');
@@ -281,7 +307,8 @@ export class LLMService implements ILLMService {
     modelConfig: ModelConfig,
     callbacks: StreamHandlers
   ): Promise<void> {
-    const openai = this.getOpenAIInstance(modelConfig);
+    // 获取流式OpenAI实例
+    const openai = this.getOpenAIInstance(modelConfig, true);
     
     const formattedMessages = messages.map(msg => ({
       role: msg.role,
@@ -289,6 +316,7 @@ export class LLMService implements ILLMService {
     }));
 
     try {
+      console.log('开始创建流式请求...');
       const stream = await openai.chat.completions.create({
         model: modelConfig.defaultModel,
         messages: formattedMessages,
@@ -298,7 +326,7 @@ export class LLMService implements ILLMService {
       });
 
       console.log('成功获取到流式响应');
-      
+
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
@@ -306,8 +334,8 @@ export class LLMService implements ILLMService {
             contentLength: content.length,
             content: content.substring(0, 50) + (content.length > 50 ? '...' : '')
           });
-          
-          await callbacks.onToken(content);
+
+          callbacks.onToken(content);
           // 添加小延迟，让UI有时间更新
           await new Promise(resolve => setTimeout(resolve, 10));
         }
@@ -337,7 +365,7 @@ export class LLMService implements ILLMService {
       : '';
     
     // 获取带有系统指令的模型实例
-    const model = this.getGeminiModel(modelConfig, systemInstruction);
+    const model = this.getGeminiModel(modelConfig, systemInstruction, true);
     
     // 过滤出用户和助手消息
     const conversationMessages = messages.filter(msg => msg.role !== 'system');
@@ -360,10 +388,11 @@ export class LLMService implements ILLMService {
     }
     
     try {
+      console.log('开始创建Gemini流式请求...');
       const result = await chat.sendMessageStream(lastUserMessage);
       
       console.log('成功获取到流式响应');
-      
+
       for await (const chunk of result.stream) {
         const text = chunk.text();
         if (text) {

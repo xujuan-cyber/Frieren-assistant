@@ -4,6 +4,10 @@
   "installCommand": "pwd && if [[ $(pwd) == */packages/extension ]]; then cd ../.. && pnpm install; else pnpm install; fi",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -12,5 +16,11 @@
     "silent": true
   },
   "env": {
+    "VERCEL_DEPLOYMENT": "true"
+  },
+  "build": {
+    "env": {
+      "VERCEL_DEPLOYMENT": "true"
+    }
   }
 } 
