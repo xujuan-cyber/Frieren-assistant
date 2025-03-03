@@ -106,7 +106,7 @@ body {
   /* 主题主要按钮 */
   .theme-button-primary {
     @apply bg-purple-600 hover:bg-purple-500 
-           dark:bg-purple-700 dark:hover:bg-purple-600 
+           dark:bg-slate-700 dark:hover:bg-slate-600 
          theme-blue:bg-blue-600 theme-blue:hover:bg-blue-500 
          theme-green:bg-green-600 theme-green:hover:bg-green-500
          theme-purple:bg-purple-600 theme-purple:hover:bg-purple-500
@@ -139,10 +139,13 @@ body {
   
   /* 主题图标按钮 */
   .theme-icon-button {
-    @apply bg-purple-500/90 dark:bg-purple-600/90
-         theme-blue:bg-blue-500/90 theme-green:bg-green-500/90 theme-purple:bg-purple-500/90
-         text-white rounded-lg transition-colors
-         hover:bg-opacity-100;
+    @apply rounded-lg transition-all duration-200
+           bg-gray-100 dark:bg-gray-800 
+           theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-purple-600/20
+           text-gray-700 dark:text-gray-300 
+           theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-purple-300
+           hover:bg-gray-200 dark:hover:bg-gray-700 
+           theme-blue:hover:bg-blue-200 theme-green:hover:bg-green-200 theme-purple:hover:bg-purple-600/30;
   }
   
   /* ===== 状态组件 ===== */
@@ -389,36 +392,54 @@ body {
          focus:ring-2 focus:ring-purple-500/50 focus:border-transparent;
   }
 
-  /* 管理界面按钮 - 主要 */
+  /* 管理界面按钮 - 主要（测试连接） */
   .theme-manager-button-primary {
     @apply px-4 py-2 rounded-lg transition-colors
-         bg-purple-600 dark:bg-purple-700
+         bg-blue-600 dark:bg-blue-600 
+         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-blue-600
+         hover:bg-blue-500 dark:hover:bg-blue-500
+         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-blue-500
+         text-white;
+  }
+
+  /* 管理界面按钮 - 次要（编辑） */
+  .theme-manager-button-secondary {
+    @apply px-4 py-2 rounded-lg transition-colors
+         bg-purple-600 dark:bg-purple-600
          theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-purple-600
-         hover:bg-purple-500 dark:hover:bg-purple-600
+         hover:bg-purple-500 dark:hover:bg-purple-500
          theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-purple-500
          text-white;
   }
 
-  /* 管理界面按钮 - 次要 */
-  .theme-manager-button-secondary {
+  /* 管理界面按钮 - 成功（启用） */
+  .theme-manager-button-success {
     @apply px-4 py-2 rounded-lg transition-colors
-         bg-gray-100 dark:bg-slate-700
-         theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-purple-600/20
-         hover:bg-gray-200 dark:hover:bg-slate-600
-         theme-blue:hover:bg-blue-200 theme-green:hover:bg-green-200 theme-purple:hover:bg-purple-600/30
-         text-gray-700 dark:text-slate-200
-         theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-purple-300;
+         bg-green-600 dark:bg-green-600
+         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-green-600
+         hover:bg-green-500 dark:hover:bg-green-500
+         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-green-500
+         text-white;
   }
 
-  /* 管理界面按钮 - 危险 */
+  /* 管理界面按钮 - 警告（禁用） */
+  .theme-manager-button-warning {
+    @apply px-4 py-2 rounded-lg transition-colors
+         bg-gray-500 dark:bg-gray-600
+         theme-blue:bg-gray-500 theme-green:bg-gray-500 theme-purple:bg-gray-600
+         hover:bg-gray-400 dark:hover:bg-gray-500
+         theme-blue:hover:bg-gray-400 theme-green:hover:bg-gray-400 theme-purple:hover:bg-gray-500
+         text-white;
+  }
+
+  /* 管理界面按钮 - 危险（删除） */
   .theme-manager-button-danger {
     @apply px-4 py-2 rounded-lg transition-colors
-         bg-red-500/20 dark:bg-red-500/20
-         theme-blue:bg-red-500/20 theme-green:bg-red-500/20 theme-purple:bg-red-500/20
-         hover:bg-red-500/30 dark:hover:bg-red-500/30
-         theme-blue:hover:bg-red-500/30 theme-green:hover:bg-red-500/30 theme-purple:hover:bg-red-500/30
-         text-red-600 dark:text-red-400
-         theme-blue:text-red-700 theme-green:text-red-700 theme-purple:text-red-400;
+         bg-red-600/80 dark:bg-red-700/80
+         theme-blue:bg-red-600/80 theme-green:bg-red-600/80 theme-purple:bg-red-700/80
+         hover:bg-red-500/80 dark:hover:bg-red-600/80
+         theme-blue:hover:bg-red-500/80 theme-green:hover:bg-red-500/80 theme-purple:hover:bg-red-600/80
+         text-white;
   }
 
   /* 管理界面文本 - 主要 */
@@ -711,7 +732,11 @@ body {
 }
 
 .theme-manager-button-primary {
-  @apply px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors;
+  @apply px-4 py-2 rounded-lg bg-purple-600 dark:bg-slate-700
+         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-purple-600
+         hover:bg-purple-500 dark:hover:bg-slate-600
+         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-purple-500
+         text-white;
 }
 
 .theme-manager-button-secondary {
@@ -956,5 +981,25 @@ body {
 
   .theme-manager-button-secondary {
     @apply bg-slate-800 hover:bg-slate-700 text-slate-300;
+  }
+
+  .theme-manager-button-primary {
+    @apply bg-blue-600 hover:bg-blue-500 text-white;
+  }
+
+  .theme-button-primary {
+    @apply bg-slate-700 hover:bg-slate-600 text-white;
+  }
+
+  .theme-manager-button-success {
+    @apply bg-green-600 hover:bg-green-500 text-white;
+  }
+  
+  .theme-manager-button-warning {
+    @apply bg-gray-600 hover:bg-gray-500 text-white;
+  }
+  
+  .theme-manager-button-danger {
+    @apply bg-red-700/80 hover:bg-red-600/80 text-white;
   }
 }

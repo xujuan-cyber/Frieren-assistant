@@ -45,7 +45,7 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <button @click="testConnection(model.key)"
-                          class="theme-manager-button-secondary">
+                          class="theme-manager-button-primary">
                     测试连接
                   </button>
                   <button @click="editModel(model.key)"
@@ -55,8 +55,8 @@
                   <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
                           :class="[
                             model.enabled 
-                              ? 'theme-manager-button-danger' 
-                              : 'theme-manager-button-primary'
+                              ? 'theme-manager-button-warning' 
+                              : 'theme-manager-button-success'
                           ]">
                     {{ model.enabled ? '禁用' : '启用' }}
                   </button>
