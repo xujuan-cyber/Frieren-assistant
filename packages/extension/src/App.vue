@@ -7,6 +7,7 @@
 
     <!-- 操作按钮插槽 -->
     <template #actions>
+      <ThemeToggleUI />
       <ActionButtonUI
         icon="📝"
         text="功能提示词"
@@ -159,6 +160,7 @@ import {
   // UI组件
   ToastUI,
   ModelManagerUI,
+  ThemeToggleUI,
   OutputPanelUI,
   PromptPanelUI,
   TemplateManagerUI,
@@ -190,14 +192,14 @@ onMounted(() => {
   // 检查本地存储的主题偏好
   const savedTheme = localStorage.getItem('theme')
   
-  // 如果用户之前选择了深色模式，或者系统偏好是深色模式且用户没有明确选择
-  if (
-    savedTheme === 'dark' || 
-    (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  ) {
+  // 移除所有主题类
+  document.documentElement.classList.remove('dark', 'theme-blue', 'theme-green', 'theme-purple')
+  
+  // 应用保存的主题或系统偏好
+  if (savedTheme) {
+    document.documentElement.classList.add(savedTheme)
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
     document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
   }
 })
 

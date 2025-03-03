@@ -1,24 +1,23 @@
 <template>
   <div
-    class="fixed inset-0 z-[65] flex items-center justify-center overflow-y-auto"
+    class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center overflow-y-auto"
     @click="$emit('close')"
   >
-    <div class="theme-dialog-overlay"></div>
     <div
-      class="theme-dialog-container max-w-3xl m-4"
+      class="relative theme-manager-container w-full max-w-3xl m-4"
       @click.stop
     >
-      <div class="theme-dialog-body">
+      <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
         <div class="flex items-center justify-between">
-          <h2 class="theme-dialog-title">功能提示词管理</h2>
+          <h2 class="text-xl font-semibold theme-manager-text">功能提示词管理</h2>
           <div class="flex items-center space-x-4">
-            <span v-if="selectedTemplate" class="text-sm theme-dialog-text">
+            <span v-if="selectedTemplate" class="text-sm theme-manager-text-secondary">
               当前提示词: {{ selectedTemplate.name }}
             </span>
             <button
               @click="$emit('close')"
-              class="text-gray-500 dark:text-white/60 hover:text-gray-700 dark:hover:text-white/90 transition-colors text-xl"
+              class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
             >
               ×
             </button>
@@ -26,18 +25,16 @@
         </div>
 
         <!-- 新增类型切换标签 -->
-        <div class="flex space-x-4 mb-6 mt-6 p-1 bg-gray-100/50 dark:bg-gray-800/30 rounded-lg">
+        <div class="flex space-x-4 mb-6 p-1 theme-manager-card">
           <button 
             v-for="type in ['optimize', 'iterate']" 
             :key="type"
             @click="currentType = type"
-            class="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200"
             :class="[
+              'flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200',
               currentType === type 
-                ? type === 'optimize'
-                  ? 'bg-purple-100 dark:bg-purple-600/30 text-purple-700 dark:text-purple-300 shadow-lg shadow-purple-900/5 dark:shadow-purple-900/20' 
-                  : 'bg-teal-100 dark:bg-teal-600/30 text-teal-700 dark:text-teal-300 shadow-lg shadow-teal-900/5 dark:shadow-teal-900/20'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'theme-manager-button-primary' 
+                : 'theme-manager-button-secondary'
             ]"
           >
             <div class="flex items-center justify-center space-x-2">
@@ -50,22 +47,17 @@
         <!-- 提示词列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold theme-dialog-text flex items-center space-x-2">
-              <span>
+            <h3 class="text-lg font-semibold flex items-center space-x-2">
+              <span class="theme-manager-text">
                 {{ currentType === 'optimize' ? '优化提示词列表' : '迭代提示词列表' }}
               </span>
-              <span 
-                class="theme-dialog-tag"
-                :class="currentType === 'optimize' 
-                  ? 'theme-dialog-tag-purple'
-                  : 'theme-dialog-tag-green'"
-              >
+              <span class="theme-manager-tag">
                 {{ filteredTemplates.length }}个提示词
               </span>
             </h3>
             <button
               @click="showAddForm = true"
-              class="theme-dialog-btn theme-dialog-btn-primary"
+              class="theme-manager-button-primary"
             >
               添加提示词
             </button>
@@ -76,75 +68,74 @@
             <div 
               v-for="template in filteredTemplates"
               :key="template.id"
-              class="group relative p-4 rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5"
+              class="theme-manager-card p-4 group relative transition-all duration-200 hover:-translate-y-0.5"
               :class="[
                 (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                   ? template.metadata.templateType === 'optimize'
-                    ? 'border-purple-500/50 dark:border-purple-700/50 bg-purple-50/50 dark:bg-purple-900/10 shadow-lg shadow-purple-900/5 dark:shadow-purple-900/10'
-                    : 'border-teal-500/50 dark:border-teal-700/50 bg-teal-50/50 dark:bg-teal-900/10 shadow-lg shadow-teal-900/5 dark:shadow-teal-900/10'
-                  : 'border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/60 bg-white/50 dark:bg-gray-800/20 hover:bg-gray-50/90 dark:hover:bg-gray-800/30'
+                    ? 'border-purple-500/50 bg-purple-900/10 shadow-lg shadow-purple-900/10'
+                    : 'border-teal-500/50 bg-teal-900/10 shadow-lg shadow-teal-900/10'
+                  : 'border-gray-700/50 hover:border-gray-600/60 bg-gray-800/20 hover:bg-gray-800/30'
               ]"
             >
               <div class="flex items-start justify-between">
                 <div>
-                  <h4 class="font-medium theme-dialog-text flex items-center gap-2">
+                  <h4 class="theme-manager-text flex items-center gap-2">
                     {{ template.name }}
                     <span v-if="template.isBuiltin" 
-                          class="theme-dialog-tag theme-dialog-tag-purple">
+                          class="theme-manager-tag">
                       内置
                     </span>
                   </h4>
-                  <p class="text-sm theme-dialog-text-secondary mt-1">
+                  <p class="text-sm theme-manager-text-secondary mt-1">
                     {{ template.metadata.description || '暂无描述' }}
                   </p>
-                  <p class="text-xs theme-dialog-text-muted mt-2">
+                  <p class="text-xs theme-manager-text-disabled mt-2">
                     最后修改: {{ formatDate(template.metadata.lastModified) }}
                   </p>
                 </div>
                 <div class="flex items-center space-x-2">
                   <button
                     @click="selectTemplate(template)"
-                    class="theme-dialog-btn"
                     :class="[
+                      'px-3 py-1.5 text-sm rounded-lg',
                       (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
-                        ? 'bg-purple-500/30 dark:bg-purple-500/30 text-purple-800 dark:text-purple-200'
-                        : 'theme-dialog-btn-primary'
+                        ? 'theme-manager-button-primary'
+                        : 'theme-manager-button-secondary'
                     ]"
                   >
                     {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id ? '已选择' : '选择' }}
                   </button>
                   <button
-                    @click="editTemplate(template)"
-                    class="theme-dialog-btn theme-dialog-btn-primary"
-                    :disabled="template.isBuiltin"
                     v-if="!template.isBuiltin"
+                    @click="editTemplate(template)"
+                    class="theme-manager-button-secondary"
                   >
                     编辑
                   </button>
                   <button
-                    @click="viewTemplate(template)"
-                    class="theme-dialog-btn theme-dialog-btn-primary"
                     v-if="template.isBuiltin"
+                    @click="viewTemplate(template)"
+                    class="theme-manager-button-secondary"
                   >
                     查看
                   </button>
                   <button
-                    @click="copyTemplate(template)"
-                    class="theme-dialog-btn theme-dialog-btn-primary"
                     v-if="template.isBuiltin"
+                    @click="copyTemplate(template)"
+                    class="theme-manager-button-secondary"
                   >
                     复制提示词
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
-                    class="theme-dialog-btn theme-dialog-btn-primary"
+                    class="theme-manager-button-secondary"
                   >
                     导出
                   </button>
                   <button
                     v-if="!template.isBuiltin"
                     @click="confirmDelete(template.id)"
-                    class="px-3 py-1.5 text-sm rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors"
+                    class="theme-manager-button-danger"
                   >
                     删除
                   </button>
@@ -152,12 +143,13 @@
               </div>
               <div 
                 class="absolute top-0 left-0 w-2 h-full rounded-l-xl"
-                :class="template.metadata.templateType === 'optimize' ? 'bg-purple-500/50 dark:bg-purple-700/50' : 'bg-teal-500/50 dark:bg-teal-700/50'"
+                :class="template.metadata.templateType === 'optimize' ? 'bg-purple-500/50' : 'bg-teal-500/50'"
               ></div>
               <span 
-                :class="['theme-tag', template.metadata.templateType === 'optimize' 
-                  ? 'theme-tag-purple'
-                  : 'theme-tag-teal']"
+                class="px-2 py-1 text-xs rounded-full capitalize"
+                :class="template.metadata.templateType === 'optimize' 
+                  ? 'bg-purple-600/20 text-purple-300'
+                  : 'bg-teal-600/20 text-teal-300'"
               >
                 {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
               </span>
@@ -169,20 +161,20 @@
         <Teleport to="body">
           <!-- 查看/编辑模态框 -->
           <div v-if="showAddForm || editingTemplate || viewingTemplate" 
-               class="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto"
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
                @click="cancelEdit">
-            <div class="theme-modal-bg"></div>
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="relative theme-modal-content w-full max-w-2xl m-4 z-10"
+            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
                  @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="theme-modal-title">
+                  <h3 class="text-xl font-semibold theme-manager-text">
                     {{ viewingTemplate ? '查看提示词' : (editingTemplate ? '编辑提示词' : '添加提示词') }}
                   </h3>
                   <button
                     @click="cancelEdit"
-                    class="text-gray-500 dark:text-white/60 hover:text-gray-700 dark:hover:text-white/90 transition-colors text-xl"
+                    class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
                   >
                     ×
                   </button>
@@ -190,38 +182,38 @@
                 
                 <form @submit.prevent="handleSubmit" class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium theme-label mb-1.5">提示词名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">提示词名称</label>
                     <input
                       v-model="form.name"
                       type="text"
                       required
                       :readonly="viewingTemplate"
-                      class="theme-input"
+                      class="theme-manager-input"
                       :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
                       placeholder="输入提示词名称"
                     />
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium theme-label mb-1.5">提示词内容</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">提示词内容</label>
                     <textarea
                       v-model="form.content"
                       required
                       :readonly="viewingTemplate"
                       rows="8"
-                      class="theme-textarea"
+                      class="theme-manager-input resize-none"
                       :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
                       placeholder="输入提示词内容"
                     ></textarea>
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium theme-label mb-1.5">描述</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">描述</label>
                     <textarea
                       v-model="form.description"
                       :readonly="viewingTemplate"
                       rows="3"
-                      class="theme-textarea"
+                      class="theme-manager-input resize-none"
                       :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
                       placeholder="输入提示词描述（可选）"
                     ></textarea>
@@ -231,14 +223,14 @@
                     <button
                       type="button"
                       @click="cancelEdit"
-                      class="theme-modal-btn-secondary"
+                      class="theme-manager-button-secondary"
                     >
                       {{ viewingTemplate ? '关闭' : '取消' }}
                     </button>
                     <button
                       v-if="!viewingTemplate"
                       type="submit"
-                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                      class="theme-manager-button-primary"
                     >
                       {{ editingTemplate ? '保存修改' : '添加提示词' }}
                     </button>
@@ -250,9 +242,9 @@
         </Teleport>
 
         <!-- 导入提示词 -->
-        <div class="border-t border-purple-700/50 pt-6">
+        <div class="theme-manager-divider pt-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold theme-dialog-title">导入提示词</h3>
+            <h3 class="text-lg font-semibold theme-manager-text">导入提示词</h3>
           </div>
           <div class="flex items-center space-x-3">
             <input
@@ -264,11 +256,11 @@
             />
             <button
               @click="$refs.fileInput.click()"
-              class="theme-dialog-btn theme-dialog-btn-primary"
+              class="theme-manager-button-secondary"
             >
               选择文件
             </button>
-            <span class="text-sm theme-dialog-text-secondary">支持 .json 格式的提示词文件</span>
+            <span class="text-sm theme-manager-text-secondary">支持 .json 格式的提示词文件</span>
           </div>
         </div>
       </div>

@@ -15,17 +15,17 @@
           
           <!-- 弹窗内容 -->
           <div 
-            class="relative bg-gray-900 rounded-xl border border-purple-600/50 w-full max-w-lg transform transition-all"
+            class="relative theme-modal w-full max-w-lg transform transition-all"
             @click.stop
           >
             <!-- 标题栏 -->
-            <div class="flex items-center justify-between p-4 border-b border-purple-600/30">
-              <h3 class="text-lg font-semibold text-white/90">
+            <div class="theme-modal-header flex items-center justify-between">
+              <h3 class="text-lg font-semibold theme-text">
                 <slot name="title">标题</slot>
               </h3>
               <button
                 @click="$emit('update:modelValue', false)"
-                class="text-white/70 hover:text-white/90 transition-colors"
+                class="theme-text-secondary hover:theme-text transition-colors"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -34,22 +34,22 @@
             </div>
             
             <!-- 内容区域 -->
-            <div class="p-4">
+            <div class="theme-modal-content">
               <slot></slot>
             </div>
             
             <!-- 按钮区域 -->
-            <div class="flex justify-end space-x-3 px-4 py-3 border-t border-purple-600/30">
+            <div class="theme-modal-footer">
               <slot name="footer">
                 <button
                   @click="$emit('update:modelValue', false)"
-                  class="px-4 py-2 text-sm text-white/70 hover:text-white/90 transition-colors"
+                  class="theme-button-text px-4 py-2 text-sm"
                 >
                   取消
                 </button>
                 <button
                   @click="$emit('confirm')"
-                  class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                  class="theme-button-primary px-4 py-2 text-sm"
                 >
                   确认
                 </button>

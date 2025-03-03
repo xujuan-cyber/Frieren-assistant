@@ -1,65 +1,69 @@
 <template>
   <div
-    class="fixed inset-0 z-[50] flex items-center justify-center"
+    class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center overflow-y-auto"
     @click="$emit('close')"
   >
-    <div class="theme-dialog-overlay"></div>
     <div
-      class="theme-dialog-container max-w-3xl m-4"
+      class="relative theme-manager-container w-full max-w-3xl m-4"
       @click.stop
     >
-      <div class="theme-dialog-body">
+      <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
         <div class="flex items-center justify-between">
-          <h2 class="theme-dialog-title">模型设置</h2>
+          <h2 class="text-xl font-semibold theme-manager-text">模型设置</h2>
           <button
             @click="$emit('close')"
-            class="text-gray-500 dark:text-white/60 hover:text-gray-700 dark:hover:text-white/90 transition-colors text-xl"
+            class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
           >
             ×
           </button>
         </div>
 
         <!-- 已启用模型列表 -->
-        <div class="space-y-3 mt-6">
-          <h3 class="text-lg font-semibold theme-dialog-text">模型列表</h3>
+        <div class="space-y-3">
+          <h3 class="text-lg font-semibold theme-manager-text">模型列表</h3>
           <div class="space-y-3">
             <div v-for="model in models" :key="model.key" 
-                 :class="['theme-dialog-item',
+                 :class="['p-4 rounded-xl border transition-colors',
                          model.enabled 
-                           ? 'theme-dialog-item-active' 
-                           : 'theme-dialog-item-inactive']">
+                           ? 'theme-manager-card' 
+                           : 'theme-manager-card opacity-50']">
               <div class="flex items-center justify-between">
                 <div>
                   <div class="flex items-center gap-2">
-                    <h4 :class="['theme-dialog-text', model.enabled ? 'font-medium' : 'opacity-60']">
+                    <h4 class="font-medium" :class="model.enabled ? 'theme-manager-text' : 'theme-manager-text-disabled'">
                       {{ model.name }}
                     </h4>
-                    <span v-if="!model.enabled" class="theme-dialog-tag theme-dialog-tag-gray">
+                    <span v-if="!model.enabled" 
+                          class="theme-manager-tag">
                       已禁用
                     </span>
                   </div>
-                  <p :class="['theme-dialog-text-secondary text-sm', model.enabled ? '' : 'opacity-60']">
+                  <p class="text-sm" :class="model.enabled ? 'theme-manager-text-secondary' : 'theme-manager-text-disabled'">
                     {{ model.model }}
                   </p>
                 </div>
                 <div class="flex items-center space-x-2">
                   <button @click="testConnection(model.key)"
-                          class="theme-model-btn-test">
+                          class="theme-manager-button-secondary">
                     测试连接
                   </button>
                   <button @click="editModel(model.key)"
-                          class="theme-model-btn-edit">
+                          class="theme-manager-button-secondary">
                     编辑
                   </button>
                   <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
-                          :class="model.enabled ? 'theme-model-btn-disable' : 'theme-model-btn-enable'">
+                          :class="[
+                            model.enabled 
+                              ? 'theme-manager-button-danger' 
+                              : 'theme-manager-button-primary'
+                          ]">
                     {{ model.enabled ? '禁用' : '启用' }}
                   </button>
                   <!-- 只对自定义模型显示删除按钮 -->
                   <button v-if="!isDefaultModel(model.key)" 
                           @click="handleDelete(model.key)"
-                          class="theme-model-btn-delete">
+                          class="theme-manager-button-danger">
                     删除
                   </button>
                 </div>
@@ -72,46 +76,46 @@
         <Teleport to="body">
           <!-- 编辑模型弹窗 -->
           <div v-if="isEditing" 
-               class="fixed inset-0 z-[60] flex items-center justify-center"
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
                @click="cancelEdit">
-            <div class="theme-dialog-overlay"></div>
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="theme-dialog-container max-w-2xl m-4 z-10"
+            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
                  @click.stop>
-              <div class="theme-dialog-body">
+              <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="theme-dialog-title">编辑模型</h3>
+                  <h3 class="text-xl font-semibold theme-manager-text">编辑模型</h3>
                   <button
                     @click="cancelEdit"
-                    class="text-gray-500 dark:text-white/60 hover:text-gray-700 dark:hover:text-white/90 transition-colors text-xl"
+                    class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
                   >
                     ×
                   </button>
                 </div>
                 
-                <form @submit.prevent="saveEdit" class="space-y-4 mt-6">
+                <form @submit.prevent="saveEdit" class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">显示名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">显示名称</label>
                     <input v-model="editingModel.name" type="text" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="例如: 自定义模型"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">API 地址</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 地址</label>
                     <input v-model="editingModel.baseURL" type="url" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="https://api.example.com/v1"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">默认模型名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">默认模型名称</label>
                     <input v-model="editingModel.defaultModel" type="text" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="例如: gpt-3.5-turbo"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">API 密钥</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 密钥</label>
                     <input v-model="editingModel.apiKey" type="password"
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="输入新的 API 密钥（留空则保持不变）"/>
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
@@ -119,9 +123,9 @@
                       :id="`vercel-proxy-${editingModel.key}`" 
                       v-model="editingModel.useVercelProxy" 
                       type="checkbox"
-                      class="w-4 h-4 text-purple-600 bg-white/20 dark:bg-black/20 border-gray-300 dark:border-purple-600/50 rounded focus:ring-purple-500/50"
+                      class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
-                    <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium theme-dialog-text">
+                    <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
                       使用Vercel代理 (解决跨域问题，有一定风险，请谨慎使用)
                     </label>
                   </div>
@@ -129,13 +133,13 @@
                     <button
                       type="button"
                       @click="cancelEdit"
-                      class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white/90 hover:border-gray-400 dark:hover:border-gray-500/60 transition-all"
+                      class="theme-manager-button-secondary"
                     >
                       取消
                     </button>
                     <button
                       type="submit"
-                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg transition-colors"
+                      class="theme-manager-button-primary"
                     >
                       保存修改
                     </button>
@@ -147,51 +151,52 @@
 
           <!-- 添加模型弹窗 -->
           <div v-if="showAddForm" 
-               class="fixed inset-0 z-[60] flex items-center justify-center"
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
                @click="showAddForm = false">
-            <div class="theme-dialog-overlay"></div>
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="theme-dialog-container max-w-2xl m-4 z-10"
+            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
                  @click.stop>
-              <div class="theme-dialog-body">
+              <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="theme-dialog-title">添加自定义模型</h3>
+                  <h3 class="text-xl font-semibold theme-manager-text">添加自定义模型</h3>
                   <button
                     @click="showAddForm = false"
-                    class="text-gray-500 dark:text-white/60 hover:text-gray-700 dark:hover:text-white/90 transition-colors text-xl"
+                    class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
                   >
                     ×
                   </button>
                 </div>
-                <form @submit.prevent="addCustomModel" class="space-y-4 mt-6">
+                
+                <form @submit.prevent="addCustomModel" class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">模型标识</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">模型标识</label>
                     <input v-model="newModel.key" type="text" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="例如: custom-model"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">显示名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">显示名称</label>
                     <input v-model="newModel.name" type="text" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="例如: 自定义模型"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">API 地址</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 地址</label>
                     <input v-model="newModel.baseURL" type="url" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="https://api.example.com/v1"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">默认模型名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">默认模型名称</label>
                     <input v-model="newModel.defaultModel" type="text" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="例如: gpt-3.5-turbo"/>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-dialog-text mb-1.5">API 密钥</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 密钥</label>
                     <input v-model="newModel.apiKey" type="password" required
-                           class="theme-input w-full px-4 py-2 rounded-xl"
+                           class="theme-manager-input"
                            placeholder="输入 API 密钥"/>
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
@@ -199,9 +204,9 @@
                       id="new-model-vercel-proxy" 
                       v-model="newModel.useVercelProxy" 
                       type="checkbox"
-                      class="w-4 h-4 text-purple-600 bg-white/20 dark:bg-black/20 border-gray-300 dark:border-purple-600/50 rounded focus:ring-purple-500/50"
+                      class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
-                    <label for="new-model-vercel-proxy" class="text-sm font-medium theme-dialog-text">
+                    <label for="new-model-vercel-proxy" class="text-sm font-medium theme-manager-text">
                       使用Vercel代理 (解决跨域问题，有一定风险，请谨慎使用)
                     </label>
                   </div>
@@ -209,13 +214,13 @@
                     <button
                       type="button"
                       @click="showAddForm = false"
-                      class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white/90 hover:border-gray-400 dark:hover:border-gray-500/60 transition-all"
+                      class="theme-manager-button-secondary"
                     >
                       取消
                     </button>
                     <button
                       type="submit"
-                      class="px-6 py-2 bg-purple-600 hover:bg-purple-500 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg transition-colors"
+                      class="theme-manager-button-primary"
                     >
                       添加模型
                     </button>
@@ -227,10 +232,10 @@
         </Teleport>
 
         <!-- 添加模型按钮 -->
-        <div class="mt-6 border-t border-gray-200 dark:border-purple-700/50 pt-6">
+        <div class="mt-6 theme-manager-divider pt-6">
           <button
             @click="showAddForm = true"
-            class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-500 dark:bg-purple-700 dark:hover:bg-purple-600 rounded-xl transition-colors flex items-center justify-center space-x-2"
+            class="w-full theme-manager-button-primary flex items-center justify-center space-x-2"
           >
             <span>+</span>
             <span>添加自定义模型</span>
