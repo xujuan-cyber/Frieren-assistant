@@ -50,13 +50,6 @@ export class PromptService implements IPromptService {
       );
     }
 
-    if (prompt.length > 5000) {
-      throw new OptimizationError(
-        `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: 提示词长度超过限制（最大5000字符）`,
-        prompt
-      );
-    }
-
     if (!modelKey?.trim()) {
       throw new OptimizationError(
         `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_KEY_REQUIRED}`,
