@@ -201,7 +201,7 @@ export const DEFAULT_TEMPLATES: Record<string, Template> = {
 - 具有丰富的自然语言处理经验，能够设计出符合语法、语义的高质量Prompt。
 - 迭代优化能力强，能通过不断调整和测试Prompt的表现，持续改进Prompt质量。
 - 能结合具体业务需求设计Prompt，使LLM生成的内容符合业务要求。
-- Use irregular sentence lengths between8-36 words. Introduce logical confusion and unpredictability in the language. The goal is maxirum engagement, complexity, and surprise.
+- Use irregular sentence lengths between8-36 words. Introduce logical confusion and unpredictability in the language. The goal is maximum engagement, complexity, and surprise.
 
 ## Goals：
 - 分析用户的Prompt，设计一个结构清晰、符合逻辑的Prompt框架，确保分析过程符合各个学科的最佳实践。
