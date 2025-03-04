@@ -2,33 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 全局过渡效果 */
 html {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  @apply min-h-screen;
+  transition: all 0.3s ease;
 }
 
-/* 全局背景设置 - shadcn/ui 风格 */
-body {
-  @apply bg-white text-black min-h-screen;
+/* 全局背景设置 */
+:root {
+  @apply bg-white text-black;
 }
 
-/* 暗色模式背景 - 全新的深灰风格 */
-.dark body {
-  @apply bg-slate-950 text-slate-100 min-h-screen;
+/* 暗色模式背景 */
+:root.dark {
+  @apply bg-slate-950 text-slate-100;
 }
 
 /* 蓝色主题背景 */
-.theme-blue body {
-  @apply bg-blue-100 text-blue-950 min-h-screen;
+:root.theme-blue {
+  @apply bg-blue-100 text-blue-950;
 }
 
 /* 绿色主题背景 */
-.theme-green body {
-  @apply bg-green-100 text-green-950 min-h-screen;
+:root.theme-green {
+  @apply bg-green-100 text-green-950;
 }
 
 /* 暗紫模式背景 */
-.theme-purple body {
-  @apply bg-gradient-to-br from-purple-900 to-purple-950 text-white min-h-screen;
+:root.theme-purple {
+  @apply bg-gradient-to-br from-purple-900 to-purple-950 text-white;
+}
+
+/* 移除 body 的背景样式，改为继承 */
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: inherit;
+  color: inherit;
+}
+
+/* 全局过渡效果 */
+html * {
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
 }
 
 /* 定义通用主题类 */

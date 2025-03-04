@@ -59,7 +59,7 @@
 </template>
   
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 // 可用主题列表
 const availableThemes = [
@@ -112,19 +112,34 @@ const selectTheme = (themeId) => {
 
 // 更新主题
 const updateTheme = () => {
-  // 移除所有主题类
-  document.documentElement.classList.remove('dark', 'theme-blue', 'theme-green', 'theme-purple');
-  
   // 获取当前主题
   const theme = availableThemes.find(t => t.id === currentTheme.value);
+  if (!theme) return;
   
-  // 添加当前主题类
-  if (theme && theme.cssClass) {
-    document.documentElement.classList.add(theme.cssClass);
+  // 获取当前激活的主题类
+  const activeThemeClass = Array.from(document.documentElement.classList)
+    .find(cls => ['dark', 'theme-blue', 'theme-green', 'theme-purple'].includes(cls));
+  
+  // 如果当前有主题类，先移除
+  if (activeThemeClass) {
+    document.documentElement.classList.remove(activeThemeClass);
   }
   
+  // 如果新主题有类，则添加
+  if (theme.cssClass) {
+    document.documentElement.classList.add(theme.cssClass);
+  }
+
+  // 更新data-theme属性
+  document.documentElement.setAttribute('data-theme', theme.id);
+  
   // 保存主题设置到本地存储
-  localStorage.setItem('theme', theme?.cssClass || '');
+  localStorage.setItem('theme-id', theme.id);
+
+  // 触发重新渲染
+  nextTick(() => {
+    window.dispatchEvent(new Event('theme-changed'));
+  });
 };
 
 // 获取主题显示名称
@@ -142,32 +157,43 @@ const handleClickOutside = (event) => {
 
 // 初始化主题
 onMounted(() => {
-  // 检查本地存储的主题偏好
-  const savedTheme = localStorage.getItem('theme');
-  
-  // 如果有保存的主题设置，使用保存的设置
-  if (savedTheme) {
-    const theme = availableThemes.find(t => t.cssClass === savedTheme);
-    if (theme) {
-      currentTheme.value = theme.id;
+  // 确保DOM加载完成后再应用主题
+  requestAnimationFrame(() => {
+    // 获取主题ID：优先使用theme-id，如果没有则从theme中获取
+    let themeId = localStorage.getItem('theme-id');
+    
+    if (!themeId) {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        const theme = availableThemes.find(t => t.cssClass === savedTheme);
+        if (theme) {
+          themeId = theme.id;
+          // 更新为新格式
+          localStorage.setItem('theme-id', themeId);
+          // 清除旧格式
+          localStorage.removeItem('theme');
+        }
+      }
+    }
+
+    // 设置当前主题
+    if (themeId && availableThemes.find(t => t.id === themeId)) {
+      currentTheme.value = themeId;
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      currentTheme.value = 'dark';
     } else {
       currentTheme.value = 'light';
     }
-  } 
-  // 否则，检查系统偏好
-  else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    currentTheme.value = 'dark';
-  } else {
-    currentTheme.value = 'light';
-  }
-  
-  // 应用主题
-  updateTheme();
+    
+    // 应用主题
+    updateTheme();
+  });
   
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handleChange = (e) => {
-    if (!localStorage.getItem('theme')) {
+    // 只在没有用户设置的主题时响应系统主题变化
+    if (!localStorage.getItem('theme-id')) {
       currentTheme.value = e.matches ? 'dark' : 'light';
       updateTheme();
     }

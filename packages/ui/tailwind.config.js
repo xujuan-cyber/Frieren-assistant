@@ -20,11 +20,11 @@ export default {
   plugins: [
     require('@tailwindcss/forms'),
     require('@tailwindcss/typography'),
-    function({ addVariant }) {
+    function({ addVariant, e }) {
       // 添加自定义主题变体
-      addVariant('theme-blue', '.theme-blue &')
-      addVariant('theme-green', '.theme-green &')
-      addVariant('theme-purple', '.theme-purple &')
+      addVariant('theme-blue', ['.theme-blue &', ':root.theme-blue &'])
+      addVariant('theme-green', ['.theme-green &', ':root.theme-green &'])
+      addVariant('theme-purple', ['.theme-purple &', ':root.theme-purple &'])
     }
   ],
 }

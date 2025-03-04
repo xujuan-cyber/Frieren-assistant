@@ -1,10 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "提示词优化器",
-  "name__MSG_@@ui_locale": "Prompt Optimizer",
+  "default_locale": "zh_CN",
+  "name": "__MSG_extName__",
   "version": "1.0.1",
-  "description": "大模型提示词优化工具：一键优化提示词并支持多轮迭代改进测试，支持版本回溯。支持主流AI模型(OpenAI/Gemini/DeepSeek等)，完全开源，纯客户端处理保障数据安全。",
-  "description__MSG_@@ui_locale": "Large Language Model Prompt Optimization Tool: One-click prompt optimization with multi-round iterative improvements and version tracking. Supports major AI models (OpenAI/Gemini/DeepSeek etc.), fully open-source, client-side processing ensures data security.",
+  "description": "__MSG_extDesc__",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -22,7 +21,6 @@
     "type": "module"
   },
   "permissions": [
-    "storage",
     "tabs"
   ],
   "homepage_url": "https://github.com/linshenkx/prompt-optimizer",
@@ -30,20 +28,8 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self';"
   },
-  "keywords": [
-    "AI",
-    "prompt",
-    "提示词",
-    "优化",
-    "ChatGPT",
-    "Gemini", 
-    "DeepSeek",
-    "纯客户端",
-    "本地存储",
-    "生产力"
-  ],
   "offline_enabled": true,
   "incognito": "split",
-  "short_name": "提示词优化器",
+  "short_name": "__MSG_extShortName__",
   "minimum_chrome_version": "88"
 } 

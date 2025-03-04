@@ -15,7 +15,6 @@ html {
 }
 
 body {
-  @apply bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen;
   font-size: 1rem;  /* 使用相对单位 */
   text-rendering: optimizeLegibility;  /* 优化文本渲染 */
   -webkit-font-smoothing: antialiased;  /* 字体平滑 */
