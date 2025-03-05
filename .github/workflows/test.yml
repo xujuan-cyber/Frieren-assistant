@@ -20,17 +20,17 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 Node.js 环境
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-
       - name: 安装 pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 10.5.2
           run_install: false
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: 安装依赖
         run: pnpm install
