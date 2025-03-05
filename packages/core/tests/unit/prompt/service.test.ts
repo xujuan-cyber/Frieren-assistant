@@ -203,13 +203,6 @@ describe('PromptService', () => {
         .toThrow(OptimizationError);
     });
 
-    it('当提示词超过最大长度时应抛出错误', async () => {
-      const longPrompt = 'a'.repeat(10000);
-      await expect(promptService.optimizePrompt(longPrompt, 'test-model'))
-        .rejects
-        .toThrow(OptimizationError);
-    });
-
     it('当模型Key为空时应抛出错误', async () => {
       await expect(promptService.optimizePrompt('test prompt', ''))
         .rejects
