@@ -6,11 +6,6 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
-  pull_request:
-    branches: [ main, master ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
 
 env:
   REGISTRY: docker.io
@@ -35,7 +30,6 @@ jobs:
           echo "Version from package.json: $VERSION"
 
       - name: 登录到Docker Hub
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
