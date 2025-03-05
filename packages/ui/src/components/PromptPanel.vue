@@ -40,13 +40,13 @@
     </div>
     
     <!-- 内容区域 -->
-    <div class="flex-1 min-h-0 theme-input overflow-hidden">
+    <div class="flex-1 min-h-0 p-[2px] overflow-hidden">
       <div class="h-full relative">
         <textarea
           ref="promptTextarea"
           :value="optimizedPrompt"
           @input="handleInput"
-          class="absolute inset-0 w-full h-full p-4 bg-transparent border-none theme-text placeholder-gray-400 dark:placeholder-gray-500 text-sm sm:text-base overflow-auto focus:ring-2 focus:ring-purple-500/50 dark:focus:ring-purple-600/50 resize-none"
+          class="w-full h-full px-4 py-3 theme-input resize-none"
           placeholder="优化后的提示词将显示在这里..."
         ></textarea>
       </div>
