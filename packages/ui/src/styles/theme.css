@@ -68,7 +68,7 @@ html * {
          theme-blue:bg-blue-200 theme-purple:bg-gray-900/50
          border border-gray-200 dark:border-slate-800 
          theme-blue:border-blue-400 theme-purple:border-purple-700/30
-         rounded-xl shadow-sm;
+         shadow-sm;
   }
 
   /* ===== 文本组件 ===== */
