@@ -143,8 +143,7 @@ export class LLMService implements ILLMService {
     const response = await openai.chat.completions.create({
       model: modelConfig.defaultModel,
       messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 2000
+      temperature: 0.7
     });
 
     return response.choices[0].message.content || '';
