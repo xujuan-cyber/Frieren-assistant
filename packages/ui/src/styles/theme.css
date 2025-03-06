@@ -25,12 +25,12 @@ html {
 
 /* 绿色主题背景 */
 :root.theme-green {
-  @apply bg-green-100 text-green-950;
+  @apply bg-teal-950 text-teal-900;
 }
 
 /* 暗紫模式背景 */
 :root.theme-purple {
-  @apply bg-gradient-to-br from-purple-900 to-purple-950 text-white;
+  @apply bg-gradient-to-br from-purple-800 to-purple-950 text-white;
 }
 
 /* 移除 body 的背景样式，改为继承 */
@@ -43,229 +43,246 @@ body {
 
 /* 全局过渡效果 */
 html * {
-  transition: background-color 0.3s ease,
-              color 0.3s ease,
-              border-color 0.3s ease,
-              box-shadow 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* 定义通用主题类 */
 @layer components {
   /* ===== 布局组件 ===== */
-  
+
   /* 主题头部导航栏 */
   .theme-header {
     @apply sticky top-0 z-40 
          bg-white/90 dark:bg-slate-900/90 
-         theme-blue:bg-blue-200/90 theme-green:bg-green-200/90 theme-purple:bg-purple-800/90
+         theme-blue:bg-blue-200/90 theme-purple:bg-purple-800/90
          backdrop-blur-sm 
          border-b border-gray-200 dark:border-slate-800 
-         theme-blue:border-blue-300 theme-green:border-green-300 theme-purple:border-purple-700/50
+         theme-blue:border-blue-300 theme-purple:border-purple-700/50
          shadow-sm transition-colors duration-300;
   }
-  
+
   /* 主题卡片 */
   .theme-card {
-    @apply bg-white dark:bg-slate-900 
-         theme-blue:bg-blue-200 theme-green:bg-green-200 theme-purple:bg-gray-900/50
+    @apply p-4 rounded-lg bg-white dark:bg-slate-900 
+         theme-blue:bg-blue-200 theme-purple:bg-gray-900/50
          border border-gray-200 dark:border-slate-800 
-         theme-blue:border-blue-400 theme-green:border-green-400 theme-purple:border-purple-700/30
-         rounded-xl shadow-sm;
+         theme-blue:border-blue-400 theme-purple:border-purple-700/30
+         shadow-sm;
   }
-  
+
   /* ===== 文本组件 ===== */
-  
+
   /* 主题标题 */
   .theme-title {
     @apply text-gray-900 dark:text-slate-100 
-         theme-blue:text-blue-950 theme-green:text-green-950 theme-purple:text-white
+         theme-blue:text-blue-950 theme-green:text-teal-950 theme-purple:text-white
          font-semibold;
   }
-  
+
   /* 主题文本 */
   .theme-text {
     @apply text-gray-800 dark:text-slate-200 
-         theme-blue:text-blue-950 theme-green:text-green-950 theme-purple:text-white/90;
+         theme-blue:text-blue-950 theme-green:text-teal-950 theme-purple:text-white/90;
   }
-  
+
   /* 主题次要文本 */
   .theme-text-secondary {
     @apply text-gray-600 dark:text-slate-400 
-         theme-blue:text-blue-800 theme-green:text-green-800 theme-purple:text-white/70;
+         theme-blue:text-blue-800 theme-purple:text-white/70;
   }
-  
+
   /* 主题标签 */
   .theme-label {
     @apply text-gray-700 dark:text-gray-300 
-         theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-white/90
+         theme-blue:text-blue-700 theme-green:text-teal-700 theme-purple:text-white/90
          font-medium;
   }
-  
+
   /* ===== 表单组件 ===== */
-  
+
   /* 主题输入框 */
   .theme-input {
-    @apply bg-white dark:bg-gray-800 
-         theme-blue:bg-blue-50 theme-green:bg-green-50 theme-purple:bg-black/20
-         border border-gray-300 dark:border-gray-600 
-         theme-blue:border-blue-200 theme-green:border-green-200 theme-purple:border-purple-600/50
+    @apply w-full bg-white dark:bg-slate-800 
+         theme-blue:bg-blue-50 theme-green:bg-teal-50 theme-purple:bg-black/20
+         border border-gray-300 dark:border-slate-600 
+         theme-blue:border-blue-200 theme-green:border-teal-200 theme-purple:border-purple-600/50
          rounded-lg px-3 py-2 
-         text-gray-900 dark:text-white 
-         theme-blue:text-blue-900 theme-green:text-green-900 theme-purple:text-white
-         placeholder-gray-400 dark:placeholder-gray-500 
-         theme-blue:placeholder-blue-400 theme-green:placeholder-green-400 theme-purple:placeholder-white/30
+         text-gray-900 dark:text-slate-100 
+         theme-blue:text-blue-900 theme-green:text-teal-900 theme-purple:text-white
+         placeholder-gray-400 dark:placeholder-slate-500 
+         theme-blue:placeholder-blue-400  theme-purple:placeholder-white/30
            focus:ring-2 focus:ring-purple-500/50 dark:focus:ring-purple-600/50 
-         theme-blue:focus:ring-blue-500/50 theme-green:focus:ring-green-500/50 theme-purple:focus:ring-purple-500/50
-         focus:border-transparent outline-none;
+         theme-blue:focus:ring-blue-500/50 theme-green:focus:ring-teal-500/50 theme-purple:focus:ring-purple-500/50
+         focus:border-transparent outline-none transition-all;
   }
-  
+
   /* ===== 按钮组件 ===== */
-  
+  /* 主题按钮 */
+  .theme-button {
+    @apply px-4 py-2 rounded-lg transition-colors;
+  }
   /* 主题主要按钮 */
   .theme-button-primary {
     @apply bg-purple-600 hover:bg-purple-500 
            dark:bg-slate-700 dark:hover:bg-slate-600 
          theme-blue:bg-blue-600 theme-blue:hover:bg-blue-500 
-         theme-green:bg-green-600 theme-green:hover:bg-green-500
          theme-purple:bg-purple-600 theme-purple:hover:bg-purple-500
          text-white rounded-lg px-4 py-2 font-medium transition-colors
          disabled:opacity-50 disabled:cursor-not-allowed
-         theme-blue:disabled:bg-blue-600/50 theme-green:disabled:bg-green-600/50 theme-purple:disabled:bg-purple-600/50;
+         theme-blue:disabled:bg-blue-600/50 theme-purple:disabled:bg-purple-600/50;
   }
-  
+
   /* 主题次要按钮 */
   .theme-button-secondary {
-    @apply bg-gray-100 dark:bg-gray-800 
-         theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-purple-600/20
+    @apply theme-button dark:bg-gray-800 
+         theme-blue:bg-blue-100 theme-purple:bg-purple-600/20
          text-gray-700 dark:text-gray-300 
-         theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-purple-300
+         theme-blue:text-blue-700 theme-purple:text-purple-300
          hover:bg-gray-200 dark:hover:bg-gray-700 
-         theme-blue:hover:bg-blue-200 theme-green:hover:bg-green-200 theme-purple:hover:bg-purple-600/30
+         theme-blue:hover:bg-blue-200 theme-purple:hover:bg-purple-600/30
          rounded-lg transition-colors;
   }
-  
+
   /* 主题文本按钮 */
   .theme-button-text {
     @apply bg-transparent 
          text-gray-700 hover:text-purple-600
          dark:text-gray-300 dark:hover:text-purple-400
          theme-blue:text-blue-700 theme-blue:hover:text-blue-500 
-         theme-green:text-green-700 theme-green:hover:text-green-500
+         theme-green:text-teal-700 theme-green:hover:text-teal-500
          theme-purple:text-white/80 theme-purple:hover:text-white
          transition-colors;
   }
-  
+
   /* 主题图标按钮 */
   .theme-icon-button {
-    @apply rounded-lg transition-all duration-200
+    @apply flex items-center gap-1 px-2 py-2 h-9 rounded-lg transition-all duration-200
            bg-gray-100 dark:bg-gray-800 
-           theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-purple-600/20
+           theme-blue:bg-blue-100 theme-purple:bg-purple-600/20
            text-gray-700 dark:text-gray-300 
-           theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-purple-300
+           theme-blue:text-blue-700 theme-purple:text-purple-300
            hover:bg-gray-200 dark:hover:bg-gray-700 
-           theme-blue:hover:bg-blue-200 theme-green:hover:bg-green-200 theme-purple:hover:bg-purple-600/30;
+           theme-blue:hover:bg-blue-200 theme-purple:hover:bg-purple-600/30;
   }
-  
+
   /* ===== 状态组件 ===== */
-  
+
   /* 主题加载中 */
   .theme-loading {
     @apply text-purple-600 dark:text-purple-400
-         theme-blue:text-blue-600 theme-green:text-green-600 theme-purple:text-purple-300
+         theme-blue:text-blue-600 theme-green:text-teal-600 theme-purple:text-purple-300
          animate-pulse;
   }
-  
+
   /* 主题错误 */
   .theme-error {
     @apply text-red-600 dark:text-red-400
          theme-blue:text-red-600 theme-green:text-red-600 theme-purple:text-red-400;
   }
-  
+
   /* 主题成功 */
   .theme-success {
-    @apply text-green-600 dark:text-green-400
-         theme-blue:text-green-600 theme-green:text-green-700 theme-purple:text-green-400;
+    @apply text-teal-600 dark:text-teal-400
+         theme-blue:text-teal-600 theme-green:text-teal-700 theme-purple:text-teal-400;
   }
 
   /* ===== 滚动条 ===== */
-  
-  /* 滚动条轨道 */
-  .theme-scrollbar-track {
-    @apply bg-gray-100 dark:bg-gray-800 
-         theme-blue:bg-blue-300 theme-green:bg-green-300 theme-purple:bg-white/15
-         rounded-full;
+  /* 全局滚动条样式（WebKit浏览器） */
+  ::-webkit-scrollbar {
+    width: 4px;
   }
-  
-  /* 滚动条滑块 */
-  .theme-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-600 
-         theme-blue:bg-blue-400 theme-green:bg-green-400 theme-purple:bg-white/25;
+
+  ::-webkit-scrollbar-horizontal {
+    display: none;
   }
-  
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700
+      theme-blue:bg-blue-300 theme-purple:bg-white/15
+      rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600
+      theme-blue:bg-blue-400 theme-purple:bg-white/25;
+  }
+
+  /* 特定元素滚动条类（跨浏览器支持） */
+  .theme-scrollbar {
+    /* 非WebKit浏览器支持 */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
   /* ===== 下拉菜单 ===== */
-.theme-dropdown {
-  @apply absolute z-50 min-w-[300px] w-max max-w-[90vw] mt-1 px-1
-         bg-white/95 dark:bg-gray-800/95 
-         theme-blue:bg-blue-50/95 theme-green:bg-green-50/95 theme-purple:bg-purple-900/95
-         backdrop-blur-sm rounded-lg 
+  .theme-dropdown {
+    @apply absolute z-50 min-w-[300px] w-max max-w-[90vw] mt-1 px-1
+          backdrop-blur-sm rounded-lg 
+          bg-white/95 dark:bg-gray-800/95 
+          theme-blue:bg-blue-50/95 theme-purple:bg-purple-900/95
          border border-gray-200/50 dark:border-gray-700/50 
-         theme-blue:border-blue-200/50 theme-green:border-green-200/50 theme-purple:border-purple-600/30
+         theme-blue:border-blue-200/50 theme-purple:border-purple-600/30
          shadow-xl;
-}
+  }
 
   /* 下拉菜单按钮 */
   .theme-select-button {
     @apply w-full h-10 px-3 py-2 rounded-lg transition-all
          bg-white/10 dark:bg-gray-900/30
-         theme-blue:bg-blue-100/30 theme-green:bg-green-100/30 theme-purple:bg-black/20
+         theme-blue:bg-blue-100/30 theme-purple:bg-black/20
          border border-gray-300/50 dark:border-gray-700/50
-         theme-blue:border-blue-300/50 theme-green:border-green-300/50 theme-purple:border-purple-600/50
+         theme-blue:border-blue-300/50 theme-purple:border-purple-600/50
          text-gray-900 dark:text-white
-         theme-blue:text-blue-900 theme-green:text-green-900 theme-purple:text-white
+         theme-blue:text-blue-900 theme-purple:text-white
          hover:border-purple-500/70
-         theme-blue:hover:border-blue-500/70 theme-green:hover:border-green-500/70 theme-purple:hover:border-purple-500/70
+         theme-blue:hover:border-blue-500/70 theme-purple:hover:border-purple-500/70
          focus:ring-2 focus:ring-purple-500/50 focus:border-transparent
-         theme-blue:focus:ring-blue-500/50 theme-green:focus:ring-green-500/50 theme-purple:focus:ring-purple-500/50
+         theme-blue:focus:ring-blue-500/50 theme-purple:focus:ring-purple-500/50
          outline-none;
   }
   /* 下拉菜单项 */
   .theme-dropdown-item {
     @apply px-3 py-2 mb-1 rounded-lg cursor-pointer transition-colors
         text-gray-900 dark:text-slate-200 
-        theme-blue:text-blue-950 theme-green:text-green-950 theme-purple:text-purple-200;
+        theme-blue:text-blue-950 theme-green:text-teal-950 theme-purple:text-purple-200;
   }
   .theme-dropdown-item:last-child {
-    @apply mb-0
+    @apply mb-0;
   }
 
   /* 下拉菜单项激活 */
   .theme-dropdown-item-active {
     @apply bg-purple-100/70 dark:bg-purple-800/50
-        theme-blue:bg-blue-200/90 theme-green:bg-green-200/90 theme-purple:bg-purple-600/30
+        theme-blue:bg-blue-200/90 theme-purple:bg-purple-600/30
         text-purple-800 dark:text-purple-200
-        theme-blue:text-blue-800 theme-green:text-green-800 theme-purple:text-purple-200;
+        theme-blue:text-blue-800 theme-purple:text-purple-200;
   }
 
   /* 下拉菜单项未激活 */
   .theme-dropdown-item-inactive {
     @apply border-transparent
-        theme-blue:border-blue-200/50 theme-green:border-green-200/50 theme-purple:border-purple-600/20
+        theme-blue:border-blue-200/50 theme-green:border-teal-200/50 theme-purple:border-purple-600/20
         hover:bg-gray-100/50 dark:hover:bg-gray-700/50
-        theme-blue:hover:bg-blue-100/50 theme-green:hover:bg-green-100/50 theme-purple:hover:bg-purple-800/50
+        theme-blue:hover:bg-blue-100/50 theme-purple:hover:bg-purple-800/50
         text-gray-700 dark:text-gray-300
-        theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-gray-300;
+        theme-blue:text-blue-700 theme-green:text-teal-700 theme-purple:text-gray-300;
   }
 
   /* 下拉菜单分组 */
   .theme-dropdown-section {
-    @apply p-2 border-t border-gray-200/50 dark:border-gray-700/50
-        theme-blue:border-blue-200/50 theme-green:border-green-200/50 theme-purple:border-purple-600/20
+    @apply p-2 rounded-xl mb-1 border-t border-gray-200/50 dark:border-gray-700/50
+        theme-blue:border-blue-200/50 theme-purple:border-purple-600/20
         bg-purple-100 dark:bg-purple-800/30
-        theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-purple-600/20
+        theme-blue:bg-blue-100 theme-purple:bg-purple-600/20
         text-purple-700 dark:text-purple-300
-        theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-purple-300
+        theme-blue:text-blue-700 theme-purple:text-purple-300
         hover:bg-purple-200 dark:hover:bg-purple-800/50
-        theme-blue:hover:bg-blue-200 theme-green:hover:bg-green-200 theme-purple:hover:bg-purple-600/30
+        theme-blue:hover:bg-blue-200 theme-purple:hover:bg-purple-600/30
         cursor-pointer;
   }
 
@@ -273,11 +290,11 @@ html * {
   .theme-dropdown-button {
     @apply w-full px-3 py-2 text-sm rounded-lg
         bg-purple-100 dark:bg-purple-800/30
-        theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-purple-600/20
+        theme-blue:bg-blue-100 theme-purple:bg-purple-600/20
         text-purple-700 dark:text-purple-300
-        theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-purple-300
+        theme-blue:text-blue-700 theme-purple:text-purple-300
         hover:bg-purple-200 dark:hover:bg-purple-800/50
-        theme-blue:hover:bg-blue-200 theme-green:hover:bg-green-200 theme-purple:hover:bg-purple-600/30
+        theme-blue:hover:bg-blue-200 theme-purple:hover:bg-purple-600/30
         transition-colors flex items-center justify-center space-x-1;
   }
 
@@ -285,170 +302,201 @@ html * {
   .theme-dropdown-empty {
     @apply px-3 py-2 text-sm
         text-gray-500 dark:text-gray-400
-        theme-blue:text-blue-500 theme-green:text-green-500 theme-purple:text-gray-400;
+        theme-blue:text-blue-500 theme-green:text-teal-500 theme-purple:text-gray-400;
   }
   /* 占位符 */
   .theme-placeholder {
     @apply text-gray-400 dark:text-gray-500
-         theme-blue:text-blue-400 theme-green:text-green-400 theme-purple:text-white/50;
+         theme-blue:text-blue-400 theme-green:text-teal-400 theme-purple:text-white/50;
   }
 
   /* ===== 模态框组件 ===== */
-  
+
   /* 模态框容器 */
   .theme-modal {
     @apply bg-white dark:bg-slate-900 
-         theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-gray-900/90
+         theme-blue:bg-blue-100 theme-green:bg-teal-100 theme-purple:bg-gray-900/90
          backdrop-blur-sm rounded-xl shadow-xl 
          border border-gray-200 dark:border-slate-800 
-         theme-blue:border-blue-400 theme-green:border-green-400 theme-purple:border-purple-700/50;
+         theme-blue:border-blue-400 theme-green:border-teal-400 theme-purple:border-purple-700/50;
   }
-  
+
   /* 模态框标题栏 */
   .theme-modal-header {
     @apply border-b border-gray-200 dark:border-gray-700 
-         theme-blue:border-blue-200 theme-green:border-green-200 theme-purple:border-purple-600/30
+         theme-blue:border-blue-200 theme-green:border-teal-200 theme-purple:border-purple-600/30
          p-4;
   }
-  
+
   /* 模态框内容 */
   .theme-modal-content {
     @apply p-4;
   }
-  
+
   /* 模态框底部 */
   .theme-modal-footer {
     @apply border-t border-gray-200 dark:border-gray-700 
-         theme-blue:border-blue-200 theme-green:border-green-200 theme-purple:border-purple-600/30
+         theme-blue:border-blue-200 theme-green:border-teal-200 theme-purple:border-purple-600/30
          p-4 flex justify-end space-x-3;
   }
 
   /* ===== 抽屉组件 ===== */
-  
+
   /* 抽屉容器 */
   .theme-drawer {
     @apply bg-white dark:bg-slate-900 
-         theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-gray-900/90
-         backdrop-blur-sm shadow-xl 
-         border border-gray-200 dark:border-slate-800 
-         theme-blue:border-blue-400 theme-green:border-green-400 theme-purple:border-purple-700/50;
+         theme-blue:bg-blue-100 theme-green:bg-teal-100 theme-purple:bg-gray-900/90
+         backdrop-blur-sm rounded-xl shadow-xl 
+         border border-l border-gray-200 dark:border-slate-800 
+         theme-blue:border-blue-400 theme-green:border-teal-400 theme-purple:border-purple-700/50;
   }
-  
+
   /* 抽屉标题栏 */
   .theme-drawer-header {
-    @apply border-b border-gray-200 dark:border-gray-700 
-         theme-blue:border-blue-200 theme-green:border-green-200 theme-purple:border-purple-700/50
-         p-4 sm:p-6 flex items-center justify-between
+    @apply border-b border-gray-200 dark:border-slate-700 
+         theme-blue:border-blue-200 theme-green:border-teal-200 theme-purple:border-purple-700/50
+         p-4 sm:p-6 flex items-center justify-between rounded-t-xl 
          bg-white/95 dark:bg-gray-900/95 
-         theme-blue:bg-blue-50/95 theme-green:bg-green-50/95 theme-purple:bg-gray-900/95
+         theme-blue:bg-blue-50/95 theme-green:bg-teal-50/95 theme-purple:bg-gray-900/95
          backdrop-blur-sm;
   }
-  
+  .theme-drawer-empty-button {
+    @apply px-2 py-1 rounded text-sm bg-red-300 hover:bg-red-500 transition-colors
+    text-red-900 hover:text-white;
+  }
   /* 抽屉内容 */
   .theme-drawer-content {
     @apply p-4 sm:p-6 overflow-y-auto;
   }
 
   /* ===== 卡片组件 ===== */
-  
+
   /* 历史记录卡片 */
   .theme-history-card {
-    @apply bg-gray-50 dark:bg-slate-800 
-         theme-blue:bg-blue-200 theme-green:bg-green-200 theme-purple:bg-black/20
+    @apply p-3 bg-gray-50 dark:bg-slate-800 
+         theme-blue:bg-blue-200 theme-purple:bg-black/20
          rounded-xl border 
          border-gray-200 dark:border-slate-700 
-         theme-blue:border-blue-400 theme-green:border-green-400 theme-purple:border-purple-600/50
+         theme-blue:border-blue-400 theme-purple:border-purple-600/50
          overflow-hidden;
   }
-  
+
   /* 历史记录卡片头部 */
   .theme-history-card-header {
-    @apply p-4 border-b 
-         border-gray-200/50 dark:border-gray-700/50 
-         theme-blue:border-blue-200/50 theme-green:border-green-200/50 theme-purple:border-purple-600/30;
+    @apply p-4 pb-3 border-b 
+         border-gray-200/50 dark:border-slate-700/50 /*卡片头部下边线*/
+         theme-blue:border-blue-200/50 theme-purple:border-purple-600/30;
   }
-  
+
   /* 历史记录卡片内容 */
   .theme-history-card-content {
-    @apply p-4;
+    @apply p-4 pt-3;
   }
 
   /* ===== 管理界面组件 ===== */
-  
+
   /* 管理界面容器 */
   .theme-manager-container {
     @apply bg-white dark:bg-slate-800/90 
-         theme-blue:bg-blue-100 theme-green:bg-green-100 theme-purple:bg-gray-900/90
+         theme-blue:bg-blue-100 theme-green:bg-teal-100 theme-purple:bg-gray-900/90
          backdrop-blur-sm rounded-xl shadow-xl 
          border border-slate-200 dark:border-slate-700 
-         theme-blue:border-blue-400 theme-green:border-green-400 theme-purple:border-purple-700/50;
+         theme-blue:border-blue-400 theme-green:border-teal-400 theme-purple:border-purple-700/50;
   }
 
   /* 管理界面卡片 */
   .theme-manager-card {
-    @apply bg-gray-50 dark:bg-slate-800 
-         theme-blue:bg-blue-200 theme-green:bg-green-200 theme-purple:bg-black/20
-         rounded-xl border 
+    @apply bg-gray-50/50 dark:bg-slate-800 
+         theme-blue:bg-blue-200 theme-green:bg-teal-200 theme-purple:bg-black/20
+         rounded-xl shadow-sm hover:shadow-md transition-shadow border 
          border-gray-200 dark:border-slate-700 
-         theme-blue:border-blue-400 theme-green:border-green-400 theme-purple:border-purple-600/50;
+         theme-blue:border-blue-400 theme-green:border-teal-400 theme-purple:border-purple-600/50;
+  }
+  .theme-manager-card-optimize {
+    @apply bg-purple-300/50;
+  }
+
+  .theme-manager-card-iterate {
+    @apply bg-teal-300/50;
   }
 
   /* 管理界面标签 */
   .theme-manager-tag {
     @apply px-2 py-1 text-xs rounded-full
          bg-gray-100 dark:bg-slate-700
-         theme-blue:bg-blue-200 theme-green:bg-green-200 theme-purple:bg-purple-600/20
-         text-gray-700 dark:text-slate-200
-         theme-blue:text-blue-800 theme-green:text-green-800 theme-purple:text-purple-300;
+         theme-blue:bg-blue-200 theme-purple:bg-purple-600/20
+         text-gray-800 dark:text-slate-200
+         theme-blue:text-blue-800 theme-purple:text-purple-300;
+  }
+  .theme-manager-tag-optimize {
+    @apply px-2 py-1 text-xs rounded-full bg-purple-600/20 text-purple-300;
+  }
+
+  .theme-manager-tag-iterate {
+    @apply px-2 py-1 text-xs rounded-full bg-teal-600/20 text-teal-300;
   }
 
   /* 管理界面分割线 */
   .theme-manager-divider {
     @apply border-t border-gray-200 dark:border-slate-700
-         theme-blue:border-blue-300 theme-green:border-green-300 theme-purple:border-purple-600/30;
+         theme-blue:border-blue-300 theme-purple:border-purple-600/30;
   }
 
   /* 管理界面表单输入框 */
   .theme-manager-input {
-    @apply w-full px-4 py-2 rounded-xl 
+    @apply w-full px-4 py-2 rounded-lg 
          bg-white dark:bg-slate-800 
-         theme-blue:bg-blue-50 theme-green:bg-green-50 theme-purple:bg-black/20
+         theme-blue:bg-blue-50 theme-purple:bg-black/20
          border border-gray-200 dark:border-slate-700
-         theme-blue:border-blue-300 theme-green:border-green-300 theme-purple:border-purple-600/50
+         theme-blue:border-blue-300  theme-purple:border-purple-600/50
          text-gray-900 dark:text-slate-100
-         theme-blue:text-blue-900 theme-green:text-green-900 theme-purple:text-white
+         theme-blue:text-blue-900 theme-purple:text-white
          placeholder-gray-400 dark:placeholder-slate-500
-         theme-blue:placeholder-blue-400 theme-green:placeholder-green-400 theme-purple:placeholder-white/30
+         theme-blue:placeholder-blue-400 theme-purple:placeholder-white/30
          focus:ring-2 focus:ring-purple-500/50 focus:border-transparent;
   }
 
-  /* 管理界面按钮 - 主要（测试连接） */
+  /* 管理界面按钮 - 主要 （添加自定义模型） */
   .theme-manager-button-primary {
     @apply px-4 py-2 rounded-lg transition-colors
-         bg-blue-600 dark:bg-blue-600 
-         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-blue-600
-         hover:bg-blue-500 dark:hover:bg-blue-500
-         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-blue-500
+         bg-gray-600 hover:bg-gray-500
          text-white;
   }
 
-  /* 管理界面按钮 - 次要（编辑） */
+  /* 管理界面按钮 - 次要 */
   .theme-manager-button-secondary {
     @apply px-4 py-2 rounded-lg transition-colors
-         bg-purple-600 dark:bg-purple-600
-         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-purple-600
-         hover:bg-purple-500 dark:hover:bg-purple-500
-         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-purple-500
+         bg-gray-400 dark:bg-purple-600
+         hover:bg-gray-300 dark:hover:bg-purple-500
          text-white;
+  }
+  /* 管理界面按钮 - 测试连接 */
+  .theme-manager-button-test {
+    @apply px-4 py-2 rounded-lg transition-colors
+          bg-blue-600 dark:bg-blue-600 
+          theme-blue:bg-blue-600 theme-purple:bg-blue-600
+          hover:bg-blue-500 dark:hover:bg-blue-500
+          theme-blue:hover:bg-blue-500 theme-purple:hover:bg-blue-500
+          text-white;
+  }
+
+  /* 管理界面按钮 - 编辑 */
+  .theme-manager-button-edit {
+    @apply px-4 py-2 rounded-lg transition-colors
+          bg-purple-600 dark:bg-purple-600
+          theme-blue:bg-blue-600 theme-purple:bg-purple-600
+          hover:bg-purple-500 dark:hover:bg-purple-500
+          theme-blue:hover:bg-blue-500 theme-purple:hover:bg-purple-500
+          text-white;
   }
 
   /* 管理界面按钮 - 成功（启用） */
   .theme-manager-button-success {
     @apply px-4 py-2 rounded-lg transition-colors
-         bg-green-600 dark:bg-green-600
-         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-green-600
-         hover:bg-green-500 dark:hover:bg-green-500
-         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-green-500
+         bg-teal-600 dark:bg-teal-600
+         theme-blue:bg-blue-600 theme-purple:bg-teal-600
+         hover:bg-teal-500 dark:hover:bg-teal-500
+         theme-blue:hover:bg-blue-500 theme-purple:hover:bg-teal-500
          text-white;
   }
 
@@ -456,9 +504,9 @@ html * {
   .theme-manager-button-warning {
     @apply px-4 py-2 rounded-lg transition-colors
          bg-gray-500 dark:bg-gray-600
-         theme-blue:bg-gray-500 theme-green:bg-gray-500 theme-purple:bg-gray-600
+         theme-blue:bg-gray-500 theme-purple:bg-gray-600
          hover:bg-gray-400 dark:hover:bg-gray-500
-         theme-blue:hover:bg-gray-400 theme-green:hover:bg-gray-400 theme-purple:hover:bg-gray-500
+         theme-blue:hover:bg-gray-400 theme-purple:hover:bg-gray-500
          text-white;
   }
 
@@ -466,61 +514,37 @@ html * {
   .theme-manager-button-danger {
     @apply px-4 py-2 rounded-lg transition-colors
          bg-red-600/80 dark:bg-red-700/80
-         theme-blue:bg-red-600/80 theme-green:bg-red-600/80 theme-purple:bg-red-700/80
+         theme-blue:bg-red-600/80 theme-purple:bg-red-700/80
          hover:bg-red-500/80 dark:hover:bg-red-600/80
-         theme-blue:hover:bg-red-500/80 theme-green:hover:bg-red-500/80 theme-purple:hover:bg-red-600/80
+         theme-blue:hover:bg-red-500/80 theme-purple:hover:bg-red-600/80
          text-white;
   }
 
   /* 管理界面文本 - 主要 */
   .theme-manager-text {
     @apply text-gray-900 dark:text-slate-100
-         theme-blue:text-blue-900 theme-green:text-green-900 theme-purple:text-white/90;
+         theme-blue:text-blue-900 theme-green:text-teal-900 theme-purple:text-white/90;
   }
 
   /* 管理界面文本 - 次要 */
   .theme-manager-text-secondary {
     @apply text-gray-600 dark:text-slate-400
-         theme-blue:text-blue-700 theme-green:text-green-700 theme-purple:text-white/70;
+         theme-blue:text-blue-700 theme-green:text-teal-700 theme-purple:text-white/70;
   }
 
   /* 管理界面文本 - 禁用 */
   .theme-manager-text-disabled {
     @apply text-gray-400 dark:text-slate-500
-         theme-blue:text-blue-400 theme-green:text-green-400 theme-purple:text-white/40;
+         theme-blue:text-blue-400 theme-green:text-teal-400 theme-purple:text-white/40;
   }
-}
 
-/* 自定义滚动条样式 */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-700 
-         theme-blue:bg-blue-300 theme-green:bg-green-300 theme-purple:bg-white/15
-         rounded;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-600
-         theme-blue:bg-blue-400 theme-green:bg-green-400 theme-purple:bg-white/25;
-}
-
-/* 隐藏水平滚动条 */
-::-webkit-scrollbar-horizontal {
-  display: none;
 }
 
 
 /* 占位符文本 */
 .theme-placeholder {
   @apply text-gray-400 dark:text-gray-500
-         theme-blue:text-blue-400 theme-green:text-green-400 theme-purple:text-white/50;
+         theme-blue:text-blue-400 theme-green:text-teal-400 theme-purple:text-white/50;
 }
 
 /* 主题基础样式 */
@@ -536,10 +560,6 @@ html * {
 /* 主题文本 */
 .theme-text {
   @apply text-slate-900 dark:text-slate-100;
-}
-
-.theme-text-secondary {
-  @apply text-slate-700 dark:text-slate-300;
 }
 
 .theme-text-disabled {
@@ -560,26 +580,8 @@ html * {
   @apply bg-slate-200 dark:bg-slate-800;
 }
 
-/* 主题按钮 */
-.theme-button {
-  @apply px-4 py-2 rounded-lg transition-colors;
-}
-
-.theme-button-primary {
-  @apply theme-button bg-blue-600 hover:bg-blue-500 text-white;
-}
-
-.theme-button-secondary {
-  @apply theme-button bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200;
-}
-
 .theme-button-danger {
   @apply theme-button bg-red-600 hover:bg-red-500 text-white;
-}
-
-/* 主题输入框 */
-.theme-input {
-  @apply w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all;
 }
 
 /* 主题标签 */
@@ -590,11 +592,6 @@ html * {
 /* 主题分割线 */
 .theme-divider {
   @apply border-t border-slate-200 dark:border-slate-700;
-}
-
-/* 主题卡片 */
-.theme-card {
-  @apply p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm;
 }
 
 /* 主题模态框 */
@@ -614,101 +611,13 @@ html * {
   @apply p-4 border-t border-slate-200 dark:border-slate-700;
 }
 
-/* 主题抽屉 */
-.theme-drawer {
-  @apply bg-white dark:bg-slate-800/90
-  backdrop-blur-sm rounded-xl shadow-xl
-  border-l border-slate-200 dark:border-slate-700;
-}
-
-.theme-drawer-header {
-  @apply rounded-t-xl border-b border-slate-200 dark:border-slate-700;
-}
-
-.theme-drawer-content {
-  @apply p-4;
-}
-
-/* 主题历史记录卡片 */
-.theme-history-card {
-  @apply bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4;
-}
-
-.theme-history-card-header {
-  @apply border-b border-slate-200 dark:border-slate-700 pb-3 mb-3;
-}
-
-.theme-history-card-content {
-  @apply pt-3;
-}
-
-/* 主题滚动条 */
-.theme-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-}
-
-.theme-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.theme-scrollbar::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-.theme-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-400/50 dark:bg-slate-500/50 rounded-full;
-}
 
 /* 管理界面主题 */
 .theme-manager-header {
   @apply border-b border-slate-200 dark:border-slate-700;
 }
 
-.theme-manager-text {
-  @apply text-slate-900 dark:text-slate-100;
-}
 
-.theme-manager-text-secondary {
-  @apply text-slate-700 dark:text-slate-300;
-}
-
-.theme-manager-text-disabled {
-  @apply text-slate-500 dark:text-slate-500;
-}
-
-.theme-manager-card {
-  @apply bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow;
-}
-
-.theme-manager-tag {
-  @apply px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
-}
-
-.theme-manager-divider {
-  @apply border-t border-slate-200 dark:border-slate-700;
-}
-
-.theme-manager-input {
-  @apply w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all;
-}
-
-.theme-manager-button-primary {
-  @apply px-4 py-2 rounded-lg bg-purple-600 dark:bg-slate-700
-         theme-blue:bg-blue-600 theme-green:bg-green-600 theme-purple:bg-purple-600
-         hover:bg-purple-500 dark:hover:bg-slate-600
-         theme-blue:hover:bg-blue-500 theme-green:hover:bg-green-500 theme-purple:hover:bg-purple-500
-         text-white;
-}
-
-.theme-manager-button-secondary {
-  @apply px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 transition-colors;
-}
-
-.theme-manager-button-danger {
-  @apply px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors;
-}
 
 /* 主题变体 */
 :root[data-theme="blue"] {
@@ -758,6 +667,12 @@ html * {
   .theme-manager-text-secondary {
     @apply text-blue-800;
   }
+  .theme-manager-button-primary {
+    @apply bg-sky-500 hover:bg-sky-400 text-white;
+  }
+  .theme-manager-button-secondary {
+    @apply bg-sky-200 hover:bg-sky-300 text-sky-900;
+  }
 
   .theme-manager-text-disabled {
     @apply text-blue-500;
@@ -769,59 +684,202 @@ html * {
 }
 
 :root[data-theme="green"] {
+  /* 滚动条轨道 - 用于自定义组件 */
+  .theme-scrollbar-track {
+    @apply bg-teal-300;
+  }
+
+  /* 滚动条滑块 - 同时用于原生与自定义组件 */
+  .theme-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb {
+    @apply bg-teal-600;
+  }
+
+  /* 悬停状态 - 同时用于原生与自定义组件 */
+  .theme-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-teal-400;
+  }
   .theme-container {
-    @apply bg-green-100 text-green-950;
+    @apply bg-teal-100 text-teal-950;
+  }
+  .theme-title {
+    @apply text-teal-300;
   }
 
   .theme-text {
-    @apply text-green-950;
+    @apply text-teal-200;
+  }
+
+  .theme-label {
+    @apply text-teal-200;
   }
 
   .theme-text-secondary {
-    @apply text-green-800;
+    @apply text-teal-800;
   }
 
   .theme-border {
-    @apply border-green-200;
+    @apply border-teal-200;
   }
 
   .theme-bg {
-    @apply bg-green-100;
+    @apply bg-teal-100;
   }
 
   .theme-bg-secondary {
-    @apply bg-green-200;
+    @apply bg-teal-200;
+  }
+
+  .theme-header {
+    @apply bg-teal-800/90 border-teal-600;
+  }
+  .theme-icon-button {
+    @apply bg-teal-700 hover:bg-teal-600 text-teal-300;
+  }
+  .theme-button-primary {
+    @apply bg-teal-600 hover:bg-teal-500 text-teal-100 hover:text-white disabled:bg-teal-700/70 disabled:text-teal-400/90;
+  }
+  .theme-button-secondary {
+    @apply bg-teal-600 hover:bg-teal-500 text-teal-100 hover:text-white;
+  }
+
+  .theme-dropdown {
+    @apply bg-teal-700/90 border-teal-700 backdrop-blur-sm;
+  }
+
+  .theme-dropdown-item {
+    @apply focus:ring-teal-500/50;
+  }
+  .theme-dropdown-item-description {
+    @apply text-teal-500;
+  }
+  .theme-dropdown-item-active {
+    @apply bg-teal-900 text-teal-300;
+  }
+  .theme-dropdown-item-inactive {
+    @apply text-teal-300 hover:bg-teal-800 hover:text-teal-400;
+  }
+  .theme-dropdown-item-tag {
+    @apply bg-amber-300 text-teal-800;
+  }
+  .theme-dropdown-section {
+    @apply border-teal-200/50 bg-teal-200/60 hover:bg-teal-300 text-teal-700;
+  }
+  .theme-dropdown-button {
+    @apply bg-teal-300 hover:bg-teal-400 text-teal-700;
+  }
+
+  .theme-drawer {
+    @apply bg-teal-900/70 border-teal-700;
+  }
+
+  .theme-drawer-header {
+    @apply bg-teal-900/95 border-teal-700;
   }
 
   .theme-card,
   .theme-modal,
-  .theme-drawer,
-  .theme-manager-container,
+  .theme-manager-container {
+    @apply bg-teal-900/60 border-teal-700;
+  }
   .theme-manager-card {
-    @apply bg-white border-green-200;
+    @apply bg-teal-800 border-teal-700;
+  }
+  .theme-manager-card-header {
+    @apply border-teal-900/50;
+  }
+  .theme-manager-card-optimize {
+    @apply bg-teal-700;
+  }
+
+  .theme-manager-card-iterate {
+    @apply bg-amber-500/20;
+  }
+  .theme-history-card {
+    @apply bg-teal-700/60 border-teal-600;
+  }
+
+  /* 历史记录卡片头部 */
+  .theme-history-card-header {
+    @apply border-teal-900/50; /*卡片头部下边线*/
   }
 
   .theme-modal-header,
-  .theme-drawer-header,
-  .theme-manager-header,
+  .theme-manager-header {
+    @apply border-teal-200;
+  }
   .theme-manager-divider {
-    @apply border-green-200;
+    @apply border-teal-300/50 shadow-sm;
   }
 
+  .theme-input {
+    @apply bg-teal-900 border-teal-700 text-teal-300 placeholder-teal-400;
+  }
+
+  .theme-select-button {
+    @apply bg-teal-700 border-teal-600 hover:ring-2 hover:ring-teal-400 text-teal-300;
+  }
+  .theme-manager-button-primary {
+    @apply bg-teal-500 hover:bg-teal-300 text-white;
+  }
+  .theme-manager-button-secondary {
+    @apply bg-teal-700 hover:bg-teal-600 text-teal-300;
+  }
   .theme-manager-text {
-    @apply text-green-950;
+    @apply text-teal-300;
   }
-
   .theme-manager-text-secondary {
-    @apply text-green-800;
+    @apply text-teal-400;
+  }
+  .theme-manager-text-disabled {
+    @apply text-teal-500;
   }
 
-  .theme-manager-text-disabled {
-    @apply text-green-500;
+  .theme-manager-tag {
+    @apply bg-teal-300 text-teal-800;
   }
+  .theme-manager-tag-optimize {
+    @apply bg-teal-400/20 text-teal-300;
+  }
+  .theme-manager-tag-iterate {
+    @apply bg-amber-400/40 text-amber-200;
+  }
+
 
   .theme-manager-input {
-    @apply bg-white border-green-300 text-green-950 placeholder-green-400;
+    @apply bg-teal-400/30 border-teal-300/60 text-teal-200 placeholder-teal-900
+    focus:ring-2 focus:ring-teal-400 focus:border-transparent;
+  }
+
+  .theme-manager-button-primary {
+    @apply bg-teal-600 hover:bg-teal-500;
+  }
+  /* 管理界面按钮 - 测试连接 */
+  .theme-manager-button-test {
+    @apply bg-green-600 hover:bg-green-500;
+  }
+
+  /* 管理界面按钮 - 编辑 */
+  .theme-manager-button-edit {
+    @apply bg-teal-600 hover:bg-teal-500;
+  }
+
+  /* 管理界面按钮 - 成功（启用） */
+  .theme-manager-button-success {
+    @apply bg-teal-600 hover:bg-teal-500;
+  }
+
+  /* 管理界面按钮 - 警告（禁用） */
+  .theme-manager-button-warning {
+    @apply bg-slate-500 hover:bg-slate-400;
+  }
+
+  /* 管理界面按钮 - 危险（删除） */
+  .theme-manager-button-danger {
+    @apply bg-red-300/80 hover:bg-red-500/80 
+    text-red-900 hover:text-white 
+    transition-colors;
   }
 }
 
@@ -880,13 +938,15 @@ html * {
   .theme-manager-input {
     @apply bg-black/20 border-purple-700/50 text-white placeholder-purple-400;
   }
-
+  .theme-manager-button-primary {
+    @apply bg-purple-800 hover:bg-purple-600 text-purple-200;
+  }
   .theme-manager-button-secondary {
     @apply bg-purple-600/20 hover:bg-purple-600/30 text-purple-200;
   }
 }
 
-:root[data-theme="night"] {
+:root[data-theme="dark"] {
   .theme-container {
     @apply bg-slate-950 text-slate-100;
   }
@@ -918,6 +978,13 @@ html * {
   .theme-manager-card {
     @apply bg-slate-900 border-slate-800;
   }
+  .theme-manager-card-optimize {
+    @apply bg-purple-900/50;
+  }
+
+  .theme-manager-card-iterate {
+    @apply bg-teal-900/50;
+  }
 
   .theme-modal-header,
   .theme-drawer-header,
@@ -942,12 +1009,12 @@ html * {
     @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500;
   }
 
-  .theme-manager-button-secondary {
-    @apply bg-slate-800 hover:bg-slate-700 text-slate-300;
+  .theme-manager-button-primary {
+    @apply bg-slate-600 hover:bg-slate-500 text-white;
   }
 
-  .theme-manager-button-primary {
-    @apply bg-blue-600 hover:bg-blue-500 text-white;
+  .theme-manager-button-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-300;
   }
 
   .theme-button-primary {
@@ -955,13 +1022,13 @@ html * {
   }
 
   .theme-manager-button-success {
-    @apply bg-green-600 hover:bg-green-500 text-white;
+    @apply bg-teal-600 hover:bg-green-500 text-white;
   }
-  
+
   .theme-manager-button-warning {
     @apply bg-gray-600 hover:bg-gray-500 text-white;
   }
-  
+
   .theme-manager-button-danger {
     @apply bg-red-700/80 hover:bg-red-600/80 text-white;
   }

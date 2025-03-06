@@ -1,6 +1,6 @@
 <template>
   <button
-    class="theme-icon-button flex items-center gap-1 px-1.5 py-1"
+    class="theme-icon-button"
     @click="$emit('click')"
     :disabled="loading"
   >

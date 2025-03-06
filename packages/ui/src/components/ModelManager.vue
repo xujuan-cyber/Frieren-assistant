@@ -45,11 +45,11 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <button @click="testConnection(model.key)"
-                          class="theme-manager-button-primary">
+                          class="theme-manager-button-test">
                     测试连接
                   </button>
                   <button @click="editModel(model.key)"
-                          class="theme-manager-button-secondary">
+                          class="theme-manager-button-edit">
                     编辑
                   </button>
                   <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
