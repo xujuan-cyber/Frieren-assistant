@@ -10,13 +10,13 @@
       @click.stop
     >
       <div class="h-full flex flex-col">
-        <div class="flex-none p-4 sm:p-6 theme-drawer-header flex items-center justify-between">
+        <div class="flex-none p-3 sm:p-4 theme-drawer-header flex items-center justify-between">
           <div class="flex items-center gap-4">
             <h2 class="text-lg font-semibold theme-manager-text">历史记录</h2>
             <button
               v-if="sortedHistory && sortedHistory.length > 0"
               @click.stop="handleClear"
-              class="text-sm theme-manager-text-secondary hover:theme-manager-text transition-colors px-2 py-1 rounded border border-gray-300/20 hover:border-gray-300/40"
+              class="theme-drawer-empty-button"
             >
               清空
             </button>
@@ -72,11 +72,11 @@
                         <span v-if="record.type === 'iterate'" class="text-xs theme-manager-tag">迭代</span>
                         <button
                           @click.stop="reuse(record, chain)"
-                          class="text-xs theme-manager-button-secondary px-2 py-0.5"
+                          class="text-xs theme-manager-button-secondary"
                         >
                           使用
                         </button>
-                        <button class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-sm">
+                        <button class="text-xs theme-manager-button-secondary transition-colors">
                           {{ expandedVersions[record.id] ? '收起' : '展开' }}
                         </button>
                       </div>

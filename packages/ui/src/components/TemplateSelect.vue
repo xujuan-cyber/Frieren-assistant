@@ -13,7 +13,7 @@
             请选择提示词
           </span>
         </div>
-        <span class="text-purple-500 dark:text-purple-400">
+        <span class="theme-text">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
           </svg>
@@ -41,11 +41,11 @@
           <div class="flex items-center justify-between">
             <span>{{ template.name }}</span>
             <span v-if="template.isBuiltin" 
-                  class="text-xs px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-800/40 text-purple-700 dark:text-purple-300">
+                  class="text-xs px-1.5 py-0.5 rounded theme-dropdow-item-tag">
               内置
             </span>
           </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+          <p class="text-xs theme-dropdow-item-description mt-1"
              :title="template.metadata.description || '暂无描述'">
             {{ template.metadata.description || '暂无描述' }}
           </p>

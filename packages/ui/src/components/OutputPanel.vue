@@ -2,7 +2,7 @@
 <template>
   <div class="flex flex-col h-full">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold theme-title">测试结果</h3>
+      <h3 class="text-lg font-semibold theme-text">测试结果</h3>
       <button
         v-if="result"
         @click="copySelectedText"

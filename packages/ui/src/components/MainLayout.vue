@@ -15,7 +15,7 @@
 
     <!-- 主要内容区域 -->
     <main class="flex-1 container mx-auto p-2 sm:p-4 overflow-hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-5.5rem)]">
         <slot></slot>
       </div>
     </main>

@@ -68,13 +68,13 @@
             <div 
               v-for="template in filteredTemplates"
               :key="template.id"
-              class="theme-manager-card p-4 group relative transition-all duration-200 hover:-translate-y-0.5"
+              class="theme-manager-card p-4 group relative transition-all duration-200"
               :class="[
                 (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                   ? template.metadata.templateType === 'optimize'
-                    ? 'border-purple-500/50 bg-purple-900/10 shadow-lg shadow-purple-900/10'
-                    : 'border-teal-500/50 bg-teal-900/10 shadow-lg shadow-teal-900/10'
-                  : 'border-gray-700/50 hover:border-gray-600/60 bg-gray-800/20 hover:bg-gray-800/30'
+                    ? 'theme-manager-card-optimize'
+                    : 'theme-manager-card-iterate'
+                  : 'theme-manager-card'
               ]"
             >
               <div class="flex items-start justify-between">
@@ -97,7 +97,7 @@
                   <button
                     @click="selectTemplate(template)"
                     :class="[
-                      'px-3 py-1.5 text-sm rounded-lg',
+                      'rounded-lg',
                       (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                         ? 'theme-manager-button-primary'
                         : 'theme-manager-button-secondary'
@@ -128,9 +128,12 @@
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
-                    class="theme-manager-button-secondary"
+                    class="theme-manager-button-secondary inline-flex items-center justify-center gap-1"
                   >
-                    导出
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  导出
                   </button>
                   <button
                     v-if="!template.isBuiltin"
@@ -143,13 +146,13 @@
               </div>
               <div 
                 class="absolute top-0 left-0 w-2 h-full rounded-l-xl"
-                :class="template.metadata.templateType === 'optimize' ? 'bg-purple-500/50' : 'bg-teal-500/50'"
+                :class="template.metadata.templateType === 'optimize' ? 'theme-manager-card-optimize' : 'theme-manager-card-iterate'"
               ></div>
               <span 
-                class="px-2 py-1 text-xs rounded-full capitalize"
+                class="capitalize"
                 :class="template.metadata.templateType === 'optimize' 
-                  ? 'bg-purple-600/20 text-purple-300'
-                  : 'bg-teal-600/20 text-teal-300'"
+                  ? 'theme-manager-tag-optimize'
+                  : 'theme-manager-tag-iterate'"
               >
                 {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
               </span>
