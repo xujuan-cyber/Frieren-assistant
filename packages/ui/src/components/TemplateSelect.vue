@@ -41,11 +41,11 @@
           <div class="flex items-center justify-between">
             <span>{{ template.name }}</span>
             <span v-if="template.isBuiltin" 
-                  class="text-xs px-1.5 py-0.5 rounded theme-dropdow-item-tag">
+                  class="text-xs px-1.5 py-0.5 rounded theme-dropdown-item-tag">
               内置
             </span>
           </div>
-          <p class="text-xs theme-dropdow-item-description mt-1"
+          <p class="text-xs theme-dropdown-item-description mt-1"
              :title="template.metadata.description || '暂无描述'">
             {{ template.metadata.description || '暂无描述' }}
           </p>

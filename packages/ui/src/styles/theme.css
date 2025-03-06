@@ -751,7 +751,7 @@ html * {
   .theme-dropdown-item {
     @apply focus:ring-teal-500/50;
   }
-  .theme-dropdow-item-description {
+  .theme-dropdown-item-description {
     @apply text-teal-500;
   }
   .theme-dropdown-item-active {
@@ -760,11 +760,11 @@ html * {
   .theme-dropdown-item-inactive {
     @apply text-teal-300 hover:bg-teal-800 hover:text-teal-400;
   }
-  .theme-dropdow-item-tag {
+  .theme-dropdown-item-tag {
     @apply bg-amber-300 text-teal-800;
   }
   .theme-dropdown-section {
-    @apply border-teal-200/50 bg-teal-200 hover:bg-teal-300 text-teal-700;
+    @apply border-teal-200/50 bg-teal-200/60 hover:bg-teal-300 text-teal-700;
   }
   .theme-dropdown-button {
     @apply bg-teal-300 hover:bg-teal-400 text-teal-700;
