@@ -12,8 +12,8 @@
             class="px-2 py-1 text-xs rounded transition-colors"
             :class="[
               currentVersionId === version.id
-                ? 'bg-purple-600/30 text-purple-300 dark:bg-purple-700/40 dark:text-purple-200 font-medium'
-                : 'text-white/50 hover:text-white/70 dark:text-white/40 dark:hover:text-white/60'
+                ? 'font-medium theme-prompt-version-selected'
+                : 'theme-prompt-version-unselected'
             ]"
           >
             V{{ version.version }}
@@ -63,7 +63,7 @@
       
       <div class="space-y-4">
         <div>
-          <h4 class="text-sm font-medium text-white/90 dark:text-white/80 mb-2">{{ templateSelectText }}</h4>
+          <h4 class="theme-label mb-2">{{ templateSelectText }}</h4>
           <TemplateSelect
             :modelValue="selectedIterateTemplate"
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
@@ -73,10 +73,10 @@
         </div>
         
         <div>
-          <h4 class="text-sm font-medium text-white/90 dark:text-white/80 mb-2">请输入需要优化的方向：</h4>
+          <h4 class="theme-label mb-2">请输入需要优化的方向：</h4>
           <textarea
             v-model="iterateInput"
-            class="w-full bg-black/30 dark:bg-gray-900/80 border-none rounded-lg p-3 text-white/90 dark:text-white/80 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-none focus:ring-2 focus:ring-purple-500/50 dark:focus:ring-purple-600/50 transition-colors duration-300"
+            class="w-full theme-input resize-none"
             placeholder="例如：使提示词更简洁、增加特定功能描述等..."
             rows="3"
           ></textarea>
@@ -86,13 +86,13 @@
       <template #footer>
         <button
           @click="cancelIterate"
-          class="px-4 py-2 text-sm text-white/70 hover:text-white/90 dark:text-white/60 dark:hover:text-white/80 transition-colors"
+          class="theme-button-secondary"
         >
           取消
         </button>
         <button
           @click="submitIterate"
-          class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="theme-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="!iterateInput.trim() || isIterating"
         >
           {{ isIterating ? '优化中...' : '确认优化' }}

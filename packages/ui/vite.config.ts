@@ -17,7 +17,11 @@ export default defineConfig({
       fileName: (format) => `index.${format === 'es' ? 'js' : 'cjs'}`,
       formats: ['es', 'cjs']
     },
-    watch: process.env.NODE_ENV === 'development' ? {} : null,
+    watch: process.env.NODE_ENV === 'development' ? {
+      // 更精确的监听配置
+      include: ['src/**/*'],
+      buildDelay: 100
+    } : null,
     sourcemap: true,
     rollupOptions: {
       external: ['vue', '@prompt-optimizer/core', 'element-plus', 'element-plus/dist/index.css', 'uuid'],
@@ -31,7 +35,8 @@ export default defineConfig({
         assetFileNames: 'style.css'
       }
     },
-    cssCodeSplit: false
+    cssCodeSplit: false,
+    emptyOutDir: false
   },
   assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.svg']
 }) 

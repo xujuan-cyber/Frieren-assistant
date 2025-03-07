@@ -43,13 +43,13 @@
               <slot name="footer">
                 <button
                   @click="$emit('update:modelValue', false)"
-                  class="theme-button-text px-4 py-2 text-sm"
+                  class="theme-button-secondary"
                 >
                   取消
                 </button>
                 <button
                   @click="$emit('confirm')"
-                  class="theme-button-primary px-4 py-2 text-sm"
+                  class="theme-button-primary"
                 >
                   确认
                 </button>
