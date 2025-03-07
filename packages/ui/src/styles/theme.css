@@ -181,7 +181,7 @@ html * {
          theme-blue:text-red-600 theme-green:text-red-600 theme-purple:text-red-400;
   }
 
-  /* 主题成功 */
+  /* 主题成功 暂无引用*/
   .theme-success {
     @apply text-teal-600 dark:text-teal-400
          theme-blue:text-teal-600 theme-green:text-teal-700 theme-purple:text-teal-400;
@@ -364,7 +364,7 @@ html * {
     @apply px-2 py-1 rounded text-sm bg-red-300 hover:bg-red-500 transition-colors
     text-red-900 hover:text-white;
   }
-  /* 抽屉内容 */
+  /* 抽屉内容 暂无引用*/
   .theme-drawer-content {
     @apply p-4 sm:p-6 overflow-y-auto;
   }
@@ -388,7 +388,7 @@ html * {
          theme-blue:border-blue-200/50 theme-purple:border-purple-600/30;
   }
 
-  /* 历史记录卡片内容 */
+  /* 历史记录卡片内容 暂无引用*/
   .theme-history-card-content {
     @apply p-4 pt-3;
   }
@@ -540,109 +540,14 @@ html * {
 
 }
 
-
-/* 占位符文本 */
-.theme-placeholder {
-  @apply text-gray-400 dark:text-gray-500
-         theme-blue:text-blue-400 theme-green:text-teal-400 theme-purple:text-white/50;
-}
-
-/* 主题基础样式 */
-.theme-base {
-  @apply transition-colors duration-200;
-}
-
-/* 主题容器 */
-.theme-container {
-  @apply bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100;
-}
-
-/* 主题文本 */
-.theme-text {
-  @apply text-slate-900 dark:text-slate-100;
-}
-
-.theme-text-disabled {
-  @apply text-slate-500 dark:text-slate-500;
-}
-
-/* 主题边框 */
-.theme-border {
-  @apply border-slate-200 dark:border-slate-700;
-}
-
-/* 主题背景 */
-.theme-bg {
-  @apply bg-slate-100 dark:bg-slate-900;
-}
-
-.theme-bg-secondary {
-  @apply bg-slate-200 dark:bg-slate-800;
-}
-
-.theme-button-danger {
-  @apply theme-button bg-red-600 hover:bg-red-500 text-white;
-}
-
-/* 主题标签 */
-.theme-tag {
-  @apply px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
-}
-
-/* 主题分割线 */
-.theme-divider {
-  @apply border-t border-slate-200 dark:border-slate-700;
-}
-
-/* 主题模态框 */
-.theme-modal {
-  @apply bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700;
-}
-
-.theme-modal-header {
-  @apply p-4 border-b border-slate-200 dark:border-slate-700;
-}
-
-.theme-modal-content {
-  @apply p-4;
-}
-
-.theme-modal-footer {
-  @apply p-4 border-t border-slate-200 dark:border-slate-700;
-}
-
-
-/* 管理界面主题 */
-.theme-manager-header {
-  @apply border-b border-slate-200 dark:border-slate-700;
-}
-
-
-
 /* 主题变体 */
 :root[data-theme="blue"] {
-  .theme-container {
-    @apply bg-blue-100 text-blue-950;
-  }
-
   .theme-text {
     @apply text-blue-950;
   }
 
   .theme-text-secondary {
     @apply text-blue-800;
-  }
-
-  .theme-border {
-    @apply border-blue-200;
-  }
-
-  .theme-bg {
-    @apply bg-blue-100;
-  }
-
-  .theme-bg-secondary {
-    @apply bg-blue-200;
   }
 
   .theme-card,
@@ -655,7 +560,6 @@ html * {
 
   .theme-modal-header,
   .theme-drawer-header,
-  .theme-manager-header,
   .theme-manager-divider {
     @apply border-blue-200;
   }
@@ -700,9 +604,7 @@ html * {
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-teal-400;
   }
-  .theme-container {
-    @apply bg-teal-100 text-teal-950;
-  }
+
   .theme-title {
     @apply text-teal-300;
   }
@@ -717,18 +619,6 @@ html * {
 
   .theme-text-secondary {
     @apply text-teal-800;
-  }
-
-  .theme-border {
-    @apply border-teal-200;
-  }
-
-  .theme-bg {
-    @apply bg-teal-100;
-  }
-
-  .theme-bg-secondary {
-    @apply bg-teal-200;
   }
 
   .theme-header {
@@ -805,8 +695,7 @@ html * {
     @apply border-teal-900/50; /*卡片头部下边线*/
   }
 
-  .theme-modal-header,
-  .theme-manager-header {
+  .theme-modal-header {
     @apply border-teal-200;
   }
   .theme-manager-divider {
@@ -884,28 +773,12 @@ html * {
 }
 
 :root[data-theme="purple"] {
-  .theme-container {
-    @apply bg-gradient-to-br from-slate-900 to-purple-900 text-white;
-  }
-
   .theme-text {
     @apply text-white;
   }
 
   .theme-text-secondary {
     @apply text-purple-200;
-  }
-
-  .theme-border {
-    @apply border-purple-700/50;
-  }
-
-  .theme-bg {
-    @apply bg-black/20;
-  }
-
-  .theme-bg-secondary {
-    @apply bg-purple-900/20;
   }
 
   .theme-card,
@@ -918,7 +791,6 @@ html * {
 
   .theme-modal-header,
   .theme-drawer-header,
-  .theme-manager-header,
   .theme-manager-divider {
     @apply border-purple-700/50;
   }
@@ -947,28 +819,12 @@ html * {
 }
 
 :root[data-theme="dark"] {
-  .theme-container {
-    @apply bg-slate-950 text-slate-100;
-  }
-
   .theme-text {
     @apply text-slate-100;
   }
 
   .theme-text-secondary {
     @apply text-slate-300;
-  }
-
-  .theme-border {
-    @apply border-slate-800;
-  }
-
-  .theme-bg {
-    @apply bg-slate-900;
-  }
-
-  .theme-bg-secondary {
-    @apply bg-slate-800;
   }
 
   .theme-card,
@@ -988,7 +844,6 @@ html * {
 
   .theme-modal-header,
   .theme-drawer-header,
-  .theme-manager-header,
   .theme-manager-divider {
     @apply border-slate-800;
   }
