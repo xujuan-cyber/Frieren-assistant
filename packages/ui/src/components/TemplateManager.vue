@@ -57,7 +57,7 @@
             </h3>
             <button
               @click="showAddForm = true"
-              class="theme-manager-button-primary"
+              class="theme-manager-button-secondary"
             >
               添加提示词
             </button>

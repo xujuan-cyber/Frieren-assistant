@@ -11,7 +11,7 @@
       <textarea
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
-        class="w-full px-4 py-3 theme-input resize-none"
+        class="w-full theme-input resize-none"
         :placeholder="placeholder"
         rows="4"
       ></textarea>
