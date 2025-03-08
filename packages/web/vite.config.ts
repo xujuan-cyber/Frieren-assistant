@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
       fs: {
         // 允许为工作区依赖提供服务
         allow: ['..']
+      },
+      hmr: true,
+      watch: {
+        // 确保监视monorepo中其他包的变化
+        ignored: ['!**/node_modules/@prompt-optimizer/**']
       }
     },
     build: {
@@ -30,15 +35,15 @@ export default defineConfig(({ mode }) => {
       preserveSymlinks: true,
       alias: {
         '@': resolve(__dirname, 'src'),
-        '@ui': path.resolve(__dirname, '../ui'),
-        '@ui/dist/style.css': path.resolve(__dirname, '../ui/dist/style.css'),
-        '@prompt-optimizer/ui/dist/style.css': path.resolve(__dirname, '../ui/dist/style.css')
+        '@prompt-optimizer/core': path.resolve(__dirname, '../core'),
+        '@prompt-optimizer/ui': path.resolve(__dirname, '../ui'),
+        '@prompt-optimizer/web': path.resolve(__dirname, '../web'),
+        '@prompt-optimizer/extension': path.resolve(__dirname, '../extension')
       }
     },
     optimizeDeps: {
-      // 包含工作区依赖
+      // 预构建依赖
       include: ['element-plus'],
-      exclude: ['@prompt-optimizer/ui']
     },
     define: {
       'process.env': {
