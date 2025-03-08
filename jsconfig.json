@@ -2,10 +2,10 @@
     "compilerOptions": {
       "baseUrl": ".",
       "paths": {
-        "@prompt-optimizer/core/*": ["packages/core/src/*"],
-        "@prompt-optimizer/ui/*": ["packages/ui/src/*"],
-        "@prompt-optimizer/web/*": ["packages/web/src/*"],
-        "@prompt-optimizer/extension/*": ["packages/extension/src/*"]
+        "@prompt-optimizer/core": ["packages/core"],
+        "@prompt-optimizer/ui": ["packages/ui"],
+        "@prompt-optimizer/web": ["packages/web"],
+        "@prompt-optimizer/extension": ["packages/extension"]
       }
     },
     "include": ["packages/*/src"],
