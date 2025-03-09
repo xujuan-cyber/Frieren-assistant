@@ -21,7 +21,6 @@
     "type": "module"
   },
   "permissions": [
-    "tabs"
   ],
   "homepage_url": "https://github.com/linshenkx/prompt-optimizer",
   "author": "linshenkx",
