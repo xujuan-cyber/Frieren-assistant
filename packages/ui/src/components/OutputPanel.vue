@@ -17,7 +17,7 @@
       <div class="h-full relative">
         <div
           ref="resultContainer"
-          class="absolute inset-0 w-full h-full p-4 rounded-xl theme-input whitespace-pre-wrap overflow-auto"
+          class="absolute inset-0 h-full theme-input whitespace-pre-wrap overflow-auto"
         >
           <span v-if="!contentTokens.length" class="theme-text-secondary">测试结果将显示在这里...</span>
           <span v-else v-text="displayContent" class="theme-text"></span>

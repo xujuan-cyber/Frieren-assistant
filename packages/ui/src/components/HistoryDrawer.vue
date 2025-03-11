@@ -1,22 +1,22 @@
 <template>
   <div
     v-if="show"
-    class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center"
+    class="fixed inset-0 theme-mask z-[60] flex items-center justify-center"
     @click="emit('update:show', false)"
   >
     <div
-      class="w-full max-w-4xl h-[85vh] theme-drawer transform transition-all duration-300 ease-in-out"
+      class="w-full max-w-4xl h-[85vh] theme-history transform transition-all duration-300 ease-in-out"
       :class="show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
       @click.stop
     >
       <div class="h-full flex flex-col">
-        <div class="flex-none p-3 sm:p-4 theme-drawer-header flex items-center justify-between">
+        <div class="flex-none p-3 sm:p-4 theme-history-header flex items-center justify-between">
           <div class="flex items-center gap-4">
             <h2 class="text-lg font-semibold theme-manager-text">历史记录</h2>
             <button
               v-if="sortedHistory && sortedHistory.length > 0"
               @click.stop="handleClear"
-              class="theme-drawer-empty-button"
+              class="theme-history-empty-button"
             >
               清空
             </button>
@@ -101,7 +101,7 @@
                       <div class="flex justify-end">
                         <button
                           @click="reuse(record, chain)"
-                          class="text-xs theme-manager-button-secondary px-3 py-1"
+                          class="text-xs theme-manager-button-secondary"
                         >
                           使用此版本
                         </button>

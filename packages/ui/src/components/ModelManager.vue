@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center overflow-y-auto"
+    class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
     @click="$emit('close')"
   >
     <div
@@ -27,7 +27,7 @@
                  :class="['p-4 rounded-xl border transition-colors',
                          model.enabled 
                            ? 'theme-manager-card' 
-                           : 'theme-manager-card opacity-50']">
+                           : 'theme-manager-card opacity-50 shadow-none hover:shadow-none']">
               <div class="flex items-center justify-between">
                 <div>
                   <div class="flex items-center gap-2">
@@ -235,7 +235,7 @@
         <div class="mt-6 theme-manager-divider pt-6">
           <button
             @click="showAddForm = true"
-            class="w-full theme-manager-button-primary flex items-center justify-center space-x-2"
+            class="w-full theme-manager-button-secondary py-3 flex items-center justify-center space-x-2"
           >
             <span>+</span>
             <span>添加自定义模型</span>

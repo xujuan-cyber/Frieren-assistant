@@ -12,7 +12,7 @@
       <div v-if="modelValue" class="fixed inset-0 z-30 overflow-y-auto" @click="handleBackdropClick">
         <div class="flex min-h-full items-center justify-center p-4">
           <!-- 背景遮罩 -->
-          <div class="fixed inset-0 bg-black/60 transition-opacity"></div>
+          <div class="fixed inset-0 theme-mask"></div>
           
           <!-- 弹窗内容 -->
           <Transition
