@@ -80,44 +80,13 @@
     </ContentCardUI>
 
     <!-- 测试区域 -->
-    <ContentCardUI>
-      <!-- 测试输入区域 -->
-      <div class="flex-none">
-        <InputPanelUI
-          v-model="testContent"
-          v-model:selectedModel="selectedTestModel"
-          label="测试内容"
-          placeholder="请输入要测试的内容..."
-          model-label="模型"
-          button-text="开始测试 →"
-          loading-text="测试中..."
-          :loading="isTesting"
-          :disabled="isTesting"
-          @submit="() => handleTest(optimizedPrompt)"
-          @configModel="showConfig = true"
-        >
-          <template #model-select>
-            <ModelSelectUI
-              ref="testModelSelect"
-              :modelValue="selectedTestModel"
-              @update:modelValue="selectedTestModel = $event"
-              :disabled="isTesting"
-              @config="showConfig = true"
-            />
-          </template>
-        </InputPanelUI>
-      </div>
-
-      <!-- 测试结果区域 -->
-      <div class="flex-1 min-h-0 overflow-y-auto">
-        <OutputPanelUI
-          ref="outputPanelRef"
-          :loading="isTesting"
-          :error="testError"
-          :result="testResult"
-        />
-      </div>
-    </ContentCardUI>
+    <TestPanelUI
+      :prompt-service="promptServiceRef"
+      :original-prompt="prompt"
+      :optimized-prompt="optimizedPrompt"
+      v-model="selectedTestModel"
+      @showConfig="showConfig = true"
+    />
 
     <!-- 弹窗插槽 -->
     <template #modals>
@@ -171,6 +140,7 @@ import {
   MainLayoutUI,
   ContentCardUI,
   ActionButtonUI,
+  TestPanelUI,
   // composables
   usePromptOptimizer,
   usePromptTester,
@@ -254,14 +224,6 @@ const {
   selectedOptimizeModel,
   selectedTestModel
 )
-
-const {
-  testContent,
-  testResult,
-  testError,
-  isTesting,
-  handleTest
-} = usePromptTester(promptServiceRef, selectedTestModel)
 
 // 初始化历史记录管理器
 const {

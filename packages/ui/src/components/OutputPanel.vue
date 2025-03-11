@@ -1,7 +1,7 @@
 <!-- 输出面板组件 -->
 <template>
   <div class="flex flex-col h-full">
-    <div class="flex items-center justify-between mb-4">
+    <div v-if="!hideTitle" class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold theme-text">测试结果</h3>
       <button
         v-if="result"
@@ -78,7 +78,11 @@ watch(contentTokens, (newVal) => {
 const props = defineProps({
   loading: Boolean,
   error: String,
-  result: String
+  result: String,
+  hideTitle: {
+    type: Boolean,
+    default: false
+  }
 })
 
 // 定义事件
@@ -129,7 +133,12 @@ const handleStream = () => {
   };
 };
 
-defineExpose({ handleStream })
+defineExpose({ 
+  handleStream,
+  contentTokens,
+  displayContent,
+  resultContainer
+})
 
 // 复制选中的文本，如果没有选中则复制全部
 const copySelectedText = async () => {
