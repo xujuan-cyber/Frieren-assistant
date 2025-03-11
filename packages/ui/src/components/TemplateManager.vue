@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center overflow-y-auto"
+    class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
     @click="$emit('close')"
   >
     <div
@@ -31,7 +31,7 @@
             :key="type"
             @click="currentType = type"
             :class="[
-              'flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200',
+              'flex-1 font-medium transition-all duration-200',
               currentType === type 
                 ? 'theme-manager-button-primary' 
                 : 'theme-manager-button-secondary'
@@ -72,8 +72,8 @@
               :class="[
                 (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                   ? template.metadata.templateType === 'optimize'
-                    ? 'theme-manager-card-optimize'
-                    : 'theme-manager-card-iterate'
+                    ? 'opacity-70 shadow-none'
+                    : 'opacity-70 shadow-none'
                   : 'theme-manager-card'
               ]"
             >
