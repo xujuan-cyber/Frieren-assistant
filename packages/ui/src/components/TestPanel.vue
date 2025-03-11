@@ -39,12 +39,12 @@
       </div>
 
       <!-- 测试结果区域 -->
-      <div class="flex-1 min-h-0 overflow-y-auto">
+      <div class="flex-1 min-h-0 overflow-y-auto mt-5">
         <div class="relative h-full">
           <!-- 原始提示词测试结果 -->
           <div 
             v-show="isCompareMode" 
-            class="absolute inset-0 flex flex-col md:w-1/2"
+            class="absolute inset-0 flex flex-col md:w-[calc(50%-6px)] md:mr-3"
           >
             <h3 class="text-lg font-semibold theme-text mb-2">原始提示词结果</h3>
             <OutputPanelUI
@@ -61,7 +61,7 @@
           <div 
             class="absolute inset-0 flex flex-col"
             :class="{
-              'md:w-1/2 md:left-1/2 transition-[width,left] duration-300': isCompareMode,
+              'md:w-[calc(50%-6px)] md:left-[calc(50%+6px)] transition-[width,left] duration-300': isCompareMode,
               'w-full': !isCompareMode
             }"
           >
