@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed } from 'vue'
+import { ref, defineProps, defineEmits, computed, watch, nextTick } from 'vue'
 import { useToast } from '../composables/useToast'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
@@ -155,6 +155,16 @@ const templateTitleText = computed(() => {
 const templateSelectText = computed(() => {
   return '请选择迭代提示词：'
 })
+
+// 监听optimizedPrompt变化，自动滚动到底部
+watch(() => props.optimizedPrompt, (newValue) => {
+  if (newValue && promptTextarea.value) {
+    nextTick(() => {
+      const textarea = promptTextarea.value;
+      textarea.scrollTop = textarea.scrollHeight;
+    });
+  }
+}, { immediate: true });
 
 // 处理输入变化
 const handleInput = (event) => {
