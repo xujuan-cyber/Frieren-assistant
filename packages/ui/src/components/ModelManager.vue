@@ -232,7 +232,7 @@
         </Teleport>
 
         <!-- 添加模型按钮 -->
-        <div class="mt-6 theme-manager-divider pt-6">
+        <div class="mt-2 theme-manager-divider pt-2">
           <button
             @click="showAddForm = true"
             class="w-full theme-manager-button-secondary py-3 flex items-center justify-center space-x-2"
