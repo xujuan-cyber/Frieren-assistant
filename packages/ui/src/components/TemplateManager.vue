@@ -64,28 +64,23 @@
           </div>
           
           <!-- 提示词列表按类型过滤 -->
-          <div class="space-y-4 max-h-[60vh] overflow-y-auto px-1">
+          <div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
             <div 
               v-for="template in filteredTemplates"
               :key="template.id"
-              class="theme-manager-card p-4 group relative transition-all duration-200"
+              class="theme-manager-card p-4 group relative transition-all duration-300 ease-in-out"
               :class="[
                 (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                   ? template.metadata.templateType === 'optimize'
-                    ? 'opacity-70 shadow-none'
-                    : 'opacity-70 shadow-none'
+                    ? 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
+                    : 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
                   : 'theme-manager-card'
               ]"
+              @click="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) !== template.id && selectTemplate(template)"
             >
               <div class="flex items-start justify-between">
                 <div>
-                  <h4 class="theme-manager-text flex items-center gap-2">
-                    {{ template.name }}
-                    <span v-if="template.isBuiltin" 
-                          class="theme-manager-tag">
-                      内置
-                    </span>
-                  </h4>
+
                   <p class="text-sm theme-manager-text-secondary mt-1">
                     {{ template.metadata.description || '暂无描述' }}
                   </p>
@@ -93,11 +88,11 @@
                     最后修改: {{ formatDate(template.metadata.lastModified) }}
                   </p>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2" @click.stop>
                   <button
                     @click="selectTemplate(template)"
                     :class="[
-                      'rounded-lg',
+                      'rounded-lg hidden',
                       (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                         ? 'theme-manager-button-primary'
                         : 'theme-manager-button-secondary'
@@ -124,7 +119,7 @@
                     @click="copyTemplate(template)"
                     class="theme-manager-button-secondary"
                   >
-                    复制提示词
+                    复制
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
@@ -148,14 +143,19 @@
                 class="absolute top-0 left-0 w-2 h-full rounded-l-xl"
                 :class="template.metadata.templateType === 'optimize' ? 'theme-manager-card-optimize' : 'theme-manager-card-iterate'"
               ></div>
-              <span 
-                class="capitalize"
-                :class="template.metadata.templateType === 'optimize' 
-                  ? 'theme-manager-tag-optimize'
-                  : 'theme-manager-tag-iterate'"
-              >
-                {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
-              </span>
+              <div class="mt-2">
+                <span 
+                  class="theme-manager-tag ml-1 min-w-[48px]"
+                >
+                  {{ template.isBuiltin ? '内置' : '自定义' }}
+                </span>
+                <transition name="fade">
+                    <span
+                    v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
+                    class="capitalize ml-2 theme-manager-tag transition-opacity duration-300 ease-in-out"
+                  >已选择</span>
+                </transition>
+              </div>
             </div>
           </div>
         </div>
@@ -531,5 +531,15 @@ onMounted(() => {
 
 .scroll-container::-webkit-scrollbar-thumb:hover {
   background-color: rgba(139, 92, 246, 0.5);
+}
+/* 添加标签淡入淡出效果 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style> 
