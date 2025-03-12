@@ -76,7 +76,7 @@
                     : 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
                   : 'theme-manager-card'
               ]"
-              @click="selectTemplate(template)"
+              @click="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) !== template.id && selectTemplate(template)"
             >
               <div class="flex items-start justify-between">
                 <div>
@@ -98,7 +98,7 @@
                   <button
                     @click="selectTemplate(template)"
                     :class="[
-                      'rounded-lg',
+                      'rounded-lg hidden',
                       (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                         ? 'theme-manager-button-primary'
                         : 'theme-manager-button-secondary'
