@@ -149,10 +149,12 @@
                 >
                   {{ template.isBuiltin ? '内置' : '自定义' }}
                 </span>
-                <span
-                  v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
-                  class="capitalize ml-2 theme-manager-tag"
-                >已选择</span>
+                <transition name="fade">
+                    <span
+                    v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
+                    class="capitalize ml-2 theme-manager-tag transition-opacity duration-300 ease-in-out"
+                  >已选择</span>
+                </transition>
               </div>
             </div>
           </div>
@@ -529,5 +531,15 @@ onMounted(() => {
 
 .scroll-container::-webkit-scrollbar-thumb:hover {
   background-color: rgba(139, 92, 246, 0.5);
+}
+/* 添加标签淡入淡出效果 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style> 
