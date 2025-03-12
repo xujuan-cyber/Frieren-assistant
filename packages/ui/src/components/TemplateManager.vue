@@ -68,7 +68,7 @@
             <div 
               v-for="template in filteredTemplates"
               :key="template.id"
-              class="theme-manager-card p-4 group relative transition-all duration-200"
+              class="theme-manager-card p-4 group relative transition-all duration-300 ease-in-out"
               :class="[
                 (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                   ? template.metadata.templateType === 'optimize'
@@ -80,13 +80,7 @@
             >
               <div class="flex items-start justify-between">
                 <div>
-                  <!-- <h4 class="theme-manager-text flex items-center gap-2">
-                    {{ template.name }}
-                    <span v-if="template.isBuiltin" 
-                          class="theme-manager-tag">
-                      内置
-                    </span>
-                  </h4> -->
+
                   <p class="text-sm theme-manager-text-secondary mt-1">
                     {{ template.metadata.description || '暂无描述' }}
                   </p>
@@ -149,26 +143,17 @@
                 class="absolute top-0 left-0 w-2 h-full rounded-l-xl"
                 :class="template.metadata.templateType === 'optimize' ? 'theme-manager-card-optimize' : 'theme-manager-card-iterate'"
               ></div>
-              <span 
-                v-if="template.isBuiltin" 
-                class="theme-manager-tag ml-1 min-w-[48px]"
-              >
-                内置
-              </span>
-              <!-- <span 
-                class="capitalize"
-                :class="template.metadata.templateType === 'optimize' 
-                  ? 'theme-manager-tag-optimize'
-                  : 'theme-manager-tag-iterate'"
-              >
-                {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
-              </span> -->
-              <span
-                v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
-                class="capitalize ml-1 theme-manager-tag"
-              >
-                已选择
-              </span>
+              <div class="mt-2">
+                <span 
+                  class="theme-manager-tag ml-1 min-w-[48px]"
+                >
+                  {{ template.isBuiltin ? '内置' : '自定义' }}
+                </span>
+                <span
+                  v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
+                  class="capitalize ml-2 theme-manager-tag"
+                >已选择</span>
+              </div>
             </div>
           </div>
         </div>
