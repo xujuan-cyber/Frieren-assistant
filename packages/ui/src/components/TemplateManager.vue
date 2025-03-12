@@ -64,7 +64,7 @@
           </div>
           
           <!-- 提示词列表按类型过滤 -->
-          <div class="space-y-4 max-h-[60vh] overflow-y-auto px-1">
+          <div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
             <div 
               v-for="template in filteredTemplates"
               :key="template.id"
@@ -72,8 +72,8 @@
               :class="[
                 (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                   ? template.metadata.templateType === 'optimize'
-                    ? 'opacity-70 shadow-none'
-                    : 'opacity-70 shadow-none'
+                    ? 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
+                    : 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
                   : 'theme-manager-card'
               ]"
               @click="selectTemplate(template)"
@@ -94,7 +94,7 @@
                     最后修改: {{ formatDate(template.metadata.lastModified) }}
                   </p>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2" @click.stop>
                   <button
                     @click="selectTemplate(template)"
                     :class="[
@@ -125,7 +125,7 @@
                     @click="copyTemplate(template)"
                     class="theme-manager-button-secondary"
                   >
-                    复制提示词
+                    复制
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
@@ -156,6 +156,16 @@
                   : 'theme-manager-tag-iterate'"
               >
                 {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
+              </span>
+              <span
+                class="capitalize ml-1"
+                :class="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
+                  ? template.metadata.templateType === 'optimize'
+                    ? 'theme-manager-tag-optimize'
+                    : 'theme-manager-tag-iterate'
+                  : 'theme-manager-tag'"
+              >
+                {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id ? '已选择' : '选择' }}
               </span>
             </div>
           </div>
