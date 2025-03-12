@@ -744,8 +744,7 @@ html * {
   }
 
   .theme-manager-input {
-    @apply bg-teal-400/30 border-teal-300/60 text-teal-200 placeholder-teal-900
-    focus:ring-2 focus:ring-teal-400 focus:border-transparent;
+    @apply bg-teal-800/50 border-teal-700 text-teal-200 placeholder-teal-400 focus:ring-teal-400;
   }
 
   .theme-manager-button-primary {
