@@ -76,6 +76,7 @@
                     : 'opacity-70 shadow-none'
                   : 'theme-manager-card'
               ]"
+              @click="selectTemplate(template)"
             >
               <div class="flex items-start justify-between">
                 <div>

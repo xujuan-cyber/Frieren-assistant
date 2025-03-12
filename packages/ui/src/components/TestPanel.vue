@@ -28,7 +28,7 @@
               />
               <button
                 @click="isCompareMode = !isCompareMode"
-                class="theme-button-secondary px-4 py-2.5 text-sm whitespace-nowrap"
+                class="theme-button-secondary text-sm whitespace-nowrap"
                 :class="{ 'theme-button-primary': isCompareMode }"
               >
                 {{ isCompareMode ? '关闭对比' : '开启对比' }}

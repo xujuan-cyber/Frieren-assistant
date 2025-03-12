@@ -85,7 +85,7 @@
                     <!-- 版本详细内容 -->
                     <div
                       v-show="expandedVersions[record.id]"
-                      class="p-4 theme-history-content space-y-3"
+                      class="p-4 theme-history-card-content space-y-3"
                     >
                       <!-- 迭代说明 -->
                       <div v-if="record.iterationNote" class="text-xs">
