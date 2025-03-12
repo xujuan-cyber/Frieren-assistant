@@ -24,7 +24,7 @@
       <span class="text-sm max-sm:hidden">{{ getThemeDisplayName }}</span>
     </button>
 
-    <!-- 主题选择下拉菜单 -->
+    <!-- Theme Selection Dropdown Menu -->
     <div v-if="showThemeMenu" class="absolute right-0 mt-2 w-48 theme-dropdown z-50">
       <div class="py-1">
         <button 
@@ -60,124 +60,127 @@
   
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-// 可用主题列表
-const availableThemes = [
+const { t } = useI18n();
+
+// Available themes list
+const availableThemes = computed(() => [
   {
     id: 'light',
-    name: '日间模式',
+    name: t('theme.light'),
     iconClass: 'text-yellow-500',
     cssClass: ''
   },
   {
     id: 'dark',
-    name: '夜间模式',
+    name: t('theme.dark'),
     iconClass: 'text-gray-400',
     cssClass: 'dark'
   },
   {
     id: 'blue',
-    name: '蓝色模式',
+    name: t('theme.blue'),
     iconClass: 'text-blue-500',
     cssClass: 'theme-blue'
   },
   {
     id: 'green',
-    name: '绿色模式',
+    name: t('theme.green'),
     iconClass: 'text-green-500',
     cssClass: 'theme-green'
   },
   {
     id: 'purple',
-    name: '暗紫模式',
+    name: t('theme.purple'),
     iconClass: 'text-purple-500',
     cssClass: 'theme-purple'
   }
-];
+]);
 
 const currentTheme = ref('light');
 const showThemeMenu = ref(false);
 
-// 切换主题菜单显示状态
+// Toggle theme menu display state
 const toggleThemeMenu = () => {
   showThemeMenu.value = !showThemeMenu.value;
 };
 
-// 选择主题
+// Select theme
 const selectTheme = (themeId) => {
   currentTheme.value = themeId;
   showThemeMenu.value = false;
   updateTheme();
 };
 
-// 更新主题
+// Update theme
 const updateTheme = () => {
-  // 获取当前主题
-  const theme = availableThemes.find(t => t.id === currentTheme.value);
+  // Get current theme
+  const theme = availableThemes.value.find(t => t.id === currentTheme.value);
   if (!theme) return;
   
-  // 获取当前激活的主题类
+  // Get current active theme class
   const activeThemeClass = Array.from(document.documentElement.classList)
     .find(cls => ['dark', 'theme-blue', 'theme-green', 'theme-purple'].includes(cls));
   
-  // 如果当前有主题类，先移除
+  // Remove current theme class if exists
   if (activeThemeClass) {
     document.documentElement.classList.remove(activeThemeClass);
   }
   
-  // 如果新主题有类，则添加
+  // Add new theme class if exists
   if (theme.cssClass) {
     document.documentElement.classList.add(theme.cssClass);
   }
 
-  // 更新data-theme属性
+  // Update data-theme attribute
   document.documentElement.setAttribute('data-theme', theme.id);
   
-  // 保存主题设置到本地存储
+  // Save theme settings to local storage
   localStorage.setItem('theme-id', theme.id);
 
-  // 触发重新渲染
+  // Trigger re-render
   nextTick(() => {
     window.dispatchEvent(new Event('theme-changed'));
   });
 };
 
-// 获取主题显示名称
+// Get theme display name
 const getThemeDisplayName = computed(() => {
-  const theme = availableThemes.find(t => t.id === currentTheme.value);
-  return theme ? theme.name : '主题设置';
+  const theme = availableThemes.value.find(t => t.id === currentTheme.value);
+  return theme ? theme.name : t('theme.title');
 });
 
-// 点击外部关闭下拉菜单
+// Close dropdown menu when clicking outside
 const handleClickOutside = (event) => {
   if (showThemeMenu.value && !event.target.closest('.relative')) {
     showThemeMenu.value = false;
   }
 };
 
-// 初始化主题
+// Initialize theme
 onMounted(() => {
-  // 确保DOM加载完成后再应用主题
+  // Ensure DOM is loaded before applying theme
   requestAnimationFrame(() => {
-    // 获取主题ID：优先使用theme-id，如果没有则从theme中获取
+    // Get theme ID: prioritize theme-id, fallback to theme
     let themeId = localStorage.getItem('theme-id');
     
     if (!themeId) {
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme) {
-        const theme = availableThemes.find(t => t.cssClass === savedTheme);
+        const theme = availableThemes.value.find(t => t.cssClass === savedTheme);
         if (theme) {
           themeId = theme.id;
-          // 更新为新格式
+          // Update to new format
           localStorage.setItem('theme-id', themeId);
-          // 清除旧格式
+          // Clear old format
           localStorage.removeItem('theme');
         }
       }
     }
 
-    // 设置当前主题
-    if (themeId && availableThemes.find(t => t.id === themeId)) {
+    // Set current theme
+    if (themeId && availableThemes.value.find(t => t.id === themeId)) {
       currentTheme.value = themeId;
     } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       currentTheme.value = 'dark';
@@ -185,32 +188,32 @@ onMounted(() => {
       currentTheme.value = 'light';
     }
     
-    // 应用主题
+    // Apply theme
     updateTheme();
   });
   
-  // 监听系统主题变化
+  // Listen for system theme changes
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handleChange = (e) => {
-    // 只在没有用户设置的主题时响应系统主题变化
+    // Only respond to system theme changes when no user theme is set
     if (!localStorage.getItem('theme-id')) {
       currentTheme.value = e.matches ? 'dark' : 'light';
       updateTheme();
     }
   };
   
-  // 添加事件监听器
+  // Add event listener
   if (mediaQuery.addEventListener) {
     mediaQuery.addEventListener('change', handleChange);
-  } else if (mediaQuery.addListener) { // 兼容旧版浏览器
+  } else if (mediaQuery.addListener) { // Compatibility for older browsers
     mediaQuery.addListener(handleChange);
   }
   
-  // 添加点击外部关闭下拉菜单的事件监听
+  // Add click outside event listener to close dropdown menu
   document.addEventListener('click', handleClickOutside);
 });
 
-// 组件卸载前移除事件监听
+// Remove event listener before component unmount
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
 });

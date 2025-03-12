@@ -10,10 +10,10 @@
       <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold theme-manager-text">功能提示词管理</h2>
+          <h2 class="text-xl font-semibold theme-manager-text">{{ t('templateManager.title') }}</h2>
           <div class="flex items-center space-x-4">
             <span v-if="selectedTemplate" class="text-sm theme-manager-text-secondary">
-              当前提示词: {{ selectedTemplate.name }}
+              {{ t('common.currentTemplate') }}: {{ selectedTemplate.name }}
             </span>
             <button
               @click="$emit('close')"
@@ -39,7 +39,7 @@
           >
             <div class="flex items-center justify-center space-x-2">
               <span class="text-lg">{{ type === 'optimize' ? '🎯' : '🔄' }}</span>
-              <span>{{ type === 'optimize' ? '优化提示词' : '迭代提示词' }}</span>
+              <span>{{ t(`templateManager.${type}Templates`) }}</span>
             </div>
           </button>
         </div>
@@ -49,17 +49,17 @@
           <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold flex items-center space-x-2">
               <span class="theme-manager-text">
-                {{ currentType === 'optimize' ? '优化提示词列表' : '迭代提示词列表' }}
+                {{ t(`templateManager.${currentType}TemplateList`) }}
               </span>
               <span class="theme-manager-tag">
-                {{ filteredTemplates.length }}个提示词
+                {{ t('templateManager.templateCount', { count: filteredTemplates.length }) }}
               </span>
             </h3>
             <button
               @click="showAddForm = true"
               class="theme-manager-button-secondary"
             >
-              添加提示词
+              {{ t('templateManager.addTemplate') }}
             </button>
           </div>
           
@@ -82,10 +82,10 @@
                 <div>
 
                   <p class="text-sm theme-manager-text-secondary mt-1">
-                    {{ template.metadata.description || '暂无描述' }}
+                    {{ template.metadata.description || t('common.noDescription') }}
                   </p>
                   <p class="text-xs theme-manager-text-disabled mt-2">
-                    最后修改: {{ formatDate(template.metadata.lastModified) }}
+                    {{ t('common.lastModified') }}: {{ formatDate(template.metadata.lastModified) }}
                   </p>
                 </div>
                 <div class="flex items-center space-x-2" @click.stop>
@@ -98,28 +98,30 @@
                         : 'theme-manager-button-secondary'
                     ]"
                   >
-                    {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id ? '已选择' : '选择' }}
+                    {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id 
+                      ? t('template.selected') 
+                      : t('template.select') }}
                   </button>
                   <button
                     v-if="!template.isBuiltin"
                     @click="editTemplate(template)"
                     class="theme-manager-button-secondary"
                   >
-                    编辑
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     v-if="template.isBuiltin"
                     @click="viewTemplate(template)"
                     class="theme-manager-button-secondary"
                   >
-                    查看
+                    {{ t('template.view') }}
                   </button>
                   <button
                     v-if="template.isBuiltin"
                     @click="copyTemplate(template)"
                     class="theme-manager-button-secondary"
                   >
-                    复制
+                    {{ t('templateManager.copyTemplate') }}
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
@@ -128,14 +130,14 @@
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
                   </svg>
-                  导出
+                    {{ t('templateManager.exportTemplate') }}
                   </button>
                   <button
                     v-if="!template.isBuiltin"
                     @click="confirmDelete(template.id)"
                     class="theme-manager-button-danger"
                   >
-                    删除
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </div>
@@ -147,7 +149,7 @@
                 <span 
                   class="theme-manager-tag ml-1 min-w-[48px]"
                 >
-                  {{ template.isBuiltin ? '内置' : '自定义' }}
+                  {{ template.isBuiltin ? t('common.builtin') : t('common.custom') }}
                 </span>
                 <transition name="fade">
                     <span
@@ -173,7 +175,9 @@
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <h3 class="text-xl font-semibold theme-manager-text">
-                    {{ viewingTemplate ? '查看提示词' : (editingTemplate ? '编辑提示词' : '添加提示词') }}
+                    {{ viewingTemplate 
+                      ? t('template.view')
+                      : (editingTemplate ? t('template.edit') : t('template.add')) }}
                   </h3>
                   <button
                     @click="cancelEdit"
@@ -185,7 +189,7 @@
                 
                 <form @submit.prevent="handleSubmit" class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">提示词名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('template.name') }}</label>
                     <input
                       v-model="form.name"
                       type="text"
@@ -193,12 +197,12 @@
                       :readonly="viewingTemplate"
                       class="theme-manager-input"
                       :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
-                      placeholder="输入提示词名称"
+                      :placeholder="t('template.namePlaceholder')"
                     />
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">提示词内容</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('template.content') }}</label>
                     <textarea
                       v-model="form.content"
                       required
@@ -206,19 +210,19 @@
                       rows="8"
                       class="theme-manager-input resize-none"
                       :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
-                      placeholder="输入提示词内容"
+                      :placeholder="t('template.contentPlaceholder')"
                     ></textarea>
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">描述</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('common.description') }}</label>
                     <textarea
                       v-model="form.description"
                       :readonly="viewingTemplate"
                       rows="3"
                       class="theme-manager-input resize-none"
                       :class="{ 'opacity-75 cursor-not-allowed': viewingTemplate }"
-                      placeholder="输入提示词描述（可选）"
+                      :placeholder="t('template.descriptionPlaceholder')"
                     ></textarea>
                   </div>
 
@@ -228,14 +232,14 @@
                       @click="cancelEdit"
                       class="theme-manager-button-secondary"
                     >
-                      {{ viewingTemplate ? '关闭' : '取消' }}
+                      {{ viewingTemplate ? t('common.close') : t('common.cancel') }}
                     </button>
                     <button
                       v-if="!viewingTemplate"
                       type="submit"
                       class="theme-manager-button-primary"
                     >
-                      {{ editingTemplate ? '保存修改' : '添加提示词' }}
+                      {{ editingTemplate ? t('template.save') : t('template.add') }}
                     </button>
                   </div>
                 </form>
@@ -247,7 +251,7 @@
         <!-- 导入提示词 -->
         <div class="theme-manager-divider pt-2">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold theme-manager-text">导入提示词</h3>
+            <h3 class="text-lg font-semibold theme-manager-text">{{ t('template.import.title') }}</h3>
           </div>
           <div class="flex items-center space-x-3">
             <input
@@ -261,9 +265,9 @@
               @click="$refs.fileInput.click()"
               class="theme-manager-button-secondary"
             >
-              选择文件
+              {{ t('common.selectFile') }}
             </button>
-            <span class="text-sm theme-manager-text-secondary">支持 .json 格式的提示词文件</span>
+            <span class="text-sm theme-manager-text-secondary">{{ t('template.import.supportFormat') }}</span>
           </div>
         </div>
       </div>
@@ -273,8 +277,11 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { templateManager } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
+
+const { t } = useI18n()
 
 const props = defineProps({
   selectedOptimizeTemplate: Object,
@@ -322,8 +329,8 @@ const loadTemplates = () => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '未知'
-  return new Date(timestamp).toLocaleString('zh-CN')
+  if (!timestamp) return t('template.unknownTime')
+  return new Date(timestamp).toLocaleString()
 }
 
 // 编辑提示词
@@ -374,53 +381,45 @@ const handleSubmit = () => {
       }
     }
 
-    // 先保存模板
     templateManager.saveTemplate(templateData)
-    
-    // 重新加载列表
     loadTemplates()
     
-    // 如果编辑的是当前选中的提示词，只更新其内容
     const isCurrentSelected = (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateData.id) ||
                             (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateData.id)
     
     if (editingTemplate.value && isCurrentSelected) {
       const updatedTemplate = templateManager.getTemplate(templateData.id)
       if (updatedTemplate) {
-        // 通知父组件更新模板内容，但保持选中状态
         emit('select', updatedTemplate, currentType.value)
       }
     }
     
-    toast.success(editingTemplate.value ? '提示词已更新' : '提示词已添加')
+    toast.success(editingTemplate.value ? t('template.success.updated') : t('template.success.added'))
     cancelEdit()
   } catch (error) {
     console.error('保存提示词失败:', error)
-    toast.error(`保存提示词失败: ${error.message}`)
+    toast.error(t('template.error.saveFailed'))
   }
 }
 
 // 确认删除
 const confirmDelete = (templateId) => {
-  if (confirm('确定要删除这个提示词吗？此操作不可恢复。')) {
+  if (confirm(t('template.deleteConfirm'))) {
     try {
       templateManager.deleteTemplate(templateId)
-      
-      // 获取删除后的模板列表
       const remainingTemplates = templateManager.listTemplatesByType(currentType.value)
       loadTemplates()
       
-      // 如果删除的是当前选中的提示词，自动切换到第一个可用的模板
       if (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateId) {
         emit('select', remainingTemplates[0] || null, 'optimize')
       } else if (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateId) {
         emit('select', remainingTemplates[0] || null, 'iterate')
       }
       
-      toast.success('提示词已删除')
+      toast.success(t('template.success.deleted'))
     } catch (error) {
       console.error('删除提示词失败:', error)
-      toast.error(`删除提示词失败: ${error.message}`)
+      toast.error(t('template.error.deleteFailed'))
     }
   }
 }
@@ -438,10 +437,10 @@ const exportTemplate = (templateId) => {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    toast.success('提示词已导出')
+    toast.success(t('template.success.exported'))
   } catch (error) {
     console.error('导出提示词失败:', error)
-    toast.error(`导出提示词失败: ${error.message}`)
+    toast.error(t('template.error.exportFailed'))
   }
 }
 
@@ -456,17 +455,17 @@ const handleFileImport = (event) => {
       try {
         templateManager.importTemplate(e.target.result)
         loadTemplates()
-        toast.success('提示词已导入')
-        event.target.value = '' // 清空文件输入
+        toast.success(t('template.success.imported'))
+        event.target.value = ''
       } catch (error) {
         console.error('导入提示词失败:', error)
-        toast.error(`导入提示词失败: ${error.message}`)
+        toast.error(t('template.error.importFailed'))
       }
     }
     reader.readAsText(file)
   } catch (error) {
     console.error('读取文件失败:', error)
-    toast.error('读取文件失败')
+    toast.error(t('template.error.readFailed'))
   }
 }
 
@@ -542,4 +541,4 @@ onMounted(() => {
 .fade-leave-to {
   opacity: 0;
 }
-</style> 
+</style>

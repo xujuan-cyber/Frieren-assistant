@@ -1,6 +1,7 @@
 import { ref, onMounted } from 'vue'
 import type { Ref } from 'vue'
 import { useToast } from './useToast'
+import { useI18n } from 'vue-i18n'
 import type { Template, TemplateManager } from '@prompt-optimizer/core'
 
 interface TemplateSelector extends Element {
@@ -28,14 +29,15 @@ export interface TemplateManagerOptions {
 
 export function useTemplateManager(options: TemplateManagerOptions): TemplateManagerHooks {
   const toast = useToast()
+  const { t } = useI18n()
   const showTemplates = ref(false)
   const currentType = ref('')
   const { selectedOptimizeTemplate, selectedIterateTemplate, saveTemplateSelection, templateManager } = options
 
-  // 初始化模板选择
+  // Initialize template selection
   const initTemplateSelection = () => {
     try {
-      // 加载优化提示词
+      // Load optimization template
       const optimizeTemplateId = localStorage.getItem('app:selected-optimize-template')
       if (optimizeTemplateId) {
         try {
@@ -44,11 +46,11 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
             selectedOptimizeTemplate.value = optimizeTemplate
           }
         } catch (error) {
-          console.warn('加载已保存的优化提示词失败:', error)
+          console.warn(t('toast.warn.loadOptimizeTemplateFailed'), error)
         }
       }
       
-      // 如果没有已保存的提示词或加载失败，使用该类型的第一个提示词
+      // If no saved template or loading failed, use the first template of this type
       if (!selectedOptimizeTemplate.value) {
         const optimizeTemplates = templateManager.listTemplatesByType('optimize')
         if (optimizeTemplates.length > 0) {
@@ -56,7 +58,7 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
         }
       }
       
-      // 加载迭代提示词
+      // Load iteration template
       const iterateTemplateId = localStorage.getItem('app:selected-iterate-template')
       if (iterateTemplateId) {
         try {
@@ -65,11 +67,11 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
             selectedIterateTemplate.value = iterateTemplate
           }
         } catch (error) {
-          console.warn('加载已保存的迭代提示词失败:', error)
+          console.warn(t('toast.warn.loadIterateTemplateFailed'), error)
         }
       }
       
-      // 如果没有已保存的提示词或加载失败，使用该类型的第一个提示词
+      // If no saved template or loading failed, use the first template of this type
       if (!selectedIterateTemplate.value) {
         const iterateTemplates = templateManager.listTemplatesByType('iterate')
         if (iterateTemplates.length > 0) {
@@ -77,19 +79,19 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
         }
       }
 
-      // 如果仍然无法加载任何提示词，显示错误
+      // If still unable to load any templates, show error
       if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
-        throw new Error('无法加载默认提示词')
+        throw new Error(t('toast.error.noDefaultTemplate'))
       }
     } catch (error) {
-      console.error('初始化模板选择失败:', error)
-      toast.error('初始化模板选择失败')
+      console.error(t('toast.error.initTemplateFailed'), error)
+      toast.error(t('toast.error.initTemplateFailed'))
     }
   }
 
   const handleTemplateSelect = (template: Template | null, type: string) => {
     try {
-      console.log('选择模板:', { 
+      console.log(t('log.info.templateSelected'), { 
         template: template ? {
           id: template.id,
           name: template.name,
@@ -106,11 +108,14 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
       
       if (template) {
         saveTemplateSelection(template, type as 'optimize' | 'iterate')
-        toast.success(`已选择${type === 'optimize' ? '优化' : '迭代'}提示词: ${template.name}`)
+        toast.success(t('toast.success.templateSelected', {
+          type: type === 'optimize' ? t('common.optimize') : t('common.iterate'),
+          name: template.name
+        }))
       }
     } catch (error) {
-      console.error('选择提示词失败:', error)
-      toast.error('选择提示词失败：' + (error instanceof Error ? error.message : String(error)))
+      console.error(t('toast.error.selectTemplateFailed'), error)
+      toast.error(t('toast.error.selectTemplateFailed', { error: error instanceof Error ? error.message : String(error) }))
     }
   }
 
@@ -120,7 +125,7 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
   }
 
   const handleTemplateManagerClose = () => {
-    // 确保所有模板选择器都刷新状态
+    // Ensure all template selectors refresh their state
     const templateSelectors = document.querySelectorAll('template-select') as NodeListOf<TemplateSelector>
     templateSelectors.forEach(selector => {
       if (selector.__vueParentComponent?.ctx?.refresh) {
@@ -130,7 +135,7 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
     showTemplates.value = false
   }
 
-  // 在 mounted 时自动初始化
+  // Auto initialize on mounted
   onMounted(() => {
     initTemplateSelection()
   })

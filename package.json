@@ -62,9 +62,12 @@
     "@vueuse/shared": "^12.7.0",
     "async-validator": "^4.2.5",
     "dayjs": "^1.11.13",
+    "i18next": "^24.2.2",
+    "i18next-browser-languagedetector": "^8.0.4",
     "lodash-es": "^4.17.21",
     "lodash-unified": "^1.0.3",
     "memoize-one": "^6.0.0",
-    "normalize-wheel-es": "^1.2.0"
+    "normalize-wheel-es": "^1.2.0",
+    "vue-i18n": "^9.9.1"
   }
 }

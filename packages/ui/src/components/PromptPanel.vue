@@ -3,7 +3,7 @@
     <!-- 标题和按钮区域 -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 flex-none">
       <div class="flex items-center gap-3">
-        <h3 class="text-lg font-semibold theme-text">优化后的提示词</h3>
+        <h3 class="text-lg font-semibold theme-text">{{ t('prompt.optimized') }}</h3>
         <div v-if="versions && versions.length > 0" class="flex items-center gap-1">
           <button
             v-for="version in versions.slice().reverse()"
@@ -27,14 +27,14 @@
           class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
           :disabled="isIterating"
         >
-          <span>{{ isIterating ? '优化中...' : '继续优化' }}</span>
+          <span>{{ isIterating ? t('prompt.optimizing') : t('prompt.continueOptimize') }}</span>
         </button>
         <button
           v-if="optimizedPrompt"
           @click="copyPrompt"
           class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
         >
-          <span>复制</span>
+          <span>{{ t('common.copy') }}</span>
         </button>
       </div>
     </div>
@@ -47,7 +47,7 @@
           :value="optimizedPrompt"
           @input="handleInput"
           class="w-full h-full px-4 py-3 theme-input resize-none"
-          placeholder="优化后的提示词将显示在这里..."
+          :placeholder="t('prompt.optimizedPlaceholder')"
         ></textarea>
       </div>
     </div>
@@ -73,11 +73,11 @@
         </div>
         
         <div>
-          <h4 class="theme-label mb-2">请输入需要优化的方向：</h4>
+          <h4 class="theme-label mb-2">{{ t('prompt.iterateDirection') }}</h4>
           <textarea
             v-model="iterateInput"
             class="w-full theme-input resize-none"
-            placeholder="例如：使提示词更简洁、增加特定功能描述等..."
+            :placeholder="t('prompt.iteratePlaceholder')"
             rows="3"
           ></textarea>
         </div>
@@ -88,28 +88,40 @@
           @click="cancelIterate"
           class="theme-button-secondary"
         >
-          取消
+          {{ t('common.cancel') }}
         </button>
         <button
           @click="submitIterate"
           class="theme-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="!iterateInput.trim() || isIterating"
         >
-          {{ isIterating ? '优化中...' : '确认优化' }}
+          {{ isIterating ? t('prompt.optimizing') : t('prompt.confirmOptimize') }}
         </button>
       </template>
     </Modal>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, defineProps, defineEmits, computed, watch, nextTick } from 'vue'
 import { useToast } from '../composables/useToast'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
+import type {
+  Template,
+  PromptRecord,
+  PromptRecordChain
+} from '@prompt-optimizer/core'
 
+const { t } = useI18n()
 const toast = useToast()
-const promptTextarea = ref(null)
+const promptTextarea = ref<HTMLTextAreaElement | null>(null)
+
+interface IteratePayload {
+  originalPrompt: string;
+  iterateInput: string;
+}
 
 const props = defineProps({
   optimizedPrompt: {
@@ -121,11 +133,11 @@ const props = defineProps({
     default: false
   },
   selectedIterateTemplate: {
-    type: Object,
+    type: Object as () => Template | null,
     default: null
   },
   versions: {
-    type: Array,
+    type: Array as () => PromptRecord[],
     default: () => []
   },
   currentVersionId: {
@@ -134,26 +146,26 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits([
-  'update:optimizedPrompt',
-  'iterate',
-  'openTemplateManager',
-  'update:selectedIterateTemplate',
-  'switchVersion'
-])
+const emit = defineEmits<{
+  'update:optimizedPrompt': [value: string];
+  'iterate': [payload: IteratePayload];
+  'openTemplateManager': [type: 'optimize' | 'iterate'];
+  'update:selectedIterateTemplate': [template: Template | null];
+  'switchVersion': [version: PromptRecord];
+}>()
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
-const templateType = ref('iterate')
+const templateType = ref<'optimize' | 'iterate'>('iterate')
 
 // 计算标题文本
 const templateTitleText = computed(() => {
-  return '迭代功能提示词'
+  return t('prompt.iterateTitle')
 })
 
 // 计算模板选择标题
 const templateSelectText = computed(() => {
-  return '请选择迭代提示词：'
+  return t('prompt.selectIterateTemplate')
 })
 
 // 监听optimizedPrompt变化，自动滚动到底部
@@ -161,15 +173,17 @@ watch(() => props.optimizedPrompt, (newValue) => {
   if (newValue && promptTextarea.value) {
     nextTick(() => {
       const textarea = promptTextarea.value;
-      textarea.scrollTop = textarea.scrollHeight;
+      if (textarea) {
+        textarea.scrollTop = textarea.scrollHeight;
+      }
     });
   }
 }, { immediate: true });
 
 // 处理输入变化
-const handleInput = (event) => {
-  const newValue = event.target.value
-  emit('update:optimizedPrompt', newValue)
+const handleInput = (event: Event) => {
+  const target = event.target as HTMLTextAreaElement
+  emit('update:optimizedPrompt', target.value)
 }
 
 const copyPrompt = async () => {
@@ -177,16 +191,16 @@ const copyPrompt = async () => {
   
   try {
     await navigator.clipboard.writeText(props.optimizedPrompt)
-    toast.success('复制成功')
+    toast.success(t('common.copySuccess'))
   } catch (e) {
-    console.error('复制失败:', e)
-    toast.error('复制失败')
+    console.error('Failed to copy:', e)
+    toast.error(t('common.copyFailed'))
   }
 }
 
 const handleIterate = () => {
   if (!props.selectedIterateTemplate) {
-    toast.error('请先选择迭代提示词')
+    toast.error(t('prompt.error.noTemplate'))
     return
   }
   showIterateInput.value = true
@@ -200,7 +214,7 @@ const cancelIterate = () => {
 const submitIterate = () => {
   if (!iterateInput.value.trim()) return
   if (!props.selectedIterateTemplate) {
-    toast.error('请先选择迭代提示词')
+    toast.error(t('prompt.error.noTemplate'))
     return
   }
   
@@ -215,7 +229,7 @@ const submitIterate = () => {
 }
 
 // 添加版本切换函数
-const switchVersion = (version) => {
+const switchVersion = (version: PromptRecord) => {
   if (version.id === props.currentVersionId) return
   emit('switchVersion', version)
 }

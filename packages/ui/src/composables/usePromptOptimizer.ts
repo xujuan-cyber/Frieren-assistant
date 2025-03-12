@@ -1,5 +1,6 @@
 import { ref, onMounted, watch } from 'vue'
 import { useToast } from './useToast'
+import { useI18n } from 'vue-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import type { Ref } from 'vue'
 import type { 
@@ -24,6 +25,7 @@ export function usePromptOptimizer(
   selectedTestModel: Ref<string>
 ) {
   const toast = useToast()
+  const { t } = useI18n()
   
   // 状态
   const prompt = ref('')
@@ -46,20 +48,20 @@ export function usePromptOptimizer(
   const handleOptimizePrompt = async () => {
     if (!prompt.value.trim() || isOptimizing.value) return
     if (!promptService.value) {
-      toast.error('服务未初始化，请稍后重试')
+      toast.error(t('toast.error.serviceInit'))
       return
     }
     
     if (!selectedOptimizeTemplate.value) {
-      toast.error('请先选择优化提示词')
+      toast.error(t('toast.error.noOptimizeTemplate'))
       return
     }
     
     isOptimizing.value = true
-    optimizedPrompt.value = ''  // 清空之前的结果
+    optimizedPrompt.value = ''  // Clear previous result
     
     try {
-      // 使用流式调用
+      // Use streaming call
       await promptService.value.optimizePromptStream(
         prompt.value, 
         selectedOptimizeModel.value,
@@ -71,7 +73,7 @@ export function usePromptOptimizer(
           onComplete: () => {
             if (!selectedOptimizeTemplate.value) return
             
-            // 创建新记录链
+            // Create new record chain
             const newRecord = historyManager.createNewChain({
               id: uuidv4(),
               originalPrompt: prompt.value,
@@ -87,19 +89,19 @@ export function usePromptOptimizer(
             currentVersions.value = newRecord.versions;
             currentVersionId.value = newRecord.currentRecord.id;
             
-            toast.success('优化成功')
+            toast.success(t('toast.success.optimizeSuccess'))
             isOptimizing.value = false
           },
           onError: (error: Error) => {
-            console.error('优化过程出错:', error)
-            toast.error(error.message || '优化失败')
+            console.error(t('toast.error.optimizeProcessFailed'), error)
+            toast.error(error.message || t('toast.error.optimizeFailed'))
             isOptimizing.value = false
           }
         }
       )
     } catch (error: any) {
-      console.error('优化失败:', error)
-      toast.error(error.message || '优化失败')
+      console.error(t('toast.error.optimizeFailed'), error)
+      toast.error(error.message || t('toast.error.optimizeFailed'))
     } finally {
       isOptimizing.value = false
     }
@@ -109,16 +111,16 @@ export function usePromptOptimizer(
   const handleIteratePrompt = async ({ originalPrompt, iterateInput }: { originalPrompt: string, iterateInput: string }) => {
     if (!originalPrompt || !iterateInput || isIterating.value) return
     if (!promptService.value) {
-      toast.error('服务未初始化，请稍后重试')
+      toast.error(t('toast.error.serviceInit'))
       return
     }
     if (!selectedIterateTemplate.value) {
-      toast.error('请先选择迭代提示词')
+      toast.error(t('toast.error.noIterateTemplate'))
       return
     }
 
     isIterating.value = true
-    optimizedPrompt.value = ''  // 清空之前的结果
+    optimizedPrompt.value = ''  // Clear previous result
     
     try {
       await promptService.value.iteratePromptStream(
@@ -144,17 +146,17 @@ export function usePromptOptimizer(
             currentVersions.value = updatedChain.versions;
             currentVersionId.value = updatedChain.currentRecord.id;
             
-            toast.success('迭代优化成功')
+            toast.success(t('toast.success.iterateSuccess'))
           },
           onError: (error: Error) => {
-            toast.error(error.message || '迭代优化失败')
+            toast.error(error.message || t('toast.error.iterateFailed'))
           }
         },
         selectedIterateTemplate.value
       );
     } catch (error: any) {
-      console.error('迭代优化失败:', error)
-      toast.error(error.message || '迭代优化失败')
+      console.error(t('toast.error.iterateFailed'), error)
+      toast.error(error.message || t('toast.error.iterateFailed'))
     } finally {
       isIterating.value = false
     }
@@ -186,7 +188,7 @@ export function usePromptOptimizer(
             selectedOptimizeTemplate.value = optimizeTemplate
           }
         } catch (error) {
-          console.warn('加载已保存的优化提示词失败:', error)
+          console.warn(t('toast.warn.loadOptimizeTemplateFailed'), error)
         }
       }
       
@@ -207,7 +209,7 @@ export function usePromptOptimizer(
             selectedIterateTemplate.value = iterateTemplate
           }
         } catch (error) {
-          console.warn('加载已保存的迭代提示词失败:', error)
+          console.warn(t('toast.warn.loadIterateTemplateFailed'), error)
         }
       }
       
@@ -221,11 +223,11 @@ export function usePromptOptimizer(
 
       // 如果仍然无法加载任何提示词，显示错误
       if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
-        throw new Error('无法加载默认提示词')
+        throw new Error(t('toast.error.noDefaultTemplate'))
       }
     } catch (error) {
-      console.error('加载提示词失败:', error)
-      toast.error('加载提示词失败')
+      console.error(t('toast.error.loadTemplateFailed'), error)
+      toast.error(t('toast.error.loadTemplateFailed'))
     }
   }
 

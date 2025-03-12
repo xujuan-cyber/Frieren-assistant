@@ -1,16 +1,16 @@
 <template>
   <ContentCardUI>
     <div class="flex flex-col h-full">
-      <!-- 测试输入区域 -->
+      <!-- Test Input Area -->
       <div class="flex-none">
         <InputPanelUI
           v-model="testContent"
           v-model:selectedModel="selectedTestModel"
-          label="测试内容"
-          placeholder="请输入要测试的内容..."
-          model-label="模型"
-          :button-text="isCompareMode ? '开始对比测试 →' : '开始测试 →'"
-          loading-text="测试中..."
+          :label="t('test.content')"
+          :placeholder="t('test.placeholder')"
+          :model-label="t('test.model')"
+          :button-text="isCompareMode ? t('test.startCompare') : t('test.startTest')"
+          :loading-text="t('test.testing')"
           :loading="isTesting"
           :disabled="isTesting"
           @submit="handleTest"
@@ -31,22 +31,22 @@
                 class="theme-button-secondary text-sm whitespace-nowrap"
                 :class="{ 'theme-button-primary': isCompareMode }"
               >
-                {{ isCompareMode ? '关闭对比' : '开启对比' }}
+                {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
               </button>
             </div>
           </template>
         </InputPanelUI>
       </div>
 
-      <!-- 测试结果区域 -->
+      <!-- Test Results Area -->
       <div class="flex-1 min-h-0 overflow-y-auto mt-5">
         <div class="relative h-full">
-          <!-- 原始提示词测试结果 -->
+          <!-- Original Prompt Test Result -->
           <div 
             v-show="isCompareMode" 
             class="absolute inset-0 flex flex-col md:w-[calc(50%-6px)] md:mr-3"
           >
-            <h3 class="text-lg font-semibold theme-text mb-2">原始提示词结果</h3>
+            <h3 class="text-lg font-semibold theme-text mb-2">{{ t('test.originalResult') }}</h3>
             <OutputPanelUI
               ref="originalOutputPanelRef"
               :loading="isTestingOriginal"
@@ -57,7 +57,7 @@
             />
           </div>
           
-          <!-- 优化后提示词测试结果 -->
+          <!-- Optimized Prompt Test Result -->
           <div 
             class="absolute inset-0 flex flex-col"
             :class="{
@@ -66,7 +66,7 @@
             }"
           >
             <h3 class="text-lg font-semibold theme-text mb-2">
-              {{ isCompareMode ? '优化后提示词结果' : '测试结果' }}
+              {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
             </h3>
             <OutputPanelUI
               ref="optimizedOutputPanelRef"
@@ -85,10 +85,13 @@
 
 <script setup>
 import { ref, toRef, computed, watch, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ContentCardUI from './ContentCard.vue'
 import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
 import OutputPanelUI from './OutputPanel.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   promptService: {
@@ -111,7 +114,7 @@ const props = defineProps({
 
 const emit = defineEmits(['showConfig', 'update:modelValue'])
 
-// 测试模式控制
+// Test mode control
 const isCompareMode = ref(true)
 
 const testModelSelect = ref(null)
@@ -120,43 +123,43 @@ const optimizedOutputPanelRef = ref(null)
 const selectedTestModel = ref(props.modelValue || '')
 const promptServiceRef = toRef(props, 'promptService')
 
-// 监听外部模型值变化
+// Listen for external model value changes
 watch(() => props.modelValue, (newVal) => {
   if (newVal && newVal !== selectedTestModel.value) {
     selectedTestModel.value = newVal
   }
 })
 
-// 更新选中的模型
+// Update selected model
 const updateSelectedModel = (value) => {
   selectedTestModel.value = value
   emit('update:modelValue', value)
 }
 
-// 原始提示词测试状态
+// Original prompt test status
 const originalTestResult = ref('')
 const originalTestError = ref('')
 const isTestingOriginal = ref(false)
 
-// 优化后提示词测试状态
+// Optimized prompt test status
 const optimizedTestResult = ref('')
 const optimizedTestError = ref('')
 const isTestingOptimized = ref(false)
 
-// 整体测试状态
+// Overall test status
 const isTesting = computed(() => isTestingOriginal.value || isTestingOptimized.value)
 
-// 测试内容
+// Test content
 const testContent = ref('')
 
-// 确保prompt是字符串
+// Ensure prompt is a string
 const ensureString = (value) => {
   if (typeof value === 'string') return value
   if (value === null || value === undefined) return ''
   return String(value)
 }
 
-// 测试原始提示词
+// Test original prompt
 const testOriginalPrompt = async () => {
   if (!props.originalPrompt || !testContent.value) return
   
@@ -167,9 +170,9 @@ const testOriginalPrompt = async () => {
     if (originalOutputPanelRef.value) {
       const streamHandler = originalOutputPanelRef.value.handleStream()
       
-      // 确保prompt是字符串
+      // Ensure prompt is a string
       const promptStr = ensureString(props.originalPrompt)
-      console.log('原始提示词类型:', typeof promptStr, promptStr.substring(0, 30))
+      console.log('[TestPanel] Original prompt type:', typeof promptStr, promptStr.substring(0, 30))
       
       await props.promptService.testPromptStream(
         promptStr,
@@ -183,15 +186,15 @@ const testOriginalPrompt = async () => {
       )
     }
   } catch (error) {
-    console.error('原始提示词测试失败:', error)
-    originalTestError.value = error.message || '测试失败'
+    console.error('[TestPanel] Original prompt test failed:', error)
+    originalTestError.value = error.message || t('test.error.failed')
     originalTestResult.value = ''
   } finally {
     isTestingOriginal.value = false
   }
 }
 
-// 测试优化后提示词
+// Test optimized prompt
 const testOptimizedPrompt = async () => {
   if (!props.optimizedPrompt || !testContent.value) return
   
@@ -204,9 +207,9 @@ const testOptimizedPrompt = async () => {
     if (outputPanel) {
       const streamHandler = outputPanel.handleStream()
       
-      // 确保prompt是字符串
+      // Ensure prompt is a string
       const promptStr = ensureString(props.optimizedPrompt)
-      console.log('优化后提示词类型:', typeof promptStr, promptStr.substring(0, 30))
+      console.log('[TestPanel] Optimized prompt type:', typeof promptStr, promptStr.substring(0, 30))
       
       await props.promptService.testPromptStream(
         promptStr,
@@ -220,53 +223,53 @@ const testOptimizedPrompt = async () => {
       )
     }
   } catch (error) {
-    console.error('优化后提示词测试失败:', error)
-    optimizedTestError.value = error.message || '测试失败'
+    console.error('[TestPanel] Optimized prompt test failed:', error)
+    optimizedTestError.value = error.message || t('test.error.failed')
     optimizedTestResult.value = ''
   } finally {
     isTestingOptimized.value = false
   }
 }
 
-// 测试处理函数
+// Test handler function
 const handleTest = async () => {
   if (!selectedTestModel.value) {
-    const errorMsg = '请先选择测试模型'
+    const errorMsg = t('test.error.noModel')
     originalTestError.value = errorMsg
     optimizedTestError.value = errorMsg
     return
   }
   
   if (isCompareMode.value) {
-    // 对比测试模式：分别测试原始提示词和优化后提示词
+    // Compare test mode: test both original and optimized prompts
     try {
       await Promise.all([
         testOriginalPrompt().catch(error => {
-          console.error('原始提示词测试失败:', error)
-          originalTestError.value = error.message || '测试失败'
+          console.error('[TestPanel] Original prompt test failed:', error)
+          originalTestError.value = error.message || t('test.error.failed')
         }),
         testOptimizedPrompt().catch(error => {
-          console.error('优化后提示词测试失败:', error)
-          optimizedTestError.value = error.message || '测试失败'
+          console.error('[TestPanel] Optimized prompt test failed:', error)
+          optimizedTestError.value = error.message || t('test.error.failed')
         })
       ])
     } catch (error) {
-      console.error('测试过程出现错误:', error)
+      console.error('[TestPanel] Test process error:', error)
     }
   } else {
-    // 普通测试模式：只测试优化后提示词
+    // Normal test mode: only test optimized prompt
     await testOptimizedPrompt()
   }
 }
 
-// 组件挂载时，如果有默认模型，则自动选择
+// Component mounted, if there is a default model, select it automatically
 onMounted(() => {
   if (props.modelValue) {
     selectedTestModel.value = props.modelValue
   }
 })
 
-// 暴露需要的方法和属性给父组件
+// Expose methods and attributes to parent component
 defineExpose({
   testModelSelect,
   selectedTestModel,

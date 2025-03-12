@@ -5,11 +5,15 @@
     :disabled="loading"
   >
     <span class="text-base sm:text-lg">{{ loading ? '⏳' : icon }}</span>
-    <span class="text-sm max-sm:hidden">{{ loading ? loadingText || '加载中...' : text }}</span>
+    <span class="text-sm max-sm:hidden">{{ loading ? loadingText || t('common.loading') : text }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 defineProps<{
   icon: string
   text: string

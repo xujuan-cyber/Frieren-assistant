@@ -5,12 +5,12 @@
       <InputPanelUI
         v-model="prompt"
         v-model:selectedModel="selectedOptimizeModel"
-        label="原始提示词"
-        placeholder="请输入需要优化的prompt..."
-        model-label="优化模型"
-        template-label="优化提示词"
-        button-text="开始优化 →"
-        loading-text="优化中..."
+        :label="t('promptOptimizer.originalPrompt')"
+        :placeholder="t('promptOptimizer.inputPlaceholder')"
+        :model-label="t('promptOptimizer.optimizeModel')"
+        :template-label="t('promptOptimizer.templateLabel')"
+        :button-text="t('promptOptimizer.optimize')"
+        :loading-text="t('common.loading')"
         :loading="isOptimizing"
         :disabled="isOptimizing"
         @submit="handleOptimizePrompt"
@@ -54,12 +54,15 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePromptOptimizer } from '../composables/usePromptOptimizer'
 import ContentCardUI from './ContentCard.vue'
 import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
 import TemplateSelectUI from './TemplateSelect.vue'
 import PromptPanelUI from './PromptPanel.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   modelManager: {

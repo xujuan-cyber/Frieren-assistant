@@ -5,7 +5,7 @@
       <div class="container mx-auto px-2 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
         <h1 class="text-lg sm:text-xl font-bold theme-title flex items-center gap-2">
           <img src="../assets/logo.jpg" alt="Logo" class="h-8 w-8 rounded-lg" />
-          <slot name="title">Prompt Optimizer</slot>
+          <slot name="title">{{ t('common.appName') }}</slot>
         </h1>
         <div class="flex items-center gap-1 sm:gap-3">
           <slot name="actions"></slot>
@@ -28,8 +28,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ToastUI } from '../index'
+
+const { t } = useI18n()
 </script>
 
 <style>

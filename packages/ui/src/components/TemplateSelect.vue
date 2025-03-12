@@ -10,7 +10,7 @@
             {{ modelValue.name }}
           </span>
           <span v-else class="theme-placeholder">
-            请选择提示词
+            {{ t('template.select') }}
           </span>
         </div>
         <span class="theme-text">
@@ -42,12 +42,12 @@
             <span>{{ template.name }}</span>
             <span v-if="template.isBuiltin" 
                   class="text-xs px-1.5 py-0.5 rounded theme-dropdown-item-tag">
-              内置
+              {{ t('common.builtin') }}
             </span>
           </div>
           <p class="text-xs theme-dropdown-item-description mt-1"
-             :title="template.metadata.description || '暂无描述'">
-            {{ template.metadata.description || '暂无描述' }}
+             :title="template.metadata.description || t('template.noDescription')">
+            {{ template.metadata.description || t('template.noDescription') }}
           </p>
         </div>
       </div>
@@ -57,24 +57,42 @@
           class="theme-dropdown-button"
         >
           <span>📝</span>
-          <span>配置提示词</span>
+          <span>{{ t('template.configure') }}</span>
         </button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { templateManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
 
+const { t } = useI18n()
+
+interface Template {
+  id: string;
+  name: string;
+  isBuiltin?: boolean;
+  metadata: {
+    description?: string;
+    templateType: 'optimize' | 'iterate';
+  };
+}
+
+type TemplateType = 'optimize' | 'iterate';
+
 const props = defineProps({
-  modelValue: Object,
+  modelValue: {
+    type: Object as () => Template | null,
+    default: null
+  },
   type: {
-    type: String,
+    type: String as () => TemplateType,
     required: true,
-    validator: (value) => ['optimize', 'iterate'].includes(value)
+    validator: (value: string): boolean => ['optimize', 'iterate'].includes(value)
   }
 })
 
@@ -82,7 +100,7 @@ const vClickOutside = clickOutside
 const emit = defineEmits(['update:modelValue', 'manage', 'select'])
 
 const isOpen = ref(false)
-const dropdownStyle = ref({})
+const dropdownStyle = ref<Record<string, string>>({})
 const refreshTrigger = ref(0)
 
 // 计算下拉菜单位置
@@ -141,7 +159,6 @@ watch(isOpen, async (newValue) => {
 const templates = computed(() => {
   // 使用 refreshTrigger 触发重新计算
   refreshTrigger.value
-  console.log('重新计算templates', templateManager.listTemplatesByType(props.type))
   return templateManager.listTemplatesByType(props.type)
 })
 
@@ -149,16 +166,12 @@ const templates = computed(() => {
 watch(
   templates,  // 监听模板列表
   (newTemplates) => {
+    const currentTemplate = props.modelValue
     // 如果当前选中的模板不在列表中，自动切换到第一个
-    if (props.modelValue && !newTemplates.find(t => t.id === props.modelValue.id)) {
-      console.log('当前选中的模板已不存在，切换到新的模板', {
-        current: props.modelValue?.id,
-        available: newTemplates.map(t => t.id)
-      })
-      
-      const firstTemplate = newTemplates.find(t => t.metadata.templateType === props.type)
-      emit('update:modelValue', firstTemplate || null)
-      emit('select', firstTemplate || null, props.type)
+    if (currentTemplate && !newTemplates.find(t => t.id === currentTemplate.id)) {
+      const firstTemplate = newTemplates.find(t => t.metadata.templateType === props.type) || null
+      emit('update:modelValue', firstTemplate)
+      emit('select', firstTemplate, props.type)
     }
   },
   { deep: true }
@@ -169,10 +182,11 @@ const refreshTemplates = () => {
   refreshTrigger.value++
   // 刷新时也检查当前选中状态
   const currentTemplates = templateManager.listTemplatesByType(props.type)
-  if (props.modelValue && !currentTemplates.find(t => t.id === props.modelValue.id)) {
-    const firstTemplate = currentTemplates[0]
-    emit('update:modelValue', firstTemplate || null)
-    emit('select', firstTemplate || null, props.type)
+  const currentTemplate = props.modelValue
+  if (currentTemplate && !currentTemplates.find(t => t.id === currentTemplate.id)) {
+    const firstTemplate = currentTemplates[0] || null
+    emit('update:modelValue', firstTemplate)
+    emit('select', firstTemplate, props.type)
   }
 }
 
@@ -181,7 +195,7 @@ defineExpose({
   refresh: refreshTemplates
 })
 
-const selectTemplate = (template) => {
+const selectTemplate = (template: Template) => {
   emit('update:modelValue', template)
   emit('select', template, props.type)
   isOpen.value = false

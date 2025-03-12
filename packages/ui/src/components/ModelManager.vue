@@ -10,7 +10,7 @@
       <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold theme-manager-text">模型设置</h2>
+          <h2 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.title') }}</h2>
           <button
             @click="$emit('close')"
             class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
@@ -21,7 +21,7 @@
 
         <!-- 已启用模型列表 -->
         <div class="space-y-3">
-          <h3 class="text-lg font-semibold theme-manager-text">模型列表</h3>
+          <h3 class="text-lg font-semibold theme-manager-text">{{ t('modelManager.modelList') }}</h3>
           <div class="space-y-3">
             <div v-for="model in models" :key="model.key" 
                  :class="['p-4 rounded-xl border transition-colors',
@@ -36,7 +36,7 @@
                     </h4>
                     <span v-if="!model.enabled" 
                           class="theme-manager-tag">
-                      已禁用
+                      {{ t('modelManager.disabled') }}
                     </span>
                   </div>
                   <p class="text-sm" :class="model.enabled ? 'theme-manager-text-secondary' : 'theme-manager-text-disabled'">
@@ -46,11 +46,11 @@
                 <div class="flex items-center space-x-2">
                   <button @click="testConnection(model.key)"
                           class="theme-manager-button-test">
-                    测试连接
+                    {{ t('modelManager.testConnection') }}
                   </button>
                   <button @click="editModel(model.key)"
                           class="theme-manager-button-edit">
-                    编辑
+                    {{ t('modelManager.editModel') }}
                   </button>
                   <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
                           :class="[
@@ -58,13 +58,13 @@
                               ? 'theme-manager-button-warning' 
                               : 'theme-manager-button-success'
                           ]">
-                    {{ model.enabled ? '禁用' : '启用' }}
+                    {{ model.enabled ? t('common.disable') : t('common.enable') }}
                   </button>
                   <!-- 只对自定义模型显示删除按钮 -->
                   <button v-if="!isDefaultModel(model.key)" 
                           @click="handleDelete(model.key)"
                           class="theme-manager-button-danger">
-                    删除
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </div>
@@ -84,7 +84,7 @@
                  @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">编辑模型</h3>
+                  <h3 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.editModel') }}</h3>
                   <button
                     @click="cancelEdit"
                     class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
@@ -95,28 +95,28 @@
                 
                 <form @submit.prevent="saveEdit" class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">显示名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
                     <input v-model="editingModel.name" type="text" required
                            class="theme-manager-input"
-                           placeholder="例如: 自定义模型"/>
+                           :placeholder="t('modelManager.displayNamePlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 地址</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}</label>
                     <input v-model="editingModel.baseURL" type="url" required
                            class="theme-manager-input"
-                           placeholder="https://api.example.com/v1"/>
+                           :placeholder="t('modelManager.apiUrlPlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">默认模型名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
                     <input v-model="editingModel.defaultModel" type="text" required
                            class="theme-manager-input"
-                           placeholder="例如: gpt-3.5-turbo"/>
+                           :placeholder="t('modelManager.defaultModelPlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 密钥</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
                     <input v-model="editingModel.apiKey" type="password"
                            class="theme-manager-input"
-                           placeholder="输入新的 API 密钥（留空则保持不变）"/>
+                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
                     <input 
@@ -126,7 +126,7 @@
                       class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
                     <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
-                      使用Vercel代理 (解决跨域问题，有一定风险，请谨慎使用)
+                      {{ t('modelManager.useVercelProxy') }}
                     </label>
                   </div>
                   <div class="flex justify-end space-x-3 pt-4">
@@ -135,13 +135,13 @@
                       @click="cancelEdit"
                       class="theme-manager-button-secondary"
                     >
-                      取消
+                      {{ t('common.cancel') }}
                     </button>
                     <button
                       type="submit"
                       class="theme-manager-button-primary"
                     >
-                      保存修改
+                      {{ t('common.save') }}
                     </button>
                   </div>
                 </form>
@@ -150,54 +150,46 @@
           </div>
 
           <!-- 添加模型弹窗 -->
-          <div v-if="showAddForm" 
-               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
-               @click="showAddForm = false">
+          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto" @click="showAddForm = false">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
-                 @click.stop>
+            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10" @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">添加自定义模型</h3>
-                  <button
-                    @click="showAddForm = false"
-                    class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
-                  >
-                    ×
-                  </button>
+                  <h3 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.addModel') }}</h3>
+                  <button @click="showAddForm = false" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
                 </div>
                 
                 <form @submit.prevent="addCustomModel" class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">模型标识</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.modelKey') }}</label>
                     <input v-model="newModel.key" type="text" required
                            class="theme-manager-input"
-                           placeholder="例如: custom-model"/>
+                           :placeholder="t('modelManager.modelKeyPlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">显示名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
                     <input v-model="newModel.name" type="text" required
                            class="theme-manager-input"
-                           placeholder="例如: 自定义模型"/>
+                           :placeholder="t('modelManager.displayNamePlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 地址</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}</label>
                     <input v-model="newModel.baseURL" type="url" required
                            class="theme-manager-input"
-                           placeholder="https://api.example.com/v1"/>
+                           :placeholder="t('modelManager.apiUrlPlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">默认模型名称</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
                     <input v-model="newModel.defaultModel" type="text" required
                            class="theme-manager-input"
-                           placeholder="例如: gpt-3.5-turbo"/>
+                           :placeholder="t('modelManager.defaultModelPlaceholder')" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API 密钥</label>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
                     <input v-model="newModel.apiKey" type="password" required
                            class="theme-manager-input"
-                           placeholder="输入 API 密钥"/>
+                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
                     <input 
@@ -207,22 +199,15 @@
                       class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
                     <label for="new-model-vercel-proxy" class="text-sm font-medium theme-manager-text">
-                      使用Vercel代理 (解决跨域问题，有一定风险，请谨慎使用)
+                      {{ t('modelManager.useVercelProxyHint') }}
                     </label>
                   </div>
                   <div class="flex justify-end space-x-3 pt-4">
-                    <button
-                      type="button"
-                      @click="showAddForm = false"
-                      class="theme-manager-button-secondary"
-                    >
-                      取消
+                    <button type="button" @click="showAddForm = false" class="theme-manager-button-secondary">
+                      {{ t('common.cancel') }}
                     </button>
-                    <button
-                      type="submit"
-                      class="theme-manager-button-primary"
-                    >
-                      添加模型
+                    <button type="submit" class="theme-manager-button-primary">
+                      {{ t('common.create') }}
                     </button>
                   </div>
                 </form>
@@ -233,12 +218,9 @@
 
         <!-- 添加模型按钮 -->
         <div class="mt-2 theme-manager-divider pt-2">
-          <button
-            @click="showAddForm = true"
-            class="w-full theme-manager-button-secondary py-3 flex items-center justify-center space-x-2"
-          >
+          <button @click="showAddForm = true" class="w-full theme-manager-button-secondary py-3 flex items-center justify-center space-x-2">
             <span>+</span>
-            <span>添加自定义模型</span>
+            <span>{{ t('modelManager.addModel') }}</span>
           </button>
         </div>
       </div>
@@ -248,9 +230,11 @@
 
 <script setup>
 import { ref, onMounted, defineEmits } from 'vue';
+import { useI18n } from 'vue-i18n'
 import { modelManager, createLLMService, checkVercelApiAvailability, resetVercelStatusCache } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 
+const { t } = useI18n()
 const toast = useToast();
 const emit = defineEmits(['modelsUpdated', 'close', 'select']);
 
@@ -321,14 +305,14 @@ const loadModels = () => {
 const testConnection = async (key) => {
   try {
     const model = modelManager.getModel(key);
-    if (!model) throw new Error('模型配置不存在');
+    if (!model) throw new Error(t('modelManager.modelNotFound'));
 
     const llm = createLLMService(modelManager);
     await llm.testConnection(key);
-    toast.success('连接测试成功');
+    toast.success(t('modelManager.testSuccess'));
   } catch (error) {
     console.error('连接测试失败:', error);
-    toast.error(`连接测试失败: ${error.message}`);
+    toast.error(t('modelManager.testFailed', { error: error.message }));
   }
 };
 
@@ -339,14 +323,14 @@ const isDefaultModel = (key) => {
 
 // 处理删除
 const handleDelete = async (key) => {
-  if (confirm(`确定要删除模型 ${key} 吗？此操作不可恢复。`)) {
+  if (confirm(t('modelManager.deleteConfirm'))) {
     try {
       modelManager.deleteModel(key)
       loadModels()
-      toast.success('模型已删除')
+      toast.success(t('modelManager.deleteSuccess'))
     } catch (error) {
       console.error('删除模型失败:', error)
-      toast.error(`删除模型失败: ${error.message}`)
+      toast.error(t('modelManager.deleteFailed', { error: error.message }))
     }
   }
 };
@@ -407,10 +391,10 @@ const saveEdit = async () => {
     isEditing.value = false
     editingModel.value = null
         
-    toast.success('模型配置已更新')
+    toast.success(t('modelManager.updateSuccess'))
   } catch (error) {
     console.error('更新模型失败:', error)
-    toast.error(`更新模型失败: ${error.message}`)
+    toast.error(t('modelManager.updateFailed', { error: error.message }))
   }
 };
 
@@ -452,32 +436,30 @@ const addCustomModel = async () => {
 const enableModel = async (key) => {
   try {
     const model = modelManager.getModel(key)
-    if (!model) throw new Error('模型配置不存在')
+    if (!model) throw new Error(t('modelManager.modelNotFound'))
 
     modelManager.enableModel(key)
     loadModels()
-    // 修改这里，传递启用的模型的 key
     emit('modelsUpdated', key)
-    toast.success('模型已启用')
+    toast.success(t('modelManager.enableSuccess'))
   } catch (error) {
     console.error('启用模型失败:', error)
-    toast.error(`启用模型失败: ${error.message}`)
+    toast.error(t('modelManager.enableFailed', { error: error.message }))
   }
 }
 
 const disableModel = async (key) => {
   try {
     const model = modelManager.getModel(key)
-    if (!model) throw new Error('模型配置不存在')
+    if (!model) throw new Error(t('modelManager.modelNotFound'))
 
     modelManager.disableModel(key)
     loadModels()
-    // 修改这里，传递禁用的模型的 key
     emit('modelsUpdated', key)
-    toast.success('模型已禁用')
+    toast.success(t('modelManager.disableSuccess'))
   } catch (error) {
     console.error('禁用模型失败:', error)
-    toast.error(`禁用模型失败: ${error.message}`)
+    toast.error(t('modelManager.disableFailed', { error: error.message }))
   }
 }
 

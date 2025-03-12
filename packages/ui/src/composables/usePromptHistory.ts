@@ -1,5 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 import { useToast } from './useToast'
+import { useI18n } from 'vue-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import type { IHistoryManager, PromptRecordChain } from '@prompt-optimizer/core'
 
@@ -14,6 +15,7 @@ export function usePromptHistory(
   currentVersionId: Ref<string>
 ) {
   const toast = useToast()
+  const { t } = useI18n()
   const history = ref<PromptChain[]>([])
   const showHistory = ref(false)
 
@@ -42,14 +44,14 @@ export function usePromptHistory(
     showHistory.value = false
   }
 
-  const handleClearHistory = async () => {
+  const handleClearHistory = () => {
     try {
-      await historyManager.clearHistory()
+      historyManager.clearHistory()
       history.value = []
-      toast.success('历史记录已清空')
+      toast.success(t('toast.success.historyClear'))
     } catch (error) {
-      console.error('清空历史记录失败:', error)
-      toast.error('清空历史记录失败')
+      console.error(t('toast.error.historyClearFailed'), error)
+      toast.error(t('toast.error.historyClearFailed'))
     }
   }
 
@@ -57,19 +59,19 @@ export function usePromptHistory(
     try {
       history.value = historyManager.getAllChains()
     } catch (error) {
-      console.error('加载历史记录失败:', error)
-      toast.error('加载历史记录失败')
+      console.error(t('toast.error.loadHistoryFailed'), error)
+      toast.error(t('toast.error.loadHistoryFailed'))
     }
   }
 
-  // 监听历史记录显示状态
+  // Watch history display state
   watch(showHistory, (newVal) => {
     if (newVal) {
       history.value = historyManager.getAllChains()
     }
   })
 
-  // 监听版本变化，更新历史记录
+  // Watch version changes, update history
   watch([currentVersions], () => {
     history.value = historyManager.getAllChains()
   })

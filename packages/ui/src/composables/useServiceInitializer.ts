@@ -1,5 +1,6 @@
 import { ref, onMounted } from 'vue'
 import { useToast } from './useToast'
+import { useI18n } from 'vue-i18n'
 import type { ModelManager, TemplateManager, HistoryManager, PromptService } from '@prompt-optimizer/core'
 import { createLLMService, createPromptService } from '@prompt-optimizer/core'
 
@@ -9,31 +10,32 @@ export function useServiceInitializer(
   historyManager: HistoryManager
 ) {
   const toast = useToast()
+  const { t } = useI18n()
   const promptServiceRef = ref<PromptService | null>(null)
   const llmService = createLLMService(modelManager)
 
-  // 初始化基础服务
+  // Initialize base services
   const initBaseServices = () => {
     try {
-      console.log('开始初始化基础服务...')
+      console.log(t('log.info.initBaseServicesStart'))
 
-      // 获取并验证模板列表
+      // Get and verify template list
       const templates = templateManager.listTemplates()
-      console.log('模板列表:', templates)
+      console.log(t('log.info.templateList'), templates)
 
-      // 创建提示词服务
-      console.log('创建提示词服务...')
+      // Create prompt service
+      console.log(t('log.info.createPromptService'))
       promptServiceRef.value = createPromptService(modelManager, llmService, templateManager, historyManager)
       
-      console.log('初始化完成')
+      console.log(t('log.info.initComplete'))
     } catch (error) {
-      console.error('初始化基础服务失败:', error)
-      toast.error('初始化失败：' + (error instanceof Error ? error.message : String(error)))
+      console.error(t('log.error.initBaseServicesFailed'), error)
+      toast.error(t('toast.error.initFailed', { error: error instanceof Error ? error.message : String(error) }))
       throw error
     }
   }
 
-  // 在 mounted 时自动初始化
+  // Auto initialize on mounted
   onMounted(() => {
     initBaseServices()
   })

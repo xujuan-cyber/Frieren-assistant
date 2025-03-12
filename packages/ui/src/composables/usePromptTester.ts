@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useToast } from './useToast'
+import { useI18n } from 'vue-i18n'
 import type { Ref } from 'vue'
 import type { IPromptService } from '@prompt-optimizer/core'
 
@@ -8,22 +9,23 @@ export function usePromptTester(
   selectedTestModel: Ref<string>
 ) {
   const toast = useToast()
+  const { t } = useI18n()
   
-  // 状态
+  // States
   const testContent = ref('')
   const testResult = ref('')
   const testError = ref('')
   const isTesting = ref(false)
   
-  // 测试提示词
+  // Test prompt
   const handleTest = async (optimizedPrompt: string) => {
     if (!promptService.value) {
-      toast.error('服务未初始化，请稍后重试')
+      toast.error(t('toast.error.serviceInit'))
       return
     }
     
     if (!selectedTestModel.value || !testContent.value || !optimizedPrompt) {
-      toast.error('请填写完整的测试信息')
+      toast.error(t('toast.error.incompleteTestInfo'))
       return
     }
 
@@ -44,27 +46,27 @@ export function usePromptTester(
             isTesting.value = false
           },
           onError: (error: Error) => {
-            testError.value = error.message || '测试失败'
+            testError.value = error.message || t('toast.error.testFailed')
             isTesting.value = false
           }
         }
       )
     } catch (error: any) {
-      console.error('测试失败:', error)
-      testError.value = error.message || '测试过程中发生错误'
+      console.error(t('toast.error.testFailed'), error)
+      testError.value = error.message || t('toast.error.testProcessError')
     } finally {
       isTesting.value = false
     }
   }
 
   return {
-    // 状态
+    // States
     testContent,
     testResult,
     testError,
     isTesting,
     
-    // 方法
+    // Methods
     handleTest
   }
 } 

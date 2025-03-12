@@ -11,7 +11,7 @@
             {{ getSelectedModel.name }}
           </span>
           <span v-else class="theme-placeholder">
-            {{ !enabledModels.length ? '请配置模型' : '请选择模型' }}
+            {{ !enabledModels.length ? t('model.select.noModels') : t('model.select.placeholder') }}
           </span>
         </div>
         <span class="theme-text text-sm">
@@ -30,7 +30,7 @@
     >
       <div class="p-2 max-h-64 overflow-y-auto">
         <div v-if="!enabledModels.length" class="theme-dropdown-empty">
-          暂无可用模型
+          {{ t('model.select.noAvailableModels') }}
         </div>
         <div v-else v-for="model in enabledModels" 
              :key="model.key"
@@ -53,7 +53,7 @@
           class="theme-dropdown-button"
         >
           <span>⚙️</span>
-          <span>配置模型</span>
+          <span>{{ t('model.select.configure') }}</span>
         </button>
       </div>
     </div>
@@ -62,8 +62,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { modelManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
+
+const { t } = useI18n()
 
 const props = defineProps({
   modelValue: {

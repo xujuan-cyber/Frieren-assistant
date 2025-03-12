@@ -2,16 +2,15 @@
 <template>
   <div class="flex flex-col h-full">
     <div v-if="!hideTitle" class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold theme-text">测试结果</h3>
+      <h3 class="text-lg font-semibold theme-text">{{ t('output.title') }}</h3>
       <button
         v-if="result"
         @click="copySelectedText"
         class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
       >
-        <span>复制</span>
+        <span>{{ t('common.copy') }}</span>
       </button>
     </div>
-
 
     <div class="flex-1 min-h-0 relative">
       <div class="h-full relative">
@@ -19,7 +18,7 @@
           ref="resultContainer"
           class="absolute inset-0 h-full theme-input whitespace-pre-wrap overflow-auto"
         >
-          <span v-if="!contentTokens.length" class="theme-text-secondary">测试结果将显示在这里...</span>
+          <span v-if="!contentTokens.length" class="theme-text-secondary">{{ t('output.placeholder') }}</span>
           <span v-else v-text="displayContent" class="theme-text"></span>
         </div>
       </div>
@@ -37,36 +36,38 @@
         class="absolute top-2 right-2 theme-loading px-3 py-1.5 rounded-lg flex items-center space-x-2"
       >
         <span class="animate-spin">⏳</span>
-        <span>处理中...</span>
+        <span>{{ t('common.processing') }}</span>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, defineEmits, defineProps, watch, nextTick, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
 
+const { t } = useI18n()
 const toast = useToast()
-const contentTokens = ref([])
+const contentTokens = ref<string[]>([])
 const isStreaming = ref(false)
-const resultContainer = ref(null)
+const resultContainer = ref<HTMLDivElement | null>(null)
 
 // 计算完整内容
 const displayContent = computed(() => {
-  console.log('displayContent 更新，当前tokens数:', contentTokens.value.length);
+  console.log('displayContent updated, current tokens count:', contentTokens.value.length);
   return contentTokens.value.join('');
 })
 
 // 监听组件挂载
 onMounted(async () => {
   await nextTick();
-  console.log('组件已挂载，容器存在:', !!resultContainer.value);
+  console.log('Component mounted, container exists:', !!resultContainer.value);
 });
 
 // 监听数组变化
 watch(contentTokens, (newVal) => {
-  console.log('contentTokens 发生变化，当前长度:', newVal.length);
+  console.log('contentTokens changed, current length:', newVal.length);
   // 强制更新视图
   nextTick(() => {
     if (resultContainer.value) {
@@ -75,18 +76,19 @@ watch(contentTokens, (newVal) => {
   });
 }, { deep: true });
 
-const props = defineProps({
-  loading: Boolean,
-  error: String,
-  result: String,
-  hideTitle: {
-    type: Boolean,
-    default: false
-  }
-})
+interface Props {
+  loading?: boolean;
+  error?: string;
+  result?: string;
+  hideTitle?: boolean;
+}
+
+const props = defineProps<Props>()
 
 // 定义事件
-const emit = defineEmits(['update:result'])
+const emit = defineEmits<{
+  'update:result': [value: string];
+}>()
 
 // 监听 result 变化
 watch(() => props.result, (newVal) => {
@@ -96,21 +98,27 @@ watch(() => props.result, (newVal) => {
 })
 
 // 更新文本
-const updateContent = (text) => {
-  console.log('准备更新内容:', text.substring(0, 20) + '...');
+const updateContent = (text: string) => {
+  console.log('Preparing to update content:', text.substring(0, 20) + '...');
   contentTokens.value = [...contentTokens.value, text];
-  console.log('内容已更新，当前tokens数:', contentTokens.value.length);
+  console.log('Content updated, current tokens count:', contentTokens.value.length);
 };
 
+interface StreamHandlers {
+  onToken: (token: string) => void;
+  onComplete: () => void;
+  onError: (error: Error) => void;
+}
+
 // 处理流式响应
-const handleStream = () => {
-  console.log('开始处理流式响应，容器存在:', !!resultContainer.value);
+const handleStream = (): StreamHandlers => {
+  console.log('Starting stream handling, container exists:', !!resultContainer.value);
   isStreaming.value = true;
   contentTokens.value = [];
   
   return {
-    onToken: (token) => {
-      console.log('收到token:', { 
+    onToken: (token: string) => {
+      console.log('Token received:', { 
         tokenLength: token.length,
         token: token.substring(0, 50) + '...',
         containerExists: !!resultContainer.value,
@@ -121,12 +129,12 @@ const handleStream = () => {
       updateContent(token);
     },
     onComplete: () => {
-      console.log('流式响应完成，总tokens数:', contentTokens.value.length);
+      console.log('Stream completed, total tokens:', contentTokens.value.length);
       isStreaming.value = false;
       emit('update:result', displayContent.value);
     },
-    onError: (error) => {
-      console.error('流式响应出错:', error);
+    onError: (error: Error) => {
+      console.error('Stream error:', error);
       isStreaming.value = false;
       toast.error(error.message);
     }
@@ -144,14 +152,14 @@ defineExpose({
 const copySelectedText = async () => {
   if (!resultContainer.value) return
   
-  const selectedText = window.getSelection().toString()
+  const selectedText = window.getSelection()?.toString()
   const textToCopy = selectedText || displayContent.value
   
   try {
     await navigator.clipboard.writeText(textToCopy)
-    toast.success('复制成功')
+    toast.success(t('common.copySuccess'))
   } catch (err) {
-    toast.error('复制失败')
+    toast.error(t('common.copyFailed'))
   }
 }
 </script>

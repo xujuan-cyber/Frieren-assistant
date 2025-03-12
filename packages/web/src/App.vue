@@ -2,7 +2,7 @@
   <MainLayoutUI>
     <!-- 标题插槽 -->
     <template #title>
-      Prompt Optimizer
+      {{ $t('promptOptimizer.title') }}
     </template>
 
     <!-- 操作按钮插槽 -->
@@ -10,19 +10,20 @@
       <ThemeToggleUI />
       <ActionButtonUI
         icon="📝"
-        text="功能提示词"
+        :text="$t('nav.templates')"
         @click="openTemplateManager('optimize')"
       />
       <ActionButtonUI
         icon="📜"
-        text="历史记录"
+        :text="$t('nav.history')"
         @click="showHistory = true"
       />
       <ActionButtonUI
         icon="⚙️"
-        text="模型管理"
+        :text="$t('nav.modelManager')"
         @click="showConfig = true"
       />
+      <LanguageSwitchUI />
     </template>
 
     <!-- 主要内容插槽 -->
@@ -33,12 +34,12 @@
         <InputPanelUI
           v-model="prompt"
           v-model:selectedModel="selectedOptimizeModel"
-          label="原始提示词"
-          placeholder="请输入需要优化的prompt..."
-          model-label="优化模型"
-          template-label="优化提示词"
-          button-text="开始优化 →"
-          loading-text="优化中..."
+          :label="$t('promptOptimizer.originalPrompt')"
+          :placeholder="$t('promptOptimizer.inputPlaceholder')"
+          :model-label="$t('promptOptimizer.optimizeModel')"
+          :template-label="$t('promptOptimizer.templateLabel')"
+          :button-text="$t('promptOptimizer.optimize')"
+          :loading-text="$t('common.loading')"
           :loading="isOptimizing"
           :disabled="isOptimizing"
           @submit="handleOptimizePrompt"
@@ -141,6 +142,7 @@ import {
   ContentCardUI,
   ActionButtonUI,
   TestPanelUI,
+  LanguageSwitchUI,
   // composables
   usePromptOptimizer,
   usePromptTester,

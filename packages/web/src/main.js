@@ -1,6 +1,9 @@
 import { createApp } from 'vue'
-
-import '@prompt-optimizer/ui/dist/style.css'
+import { installI18n } from '@prompt-optimizer/ui'
 import App from './App.vue'
 
-createApp(App).mount('#app') 
+import '@prompt-optimizer/ui/dist/style.css'
+
+const app = createApp(App)
+installI18n(app)
+app.mount('#app') 

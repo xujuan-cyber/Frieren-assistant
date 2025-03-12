@@ -5,6 +5,9 @@ import './styles/scrollbar.css'
 import './styles/common.css'
 import './styles/theme.css'
 
+// 导出插件
+export { installI18n, i18n } from './plugins/i18n'
+
 /**
  * 组件导出
  * 注意：所有组件导出时都添加了UI后缀，以便与其他库的组件区分
@@ -25,6 +28,7 @@ export { default as ContentCardUI } from './components/ContentCard.vue'
 export { default as ActionButtonUI } from './components/ActionButton.vue'
 export { default as ThemeToggleUI } from './components/ThemeToggleUI.vue'
 export { default as TestPanelUI } from './components/TestPanel.vue'
+export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'

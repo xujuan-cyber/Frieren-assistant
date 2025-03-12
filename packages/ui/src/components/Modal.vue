@@ -27,7 +27,7 @@
               <!-- 标题栏 -->
               <div class="theme-modal-header flex items-center justify-between">
                 <h3 class="text-lg font-semibold theme-text">
-                  <slot name="title">标题</slot>
+                  <slot name="title">{{ t('common.title') }}</slot>
                 </h3>
                 <button
                   @click="$emit('update:modelValue', false)"
@@ -51,13 +51,13 @@
                     @click="$emit('update:modelValue', false)"
                     class="theme-button-secondary"
                   >
-                    取消
+                    {{ t('common.cancel') }}
                   </button>
                   <button
                     @click="$emit('confirm')"
                     class="theme-button-primary"
                   >
-                    确认
+                    {{ t('common.confirm') }}
                   </button>
                 </slot>
               </div>
@@ -71,6 +71,9 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps({
   modelValue: {
