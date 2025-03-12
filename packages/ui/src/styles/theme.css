@@ -982,7 +982,7 @@ html * {
 
   /* 管理界面标签 */
   .theme-manager-tag {
-    @apply bg-purple-600/20 text-purple-300;
+    @apply bg-purple-400/30 text-purple-300;
   }
   .theme-manager-tag-optimize {
     @apply bg-amber-500/50 text-white;

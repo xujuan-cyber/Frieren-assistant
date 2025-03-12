@@ -80,13 +80,13 @@
             >
               <div class="flex items-start justify-between">
                 <div>
-                  <h4 class="theme-manager-text flex items-center gap-2">
+                  <!-- <h4 class="theme-manager-text flex items-center gap-2">
                     {{ template.name }}
                     <span v-if="template.isBuiltin" 
                           class="theme-manager-tag">
                       内置
                     </span>
-                  </h4>
+                  </h4> -->
                   <p class="text-sm theme-manager-text-secondary mt-1">
                     {{ template.metadata.description || '暂无描述' }}
                   </p>
@@ -150,22 +150,24 @@
                 :class="template.metadata.templateType === 'optimize' ? 'theme-manager-card-optimize' : 'theme-manager-card-iterate'"
               ></div>
               <span 
+                v-if="template.isBuiltin" 
+                class="theme-manager-tag ml-1 min-w-[48px]"
+              >
+                内置
+              </span>
+              <!-- <span 
                 class="capitalize"
                 :class="template.metadata.templateType === 'optimize' 
                   ? 'theme-manager-tag-optimize'
                   : 'theme-manager-tag-iterate'"
               >
                 {{ template.metadata.templateType === 'optimize' ? '优化' : '迭代' }}
-              </span>
+              </span> -->
               <span
-                class="capitalize ml-1"
-                :class="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
-                  ? template.metadata.templateType === 'optimize'
-                    ? 'theme-manager-tag-optimize'
-                    : 'theme-manager-tag-iterate'
-                  : 'theme-manager-tag'"
+                v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
+                class="capitalize ml-1 theme-manager-tag"
               >
-                {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id ? '已选择' : '选择' }}
+                已选择
               </span>
             </div>
           </div>
