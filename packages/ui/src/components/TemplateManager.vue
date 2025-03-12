@@ -245,7 +245,7 @@
         </Teleport>
 
         <!-- 导入提示词 -->
-        <div class="theme-manager-divider pt-6">
+        <div class="theme-manager-divider pt-2">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold theme-manager-text">导入提示词</h3>
           </div>

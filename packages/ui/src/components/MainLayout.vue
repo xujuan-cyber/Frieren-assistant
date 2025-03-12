@@ -43,36 +43,4 @@ import { ToastUI } from '../index'
 .custom-select::-ms-expand {
   display: none;
 }
-
-/* 优化滚动条样式 */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* 滚动条在暗色模式下的样式 */
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* 隐藏水平滚动条 */
-::-webkit-scrollbar-horizontal {
-  display: none;
-}
 </style>

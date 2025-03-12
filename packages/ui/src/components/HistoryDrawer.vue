@@ -62,7 +62,7 @@
                       @click="toggleVersion(record.id)"
                     >
                       <div class="flex items-center gap-3 overflow-hidden">
-                        <span class="text-sm font-medium theme-manager-text flex-none">V{{ record.version }}</span>
+                        <span class="px-2 py-1 text-xs rounded font-medium theme-prompt-version-unselected flex-none">V{{ record.version }}</span>
                         <span class="text-xs theme-manager-text-secondary flex-none">{{ formatDate(record.timestamp) }}</span>
                         <span v-if="record.type === 'iterate' && record.iterationNote" class="text-xs theme-manager-text-secondary truncate">
                           - {{ truncateText(record.iterationNote, 30) }}
@@ -85,7 +85,7 @@
                     <!-- 版本详细内容 -->
                     <div
                       v-show="expandedVersions[record.id]"
-                      class="p-4 theme-manager-card space-y-3"
+                      class="p-4 theme-history-content space-y-3"
                     >
                       <!-- 迭代说明 -->
                       <div v-if="record.iterationNote" class="text-xs">
