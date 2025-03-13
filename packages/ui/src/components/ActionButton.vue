@@ -5,7 +5,7 @@
     :disabled="loading"
   >
     <span class="text-base sm:text-lg">{{ loading ? '⏳' : icon }}</span>
-    <span class="text-sm max-md:hidden truncate">{{ loading ? loadingText || t('common.loading') : text }}</span>
+    <span class="text-sm max-md:hidden">{{ loading ? loadingText || t('common.loading') : text }}</span>
   </button>
 </template>
 
