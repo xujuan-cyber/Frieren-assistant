@@ -42,39 +42,35 @@
       <div class="flex-1 min-h-0 overflow-y-auto mt-5">
         <div class="relative h-full">
           <!-- Original Prompt Test Result -->
-          <div 
-            v-show="isCompareMode" 
+          <div
+            v-show="isCompareMode"
             class="absolute inset-0 flex flex-col md:w-[calc(50%-6px)] md:mr-3"
           >
-            <h3 class="text-lg font-semibold theme-text mb-2">{{ t('test.originalResult') }}</h3>
             <OutputPanelUI
               ref="originalOutputPanelRef"
               :loading="isTestingOriginal"
               :error="originalTestError"
-              :result="originalTestResult"
+              v-model:result="originalTestResult"
               class="flex-1"
-              hide-title
+              :resultTitle="t('test.originalResult')"
             />
           </div>
-          
+
           <!-- Optimized Prompt Test Result -->
-          <div 
-            class="absolute inset-0 flex flex-col"
+          <div
+           class="absolute inset-0 flex flex-col"
             :class="{
-              'md:w-[calc(50%-6px)] md:left-[calc(50%+6px)] transition-[width,left] duration-300': isCompareMode,
-              'w-full': !isCompareMode
+            'md:w-[calc(50%-6px)] md:left-[calc(50%+6px)] transition-[width,left] duration-300': isCompareMode,
+            'w-full': !isCompareMode
             }"
           >
-            <h3 class="text-lg font-semibold theme-text mb-2 truncate">
-              {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
-            </h3>
             <OutputPanelUI
               ref="optimizedOutputPanelRef"
               :loading="isTestingOptimized"
               :error="optimizedTestError"
-              :result="optimizedTestResult"
+              v-model:result="optimizedTestResult"
               class="flex-1"
-              hide-title
+              :resultTitle="isCompareMode ? t('test.optimizedResult') : t('test.testResult')"
             />
           </div>
         </div>
@@ -162,18 +158,18 @@ const ensureString = (value) => {
 // Test original prompt
 const testOriginalPrompt = async () => {
   if (!props.originalPrompt || !testContent.value) return
-  
+
   isTestingOriginal.value = true
   originalTestError.value = ''
-  
+
   try {
     if (originalOutputPanelRef.value) {
       const streamHandler = originalOutputPanelRef.value.handleStream()
-      
+
       // Ensure prompt is a string
       const promptStr = ensureString(props.originalPrompt)
       console.log('[TestPanel] Original prompt type:', typeof promptStr, promptStr.substring(0, 30))
-      
+
       await props.promptService.testPromptStream(
         promptStr,
         testContent.value,
@@ -197,20 +193,20 @@ const testOriginalPrompt = async () => {
 // Test optimized prompt
 const testOptimizedPrompt = async () => {
   if (!props.optimizedPrompt || !testContent.value) return
-  
+
   isTestingOptimized.value = true
   optimizedTestError.value = ''
-  
+
   try {
     const outputPanel = optimizedOutputPanelRef.value
-    
+
     if (outputPanel) {
       const streamHandler = outputPanel.handleStream()
-      
+
       // Ensure prompt is a string
       const promptStr = ensureString(props.optimizedPrompt)
       console.log('[TestPanel] Optimized prompt type:', typeof promptStr, promptStr.substring(0, 30))
-      
+
       await props.promptService.testPromptStream(
         promptStr,
         testContent.value,
@@ -239,7 +235,7 @@ const handleTest = async () => {
     optimizedTestError.value = errorMsg
     return
   }
-  
+
   if (isCompareMode.value) {
     // Compare test mode: test both original and optimized prompts
     try {
@@ -264,6 +260,7 @@ const handleTest = async () => {
 
 // Component mounted, if there is a default model, select it automatically
 onMounted(() => {
+  console.log("hideTitle value:", originalOutputPanelRef.value?.hideTitle);
   if (props.modelValue) {
     selectedTestModel.value = props.modelValue
   }
@@ -288,4 +285,4 @@ defineExpose({
   border-radius: 0.25rem;
   cursor: pointer;
 }
-</style> 
+</style>

@@ -622,7 +622,7 @@ html * {
   /* ===== 状态组件 ===== */
   /* 主题加载中 */
   .theme-loading {
-    @apply text-teal-700;
+    @apply text-teal-300;
   }
   /* 主题错误 */
   .theme-error {
@@ -1100,7 +1100,7 @@ html * {
   /* ===== 状态组件 ===== */
   /* 主题加载中 */
   .theme-loading {
-    @apply text-purple-400 animate-pulse;
+    @apply text-purple-400;
   }
 
   /* 主题错误 */
