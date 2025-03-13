@@ -132,7 +132,7 @@ export default {
     addTemplate: 'Add',
     editTemplate: 'Edit',
     deleteTemplate: 'Delete',
-    templateCount: '{count} Templates',
+    templateCount: '{count} template | {count} templates',
     
     // Button Text
     importTemplate: 'Import',
@@ -298,7 +298,7 @@ export default {
     select: {
       placeholder: 'Please select a model',
       configure: 'Configure Model',
-      noModels: 'Please configure a model',
+      noModels: 'No model',
       noAvailableModels: 'No available models'
     },
     manager: {

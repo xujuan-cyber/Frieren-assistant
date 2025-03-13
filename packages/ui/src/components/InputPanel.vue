@@ -3,7 +3,7 @@
   <div class="space-y-3">
     <!-- 标题 -->
     <div class="flex justify-between items-center">
-      <label class="block text-sm theme-label">{{ label }}</label>
+      <label class="block text-lg theme-label">{{ label }}</label>
     </div>
 
     <!-- 输入框 -->
@@ -27,7 +27,7 @@
       
       <!-- 提示词模板选择 -->
       <div class="flex-1 min-w-0">
-        <label v-if="templateLabel" class="block text-sm theme-label mb-1.5">{{ templateLabel }}</label>
+        <label v-if="templateLabel" class="block text-sm theme-label mb-1.5 truncate">{{ templateLabel }}</label>
         <slot name="template-select"></slot>
       </div>
 
