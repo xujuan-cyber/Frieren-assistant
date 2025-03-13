@@ -1,14 +1,17 @@
 <!-- 输出面板组件 -->
 <template>
   <div class="flex flex-col h-full">
-    <div v-if="!hideTitle" class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold theme-text">{{ t('output.title') }}</h3>
+    <div class="flex items-center justify-between mb-3">
+      <h3 v-if="resultTitle" class="text-lg font-semibold theme-text">{{ resultTitle }}</h3>
+      <div v-else-if="!hideTitle" class="text-lg font-semibold theme-text">{{ t('output.title') }}</div>
+      <div v-else></div>
+      
       <button
-        v-if="result"
+        v-if="contentTokens.length > 0 && !isStreaming"
         @click="copySelectedText"
         class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
       >
-        <span>{{ t('common.copy') }}</span>
+        <span>{{ t('prompt.copy') }}</span>
       </button>
     </div>
 
@@ -32,11 +35,11 @@
       </div>
 
       <div
-        v-if="loading && !isStreaming"
+        v-if="(loading || (isStreaming && contentTokens.length === 0))"
         class="absolute top-2 right-2 theme-loading px-3 py-1.5 rounded-lg flex items-center space-x-2"
       >
         <span class="animate-spin">⏳</span>
-        <span>{{ t('common.processing') }}</span>
+        <span>{{ t('output.processing') }}</span>
       </div>
     </div>
   </div>
@@ -81,6 +84,7 @@ interface Props {
   error?: string;
   result?: string;
   hideTitle?: boolean;
+  resultTitle?: string;
 }
 
 const props = defineProps<Props>()
@@ -92,7 +96,7 @@ const emit = defineEmits<{
 
 // 监听 result 变化
 watch(() => props.result, (newVal) => {
-  if (!isStreaming.value && newVal) {
+  if (!selfUpdate && !isStreaming.value && newVal) {
     contentTokens.value = [newVal]
   }
 })
@@ -109,7 +113,7 @@ interface StreamHandlers {
   onComplete: () => void;
   onError: (error: Error) => void;
 }
-
+let selfUpdate = false;
 // 处理流式响应
 const handleStream = (): StreamHandlers => {
   console.log('Starting stream handling, container exists:', !!resultContainer.value);
@@ -130,8 +134,16 @@ const handleStream = (): StreamHandlers => {
     },
     onComplete: () => {
       console.log('Stream completed, total tokens:', contentTokens.value.length);
+      const finalContent = contentTokens.value.join(''); // 保存一份最终内容
       isStreaming.value = false;
-      emit('update:result', displayContent.value);
+
+      // 设置标记，表示这是自身触发的更新
+      selfUpdate = true;
+      emit('update:result', finalContent);
+      // 给标记一个恢复的延时
+      setTimeout(() => {
+        selfUpdate = false;
+      }, 100);
     },
     onError: (error: Error) => {
       console.error('Stream error:', error);

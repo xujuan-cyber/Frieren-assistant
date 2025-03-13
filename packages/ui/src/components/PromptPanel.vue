@@ -34,7 +34,7 @@
           @click="copyPrompt"
           class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
         >
-          <span>{{ t('common.copy') }}</span>
+          <span>{{ t('prompt.copy') }}</span>
         </button>
       </div>
     </div>
