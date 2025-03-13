@@ -352,7 +352,8 @@ export default {
       initBaseServicesStart: 'Starting to initialize base services...',
       templateList: 'Template list',
       createPromptService: 'Creating prompt service...',
-      initComplete: 'Initialization complete'
+      initComplete: 'Initialization complete',
+      templateSelected: 'Template selected'
     },
     error: {
       initBaseServicesFailed: 'Failed to initialize base services'

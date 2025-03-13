@@ -155,7 +155,7 @@
                     <span
                     v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
                     class="capitalize ml-2 theme-manager-tag transition-opacity duration-300 ease-in-out"
-                  >已选择</span>
+                  >{{ t('template.selected') }}</span>
                 </transition>
               </div>
             </div>
