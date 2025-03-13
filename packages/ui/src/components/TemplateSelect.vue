@@ -5,8 +5,8 @@
       class="theme-select-button"
     >
       <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span v-if="modelValue" class="theme-text">
+        <div class="flex items-center space-x-2 min-w-0">
+          <span v-if="modelValue" class="theme-text truncate">
             {{ modelValue.name }}
           </span>
           <span v-else class="theme-placeholder">
@@ -108,7 +108,7 @@ const updateDropdownPosition = () => {
   if (!isOpen.value) return
   
   // 获取按钮元素
-  const button = document.querySelector('.template-select-button')
+  const button = document.querySelector('.theme-select-button')
   if (!button) return
 
   const buttonRect = button.getBoundingClientRect()
@@ -205,7 +205,7 @@ const selectTemplate = (template: Template) => {
 </script>
 
 <style scoped>
-.template-select-button {
+.theme-select-button {
   position: relative;
 }
 </style> 

@@ -147,7 +147,7 @@ const dropdownStyle = computed(() => ({
 </script>
 
 <style scoped>
-.template-select-button {
+.theme-select-button {
   position: relative;
 }
 </style> 

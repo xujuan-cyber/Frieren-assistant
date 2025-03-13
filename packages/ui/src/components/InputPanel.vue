@@ -20,13 +20,13 @@
     <!-- 控制面板 -->
     <div class="flex items-center gap-3">
       <!-- 模型选择 -->
-      <div class="min-w-[120px] w-fit">
+      <div class="min-w-[120px] w-fit shrink-0">
         <label class="block text-sm theme-label mb-1.5">{{ modelLabel }}</label>
         <slot name="model-select"></slot>
       </div>
       
       <!-- 提示词模板选择 -->
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <label v-if="templateLabel" class="block text-sm theme-label mb-1.5">{{ templateLabel }}</label>
         <slot name="template-select"></slot>
       </div>
