@@ -354,7 +354,8 @@ export default {
       initBaseServicesStart: '开始初始化基础服务...',
       templateList: '模板列表',
       createPromptService: '创建提示词服务...',
-      initComplete: '初始化完成'
+      initComplete: '初始化完成',
+      templateSelected: '已选择模板'
     },
     error: {
       initBaseServicesFailed: '初始化基础服务失败'

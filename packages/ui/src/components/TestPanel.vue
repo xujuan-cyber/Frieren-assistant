@@ -28,8 +28,8 @@
               />
               <button
                 @click="isCompareMode = !isCompareMode"
-                class="theme-button-secondary text-sm whitespace-nowrap"
-                :class="{ 'theme-button-primary': isCompareMode }"
+                class="h-10 text-sm whitespace-nowrap"
+                :class="isCompareMode ? 'theme-button-primary' : 'theme-button-secondary'"
               >
                 {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
               </button>

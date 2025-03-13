@@ -32,7 +32,7 @@
       </div>
 
       <!-- 提交按钮 -->
-      <div class="w-[140px]">
+      <div class="min-w-[140px]">
         <div class="h-[29px]"><!-- 占位，与其他元素对齐 --></div>
         <button
           @click="$emit('submit')"
