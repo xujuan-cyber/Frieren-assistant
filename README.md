@@ -3,11 +3,16 @@
 <div align="center">
 
 [![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
+![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/cakkkhboolfnadechdlgdcnjammejlna?style=flat&label=Chrome%20Users&link=https%3A%2F%2Fchromewebstore.google.com%2Fdetail%2F%25E6%258F%2590%25E7%25A4%25BA%25E8%25AF%258D%25E4%25BC%2598%25E5%258C%2596%25E5%2599%25A8%2Fcakkkhboolfnadechdlgdcnjammejlna)
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/linshen/prompt-optimizer)](https://hub.docker.com/r/linshen/prompt-optimizer)
+![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [安装指南](#-快速开始) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [安装指南](#快速开始) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+
+[English](README_EN.md) | [中文](README.md)
 
 </div>
 
@@ -108,7 +113,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [x] Chrome插件发布
 - [x] 自定义模型支持
 - [x] 多模型支持优化
-- [ ] 国际化支持
+- [x] 国际化支持
 
 详细的项目状态可查看 [项目状态文档](docs/project-status.md)
 
@@ -137,6 +142,14 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 3. 提交更改 (`git commit -m '添加某个特性'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 提交 Pull Request
+
+## 👏 贡献者名单
+
+感谢所有为项目做出贡献的开发者！
+
+<a href="https://github.com/linshenkx/prompt-optimizer/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=linshenkx/prompt-optimizer" alt="贡献者" />
+</a>
 
 ## 📄 开源协议
 
