@@ -25,7 +25,7 @@
     </button>
 
     <!-- Theme Selection Dropdown Menu -->
-    <div v-if="showThemeMenu" class="absolute right-0 mt-2 min-w-[36px] theme-dropdown z-50">
+    <div v-if="showThemeMenu" class="absolute right-0 mt-2 min-w-[132px] theme-dropdown z-50">
       <div class="py-1">
         <button 
           v-for="theme in availableThemes" 
