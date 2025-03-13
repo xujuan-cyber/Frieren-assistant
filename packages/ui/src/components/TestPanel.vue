@@ -65,7 +65,7 @@
               'w-full': !isCompareMode
             }"
           >
-            <h3 class="text-lg font-semibold theme-text mb-2">
+            <h3 class="text-lg font-semibold theme-text mb-2 truncate">
               {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
             </h3>
             <OutputPanelUI
