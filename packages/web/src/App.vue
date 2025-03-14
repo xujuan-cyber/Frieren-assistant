@@ -119,6 +119,7 @@
         :history="history"
         @reuse="handleSelectHistory"
         @clear="handleClearHistory"
+        @deleteChain="handleDeleteChain"
       />
     </template>
   </MainLayoutUI>
@@ -231,7 +232,8 @@ const {
 const {
   history,
   handleSelectHistory: handleSelectHistoryBase,
-  handleClearHistory: handleClearHistoryBase
+  handleClearHistory: handleClearHistoryBase,
+  handleDeleteChain: handleDeleteChainBase
 } = usePromptHistory(
   historyManager,
   prompt,
@@ -245,7 +247,8 @@ const {
 const {
   showHistory,
   handleSelectHistory,
-  handleClearHistory
+  handleClearHistory,
+  handleDeleteChain
 } = useHistoryManager(
   historyManager,
   prompt,
@@ -253,7 +256,9 @@ const {
   currentChainId,
   currentVersions,
   currentVersionId,
-  handleSelectHistoryBase
+  handleSelectHistoryBase,
+  handleClearHistoryBase,
+  handleDeleteChainBase
 )
 
 // 初始化模板管理器

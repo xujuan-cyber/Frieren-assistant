@@ -43,6 +43,13 @@
                     <div class="text-sm theme-manager-text-secondary">
                       {{ t('common.createdAt') }} {{ formatDate(chain.rootRecord.timestamp) }}
                     </div>
+                    <button
+                      @click.stop="deleteChain(chain.chainId)"
+                      class="text-xs theme-manager-button-secondary hover:text-red-500 transition-colors"
+                      :title="$t('common.delete')"
+                    >
+                      {{ $t('common.delete') }}
+                    </button>
                   </div>
                   <div class="text-sm theme-manager-text break-all">
                     {{ chain.rootRecord.originalPrompt }}
@@ -133,7 +140,11 @@ import { historyManager } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 
 const props = defineProps({
-  show: Boolean
+  show: Boolean,
+  history: {
+    type: Array as PropType<PromptRecordChain[]>,
+    default: () => []
+  }
 })
 
 const { t } = useI18n()
@@ -146,14 +157,15 @@ const emit = defineEmits<{
     rootPrompt: string 
   }): void
   (e: 'clear'): void
+  (e: 'deleteChain', chainId: string): void
 }>()
 
 const toast = useToast()
 const expandedVersions = ref<Record<string, boolean>>({})
 
-// 添加排序后的历史记录计算属性
+// 修改排序后的历史记录计算属性，使用props.history而不是直接调用historyManager.getAllChains()
 const sortedHistory = computed(() => {
-  return historyManager.getAllChains().sort((a, b) => b.rootRecord.timestamp - a.rootRecord.timestamp)
+  return props.history.sort((a, b) => b.rootRecord.timestamp - a.rootRecord.timestamp)
 })
 
 // 切换版本展开/收起状态
@@ -168,7 +180,7 @@ const toggleVersion = (recordId: string) => {
 const handleClear = async () => {
   if (confirm(t('history.confirmClear'))) {
     emit('clear')
-    toast.success(t('history.cleared'))
+    // 不需要强制刷新，因为现在使用props.history
   }
 }
 
@@ -197,6 +209,14 @@ const reuse = (record: PromptRecord, chain: PromptRecordChain) => {
 const truncateText = (text: string, maxLength: number) => {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...'
+}
+
+// 添加删除单条记录的方法
+const deleteChain = (chainId: string) => {
+  if (confirm(t('history.confirmDeleteChain'))) {
+    emit('deleteChain', chainId)
+    // 不需要强制刷新，因为现在使用props.history
+  }
 }
 </script>
 

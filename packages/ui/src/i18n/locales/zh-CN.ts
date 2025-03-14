@@ -195,7 +195,9 @@ export default {
     iterationNote: '迭代说明',
     optimizedPrompt: '优化后',
     confirmClear: '确定要清空所有历史记录吗？此操作不可恢复。',
+    confirmDeleteChain: '确定要删除此条历史记录吗？此操作不可恢复。',
     cleared: '历史记录已清空',
+    chainDeleted: '历史记录已删除',
     useThisVersion: '使用此版本',
     noHistory: '暂无历史记录'
   },
@@ -324,6 +326,7 @@ export default {
       initTemplateSelectFailed: '初始化模板选择失败',
       loadHistoryFailed: '加载历史记录失败',
       clearHistoryFailed: '清空历史记录失败',
+      historyChainDeleteFailed: '删除历史记录失败',
       selectTemplateFailed: '选择提示词失败：{error}',
       noOptimizeTemplate: '请先选择优化提示词',
       noIterateTemplate: '请先选择迭代提示词',
@@ -338,7 +341,8 @@ export default {
       iterateSuccess: '迭代优化成功',
       modelSelected: '已选择模型: {name}',
       templateSelected: '已选择{type}提示词: {name}',
-      historyClear: '历史记录已清空'
+      historyClear: '历史记录已清空',
+      historyChainDeleted: '历史记录已删除'
     },
     warn: {
       loadOptimizeTemplateFailed: '加载已保存的优化提示词失败',

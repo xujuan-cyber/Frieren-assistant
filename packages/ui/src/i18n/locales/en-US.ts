@@ -193,9 +193,11 @@ export default {
     iterationNote: 'Iteration Note',
     optimizedPrompt: 'Optimized Prompt',
     confirmClear: 'Are you sure you want to clear all history records? This action cannot be undone.',
-    cleared: 'History records cleared',
+    confirmDeleteChain: 'Are you sure you want to delete this history record? This action cannot be undone.',
+    cleared: 'History cleared',
+    chainDeleted: 'History record deleted',
     useThisVersion: 'Use This Version',
-    noHistory: 'No History Records'
+    noHistory: 'No history records'
   },
   theme: {
     title: 'Theme Settings',
@@ -314,7 +316,7 @@ export default {
       optimizeFailed: 'Optimization failed',
       iterateFailed: 'Iteration optimization failed',
       testFailed: 'Test failed',
-      testError: 'An error occurred during testing',
+      testError: 'Error occurred during test',
       loadTemplatesFailed: 'Failed to load templates',
       initFailed: 'Initialization failed: {error}',
       loadModelsFailed: 'Failed to load model list',
@@ -322,12 +324,13 @@ export default {
       initTemplateSelectFailed: 'Failed to initialize template selection',
       loadHistoryFailed: 'Failed to load history',
       clearHistoryFailed: 'Failed to clear history',
+      historyChainDeleteFailed: 'Failed to delete history record',
       selectTemplateFailed: 'Failed to select template: {error}',
       noOptimizeTemplate: 'Please select an optimization template first',
       noIterateTemplate: 'Please select an iteration template first',
       incompleteTestInfo: 'Please fill in complete test information',
-      noDefaultTemplate: 'Unable to load default template',
-      optimizeProcessFailed: 'Error during optimization process',
+      noDefaultTemplate: 'Failed to load default template',
+      optimizeProcessFailed: 'Error in optimization process',
       testProcessError: 'Error occurred during test process',
       initTemplateFailed: 'Failed to initialize template selection'
     },
@@ -336,7 +339,8 @@ export default {
       iterateSuccess: 'Iteration optimization successful',
       modelSelected: 'Model selected: {name}',
       templateSelected: '{type} template selected: {name}',
-      historyClear: 'History cleared'
+      historyClear: 'History cleared',
+      historyChainDeleted: 'History record deleted'
     },
     warn: {
       loadOptimizeTemplateFailed: 'Failed to load saved optimization template',
