@@ -31,7 +31,7 @@
                 </h3>
                 <button
                   @click="$emit('update:modelValue', false)"
-                  class="theme-text-secondary hover:theme-text transition-colors"
+                  class="hover:theme-text transition-colors"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -82,7 +82,7 @@ defineProps({
   }
 })
 
-defineEmits(['update:modelValue', 'confirm'])
+const emit = defineEmits(['update:modelValue', 'confirm'])
 
 const handleBackdropClick = (event) => {
   if (event.target === event.currentTarget) {

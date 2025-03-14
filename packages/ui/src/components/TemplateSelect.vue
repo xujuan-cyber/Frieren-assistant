@@ -2,7 +2,7 @@
   <div class="relative">
     <button
       @click.stop="isOpen = !isOpen"
-      class="theme-select-button"
+      class="theme-template-select-button"
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2 min-w-0">
@@ -54,7 +54,7 @@
       <div class="theme-dropdown-section">
         <button
           @click="$emit('manage')"
-          class="theme-dropdown-button"
+          class="theme-dropdown-config-button"
         >
           <span>📝</span>
           <span>{{ t('template.configure') }}</span>
@@ -108,7 +108,7 @@ const updateDropdownPosition = () => {
   if (!isOpen.value) return
   
   // 获取按钮元素
-  const button = document.querySelector('.theme-select-button')
+  const button = document.querySelector('.theme-template-select-button')
   if (!button) return
 
   const buttonRect = button.getBoundingClientRect()
@@ -205,7 +205,7 @@ const selectTemplate = (template: Template) => {
 </script>
 
 <style scoped>
-.theme-select-button {
+.theme-template-select-button {
   position: relative;
 }
 </style> 
