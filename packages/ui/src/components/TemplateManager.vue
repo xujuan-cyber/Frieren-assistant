@@ -92,7 +92,7 @@
                   <button
                     @click="selectTemplate(template)"
                     :class="[
-                      'rounded-lg hidden',
+                      'rounded-lg hidden text-sm',
                       (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
                         ? 'theme-manager-button-primary'
                         : 'theme-manager-button-secondary'
@@ -105,27 +105,27 @@
                   <button
                     v-if="!template.isBuiltin"
                     @click="editTemplate(template)"
-                    class="theme-manager-button-secondary"
+                    class="text-sm theme-manager-button-secondary"
                   >
                     {{ t('common.edit') }}
                   </button>
                   <button
                     v-if="template.isBuiltin"
                     @click="viewTemplate(template)"
-                    class="theme-manager-button-secondary"
+                    class="text-sm theme-manager-button-secondary"
                   >
                     {{ t('template.view') }}
                   </button>
                   <button
                     v-if="template.isBuiltin"
                     @click="copyTemplate(template)"
-                    class="theme-manager-button-secondary"
+                    class="text-sm theme-manager-button-secondary"
                   >
                     {{ t('templateManager.copyTemplate') }}
                   </button>
                   <button
                     @click="exportTemplate(template.id)"
-                    class="theme-manager-button-secondary inline-flex items-center justify-center gap-1"
+                    class="text-sm theme-manager-button-secondary inline-flex items-center justify-center gap-1"
                   >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -135,7 +135,7 @@
                   <button
                     v-if="!template.isBuiltin"
                     @click="confirmDelete(template.id)"
-                    class="theme-manager-button-danger"
+                    class="text-sm theme-manager-button-danger"
                   >
                     {{ t('common.delete') }}
                   </button>

@@ -2,7 +2,7 @@
 <template>
   <div class="flex flex-col h-full">
     <div class="flex items-center justify-between mb-3">
-      <h3 v-if="resultTitle" class="text-lg font-semibold theme-text">{{ resultTitle }}</h3>
+      <h3 v-if="resultTitle" class="text-lg font-semibold theme-text truncate">{{ resultTitle }}</h3>
       <div v-else-if="!hideTitle" class="text-lg font-semibold theme-text">{{ t('output.title') }}</div>
       <div v-else></div>
       
@@ -21,7 +21,7 @@
           ref="resultContainer"
           class="absolute inset-0 h-full theme-input whitespace-pre-wrap overflow-auto"
         >
-          <span v-if="!contentTokens.length" class="theme-text-secondary">{{ t('output.placeholder') }}</span>
+          <span v-if="!contentTokens.length" class="theme-text-placeholder">{{ t('output.placeholder') }}</span>
           <span v-else v-text="displayContent" class="theme-text"></span>
         </div>
       </div>

@@ -37,7 +37,7 @@
         <button
           @click="$emit('submit')"
           :disabled="loading || disabled || !modelValue.trim()"
-          class="w-full h-10 theme-button-primary flex items-center justify-center space-x-2"
+          class="w-full h-10 theme-button-primary flex items-center truncate justify-center space-x-2"
         >
           <span>{{ loading ? loadingText : buttonText }}</span>
         </button>

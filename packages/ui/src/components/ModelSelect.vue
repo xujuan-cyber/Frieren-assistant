@@ -2,7 +2,7 @@
   <div class="relative">
     <button
       @click.stop="toggleDropdown"
-      class="theme-select-button"
+      class="theme-template-select-button"
       :disabled="disabled"
     >
       <div class="flex items-center justify-between">
@@ -50,7 +50,7 @@
       <div class="theme-dropdown-section">
         <button
           @click="$emit('config')"
-          class="theme-dropdown-button"
+          class="theme-dropdown-config-button"
         >
           <span>⚙️</span>
           <span>{{ t('model.select.configure') }}</span>
@@ -147,7 +147,7 @@ const dropdownStyle = computed(() => ({
 </script>
 
 <style scoped>
-.theme-select-button {
+.theme-template-select-button {
   position: relative;
 }
 </style> 

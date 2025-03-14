@@ -20,7 +20,7 @@ html {
 
 /* 蓝色主题背景 */
 :root.theme-blue {
-  @apply bg-blue-100 text-blue-950;
+  @apply bg-sky-100 text-sky-950;
 }
 
 /* 绿色主题背景 */
@@ -57,19 +57,15 @@ html * {
   .theme-header {
     @apply sticky top-0 z-20 
          bg-white/90 
-         theme-blue:bg-blue-200/90 
          backdrop-blur-sm 
          border-b border-gray-200 
-         theme-blue:border-blue-300 
          shadow-sm transition-colors duration-300;
   }
 
   /* 主题卡片 */
   .theme-card {
     @apply p-4 rounded-lg bg-white 
-         theme-blue:bg-blue-200 
          border border-gray-200 
-         theme-blue:border-blue-400 
          shadow-sm;
   }
 
@@ -77,27 +73,23 @@ html * {
 
   /* 主题标题 */
   .theme-title {
-    @apply text-gray-500 
-         theme-blue:text-blue-950 
+    @apply text-gray-500
          font-semibold;
   }
 
   /* 主题文本 */
   .theme-text {
-    @apply text-stone-600 
-         theme-blue:text-blue-950;
+    @apply text-stone-600;
   }
 
   /* 主题次要文本 */
-  .theme-text-secondary {
-    @apply text-stone-600/80  
-         theme-blue:text-blue-800;
+  .theme-text-placeholder {
+    @apply text-stone-400/80;
   }
 
   /* 主题标签 */
   .theme-label {
-    @apply text-gray-700 
-         theme-blue:text-blue-700
+    @apply text-gray-700
          font-medium;
   }
 
@@ -107,15 +99,10 @@ html * {
   .theme-input {
     @apply w-full rounded-lg px-4 py-3 
          bg-stone-50 
-         theme-blue:bg-blue-50 
          border border-stone-300 
-         theme-blue:border-blue-200  
          text-stone-800 
-         theme-blue:text-blue-900 
-         placeholder-gray-400  
-         theme-blue:placeholder-blue-400  
+         placeholder-stone-400/80  
           focus:ring-2 focus:ring-stone-500/50 
-         theme-blue:focus:ring-blue-500/50 
          focus:border-transparent outline-none transition duration-300;
   }
 
@@ -127,18 +114,13 @@ html * {
   /* 主题主要按钮 */
   .theme-button-primary {
     @apply theme-button bg-stone-200 hover:bg-stone-300 
-         theme-blue:bg-blue-600 theme-blue:hover:bg-blue-500 
          text-stone-700 rounded-lg font-medium transition-colors
-         disabled:opacity-50 disabled:cursor-not-allowed
-         theme-blue:disabled:bg-blue-600/50;
+         disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   /* 主题次要按钮 */
   .theme-button-secondary {
-    @apply theme-button bg-stone-100 hover:bg-stone-200 text-stone-700 
-         theme-blue:bg-blue-100 
-         theme-blue:text-blue-700 
-         theme-blue:hover:bg-blue-200;
+    @apply theme-button bg-stone-100 hover:bg-stone-200 text-stone-700;
   }
 
   .theme-prompt-version-selected {
@@ -154,30 +136,24 @@ html * {
   .theme-icon-button {
     @apply flex items-center gap-1 px-3 py-3 h-9 rounded-lg transition-all duration-300
            bg-stone-100 
-           theme-blue:bg-blue-100 
            text-stone-700 
-           theme-blue:text-blue-700 
-           hover:bg-stone-200 
-           theme-blue:hover:bg-blue-200;
+           hover:bg-stone-200;
   }
 
   /* ===== 状态组件 ===== */
   /* 主题加载中 */
   .theme-loading {
-    @apply text-stone-600 
-         theme-blue:text-blue-600 animate-pulse;
+    @apply text-sm rounded text-stone-600 animate-pulse;
   }
 
   /* 主题错误 */
   .theme-error {
-    @apply text-red-600 
-         theme-blue:text-red-600;
+    @apply text-red-600;
   }
 
   /* 主题成功 暂无引用*/
   .theme-success {
-    @apply text-teal-600 
-         theme-blue:text-teal-600;
+    @apply text-teal-600;
   }
 
   /* ===== 滚动条 ===== */
@@ -195,11 +171,11 @@ html * {
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-white/60 theme-blue:bg-blue-300 rounded;
+    @apply bg-white/60 rounded;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-white theme-blue:bg-blue-400;
+    @apply bg-white;
   }
 
   /* 特定元素滚动条类（跨浏览器支持） */
@@ -214,31 +190,26 @@ html * {
     @apply absolute z-50 min-w-[300px] w-max max-w-[90vw] mt-1 px-1
           backdrop-blur-sm rounded-lg 
           bg-white/90 
-          theme-blue:bg-blue-50/95 
          border border-white 
-         theme-blue:border-blue-200/50 
          shadow-xl;
   }
 
   /* 下拉菜单按钮 */
-  .theme-select-button {
+  .theme-template-select-button {
     @apply w-full h-10 px-3 py-2 rounded-lg transition-all
     bg-stone-50 
-         theme-blue:bg-blue-100/30 
          border border-stone-300 
-         theme-blue:border-blue-300/50 
          text-gray-900 
-         theme-blue:text-blue-900
-         theme-blue:hover:border-blue-500/70 
          hover:ring-2 hover:ring-stone-500/50 hover:border-transparent
-         theme-blue:focus:ring-blue-500/50 
          outline-none duration-300;
   }
   /* 下拉菜单项 */
   .theme-dropdown-item {
-    @apply px-3 py-2 mb-1 rounded-lg cursor-pointer transition-colors
-        text-stone-600 
-        theme-blue:text-blue-950;
+    @apply px-3 py-2 mb-1 text-sm rounded-lg cursor-pointer transition-colors
+        text-stone-600;
+  }
+  .theme-dropdown-item-description {
+    @apply text-stone-600/60;
   }
   .theme-dropdown-item:last-child {
     @apply mb-0;
@@ -246,20 +217,14 @@ html * {
 
   /* 下拉菜单项激活 */
   .theme-dropdown-item-active {
-    @apply bg-stone-300/70 
-        theme-blue:bg-blue-200/90 
-        text-stone-600 
-        theme-blue:text-blue-800;
+    @apply bg-stone-300/70 text-stone-600;
   }
 
   /* 下拉菜单项未激活 */
   .theme-dropdown-item-inactive {
-    @apply border-transparent
-        theme-blue:border-blue-200/50 
+    @apply 
         hover:bg-stone-300/40 
-        theme-blue:hover:bg-blue-100/50 
-        text-stone-700 
-        theme-blue:text-blue-700;
+        text-stone-700;
   }
   .theme-dropdown-item-tag {
     @apply bg-stone-500/80  text-white;
@@ -268,43 +233,35 @@ html * {
   /* 下拉菜单分组 */
   .theme-dropdown-section {
     @apply p-2 rounded-xl mb-1 
-    bg-stone-200/60 
-        theme-blue:border-blue-200/50 
-        theme-blue:bg-blue-100 
-        text-purple-700 
-        theme-blue:text-blue-700 
+       bg-stone-200/60 
+       text-purple-700 
         cursor-pointer;
   }
 
   /* 下拉菜单按钮 */
-  .theme-dropdown-button {
+  .theme-dropdown-config-button {
     @apply w-full px-3 py-2 text-sm rounded-lg
         bg-stone-300/60 
-        theme-blue:bg-blue-100 
         text-stone-600 
-        theme-blue:text-blue-700 
         hover:bg-stone-300 
-        theme-blue:hover:bg-blue-200 
         transition-colors flex items-center justify-center space-x-1;
   }
 
   /* 下拉菜单空状态 */
   .theme-dropdown-empty {
     @apply px-3 py-2 text-sm
-        text-gray-500 
-        theme-blue:text-blue-500;
+        text-gray-500;
   }
   /* 占位符 */
   .theme-placeholder {
-    @apply text-gray-400 
-         theme-blue:text-blue-400;
+    @apply text-gray-400;
   }
 
   /* ===== 模态框组件 ===== */
 
   /* 模态框容器 */
   .theme-modal {
-    @apply bg-white/80 
+    @apply bg-white/90 
          theme-blue:bg-blue-100 
          backdrop-blur-sm rounded-xl shadow-xl 
          border border-gray-200
@@ -357,18 +314,15 @@ html * {
 
   /* 历史记录卡片 */
   .theme-history-card {
-    @apply p-3 bg-gray-50/80 
-         theme-blue:bg-blue-200 
+    @apply p-3 bg-stone-50/80 
          rounded-xl border 
-         border-gray-200 
-         theme-blue:border-blue-400 
-         overflow-hidden;
+         border-stone-200 
+         shadow-sm hover:shadow-md overflow-hidden;
   }
 
   /* 历史记录卡片头部 */
   .theme-history-card-header {
-    @apply p-3 border-b border-gray-200/50 /*卡片头部下边线*/
-         theme-blue:border-blue-200/50;
+    @apply p-3 border-b border-gray-200/50; /*卡片头部下边线*/
   }
 
   /* 历史提示词内容*/
@@ -397,7 +351,7 @@ html * {
   }
 
   .theme-manager-card-optimize {
-    @apply bg-stone-300/80;
+    @apply bg-stone-400/60;
   }
 
   .theme-manager-card-iterate {
@@ -407,7 +361,7 @@ html * {
   /* 管理界面标签 */
   .theme-manager-tag {
     @apply px-2 py-1 text-xs rounded-full
-    bg-stone-300/80 
+    bg-stone-400
          theme-blue:bg-blue-200
          text-white 
          theme-blue:text-blue-800;
@@ -521,48 +475,319 @@ html * {
 
 /* 主题变体 */
 :root[data-theme="blue"] {
+  .theme-mask {
+    @apply bg-sky-950/50;
+  }
+  /* 主题头部导航栏 */
+  .theme-header {
+    @apply bg-white/80 border-sky-300;
+  }
+  /* 主题卡片 */
+  .theme-card {
+    @apply bg-white/90 border-sky-200 shadow-sm;
+  }
+
+    /* ===== 文本组件 ===== */
+
+  /* 主题标题 */
+  .theme-title {
+    @apply text-sky-700;
+  }
+
+  /* 主题文本 */
   .theme-text {
-    @apply text-blue-950;
+    @apply text-sky-700;
   }
 
-  .theme-text-secondary {
-    @apply text-blue-800;
+  /* 主题次要文本 */
+  .theme-text-placeholder {
+    @apply text-sky-600/40;
   }
 
-  .theme-card,
-  .theme-modal,
-  .theme-history,
-  .theme-manager-container,
+  /* 主题标签 */
+  .theme-label {
+    @apply text-sky-700;
+  }
+/* ===== 表单组件 ===== */
+
+  /* 主题输入框 */
+  .theme-input {
+    @apply bg-sky-50 border-sky-200 
+         text-sky-800 placeholder-sky-600/40 
+         focus:ring-blue-500/50;
+  }
+
+  /* ===== 按钮组件 ===== */
+  /* 主题主要按钮 */
+  .theme-button-primary {
+    @apply bg-sky-200 text-sky-600 hover:bg-sky-300/80 disabled:bg-sky-300/80;
+  }
+
+  /* 主题次要按钮 */
+  .theme-button-secondary {
+    @apply bg-sky-100 text-sky-600 hover:bg-sky-200;
+  }
+
+  .theme-prompt-version-selected {
+    @apply bg-sky-400/80 text-white;
+  }
+
+  .theme-prompt-version-unselected {
+    @apply bg-sky-100 hover:bg-sky-400/20 text-sky-400 
+    transition duration-300;
+  }
+
+  /* 主题图标按钮 */
+  .theme-icon-button {
+    @apply bg-sky-100 text-sky-700 hover:bg-sky-200;
+  }
+
+    /* ===== 状态组件 ===== */
+  /* 主题加载中 */
+  .theme-loading {
+    @apply text-sky-600;
+  }
+
+  /* ===== 滚动条 ===== */
+  ::-webkit-scrollbar-thumb {
+    @apply bg-sky-200;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-sky-400;
+  }
+
+  /* ===== 下拉菜单 ===== */
+  .theme-dropdown {
+    @apply bg-sky-50/95 border-sky-200/50;
+  }
+
+  /* 下拉菜单按钮 */
+  .theme-template-select-button {
+    @apply bg-sky-100/30 
+         border-sky-200 
+         text-sky-900
+         hover:ring-blue-500/50 
+         focus:ring-sky-500/50;
+  }
+  /* 下拉菜单项 */
+  .theme-dropdown-item {
+    @apply text-sky-800;
+  }
+  .theme-dropdown-item-description {
+    @apply text-sky-600/60;
+  }
+  /* 下拉菜单项激活 */
+  .theme-dropdown-item-active {
+    @apply 
+        bg-sky-200/90 
+        text-sky-800;
+  }
+
+  /* 下拉菜单项未激活 */
+  .theme-dropdown-item-inactive {
+    @apply 
+        hover:bg-sky-200/50 
+        text-sky-700/80;
+  }
+  .theme-dropdown-item-tag {
+    @apply bg-sky-500/80  text-white;
+  }
+
+  /* 下拉菜单分组 */
+  .theme-dropdown-section {
+    @apply bg-sky-100 border-sky-100/50 ;
+  }
+
+  /* 下拉菜单按钮 */
+  .theme-dropdown-config-button {
+    @apply 
+        bg-sky-200/60 
+        text-sky-700 
+        hover:bg-sky-200;
+  }
+
+  /* 下拉菜单空状态 */
+  .theme-dropdown-empty {
+    @apply 
+        text-sky-500;
+  }
+  /* 占位符 */
+  .theme-placeholder {
+    @apply 
+         text-sky-400;
+  }
+
+  /* ===== 模态框组件 ===== */
+  /* 模态框容器 */
+  .theme-modal {
+    @apply 
+         bg-sky-100
+         border-sky-300;
+  }
+
+  /* 模态框标题栏 */
+  .theme-modal-header {
+    @apply bg-white rounded-t-xl
+         border-sky-200;
+  }
+  .theme-modal-content {
+    @apply bg-white;
+  }
+  /* 模态框底部 */
+  .theme-modal-footer {
+    @apply bg-white rounded-b-xl
+         border-sky-200;
+  }
+
+  /* ===== 历史记录组件 ===== */
+
+  /* 历史容器 */
+  .theme-history {
+    @apply bg-sky-100 
+         border-sky-300;
+  }
+
+  /* 历史标题栏 */
+  .theme-history-header {
+    @apply 
+         border-blue-200 
+         bg-blue-50/95;
+  }
+
+  /* ===== 卡片组件 ===== */
+
+  /* 历史记录卡片 */
+  .theme-history-card {
+    @apply 
+         bg-white 
+         border-sky-200;
+  }
+
+  /* 历史记录卡片头部 */
+  .theme-history-card-header {
+    @apply border-sky-200/50; /*卡片头部下边线*/
+  }
+
+  /* 历史提示词内容*/
+  .theme-history-card-content {
+    @apply bg-sky-200/40 border-sky-200/50;
+  }
+
+  /* ===== 管理界面组件 ===== */
+
+  /* 管理界面容器 */
+  .theme-manager-container {
+    @apply 
+         bg-sky-100
+         border-sky-200;
+  }
+
+  /* 管理界面卡片 */
   .theme-manager-card {
-    @apply bg-white border-blue-200;
+    @apply 
+         bg-white 
+         border-sky-100;
   }
 
-  .theme-modal-header,
-  .theme-history-header,
+  .theme-manager-card-optimize {
+    @apply bg-sky-400/60;
+  }
+
+  .theme-manager-card-iterate {
+    @apply bg-teal-300/80;
+  }
+
+  /* 管理界面标签 */
+  .theme-manager-tag {
+    @apply bg-sky-200
+         text-sky-800;
+  }
+  .theme-manager-tag-optimize {
+    @apply bg-amber-500/50 text-white;
+  }
+
+  .theme-manager-tag-iterate {
+    @apply bg-green-500/50 text-white;
+  }
+
+  /* 管理界面分割线 */
   .theme-manager-divider {
-    @apply divide-blue-400/80;
+    @apply divide-sky-100;
   }
 
-  .theme-manager-text {
-    @apply text-blue-950;
-  }
-
-  .theme-manager-text-secondary {
-    @apply text-blue-800;
-  }
-  .theme-manager-button-primary {
-    @apply bg-sky-500 hover:bg-sky-400 text-white;
-  }
-  .theme-manager-button-secondary {
-    @apply bg-sky-200 hover:bg-sky-300 text-sky-900;
-  }
-
-  .theme-manager-text-disabled {
-    @apply text-blue-500;
-  }
-
+  /* 管理界面表单输入框 */
   .theme-manager-input {
-    @apply bg-white border-blue-300 text-blue-950 placeholder-blue-400;
+    @apply bg-sky-50 
+         border-blue-300 
+         text-blue-900 
+         placeholder-blue-400 
+         focus:ring-sky-500/50 focus:border-transparent;
+  }
+
+  /* 管理界面按钮 - 主要 （添加自定义模型） */
+  .theme-manager-button-primary {
+    @apply 
+         bg-sky-200 text-sky-600;
+  }
+
+  /* 管理界面按钮 - 次要 */
+  .theme-manager-button-secondary {
+    @apply 
+         bg-sky-200/50 hover:bg-sky-200 text-sky-600;
+  }
+  /* 管理界面按钮 - 测试连接 */
+  .theme-manager-button-test {
+    @apply 
+
+          bg-sky-300
+          hover:bg-sky-400;
+  }
+
+  /* 管理界面按钮 - 编辑 */
+  .theme-manager-button-edit {
+    @apply
+          bg-teal-300 
+          hover:bg-teal-400;
+  }
+
+  /* 管理界面按钮 - 成功（启用） */
+  .theme-manager-button-success {
+    @apply
+         bg-teal-600 
+         hover:bg-teal-500;
+  }
+
+  /* 管理界面按钮 - 警告（禁用） */
+  .theme-manager-button-warning {
+    @apply
+         bg-gray-300 
+         hover:bg-gray-400;
+  }
+
+  /* 管理界面按钮 - 危险（删除） */
+  .theme-manager-button-danger {
+    @apply 
+         bg-red-400/80 
+         hover:bg-red-500/80;
+  }
+
+  /* 管理界面文本 - 主要 */
+  .theme-manager-text {
+    @apply 
+        text-sky-700;
+  }
+
+  /* 管理界面文本 - 次要 */
+  .theme-manager-text-secondary {
+    @apply 
+        text-sky-600;
+  }
+
+  /* 管理界面文本 - 禁用 */
+  .theme-manager-text-disabled {
+    @apply 
+         text-blue-400;
   }
 }
 
@@ -596,8 +821,8 @@ html * {
     @apply text-teal-200;
   }
 
-  .theme-text-secondary {
-    @apply text-teal-600;
+  .theme-text-placeholder {
+    @apply text-teal-500/80;
   }
 
   .theme-header {
@@ -622,7 +847,7 @@ html * {
   /* ===== 状态组件 ===== */
   /* 主题加载中 */
   .theme-loading {
-    @apply text-teal-300;
+    @apply text-teal-200;
   }
   /* 主题错误 */
   .theme-error {
@@ -657,7 +882,7 @@ html * {
   .theme-dropdown-section {
     @apply border-teal-200/50 bg-teal-200/60 text-teal-700;
   }
-  .theme-dropdown-button {
+  .theme-dropdown-config-button {
     @apply bg-teal-300 hover:bg-teal-200 text-teal-700;
   }
   /* 下拉菜单空状态 */
@@ -716,10 +941,10 @@ html * {
   }
 
   .theme-input {
-    @apply bg-teal-800/50 border-teal-700 text-teal-300 placeholder-teal-400 focus:ring-teal-500/80;
+    @apply bg-teal-800/50 border-teal-700 text-teal-300 placeholder-teal-500/80 focus:ring-teal-500/80;
   }
 
-  .theme-select-button {
+  .theme-template-select-button {
     @apply bg-teal-700 border-teal-600 hover:ring-2 hover:ring-teal-500/80 text-teal-300;
   }
 
@@ -801,7 +1026,7 @@ html * {
   }
 
   /* 主题次要文本 */
-  .theme-text-secondary {
+  .theme-text-placeholder {
     @apply text-white/50;
   }
 
@@ -826,8 +1051,8 @@ html * {
 
   /* 主题次要按钮 */
   .theme-button-secondary {
-    @apply bg-purple-400/60
-         text-purple-300
+    @apply bg-purple-400/20
+         text-purple-200
          hover:bg-purple-500/80;
   }
   .theme-prompt-version-selected {
@@ -880,7 +1105,7 @@ html * {
   }
 
   /* 下拉菜单按钮 */
-  .theme-select-button {
+  .theme-template-select-button {
     @apply bg-black/20 border-purple-600/50
          text-white 
          hover:ring-purple-300/50;
@@ -909,7 +1134,7 @@ html * {
   }
 
   /* 下拉菜单按钮 */
-  .theme-dropdown-button {
+  .theme-dropdown-config-button {
     @apply bg-purple-600/20 text-purple-300 hover:bg-purple-600/30;
   }
 
@@ -1063,8 +1288,8 @@ html * {
     @apply text-slate-100;
   }
 
-  .theme-text-secondary {
-    @apply text-slate-300;
+  .theme-text-placeholder {
+    @apply text-slate-500/80;
   }
   /* 主题标签 */
   .theme-label {
@@ -1081,9 +1306,9 @@ html * {
   }
   .theme-input {
     @apply bg-slate-800 border-slate-600 
-    text-slate-100 placeholder-slate-500 focus:ring-purple-600/50;
+    text-slate-100 placeholder-slate-500/80 focus:ring-purple-600/50;
   }
-  .theme-select-button {
+  .theme-template-select-button {
     @apply bg-slate-800 border-gray-700/50 text-slate-100 hover:ring-purple-600/50;
   }
   .theme-prompt-version-selected {
@@ -1100,7 +1325,7 @@ html * {
   /* ===== 状态组件 ===== */
   /* 主题加载中 */
   .theme-loading {
-    @apply text-purple-400;
+    @apply text-slate-400;
   }
 
   /* 主题错误 */
@@ -1151,7 +1376,7 @@ html * {
   }
 
   /* 下拉菜单按钮 */
-  .theme-dropdown-button {
+  .theme-dropdown-config-button {
     @apply bg-purple-800/30 text-purple-300 hover:bg-purple-800/50;
   }
   /* 下拉菜单空状态 */
