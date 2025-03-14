@@ -262,16 +262,13 @@ html * {
   /* 模态框容器 */
   .theme-modal {
     @apply bg-white/90 
-         theme-blue:bg-blue-100 
          backdrop-blur-sm rounded-xl shadow-xl 
-         border border-gray-200
-         theme-blue:border-blue-400;
+         border border-gray-200;
   }
 
   /* 模态框标题栏 */
   .theme-modal-header {
-    @apply border-b border-gray-200 
-         theme-blue:border-blue-200 p-4;
+    @apply border-b border-gray-200 p-4;
   }
 
   /* 模态框内容 */
@@ -282,7 +279,6 @@ html * {
   /* 模态框底部 */
   .theme-modal-footer {
     @apply border-t border-gray-200 
-         theme-blue:border-blue-200
          p-4 flex justify-end space-x-3;
   }
 
@@ -291,18 +287,14 @@ html * {
   /* 历史容器 */
   .theme-history {
     @apply bg-white/90 
-         theme-blue:bg-blue-100 
          backdrop-blur-sm rounded-xl shadow-xl 
-         border border-l border-gray-200 
-         theme-blue:border-blue-400;
+         border border-l border-gray-200;
   }
 
   /* 历史标题栏 */
   .theme-history-header {
     @apply border-b border-gray-200 
-         theme-blue:border-blue-200 
-         p-4 sm:p-6 flex items-center justify-between rounded-t-xl 
-         theme-blue:bg-blue-50/95;
+         p-4 sm:p-6 flex items-center justify-between rounded-t-xl;
   }
 
   .theme-history-empty-button {
@@ -335,19 +327,15 @@ html * {
   /* 管理界面容器 */
   .theme-manager-container {
     @apply bg-white/90  
-         theme-blue:bg-blue-100/90
          backdrop-blur-sm rounded-xl shadow-xl 
-         border border-slate-200 
-         theme-blue:border-blue-400;
+         border border-slate-200;
   }
 
   /* 管理界面卡片 */
   .theme-manager-card {
     @apply bg-stone-50 
-         theme-blue:bg-blue-200 
          rounded-xl shadow-sm hover:shadow-md transition-shadow 
-         border border-gray-200 
-         theme-blue:border-blue-400;
+         border border-gray-200;
   }
 
   .theme-manager-card-optimize {
@@ -362,9 +350,7 @@ html * {
   .theme-manager-tag {
     @apply px-2 py-1 text-xs rounded-full
     bg-stone-400
-         theme-blue:bg-blue-200
-         text-white 
-         theme-blue:text-blue-800;
+         text-white;
   }
   .theme-manager-tag-optimize {
     @apply px-2 py-1 text-xs rounded-full bg-amber-500/50 text-white;
@@ -383,13 +369,9 @@ html * {
   .theme-manager-input {
     @apply w-full px-4 py-2 rounded-lg 
     bg-stone-50 
-         theme-blue:bg-blue-50 
          border border-stone-300 
-         theme-blue:border-blue-300 
          text-stone-800 
-         theme-blue:text-blue-900 
          placeholder-gray-400 
-         theme-blue:placeholder-blue-400 
          focus:ring-2 focus:ring-stone-500/50 focus:border-transparent outline-none transition duration-300;
   }
 
@@ -408,9 +390,7 @@ html * {
   .theme-manager-button-test {
     @apply px-4 py-2 rounded-lg transition-colors
           bg-cyan-500/70 
-          theme-blue:bg-blue-600
           hover:bg-cyan-500 
-          theme-blue:hover:bg-blue-500 
           text-white;
   }
 
@@ -418,9 +398,7 @@ html * {
   .theme-manager-button-edit {
     @apply px-4 py-2 rounded-lg transition-colors
           bg-teal-500/70 
-          theme-blue:bg-blue-600 
           hover:bg-teal-500 
-          theme-blue:hover:bg-blue-500 
           text-white;
   }
 
@@ -428,9 +406,7 @@ html * {
   .theme-manager-button-success {
     @apply px-4 py-2 rounded-lg transition-colors
          bg-green-500/70 
-         theme-blue:bg-blue-600 
          hover:bg-green-500 
-         theme-blue:hover:bg-blue-500 
          text-white;
   }
 
@@ -438,9 +414,7 @@ html * {
   .theme-manager-button-warning {
     @apply px-4 py-2 rounded-lg transition-colors
          bg-stone-500/70 
-         theme-blue:bg-gray-500 
          hover:bg-stone-500 
-         theme-blue:hover:bg-gray-400 
          text-white;
   }
 
@@ -448,28 +422,23 @@ html * {
   .theme-manager-button-danger {
     @apply px-4 py-2 rounded-lg transition-colors
          bg-red-500/70 
-         theme-blue:bg-red-600/80 
          hover:bg-red-500 
-         theme-blue:hover:bg-red-500/80 
          text-white;
   }
 
   /* 管理界面文本 - 主要 */
   .theme-manager-text {
-    @apply text-stone-600 
-         theme-blue:text-blue-900;
+    @apply text-stone-600;
   }
 
   /* 管理界面文本 - 次要 */
   .theme-manager-text-secondary {
-    @apply text-stone-600 
-         theme-blue:text-blue-700;
+    @apply text-stone-600;
   }
 
   /* 管理界面文本 - 禁用 */
   .theme-manager-text-disabled {
-    @apply text-stone-400 
-         theme-blue:text-blue-400;
+    @apply text-stone-400;
   }
 }
 
