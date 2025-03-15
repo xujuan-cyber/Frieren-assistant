@@ -63,10 +63,13 @@
     "@vueuse/shared": "^12.7.0",
     "async-validator": "^4.2.5",
     "dayjs": "^1.11.13",
+    "dompurify": "^3.2.4",
+    "highlight.js": "^11.11.1",
     "i18next": "^24.2.2",
     "i18next-browser-languagedetector": "^8.0.4",
     "lodash-es": "^4.17.21",
     "lodash-unified": "^1.0.3",
+    "marked": "^15.0.7",
     "memoize-one": "^6.0.0",
     "normalize-wheel-es": "^1.2.0",
     "vue-i18n": "^10.0.6"
