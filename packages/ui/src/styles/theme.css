@@ -1083,7 +1083,9 @@ html * {
   .theme-dropdown-item {
     @apply text-purple-200;
   }
-
+  .theme-dropdown-item-description {
+    @apply text-purple-200/60;
+  }
   /* 下拉菜单项激活 */
   .theme-dropdown-item-active {
     @apply bg-purple-600/30 text-purple-200;
@@ -1325,7 +1327,9 @@ html * {
   .theme-dropdown-item {
     @apply text-slate-200;
   }
-
+  .theme-dropdown-item-description {
+    @apply text-slate-200/60;
+  }
   /* 下拉菜单项激活 */
   .theme-dropdown-item-active {
     @apply bg-purple-800/50 text-purple-200;
