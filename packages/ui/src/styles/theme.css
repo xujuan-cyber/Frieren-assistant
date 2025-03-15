@@ -469,19 +469,19 @@ html * {
   }
 
   .theme-markdown-content blockquote {
-    @apply border-l-4 border-stone-300 bg-stone-50 text-stone-600 px-4 py-2;
+    @apply border-l-4 border-stone-300 bg-stone-50 text-stone-600;
   }
 
   .theme-markdown-content table {
-    @apply border-collapse border border-stone-200 my-4;
+    @apply border-collapse border border-stone-200;
   }
 
   .theme-markdown-content table th {
-    @apply bg-stone-100 text-stone-700 border border-stone-300 p-2 font-semibold;
+    @apply bg-stone-100 text-stone-700 border border-stone-300 font-semibold;
   }
 
   .theme-markdown-content table td {
-    @apply border border-stone-200 text-stone-600 p-2;
+    @apply border border-stone-200 text-stone-600;
   }
 
   .theme-markdown-content tr:nth-child(even) {
@@ -489,23 +489,23 @@ html * {
   }
 
   .theme-markdown-content hr {
-    @apply border-stone-200 my-4;
+    @apply border-stone-200;
   }
 
   .theme-markdown-content ul {
-    @apply list-disc pl-5 my-3;
+    @apply list-disc;
   }
 
   .theme-markdown-content ol {
-    @apply list-decimal pl-5 my-3;
+    @apply list-decimal p-0;
   }
 
   .theme-markdown-content img {
-    @apply max-w-full rounded border border-stone-200 my-3;
+    @apply max-w-full rounded border border-stone-200;
   }
 
   .theme-markdown-content p {
-    @apply my-3;
+    @apply py-1;
   }
 
   .theme-markdown-content strong {
@@ -517,11 +517,11 @@ html * {
   }
 
   .theme-markdown-content pre code {
-    @apply block p-4 overflow-x-auto;
+    @apply block overflow-x-auto;
   }
 
   .theme-markdown-content code {
-    @apply px-1.5 py-0.5 rounded text-sm;
+    @apply rounded text-sm;
   }
 }
 
@@ -1742,7 +1742,7 @@ html * {
   }
   
   .theme-markdown-content a {
-    @apply text-purple-400 hover:text-purple-300;
+    @apply text-white hover:text-purple-300;
   }
   
   .theme-markdown-content pre {
