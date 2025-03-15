@@ -36,143 +36,202 @@ const md = new MarkdownIt({
   }
 });
 
-// 添加一个变量追踪是否已检测到</think>标签
-const hasDetectedClosingTag = ref(false);
+// 使用闭包管理思考标签状态
+const thinkTagState = {
+  // 标记是否打开了思考块
+  hasOpenedThinkBlock: false,
+  // 标记是否完成了思考块
+  hasCompletedThinkBlock: false,
+  // 当前渲染的思考块元素
+  currentThinkBlock: null,
+  // 防抖计时器
+  debounceTimer: null,
+  // 思考块内容
+  thinkContent: '',
+  // 重置状态
+  reset() {
+    this.hasOpenedThinkBlock = false;
+    this.hasCompletedThinkBlock = false;
+    this.currentThinkBlock = null;
+    this.thinkContent = '';
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+  }
+};
 
 // 预处理Markdown内容，移除多余空行
 const removeExtraEmptyLines = (content) => {
-  // 移除连续的多个空行，只保留一个
-  return content.replace(/\n\s*\n\s*\n/g, '\n\n');
+  return content.replace(/\n\s*\n\s*(\n\s*)+/g, '\n\n');
+};
+
+// 检测思考标签的状态
+const detectThinkTagStatus = (content) => {
+  const hasOpenTag = content.includes('<think>');
+  const hasCloseTag = content.includes('</think>');
+  
+  if (hasOpenTag && !thinkTagState.hasOpenedThinkBlock) {
+    // 首次检测到开始标签
+    thinkTagState.hasOpenedThinkBlock = true;
+    thinkTagState.hasCompletedThinkBlock = false;
+  }
+  
+  if (hasCloseTag && thinkTagState.hasOpenedThinkBlock) {
+    // 检测到结束标签且已经有开始标签
+    thinkTagState.hasCompletedThinkBlock = true;
+  }
+  
+  return { hasOpenTag, hasCloseTag };
 };
 
 // 预处理<think>标签，将其转换为<details>和<summary>
 const preprocessThinkTags = (content) => {
-  // 检查内容是否包含</think>标签
-  if (content.includes('</think>')) {
-    hasDetectedClosingTag.value = true;
-  }
+  const { hasOpenTag, hasCloseTag } = detectThinkTagStatus(content);
   
-  // 检查是否有<think>标签
-  if (!content.includes('<think>')) {
+  if (!hasOpenTag) {
     return content;
   }
 
   const thinkingLabel = t('test.thinking') || '思考过程';
+  let processedContent = content;
   
-  // 替换开始标签为details和summary
-  // 如果已检测到结束标签，则不设置open属性，否则设置open使其显示
-  const openAttr = hasDetectedClosingTag.value ? '' : ' open';
-  let processed = content.replace(
-    /<think>/g, 
-    `<details class="markdown-think"${openAttr}><summary>${thinkingLabel}</summary><div class="think-content">`
-  );
+  // 如果有开始标签但没有结束标签，添加一个临时的结束标签用于渲染
+  if (hasOpenTag && !hasCloseTag) {
+    // 提取思考内容
+    const thinkMatch = /<think>([\s\S]*?)$/.exec(content);
+    if (thinkMatch) {
+      thinkTagState.thinkContent = thinkMatch[1];
+    }
+    
+    // 使用开放的details标签
+    processedContent = processedContent.replace(
+      /<think>([\s\S]*?)$/,
+      `<details class="markdown-think" open data-streaming="true"><summary>${thinkingLabel}</summary><div class="think-content">$1</div></details>`
+    );
+  } else if (hasOpenTag && hasCloseTag) {
+    // 有完整的开始和结束标签
+    const openAttr = thinkTagState.hasCompletedThinkBlock ? '' : ' open';
+    processedContent = processedContent.replace(
+      /<think>([\s\S]*?)<\/think>/g,
+      `<details class="markdown-think"${openAttr}><summary>${thinkingLabel}</summary><div class="think-content">$1</div></details>`
+    );
+  }
   
-  // 替换结束标签
-  processed = processed.replace(/<\/think>/g, '</div></details>');
-  
-  return processed;
+  return processedContent;
 };
 
-// 渲染后关闭思考区块
-const handleThinkBlocksFolding = () => {
-  // 确保组件仍在DOM中
+// 处理思考区块的折叠和流式更新
+const handleThinkBlocks = () => {
   if (!markdownContainer.value) return;
   
-  // 使用nextTick确保DOM已更新
   nextTick(() => {
-    // 再次检查组件是否存在（可能在nextTick期间被卸载）
     if (!markdownContainer.value) return;
     
     // 找到所有思考区块
     const thinkBlocks = markdownContainer.value.querySelectorAll('.markdown-think');
     
-    // 如果已检测到</think>标签，则折叠所有思考区块
-    if (hasDetectedClosingTag.value && thinkBlocks.length > 0) {
-      // 使用单个计时器而不是多个
-      const timer = setTimeout(() => {
-        // 再次检查组件是否存在（可能在setTimeout期间被卸载）
-        if (markdownContainer.value) {
+    if (thinkBlocks.length > 0) {
+      // 找到流式渲染的块
+      const streamingBlock = markdownContainer.value.querySelector('.markdown-think[data-streaming="true"]');
+      
+      if (streamingBlock) {
+        // 记录当前流式块的引用
+        thinkTagState.currentThinkBlock = streamingBlock;
+      }
+      
+      // 如果已完成思考块且不是流式渲染，则折叠所有思考区块
+      if (thinkTagState.hasCompletedThinkBlock) {
+        // 使用短时延迟确保DOM已完全更新
+        if (thinkTagState.debounceTimer) {
+          clearTimeout(thinkTagState.debounceTimer);
+        }
+        
+        thinkTagState.debounceTimer = setTimeout(() => {
           thinkBlocks.forEach(block => {
+            // 移除流式属性
+            block.removeAttribute('data-streaming');
+            // 折叠思考块
             try {
               block.removeAttribute('open');
             } catch (e) {
               console.warn('无法修改思考区块属性:', e);
             }
           });
-        }
-      }, 500);
+        }, 100); // 使用较短的延迟
+      }
     }
   });
 };
 
-// 后处理HTML，移除空段落和压缩间距
-const postProcessHTML = (html) => {
-  let processedHtml = html;
+// 防止思考块闪烁的处理器
+const preventThinkBlockFlickering = () => {
+  if (!markdownContainer.value) return;
   
-  // 转换为DOM对象进行更精确的处理
+  // 添加事件委托处理器，防止点击思考块时的闪烁
+  if (!markdownContainer.value.hasClickListener) {
+    markdownContainer.value.addEventListener('click', (event) => {
+      // 检查是否点击了summary元素
+      const summary = event.target.closest('summary');
+      if (summary && summary.parentElement.hasAttribute('data-streaming')) {
+        // 阻止默认行为，防止流式渲染时的闪烁
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+    
+    markdownContainer.value.hasClickListener = true;
+  }
+};
+
+// 优化后的HTML处理函数，只在DOM中操作一次
+const processHTML = (html) => {
+  // 使用DocumentFragment进行DOM操作
   const parser = new DOMParser();
-  const doc = parser.parseFromString(processedHtml, 'text/html');
+  const doc = parser.parseFromString(html, 'text/html');
+  const fragment = doc.body;
   
-  // 删除所有空白文本节点
-  const removeEmptyTextNodes = (node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      if (!node.textContent.trim()) {
-        node.parentNode?.removeChild(node);
-        return;
+  // 1. 删除空节点处理函数
+  const processNode = (node) => {
+    // 跳过非元素节点的处理
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    
+    // 处理所有子节点
+    const children = Array.from(node.childNodes);
+    
+    // 删除空文本节点和空段落
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      
+      // 处理文本节点
+      if (child.nodeType === Node.TEXT_NODE) {
+        if (!child.textContent.trim()) {
+          node.removeChild(child);
+        } else {
+          // 压缩多余空格
+          child.textContent = child.textContent.replace(/\s{2,}/g, ' ');
+        }
+        continue;
+      }
+      
+      // 处理元素节点
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        // 递归处理子元素
+        processNode(child);
+        
+        // 移除空段落
+        if (child.tagName === 'P' && !child.textContent.trim() && !child.querySelector('img, br')) {
+          node.removeChild(child);
+        }
       }
     }
-    
-    // 递归处理子节点
-    const children = [...node.childNodes];
-    children.forEach(removeEmptyTextNodes);
   };
   
-  // 处理markdown-content内的所有节点
-  const contentNode = doc.body;
-  removeEmptyTextNodes(contentNode);
+  // 处理整个文档
+  processNode(fragment);
   
-  // 转回字符串
-  processedHtml = contentNode.innerHTML;
-  
-  // 使用正则表达式进一步处理
-  return processedHtml
-    // 处理多余空格
-    .replace(/\s{2,}/g, ' ')
-    // 移除空白段落
-    .replace(/<p>\s*<\/p>/g, '')
-    
-    // 压缩所有块级元素之间的空白
-    .replace(/(<\/(p|h[1-6]|ul|ol|blockquote|pre|div)>)\s*(<(p|h[1-6]|ul|ol|blockquote|pre|div))/g, '$1$3')
-    
-    // 处理blockquote内部的间距
-    .replace(/(<blockquote>)\s*(<p)/g, '$1$2')
-    .replace(/(<\/p>)\s*(<\/blockquote>)/g, '$1$2')
-    
-    // 处理连续的<br>标签，确保它们之间没有多余空白
-    .replace(/(<br>)\s+(?=<br>)/g, '$1')
-    
-    // 确保行内元素之间没有多余空白
-    .replace(/(<\/(em|strong|code)>)\s+(<(em|strong|code)>)/g, '$1$3')
-    
-    // 处理行内元素与<br>之间的空白
-    .replace(/(<\/(em|strong|code)>)\s+(<br>)/g, '$1$3')
-    .replace(/(<br>)\s+(<(em|strong|code)>)/g, '$1$3')
-    
-    // 处理列表项内部的间距
-    .replace(/<li>\s+/g, '<li>')
-    .replace(/\s+<\/li>/g, '</li>')
-    
-    // 处理列表项内的标题
-    .replace(/(<li>)\s*(<h[1-6])/g, '$1$2')
-    .replace(/(<\/h[1-6]>)\s*(<\/li>)/g, '$1$2')
-    .replace(/(<\/h[1-6]>)\s*([\s\S]*?)(<\/li>)/g, '$1$2$3')
-    
-    // 处理列表项内的<br>标签与其他元素的关系
-    .replace(/(<li>)([^<]*?)(<br>)/g, '$1$2$3')
-    
-    // 确保引用块内容紧凑
-    .replace(/(<blockquote>)\s*/g, '$1')
-    .replace(/\s*(<\/blockquote>)/g, '$1');
+  // 返回处理后的HTML
+  return fragment.innerHTML;
 };
 
 // 渲染Markdown内容
@@ -182,7 +241,7 @@ const renderMarkdown = () => {
       markdownContainer.value.innerHTML = '';
     }
     // 重置状态，为下一次对话做准备
-    hasDetectedClosingTag.value = false;
+    thinkTagState.reset();
     return;
   }
   
@@ -196,13 +255,13 @@ const renderMarkdown = () => {
     // 使用markdown-it将Markdown转为HTML
     const rawHtml = md.render(processedContent);
     
-    // 后处理HTML，移除空段落和压缩间距
-    const processedHtml = postProcessHTML(rawHtml);
+    // 使用优化后的HTML处理函数
+    const processedHtml = processHTML(rawHtml);
     
-    // 配置DOMPurify允许details和summary标签
+    // 配置DOMPurify允许details和summary标签以及自定义属性
     const purifyConfig = {
       ADD_TAGS: ['details', 'summary', 'div'],
-      ADD_ATTR: ['open', 'class', 'id']
+      ADD_ATTR: ['open', 'class', 'id', 'data-streaming']
     };
     
     // 使用DOMPurify清理HTML
@@ -210,10 +269,13 @@ const renderMarkdown = () => {
     
     if (markdownContainer.value) {
       markdownContainer.value.innerHTML = cleanHtml;
+      
+      // 处理思考区块的折叠和流式更新
+      handleThinkBlocks();
+      
+      // 防止思考块闪烁
+      preventThinkBlockFlickering();
     }
-
-    // 处理思考区块的折叠
-    handleThinkBlocksFolding();
   } catch (error) {
     console.error('Markdown parsing error:', error);
     if (markdownContainer.value) {
@@ -225,7 +287,7 @@ const renderMarkdown = () => {
 // 监听content变化时重新渲染
 watch(() => props.content, (newContent) => {
   if (!newContent || newContent.trim() === '') {
-    hasDetectedClosingTag.value = false;
+    thinkTagState.reset();
   }
   renderMarkdown();
 }, { immediate: true });
