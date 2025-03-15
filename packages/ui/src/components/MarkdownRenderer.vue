@@ -1,14 +1,16 @@
 <template>
-  <div ref="markdownContainer" class="markdown-content theme-markdown-content" v-html="renderedMarkdown"></div>
+  <div ref="markdownContainer" class="markdown-content theme-markdown-content"></div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, nextTick } from 'vue';
-import { marked } from 'marked';
+import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const props = defineProps({
   content: {
     type: String,
@@ -16,27 +18,32 @@ const props = defineProps({
   }
 });
 
-const renderedMarkdown = ref('');
 const markdownContainer = ref(null);
 
-// 配置marked使用highlight.js进行代码高亮
-marked.setOptions({
-  highlight: function(code, lang) {
-    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-    return hljs.highlight(code, { language }).value;
-  },
-  langPrefix: 'hljs language-',
-  breaks: true,
-  gfm: true,
-  headerIds: true,
-  mangle: false,
-  sanitize: false,
-  smartLists: true,
-  smartypants: false
+// 创建 markdown-it 实例并配置插件
+const md = new MarkdownIt({
+  html: true,
+  breaks: false,
+  linkify: true,
+  typographer: true,
+  highlight: function(str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(str, { language: lang }).value;
+      } catch (__) {}
+    }
+    return '';
+  }
 });
 
 // 添加一个变量追踪是否已检测到</think>标签
 const hasDetectedClosingTag = ref(false);
+
+// 预处理Markdown内容，移除多余空行
+const removeExtraEmptyLines = (content) => {
+  // 移除连续的多个空行，只保留一个
+  return content.replace(/\n\s*\n\s*\n/g, '\n\n');
+};
 
 // 预处理<think>标签，将其转换为<details>和<summary>
 const preprocessThinkTags = (content) => {
@@ -49,13 +56,15 @@ const preprocessThinkTags = (content) => {
   if (!content.includes('<think>')) {
     return content;
   }
+
+  const thinkingLabel = t('test.thinking') || '思考过程';
   
   // 替换开始标签为details和summary
   // 如果已检测到结束标签，则不设置open属性，否则设置open使其显示
   const openAttr = hasDetectedClosingTag.value ? '' : ' open';
   let processed = content.replace(
     /<think>/g, 
-    `<details class="markdown-think"${openAttr}><summary>思考过程</summary><div class="think-content">`
+    `<details class="markdown-think"${openAttr}><summary>${thinkingLabel}</summary><div class="think-content">`
   );
   
   // 替换结束标签
@@ -66,7 +75,12 @@ const preprocessThinkTags = (content) => {
 
 // 渲染后关闭思考区块
 const handleThinkBlocksFolding = () => {
+  // 确保组件仍在DOM中
+  if (!markdownContainer.value) return;
+  
+  // 使用nextTick确保DOM已更新
   nextTick(() => {
+    // 再次检查组件是否存在（可能在nextTick期间被卸载）
     if (!markdownContainer.value) return;
     
     // 找到所有思考区块
@@ -74,31 +88,116 @@ const handleThinkBlocksFolding = () => {
     
     // 如果已检测到</think>标签，则折叠所有思考区块
     if (hasDetectedClosingTag.value && thinkBlocks.length > 0) {
-      thinkBlocks.forEach(block => {
-        // 短暂延迟后关闭
-        setTimeout(() => {
-          block.removeAttribute('open');
-        }, 500);
-      });
+      // 使用单个计时器而不是多个
+      const timer = setTimeout(() => {
+        // 再次检查组件是否存在（可能在setTimeout期间被卸载）
+        if (markdownContainer.value) {
+          thinkBlocks.forEach(block => {
+            try {
+              block.removeAttribute('open');
+            } catch (e) {
+              console.warn('无法修改思考区块属性:', e);
+            }
+          });
+        }
+      }, 500);
     }
   });
+};
+
+// 后处理HTML，移除空段落和压缩间距
+const postProcessHTML = (html) => {
+  let processedHtml = html;
+  
+  // 转换为DOM对象进行更精确的处理
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(processedHtml, 'text/html');
+  
+  // 删除所有空白文本节点
+  const removeEmptyTextNodes = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (!node.textContent.trim()) {
+        node.parentNode?.removeChild(node);
+        return;
+      }
+    }
+    
+    // 递归处理子节点
+    const children = [...node.childNodes];
+    children.forEach(removeEmptyTextNodes);
+  };
+  
+  // 处理markdown-content内的所有节点
+  const contentNode = doc.body;
+  removeEmptyTextNodes(contentNode);
+  
+  // 转回字符串
+  processedHtml = contentNode.innerHTML;
+  
+  // 使用正则表达式进一步处理
+  return processedHtml
+    // 处理多余空格
+    .replace(/\s{2,}/g, ' ')
+    // 移除空白段落
+    .replace(/<p>\s*<\/p>/g, '')
+    
+    // 压缩所有块级元素之间的空白
+    .replace(/(<\/(p|h[1-6]|ul|ol|blockquote|pre|div)>)\s*(<(p|h[1-6]|ul|ol|blockquote|pre|div))/g, '$1$3')
+    
+    // 处理blockquote内部的间距
+    .replace(/(<blockquote>)\s*(<p)/g, '$1$2')
+    .replace(/(<\/p>)\s*(<\/blockquote>)/g, '$1$2')
+    
+    // 处理连续的<br>标签，确保它们之间没有多余空白
+    .replace(/(<br>)\s+(?=<br>)/g, '$1')
+    
+    // 确保行内元素之间没有多余空白
+    .replace(/(<\/(em|strong|code)>)\s+(<(em|strong|code)>)/g, '$1$3')
+    
+    // 处理行内元素与<br>之间的空白
+    .replace(/(<\/(em|strong|code)>)\s+(<br>)/g, '$1$3')
+    .replace(/(<br>)\s+(<(em|strong|code)>)/g, '$1$3')
+    
+    // 处理列表项内部的间距
+    .replace(/<li>\s+/g, '<li>')
+    .replace(/\s+<\/li>/g, '</li>')
+    
+    // 处理列表项内的标题
+    .replace(/(<li>)\s*(<h[1-6])/g, '$1$2')
+    .replace(/(<\/h[1-6]>)\s*(<\/li>)/g, '$1$2')
+    .replace(/(<\/h[1-6]>)\s*([\s\S]*?)(<\/li>)/g, '$1$2$3')
+    
+    // 处理列表项内的<br>标签与其他元素的关系
+    .replace(/(<li>)([^<]*?)(<br>)/g, '$1$2$3')
+    
+    // 确保引用块内容紧凑
+    .replace(/(<blockquote>)\s*/g, '$1')
+    .replace(/\s*(<\/blockquote>)/g, '$1');
 };
 
 // 渲染Markdown内容
 const renderMarkdown = () => {
   if (!props.content) {
-    renderedMarkdown.value = '';
+    if (markdownContainer.value) {
+      markdownContainer.value.innerHTML = '';
+    }
     // 重置状态，为下一次对话做准备
     hasDetectedClosingTag.value = false;
     return;
   }
   
   try {
-    // 预处理<think>标签
-    const processedContent = preprocessThinkTags(props.content);
+    // 预处理内容
+    let processedContent = removeExtraEmptyLines(props.content);
     
-    // 使用marked将Markdown转为HTML
-    const rawHtml = marked.parse(processedContent);
+    // 预处理<think>标签
+    processedContent = preprocessThinkTags(processedContent);
+    
+    // 使用markdown-it将Markdown转为HTML
+    const rawHtml = md.render(processedContent);
+    
+    // 后处理HTML，移除空段落和压缩间距
+    const processedHtml = postProcessHTML(rawHtml);
     
     // 配置DOMPurify允许details和summary标签
     const purifyConfig = {
@@ -107,13 +206,19 @@ const renderMarkdown = () => {
     };
     
     // 使用DOMPurify清理HTML
-    renderedMarkdown.value = DOMPurify.sanitize(rawHtml, purifyConfig);
+    const cleanHtml = DOMPurify.sanitize(processedHtml, purifyConfig);
+    
+    if (markdownContainer.value) {
+      markdownContainer.value.innerHTML = cleanHtml;
+    }
 
     // 处理思考区块的折叠
     handleThinkBlocksFolding();
   } catch (error) {
     console.error('Markdown parsing error:', error);
-    renderedMarkdown.value = `<p class="text-red-500">Error rendering markdown: ${error.message}</p>`;
+    if (markdownContainer.value) {
+      markdownContainer.value.innerHTML = `<p class="text-red-500">Error rendering markdown: ${error.message}</p>`;
+    }
   }
 };
 
@@ -129,7 +234,6 @@ watch(() => props.content, (newContent) => {
 onMounted(() => {
   renderMarkdown();
 });
-
 </script>
 
 <style>
@@ -143,16 +247,14 @@ onMounted(() => {
 .markdown-content h1 {
   line-height: 1.5;
   font-size: 1.6em;
-  margin-top: 0.4em;
-  margin-bottom: 0.2em;
+  margin: 1em 0;
   font-weight: 600;
 }
 
 .markdown-content h2 {
   line-height: 1.5;
   font-size: 1.4em;
-  margin-top: 0.3em;
-  margin-bottom: 0.15em;
+  margin: 0.8em 0;
   font-weight: 600;
   padding-bottom: 0.1em;
 }
@@ -160,24 +262,21 @@ onMounted(() => {
 .markdown-content h3 {
   line-height: 1.5;
   font-size: 1.2em;
-  margin-top: 0.2em;
-  margin-bottom: 0.1em;
+  margin: 0.5em 0;
   font-weight: 600;
 }
 
 .markdown-content h4 {
   line-height: 1.5;
   font-size: 1em;
-  margin-top: 0.1em;
-  margin-bottom: 0.05em;
+  margin: 0.3em 0;
   font-weight: 600;
 }
 
 /* 段落样式 */
 .markdown-content p {
-  line-height: 1.5;
-  margin-top: 0.1em;
-  margin-bottom: 0.1em;
+  line-height: 1.6;
+  margin: 0.3em 0;
   white-space: pre-wrap;
 }
 
@@ -185,18 +284,14 @@ onMounted(() => {
 .markdown-content ul,
 .markdown-content ol {
   padding-left: 1.5em;
-  line-height: 0.5;
-}
-
-.markdown-content ul > li {
+  margin: 0.3em 0;
   line-height: 1.5;
-  margin-bottom: 0.05em;
 }
 
-.markdown-content li > ul {
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-bottom: 0;
+/* 重要：设置列表项为紧凑布局 */
+.markdown-content li {
+  line-height: 1.5;
+  margin: 0.3em 0;
 }
 
 /* 代码块样式 */
@@ -211,26 +306,25 @@ onMounted(() => {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.85em;
   padding: 0.1em 0.2em;
-  margin: 0;
+  margin: 0.3em 0;
   border-radius: 2px;
 }
 
 .markdown-content pre code {
-  padding: 0;
   background-color: transparent;
 }
 
 /* 引用样式 */
 .markdown-content blockquote {
   padding: 0.1em 0.5em;
-  margin: 0.1em 0;
+  margin: 0.3em 0;
 }
 
 /* 表格样式 */
 .markdown-content table {
   border-collapse: collapse;
   width: 100%;
-  margin: 0.1em 0;
+  margin: 0.3em 0;
   overflow: auto;
   font-size: 0.9em;
 }
@@ -251,8 +345,6 @@ onMounted(() => {
 /* 水平线样式 */
 .markdown-content hr {
   height: 0.25em;
-  padding: 0;
-  margin: 0;
   border: 1;
 }
 
@@ -267,8 +359,6 @@ onMounted(() => {
 
 .markdown-think {
   white-space: pre-line;
-  padding: 0.1em;
-  margin: 0.2em 0;
 }
 
 /* 自定义summary箭头样式 */
@@ -312,24 +402,9 @@ onMounted(() => {
 /* 鼠标悬停效果 */
 .markdown-think summary:hover {
   background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
 }
 
-/* 为不同主题定制箭头颜色 */
-:root[data-theme="blue"] .markdown-think summary::before {
-  border-color: #3b82f6;
-}
-
-:root[data-theme="green"] .markdown-think summary::before {
-  border-color: #10b981;
-}
-
-:root[data-theme="purple"] .markdown-think summary::before {
-  border-color: #8b5cf6;
-}
-
-:root[data-theme="dark"] .markdown-think summary::before {
-  border-color: #e2e8f0;
-}
 /* 内容区域样式调整 */
 .markdown-think .think-content {
   padding: 0 0.7em;

@@ -523,6 +523,9 @@ html * {
   .theme-markdown-content code {
     @apply rounded text-sm;
   }
+  .markdown-think summary::before {
+    @apply border-stone-700;
+  }
 }
 
 /* 主题变体 */
@@ -901,6 +904,9 @@ html * {
   .theme-markdown-content strong {
     @apply text-sky-800;
   }
+  .markdown-think summary::before {
+    @apply border-sky-800;
+  }
 }
 
 :root[data-theme="green"] {
@@ -1174,6 +1180,9 @@ html * {
   
   .theme-markdown-content strong {
     @apply text-teal-100;
+  }
+  .markdown-think summary::before {
+    @apply border-teal-200;
   }
 }
 
@@ -1507,6 +1516,9 @@ html * {
   .theme-markdown-content strong {
     @apply text-white;
   }
+  .markdown-think summary::before {
+    @apply border-white;
+  }
 }
 
 :root[data-theme="dark"] {
@@ -1783,5 +1795,8 @@ html * {
   
   .theme-markdown-content strong {
     @apply text-white;
+  }
+  .markdown-think summary::before {
+    @apply border-white;
   }
 }

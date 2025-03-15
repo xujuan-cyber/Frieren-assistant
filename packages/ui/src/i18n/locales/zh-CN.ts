@@ -228,7 +228,8 @@ export default {
       noModel: '请先选择测试模型'
     },
     enableMarkdown: '启用Markdown渲染',
-    disableMarkdown: '关闭Markdown渲染'
+    disableMarkdown: '关闭Markdown渲染',
+    thinking: '思考过程'
   },
   template: {
     noDescription: '暂无描述',

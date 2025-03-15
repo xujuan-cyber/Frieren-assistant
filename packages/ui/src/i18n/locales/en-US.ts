@@ -226,7 +226,8 @@ export default {
       noModel: 'Please select a test model first'
     },
     enableMarkdown: 'Enable Markdown rendering',
-    disableMarkdown: 'Disable Markdown rendering'
+    disableMarkdown: 'Disable Markdown rendering',
+    thinking: 'Thinking Process'
   },
   template: {
     noDescription: 'No Description',
