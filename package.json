@@ -63,8 +63,6 @@
     "@vueuse/shared": "^12.7.0",
     "async-validator": "^4.2.5",
     "dayjs": "^1.11.13",
-    "dompurify": "^3.2.4",
-    "highlight.js": "^11.11.1",
     "i18next": "^24.2.2",
     "i18next-browser-languagedetector": "^8.0.4",
     "lodash-es": "^4.17.21",
