@@ -2,7 +2,17 @@ import { ModelConfig } from './types';
 
 // 获取环境变量的辅助函数
 const getEnvVar = (key: string): string => {
-  // 1. 首先尝试 process.env
+  // 0. 首先检查运行时配置
+  if (typeof window !== 'undefined' && window.runtime_config) {
+    // 移除 VITE_ 前缀以匹配运行时配置中的键名
+    const runtimeKey = key.replace('VITE_', '');
+    const value = window.runtime_config[runtimeKey];
+    if (value !== undefined && value !== null) {
+      return String(value);
+    }
+  }
+
+  // 1. 然后尝试 process.env
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key] || '';
   }

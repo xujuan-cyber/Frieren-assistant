@@ -60,6 +60,15 @@ docker push linshen/prompt-optimizer:latest
 
 ```
 
+docker本地构建测试
+```shell
+docker build -t linshen/prompt-optimizer:test .
+docker rm -f prompt-optimizer
+docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer -e VITE_GEMINI_API_KEY=111 linshen/prompt-optimizer:test
+
+```
+
+
 ### 多阶段构建说明
 
 Dockerfile使用了多阶段构建优化镜像大小：
