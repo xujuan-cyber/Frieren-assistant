@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick, reactive, toRefs } from 'vue';
+import { ref, watch, onMounted, nextTick, reactive } from 'vue';
 import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
