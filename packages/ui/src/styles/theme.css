@@ -465,7 +465,11 @@ html * {
   }
 
   .theme-markdown-content code {
-    @apply bg-stone-100 text-stone-700;
+    @apply rounded text-sm text-stone-700;
+  }
+
+  .code-language-label {
+    @apply bg-stone-50/50 text-stone-700;
   }
 
   .theme-markdown-content blockquote {
@@ -484,8 +488,8 @@ html * {
     @apply border border-stone-200 text-stone-600;
   }
 
-  .theme-markdown-content tr:nth-child(even) {
-    @apply bg-stone-50;
+  .theme-markdown-content table tr:nth-child(even) {
+    @apply bg-stone-100/60;
   }
 
   .theme-markdown-content hr {
@@ -516,13 +520,6 @@ html * {
     @apply italic;
   }
 
-  .theme-markdown-content pre code {
-    @apply block overflow-x-auto;
-  }
-
-  .theme-markdown-content code {
-    @apply rounded text-sm;
-  }
   .markdown-think summary::before {
     @apply border-stone-700;
   }
@@ -866,11 +863,15 @@ html * {
   }
   
   .theme-markdown-content pre {
-    @apply bg-sky-50 border border-sky-200;
+    @apply bg-sky-100/50 border border-sky-200;
   }
   
   .theme-markdown-content code {
-    @apply bg-sky-50 text-sky-800;
+    @apply text-sky-800;
+  }
+
+  .code-language-label {
+    @apply bg-sky-100/50 text-sky-700;
   }
   
   .theme-markdown-content blockquote {
@@ -889,8 +890,8 @@ html * {
     @apply border border-sky-200 text-sky-700;
   }
   
-  .theme-markdown-content tr:nth-child(even) {
-    @apply bg-sky-50;
+  .theme-markdown-content table tr:nth-child(even) {
+    @apply bg-sky-100/50;
   }
   
   .theme-markdown-content hr {
@@ -1143,11 +1144,15 @@ html * {
   }
   
   .theme-markdown-content pre {
-    @apply bg-teal-900/50 border border-teal-700;
+    @apply bg-teal-500/50 border border-teal-700;
   }
   
   .theme-markdown-content code {
-    @apply bg-teal-800 text-teal-200;
+    @apply text-teal-200;
+  }
+
+  .code-language-label {
+    @apply bg-teal-700/50 text-teal-500;
   }
   
   .theme-markdown-content blockquote {
@@ -1167,7 +1172,7 @@ html * {
   }
   
   .theme-markdown-content tr:nth-child(even) {
-    @apply bg-teal-800/50;
+    @apply bg-teal-700/50;
   }
   
   .theme-markdown-content hr {
@@ -1478,11 +1483,15 @@ html * {
   }
   
   .theme-markdown-content pre {
-    @apply bg-black/20 border border-purple-600/50;
+    @apply bg-black/10 border border-purple-600/50;
   }
   
   .theme-markdown-content code {
-    @apply bg-purple-900/50 text-purple-200;
+    @apply text-purple-400;
+  }
+
+  .code-language-label {
+    @apply bg-purple-500/50 text-purple-300;
   }
   
   .theme-markdown-content blockquote {
@@ -1501,8 +1510,8 @@ html * {
     @apply border border-purple-700/50 text-white/90;
   }
   
-  .theme-markdown-content tr:nth-child(even) {
-    @apply bg-purple-800/30;
+  .theme-markdown-content table tr:nth-child(even) {
+    @apply bg-purple-700/30;
   }
   
   .theme-markdown-content hr {
@@ -1758,11 +1767,15 @@ html * {
   }
   
   .theme-markdown-content pre {
-    @apply bg-slate-800 border border-slate-700;
+    @apply bg-slate-900/50 border border-slate-700;
   }
   
   .theme-markdown-content code {
-    @apply bg-slate-800 text-slate-200;
+    @apply text-slate-200;
+  }
+
+  .code-language-label {
+    @apply bg-slate-600/50 text-slate-400;
   }
   
   .theme-markdown-content blockquote {
@@ -1774,15 +1787,15 @@ html * {
   }
   
   .theme-markdown-content table th {
-    @apply bg-slate-800 text-slate-200 border border-slate-700;
+    @apply bg-slate-700/70 text-slate-200 border border-slate-700;
   }
   
   .theme-markdown-content table td {
     @apply border border-slate-700 text-slate-300;
   }
   
-  .theme-markdown-content tr:nth-child(even) {
-    @apply bg-slate-800/70;
+  .theme-markdown-content table tr:nth-child(even) {
+    @apply bg-slate-700/70;
   }
   
   .theme-markdown-content hr {
