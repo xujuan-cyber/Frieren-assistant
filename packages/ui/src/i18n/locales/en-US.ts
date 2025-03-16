@@ -78,17 +78,17 @@ export default {
     useVercelProxy: 'Use Vercel Proxy',
     useVercelProxyHint: 'Using Vercel proxy can help resolve connection issues in certain regions',
     addModel: 'Add',
-    
+
     // Placeholders
     modelKeyPlaceholder: 'Enter model key',
     displayNamePlaceholder: 'Enter display name',
     apiUrlPlaceholder: 'Enter API URL',
     defaultModelPlaceholder: 'Enter default model name',
     apiKeyPlaceholder: 'Enter API key',
-    
+
     // Confirmation
     deleteConfirm: 'Are you sure you want to delete this model? This action cannot be undone.',
-    
+
     // Operation Results
     testSuccess: 'Connection test successful',
     testFailed: 'Connection test failed: {error}',
@@ -103,10 +103,10 @@ export default {
     deleteSuccess: 'Model deleted',
     deleteFailed: 'Failed to delete model: {error}',
     modelNotFound: 'Model not found',
-    
+
     // Status Text
     disabled: 'Disabled',
-    
+
     // Accessibility Labels
     testConnectionAriaLabel: 'Test connection to {name}',
     editModelAriaLabel: 'Edit model {name}',
@@ -133,29 +133,29 @@ export default {
     editTemplate: 'Edit',
     deleteTemplate: 'Delete',
     templateCount: '{count} template | {count} templates',
-    
+
     // Button Text
     importTemplate: 'Import',
     exportTemplate: 'Export',
     copyTemplate: 'Copy',
     useTemplate: 'Use',
     viewTemplate: 'View',
-    
+
     // Form Fields
     name: 'Template Name',
     content: 'Template Content',
     description: 'Description',
     type: 'Type',
-    
+
     // Placeholders
     namePlaceholder: 'Enter template name',
     contentPlaceholder: 'Enter template content',
     descriptionPlaceholder: 'Enter template description (optional)',
     searchPlaceholder: 'Search templates...',
-    
+
     // Confirmation
     deleteConfirm: 'Are you sure you want to delete this template? This action cannot be undone.',
-    
+
     // Operation Results
     updateSuccess: 'Template updated successfully',
     updateFailed: 'Failed to update template',
@@ -169,7 +169,7 @@ export default {
     importFailed: 'Failed to import template',
     exportSuccess: 'Template exported successfully',
     exportFailed: 'Failed to export template',
-    
+
     // Accessibility Labels
     editTemplateAriaLabel: 'Edit template {name}',
     deleteTemplateAriaLabel: 'Delete template {name}',
@@ -224,7 +224,10 @@ export default {
     error: {
       failed: 'Test Failed',
       noModel: 'Please select a test model first'
-    }
+    },
+    enableMarkdown: 'Enable Markdown rendering',
+    disableMarkdown: 'Disable Markdown rendering',
+    thinking: 'Thinking Process'
   },
   template: {
     noDescription: 'No Description',

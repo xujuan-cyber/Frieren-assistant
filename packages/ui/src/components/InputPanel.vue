@@ -18,7 +18,7 @@
     </div>
 
     <!-- 控制面板 -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-1">
       <!-- 模型选择 -->
       <div class="min-w-[120px] w-fit shrink-0">
         <label class="block text-sm theme-label mb-1.5">{{ modelLabel }}</label>
@@ -32,12 +32,12 @@
       </div>
 
       <!-- 提交按钮 -->
-      <div class="min-w-[140px]">
-        <div class="h-[29px]"><!-- 占位，与其他元素对齐 --></div>
+      <div class="min-w-[60px]">
+        <div class="h-[20px] mb-1.5"><!-- 占位，与其他元素对齐 --></div>
         <button
           @click="$emit('submit')"
           :disabled="loading || disabled || !modelValue.trim()"
-          class="w-full h-10 theme-button-primary flex items-center truncate justify-center space-x-2"
+          class="w-full h-10 theme-button-primary flex items-center truncate justify-center space-x-1"
         >
           <span>{{ loading ? loadingText : buttonText }}</span>
         </button>

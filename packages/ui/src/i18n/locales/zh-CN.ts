@@ -80,17 +80,17 @@ export default {
     useVercelProxy: '使用Vercel代理',
     useVercelProxyHint: '使用Vercel代理可以帮助解决某些地区的连接问题',
     addModel: '添加',
-    
+
     // 占位符
     modelKeyPlaceholder: '请输入模型标识',
     displayNamePlaceholder: '请输入显示名称',
     apiUrlPlaceholder: '请输入API地址',
     defaultModelPlaceholder: '请输入默认模型名称',
     apiKeyPlaceholder: '请输入API密钥',
-    
+
     // 确认信息
     deleteConfirm: '确定要删除此模型吗？此操作不可恢复。',
-    
+
     // 操作结果
     testSuccess: '连接测试成功',
     testFailed: '连接测试失败：{error}',
@@ -105,10 +105,10 @@ export default {
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败：{error}',
     modelNotFound: '找不到指定的模型',
-    
+
     // 状态文本
     disabled: '已禁用',
-    
+
     // 无障碍标签
     testConnectionAriaLabel: '测试连接到{name}',
     editModelAriaLabel: '编辑模型{name}',
@@ -135,29 +135,29 @@ export default {
     editTemplate: '编辑',
     deleteTemplate: '删除',
     templateCount: '{count}个提示词',
-    
+
     // 按钮文本
     importTemplate: '导入',
     exportTemplate: '导出',
     copyTemplate: '复制',
     useTemplate: '使用此提示词',
     viewTemplate: '查看',
-    
+
     // 表单字段
     name: '提示词名称',
     content: '提示词内容',
     description: '描述',
     type: '类型',
-    
+
     // 占位符
     namePlaceholder: '请输入提示词名称',
     contentPlaceholder: '请输入提示词内容',
     descriptionPlaceholder: '请输入提示词描述（可选）',
     searchPlaceholder: '搜索提示词...',
-    
+
     // 确认信息
     deleteConfirm: '确定要删除此提示词吗？此操作不可恢复。',
-    
+
     // 操作结果
     updateSuccess: '提示词更新成功',
     updateFailed: '提示词更新失败',
@@ -171,7 +171,7 @@ export default {
     importFailed: '提示词导入失败',
     exportSuccess: '提示词导出成功',
     exportFailed: '提示词导出失败',
-    
+
     // 无障碍标签
     editTemplateAriaLabel: '编辑提示词{name}',
     deleteTemplateAriaLabel: '删除提示词{name}',
@@ -214,7 +214,7 @@ export default {
     placeholder: '请输入要测试的内容...',
     model: '模型',
     startTest: '开始测试 →',
-    startCompare: '开始对比测试 →',
+    startCompare: '开始对比 →',
     testing: '测试中...',
     toggleCompare: {
       enable: '开启对比',
@@ -226,7 +226,10 @@ export default {
     error: {
       failed: '测试失败',
       noModel: '请先选择测试模型'
-    }
+    },
+    enableMarkdown: '启用Markdown渲染',
+    disableMarkdown: '关闭Markdown渲染',
+    thinking: '思考过程'
   },
   template: {
     noDescription: '暂无描述',

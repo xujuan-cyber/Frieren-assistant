@@ -22,6 +22,7 @@
           class="absolute inset-0 h-full theme-input whitespace-pre-wrap overflow-auto"
         >
           <span v-if="!contentTokens.length" class="theme-text-placeholder">{{ t('output.placeholder') }}</span>
+          <MarkdownRenderer v-else-if="props.enableMarkdown" :content="displayContent" />
           <span v-else v-text="displayContent" class="theme-text"></span>
         </div>
       </div>
@@ -49,6 +50,7 @@
 import { ref, defineEmits, defineProps, watch, nextTick, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
+import MarkdownRenderer from './MarkdownRenderer.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -85,6 +87,7 @@ interface Props {
   result?: string;
   hideTitle?: boolean;
   resultTitle?: string;
+  enableMarkdown?: boolean;
 }
 
 const props = defineProps<Props>()

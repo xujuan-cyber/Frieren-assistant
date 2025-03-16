@@ -28,7 +28,10 @@
   },
   "dependencies": {
     "@prompt-optimizer/core": "workspace:*",
+    "dompurify": "^3.2.4",
     "element-plus": "^2.5.6",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
     "uuid": "^11.0.5",
     "vue": "^3.3.4"
   },
