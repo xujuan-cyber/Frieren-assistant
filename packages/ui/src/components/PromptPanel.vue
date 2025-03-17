@@ -104,8 +104,9 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, defineProps, defineEmits, computed, watch, nextTick } from 'vue'
+import { ref, defineProps, defineEmits, computed, nextTick } from 'vue'
 import { useToast } from '../composables/useToast'
+import { useAutoScroll } from '../composables/useAutoScroll'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
 import type {
@@ -116,7 +117,12 @@ import type {
 
 const { t } = useI18n()
 const toast = useToast()
-const promptTextarea = ref<HTMLTextAreaElement | null>(null)
+
+// 使用自动滚动组合式函数
+const { elementRef: promptTextarea, watchSource, forceScrollToBottom, shouldAutoScroll } = useAutoScroll<HTMLTextAreaElement>({
+  debug: import.meta.env.DEV,
+  threshold: 10 // 设置更大的阈值以提高用户体验
+})
 
 interface IteratePayload {
   originalPrompt: string;
@@ -146,6 +152,9 @@ const props = defineProps({
   }
 })
 
+// 监听optimizedPrompt变化，自动滚动到底部
+watchSource(() => props.optimizedPrompt, true)
+
 const emit = defineEmits<{
   'update:optimizedPrompt': [value: string];
   'iterate': [payload: IteratePayload];
@@ -167,18 +176,6 @@ const templateTitleText = computed(() => {
 const templateSelectText = computed(() => {
   return t('prompt.selectIterateTemplate')
 })
-
-// 监听optimizedPrompt变化，自动滚动到底部
-watch(() => props.optimizedPrompt, (newValue) => {
-  if (newValue && promptTextarea.value) {
-    nextTick(() => {
-      const textarea = promptTextarea.value;
-      if (textarea) {
-        textarea.scrollTop = textarea.scrollHeight;
-      }
-    });
-  }
-}, { immediate: true });
 
 // 处理输入变化
 const handleInput = (event: Event) => {
@@ -232,6 +229,11 @@ const submitIterate = () => {
 const switchVersion = (version: PromptRecord) => {
   if (version.id === props.currentVersionId) return
   emit('switchVersion', version)
+  
+  // 版本切换后强制滚动到底部，确保用户能看到新版本的内容
+  nextTick(() => {
+    forceScrollToBottom()
+  })
 }
 </script>
 
