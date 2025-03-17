@@ -50,13 +50,19 @@
 import { ref, defineEmits, defineProps, watch, nextTick, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
+import { useAutoScroll } from '../composables/useAutoScroll'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 
 const { t } = useI18n()
 const toast = useToast()
 const contentTokens = ref<string[]>([])
 const isStreaming = ref(false)
-const resultContainer = ref<HTMLDivElement | null>(null)
+
+// 使用自动滚动组合式函数
+const { elementRef: resultContainer, onContentChange, forceScrollToBottom, shouldAutoScroll } = useAutoScroll<HTMLDivElement>({
+  debug: import.meta.env.DEV,
+  threshold: 20
+})
 
 // 计算完整内容
 const displayContent = computed(() => {
@@ -69,17 +75,6 @@ onMounted(async () => {
   await nextTick();
   console.log('Component mounted, container exists:', !!resultContainer.value);
 });
-
-// 监听数组变化
-watch(contentTokens, (newVal) => {
-  console.log('contentTokens changed, current length:', newVal.length);
-  // 强制更新视图
-  nextTick(() => {
-    if (resultContainer.value) {
-      resultContainer.value.scrollTop = resultContainer.value.scrollHeight;
-    }
-  });
-}, { deep: true });
 
 interface Props {
   loading?: boolean;
@@ -101,14 +96,20 @@ const emit = defineEmits<{
 watch(() => props.result, (newVal) => {
   if (!selfUpdate && !isStreaming.value && newVal) {
     contentTokens.value = [newVal]
+    console.log('contentTokens changed, current length:', newVal.length);
+    // 通知内容变化，触发高度检查
+    onContentChange()
   }
 })
 
 // 更新文本
 const updateContent = (text: string) => {
   console.log('Preparing to update content:', text.substring(0, 20) + '...');
-  contentTokens.value = [...contentTokens.value, text];
+  contentTokens.value.push(text)
   console.log('Content updated, current tokens count:', contentTokens.value.length);
+  
+  // 通知内容变化，触发高度检查
+  onContentChange()
 };
 
 interface StreamHandlers {
@@ -139,6 +140,11 @@ const handleStream = (): StreamHandlers => {
       console.log('Stream completed, total tokens:', contentTokens.value.length);
       const finalContent = contentTokens.value.join(''); // 保存一份最终内容
       isStreaming.value = false;
+      
+      // 流式响应结束后，确保内容完全可见
+      nextTick(() => {
+        forceScrollToBottom()
+      })
 
       // 设置标记，表示这是自身触发的更新
       selfUpdate = true;
@@ -160,7 +166,9 @@ defineExpose({
   handleStream,
   contentTokens,
   displayContent,
-  resultContainer
+  resultContainer,
+  isAutoScrollEnabled: shouldAutoScroll, // 暴露自动滚动状态
+  forceScrollToBottom  // 暴露手动滚动方法
 })
 
 // 复制选中的文本，如果没有选中则复制全部
