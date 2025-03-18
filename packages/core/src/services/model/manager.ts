@@ -57,7 +57,7 @@ export class ModelManager implements IModelManager {
         console.error('解析模型配置失败:', error);
       }
     }
-    
+
     const returnValue = Object.entries(this.models).map(([key, config]) => ({
       ...config,
       key
@@ -92,15 +92,15 @@ export class ModelManager implements IModelManager {
     if (!this.models[key]) {
       throw new ModelConfigError(`模型 ${key} 不存在`);
     }
-    
+
     // 合并配置时保留原有 enabled 状态
-    const updatedConfig = { 
-      ...this.models[key], 
+    const updatedConfig = {
+      ...this.models[key],
       ...config,
       // 确保 enabled 属性存在
       enabled: config.enabled !== undefined ? config.enabled : this.models[key].enabled
     };
-    
+
     // 如果更新了关键字段或尝试启用模型，需要验证配置
     if (
       config.name !== undefined ||
@@ -112,9 +112,43 @@ export class ModelManager implements IModelManager {
     ) {
       this.validateConfig(updatedConfig);
     }
-    
+
     this.models[key] = updatedConfig;
     this.saveToStorage();
+  }
+
+  /**
+ * 获取指定模型的可用模型列表
+ * 
+ * 该方法通过LLM服务API获取指定模型提供商支持的所有模型列表。
+ * 支持OpenAI兼容协议的API（包括本地Ollama）以及Gemini等其他提供商。
+ */
+  async fetchModelsList(key: string, llmServiceFactory?: (manager: IModelManager) => any): Promise<string[]> {
+    // 检查模型配置是否存在
+    const model = this.getModel(key);
+    if (!model) {
+      throw new ModelConfigError(`模型 ${key} 不存在`);
+    }
+
+    // 验证基本配置
+    if (!model.baseURL || !model.apiKey) {
+      throw new ModelConfigError('获取模型列表需要有效的API地址和密钥');
+    }
+
+    // 使用提供的工厂函数或导入默认的LLM服务
+    // 注意：这里使用工厂函数模式避免循环依赖
+    let llmService;
+    if (llmServiceFactory) {
+      llmService = llmServiceFactory(this);
+    } else {
+      // 如果没有提供工厂函数，则尝试导入LLM服务
+      // 注意：这种方式可能导致循环依赖，应在实际使用时通过工厂函数解决
+      const { createLLMService } = require('../llm/service');
+      llmService = createLLMService(this);
+    }
+
+    // 调用LLM服务的fetchAvailableModels方法获取模型列表
+    return await llmService.fetchAvailableModels(key);
   }
 
   /**
@@ -138,7 +172,7 @@ export class ModelManager implements IModelManager {
 
     // 使用完整验证
     this.validateEnableConfig(this.models[key]);
-    
+
     this.models[key].enabled = true;
     this.saveToStorage();
   }
@@ -160,7 +194,7 @@ export class ModelManager implements IModelManager {
    */
   private validateConfig(config: ModelConfig): void {
     const errors: string[] = [];
-    
+
     if (!config.name) {
       errors.push('缺少模型名称(name)');
     }
@@ -185,7 +219,7 @@ export class ModelManager implements IModelManager {
 
   private validateEnableConfig(config: ModelConfig): void {
     this.validateConfig(config);
-    
+
     if (!config.apiKey) {
       throw new ModelConfigError('启用模型需要提供API密钥');
     }

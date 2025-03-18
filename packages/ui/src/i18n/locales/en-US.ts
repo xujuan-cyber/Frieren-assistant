@@ -74,6 +74,8 @@ export default {
     modelKey: 'Model Key',
     apiUrl: 'API URL',
     defaultModel: 'Default Model',
+    fetchModels: 'Fetch Models',
+    fetchModelsSuccess: 'Model list fetched successfully',
     apiKey: 'API Key',
     useVercelProxy: 'Use Vercel Proxy',
     useVercelProxyHint: 'Using Vercel proxy can help resolve connection issues in certain regions',

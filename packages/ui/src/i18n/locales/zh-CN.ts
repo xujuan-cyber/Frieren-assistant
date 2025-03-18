@@ -76,6 +76,8 @@ export default {
     modelKey: '模型标识',
     apiUrl: 'API地址',
     defaultModel: '默认模型',
+    fetchModels: '获取可用模型',
+    fetchModelsSuccess: '获取可用模型成功',
     apiKey: 'API密钥',
     useVercelProxy: '使用Vercel代理',
     useVercelProxyHint: '使用Vercel代理可以帮助解决某些地区的连接问题',
