@@ -77,7 +77,6 @@ export default {
     apiUrl: 'API地址',
     defaultModel: '默认模型',
     fetchModels: '获取可用模型',
-    fetchModelsSuccess: '获取可用模型成功',
     apiKey: 'API密钥',
     useVercelProxy: '使用Vercel代理',
     useVercelProxyHint: '使用Vercel代理可以帮助解决某些地区的连接问题',
@@ -106,7 +105,10 @@ export default {
     disableFailed: '禁用失败：{error}',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败：{error}',
-    modelNotFound: '找不到指定的模型',
+    modelNotFound: '未找到可用模型',
+    fetchModelsSuccess: '成功获取 ${models.length} 个模型',
+    fetchModelsFailed: '获取可用模型失败：{error}',
+    needApiKeyAndBaseUrl: '请先填写API地址和密钥',
 
     // 状态文本
     disabled: '已禁用',

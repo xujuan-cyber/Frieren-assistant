@@ -75,7 +75,6 @@ export default {
     apiUrl: 'API URL',
     defaultModel: 'Default Model',
     fetchModels: 'Fetch Models',
-    fetchModelsSuccess: 'Model list fetched successfully',
     apiKey: 'API Key',
     useVercelProxy: 'Use Vercel Proxy',
     useVercelProxyHint: 'Using Vercel proxy can help resolve connection issues in certain regions',
@@ -105,6 +104,9 @@ export default {
     deleteSuccess: 'Model deleted',
     deleteFailed: 'Failed to delete model: {error}',
     modelNotFound: 'Model not found',
+    fetchModelsSuccess: 'Successfully retrieved 1 model | Successfully retrieved {count} models',
+    fetchModelsFailed: 'Failed to fetch model list: {error}',
+    needApiKeyAndBaseUrl: 'Please fill API key and base URL first',
 
     // Status Text
     disabled: 'Disabled',

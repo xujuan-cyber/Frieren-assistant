@@ -557,7 +557,7 @@ const fetchModels = async (key) => {
     
     // 如果列表为空，显示提示
     if (models.length === 0) {
-      toast.warning(t('modelManager.noModelsFound', '未找到可用模型'));
+      toast.warning(t('modelManager.modelNotFound'));
       // 添加一个默认选项
       availableModels.value = [editingModel.value.defaultModel || 'default-model'];
     } else {
@@ -565,11 +565,11 @@ const fetchModels = async (key) => {
       if (!models.includes(editingModel.value.defaultModel)) {
         editingModel.value.defaultModel = models[0];
       }
-      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}, `成功获取 ${models.length} 个模型`));
+      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
     }
   } catch (error) {
     console.error('获取模型列表失败:', error);
-    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}, `获取模型列表失败: ${error.message}`));
+    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
     // 确保有一个默认选项
     availableModels.value = [editingModel.value.defaultModel || 'default-model'];
   } finally {
@@ -580,7 +580,7 @@ const fetchModels = async (key) => {
 // 获取新模型的可用模型列表
 const fetchNewModels = async () => {
   if (!newModel.value.apiKey || !newModel.value.baseURL) {
-    toast.error(t('modelManager.needApiKeyAndBaseUrl', '请先填写API地址和密钥'));
+    toast.error(t('modelManager.needApiKeyAndBaseUrl'));
     return;
   }
   
@@ -608,20 +608,20 @@ const fetchNewModels = async () => {
     
     // 如果列表为空，显示提示
     if (models.length === 0) {
-      toast.warning(t('modelManager.noModelsFound', '未找到可用模型'));
+      toast.warning(t('modelManager.modelNotFound'));
       // 添加一个默认选项
       newModelAvailableModels.value = ['default-model'];
     } else {
       // 默认选择第一个模型
       newModel.value.defaultModel = models[0];
-      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}, `成功获取 ${models.length} 个模型`));
+      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
     }
     
     // 删除临时模型配置
     modelManager.deleteModel(tempKey);
   } catch (error) {
     console.error('获取模型列表失败:', error);
-    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}, `获取模型列表失败: ${error.message}`));
+    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
     // 确保有一个默认选项
     newModelAvailableModels.value = ['default-model'];
     
