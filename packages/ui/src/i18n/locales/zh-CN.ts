@@ -76,6 +76,7 @@ export default {
     modelKey: '模型标识',
     apiUrl: 'API地址',
     defaultModel: '默认模型',
+    clickToFetchModels: '点击箭头获取模型列表',
     apiKey: 'API密钥',
     useVercelProxy: '使用Vercel代理',
     useVercelProxyHint: '使用Vercel代理可以帮助解决某些地区的连接问题',
@@ -85,7 +86,7 @@ export default {
     modelKeyPlaceholder: '请输入模型标识',
     displayNamePlaceholder: '请输入显示名称',
     apiUrlPlaceholder: '请输入API地址',
-    defaultModelPlaceholder: '请输入默认模型名称',
+    defaultModelPlaceholder: '输入或选择模型名称',
     apiKeyPlaceholder: '请输入API密钥',
 
     // 确认信息
@@ -104,7 +105,12 @@ export default {
     disableFailed: '禁用失败：{error}',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败：{error}',
-    modelNotFound: '找不到指定的模型',
+    fetchModelsSuccess: '成功获取 {count} 个模型',
+    loadingModels: '正在加载模型选项...',
+    noModelsAvailable: '没有可用模型',
+    selectModel: '选择一个模型',
+    fetchModelsFailed: '获取模型列表失败：{error}',
+    needApiKeyAndBaseUrl: '请先填写API地址和密钥',
 
     // 状态文本
     disabled: '已禁用',

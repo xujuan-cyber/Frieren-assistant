@@ -97,26 +97,35 @@
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
                     <input v-model="editingModel.name" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.displayNamePlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.displayNamePlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}</label>
                     <input v-model="editingModel.baseURL" type="url" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiUrlPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiUrlPlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
-                    <input v-model="editingModel.defaultModel" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.defaultModelPlaceholder')" />
+                    <InputWithSelect
+                      v-model="editingModel.defaultModel"
+                      :options="modelOptions"
+                      :is-loading="isLoadingModels"
+                      :loading-text="t('modelManager.loadingModels')"
+                      :no-options-text="t('modelManager.noModelsAvailable')"
+                      :hint-text="t('modelManager.clickToFetchModels')"
+                      required
+                      :placeholder="t('modelManager.defaultModelPlaceholder')"
+                      @select="handleModelSelect"
+                      @fetch-options="handleFetchEditingModels"
+                    />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
-                    <input v-model="editingModel.apiKey" type="password"
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
+                    <input v-model="editingModel.apiKey" type="text"
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
                     <input 
@@ -164,32 +173,41 @@
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.modelKey') }}</label>
                     <input v-model="newModel.key" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.modelKeyPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.modelKeyPlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
                     <input v-model="newModel.name" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.displayNamePlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.displayNamePlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}</label>
                     <input v-model="newModel.baseURL" type="url" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiUrlPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiUrlPlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
-                    <input v-model="newModel.defaultModel" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.defaultModelPlaceholder')" />
+                    <InputWithSelect
+                      v-model="newModel.defaultModel"
+                      :options="modelOptions"
+                      :is-loading="isLoadingModels"
+                      :loading-text="t('modelManager.loadingModels')"
+                      :no-options-text="t('modelManager.noModelsAvailable')"
+                      :hint-text="t('modelManager.clickToFetchModels')"
+                      required
+                      :placeholder="t('modelManager.defaultModelPlaceholder')"
+                      @select="handleModelSelect"
+                      @fetch-options="handleFetchNewModels"
+                    />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
                     <input v-model="newModel.apiKey" type="password" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
                     <input 
@@ -229,19 +247,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineEmits } from 'vue';
-import { useI18n } from 'vue-i18n'
-import { modelManager, createLLMService, checkVercelApiAvailability, resetVercelStatusCache } from '@prompt-optimizer/core';
+import { ref, onMounted, defineEmits, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { 
+  modelManager,
+  createLLMService,
+  checkVercelApiAvailability,
+  resetVercelStatusCache
+} from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
+import InputWithSelect from './InputWithSelect.vue'
 
 const { t } = useI18n()
 const toast = useToast();
 const emit = defineEmits(['modelsUpdated', 'close', 'select']);
 
-const models = ref([]);
+// =============== 状态变量 ===============
+// UI状态
 const isEditing = ref(false);
 const showAddForm = ref(false);
+const modelOptions = ref([]);
+const isLoadingModels = ref(false);
+// 是否支持Vercel代理
+const vercelProxyAvailable = ref(false);
+
+// 数据状态
+const models = ref([]);
 const editingModel = ref(null);
+const editingTempKey = ref(null);
+
+// 表单状态
 const newModel = ref({
   key: '',
   name: '',
@@ -250,9 +285,8 @@ const newModel = ref({
   apiKey: '',
   useVercelProxy: false
 });
-// 是否支持Vercel代理
-const vercelProxyAvailable = ref(false);
 
+// =============== 初始化和辅助函数 ===============
 // 检测Vercel代理是否可用
 const checkVercelProxy = async () => {
   try {
@@ -301,11 +335,17 @@ const loadModels = () => {
   }
 };
 
+// 判断是否为默认模型
+const isDefaultModel = (key) => {
+  return ['openai', 'gemini', 'deepseek'].includes(key);
+};
+
+// =============== 模型管理函数 ===============
 // 测试连接
 const testConnection = async (key) => {
   try {
     const model = modelManager.getModel(key);
-    if (!model) throw new Error(t('modelManager.modelNotFound'));
+    if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
     const llm = createLLMService(modelManager);
     await llm.testConnection(key);
@@ -314,11 +354,6 @@ const testConnection = async (key) => {
     console.error('连接测试失败:', error);
     toast.error(t('modelManager.testFailed', { error: error.message }));
   }
-};
-
-// 判断是否为默认模型
-const isDefaultModel = (key) => {
-  return ['openai', 'gemini', 'deepseek'].includes(key);
 };
 
 // 处理删除
@@ -335,19 +370,273 @@ const handleDelete = async (key) => {
   }
 };
 
+// 启用模型
+const enableModel = async (key) => {
+  try {
+    const model = modelManager.getModel(key)
+    if (!model) throw new Error(t('modelManager.noModelsAvailable'))
+
+    modelManager.enableModel(key)
+    loadModels()
+    emit('modelsUpdated', key)
+    toast.success(t('modelManager.enableSuccess'))
+  } catch (error) {
+    console.error('启用模型失败:', error)
+    toast.error(t('modelManager.enableFailed', { error: error.message }))
+  }
+}
+
+// 禁用模型
+const disableModel = async (key) => {
+  try {
+    const model = modelManager.getModel(key)
+    if (!model) throw new Error(t('modelManager.noModelsAvailable'))
+
+    modelManager.disableModel(key)
+    loadModels()
+    emit('modelsUpdated', key)
+    toast.success(t('modelManager.disableSuccess'))
+  } catch (error) {
+    console.error('禁用模型失败:', error)
+    toast.error(t('modelManager.disableFailed', { error: error.message }))
+  }
+}
+
+// =============== 编辑相关函数 ===============
 // 编辑模型
 const editModel = (key) => {
   const model = modelManager.getModel(key);
   if (model) {
+    // 为API密钥创建加密显示文本
+    let maskedApiKey = '';
+    if (model.apiKey) {
+      // 显示密钥的前四位和后四位，中间用星号代替
+      const keyLength = model.apiKey.length;
+      if (keyLength <= 8) {
+        maskedApiKey = '*'.repeat(keyLength);
+      } else {
+        const visiblePart = 4;
+        const prefix = model.apiKey.substring(0, visiblePart);
+        const suffix = model.apiKey.substring(keyLength - visiblePart);
+        const maskedLength = keyLength - (visiblePart * 2);
+        maskedApiKey = `${prefix}${'*'.repeat(maskedLength)}${suffix}`;
+      }
+    }
+
+    // 创建临时配置对象
     editingModel.value = {
-      key,
+      originalKey: key, // 保存原始key
       name: model.name,
       baseURL: model.baseURL,
       defaultModel: model.defaultModel,
-      apiKey: '',  // 不显示原有的 API 密钥
-      useVercelProxy: model.useVercelProxy
+      apiKey: maskedApiKey,
+      displayMaskedKey: true,
+      originalApiKey: model.apiKey,
+      useVercelProxy: model.useVercelProxy,
+      provider: model.provider,
+      enabled: model.enabled,
+      // 其他需要的字段...
     };
+    
+    // 初始化模型选项
+    modelOptions.value = model.models && model.models.length > 0 
+      ? model.models.map(m => ({ value: m, label: m }))
+      : [{ value: model.defaultModel, label: model.defaultModel }];
+    
     isEditing.value = true;
+  }
+};
+
+// 获取编辑中模型的可用模型列表
+const fetchAvailableModels = async (providerKey, apiUrl, apiKey) => {
+  isLoadingModels.value = true;
+  modelOptions.value = [];
+  
+  try {
+    // Check if the provider has fetchModelList capability
+    const llm = createLLMService(modelManager);
+    
+    // Only attempt to fetch if we have the necessary credentials
+    if (apiUrl && apiKey) {
+      const models = await llm.fetchModelList(providerKey, {
+        baseURL: apiUrl,
+        apiKey: apiKey
+      });
+      
+      if (models && models.length > 0) {
+        modelOptions.value = models.map(model => ({
+          label: model.id,
+          value: model.id
+        }));
+      } else {
+        // If no models returned, add common ones as fallback
+        addDefaultModelOptions(providerKey);
+      }
+    } else {
+      // If missing credentials, add common ones as fallback
+      addDefaultModelOptions(providerKey);
+    }
+  } catch (error) {
+    console.error('Failed to fetch models:', error);
+    // Add common models as fallback
+    addDefaultModelOptions(providerKey);
+  } finally {
+    isLoadingModels.value = false;
+  }
+};
+const addDefaultModelOptions = (providerKey) => {
+  if (providerKey === 'openai') {
+    modelOptions.value = [
+      { label: 'gpt-4o', value: 'gpt-4o' },
+      { label: 'gpt-4-turbo', value: 'gpt-4-turbo' },
+      { label: 'gpt-4', value: 'gpt-4' },
+      { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' }
+    ];
+  } else if (providerKey === 'anthropic') {
+    modelOptions.value = [
+      { label: 'claude-3-opus-20240229', value: 'claude-3-opus-20240229' },
+      { label: 'claude-3-sonnet-20240229', value: 'claude-3-sonnet-20240229' },
+      { label: 'claude-3-haiku-20240307', value: 'claude-3-haiku-20240307' },
+      { label: 'claude-2.1', value: 'claude-2.1' }
+    ];
+  } else if (providerKey === 'gemini') {
+    modelOptions.value = [
+      { label: 'gemini-pro', value: 'gemini-pro' },
+      { label: 'gemini-1.5-pro', value: 'gemini-1.5-pro' }
+    ];
+  } else if (providerKey === 'deepseek') {
+    modelOptions.value = [
+      { label: 'deepseek-chat', value: 'deepseek-chat' },
+      { label: 'deepseek-coder', value: 'deepseek-coder' }
+    ];
+  } else {
+    // For custom models, provide empty list
+    modelOptions.value = [];
+  }
+};
+const handleModelSelect = (option) => {
+  // This can be expanded if additional logic is needed when model is selected
+  console.log('Selected model:', option);
+};
+const handleFetchEditingModels = async () => {
+  if (!editingModel.value) {
+    return;
+  }
+  
+  isLoadingModels.value = true;
+  
+  try {
+    // 获取要使用的配置
+    let apiKey = editingModel.value.apiKey;
+    const baseURL = editingModel.value.baseURL;
+    
+    // 如果是掩码密钥，使用原始密钥
+    if (editingModel.value.displayMaskedKey && editingModel.value.originalKey) {
+      const originalModel = modelManager.getModel(editingModel.value.originalKey);
+      if (originalModel && originalModel.apiKey) {
+        apiKey = originalModel.apiKey;
+      }
+    }
+    
+    // 检查必要的参数
+    if (!apiKey || !baseURL) {
+      toast.error(t('modelManager.needApiKeyAndBaseUrl'));
+      return;
+    }
+    
+    // 使用 LLM 服务获取模型列表
+    const llm = createLLMService(modelManager);
+    
+    // 构建自定义配置
+    const customConfig = {
+      baseURL: baseURL,
+      apiKey: apiKey,
+      provider: editingModel.value.provider || 'custom',
+      useVercelProxy: editingModel.value.useVercelProxy
+    };
+    
+    // 确定要使用的 provider key（使用原始key或临时key）
+    const providerKey = editingModel.value.originalKey || editingModel.value.key;
+    
+    // 获取模型列表
+    const models = await llm.fetchModelList(providerKey, customConfig);
+    
+    if (models.length > 0) {
+      modelOptions.value = models;
+      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
+      
+      // 如果当前选择的模型不在列表中，默认选择第一个
+      if (!models.some(m => m.value === editingModel.value.defaultModel)) {
+        editingModel.value.defaultModel = models[0].value;
+      }
+    } else {
+      toast.warning(t('modelManager.noModelsAvailable'));
+      addDefaultModelOptions(providerKey);
+    }
+  } catch (error) {
+    console.error('获取模型列表失败:', error);
+    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
+    
+    // 使用提供商特定的默认选项
+    if (editingModel.value.originalKey) {
+      addDefaultModelOptions(editingModel.value.originalKey);
+    } else {
+      addDefaultModelOptions('custom');
+    }
+  } finally {
+    isLoadingModels.value = false;
+  }
+};
+const handleFetchNewModels = async () => {
+  if (!newModel.value) {
+    return;
+  }
+  
+  const apiKey = newModel.value.apiKey;
+  const baseURL = newModel.value.baseURL;
+  const provider = newModel.value.key || 'custom';
+  
+  // 检查必要的参数
+  if (!apiKey || !baseURL) {
+    toast.error(t('modelManager.needApiKeyAndBaseUrl'));
+    return;
+  }
+  
+  isLoadingModels.value = true;
+  
+  try {
+    // 使用 LLM 服务获取模型列表
+    const llm = createLLMService(modelManager);
+    
+    // 构建自定义配置
+    const customConfig = {
+      baseURL: baseURL,
+      apiKey: apiKey,
+      provider: 'custom',  // 新模型默认为自定义提供商
+      useVercelProxy: newModel.value.useVercelProxy
+    };
+    
+    // 获取模型列表
+    const models = await llm.fetchModelList(provider, customConfig);
+    
+    if (models.length > 0) {
+      modelOptions.value = models;
+      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
+      
+      // 默认选择第一个模型
+      newModel.value.defaultModel = models[0].value;
+    } else {
+      toast.warning(t('modelManager.noModelsAvailable'));
+      addDefaultModelOptions('custom');
+    }
+  } catch (error) {
+    console.error('获取模型列表失败:', error);
+    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
+    
+    // 添加默认选项
+    addDefaultModelOptions('custom');
+  } finally {
+    isLoadingModels.value = false;
   }
 };
 
@@ -355,49 +644,56 @@ const editModel = (key) => {
 const cancelEdit = () => {
   isEditing.value = false;
   editingModel.value = null;
+  modelOptions.value = [];
 };
 
 // 保存编辑
 const saveEdit = async () => {
-  console.log('开始保存编辑...');
-  console.log('编辑的模型数据:', editingModel.value);
-  
   try {
-    const originalConfig = modelManager.getModel(editingModel.value.key)
-    if (!originalConfig) {
-      throw new Error('找不到原始配置')
+    if (!editingModel.value || !editingModel.value.originalKey) {
+      throw new Error('编辑会话无效');
     }
-    console.log('原始配置:', originalConfig);
-
+    
+    const originalKey = editingModel.value.originalKey;
+    
+    // 创建更新配置对象
     const config = {
       name: editingModel.value.name,
       baseURL: editingModel.value.baseURL,
-      models: [editingModel.value.defaultModel],
+      // 如果是掩码密钥，使用原始密钥；否则使用新输入的密钥
+      apiKey: editingModel.value.displayMaskedKey 
+        ? editingModel.value.originalApiKey 
+        : editingModel.value.apiKey,
       defaultModel: editingModel.value.defaultModel,
-      apiKey: editingModel.value.apiKey.trim() || originalConfig.apiKey,
-      enabled: originalConfig.enabled,
-      provider: originalConfig.provider,
-      useVercelProxy: editingModel.value.useVercelProxy
-    }
-    console.log('新配置:', config);
-
-    modelManager.updateModel(editingModel.value.key, config)
+      models: [editingModel.value.defaultModel], // 可以根据需要扩展
+      useVercelProxy: editingModel.value.useVercelProxy,
+      provider: editingModel.value.provider || 'custom',
+      enabled: editingModel.value.enabled !== undefined 
+        ? editingModel.value.enabled 
+        : true
+    };
     
-    loadModels()
+    // 直接更新原始模型
+    modelManager.updateModel(originalKey, config);
     
-    emit('modelsUpdated', editingModel.value.key)
-    console.log('已触发 modelsUpdated 事件');
+    // 重新加载模型列表
+    loadModels();
     
-    isEditing.value = false
-    editingModel.value = null
-        
-    toast.success(t('modelManager.updateSuccess'))
+    // 触发更新事件
+    emit('modelsUpdated', originalKey);
+    
+    // 清理临时状态
+    isEditing.value = false;
+    editingModel.value = null;
+    
+    toast.success(t('modelManager.updateSuccess'));
   } catch (error) {
-    console.error('更新模型失败:', error)
-    toast.error(t('modelManager.updateFailed', { error: error.message }))
+    console.error('更新模型失败:', error);
+    toast.error(t('modelManager.updateFailed', { error: error.message }));
   }
 };
 
+// =============== 添加相关函数 ===============
 // 添加自定义模型
 const addCustomModel = async () => {
   try {
@@ -432,38 +728,16 @@ const addCustomModel = async () => {
   }
 };
 
-// 启用/禁用模型
-const enableModel = async (key) => {
-  try {
-    const model = modelManager.getModel(key)
-    if (!model) throw new Error(t('modelManager.modelNotFound'))
-
-    modelManager.enableModel(key)
-    loadModels()
-    emit('modelsUpdated', key)
-    toast.success(t('modelManager.enableSuccess'))
-  } catch (error) {
-    console.error('启用模型失败:', error)
-    toast.error(t('modelManager.enableFailed', { error: error.message }))
+// =============== 监听器 ===============
+// 当编辑或创建表单打开/关闭时，重置状态
+watch(() => editingModel.value?.apiKey, (newValue) => {
+  if (editingModel.value && newValue) {
+    // 如果新输入的密钥不包含星号，标记为非掩码
+    editingModel.value.displayMaskedKey = newValue.includes('*');
   }
-}
+});
 
-const disableModel = async (key) => {
-  try {
-    const model = modelManager.getModel(key)
-    if (!model) throw new Error(t('modelManager.modelNotFound'))
-
-    modelManager.disableModel(key)
-    loadModels()
-    emit('modelsUpdated', key)
-    toast.success(t('modelManager.disableSuccess'))
-  } catch (error) {
-    console.error('禁用模型失败:', error)
-    toast.error(t('modelManager.disableFailed', { error: error.message }))
-  }
-}
-
-
+// =============== 生命周期钩子 ===============
 // 初始化
 onMounted(() => {
   loadModels();

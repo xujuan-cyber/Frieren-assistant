@@ -57,7 +57,7 @@ export class ModelManager implements IModelManager {
         console.error('解析模型配置失败:', error);
       }
     }
-    
+
     const returnValue = Object.entries(this.models).map(([key, config]) => ({
       ...config,
       key
@@ -92,15 +92,15 @@ export class ModelManager implements IModelManager {
     if (!this.models[key]) {
       throw new ModelConfigError(`模型 ${key} 不存在`);
     }
-    
+
     // 合并配置时保留原有 enabled 状态
-    const updatedConfig = { 
-      ...this.models[key], 
+    const updatedConfig = {
+      ...this.models[key],
       ...config,
       // 确保 enabled 属性存在
       enabled: config.enabled !== undefined ? config.enabled : this.models[key].enabled
     };
-    
+
     // 如果更新了关键字段或尝试启用模型，需要验证配置
     if (
       config.name !== undefined ||
@@ -112,7 +112,7 @@ export class ModelManager implements IModelManager {
     ) {
       this.validateConfig(updatedConfig);
     }
-    
+
     this.models[key] = updatedConfig;
     this.saveToStorage();
   }
@@ -138,7 +138,7 @@ export class ModelManager implements IModelManager {
 
     // 使用完整验证
     this.validateEnableConfig(this.models[key]);
-    
+
     this.models[key].enabled = true;
     this.saveToStorage();
   }
@@ -160,7 +160,7 @@ export class ModelManager implements IModelManager {
    */
   private validateConfig(config: ModelConfig): void {
     const errors: string[] = [];
-    
+
     if (!config.name) {
       errors.push('缺少模型名称(name)');
     }
@@ -185,7 +185,7 @@ export class ModelManager implements IModelManager {
 
   private validateEnableConfig(config: ModelConfig): void {
     this.validateConfig(config);
-    
+
     if (!config.apiKey) {
       throw new ModelConfigError('启用模型需要提供API密钥');
     }
@@ -211,4 +211,4 @@ export class ModelManager implements IModelManager {
 }
 
 // 导出单例实例
-export const modelManager = new ModelManager(); 
+export const modelManager = new ModelManager();

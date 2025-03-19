@@ -27,9 +27,9 @@ export * from './services/prompt/types'
 export * from './services/prompt/errors'
 
 // 导出环境工具函数
-export { 
-  isBrowser, 
-  isVercel, 
+export {
+  isBrowser,
+  isVercel,
   getProxyUrl,
   checkVercelApiAvailability,
   resetVercelStatusCache
