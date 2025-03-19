@@ -123,7 +123,7 @@
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
-                    <input v-model="editingModel.apiKey" type="password"
+                    <input v-model="editingModel.apiKey" type="text"
                           class="theme-manager-input"
                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
