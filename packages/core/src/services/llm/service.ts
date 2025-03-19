@@ -1,4 +1,4 @@
-import { ILLMService, Message, StreamHandlers } from './types';
+import { ILLMService, Message, StreamHandlers, ModelInfo, ModelOption } from './types';
 import { ModelConfig } from '../model/types';
 import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
 import { APIError, RequestConfigError, ERROR_MESSAGES } from './errors';
@@ -437,23 +437,15 @@ export class LLMService implements ILLMService {
     }
   }
 
+  /**
+   * 获取可用的模型列表
+   */
   async fetchAvailableModels(provider: string): Promise<string[]> {
     try {
-      const modelConfig = this.modelManager.getModel(provider);
-      if (!modelConfig) {
-        throw new RequestConfigError(`模型 ${provider} 不存在`);
-      }
-
-      this.validateModelConfig(modelConfig);
-
-      // 根据不同提供商实现不同的获取模型列表逻辑
-      if (modelConfig.provider === 'gemini') {
-        return this.fetchGeminiModels(modelConfig);
-      } else {
-        // OpenAI兼容格式的API，包括DeepSeek、自定义模型和Ollama
-        return this.fetchOpenAICompatibleModels(modelConfig);
-      }
+      const modelOptions = await this.fetchModelList(provider);
+      return modelOptions.map(option => option.value);
     } catch (error: any) {
+      console.error('获取模型列表失败:', error);
       if (error instanceof RequestConfigError || error instanceof APIError) {
         throw error;
       }
@@ -461,25 +453,191 @@ export class LLMService implements ILLMService {
     }
   }
 
-  // 获取OpenAI兼容API的模型列表
-  private async fetchOpenAICompatibleModels(modelConfig: ModelConfig): Promise<string[]> {
-    const openai = this.getOpenAIInstance(modelConfig);
-
+  /**
+   * 获取模型列表，以下拉选项格式返回
+   * @param provider 提供商标识
+   * @param customConfig 自定义配置（可选）
+   */
+  async fetchModelList(
+    provider: string,
+    customConfig?: Partial<ModelConfig>
+  ): Promise<ModelOption[]> {
     try {
-      const response = await openai.models.list();
-      return response.data.map(model => model.id);
+      // 获取基础配置
+      let modelConfig = this.modelManager.getModel(provider);
+
+      // 如果提供了自定义配置，则合并到基础配置
+      if (customConfig) {
+        modelConfig = {
+          ...modelConfig,
+          ...(customConfig as ModelConfig),
+        };
+      }
+
+      if (!modelConfig) {
+        console.warn(`模型 ${provider} 不存在，使用自定义配置`);
+        if (!customConfig) {
+          throw new RequestConfigError(`模型 ${provider} 不存在`);
+        }
+        modelConfig = customConfig as ModelConfig;
+      }
+
+      // 验证必要的配置（仅验证API URL和密钥）
+      if (!modelConfig.baseURL) {
+        throw new RequestConfigError('API URL不能为空');
+      }
+      if (!modelConfig.apiKey) {
+        throw new RequestConfigError(ERROR_MESSAGES.API_KEY_REQUIRED);
+      }
+
+      let models: ModelInfo[] = [];
+
+      // 根据不同提供商实现不同的获取模型列表逻辑
+      console.log(`获取 ${modelConfig.name || provider} 的模型列表`);
+
+      if (provider === 'gemini' || modelConfig.provider === 'gemini') {
+        models = await this.fetchGeminiModelsInfo(modelConfig);
+      } else if (provider === 'anthropic' || modelConfig.provider === 'anthropic') {
+        models = await this.fetchAnthropicModelsInfo(modelConfig);
+      } else if (provider === 'deepseek' || modelConfig.provider === 'deepseek') {
+        models = await this.fetchDeepSeekModelsInfo(modelConfig);
+      } else {
+        // OpenAI兼容格式的API，包括自定义模型和Ollama
+        models = await this.fetchOpenAICompatibleModelsInfo(modelConfig);
+      }
+
+      // 转换为选项格式
+      return models.map(model => ({
+        value: model.id,
+        label: model.name
+      }));
     } catch (error: any) {
-      console.error('获取OpenAI兼容模型列表失败:', error);
-      throw new APIError(`获取模型列表失败: ${error.message || '未知错误'}`);
+      console.error('获取模型列表失败:', error);
+      if (error instanceof RequestConfigError || error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError(`获取模型列表失败: ${error.message}`);
     }
   }
 
-  // 获取Gemini模型列表
-  private async fetchGeminiModels(modelConfig: ModelConfig): Promise<string[]> {
-    console.log(`获取${modelConfig.name}的模型列表`);
-    // 由于Gemini API可能没有直接获取模型列表的接口
-    // 这里可以返回一个预定义的列表或从谷歌的文档中获取
-    return ['gemini-1.0-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+  /**
+   * 获取OpenAI兼容API的模型信息
+   */
+  private async fetchOpenAICompatibleModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
+    const openai = this.getOpenAIInstance(modelConfig);
+
+    try {
+      // 尝试标准 OpenAI 格式的模型列表请求
+      const response = await openai.models.list();
+      console.log('API返回的原始模型列表:', response);
+
+      // 检查响应格式
+      if (response && response.data && Array.isArray(response.data)) {
+        // 标准 OpenAI 格式
+        return response.data
+          .map(model => ({
+            id: model.id,
+            name: model.id
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id));
+      } else if (response && Array.isArray(response)) {
+        // 可能是一个简单的模型 ID 数组
+        return response
+          .map(modelId => ({
+            id: typeof modelId === 'string' ? modelId :
+              typeof modelId === 'object' && modelId !== null ?
+                (modelId.id || modelId.name || String(modelId)) : String(modelId),
+            name: typeof modelId === 'string' ? modelId :
+              typeof modelId === 'object' && modelId !== null ?
+                (modelId.name || modelId.id || String(modelId)) : String(modelId)
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id));
+      } else if (response && typeof response === 'object') {
+        // 尝试从对象中提取有用信息
+        const possibleArrayProps = ['models', 'data', 'items', 'results', 'list'];
+
+        for (const prop of possibleArrayProps) {
+          if (response[prop as keyof typeof response] &&
+            Array.isArray(response[prop as keyof typeof response])) {
+            const modelArray = response[prop as keyof typeof response] as any[];
+            return modelArray
+              .map(model => {
+                // 处理不同类型的模型对象
+                if (typeof model === 'string') {
+                  return { id: model, name: model };
+                } else if (typeof model === 'object' && model !== null) {
+                  const id = model.id || model.name || model.model || String(model);
+                  const name = model.name || model.id || model.model || String(model);
+                  return { id: String(id), name: String(name) };
+                } else {
+                  return { id: String(model), name: String(model) };
+                }
+              })
+              .sort((a, b) => a.id.localeCompare(b.id));
+          }
+        }
+      }
+
+      // 如果无法解析响应格式，记录并返回空数组
+      console.warn('无法解析API响应格式:', response);
+      return [];
+
+    } catch (error: any) {
+      console.error('获取模型列表失败:', error);
+      console.log('错误详情:', error.response?.data || error.message);
+
+      // 对于自定义接口，返回空数组
+      return [];
+    }
+  }
+  /**
+   * 获取Gemini模型信息
+   */
+  private async fetchGeminiModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
+    console.log(`获取${modelConfig.name || 'Gemini'}的模型列表`);
+
+    // Gemini API没有直接获取模型列表的接口，返回预定义列表
+    return [
+      { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' }
+    ];
+  }
+
+  /**
+   * 获取Anthropic模型信息
+   */
+  private async fetchAnthropicModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
+    console.log(`获取${modelConfig.name || 'Anthropic'}的模型列表`);
+
+    // Anthropic API没有公开的模型列表接口
+    return [
+      { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
+      { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet' },
+      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
+      { id: 'claude-2.1', name: 'Claude 2.1' }
+    ];
+  }
+
+  /**
+   * 获取DeepSeek模型信息
+   */
+  private async fetchDeepSeekModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
+    console.log(`获取${modelConfig.name || 'DeepSeek'}的模型列表`);
+
+    try {
+      // 尝试使用OpenAI兼容API获取模型列表
+      return await this.fetchOpenAICompatibleModelsInfo(modelConfig);
+    } catch (error) {
+      console.error('获取DeepSeek模型列表失败，使用默认列表:', error);
+
+      // 返回默认模型
+      return [
+        { id: 'deepseek-chat', name: 'DeepSeek Chat' },
+        { id: 'deepseek-coder', name: 'DeepSeek Coder' }
+      ];
+    }
   }
 }
 

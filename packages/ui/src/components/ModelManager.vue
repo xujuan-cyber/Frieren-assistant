@@ -97,38 +97,35 @@
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
                     <input v-model="editingModel.name" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.displayNamePlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.displayNamePlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}</label>
                     <input v-model="editingModel.baseURL" type="url" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiUrlPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiUrlPlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
-                    <div class="flex items-center gap-2">
-                      <select v-model="editingModel.defaultModel" required
-                            class="theme-manager-input flex-grow"
-                            :disabled="isLoadingModels">
-                        <option v-for="model in availableModels" :key="model" :value="model">
-                          {{ model }}
-                        </option>
-                      </select>
-                      <button @click="fetchModels(editingModel.key)" 
-                              type="button"
-                              :disabled="isLoadingModels || !editingModel.apiKey || !editingModel.baseURL"
-                              class="min-w-[150px] theme-manager-button-secondary">
-                        {{ isLoadingModels ? t('common.loading') : t('modelManager.fetchModels') }}
-                      </button>
-                    </div>
+                    <InputWithSelect
+                      v-model="editingModel.defaultModel"
+                      :options="modelOptions"
+                      :is-loading="isLoadingModels"
+                      :loading-text="t('modelManager.loadingModels')"
+                      :no-options-text="t('modelManager.noModelsAvailable')"
+                      :hint-text="t('modelManager.clickToFetchModels')"
+                      required
+                      :placeholder="t('modelManager.defaultModelPlaceholder')"
+                      @select="handleModelSelect"
+                      @fetch-options="handleFetchEditingModels"
+                    />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
                     <input v-model="editingModel.apiKey" type="password"
-                      class="theme-manager-input"
-                      :placeholder="t('modelManager.apiKeyPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
                     <input 
@@ -176,44 +173,41 @@
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.modelKey') }}</label>
                     <input v-model="newModel.key" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.modelKeyPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.modelKeyPlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
                     <input v-model="newModel.name" type="text" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.displayNamePlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.displayNamePlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}</label>
                     <input v-model="newModel.baseURL" type="url" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiUrlPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiUrlPlaceholder')" />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
-                    <div class="flex items-center gap-2">
-                      <select v-model="newModel.defaultModel" required
-                            class="theme-manager-input flex-grow"
-                            :disabled="isLoadingModels">
-                        <option v-for="model in newModelAvailableModels" :key="model" :value="model">
-                          {{ model }}
-                        </option>
-                      </select>
-                      <button @click="fetchNewModels()" 
-                              type="button"
-                              :disabled="isLoadingModels || !newModel.apiKey || !newModel.baseURL"
-                              class="min-w-[150px] theme-manager-button-secondary">
-                        {{ isLoadingModels ? t('common.loading') : t('modelManager.fetchModels') }}
-                      </button>
-                    </div>
+                    <InputWithSelect
+                      v-model="newModel.defaultModel"
+                      :options="modelOptions"
+                      :is-loading="isLoadingModels"
+                      :loading-text="t('modelManager.loadingModels')"
+                      :no-options-text="t('modelManager.noModelsAvailable')"
+                      :hint-text="t('modelManager.clickToFetchModels')"
+                      required
+                      :placeholder="t('modelManager.defaultModelPlaceholder')"
+                      @select="handleModelSelect"
+                      @fetch-options="handleFetchNewModels"
+                    />
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
                     <input v-model="newModel.apiKey" type="password" required
-                           class="theme-manager-input"
-                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
+                          class="theme-manager-input"
+                          :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
                     <input 
@@ -257,12 +251,12 @@ import { ref, onMounted, defineEmits, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { 
   modelManager,
-  tempModelManager,
   createLLMService,
   checkVercelApiAvailability,
   resetVercelStatusCache
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
+import InputWithSelect from './InputWithSelect.vue'
 
 const { t } = useI18n()
 const toast = useToast();
@@ -272,6 +266,7 @@ const emit = defineEmits(['modelsUpdated', 'close', 'select']);
 // UI状态
 const isEditing = ref(false);
 const showAddForm = ref(false);
+const modelOptions = ref([]);
 const isLoadingModels = ref(false);
 // 是否支持Vercel代理
 const vercelProxyAvailable = ref(false);
@@ -280,8 +275,6 @@ const vercelProxyAvailable = ref(false);
 const models = ref([]);
 const editingModel = ref(null);
 const editingTempKey = ref(null);
-const availableModels = ref([]);
-const newModelAvailableModels = ref(['default-model']);  // 默认至少有一个选项
 
 // 表单状态
 const newModel = ref({
@@ -347,18 +340,12 @@ const isDefaultModel = (key) => {
   return ['openai', 'gemini', 'deepseek'].includes(key);
 };
 
-// 重置状态
-const resetModelsList = () => {
-  availableModels.value = [];
-  newModelAvailableModels.value = ['default-model'];
-};
-
 // =============== 模型管理函数 ===============
 // 测试连接
 const testConnection = async (key) => {
   try {
     const model = modelManager.getModel(key);
-    if (!model) throw new Error(t('modelManager.modelNotFound'));
+    if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
     const llm = createLLMService(modelManager);
     await llm.testConnection(key);
@@ -387,7 +374,7 @@ const handleDelete = async (key) => {
 const enableModel = async (key) => {
   try {
     const model = modelManager.getModel(key)
-    if (!model) throw new Error(t('modelManager.modelNotFound'))
+    if (!model) throw new Error(t('modelManager.noModelsAvailable'))
 
     modelManager.enableModel(key)
     loadModels()
@@ -403,7 +390,7 @@ const enableModel = async (key) => {
 const disableModel = async (key) => {
   try {
     const model = modelManager.getModel(key)
-    if (!model) throw new Error(t('modelManager.modelNotFound'))
+    if (!model) throw new Error(t('modelManager.noModelsAvailable'))
 
     modelManager.disableModel(key)
     loadModels()
@@ -426,72 +413,190 @@ const editModel = (key) => {
       // 显示密钥的前四位和后四位，中间用星号代替
       const keyLength = model.apiKey.length;
       if (keyLength <= 8) {
-        // 如果密钥很短，就只显示全星号
         maskedApiKey = '*'.repeat(keyLength);
       } else {
-        // 显示前四位和后四位，中间用星号代替
-        const visiblePart = 4; // 前后各显示的字符数
+        const visiblePart = 4;
         const prefix = model.apiKey.substring(0, visiblePart);
         const suffix = model.apiKey.substring(keyLength - visiblePart);
         const maskedLength = keyLength - (visiblePart * 2);
-        const maskedPart = '*'.repeat(maskedLength);
-
-        maskedApiKey = `${prefix}${maskedPart}${suffix}`;
+        maskedApiKey = `${prefix}${'*'.repeat(maskedLength)}${suffix}`;
       }
     }
 
-    // 创建临时模型的key
-    const tempKey = `temp-edit-${key}-${Date.now()}`;
-    editingTempKey.value = tempKey;
-
-    // 使用tempModelManager添加临时配置
-    tempModelManager.addModel(tempKey, {
-      ...model,
-      originalKey: key // 保存原始key
-    });
-
-    // 设置编辑表单的值（使用掩码的API密钥用于显示）
+    // 创建临时配置对象
     editingModel.value = {
-      key: tempKey, // 使用临时key
       originalKey: key, // 保存原始key
       name: model.name,
       baseURL: model.baseURL,
       defaultModel: model.defaultModel,
-      apiKey: maskedApiKey, // 显示加密的API密钥
-      displayMaskedKey: true, // 标记这是掩码密钥
-      originalApiKey: model.apiKey, // 保存原始API密钥
+      apiKey: maskedApiKey,
+      displayMaskedKey: true,
+      originalApiKey: model.apiKey,
       useVercelProxy: model.useVercelProxy,
-      hasApiKey: !!model.apiKey,
-      provider: model.provider
+      provider: model.provider,
+      enabled: model.enabled,
+      // 其他需要的字段...
     };
-    availableModels.value = model.models && model.models.length > 0 
-      ? [...model.models]
-      : [model.defaultModel];
+    
+    // 初始化模型选项
+    modelOptions.value = model.models && model.models.length > 0 
+      ? model.models.map(m => ({ value: m, label: m }))
+      : [{ value: model.defaultModel, label: model.defaultModel }];
+    
     isEditing.value = true;
   }
 };
 
 // 获取编辑中模型的可用模型列表
-const fetchModels = async () => {
-  if (!editingModel.value || !editingTempKey.value) {
-    toast.error('编辑会话无效');
+const fetchAvailableModels = async (providerKey, apiUrl, apiKey) => {
+  isLoadingModels.value = true;
+  modelOptions.value = [];
+  
+  try {
+    // Check if the provider has fetchModelList capability
+    const llm = createLLMService(modelManager);
+    
+    // Only attempt to fetch if we have the necessary credentials
+    if (apiUrl && apiKey) {
+      const models = await llm.fetchModelList(providerKey, {
+        baseURL: apiUrl,
+        apiKey: apiKey
+      });
+      
+      if (models && models.length > 0) {
+        modelOptions.value = models.map(model => ({
+          label: model.id,
+          value: model.id
+        }));
+      } else {
+        // If no models returned, add common ones as fallback
+        addDefaultModelOptions(providerKey);
+      }
+    } else {
+      // If missing credentials, add common ones as fallback
+      addDefaultModelOptions(providerKey);
+    }
+  } catch (error) {
+    console.error('Failed to fetch models:', error);
+    // Add common models as fallback
+    addDefaultModelOptions(providerKey);
+  } finally {
+    isLoadingModels.value = false;
+  }
+};
+const addDefaultModelOptions = (providerKey) => {
+  if (providerKey === 'openai') {
+    modelOptions.value = [
+      { label: 'gpt-4o', value: 'gpt-4o' },
+      { label: 'gpt-4-turbo', value: 'gpt-4-turbo' },
+      { label: 'gpt-4', value: 'gpt-4' },
+      { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' }
+    ];
+  } else if (providerKey === 'anthropic') {
+    modelOptions.value = [
+      { label: 'claude-3-opus-20240229', value: 'claude-3-opus-20240229' },
+      { label: 'claude-3-sonnet-20240229', value: 'claude-3-sonnet-20240229' },
+      { label: 'claude-3-haiku-20240307', value: 'claude-3-haiku-20240307' },
+      { label: 'claude-2.1', value: 'claude-2.1' }
+    ];
+  } else if (providerKey === 'gemini') {
+    modelOptions.value = [
+      { label: 'gemini-pro', value: 'gemini-pro' },
+      { label: 'gemini-1.5-pro', value: 'gemini-1.5-pro' }
+    ];
+  } else if (providerKey === 'deepseek') {
+    modelOptions.value = [
+      { label: 'deepseek-chat', value: 'deepseek-chat' },
+      { label: 'deepseek-coder', value: 'deepseek-coder' }
+    ];
+  } else {
+    // For custom models, provide empty list
+    modelOptions.value = [];
+  }
+};
+const handleModelSelect = (option) => {
+  // This can be expanded if additional logic is needed when model is selected
+  console.log('Selected model:', option);
+};
+const handleFetchEditingModels = async () => {
+  if (!editingModel.value) {
     return;
   }
   
-  // 确定要使用的API密钥
-  let apiKey;
-  if (editingModel.value.displayMaskedKey) {
-    // 使用临时配置中的原始密钥
-    const tempModel = tempModelManager.getModel(editingTempKey.value);
-    apiKey = tempModel.apiKey;
-  } else {
-    // 使用用户新输入的密钥
-    apiKey = editingModel.value.apiKey;
+  isLoadingModels.value = true;
+  
+  try {
+    // 获取要使用的配置
+    let apiKey = editingModel.value.apiKey;
+    const baseURL = editingModel.value.baseURL;
+    
+    // 如果是掩码密钥，使用原始密钥
+    if (editingModel.value.displayMaskedKey && editingModel.value.originalKey) {
+      const originalModel = modelManager.getModel(editingModel.value.originalKey);
+      if (originalModel && originalModel.apiKey) {
+        apiKey = originalModel.apiKey;
+      }
+    }
+    
+    // 检查必要的参数
+    if (!apiKey || !baseURL) {
+      toast.error(t('modelManager.needApiKeyAndBaseUrl'));
+      return;
+    }
+    
+    // 使用 LLM 服务获取模型列表
+    const llm = createLLMService(modelManager);
+    
+    // 构建自定义配置
+    const customConfig = {
+      baseURL: baseURL,
+      apiKey: apiKey,
+      provider: editingModel.value.provider || 'custom',
+      useVercelProxy: editingModel.value.useVercelProxy
+    };
+    
+    // 确定要使用的 provider key（使用原始key或临时key）
+    const providerKey = editingModel.value.originalKey || editingModel.value.key;
+    
+    // 获取模型列表
+    const models = await llm.fetchModelList(providerKey, customConfig);
+    
+    if (models.length > 0) {
+      modelOptions.value = models;
+      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
+      
+      // 如果当前选择的模型不在列表中，默认选择第一个
+      if (!models.some(m => m.value === editingModel.value.defaultModel)) {
+        editingModel.value.defaultModel = models[0].value;
+      }
+    } else {
+      toast.warning(t('modelManager.noModelsAvailable'));
+      addDefaultModelOptions(providerKey);
+    }
+  } catch (error) {
+    console.error('获取模型列表失败:', error);
+    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
+    
+    // 使用提供商特定的默认选项
+    if (editingModel.value.originalKey) {
+      addDefaultModelOptions(editingModel.value.originalKey);
+    } else {
+      addDefaultModelOptions('custom');
+    }
+  } finally {
+    isLoadingModels.value = false;
+  }
+};
+const handleFetchNewModels = async () => {
+  if (!newModel.value) {
+    return;
   }
   
-  // 获取表单中的URL
-  const baseURL = editingModel.value.baseURL;
+  const apiKey = newModel.value.apiKey;
+  const baseURL = newModel.value.baseURL;
+  const provider = newModel.value.key || 'custom';
   
+  // 检查必要的参数
   if (!apiKey || !baseURL) {
     toast.error(t('modelManager.needApiKeyAndBaseUrl'));
     return;
@@ -500,59 +605,36 @@ const fetchModels = async () => {
   isLoadingModels.value = true;
   
   try {
-    // 更新内存中的临时模型配置
-    tempModelManager.updateModel(editingTempKey.value, {
+    // 使用 LLM 服务获取模型列表
+    const llm = createLLMService(modelManager);
+    
+    // 构建自定义配置
+    const customConfig = {
       baseURL: baseURL,
       apiKey: apiKey,
-      defaultModel: editingModel.value.defaultModel || 'unknown',
-      useVercelProxy: editingModel.value.useVercelProxy
-    });
+      provider: 'custom',  // 新模型默认为自定义提供商
+      useVercelProxy: newModel.value.useVercelProxy
+    };
     
-    // 创建一个临时的API模型用于获取模型列表
-    const apiTempKey = `api-${Date.now()}`;
-    let createdApiTempModel = false;
+    // 获取模型列表
+    const models = await llm.fetchModelList(provider, customConfig);
     
-    try {
-      // 获取内存中的临时配置
-      const tempConfig = tempModelManager.getModel(editingTempKey.value);
+    if (models.length > 0) {
+      modelOptions.value = models;
+      toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
       
-      // 临时添加到modelManager用于API调用
-      modelManager.addModel(apiTempKey, {
-        ...tempConfig,
-        enabled: true
-      });
-      createdApiTempModel = true;
-      
-      // 使用临时API模型获取模型列表
-      const models = await modelManager.fetchModelsList(apiTempKey, createLLMService);
-      
-      availableModels.value = models;
-      
-      // 如果列表为空，显示提示
-      if (models.length === 0) {
-        toast.warning(t('modelManager.modelNotFound'));
-        availableModels.value = [editingModel.value.defaultModel || 'default-model'];
-      } else {
-        // 如果当前选择的模型不在列表中，默认选择第一个
-        if (!models.includes(editingModel.value.defaultModel)) {
-          editingModel.value.defaultModel = models[0];
-        }
-        toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
-      }
-    } finally {
-      // 无论成功与否，都清理API调用用的临时模型
-      if (createdApiTempModel) {
-        try {
-          modelManager.deleteModel(apiTempKey);
-        } catch (e) {
-          console.warn('清理API临时模型失败:', e);
-        }
-      }
+      // 默认选择第一个模型
+      newModel.value.defaultModel = models[0].value;
+    } else {
+      toast.warning(t('modelManager.noModelsAvailable'));
+      addDefaultModelOptions('custom');
     }
   } catch (error) {
     console.error('获取模型列表失败:', error);
     toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
-    availableModels.value = [editingModel.value.defaultModel || 'default-model'];
+    
+    // 添加默认选项
+    addDefaultModelOptions('custom');
   } finally {
     isLoadingModels.value = false;
   }
@@ -560,79 +642,39 @@ const fetchModels = async () => {
 
 // 取消编辑
 const cancelEdit = () => {
-  // 删除临时模型配置
-  if (editingTempKey.value) {
-    try {
-      tempModelManager.deleteModel(editingTempKey.value);
-    } catch (e) {
-      console.warn('清理临时模型失败:', e);
-    }
-    editingTempKey.value = null;
-  }
-  
   isEditing.value = false;
   editingModel.value = null;
-  resetModelsList();
+  modelOptions.value = [];
 };
 
 // 保存编辑
 const saveEdit = async () => {
   try {
-    // 检查是否有临时key
-    if (!editingModel.value || !editingTempKey.value) {
+    if (!editingModel.value || !editingModel.value.originalKey) {
       throw new Error('编辑会话无效');
     }
     
-    // 获取原始key
     const originalKey = editingModel.value.originalKey;
     
-    // 从临时配置中获取最新值
-    const tempModel = tempModelManager.getModel(editingTempKey.value);
-    if (!tempModel) {
-      throw new Error('临时模型配置不存在');
-    }
-    
-    // 明确更新临时模型中的所有需要从表单获取的字段
-    tempModel.name = editingModel.value.name; // 确保名称正确更新
-    tempModel.baseURL = editingModel.value.baseURL;
-    tempModel.useVercelProxy = editingModel.value.useVercelProxy;
-    
-    // 处理API密钥 - 如果是掩码则保留原始密钥
-    if (editingModel.value.apiKey && !editingModel.value.displayMaskedKey) {
-      tempModel.apiKey = editingModel.value.apiKey;
-    }
-    
-    // 处理默认模型
-    tempModel.defaultModel = editingModel.value.defaultModel;
-    tempModel.models = [editingModel.value.defaultModel]; // 更新模型列表
-    
-    // 创建更新配置对象，明确指定所有字段
+    // 创建更新配置对象
     const config = {
-      name: tempModel.name,
-      baseURL: tempModel.baseURL,
-      apiKey: tempModel.apiKey,
+      name: editingModel.value.name,
+      baseURL: editingModel.value.baseURL,
+      // 如果是掩码密钥，使用原始密钥；否则使用新输入的密钥
+      apiKey: editingModel.value.displayMaskedKey 
+        ? editingModel.value.originalApiKey 
+        : editingModel.value.apiKey,
       defaultModel: editingModel.value.defaultModel,
-      models: availableModels.value.length > 0 
-        ? [...availableModels.value] 
-        : [editingModel.value.defaultModel],
-      useVercelProxy: tempModel.useVercelProxy,
-      provider: tempModel.provider || 'custom', // 确保提供provider
-      enabled: tempModel.enabled !== undefined ? tempModel.enabled : true
+      models: [editingModel.value.defaultModel], // 可以根据需要扩展
+      useVercelProxy: editingModel.value.useVercelProxy,
+      provider: editingModel.value.provider || 'custom',
+      enabled: editingModel.value.enabled !== undefined 
+        ? editingModel.value.enabled 
+        : true
     };
     
-    console.log('保存模型配置:', {
-      originalKey,
-      config: {
-        ...config,
-        apiKey: config.apiKey ? '******' : null // 日志中隐藏密钥
-      }
-    });
-    
-    // 更新原始模型
+    // 直接更新原始模型
     modelManager.updateModel(originalKey, config);
-    
-    // 删除临时模型
-    tempModelManager.deleteModel(editingTempKey.value);
     
     // 重新加载模型列表
     loadModels();
@@ -641,7 +683,6 @@ const saveEdit = async () => {
     emit('modelsUpdated', originalKey);
     
     // 清理临时状态
-    editingTempKey.value = null;
     isEditing.value = false;
     editingModel.value = null;
     
@@ -684,82 +725,6 @@ const addCustomModel = async () => {
   } catch (error) {
     console.error('添加模型失败:', error)
     toast.error(`添加模型失败: ${error.message}`)
-  }
-};
-
-// 获取新模型的可用模型列表
-const fetchNewModels = async () => {
-  if (!newModel.value.apiKey || !newModel.value.baseURL) {
-    toast.error(t('modelManager.needApiKeyAndBaseUrl'));
-    return;
-  }
-  
-  isLoadingModels.value = true;
-  
-  // 创建一个临时键，用于内存中存储新模型配置
-  const tempKey = `temp-new-${Date.now()}`;
-  
-  try {
-    // 在内存中保存新模型的临时配置
-    tempModelManager.addModel(tempKey, {
-      baseURL: newModel.value.baseURL,
-      apiKey: newModel.value.apiKey,
-      provider: 'custom',
-      defaultModel: newModel.value.defaultModel || 'unknown',
-      models: [newModel.value.defaultModel || 'unknown'],
-      name: 'Temporary',
-      enabled: true,
-      useVercelProxy: newModel.value.useVercelProxy
-    });
-    
-    // 创建一个临时的API模型用于获取模型列表
-    const apiTempKey = `api-${Date.now()}`;
-    let createdApiTempModel = false;
-    
-    try {
-      // 获取内存中的临时配置
-      const tempConfig = tempModelManager.getModel(tempKey);
-      
-      // 临时添加到modelManager用于API调用
-      modelManager.addModel(apiTempKey, {
-        ...tempConfig,
-        enabled: true
-      });
-      createdApiTempModel = true;
-      
-      // 使用临时API模型获取模型列表
-      const models = await modelManager.fetchModelsList(apiTempKey, createLLMService);
-      
-      newModelAvailableModels.value = models;
-      
-      // 如果列表为空，显示提示
-      if (models.length === 0) {
-        toast.warning(t('modelManager.modelNotFound'));
-        newModelAvailableModels.value = ['default-model'];
-      } else {
-        // 默认选择第一个模型
-        newModel.value.defaultModel = models[0];
-        toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
-      }
-    } finally {
-      // 无论成功与否，都清理API调用用的临时模型
-      if (createdApiTempModel) {
-        try {
-          modelManager.deleteModel(apiTempKey);
-        } catch (e) {
-          console.warn('清理API临时模型失败:', e);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('获取模型列表失败:', error);
-    toast.error(t('modelManager.fetchModelsFailed', {error: error.message}));
-    newModelAvailableModels.value = ['default-model'];
-  } finally {
-    isLoadingModels.value = false;
-    
-    // 删除内存中的临时配置（fetchNewModels不需要保留）
-    tempModelManager.deleteModel(tempKey);
   }
 };
 

@@ -17,7 +17,7 @@ export * from './services/llm/types'
 export * from './services/llm/errors'
 
 // 导出模型管理相关
-export { ModelManager, modelManager, tempModelManager } from './services/model/manager'
+export { ModelManager, modelManager } from './services/model/manager'
 export * from './services/model/types'
 export * from './services/model/defaults'
 

@@ -74,7 +74,7 @@ export default {
     modelKey: 'Model Key',
     apiUrl: 'API URL',
     defaultModel: 'Default Model',
-    fetchModels: 'Fetch Models',
+    clickToFetchModels: 'Click arrow to fetch model list',
     apiKey: 'API Key',
     useVercelProxy: 'Use Vercel Proxy',
     useVercelProxyHint: 'Using Vercel proxy can help resolve connection issues in certain regions',
@@ -84,7 +84,7 @@ export default {
     modelKeyPlaceholder: 'Enter model key',
     displayNamePlaceholder: 'Enter display name',
     apiUrlPlaceholder: 'Enter API URL',
-    defaultModelPlaceholder: 'Enter default model name',
+    defaultModelPlaceholder: 'Type or select a model name',
     apiKeyPlaceholder: 'Enter API key',
 
     // Confirmation
@@ -103,9 +103,11 @@ export default {
     disableFailed: 'Failed to disable model: {error}',
     deleteSuccess: 'Model deleted',
     deleteFailed: 'Failed to delete model: {error}',
-    modelNotFound: 'Model not found',
     fetchModelsSuccess: 'Successfully retrieved 1 model | Successfully retrieved {count} models',
-    fetchModelsFailed: 'Failed to fetch model list: {error}',
+    loadingModels: 'Loading model options...',
+    noModelsAvailable: 'No models available',
+    selectModel: 'Select a model',
+    fetchModelsFailed: 'Failed to fetch models: {error}',
     needApiKeyAndBaseUrl: 'Please fill API key and base URL first',
 
     // Status Text
