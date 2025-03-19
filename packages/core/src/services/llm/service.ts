@@ -531,62 +531,25 @@ export class LLMService implements ILLMService {
       const response = await openai.models.list();
       console.log('API返回的原始模型列表:', response);
 
-      // 检查响应格式
+      // 只处理标准 OpenAI 格式
       if (response && response.data && Array.isArray(response.data)) {
-        // 标准 OpenAI 格式
         return response.data
           .map(model => ({
             id: model.id,
             name: model.id
           }))
           .sort((a, b) => a.id.localeCompare(b.id));
-      } else if (response && Array.isArray(response)) {
-        // 可能是一个简单的模型 ID 数组
-        return response
-          .map(modelId => ({
-            id: typeof modelId === 'string' ? modelId :
-              typeof modelId === 'object' && modelId !== null ?
-                (modelId.id || modelId.name || String(modelId)) : String(modelId),
-            name: typeof modelId === 'string' ? modelId :
-              typeof modelId === 'object' && modelId !== null ?
-                (modelId.name || modelId.id || String(modelId)) : String(modelId)
-          }))
-          .sort((a, b) => a.id.localeCompare(b.id));
-      } else if (response && typeof response === 'object') {
-        // 尝试从对象中提取有用信息
-        const possibleArrayProps = ['models', 'data', 'items', 'results', 'list'];
-
-        for (const prop of possibleArrayProps) {
-          if (response[prop as keyof typeof response] &&
-            Array.isArray(response[prop as keyof typeof response])) {
-            const modelArray = response[prop as keyof typeof response] as any[];
-            return modelArray
-              .map(model => {
-                // 处理不同类型的模型对象
-                if (typeof model === 'string') {
-                  return { id: model, name: model };
-                } else if (typeof model === 'object' && model !== null) {
-                  const id = model.id || model.name || model.model || String(model);
-                  const name = model.name || model.id || model.model || String(model);
-                  return { id: String(id), name: String(name) };
-                } else {
-                  return { id: String(model), name: String(model) };
-                }
-              })
-              .sort((a, b) => a.id.localeCompare(b.id));
-          }
-        }
       }
 
-      // 如果无法解析响应格式，记录并返回空数组
-      console.warn('无法解析API响应格式:', response);
+      // 如果格式不匹配标准格式，记录并返回空数组
+      console.warn('API返回格式与预期不符:', response);
       return [];
 
     } catch (error: any) {
       console.error('获取模型列表失败:', error);
       console.log('错误详情:', error.response?.data || error.message);
 
-      // 对于自定义接口，返回空数组
+      // 发生错误时返回空数组
       return [];
     }
   }
