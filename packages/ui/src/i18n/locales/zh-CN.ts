@@ -106,7 +106,7 @@ export default {
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败：{error}',
     modelNotFound: '未找到可用模型',
-    fetchModelsSuccess: '成功获取 ${models.length} 个模型',
+    fetchModelsSuccess: '成功获取 {count} 个模型',
     fetchModelsFailed: '获取可用模型失败：{error}',
     needApiKeyAndBaseUrl: '请先填写API地址和密钥',
 

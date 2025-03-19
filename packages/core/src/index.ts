@@ -17,7 +17,7 @@ export * from './services/llm/types'
 export * from './services/llm/errors'
 
 // 导出模型管理相关
-export { ModelManager, modelManager } from './services/model/manager'
+export { ModelManager, modelManager, tempModelManager } from './services/model/manager'
 export * from './services/model/types'
 export * from './services/model/defaults'
 
@@ -27,9 +27,9 @@ export * from './services/prompt/types'
 export * from './services/prompt/errors'
 
 // 导出环境工具函数
-export { 
-  isBrowser, 
-  isVercel, 
+export {
+  isBrowser,
+  isVercel,
   getProxyUrl,
   checkVercelApiAvailability,
   resetVercelStatusCache

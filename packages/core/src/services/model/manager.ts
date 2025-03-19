@@ -244,5 +244,74 @@ export class ModelManager implements IModelManager {
   }
 }
 
+/**
+ * 临时模型管理器接口
+ */
+export interface ITempModelManager {
+  addModel(key: string, config: ModelConfig): string;
+  getModel(key: string): ModelConfig | undefined;
+  updateModel(key: string, config: Partial<ModelConfig>): ModelConfig | undefined;
+  deleteModel(key: string): boolean;
+  clear(): void;
+}
+
+/**
+ * 临时模型管理器实现
+ * 用于在内存中管理临时模型配置，不会持久化到存储
+ */
+export class TempModelManager implements ITempModelManager {
+  private models: Record<string, ModelConfig>;
+
+  constructor() {
+    this.models = {};
+  }
+
+  /**
+   * 添加临时模型配置
+   */
+  addModel(key: string, config: ModelConfig): string {
+    this.models[key] = { ...config };
+    return key;
+  }
+
+  /**
+   * 获取临时模型配置
+   */
+  getModel(key: string): ModelConfig | undefined {
+    return this.models[key];
+  }
+
+  /**
+   * 更新临时模型配置
+   */
+  updateModel(key: string, config: Partial<ModelConfig>): ModelConfig | undefined {
+    if (!this.models[key]) {
+      return undefined;
+    }
+
+    this.models[key] = { ...this.models[key], ...config };
+    return this.models[key];
+  }
+
+  /**
+   * 删除临时模型配置
+   */
+  deleteModel(key: string): boolean {
+    if (key in this.models) {
+      delete this.models[key];
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 清除所有临时模型配置
+   */
+  clear(): void {
+    this.models = {};
+  }
+}
+
 // 导出单例实例
-export const modelManager = new ModelManager(); 
+export const modelManager = new ModelManager();
+export const tempModelManager = new TempModelManager();
