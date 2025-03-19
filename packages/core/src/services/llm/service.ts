@@ -438,22 +438,6 @@ export class LLMService implements ILLMService {
   }
 
   /**
-   * 获取可用的模型列表
-   */
-  async fetchAvailableModels(provider: string): Promise<string[]> {
-    try {
-      const modelOptions = await this.fetchModelList(provider);
-      return modelOptions.map(option => option.value);
-    } catch (error: any) {
-      console.error('获取模型列表失败:', error);
-      if (error instanceof RequestConfigError || error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError(`获取模型列表失败: ${error.message}`);
-    }
-  }
-
-  /**
    * 获取模型列表，以下拉选项格式返回
    * @param provider 提供商标识
    * @param customConfig 自定义配置（可选）

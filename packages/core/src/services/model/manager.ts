@@ -118,40 +118,6 @@ export class ModelManager implements IModelManager {
   }
 
   /**
- * 获取指定模型的可用模型列表
- * 
- * 该方法通过LLM服务API获取指定模型提供商支持的所有模型列表。
- * 支持OpenAI兼容协议的API（包括本地Ollama）以及Gemini等其他提供商。
- */
-  async fetchModelsList(key: string, llmServiceFactory?: (manager: IModelManager) => any): Promise<string[]> {
-    // 检查模型配置是否存在
-    const model = this.getModel(key);
-    if (!model) {
-      throw new ModelConfigError(`模型 ${key} 不存在`);
-    }
-
-    // 验证基本配置
-    if (!model.baseURL || !model.apiKey) {
-      throw new ModelConfigError('获取模型列表需要有效的API地址和密钥');
-    }
-
-    // 使用提供的工厂函数或导入默认的LLM服务
-    // 注意：这里使用工厂函数模式避免循环依赖
-    let llmService;
-    if (llmServiceFactory) {
-      llmService = llmServiceFactory(this);
-    } else {
-      // 如果没有提供工厂函数，则尝试导入LLM服务
-      // 注意：这种方式可能导致循环依赖，应在实际使用时通过工厂函数解决
-      const { createLLMService } = require('../llm/service');
-      llmService = createLLMService(this);
-    }
-
-    // 调用LLM服务的fetchAvailableModels方法获取模型列表
-    return await llmService.fetchAvailableModels(key);
-  }
-
-  /**
    * 删除模型配置
    */
   deleteModel(key: string): void {

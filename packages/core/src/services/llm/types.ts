@@ -62,13 +62,6 @@ export interface ILLMService {
   testConnection(provider: string): Promise<void>;
 
   /**
-   * 获取可用模型列表（字符串数组）
-   * @throws {RequestConfigError} 当参数无效时
-   * @throws {APIError} 当请求失败时
-   */
-  fetchAvailableModels(provider: string): Promise<string[]>;
-
-  /**
    * 获取模型列表，以下拉选项格式返回
    * @param provider 提供商标识
    * @param customConfig 自定义配置（可选）
