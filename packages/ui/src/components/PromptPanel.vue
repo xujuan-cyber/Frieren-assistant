@@ -107,6 +107,7 @@ import { useI18n } from 'vue-i18n'
 import { ref, defineProps, defineEmits, computed, nextTick } from 'vue'
 import { useToast } from '../composables/useToast'
 import { useAutoScroll } from '../composables/useAutoScroll'
+import { useClipboard } from '../composables/useClipboard'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
 import type {
@@ -117,6 +118,7 @@ import type {
 
 const { t } = useI18n()
 const toast = useToast()
+const { copyText } = useClipboard()
 
 // 使用自动滚动组合式函数
 const { elementRef: promptTextarea, watchSource, forceScrollToBottom, shouldAutoScroll } = useAutoScroll<HTMLTextAreaElement>({
@@ -183,16 +185,11 @@ const handleInput = (event: Event) => {
   emit('update:optimizedPrompt', target.value)
 }
 
+// 复制提示词
 const copyPrompt = async () => {
   if (!props.optimizedPrompt) return
   
-  try {
-    await navigator.clipboard.writeText(props.optimizedPrompt)
-    toast.success(t('common.copySuccess'))
-  } catch (e) {
-    console.error('Failed to copy:', e)
-    toast.error(t('common.copyFailed'))
-  }
+  copyText(props.optimizedPrompt)
 }
 
 const handleIterate = () => {

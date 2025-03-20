@@ -51,10 +51,12 @@ import { ref, defineEmits, defineProps, watch, nextTick, onMounted, computed } f
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
 import { useAutoScroll } from '../composables/useAutoScroll'
+import { useClipboard } from '../composables/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 
 const { t } = useI18n()
 const toast = useToast()
+const { copyText } = useClipboard()
 const contentTokens = ref<string[]>([])
 const isStreaming = ref(false)
 
@@ -175,15 +177,11 @@ defineExpose({
 const copySelectedText = async () => {
   if (!resultContainer.value) return
   
-  const selectedText = window.getSelection()?.toString()
+  const selection = window.getSelection()
+  const selectedText = selection?.toString() || ''
   const textToCopy = selectedText || displayContent.value
   
-  try {
-    await navigator.clipboard.writeText(textToCopy)
-    toast.success(t('common.copySuccess'))
-  } catch (err) {
-    toast.error(t('common.copyFailed'))
-  }
+  copyText(textToCopy)
 }
 </script>
 

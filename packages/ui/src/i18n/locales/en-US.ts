@@ -34,6 +34,8 @@ export default {
     version: 'V{version}',
     optimize: 'Optimize',
     iterate: 'Iterate',
+    copySuccess: 'Copy Success',
+    copyFailed: 'Copy Failed',
     appName: 'Prompt Optimizer',
     selectFile: 'Select File',
   },
