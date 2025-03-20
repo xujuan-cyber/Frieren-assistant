@@ -47,11 +47,11 @@
                   <button @click="testConnection(model.key)"
                           :class="[
                             'theme-manager-button-test inline-flex items-center justify-center transition-all duration-300 ease-in-out',
-                            isTestingConnection === model.key ? 'w-auto px-5' : ''
+                            isTestingConnectionFor(model.key) ? 'w-auto px-5' : ''
                           ]"
-                          :disabled="isTestingConnection === model.key">
+                          :disabled="isTestingConnectionFor(model.key)">
                     <span class="inline-block">{{ t('modelManager.testConnection') }}</span>
-                    <span v-if="isTestingConnection === model.key"
+                    <span v-if="isTestingConnectionFor(model.key)"
                           class="overflow-hidden transition-all duration-300 ease-in-out ml-2 w-5 opacity-100">
                       <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -279,7 +279,7 @@ const isEditing = ref(false);
 const showAddForm = ref(false);
 const modelOptions = ref([]);
 const isLoadingModels = ref(false);
-const isTestingConnection = ref(null);
+const testingConnections = ref({});
 // 是否支持Vercel代理
 const vercelProxyAvailable = ref(false);
 
@@ -354,9 +354,11 @@ const isDefaultModel = (key) => {
 
 // =============== 模型管理函数 ===============
 // 测试连接
+const isTestingConnectionFor = (key) => !!testingConnections.value[key];
 const testConnection = async (key) => {
+  if (isTestingConnectionFor(key)) return;
   try {
-    isTestingConnection.value = key;
+    testingConnections.value[key] = true;
     const model = modelManager.getModel(key);
     if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
@@ -367,7 +369,7 @@ const testConnection = async (key) => {
     console.error('连接测试失败:', error);
     toast.error(t('modelManager.testFailed', { error: error.message }));
   } finally {
-    isTestingConnection.value = null;
+    delete testingConnections.value[key];
   }
 };
 
