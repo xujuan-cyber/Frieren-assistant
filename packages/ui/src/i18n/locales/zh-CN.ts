@@ -93,8 +93,8 @@ export default {
     deleteConfirm: '确定要删除此模型吗？此操作不可恢复。',
 
     // 操作结果
-    testSuccess: '连接测试成功',
-    testFailed: '连接测试失败：{error}',
+    testSuccess: '{provider}连接测试成功',
+    testFailed: '{provider}连接测试失败：{error}',
     updateSuccess: '更新成功',
     updateFailed: '更新失败：{error}',
     addSuccess: '添加成功',
