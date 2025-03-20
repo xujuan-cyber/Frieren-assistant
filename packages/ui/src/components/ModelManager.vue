@@ -364,10 +364,14 @@ const testConnection = async (key) => {
 
     const llm = createLLMService(modelManager);
     await llm.testConnection(key);
-    toast.success(t('modelManager.testSuccess'));
+    toast.success(t('modelManager.testSuccess', { provider: model.name }));
   } catch (error) {
     console.error('连接测试失败:', error);
-    toast.error(t('modelManager.testFailed', { error: error.message }));
+    const modelName = modelManager.getModel(key)?.name || key;
+    toast.error(t('modelManager.testFailed', { 
+      provider: modelName, 
+      error: error.message || 'Unknown error' 
+    }));
   } finally {
     delete testingConnections.value[key];
   }
