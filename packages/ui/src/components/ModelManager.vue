@@ -45,8 +45,19 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <button @click="testConnection(model.key)"
-                          class="theme-manager-button-test">
-                    {{ t('modelManager.testConnection') }}
+                          :class="[
+                            'theme-manager-button-test inline-flex items-center justify-center transition-all duration-300 ease-in-out',
+                            isTestingConnectionFor(model.key) ? 'w-auto px-5' : ''
+                          ]"
+                          :disabled="isTestingConnectionFor(model.key)">
+                    <span class="inline-block">{{ t('modelManager.testConnection') }}</span>
+                    <span v-if="isTestingConnectionFor(model.key)"
+                          class="overflow-hidden transition-all duration-300 ease-in-out ml-2 w-5 opacity-100">
+                      <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </span>
                   </button>
                   <button @click="editModel(model.key)"
                           class="theme-manager-button-edit">
@@ -268,6 +279,7 @@ const isEditing = ref(false);
 const showAddForm = ref(false);
 const modelOptions = ref([]);
 const isLoadingModels = ref(false);
+const testingConnections = ref({});
 // 是否支持Vercel代理
 const vercelProxyAvailable = ref(false);
 
@@ -342,8 +354,11 @@ const isDefaultModel = (key) => {
 
 // =============== 模型管理函数 ===============
 // 测试连接
+const isTestingConnectionFor = (key) => !!testingConnections.value[key];
 const testConnection = async (key) => {
+  if (isTestingConnectionFor(key)) return;
   try {
+    testingConnections.value[key] = true;
     const model = modelManager.getModel(key);
     if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
@@ -353,6 +368,8 @@ const testConnection = async (key) => {
   } catch (error) {
     console.error('连接测试失败:', error);
     toast.error(t('modelManager.testFailed', { error: error.message }));
+  } finally {
+    delete testingConnections.value[key];
   }
 };
 
