@@ -25,6 +25,12 @@ export interface PromptRecord {
   timestamp: number;
   /** 使用的模型key */
   modelKey: string;
+  /** 
+   * 使用的模型显示名称 
+   * 通过modelKey从modelManager中获取，用于UI展示
+   * 不存储时使用modelKey作为后备显示
+   */
+  modelName?: string;
   /** 使用的提示词ID */
   templateId: string;
   /** 迭代时的修改说明 */

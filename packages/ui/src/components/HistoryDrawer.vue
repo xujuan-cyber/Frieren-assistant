@@ -71,6 +71,9 @@
                       <div class="flex items-center gap-3 overflow-hidden">
                         <span class="text-sm font-medium theme-manager-text flex-none">{{ t('common.version', { version: record.version }) }}</span>
                         <span class="text-xs theme-manager-text-secondary flex-none">{{ formatDate(record.timestamp) }}</span>
+                        <span class="text-xs theme-manager-text-secondary flex-none">
+                          {{ record.modelName || record.modelKey }}
+                        </span>
                         <span v-if="record.type === 'iterate' && record.iterationNote" class="text-xs theme-manager-text-secondary truncate">
                           - {{ truncateText(record.iterationNote, 30) }}
                         </span>

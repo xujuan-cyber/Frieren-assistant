@@ -1,6 +1,7 @@
 import { IHistoryManager, PromptRecord, PromptRecordChain } from './types';
 import { HistoryError, RecordNotFoundError, StorageError, RecordValidationError } from './errors';
 import { v4 as uuidv4 } from 'uuid';
+import { modelManager } from '../model/manager';
 
 /**
  * 历史记录管理器实现
@@ -22,11 +23,35 @@ export class HistoryManager implements IHistoryManager {
   }
 
   /**
+   * 获取模型名称的辅助函数
+   * @param modelKey 模型键值
+   * @returns 模型名称或undefined
+   */
+  private getModelNameByKey(modelKey: string): string | undefined {
+    try {
+      if (!modelKey) {
+        return undefined;
+      }
+      const modelConfig = modelManager.getModel(modelKey);
+      return modelConfig?.defaultModel;
+    } catch (error) {
+      console.warn(`获取模型名称失败: ${modelKey}`, error);
+      return undefined;
+    }
+  }
+
+  /**
    * 添加记录
    */
   addRecord(record: PromptRecord): void {
     try {
       this.validateRecord(record);
+
+      // 如果记录中有modelKey但没有modelName，尝试获取模型名称
+      if (record.modelKey && !record.modelName) {
+        record.modelName = this.getModelNameByKey(record.modelKey);
+      }
+
       const history = this.getRecords();
       history.unshift(record);
       this.saveToStorage(history.slice(0, this.maxRecords));
@@ -148,11 +173,14 @@ export class HistoryManager implements IHistoryManager {
    */
   createNewChain(record: Omit<PromptRecord, 'chainId' | 'version' | 'previousId'>): PromptRecordChain {
     const chainId = uuidv4();
+    
     const newRecord: PromptRecord = {
       ...record,
       chainId,
       version: 1,
-      previousId: undefined
+      previousId: undefined,
+      // 复用 getModelNameByKey 获取模型名称
+      modelName: record.modelKey ? this.getModelNameByKey(record.modelKey) : undefined
     };
     
     this.addRecord(newRecord);
@@ -180,7 +208,9 @@ export class HistoryManager implements IHistoryManager {
       type: 'iterate',
       version: latest.version + 1,
       previousId: latest.id,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      // 复用 getModelNameByKey 获取模型名称
+      modelName: this.getModelNameByKey(params.modelKey)
     };
 
     this.addRecord(newRecord);
