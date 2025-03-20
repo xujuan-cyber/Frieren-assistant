@@ -143,6 +143,15 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+Tip: When developing with Cursor tool, it is recommended to do the following before committing:
+1. Use the "CodeReview" rule for review
+2. Check according to the review report format:
+   - Overall consistency of changes
+   - Code quality and implementation method
+   - Test coverage
+   - Documentation completeness
+3. Optimize based on review results before submitting
+
 ## 👏 Contributors
 
 Thanks to all the developers who have contributed to this project!
