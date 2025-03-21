@@ -21,8 +21,17 @@
 
         <!-- 已启用模型列表 -->
         <div class="space-y-3">
-          <h3 class="text-lg font-semibold theme-manager-text">{{ t('modelManager.modelList') }}</h3>
-          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold theme-manager-text">{{ t('modelManager.modelList') }}</h3>
+            <button
+                @click="showAddForm = true"
+                class="flex text-sm items-center gap-1 theme-manager-button-secondary"
+              >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M3 15h6"/><path d="M6 12v6"/></svg>
+              {{ t('modelManager.addModel') }}
+              </button>
+          </div>
+          <div class="space-y-3 pb-3">
             <div v-for="model in models" :key="model.key" 
                  :class="['p-4 rounded-xl border transition-colors',
                          model.enabled 
@@ -35,8 +44,9 @@
                       {{ model.name }}
                     </h4>
                     <span v-if="!model.enabled" 
-                          class="theme-manager-tag">
-                      {{ t('modelManager.disabled') }}
+                          class="inline-flex items-center theme-manager-tag">
+                      <span class="hidden sm:block">{{ t('modelManager.disabled') }}</span>
+                      <svg class="sm:hidden h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.9A9 9 0 0 0 9.1 3.5"/><path d="m2 2 20 20"/><path d="M5.6 5.6C3 8.3 2.2 12.5 4 16l-2 6 6-2c3.4 1.8 7.6 1.1 10.3-1.7"/></svg>
                     </span>
                   </div>
                   <p class="text-sm" :class="model.enabled ? 'theme-manager-text-secondary' : 'theme-manager-text-disabled'">
@@ -45,37 +55,45 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <button @click="testConnection(model.key)"
-                          :class="[
-                            'theme-manager-button-test inline-flex items-center justify-center transition-all duration-300 ease-in-out',
-                            isTestingConnectionFor(model.key) ? 'w-auto px-5' : ''
-                          ]"
+                          class="theme-manager-button-test text-sm inline-flex gap-1 items-center justify-center transition-all duration-300 ease-in-out px-4"
                           :disabled="isTestingConnectionFor(model.key)">
-                    <span class="inline-block">{{ t('modelManager.testConnection') }}</span>
-                    <span v-if="isTestingConnectionFor(model.key)"
-                          class="overflow-hidden transition-all duration-300 ease-in-out ml-2 w-5 opacity-100">
-                      <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    </span>
+                          <div class="size-4 flex items-center justify-center">
+                            <!-- 只在未测试时显示链接图标 -->
+                            <svg v-if="!isTestingConnectionFor(model.key)" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <!-- 在测试时显示加载图标 -->
+                            <svg v-if="isTestingConnectionFor(model.key)" class="animate-spin size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                    <span class="hidden md:inline">{{ t('modelManager.testConnection') }}</span>
                   </button>
                   <button @click="editModel(model.key)"
-                          class="theme-manager-button-edit">
-                    {{ t('modelManager.editModel') }}
+                          class="text-sm inline-flex items-center gap-1 theme-manager-button-edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                    <span class="hidden md:inline">{{ t('modelManager.editModel') }}</span>
                   </button>
                   <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
+                          class="text-sm inline-flex items-center gap-1"
                           :class="[
                             model.enabled 
                               ? 'theme-manager-button-warning' 
                               : 'theme-manager-button-success'
                           ]">
-                    {{ model.enabled ? t('common.disable') : t('common.enable') }}
+                    <svg v-if="model.enabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M12 6v.343"/><path d="M18.218 18.218A7 7 0 0 1 5 15V9a7 7 0 0 1 .782-3.218"/><path d="M19 13.343V9A7 7 0 0 0 8.56 2.902"/><path d="M22 22 2 2"/></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 6v4"/></svg>
+                    <span class="hidden md:inline">{{ model.enabled ? t('common.disable') : t('common.enable') }}</span>
                   </button>
                   <!-- 只对自定义模型显示删除按钮 -->
                   <button v-if="!isDefaultModel(model.key)" 
                           @click="handleDelete(model.key)"
-                          class="theme-manager-button-danger">
-                    {{ t('common.delete') }}
+                          class="text-sm inline-flex items-center gap-1 theme-manager-button-danger">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                          </svg>
+                          <span class="hidden md:inline">{{ t('common.delete') }}</span>
                   </button>
                 </div>
               </div>
@@ -244,14 +262,6 @@
             </div>
           </div>
         </Teleport>
-
-        <!-- 添加模型按钮 -->
-        <div class="mt-2 theme-manager-divider pt-2">
-          <button @click="showAddForm = true" class="w-full theme-manager-button-secondary py-3 flex items-center justify-center space-x-2">
-            <span>+</span>
-            <span>{{ t('modelManager.addModel') }}</span>
-          </button>
-        </div>
       </div>
     </div>
   </div>
