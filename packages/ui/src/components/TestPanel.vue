@@ -57,6 +57,11 @@
           <div
             v-show="isCompareMode"
             class="absolute inset-0 flex flex-col md:w-[calc(50%-6px)] md:mr-3"
+            :style="{
+              visibility: isCompareMode ? 'visible' : 'hidden',
+              opacity: isCompareMode ? 1 : 0,
+              pointerEvents: isCompareMode ? 'auto' : 'none'
+            }"
           >
             <OutputPanelUI
               ref="originalOutputPanelRef"
@@ -74,7 +79,7 @@
            class="absolute inset-0 flex flex-col"
             :class="{
             'md:w-[calc(50%-6px)] md:left-[calc(50%+6px)] transition-[width,left] duration-300': isCompareMode,
-            'w-full': !isCompareMode
+            'w-full left-0': !isCompareMode
             }"
           >
             <OutputPanelUI
