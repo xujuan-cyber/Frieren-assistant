@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@ctrl/tinycolor':
-        specifier: ^4.1.0
-        version: 4.1.0
       '@element-plus/icons-vue':
         specifier: ^2.3.1
         version: 2.3.1(vue@3.5.13(typescript@5.8.2))
@@ -23,9 +20,6 @@ importers:
       '@floating-ui/utils':
         specifier: ^0.2.9
         version: 0.2.9
-      '@intlify/unplugin-vue-i18n':
-        specifier: ^6.0.3
-        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@1.21.7))(rollup@4.34.8)(typescript@5.8.2)(vue-i18n@10.0.6(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -53,18 +47,9 @@ importers:
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
-      i18next:
-        specifier: ^24.2.2
-        version: 24.2.2(typescript@5.8.2)
-      i18next-browser-languagedetector:
-        specifier: ^8.0.4
-        version: 8.0.4
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
-      lodash-unified:
-        specifier: ^1.0.3
-        version: 1.0.3(@types/lodash-es@4.17.12)(lodash-es@4.17.21)(lodash@4.17.21)
       memoize-one:
         specifier: ^6.0.0
         version: 6.0.0
@@ -75,12 +60,27 @@ importers:
         specifier: ^10.0.6
         version: 10.0.6(vue@3.5.13(typescript@5.8.2))
     devDependencies:
+      '@ctrl/tinycolor':
+        specifier: ^4.1.0
+        version: 4.1.0
+      '@intlify/unplugin-vue-i18n':
+        specifier: ^6.0.3
+        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@1.21.7))(rollup@4.34.8)(typescript@5.8.2)(vue-i18n@10.0.6(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
+      i18next:
+        specifier: ^24.2.2
+        version: 24.2.2(typescript@5.8.2)
+      i18next-browser-languagedetector:
+        specifier: ^8.0.4
+        version: 8.0.4
+      lodash-unified:
+        specifier: ^1.0.3
+        version: 1.0.3(@types/lodash-es@4.17.12)(lodash-es@4.17.21)(lodash@4.17.21)
       npm-run-all:
         specifier: ^4.1.5
         version: 4.1.5
@@ -127,15 +127,9 @@ importers:
       '@prompt-optimizer/ui':
         specifier: workspace:*
         version: link:../ui
-      dotenv:
-        specifier: ^16.4.7
-        version: 16.4.7
       element-plus:
         specifier: ^2.9.3
         version: 2.9.4(vue@3.5.13(typescript@5.7.3))
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.0
       uuid:
         specifier: ^11.0.5
         version: 11.0.5
@@ -170,6 +164,12 @@ importers:
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.5.2)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
       postcss:
         specifier: ^8.5.1
         version: 8.5.2
@@ -218,7 +218,7 @@ importers:
         version: 10.0.0
       '@vitejs/plugin-vue':
         specifier: ^5.2.1
-        version: 5.2.1(vite@6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+        version: 5.2.1(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
       '@vue/test-utils':
         specifier: ^2.4.5
         version: 2.4.6
@@ -236,24 +236,19 @@ importers:
         version: 6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0)
       vite-plugin-dts:
         specifier: ^4.5.3
-        version: 4.5.3(@types/node@22.13.4)(rollup@4.34.8)(typescript@5.8.2)(vite@6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0))
+        version: 4.5.3(@types/node@22.13.10)(rollup@4.34.8)(typescript@5.8.2)(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))
       vitest:
         specifier: ^3.0.7
-        version: 3.0.7(@types/node@22.13.4)(jiti@1.21.7)(jsdom@26.0.0)(yaml@2.7.0)
+        version: 3.0.7(@types/node@22.13.10)(jiti@1.21.7)(jsdom@26.0.0)(yaml@2.7.0)
+
   packages/web:
     dependencies:
       '@prompt-optimizer/ui':
         specifier: workspace:*
         version: link:../ui
-      dotenv:
-        specifier: ^16.4.7
-        version: 16.4.7
       element-plus:
         specifier: ^2.9.3
         version: 2.9.4(vue@3.5.13(typescript@5.8.2))
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.0
       uuid:
         specifier: ^11.0.5
         version: 11.0.5
@@ -275,13 +270,19 @@ importers:
         version: 1.2.0(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))
       '@vitejs/plugin-vue':
         specifier: ^5.2.1
-        version: 5.2.1(vite@6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+        version: 5.2.1(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.4.6
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.5.2)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
       jsdom:
         specifier: ^26.0.0
         version: 26.0.0
@@ -766,8 +767,8 @@ packages:
     resolution: {integrity: sha512-QcUYprK+e4X2lU6eJDxLuf/mUtCuVPj2RFBoFRlJJxK3wskBejzlRvh1Q0lQCi9tDOnD4iUK1ftcGylE3X3idA==}
     engines: {node: '>= 16'}
 
-  '@intlify/message-compiler@12.0.0-alpha.1':
-    resolution: {integrity: sha512-rS1Lc99D2uaGqWxlrpGPWdgkq2Jox8xxOS9gdIRhuF2CsuJISWQmwd/TjMnWNhwv9olE0aPEBh1323a61Tfp+g==}
+  '@intlify/message-compiler@12.0.0-alpha.2':
+    resolution: {integrity: sha512-PD9C+oQbb7BF52hec0+vLnScaFkvnfX+R7zSbODYuRo/E2niAtGmHd0wPvEMsDhf9Z9b8f/qyDsVeZnD/ya9Ug==}
     engines: {node: '>= 16'}
 
   '@intlify/shared@10.0.6':
@@ -778,8 +779,8 @@ packages:
     resolution: {integrity: sha512-dF2iMMy8P9uKVHV/20LA1ulFLL+MKSbfMiixSmn6fpwqzvix38OIc7ebgnFbBqElvghZCW9ACtzKTGKsTGTWGA==}
     engines: {node: '>= 16'}
 
-  '@intlify/shared@12.0.0-alpha.1':
-    resolution: {integrity: sha512-ZZ5rtlUcEnhhFS+MTrl0V1UoN3yRninGawP3f1YituJN9217xJvpqCSLa9t8NLaVwVIxsRcq4lQe48D0SigmBg==}
+  '@intlify/shared@12.0.0-alpha.2':
+    resolution: {integrity: sha512-P2DULVX9nz3y8zKNqLw9Es1aAgQ1JGC+kgpx5q7yLmrnAKkPR5MybQWoEhxanefNJgUY5ehsgo+GKif59SrncA==}
     engines: {node: '>= 16'}
 
   '@intlify/unplugin-vue-i18n@6.0.3':
@@ -3718,8 +3719,8 @@ snapshots:
 
   '@intlify/bundle-utils@10.0.0(vue-i18n@10.0.6(vue@3.5.13(typescript@5.8.2)))':
     dependencies:
-      '@intlify/message-compiler': 12.0.0-alpha.1
-      '@intlify/shared': 12.0.0-alpha.1
+      '@intlify/message-compiler': 12.0.0-alpha.2
+      '@intlify/shared': 12.0.0-alpha.2
       acorn: 8.14.1
       escodegen: 2.1.0
       estree-walker: 2.0.2
@@ -3740,16 +3741,16 @@ snapshots:
       '@intlify/shared': 10.0.6
       source-map-js: 1.2.1
 
-  '@intlify/message-compiler@12.0.0-alpha.1':
+  '@intlify/message-compiler@12.0.0-alpha.2':
     dependencies:
-      '@intlify/shared': 12.0.0-alpha.1
+      '@intlify/shared': 12.0.0-alpha.2
       source-map-js: 1.2.1
 
   '@intlify/shared@10.0.6': {}
 
   '@intlify/shared@11.1.2': {}
 
-  '@intlify/shared@12.0.0-alpha.1': {}
+  '@intlify/shared@12.0.0-alpha.2': {}
 
   '@intlify/unplugin-vue-i18n@6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@1.21.7))(rollup@4.34.8)(typescript@5.8.2)(vue-i18n@10.0.6(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))':
     dependencies:
@@ -3822,11 +3823,11 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@microsoft/api-extractor-model@7.30.4(@types/node@22.13.4)':
+  '@microsoft/api-extractor-model@7.30.4(@types/node@22.13.10)':
     dependencies:
       '@microsoft/tsdoc': 0.15.1
       '@microsoft/tsdoc-config': 0.17.1
-      '@rushstack/node-core-library': 5.12.0(@types/node@22.13.4)
+      '@rushstack/node-core-library': 5.12.0(@types/node@22.13.10)
     transitivePeerDependencies:
       - '@types/node'
 
@@ -3849,15 +3850,15 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@microsoft/api-extractor@7.52.1(@types/node@22.13.4)':
+  '@microsoft/api-extractor@7.52.1(@types/node@22.13.10)':
     dependencies:
-      '@microsoft/api-extractor-model': 7.30.4(@types/node@22.13.4)
+      '@microsoft/api-extractor-model': 7.30.4(@types/node@22.13.10)
       '@microsoft/tsdoc': 0.15.1
       '@microsoft/tsdoc-config': 0.17.1
-      '@rushstack/node-core-library': 5.12.0(@types/node@22.13.4)
+      '@rushstack/node-core-library': 5.12.0(@types/node@22.13.10)
       '@rushstack/rig-package': 0.5.3
-      '@rushstack/terminal': 0.15.1(@types/node@22.13.4)
-      '@rushstack/ts-command-line': 4.23.6(@types/node@22.13.4)
+      '@rushstack/terminal': 0.15.1(@types/node@22.13.10)
+      '@rushstack/ts-command-line': 4.23.6(@types/node@22.13.10)
       lodash: 4.17.21
       minimatch: 3.0.8
       resolve: 1.22.10
@@ -4039,7 +4040,7 @@ snapshots:
       '@types/node': 20.17.19
     optional: true
 
-  '@rushstack/node-core-library@5.12.0(@types/node@22.13.4)':
+  '@rushstack/node-core-library@5.12.0(@types/node@22.13.10)':
     dependencies:
       ajv: 8.13.0
       ajv-draft-04: 1.0.0(ajv@8.13.0)
@@ -4065,9 +4066,9 @@ snapshots:
       '@types/node': 20.17.19
     optional: true
 
-  '@rushstack/terminal@0.15.1(@types/node@22.13.4)':
+  '@rushstack/terminal@0.15.1(@types/node@22.13.10)':
     dependencies:
-      '@rushstack/node-core-library': 5.12.0(@types/node@22.13.4)
+      '@rushstack/node-core-library': 5.12.0(@types/node@22.13.10)
       supports-color: 8.1.1
     optionalDependencies:
       '@types/node': 22.13.10
@@ -4082,9 +4083,9 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@rushstack/ts-command-line@4.23.6(@types/node@22.13.4)':
+  '@rushstack/ts-command-line@4.23.6(@types/node@22.13.10)':
     dependencies:
-      '@rushstack/terminal': 0.15.1(@types/node@22.13.4)
+      '@rushstack/terminal': 0.15.1(@types/node@22.13.10)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -4184,20 +4185,15 @@ snapshots:
     dependencies:
       vite: 6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0)
 
-  '@vitejs/plugin-vue@5.2.1(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.3))':
+  '@vitejs/plugin-vue@5.2.1(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))':
     dependencies:
       vite: 6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0)
-      vue: 3.5.13(typescript@5.7.3)
+      vue: 3.5.13(typescript@5.8.2)
 
   '@vitejs/plugin-vue@5.2.1(vite@6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.3))':
     dependencies:
       vite: 6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0)
       vue: 3.5.13(typescript@5.7.3)
-
-  '@vitejs/plugin-vue@5.2.1(vite@6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))':
-    dependencies:
-      vite: 6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0)
-      vue: 3.5.13(typescript@5.8.2)
 
   '@vitest/expect@3.0.5':
     dependencies:
@@ -6582,9 +6578,9 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.3(@types/node@22.13.4)(rollup@4.34.8)(typescript@5.8.2)(vite@6.2.1(@types/node@22.13.4)(jiti@1.21.7)(yaml@2.7.0)):
+  vite-plugin-dts@4.5.3(@types/node@22.13.10)(rollup@4.34.8)(typescript@5.8.2)(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0)):
     dependencies:
-      '@microsoft/api-extractor': 7.52.1(@types/node@22.13.4)
+      '@microsoft/api-extractor': 7.52.1(@types/node@22.13.10)
       '@rollup/pluginutils': 5.1.4(rollup@4.34.8)
       '@volar/typescript': 2.4.12
       '@vue/language-core': 2.2.0(typescript@5.8.2)
@@ -6751,7 +6747,7 @@ snapshots:
       - tsx
       - yaml
 
-  vitest@3.0.7(@types/node@22.13.4)(jiti@1.21.7)(jsdom@26.0.0)(yaml@2.7.0):
+  vitest@3.0.7(@types/node@22.13.10)(jiti@1.21.7)(jsdom@26.0.0)(yaml@2.7.0):
     dependencies:
       '@vitest/expect': 3.0.7
       '@vitest/mocker': 3.0.7(vite@6.2.1(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0))
@@ -6774,7 +6770,7 @@ snapshots:
       vite-node: 3.0.7(@types/node@22.13.10)(jiti@1.21.7)(yaml@2.7.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 22.13.4
+      '@types/node': 22.13.10
       jsdom: 26.0.0
     transitivePeerDependencies:
       - jiti
