@@ -51,14 +51,14 @@
       </div>
 
       <!-- Test Results Area -->
-      <div class="flex-1 min-h-0 overflow-y-auto mt-5">
-        <div class="relative h-full">
+      <div class="flex-1 min-h-0 md:overflow-hidden overflow-visible mt-5">
+        <div class="relative h-full flex flex-col md:block">
           <!-- Original Prompt Test Result -->
           <div
             v-show="isCompareMode"
-            class="absolute inset-0 flex flex-col md:w-[calc(50%-6px)] md:mr-3"
+            class="flex flex-col transition-all duration-300 min-h-[80px] mb-4 md:mb-0 md:absolute md:inset-0 md:h-full md:w-[calc(50%-6px)] md:mr-3"
             :style="{
-              visibility: isCompareMode ? 'visible' : 'hidden',
+              height: isCompareMode ? 'auto' : '0',
               opacity: isCompareMode ? 1 : 0,
               pointerEvents: isCompareMode ? 'auto' : 'none'
             }"
@@ -68,7 +68,7 @@
               :loading="isTestingOriginal"
               :error="originalTestError"
               v-model:result="originalTestResult"
-              class="flex-1"
+              class="flex-1 h-full"
               :resultTitle="t('test.originalResult')"
               :enableMarkdown="enableMarkdown"
             />
@@ -76,10 +76,13 @@
 
           <!-- Optimized Prompt Test Result -->
           <div
-           class="absolute inset-0 flex flex-col"
+            class="flex flex-col transition-all duration-300 min-h-[80px]"
+            :style="{
+              height: isCompareMode ? 'auto' : '100%'
+            }"
             :class="{
-            'md:w-[calc(50%-6px)] md:left-[calc(50%+6px)] transition-[width,left] duration-300': isCompareMode,
-            'w-full left-0': !isCompareMode
+              'md:absolute md:inset-0 md:h-full md:w-[calc(50%-6px)] md:left-[calc(50%+6px)]': isCompareMode,
+              'md:absolute md:inset-0 md:h-full md:w-full md:left-0': !isCompareMode
             }"
           >
             <OutputPanelUI
@@ -87,7 +90,7 @@
               :loading="isTestingOptimized"
               :error="optimizedTestError"
               v-model:result="optimizedTestResult"
-              class="flex-1"
+              class="flex-1 h-full"
               :resultTitle="isCompareMode ? t('test.optimizedResult') : t('test.testResult')"
               :enableMarkdown="enableMarkdown"
             />
@@ -306,5 +309,16 @@ defineExpose({
   height: 1rem;
   border-radius: 0.25rem;
   cursor: pointer;
+}
+/* 小屏幕下允许容器自由扩展 */
+@media (max-width: 767px) {
+  .min-h-\[80px\] {
+    min-height: 120px !important; /* 增加小屏幕下的最小高度 */
+  }
+  
+  /* 确保OutputPanel可以正确扩展 */
+  .flex-1 {
+    flex: 1 0 auto;
+  }
 }
 </style>
