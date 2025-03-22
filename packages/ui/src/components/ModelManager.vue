@@ -87,8 +87,7 @@
         <Teleport to="body">
           <!-- 编辑模型弹窗 -->
           <div v-if="isEditing" 
-               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
-               @click="cancelEdit">
+               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
             <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
@@ -170,7 +169,7 @@
           </div>
 
           <!-- 添加模型弹窗 -->
-          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto" @click="showAddForm = false">
+          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
             <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10" @click.stop>

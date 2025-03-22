@@ -167,7 +167,7 @@
           <!-- 查看/编辑模态框 -->
           <div v-if="showAddForm || editingTemplate || viewingTemplate" 
                class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto"
-               @click="cancelEdit">
+               @click="viewingTemplate ? cancelEdit() : null">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
             <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
