@@ -17,7 +17,7 @@
           @configModel="$emit('showConfig')"
         >
           <template #model-select>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center gap-2">
               <ModelSelectUI
                 ref="testModelSelect"
                 :modelValue="selectedTestModel"
