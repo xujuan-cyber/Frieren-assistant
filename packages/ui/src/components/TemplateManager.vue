@@ -47,17 +47,17 @@
         <!-- 提示词列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold flex items-center space-x-2">
-              <span class="theme-manager-text">
+            <h3 class="text-lg font-semibold flex items-center gap-2 min-w-0 overflow-hidden">
+              <span class="theme-manager-text truncate">
                 {{ t(`templateManager.${currentType}TemplateList`) }}
               </span>
-              <span class="theme-manager-tag">
+              <span class="theme-manager-tag whitespace-nowrap flex-shrink-0 mr-2">
                 {{ t('templateManager.templateCount', { count: filteredTemplates.length }) }}
               </span>
             </h3>
             <button
               @click="showAddForm = true"
-              class="flex text-sm items-center gap-1 theme-manager-button-secondary"
+              class="flex text-sm items-center gap-1 flex-shrink-0 theme-manager-button-secondary"
             >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M3 15h6"/><path d="M6 12v6"/></svg>
               {{ t('templateManager.addTemplate') }}
@@ -263,7 +263,7 @@
         </Teleport>
 
         <!-- 导入提示词 -->
-        <div class="theme-manager-divider pt-2">
+        <div class="theme-manager-divider pt-2 hidden">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold theme-manager-text">{{ t('template.import.title') }}</h3>
           </div>
