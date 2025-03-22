@@ -75,17 +75,17 @@ declare module 'vue-i18n' {
       useVercelProxy: string;
       useVercelProxyHint: string;
       addModel: string;
-      
+
       // Placeholders
       modelKeyPlaceholder: string;
       displayNamePlaceholder: string;
       apiUrlPlaceholder: string;
       defaultModelPlaceholder: string;
       apiKeyPlaceholder: string;
-      
+
       // Confirmation
       deleteConfirm: string;
-      
+
       // Operation Results
       testSuccess: string;
       testFailed: string;
@@ -99,7 +99,7 @@ declare module 'vue-i18n' {
       disableFailed: string;
       deleteSuccess: string;
       deleteFailed: string;
-      
+
       // Accessibility Labels
       testConnectionAriaLabel: string;
       editModelAriaLabel: string;
@@ -126,29 +126,29 @@ declare module 'vue-i18n' {
       editTemplate: string;
       deleteTemplate: string;
       templateCount: string;
-      
+
       // Button Text
       importTemplate: string;
       exportTemplate: string;
       copyTemplate: string;
       useTemplate: string;
       viewTemplate: string;
-      
+
       // Form Fields
       name: string;
       content: string;
       description: string;
       type: string;
-      
+
       // Placeholders
       namePlaceholder: string;
       contentPlaceholder: string;
       descriptionPlaceholder: string;
       searchPlaceholder: string;
-      
+
       // Confirmation
       deleteConfirm: string;
-      
+
       // Operation Results
       updateSuccess: string;
       updateFailed: string;
@@ -162,7 +162,7 @@ declare module 'vue-i18n' {
       importFailed: string;
       exportSuccess: string;
       exportFailed: string;
-      
+
       // Accessibility Labels
       editTemplateAriaLabel: string;
       deleteTemplateAriaLabel: string;
@@ -186,5 +186,8 @@ declare module 'vue-i18n' {
       iterationNote: string;
       optimizedPrompt: string;
     };
+  }
+  export function useI18n(): {
+    t: (key: string, ...args: any[]) => string;
   }
 } 

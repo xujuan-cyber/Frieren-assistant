@@ -18,7 +18,7 @@
     </div>
 
     <!-- 控制面板 -->
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2">
       <!-- 模型选择 -->
       <div class="min-w-[120px] w-fit shrink-0">
         <label class="block text-sm theme-label mb-1.5">{{ modelLabel }}</label>
