@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [快速开始](#🚀-快速开始) | [常见问题](#❓-常见问题) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -37,7 +37,7 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 - 🎨 用户体验：简洁直观的界面设计，响应式布局和流畅交互动效果
 - 🌐 跨域支持：Vercel部署时支持使用Edge Runtime代理解决跨域问题（可能会触发部分厂商风控）
 
-## 🚀 快速开始
+## 快速开始
 
 ### 1. 使用在线版本（推荐）
 
@@ -136,7 +136,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
  </picture>
 </a>
 
-## ❓ 常见问题
+## 常见问题
 
 ### API连接问题
 

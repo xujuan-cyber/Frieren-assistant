@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[Live Demo](https://prompt.always200.com) | [Quick Start](#🚀-quick-start) | [FAQ](#❓-FAQ) | [Development Docs](dev.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[Live Demo](https://prompt.always200.com) | [Quick Start](#quick-start) | [FAQ](#faq) | [Development Docs](dev.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -37,7 +37,7 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 🎨 User Experience: Clean and intuitive interface design with responsive layout and smooth interaction effects
 - 🌐 Cross-domain Support: Edge Runtime proxy for cross-domain issues when deployed on Vercel (may trigger risk control from some providers)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Use Online Version (Recommended)
 
@@ -135,7 +135,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
  </picture>
 </a>
 
-## ❓ FAQ
+## FAQ
 
 ### API Connection Issues
 
