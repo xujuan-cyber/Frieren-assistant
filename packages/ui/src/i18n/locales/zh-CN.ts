@@ -79,7 +79,7 @@ export default {
     clickToFetchModels: '点击箭头获取模型列表',
     apiKey: 'API密钥',
     useVercelProxy: '使用Vercel代理',
-    useVercelProxyHint: '使用Vercel代理可以帮助解决某些地区的连接问题',
+    useVercelProxyHint: '使用Vercel代理可以解决跨域问题，但可能触发部分厂商风控，请酌情使用',
     addModel: '添加',
 
     // 占位符

@@ -79,7 +79,7 @@ export default {
     clickToFetchModels: 'Click arrow to fetch model list',
     apiKey: 'API Key',
     useVercelProxy: 'Use Vercel Proxy',
-    useVercelProxyHint: 'Using Vercel proxy can help resolve connection issues in certain regions',
+    useVercelProxyHint: 'Using Vercel proxy can solve CORS issues, but may trigger risk control from some providers. Please use with caution',
     addModel: 'Add',
 
     // Placeholders

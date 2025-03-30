@@ -1,5 +1,7 @@
 # Prompt Optimizer 🚀
 
+[English](README_EN.md) | [中文](README.md)
+
 <div align="center">
 
 [![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
@@ -11,8 +13,6 @@
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
 [Live Demo](https://prompt.always200.com) | [Installation](#quick-start) | [Development Docs](dev.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
-
-[English](README_EN.md) | [中文](README.md)
 
 </div>
 
@@ -134,6 +134,35 @@ For detailed project status, see [Project Status Document](docs/project-status.m
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date" />
  </picture>
 </a>
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### API Connection Issues
+
+#### Q1: Why can't I connect to the model service after configuring the API key?
+**A**: Most connection failures are caused by **Cross-Origin Resource Sharing (CORS)** issues. As this project is a pure frontend application, browsers block direct access to API services from different origins for security reasons. Model services will reject direct requests from browsers if CORS policies are not correctly configured.
+
+#### Q2: How to solve Ollama connection issues?
+**A**: Ollama fully supports the OpenAI standard interface, just configure the correct CORS policy:
+1. Set environment variable `OLLAMA_ORIGINS=*` to allow requests from any origin
+2. If issues persist, set `OLLAMA_HOST=0.0.0.0:11434` to listen on any IP address
+
+#### Q3: How to solve CORS issues with commercial APIs (such as Nvidia's DS API, ByteDance's Volcano API)?
+**A**: These platforms typically have strict CORS restrictions. Recommended solutions:
+
+1. **Use Vercel Proxy** (Convenient solution)
+   - Use the online version: [prompt.always200.com](https://prompt.always200.com)
+   - Or deploy to your own Vercel platform
+   - Check "Use Vercel Proxy" option in model settings
+   - Request flow: Browser → Vercel → Model service provider
+
+2. **Use self-deployed API proxy service** (Reliable solution)
+   - Deploy open-source API aggregation/proxy tools like OneAPI
+   - Configure as custom API endpoint in settings
+   - Request flow: Browser → Proxy service → Model service provider
+
+#### Q4: What are the drawbacks or risks of using Vercel proxy?
+**A**: Using Vercel proxy may trigger risk control mechanisms of some model service providers. Some vendors may identify requests from Vercel as proxy behavior, thereby limiting or denying service. If you encounter this issue, we recommend using a self-deployed proxy service.
 
 ## 🤝 Contributing
 

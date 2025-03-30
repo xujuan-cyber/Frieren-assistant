@@ -164,6 +164,7 @@
                     />
                     <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
                       {{ t('modelManager.useVercelProxy') }}
+                      <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
                     </label>
                   </div>
                   <div class="flex justify-end space-x-3 pt-4">
@@ -245,7 +246,8 @@
                       class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
                     <label for="new-model-vercel-proxy" class="text-sm font-medium theme-manager-text">
-                      {{ t('modelManager.useVercelProxyHint') }}
+                      {{ t('modelManager.useVercelProxy') }}
+                      <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
                     </label>
                   </div>
                   <div class="flex justify-end space-x-3 pt-4">

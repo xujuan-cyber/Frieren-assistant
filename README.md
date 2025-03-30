@@ -1,5 +1,7 @@
 # Prompt Optimizer (提示词优化器) 🚀
 
+[English](README_EN.md) | [中文](README.md)
+
 <div align="center">
 
 [![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
@@ -11,8 +13,6 @@
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
 [在线体验](https://prompt.always200.com) | [安装指南](#快速开始) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
-
-[English](README_EN.md) | [中文](README.md)
 
 </div>
 
@@ -125,6 +125,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [项目状态](docs/project-status.md) - 当前进度和计划
 - [产品需求](docs/prd.md) - 产品需求文档
 
+
 ## Star History
 
 <a href="https://star-history.com/#linshenkx/prompt-optimizer&Date">
@@ -134,6 +135,36 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=linshenkx/prompt-optimizer&type=Date" />
  </picture>
 </a>
+
+## ❓ 常见问题解答（FAQ）
+
+### API连接问题
+
+#### Q1: 为什么配置好API密钥后仍然无法连接到模型服务？
+**A**: 大多数连接失败是由**跨域问题**（CORS）导致的。由于本项目是纯前端应用，浏览器出于安全考虑会阻止直接访问不同源的API服务。模型服务如未正确配置CORS策略，会拒绝来自浏览器的直接请求。
+
+#### Q2: 如何解决本地Ollama的连接问题？
+**A**: Ollama完全支持OpenAI标准接口，只需配置正确的跨域策略：
+1. 设置环境变量 `OLLAMA_ORIGINS=*` 允许任意来源的请求
+2. 如仍有问题，设置 `OLLAMA_HOST=0.0.0.0:11434` 监听任意IP地址
+
+#### Q3: 如何解决商业API（如Nvidia的DS API、字节跳动的火山API）的跨域问题？
+**A**: 这些平台通常有严格的跨域限制，推荐以下解决方案：
+
+1. **使用Vercel代理**（便捷方案）
+   - 使用在线版本：[prompt.always200.com](https://prompt.always200.com)
+   - 或自行部署到Vercel平台
+   - 在模型设置中勾选"使用Vercel代理"选项
+   - 请求流向：浏览器→Vercel→模型服务提供商
+
+2. **使用自部署的API中转服务**（可靠方案）
+   - 部署如OneAPI等开源API聚合/代理工具
+   - 在设置中配置为自定义API端点
+   - 请求流向：浏览器→中转服务→模型服务提供商
+
+#### Q4: Vercel代理有什么缺点或风险？
+**A**: 使用Vercel代理可能会触发某些模型服务提供商的风控机制。部分厂商可能会将来自Vercel的请求判定为代理行为，从而限制或拒绝服务。如遇此问题，建议使用自部署的中转服务。
+
 
 ## 🤝 参与贡献
 
