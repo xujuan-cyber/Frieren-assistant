@@ -1,8 +1,8 @@
 # Prompt Optimizer 🚀
 
-[English](README_EN.md) | [中文](README.md)
-
 <div align="center">
+
+[English](README_EN.md) | [中文](README.md)
 
 [![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
 ![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/cakkkhboolfnadechdlgdcnjammejlna?style=flat&label=Chrome%20Users&link=https%3A%2F%2Fchromewebstore.google.com%2Fdetail%2F%25E6%258F%2590%25E7%25A4%25BA%25E8%25AF%258D%25E4%25BC%2598%25E5%258C%2596%25E5%2599%25A8%2Fcakkkhboolfnadechdlgdcnjammejlna)
@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[Live Demo](https://prompt.always200.com) | [Installation](#quick-start) | [Development Docs](dev.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[Live Demo](https://prompt.always200.com) | [Quick Start](#🚀-quick-start) | [FAQ](#❓-FAQ) | [Development Docs](dev.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -135,7 +135,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
  </picture>
 </a>
 
-## ❓ Frequently Asked Questions (FAQ)
+## ❓ FAQ
 
 ### API Connection Issues
 
