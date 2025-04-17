@@ -46,10 +46,10 @@ Direct access: [https://prompt.always200.com](https://prompt.always200.com)
 This is a pure frontend project with all data stored locally in your browser and never uploaded to any server, making the online version both safe and reliable to use.
 
 ### 2. Vercel Deployment
-1. One-click deployment to your own Vercel:
+Method 1: One-click deployment to your own Vercel:
    [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-2. Fork the project and import to Vercel (Recommended):
+Method 2: Fork the project and import to Vercel (Recommended):
    - First fork the project to your GitHub account
    - Then import the project to Vercel
    - This allows tracking of source project updates for easy syncing of new features and fixes

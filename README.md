@@ -46,10 +46,10 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 项目是纯前端项目，所有数据只存储在浏览器本地，不会上传至任何服务器，因此直接使用在线版本也是安全可靠的
 
 ### 2. Vercel部署
-1. 一键部署到自己的Vercel：
+方式1：一键部署到自己的Vercel：
    [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-2. Fork项目后在Vercel中导入（推荐）：
+方式2: Fork项目后在Vercel中导入（推荐）：
    - 先Fork项目到自己的GitHub
    - 然后在Vercel中导入该项目
    - 可跟踪源项目更新，便于同步最新功能和修复
