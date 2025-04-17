@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[Live Demo](https://prompt.always200.com) | [Quick Start](#quick-start) | [FAQ](#faq) | [Development Docs](dev.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[Live Demo](https://prompt.always200.com) | [Quick Start](#quick-start) | [FAQ](#faq) | [Development Docs](dev.md) | [Vercel Deployment Guide](docs/vercel_en.md) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -41,15 +41,26 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 
 ### 1. Use Online Version (Recommended)
 
-1. Direct access: [https://prompt.always200.com](https://prompt.always200.com)
-2. Or one-click deploy to your own Vercel:
+Direct access: [https://prompt.always200.com](https://prompt.always200.com)
+
+This is a pure frontend project with all data stored locally in your browser and never uploaded to any server, making the online version both safe and reliable to use.
+
+### 2. Vercel Deployment
+1. One-click deployment to your own Vercel:
    [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-### 2. Install Chrome Extension
+2. Fork the project and import to Vercel (Recommended):
+   - First fork the project to your GitHub account
+   - Then import the project to Vercel
+   - This allows tracking of source project updates for easy syncing of new features and fixes
+  
+For more detailed deployment steps and important notes, please check the [Vercel Deployment Guide](docs/vercel_en.md)
+
+### 3. Install Chrome Extension
 1. Install from Chrome Web Store (may not be the latest version due to approval delays): [Chrome Web Store](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 2. Click the icon to open the Prompt Optimizer
 
-### 3. Docker Deployment
+### 4. Docker Deployment
 ```bash
 # Run container (default configuration)
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
@@ -62,7 +73,7 @@ docker run -d -p 80:80 \
   linshen/prompt-optimizer
 ```
 
-### 4. Docker Compose Deployment
+### 5. Docker Compose Deployment
 ```bash
 # 1. Clone the repository
 git clone https://github.com/linshenkx/prompt-optimizer.git
@@ -157,6 +168,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 - [Project Structure](docs/project-structure.md) - Detailed project structure description
 - [Project Status](docs/project-status.md) - Current progress and plans
 - [Product Requirements](docs/prd.md) - Product requirements document
+- [Vercel Deployment Guide](docs/vercel_en.md) - Detailed instructions for Vercel deployment
 
 ## Star History
 
@@ -188,6 +200,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
    - Or deploy to your own Vercel platform
    - Check "Use Vercel Proxy" option in model settings
    - Request flow: Browser → Vercel → Model service provider
+   - For detailed steps, please refer to the [Vercel Deployment Guide](docs/vercel_en.md)
 
 2. **Use self-deployed API proxy service** (Reliable solution)
    - Deploy open-source API aggregation/proxy tools like OneAPI

@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/vercel.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -41,15 +41,26 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 
 ### 1. 使用在线版本（推荐）
 
-1. 直接访问：[https://prompt.always200.com](https://prompt.always200.com)
-2. 或者一键部署到自己的Vercel：
+直接访问：[https://prompt.always200.com](https://prompt.always200.com)
+
+项目是纯前端项目，所有数据只存储在浏览器本地，不会上传至任何服务器，因此直接使用在线版本也是安全可靠的
+
+### 2. Vercel部署
+1. 一键部署到自己的Vercel：
    [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-### 2. 安装Chrome插件
+2. Fork项目后在Vercel中导入（推荐）：
+   - 先Fork项目到自己的GitHub
+   - 然后在Vercel中导入该项目
+   - 可跟踪源项目更新，便于同步最新功能和修复
+  
+更多详细的部署步骤和注意事项，请查看 [Vercel部署指南](docs/vercel.md)
+
+### 3. 安装Chrome插件
 1. 从Chrome商店安装（由于审批较慢，可能不是最新的）：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 2. 点击图标即可打开提示词优化器
 
-### 3. Docker部署
+### 4. Docker部署
 ```bash
 # 运行容器（默认配置）
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
@@ -62,7 +73,7 @@ docker run -d -p 80:80 \
   linshen/prompt-optimizer
 ```
 
-### 4. Docker Compose部署
+### 5. Docker Compose部署
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/linshenkx/prompt-optimizer.git
@@ -157,6 +168,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [项目结构](docs/project-structure.md) - 详细的项目结构说明
 - [项目状态](docs/project-status.md) - 当前进度和计划
 - [产品需求](docs/prd.md) - 产品需求文档
+- [Vercel部署指南](docs/vercel.md) - Vercel部署详细说明
 
 
 ## Star History
@@ -189,6 +201,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
    - 或自行部署到Vercel平台
    - 在模型设置中勾选"使用Vercel代理"选项
    - 请求流向：浏览器→Vercel→模型服务提供商
+   - 详细步骤请参考 [Vercel部署指南](docs/vercel.md)
 
 2. **使用自部署的API中转服务**（可靠方案）
    - 部署如OneAPI等开源API聚合/代理工具
