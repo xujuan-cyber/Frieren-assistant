@@ -2,14 +2,16 @@
   <div class="flex flex-col h-full">
     <!-- 标题和按钮区域 -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 flex-none">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <h3 class="text-lg font-semibold theme-text">{{ t('prompt.optimized') }}</h3>
-        <div v-if="versions && versions.length > 0" class="flex items-center gap-1">
+        <div v-if="versions && versions.length > 0" 
+             class="flex items-center gap-1 version-container"
+             style="position: relative;">
           <button
             v-for="version in versions.slice().reverse()"
             :key="version.id"
             @click="switchVersion(version)"
-            class="px-2 py-1 text-xs rounded transition-colors"
+            class="px-2 py-1 text-xs rounded transition-colors flex-shrink-0"
             :class="[
               currentVersionId === version.id
                 ? 'font-medium theme-prompt-version-selected'
@@ -20,7 +22,7 @@
           </button>
         </div>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-4 flex-shrink-0">
         <button
           v-if="optimizedPrompt"
           @click="handleIterate"
@@ -243,5 +245,18 @@ textarea {
 
 textarea::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
+}
+
+/* 版本容器样式 */
+.version-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .version-container {
+    margin-top: 4px;
+  }
 }
 </style>
