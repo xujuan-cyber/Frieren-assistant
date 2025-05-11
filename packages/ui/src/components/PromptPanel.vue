@@ -38,6 +38,16 @@
         >
           <span>{{ t('prompt.copy') }}</span>
         </button>
+        <button
+          v-if="optimizedPrompt"
+          @click="openFullscreen"
+          class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
+          :title="t('common.expand')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
       </div>
     </div>
     
@@ -101,17 +111,30 @@
         </button>
       </template>
     </Modal>
+
+    <!-- 全屏弹窗 -->
+    <FullscreenDialog v-model="isFullscreen" :title="t('prompt.optimized')">
+      <div class="h-full flex flex-col">
+        <textarea
+          v-model="fullscreenValue"
+          class="w-full h-full min-h-[70vh] p-4 theme-input resize-none overflow-auto flex-1"
+          :placeholder="t('prompt.optimizedPlaceholder')"
+        ></textarea>
+      </div>
+    </FullscreenDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, defineProps, defineEmits, computed, nextTick } from 'vue'
+import { ref, defineProps, defineEmits, computed, nextTick, watch } from 'vue'
 import { useToast } from '../composables/useToast'
 import { useAutoScroll } from '../composables/useAutoScroll'
 import { useClipboard } from '../composables/useClipboard'
+import { useFullscreen } from '../composables/useFullscreen'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
+import FullscreenDialog from './FullscreenDialog.vue'
 import type {
   Template,
   PromptRecord,
@@ -156,9 +179,6 @@ const props = defineProps({
   }
 })
 
-// 监听optimizedPrompt变化，自动滚动到底部
-watchSource(() => props.optimizedPrompt, true)
-
 const emit = defineEmits<{
   'update:optimizedPrompt': [value: string];
   'iterate': [payload: IteratePayload];
@@ -170,6 +190,12 @@ const emit = defineEmits<{
 const showIterateInput = ref(false)
 const iterateInput = ref('')
 const templateType = ref<'optimize' | 'iterate'>('iterate')
+
+// 使用全屏组合函数
+const { isFullscreen, fullscreenValue, openFullscreen } = useFullscreen(
+  computed(() => props.optimizedPrompt), 
+  (value) => emit('update:optimizedPrompt', value)
+)
 
 // 计算标题文本
 const templateTitleText = computed(() => {
@@ -234,6 +260,9 @@ const switchVersion = (version: PromptRecord) => {
     forceScrollToBottom()
   })
 }
+
+// 监听optimizedPrompt变化，自动滚动到底部
+watchSource(() => props.optimizedPrompt, true)
 </script>
 
 <style scoped>
