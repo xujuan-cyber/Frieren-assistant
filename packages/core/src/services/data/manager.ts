@@ -24,6 +24,25 @@ const UI_SETTINGS_KEYS = [
   'app:selected-iterate-template'
 ] as const;
 
+/**
+ * 验证UI配置键是否安全
+ */
+const isValidSettingKey = (key: string): boolean => {
+  return UI_SETTINGS_KEYS.includes(key as any) && 
+         key.length <= 50 && 
+         key.length > 0 &&
+         !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(key); // 排除危险字符和控制字符
+};
+
+/**
+ * 验证UI配置值是否安全
+ */
+const isValidSettingValue = (value: any): value is string => {
+  return typeof value === 'string' && 
+         value.length <= 1000 && // 限制值的长度
+         !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/.test(value); // 排除控制字符
+};
+
 export class DataManager {
   private storage: IStorageProvider;
 
@@ -122,8 +141,14 @@ export class DataManager {
           const existingModel = await this.modelManagerInstance.getModel(model.key);
           
           if (existingModel) {
-            // 如果模型已存在，尝试更新
-            await this.modelManagerInstance.updateModel(model.key, model);
+            // 如果模型已存在，使用合并逻辑而不是直接替换
+            const mergedConfig = { 
+              ...existingModel, 
+              ...model,
+              // 保留原有的enabled状态，除非明确指定
+              enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled
+            };
+            await this.modelManagerInstance.updateModel(model.key, mergedConfig);
             console.log(`模型 ${model.key} 已存在，已更新配置`);
           } else {
             // 如果模型不存在，添加新模型
@@ -131,7 +156,16 @@ export class DataManager {
             console.log(`已导入新模型 ${model.key}`);
           }
         } catch (error) {
-          console.warn('Failed to import model:', error);
+          // 增强错误处理，区分不同类型的错误
+          if (error instanceof Error) {
+            if (error.message.includes('模型配置') || error.message.includes('ModelConfig')) {
+              console.warn(`跳过无效的模型配置 ${model.key}:`, error.message);
+            } else {
+              console.warn(`导入模型 ${model.key} 时发生错误:`, error.message);
+            }
+          } else {
+            console.warn('导入模型时发生未知错误:', error);
+          }
           failedModels.push({ model, error: error as Error });
         }
       }
@@ -189,6 +223,18 @@ export class DataManager {
       
       for (const [key, value] of Object.entries(typedData.userSettings)) {
         try {
+          // 验证键名是否安全且在白名单中
+          if (!isValidSettingKey(key)) {
+            console.warn(`跳过无效的UI配置键: ${key}`);
+            continue;
+          }
+          
+          // 验证值是否安全
+          if (!isValidSettingValue(value)) {
+            console.warn(`跳过无效的UI配置值 ${key}: 类型=${typeof value}`);
+            continue;
+          }
+          
           await this.storage.setItem(key, value);
           console.log(`已导入UI配置: ${key} = ${value}`);
         } catch (error) {

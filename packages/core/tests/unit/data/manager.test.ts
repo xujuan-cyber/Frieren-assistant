@@ -296,4 +296,72 @@ describe('DataManager', () => {
       });
     });
   });
+
+  describe('UI配置导入安全性测试', () => {
+    it('should only import whitelisted UI setting keys', async () => {
+      const maliciousData = {
+        userSettings: {
+          'theme-id': 'dark', // 合法键
+          'malicious-key': 'evil-value', // 恶意键
+          'app:selected-optimize-model': 'model1', // 合法键
+          '__proto__': 'prototype-pollution', // 原型污染尝试
+          'constructor': 'constructor-override' // 构造函数覆盖尝试
+        }
+      };
+
+      await dataManager.importAllData(JSON.stringify(maliciousData));
+
+      // 验证只有白名单键被导入
+      expect(mockStorage.setItem).toHaveBeenCalledWith('theme-id', 'dark');
+      expect(mockStorage.setItem).toHaveBeenCalledWith('app:selected-optimize-model', 'model1');
+      
+      // 验证恶意键没有被导入
+      expect(mockStorage.setItem).not.toHaveBeenCalledWith('malicious-key', expect.any(String));
+      expect(mockStorage.setItem).not.toHaveBeenCalledWith('__proto__', expect.any(String));
+      expect(mockStorage.setItem).not.toHaveBeenCalledWith('constructor', expect.any(String));
+    });
+
+    it('should skip invalid value types in UI settings', async () => {
+      const invalidTypeData = {
+        userSettings: {
+          'theme-id': 'dark', // 正确的字符串
+          'preferred-language': 123, // 错误的数字类型
+          'app:selected-optimize-model': null, // 错误的null类型
+          'app:selected-test-model': { nested: 'object' } // 错误的对象类型
+        }
+      };
+
+      await dataManager.importAllData(JSON.stringify(invalidTypeData));
+
+      // 验证只有字符串类型的值被导入
+      expect(mockStorage.setItem).toHaveBeenCalledWith('theme-id', 'dark');
+      
+      // 验证其他类型的值没有被导入
+      expect(mockStorage.setItem).not.toHaveBeenCalledWith('preferred-language', expect.any(String));
+      expect(mockStorage.setItem).not.toHaveBeenCalledWith('app:selected-optimize-model', expect.any(String));
+      expect(mockStorage.setItem).not.toHaveBeenCalledWith('app:selected-test-model', expect.any(String));
+    });
+
+    it('should handle partial UI setting import failures gracefully', async () => {
+      const partialFailData = {
+        userSettings: {
+          'theme-id': 'dark',
+          'preferred-language': 'en-US',
+          'app:selected-optimize-model': 'model1'
+        }
+      };
+
+      // 模拟第二个设置项失败
+      mockStorage.setItem = vi.fn()
+        .mockResolvedValueOnce(undefined) // 第一个成功
+        .mockRejectedValueOnce(new Error('Storage quota exceeded')) // 第二个失败
+        .mockResolvedValueOnce(undefined); // 第三个成功
+
+      // 不应该抛出异常，而是继续导入其他设置
+      await expect(dataManager.importAllData(JSON.stringify(partialFailData))).resolves.not.toThrow();
+
+      // 验证失败的设置被记录但不影响其他设置的导入
+      expect(mockStorage.setItem).toHaveBeenCalledTimes(3);
+    });
+  });
 });
