@@ -23,6 +23,11 @@
         :text="$t('nav.modelManager')"
         @click="showConfig = true"
       />
+      <ActionButtonUI
+        icon="💾"
+        :text="$t('nav.dataManager')"
+        @click="showDataManager = true"
+      />
       <LanguageSwitchUI />
     </template>
 
@@ -121,12 +126,20 @@
         @clear="handleClearHistory"
         @deleteChain="handleDeleteChain"
       />
+
+      <!-- 数据管理弹窗 -->
+      <DataManagerUI
+        :show="showDataManager"
+        @close="handleDataManagerClose"
+        @imported="handleDataImported"
+      />
     </template>
   </MainLayoutUI>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   // UI组件
   ToastUI,
@@ -144,6 +157,7 @@ import {
   ActionButtonUI,
   TestPanelUI,
   LanguageSwitchUI,
+  DataManagerUI,
   // composables
   usePromptOptimizer,
   usePromptTester,
@@ -178,6 +192,9 @@ onMounted(() => {
 
 // 初始化 toast
 const toast = useToast()
+
+// 初始化国际化
+const { t } = useI18n()
 
 // 初始化服务
 const {
@@ -274,4 +291,20 @@ const {
   saveTemplateSelection,
   templateManager
 })
+
+// 数据管理器
+import { ref } from 'vue'
+const showDataManager = ref(false)
+
+const handleDataManagerClose = () => {
+  showDataManager.value = false
+}
+
+const handleDataImported = () => {
+  // 数据导入后重新加载所有数据
+  toast.success(t('dataManager.import.successWithRefresh'))
+  setTimeout(() => {
+    window.location.reload()
+  }, 1000)
+}
 </script>

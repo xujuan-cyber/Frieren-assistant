@@ -2,6 +2,7 @@ import { ref, onMounted } from 'vue'
 import type { Ref } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
+import { useStorage } from './useStorage'
 import type { Template, TemplateManager } from '@prompt-optimizer/core'
 
 interface TemplateSelector extends Element {
@@ -30,15 +31,16 @@ export interface TemplateManagerOptions {
 export function useTemplateManager(options: TemplateManagerOptions): TemplateManagerHooks {
   const toast = useToast()
   const { t } = useI18n()
+  const storage = useStorage()
   const showTemplates = ref(false)
   const currentType = ref('')
   const { selectedOptimizeTemplate, selectedIterateTemplate, saveTemplateSelection, templateManager } = options
 
   // Initialize template selection
-  const initTemplateSelection = () => {
+  const initTemplateSelection = async () => {
     try {
       // Load optimization template
-      const optimizeTemplateId = localStorage.getItem('app:selected-optimize-template')
+      const optimizeTemplateId = await storage.getItem('app:selected-optimize-template')
       if (optimizeTemplateId) {
         try {
           const optimizeTemplate = templateManager.getTemplate(optimizeTemplateId)
@@ -59,7 +61,7 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
       }
       
       // Load iteration template
-      const iterateTemplateId = localStorage.getItem('app:selected-iterate-template')
+      const iterateTemplateId = await storage.getItem('app:selected-iterate-template')
       if (iterateTemplateId) {
         try {
           const iterateTemplate = templateManager.getTemplate(iterateTemplateId)
@@ -136,8 +138,8 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
   }
 
   // Auto initialize on mounted
-  onMounted(() => {
-    initTemplateSelection()
+  onMounted(async () => {
+    await initTemplateSelection()
   })
 
   return {

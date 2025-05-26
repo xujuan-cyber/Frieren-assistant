@@ -3,6 +3,7 @@ import type { Ref } from 'vue'
 import type { ModelConfig, ModelManager } from '@prompt-optimizer/core'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
+import { useStorage } from './useStorage'
 
 export interface ModelManagerHooks {
   showConfig: Ref<boolean>
@@ -30,6 +31,7 @@ const STORAGE_KEYS = {
 export function useModelManager(options: ModelManagerOptions): ModelManagerHooks {
   const toast = useToast()
   const { t } = useI18n()
+  const storage = useStorage()
   const showConfig = ref(false)
   const selectedOptimizeModel = ref('')
   const selectedTestModel = ref('')
@@ -37,37 +39,42 @@ export function useModelManager(options: ModelManagerOptions): ModelManagerHooks
   const { modelManager, optimizeModelSelect, testModelSelect } = options
 
   // Save model selection
-  const saveModelSelection = (model: string, type: 'optimize' | 'test') => {
+  const saveModelSelection = async (model: string, type: 'optimize' | 'test') => {
     if (model) {
-      localStorage.setItem(
-        type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_MODEL : STORAGE_KEYS.TEST_MODEL,
-        model
-      )
+      try {
+        await storage.setItem(
+          type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_MODEL : STORAGE_KEYS.TEST_MODEL,
+          model
+        )
+      } catch (error) {
+        console.error(`保存模型选择失败 (${type}):`, error)
+      }
     }
   }
 
   // Initialize model selection
-  const initModelSelection = () => {
+  const initModelSelection = async () => {
     try {
-      const enabledModels = modelManager.getAllModels().filter(m => m.enabled)
+      const allModels = await modelManager.getAllModels()
+      const enabledModels = allModels.filter(m => m.enabled)
       const defaultModel = enabledModels[0]?.key
 
       if (defaultModel) {
         // Load optimization model selection
-        const savedOptimizeModel = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
+        const savedOptimizeModel = await storage.getItem(STORAGE_KEYS.OPTIMIZE_MODEL)
         selectedOptimizeModel.value = (savedOptimizeModel && enabledModels.find(m => m.key === savedOptimizeModel))
           ? savedOptimizeModel
           : defaultModel
 
         // Load test model selection
-        const savedTestModel = localStorage.getItem(STORAGE_KEYS.TEST_MODEL)
+        const savedTestModel = await storage.getItem(STORAGE_KEYS.TEST_MODEL)
         selectedTestModel.value = (savedTestModel && enabledModels.find(m => m.key === savedTestModel))
           ? savedTestModel
           : defaultModel
 
         // Save initial selection
-        saveModelSelection(selectedOptimizeModel.value, 'optimize')
-        saveModelSelection(selectedTestModel.value, 'test')
+        await saveModelSelection(selectedOptimizeModel.value, 'optimize')
+        await saveModelSelection(selectedTestModel.value, 'test')
       }
     } catch (error) {
       console.error(t('toast.error.initModelSelectFailed'), error)
@@ -76,30 +83,31 @@ export function useModelManager(options: ModelManagerOptions): ModelManagerHooks
   }
 
   // Handle model selection
-  const handleModelSelect = (model: ModelConfig & { key: string }) => {
+  const handleModelSelect = async (model: ModelConfig & { key: string }) => {
     if (model) {
       selectedOptimizeModel.value = model.key
       selectedTestModel.value = model.key
       
-      saveModelSelection(model.key, 'optimize')
-      saveModelSelection(model.key, 'test')
+      await saveModelSelection(model.key, 'optimize')
+      await saveModelSelection(model.key, 'test')
       
       toast.success(t('toast.success.modelSelected', { name: model.name }))
     }
   }
 
   // Load model data
-  const loadModels = () => {
+  const loadModels = async () => {
     try {
       // Get latest enabled models list
-      const enabledModels = modelManager.getAllModels().filter(m => m.enabled)
+      const allModels = await modelManager.getAllModels()
+      const enabledModels = allModels.filter((m: any) => m.enabled)
       const defaultModel = enabledModels[0]?.key
 
       // Verify if current selected models are still available
-      if (!enabledModels.find(m => m.key === selectedOptimizeModel.value)) {
+      if (!enabledModels.find((m: any) => m.key === selectedOptimizeModel.value)) {
         selectedOptimizeModel.value = defaultModel || ''
       }
-      if (!enabledModels.find(m => m.key === selectedTestModel.value)) {
+      if (!enabledModels.find((m: any) => m.key === selectedTestModel.value)) {
         selectedTestModel.value = defaultModel || ''
       }
     } catch (error: any) {
@@ -108,9 +116,9 @@ export function useModelManager(options: ModelManagerOptions): ModelManagerHooks
     }
   }
 
-  const handleModelManagerClose = () => {
+  const handleModelManagerClose = async () => {
     // Update data first
-    loadModels()
+    await loadModels()
     // Refresh model selection components
     optimizeModelSelect.value?.refresh()
     testModelSelect.value?.refresh()
@@ -124,21 +132,21 @@ export function useModelManager(options: ModelManagerOptions): ModelManagerHooks
   }
 
   // Watch model selection changes
-  watch(selectedOptimizeModel, (newVal) => {
+  watch(selectedOptimizeModel, async (newVal) => {
     if (newVal) {
-      saveModelSelection(newVal, 'optimize')
+      await saveModelSelection(newVal, 'optimize')
     }
   })
 
-  watch(selectedTestModel, (newVal) => {
+  watch(selectedTestModel, async (newVal) => {
     if (newVal) {
-      saveModelSelection(newVal, 'test')
+      await saveModelSelection(newVal, 'test')
     }
   })
 
   // Auto initialize on mounted
-  onMounted(() => {
-    initModelSelection()
+  onMounted(async () => {
+    await initModelSelection()
   })
 
   return {

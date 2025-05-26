@@ -38,6 +38,8 @@ export default {
     copyFailed: 'Copy Failed',
     appName: 'Prompt Optimizer',
     selectFile: 'Select File',
+    exporting: 'Exporting...',
+    importing: 'Importing...',
   },
   nav: {
     home: 'Home',
@@ -46,6 +48,7 @@ export default {
     modelManager: 'Model Manager',
     history: 'History',
     templates: 'Templates',
+    dataManager: 'Data Manager',
   },
   promptOptimizer: {
     title: 'Prompt Optimizer',
@@ -373,5 +376,26 @@ export default {
     error: {
       initBaseServicesFailed: 'Failed to initialize base services'
     }
+  },
+  dataManager: {
+    title: 'Data Manager',
+    export: {
+      title: 'Export Data',
+      description: 'Export all history records, model configurations, custom templates and user settings (including theme, language, model selections, etc.)',
+      button: 'Export Data',
+      success: 'Data exported successfully',
+      failed: 'Failed to export data'
+    },
+    import: {
+      title: 'Import Data',
+      description: 'Import previously exported data file (will overwrite existing data and user settings)',
+      selectFile: 'Click to select file or drag file here',
+      changeFile: 'Change File',
+      button: 'Import Data',
+      success: 'Data imported successfully',
+      failed: 'Failed to import data',
+      successWithRefresh: 'Data imported successfully, page will refresh to update data'
+    },
+    warning: '⚠️ Importing data will overwrite existing history records, model configurations, custom templates and all user settings (including theme, language preferences, etc.). Please ensure you have backed up important data.'
   }
 }; 

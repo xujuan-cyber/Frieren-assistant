@@ -1,106 +1,204 @@
-import { HistoryManager, historyManager } from '../history/manager';
+import { historyManager } from '../history/manager';
 import { IHistoryManager, PromptRecord } from '../history/types';
-import { ModelManager, modelManager } from '../model/manager';
+import { modelManager } from '../model/manager';
 import { IModelManager, ModelConfig } from '../model/types';
-import { TemplateManager, templateManager } from '../template/manager';
+import { templateManager } from '../template/manager';
 import { ITemplateManager, Template } from '../template/types';
+import { StorageFactory } from '../storage/factory';
+import { IStorageProvider } from '../storage/types';
 
 interface AllData {
   history?: PromptRecord[];
   models?: Array<ModelConfig & { key: string }>; // Matching ModelManager.getAllModels() return type
   userTemplates?: Template[];
+  userSettings?: Record<string, string>; // UI配置数据
 }
 
+// 需要导出的UI配置键
+const UI_SETTINGS_KEYS = [
+  'theme-id',
+  'preferred-language', 
+  'app:selected-optimize-model',
+  'app:selected-test-model',
+  'app:selected-optimize-template',
+  'app:selected-iterate-template'
+] as const;
+
 export class DataManager {
+  private storage: IStorageProvider;
+
   constructor(
     private historyManagerInstance: IHistoryManager,
     private modelManagerInstance: IModelManager,
     private templateManagerInstance: ITemplateManager,
-  ) {}
+    storage?: IStorageProvider
+  ) {
+    this.storage = storage || StorageFactory.createDefault();
+  }
 
   async exportAllData(): Promise<string> {
     const historyRecords = await this.historyManagerInstance.getRecords();
     const modelConfigs = await this.modelManagerInstance.getAllModels();
-    const userTemplates = (await this.templateManagerInstance.listTemplates()).filter(t => !t.isBuiltin);
-
-    const allData: AllData = {
+    const allTemplates = await this.templateManagerInstance.listTemplates();
+    
+    // Only export user templates (isBuiltin = false)
+    const userTemplates = allTemplates.filter(template => !template.isBuiltin);
+    
+    // Export UI settings
+    const userSettings: Record<string, string> = {};
+    for (const key of UI_SETTINGS_KEYS) {
+      try {
+        const value = await this.storage.getItem(key);
+        if (value !== null) {
+          userSettings[key] = value;
+        }
+      } catch (error) {
+        console.warn(`导出UI配置失败 (${key}):`, error);
+      }
+    }
+    
+    const data: AllData = {
       history: historyRecords,
       models: modelConfigs,
-      userTemplates: userTemplates,
+      userTemplates,
+      userSettings
     };
-
-    return JSON.stringify(allData, null, 2);
+    
+    return JSON.stringify(data, null, 2); // 格式化输出，便于调试
   }
 
-  async importAllData(jsonData: string): Promise<void> {
-    let data: AllData;
+  async importAllData(dataString: string): Promise<void> {
+    let data: unknown;
+    
     try {
-      data = JSON.parse(jsonData);
+      data = JSON.parse(dataString);
     } catch (error) {
-      throw new Error(`Invalid JSON format: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error('Invalid data format: failed to parse JSON');
     }
-
-    // Basic validation
-    if (!data || (typeof data !== 'object')) {
-      throw new Error('Invalid import data format: Expected an object.');
+    
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Invalid data format: data must be an object');
     }
-    if (data.history && !Array.isArray(data.history)) {
-      throw new Error('Invalid history data: Expected an array.');
-    }
-    if (data.models && !Array.isArray(data.models)) {
-      throw new Error('Invalid models data: Expected an array.');
-    }
-    if (data.userTemplates && !Array.isArray(data.userTemplates)) {
-      throw new Error('Invalid userTemplates data: Expected an array.');
-    }
-
-    // Clear existing data
-    await this.historyManagerInstance.clearHistory();
-
-    const existingModels = await this.modelManagerInstance.getAllModels();
-    for (const model of existingModels) {
-      await this.modelManagerInstance.deleteModel(model.key);
-    }
-
-    const existingTemplates = (await this.templateManagerInstance.listTemplates()).filter(t => !t.isBuiltin);
-    for (const template of existingTemplates) {
-      await this.templateManagerInstance.deleteTemplate(template.id);
-    }
-
-    // Import new data
-    if (data.history) {
-      for (const record of data.history) {
-        // Assuming addRecord can handle potential ID conflicts or that imported records are fine.
-        // If addRecord auto-generates IDs, this is fine. If it expects unique IDs, conflicts might occur
-        // if the imported data has IDs that clash with newly generated ones after a clear.
-        // For now, proceeding with addRecord. A dedicated importRecords method in HistoryManager
-        // that preserves IDs or handles conflicts would be more robust.
+    
+    const typedData = data as AllData;
+    
+    // Import history records
+    if (typedData.history !== undefined) {
+      if (!Array.isArray(typedData.history)) {
+        throw new Error('Invalid history format: must be an array');
+      }
+      
+      await this.historyManagerInstance.clearHistory();
+      
+      const failedRecords: { record: PromptRecord; error: Error }[] = [];
+      
+      // Import each record individually, capturing failures
+      for (const record of typedData.history) {
         try {
-          await this.historyManagerInstance.addRecord(record as PromptRecord);
+          await this.historyManagerInstance.addRecord(record);
         } catch (error) {
-          console.warn(`Skipping history record due to error: ${error instanceof Error ? error.message : String(error)}`, record);
+          console.warn('Failed to import history record:', error);
+          failedRecords.push({ record, error: error as Error });
         }
       }
-    }
-
-    if (data.models) {
-      for (const modelConfig of data.models) {
-        const { key, ...config } = modelConfig;
-        try {
-          await this.modelManagerInstance.addModel(key, config);
-        } catch (error) {
-          console.warn(`Skipping model config due to error: ${error instanceof Error ? error.message : String(error)}`, modelConfig);
-        }
+      
+      if (failedRecords.length > 0) {
+        console.warn(`Failed to import ${failedRecords.length} history records`);
       }
     }
-
-    if (data.userTemplates) {
-      for (const template of data.userTemplates) {
+    
+    // Import model configs
+    if (typedData.models !== undefined) {
+      if (!Array.isArray(typedData.models)) {
+        throw new Error('Invalid models format: must be an array');
+      }
+      
+      const failedModels: { model: ModelConfig & { key: string }; error: Error }[] = [];
+      
+      // Import each model individually, capturing failures
+      for (const model of typedData.models) {
         try {
-          await this.templateManagerInstance.saveTemplate(template as Template);
+          // 检查模型是否已存在
+          const existingModel = await this.modelManagerInstance.getModel(model.key);
+          
+          if (existingModel) {
+            // 如果模型已存在，尝试更新
+            await this.modelManagerInstance.updateModel(model.key, model);
+            console.log(`模型 ${model.key} 已存在，已更新配置`);
+          } else {
+            // 如果模型不存在，添加新模型
+            await this.modelManagerInstance.addModel(model.key, model);
+            console.log(`已导入新模型 ${model.key}`);
+          }
         } catch (error) {
-          console.warn(`Skipping user template due to error: ${error instanceof Error ? error.message : String(error)}`, template);
+          console.warn('Failed to import model:', error);
+          failedModels.push({ model, error: error as Error });
         }
+      }
+      
+      if (failedModels.length > 0) {
+        console.warn(`Failed to import ${failedModels.length} models`);
+      }
+    }
+    
+    // Import user templates
+    if (typedData.userTemplates !== undefined) {
+      if (!Array.isArray(typedData.userTemplates)) {
+        throw new Error('Invalid user templates format: must be an array');
+      }
+      
+      // Get existing user templates to clean up
+      const existingTemplates = await this.templateManagerInstance.listTemplates();
+      const userTemplateIds = existingTemplates
+        .filter(template => !template.isBuiltin)
+        .map(template => template.id);
+      
+      // Delete all existing user templates
+      for (const id of userTemplateIds) {
+        try {
+          await this.templateManagerInstance.deleteTemplate(id);
+        } catch (error) {
+          console.warn(`Failed to delete template ${id}:`, error);
+        }
+      }
+      
+      const failedTemplates: { template: Template; error: Error }[] = [];
+      
+      // Import each template individually, capturing failures
+      for (const template of typedData.userTemplates) {
+        try {
+          await this.templateManagerInstance.saveTemplate(template);
+        } catch (error) {
+          console.warn('Failed to import template:', error);
+          failedTemplates.push({ template, error: error as Error });
+        }
+      }
+      
+      if (failedTemplates.length > 0) {
+        console.warn(`Failed to import ${failedTemplates.length} templates`);
+      }
+    }
+    
+    // Import UI settings
+    if (typedData.userSettings !== undefined) {
+      if (typeof typedData.userSettings !== 'object' || Array.isArray(typedData.userSettings)) {
+        throw new Error('Invalid user settings format: must be an object');
+      }
+      
+      const failedSettings: { key: string; error: Error }[] = [];
+      
+      for (const [key, value] of Object.entries(typedData.userSettings)) {
+        try {
+          await this.storage.setItem(key, value);
+          console.log(`已导入UI配置: ${key} = ${value}`);
+        } catch (error) {
+          console.warn(`Failed to import UI setting ${key}:`, error);
+          failedSettings.push({ key, error: error as Error });
+        }
+      }
+      
+      if (failedSettings.length > 0) {
+        console.warn(`Failed to import ${failedSettings.length} UI settings`);
       }
     }
   }

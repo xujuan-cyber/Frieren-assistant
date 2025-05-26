@@ -1,4 +1,4 @@
-import { createLLMService, ModelManager } from '../../../src/index.js';
+import { createLLMService, ModelManager, LocalStorageProvider } from '../../../src/index.js';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -19,11 +19,12 @@ describe('Gemini API 测试', () => {
   }
 
   it('应该能正确调用 Gemini API', async () => {
-    const modelManager = new ModelManager();
+    const storage = new LocalStorageProvider();
+    const modelManager = new ModelManager(storage);
     const llmService = createLLMService(modelManager);
 
     // 更新 Gemini 配置
-    modelManager.updateModel('gemini', {
+    await modelManager.updateModel('gemini', {
       apiKey,
       enabled: true
     });
@@ -39,11 +40,12 @@ describe('Gemini API 测试', () => {
   }, 10000);
 
   it('应该能正确处理多轮对话', async () => {
-    const modelManager = new ModelManager();
+    const storage = new LocalStorageProvider();
+    const modelManager = new ModelManager(storage);
     const llmService = createLLMService(modelManager);
 
     // 更新 Gemini 配置
-    modelManager.updateModel('gemini', {
+    await modelManager.updateModel('gemini', {
       apiKey,
       enabled: true
     });

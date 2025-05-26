@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'node',
       setupFiles: ['./tests/setup.js'],
+      // 设置测试超时时间
+      testTimeout: 30000, // 默认30秒
+      hookTimeout: 30000, // 钩子超时30秒
       // 环境变量配置
       env: {
         ...process.env

@@ -29,6 +29,7 @@ export { default as ActionButtonUI } from './components/ActionButton.vue'
 export { default as ThemeToggleUI } from './components/ThemeToggleUI.vue'
 export { default as TestPanelUI } from './components/TestPanel.vue'
 export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
+export { default as DataManagerUI } from './components/DataManager.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'
@@ -41,6 +42,7 @@ export {
     templateManager,
     modelManager,
     historyManager,
+    dataManager,
     createLLMService,
     createPromptService
 } from '@prompt-optimizer/core'

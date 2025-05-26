@@ -1,6 +1,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
+import { useStorage } from './useStorage'
 import { v4 as uuidv4 } from 'uuid'
 import type { Ref } from 'vue'
 import type { 
@@ -26,6 +27,7 @@ export function usePromptOptimizer(
 ) {
   const toast = useToast()
   const { t } = useI18n()
+  const storage = useStorage()
   
   // 状态
   const prompt = ref('')
@@ -70,27 +72,33 @@ export function usePromptOptimizer(
           onToken: (token: string) => {
             optimizedPrompt.value += token
           },
-          onComplete: () => {
+          onComplete: async () => {
             if (!selectedOptimizeTemplate.value) return
             
-            // Create new record chain
-            const newRecord = historyManager.createNewChain({
-              id: uuidv4(),
-              originalPrompt: prompt.value,
-              optimizedPrompt: optimizedPrompt.value,
-              type: 'optimize',
-              modelKey: selectedOptimizeModel.value,
-              templateId: selectedOptimizeTemplate.value.id,
-              timestamp: Date.now(),
-              metadata: {}
-            });
-            
-            currentChainId.value = newRecord.chainId;
-            currentVersions.value = newRecord.versions;
-            currentVersionId.value = newRecord.currentRecord.id;
-            
-            toast.success(t('toast.success.optimizeSuccess'))
-            isOptimizing.value = false
+            try {
+              // Create new record chain (异步调用需要await)
+              const newRecord = await historyManager.createNewChain({
+                id: uuidv4(),
+                originalPrompt: prompt.value,
+                optimizedPrompt: optimizedPrompt.value,
+                type: 'optimize',
+                modelKey: selectedOptimizeModel.value,
+                templateId: selectedOptimizeTemplate.value.id,
+                timestamp: Date.now(),
+                metadata: {}
+              });
+              
+              currentChainId.value = newRecord.chainId;
+              currentVersions.value = newRecord.versions;
+              currentVersionId.value = newRecord.currentRecord.id;
+              
+              toast.success(t('toast.success.optimizeSuccess'))
+            } catch (error) {
+              console.error('创建历史记录失败:', error)
+              toast.error('创建历史记录失败: ' + (error as Error).message)
+            } finally {
+              isOptimizing.value = false
+            }
           },
           onError: (error: Error) => {
             console.error(t('toast.error.optimizeProcessFailed'), error)
@@ -131,22 +139,29 @@ export function usePromptOptimizer(
           onToken: (token: string) => {
             optimizedPrompt.value += token
           },
-          onComplete: () => {
+          onComplete: async () => {
             if (!selectedIterateTemplate.value) return
             
-            const updatedChain = historyManager.addIteration({
-              chainId: currentChainId.value,
-              originalPrompt: originalPrompt,
-              optimizedPrompt: optimizedPrompt.value,
-              iterationNote: iterateInput,
-              modelKey: selectedOptimizeModel.value,
-              templateId: selectedIterateTemplate.value.id
-            });
-            
-            currentVersions.value = updatedChain.versions;
-            currentVersionId.value = updatedChain.currentRecord.id;
-            
-            toast.success(t('toast.success.iterateSuccess'))
+            try {
+              const updatedChain = await historyManager.addIteration({
+                chainId: currentChainId.value,
+                originalPrompt: originalPrompt,
+                optimizedPrompt: optimizedPrompt.value,
+                iterationNote: iterateInput,
+                modelKey: selectedOptimizeModel.value,
+                templateId: selectedIterateTemplate.value.id
+              });
+              
+              currentVersions.value = updatedChain.versions;
+              currentVersionId.value = updatedChain.currentRecord.id;
+              
+              toast.success(t('toast.success.iterateSuccess'))
+            } catch (error) {
+              console.error('添加迭代记录失败:', error)
+              toast.error('添加迭代记录失败: ' + (error as Error).message)
+            } finally {
+              isIterating.value = false
+            }
           },
           onError: (error: Error) => {
             toast.error(error.message || t('toast.error.iterateFailed'))
@@ -169,18 +184,22 @@ export function usePromptOptimizer(
   }
   
   // 保存提示词选择
-  const saveTemplateSelection = (template: Template, type: 'optimize' | 'iterate') => {
-    localStorage.setItem(
-      type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_TEMPLATE : STORAGE_KEYS.ITERATE_TEMPLATE,
-      template.id
-    )
+  const saveTemplateSelection = async (template: Template, type: 'optimize' | 'iterate') => {
+    try {
+      await storage.setItem(
+        type === 'optimize' ? STORAGE_KEYS.OPTIMIZE_TEMPLATE : STORAGE_KEYS.ITERATE_TEMPLATE,
+        template.id
+      )
+    } catch (error) {
+      console.error(`保存模板选择失败 (${type}):`, error)
+    }
   }
   
   // 初始化提示词选择
-  const initTemplateSelection = () => {
+  const initTemplateSelection = async () => {
     try {
       // 加载优化提示词
-      const optimizeTemplateId = localStorage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE)
+      const optimizeTemplateId = await storage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE)
       if (optimizeTemplateId) {
         try {
           const optimizeTemplate = templateManager.getTemplate(optimizeTemplateId)
@@ -201,7 +220,7 @@ export function usePromptOptimizer(
       }
       
       // 加载迭代提示词
-      const iterateTemplateId = localStorage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE)
+      const iterateTemplateId = await storage.getItem(STORAGE_KEYS.ITERATE_TEMPLATE)
       if (iterateTemplateId) {
         try {
           const iterateTemplate = templateManager.getTemplate(iterateTemplateId)
@@ -232,8 +251,8 @@ export function usePromptOptimizer(
   }
 
   // 在 onMounted 中初始化
-  onMounted(() => {
-    initTemplateSelection()
+  onMounted(async () => {
+    await initTemplateSelection()
   })
 
   return {

@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { modelManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
@@ -85,29 +85,40 @@ const isOpen = ref(false)
 const refreshTrigger = ref(0)
 const vClickOutside = clickOutside
 
+// 响应式数据存储
+const allModels = ref([])
+const enabledModels = ref([])
+
+// 加载模型数据
+const loadModels = async () => {
+  try {
+    allModels.value = await modelManager.getAllModels()
+    enabledModels.value = await modelManager.getEnabledModels()
+  } catch (error) {
+    console.error('Failed to load models:', error)
+    allModels.value = []
+    enabledModels.value = []
+  }
+}
+
 // 获取选中的模型
 const getSelectedModel = computed(() => {
-  refreshTrigger.value
-  return modelManager.getAllModels().find(m => m.key === props.modelValue)
-})
-
-// 启用的模型列表
-const enabledModels = computed(() => {
-  refreshTrigger.value
-  return modelManager.getEnabledModels()
+  refreshTrigger.value // 触发响应式更新
+  return allModels.value.find(m => m.key === props.modelValue)
 })
 
 // 判断是否为默认模型
 const isDefaultModel = (key) => {
-  const model = modelManager.getAllModels().find(m => m.key === key)
+  const model = allModels.value.find(m => m.key === key)
   return model?.isDefault ?? false
 }
 
 // 切换下拉框
-const toggleDropdown = () => {
+const toggleDropdown = async () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
   if (isOpen.value) {
+    await loadModels()
     refreshTrigger.value++
   }
 }
@@ -120,7 +131,8 @@ const selectModel = (model) => {
 }
 
 // 添加刷新方法
-const refresh = () => {
+const refresh = async () => {
+  await loadModels()
   refreshTrigger.value++
 }
 
@@ -131,14 +143,21 @@ defineExpose({
 
 // 监听模型数据变化，确保选中的模型仍然可用
 watch(
-  () => modelManager.getAllModels(),
-  () => {
-    if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
-      emit('update:modelValue', enabledModels.value[0]?.key || '')
+  () => props.modelValue,
+  async (newValue) => {
+    if (newValue && !enabledModels.value.find(m => m.key === newValue)) {
+      await loadModels()
+      if (!enabledModels.value.find(m => m.key === newValue)) {
+        emit('update:modelValue', enabledModels.value[0]?.key || '')
+      }
     }
-  }, 
-  { deep: true }
+  }
 )
+
+// 初始化时加载模型
+onMounted(async () => {
+  await loadModels()
+})
 
 // 计算下拉框样式
 const dropdownStyle = computed(() => ({

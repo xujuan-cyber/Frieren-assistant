@@ -1,4 +1,6 @@
-import { LocalStorageProvider } from './localStorageProvider';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { LocalStorageProvider } from '../../../src/services/storage/localStorageProvider';
+import { StorageError } from '../../../src/services/storage/errors';
 
 describe('LocalStorageProvider', () => {
   let provider: LocalStorageProvider;
@@ -8,23 +10,22 @@ describe('LocalStorageProvider', () => {
     // Simple in-memory mock for localStorage
     mockStorage = {};
     global.localStorage = {
-      getItem: jest.fn((key: string): string | null => mockStorage[key] || null),
-      setItem: jest.fn((key: string, value: string): void => { mockStorage[key] = value.toString(); }),
-      removeItem: jest.fn((key: string): void => { delete mockStorage[key]; }),
-      clear: jest.fn((): void => { mockStorage = {}; }),
-      key: jest.fn((index: number): string | null => Object.keys(mockStorage)[index] || null),
+      getItem: vi.fn((key: string): string | null => mockStorage[key] || null),
+      setItem: vi.fn((key: string, value: string): void => { mockStorage[key] = value.toString(); }),
+      removeItem: vi.fn((key: string): void => { delete mockStorage[key]; }),
+      clear: vi.fn((): void => { mockStorage = {}; }),
+      key: vi.fn((index: number): string | null => Object.keys(mockStorage)[index] || null),
       get length(): number {
         return Object.keys(mockStorage).length;
       }
-    } as any; // Use 'as any' to satisfy TypeScript if the mock is partial or for Jest's global
+    } as any; // Use 'as any' to satisfy TypeScript if the mock is partial
 
     provider = new LocalStorageProvider();
   });
 
   afterEach(() => {
-    // Clear any mocks or restore original localStorage if necessary,
-    // though for this simple mock, beforeEach handles reset.
-    jest.clearAllMocks();
+    // Clear any mocks
+    vi.clearAllMocks();
   });
 
   describe('setItem and getItem', () => {
@@ -107,32 +108,32 @@ describe('LocalStorageProvider', () => {
 
   // Test error handling for localStorage methods
   describe('Error Handling', () => {
-    it('should reject if localStorage.getItem throws', async () => {
-      (global.localStorage.getItem as jest.Mock).mockImplementationOnce(() => {
+    it('should reject with StorageError if localStorage.getItem throws', async () => {
+      (global.localStorage.getItem as any).mockImplementationOnce(() => {
         throw new Error('Simulated getItem error');
       });
-      await expect(provider.getItem('errorKey')).rejects.toThrow('Simulated getItem error');
+      await expect(provider.getItem('errorKey')).rejects.toThrow(StorageError);
     });
 
-    it('should reject if localStorage.setItem throws', async () => {
-      (global.localStorage.setItem as jest.Mock).mockImplementationOnce(() => {
+    it('should reject with StorageError if localStorage.setItem throws', async () => {
+      (global.localStorage.setItem as any).mockImplementationOnce(() => {
         throw new Error('Simulated setItem error');
       });
-      await expect(provider.setItem('errorKey', 'errorValue')).rejects.toThrow('Simulated setItem error');
+      await expect(provider.setItem('errorKey', 'errorValue')).rejects.toThrow(StorageError);
     });
 
-    it('should reject if localStorage.removeItem throws', async () => {
-      (global.localStorage.removeItem as jest.Mock).mockImplementationOnce(() => {
+    it('should reject with StorageError if localStorage.removeItem throws', async () => {
+      (global.localStorage.removeItem as any).mockImplementationOnce(() => {
         throw new Error('Simulated removeItem error');
       });
-      await expect(provider.removeItem('errorKey')).rejects.toThrow('Simulated removeItem error');
+      await expect(provider.removeItem('errorKey')).rejects.toThrow(StorageError);
     });
 
-    it('should reject if localStorage.clear throws', async () => {
-      (global.localStorage.clear as jest.Mock).mockImplementationOnce(() => {
+    it('should reject with StorageError if localStorage.clear throws', async () => {
+      (global.localStorage.clear as any).mockImplementationOnce(() => {
         throw new Error('Simulated clear error');
       });
-      await expect(provider.clearAll()).rejects.toThrow('Simulated clear error');
+      await expect(provider.clearAll()).rejects.toThrow(StorageError);
     });
   });
 });

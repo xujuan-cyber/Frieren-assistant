@@ -7,13 +7,15 @@ import {
   RequestConfigError,
   Message 
 } from '../../../src/index';
+import { createMockStorage } from '../../mocks/mockStorage';
 
 describe('LLMService', () => {
   let service: LLMService;
   let modelManager: ModelManager;
   
   beforeEach(() => {
-    modelManager = new ModelManager();
+    const mockStorage = createMockStorage();
+    modelManager = new ModelManager(mockStorage);
     service = new LLMService(modelManager);
   });
 

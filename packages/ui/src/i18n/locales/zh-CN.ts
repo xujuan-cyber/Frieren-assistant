@@ -38,6 +38,8 @@ export default {
     copyFailed: '复制失败',
     appName: '提示词优化器',
     selectFile: '选择文件',
+    exporting: '导出中...',
+    importing: '导入中...',
   },
   nav: {
     home: '首页',
@@ -46,6 +48,7 @@ export default {
     modelManager: '模型管理',
     history: '历史记录',
     templates: '功能提示词',
+    dataManager: '数据管理',
   },
   promptOptimizer: {
     title: '提示词优化器',
@@ -373,5 +376,26 @@ export default {
     error: {
       initBaseServicesFailed: '初始化基础服务失败'
     }
+  },
+  dataManager: {
+    title: '数据管理',
+    export: {
+      title: '导出数据',
+      description: '导出所有历史记录、模型配置、自定义提示词和用户设置（包括主题、语言、模型选择等）',
+      button: '导出数据',
+      success: '数据导出成功',
+      failed: '数据导出失败'
+    },
+    import: {
+      title: '导入数据',
+      description: '导入之前导出的数据文件（将覆盖现有数据和用户设置）',
+      selectFile: '点击选择文件或拖拽文件到此处',
+      changeFile: '更换文件',
+      button: '导入数据',
+      success: '数据导入成功',
+      failed: '数据导入失败',
+      successWithRefresh: '数据导入成功，页面将刷新以更新数据'
+    },
+    warning: '⚠️ 导入数据将覆盖现有的历史记录、模型配置、自定义提示词和所有用户设置（包括主题、语言偏好等），请确保已备份重要数据。'
   }
 }; 

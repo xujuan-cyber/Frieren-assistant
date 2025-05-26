@@ -19,13 +19,13 @@ export function usePromptHistory(
   const history = ref<PromptChain[]>([])
   const showHistory = ref(false)
 
-  const handleSelectHistory = (context: { record: any, chainId: string, rootPrompt: string }) => {
+  const handleSelectHistory = async (context: { record: any, chainId: string, rootPrompt: string }) => {
     const { record, rootPrompt } = context
     
     prompt.value = rootPrompt
     optimizedPrompt.value = record.optimizedPrompt
     
-    const newRecord = historyManager.createNewChain({
+    const newRecord = await historyManager.createNewChain({
       id: uuidv4(),
       originalPrompt: rootPrompt,
       optimizedPrompt: record.optimizedPrompt,
@@ -40,13 +40,13 @@ export function usePromptHistory(
     currentVersions.value = newRecord.versions
     currentVersionId.value = newRecord.currentRecord.id
     
-    refreshHistory()
+    await refreshHistory()
     showHistory.value = false
   }
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
     try {
-      historyManager.clearHistory()
+      await historyManager.clearHistory()
       
       // 清空当前显示的内容
       prompt.value = '';
@@ -64,17 +64,17 @@ export function usePromptHistory(
     }
   }
 
-  const handleDeleteChain = (chainId: string) => {
+  const handleDeleteChain = async (chainId: string) => {
     try {
       // 获取链中的所有记录
-      const allChains = historyManager.getAllChains()
-      const chain = allChains.find(c => c.chainId === chainId)
+      const allChains = await historyManager.getAllChains()
+      const chain = allChains.find((c: any) => c.chainId === chainId)
       
       if (chain) {
         // 删除链中的所有记录
-        chain.versions.forEach((record: PromptRecord) => {
-          historyManager.deleteRecord(record.id)
-        })
+        for (const record of chain.versions) {
+          await historyManager.deleteRecord(record.id)
+        }
         
         // 如果当前正在查看的是被删除的链，则清空当前显示
         if (currentChainId.value === chainId) {
@@ -86,7 +86,8 @@ export function usePromptHistory(
         }
         
         // 立即更新历史记录，确保UI能够反映最新状态
-        history.value = [...historyManager.getAllChains()]
+        const updatedChains = await historyManager.getAllChains()
+        history.value = [...updatedChains]
         toast.success(t('toast.success.historyChainDeleted'))
       }
     } catch (error) {
@@ -95,9 +96,9 @@ export function usePromptHistory(
     }
   }
 
-  const initHistory = () => {
+  const initHistory = async () => {
     try {
-      refreshHistory()
+      await refreshHistory()
     } catch (error) {
       console.error(t('toast.error.loadHistoryFailed'), error)
       toast.error(t('toast.error.loadHistoryFailed'))
@@ -105,25 +106,26 @@ export function usePromptHistory(
   }
 
   // 添加一个刷新历史记录的函数
-  const refreshHistory = () => {
-    history.value = [...historyManager.getAllChains()]
+  const refreshHistory = async () => {
+    const chains = await historyManager.getAllChains()
+    history.value = [...chains]
   }
 
   // Watch history display state
-  watch(showHistory, (newVal) => {
+  watch(showHistory, async (newVal) => {
     if (newVal) {
-      refreshHistory()
+      await refreshHistory()
     }
   })
 
   // Watch version changes, update history
-  watch([currentVersions], () => {
-    refreshHistory()
+  watch([currentVersions], async () => {
+    await refreshHistory()
   })
 
   // 初始化时加载历史记录
-  onMounted(() => {
-    refreshHistory()
+  onMounted(async () => {
+    await refreshHistory()
   })
 
   return {

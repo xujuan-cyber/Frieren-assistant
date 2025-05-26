@@ -1,6 +1,6 @@
 <!-- 输出面板组件 -->
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex flex-col h-full" :class="$attrs.class">
     <div class="flex items-center justify-between mb-3">
       <h3 v-if="resultTitle" class="text-lg font-semibold theme-text truncate">{{ resultTitle }}</h3>
       <div v-else-if="!hideTitle" class="text-lg font-semibold theme-text">{{ t('output.title') }}</div>
@@ -71,6 +71,11 @@ import { useAutoScroll } from '../composables/useAutoScroll'
 import { useClipboard } from '../composables/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import FullscreenDialog from './FullscreenDialog.vue'
+
+// 禁用属性自动继承，手动处理class属性
+defineOptions({
+  inheritAttrs: false
+})
 
 const { t } = useI18n()
 const toast = useToast()

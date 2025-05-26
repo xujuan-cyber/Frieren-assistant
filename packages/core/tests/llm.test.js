@@ -1,21 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LLMService, ModelManager, RequestConfigError, APIError } from '../src';
-
-// 模拟localStorage
-const localStorageMock = {
-  store: {},
-  getItem(key) {
-    return this.store[key] || null;
-  },
-  setItem(key, value) {
-    this.store[key] = value.toString();
-  },
-  clear() {
-    this.store = {};
-  }
-};
-
-global.localStorage = localStorageMock;
+import { createMockStorage } from './mocks/mockStorage';
 
 describe('LLMService', () => {
   let llmService;
@@ -32,17 +17,15 @@ describe('LLMService', () => {
   };
 
   beforeEach(() => {
-    // 重置localStorage
-    localStorageMock.clear();
-    modelManager = new ModelManager();
-    // 清除所有已有模型
-    const models = modelManager.getAllModels();
-    models.forEach(model => {
-      if (model.key) {
-        modelManager.deleteModel(model.key);
-      }
-    });
+    const mockStorage = createMockStorage();
+    // 模拟getAllModels返回空数组
+    mockStorage.getItem.mockResolvedValue(null);
+    
+    modelManager = new ModelManager(mockStorage);
     llmService = new LLMService(modelManager);
+    
+    // 模拟getAllModels方法
+    vi.spyOn(modelManager, 'getAllModels').mockResolvedValue([]);
   });
 
   describe('消息验证', () => {
@@ -82,8 +65,9 @@ describe('LLMService', () => {
   });
 
   describe('发送消息', () => {
-
     it('当提供商不存在时应抛出错误', async () => {
+      vi.spyOn(modelManager, 'getModel').mockResolvedValue(undefined);
+      
       const messages = [
         { role: 'system', content: 'test' }
       ];
@@ -93,8 +77,8 @@ describe('LLMService', () => {
     });
 
     it('当消息格式无效时应抛出错误', async () => {
-      modelManager.addModel(testProvider, mockModelConfig);
-
+      vi.spyOn(modelManager, 'getModel').mockResolvedValue(mockModelConfig);
+      
       const invalidMessages = [
         { role: 'invalid', content: 'test' }
       ];

@@ -24,10 +24,10 @@ export interface IPromptService {
   ): Promise<string>;
   
   /** 获取历史记录 */
-  getHistory(): PromptRecord[];
+  getHistory(): Promise<PromptRecord[]>;
   
   /** 获取迭代链 */
-  getIterationChain(recordId: string): PromptRecord[];
+  getIterationChain(recordId: string): Promise<PromptRecord[]>;
 
   /** 优化提示词（流式） */
   optimizePromptStream(

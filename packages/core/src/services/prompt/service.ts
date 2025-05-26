@@ -7,6 +7,7 @@ import { TemplateManager, templateManager as defaultTemplateManager } from '../t
 import { HistoryManager, historyManager as defaultHistoryManager } from '../history/manager';
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
 import { ERROR_MESSAGES } from '../llm/errors';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * 提示词服务实现
@@ -75,7 +76,7 @@ export class PromptService implements IPromptService {
       this.validateInput(prompt, modelKey);
       
       // 获取模型配置（使用统一错误）
-      const modelConfig = this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new OptimizationError(
           `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_NOT_FOUND}`,
@@ -109,12 +110,12 @@ export class PromptService implements IPromptService {
       this.validateResponse(result, prompt);
 
       // 保存历史记录
-      this.historyManager.addRecord({
-        id: Date.now().toString(),
+      await this.historyManager.addRecord({
+        id: uuidv4(),
         originalPrompt: prompt,
         optimizedPrompt: result,
         type: 'optimize',
-        chainId: Date.now().toString(),
+        chainId: uuidv4(),
         version: 1,
         timestamp: Date.now(),
         modelKey,
@@ -141,7 +142,7 @@ export class PromptService implements IPromptService {
       this.validateInput(iterateInput, modelKey);
       
       // 获取模型配置
-      const modelConfig = this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }
@@ -169,8 +170,8 @@ export class PromptService implements IPromptService {
       const result = await this.llmService.sendMessage(messages, modelKey);
 
       // 保存历史记录
-      this.historyManager.addRecord({
-        id: Date.now().toString(),
+      await this.historyManager.addRecord({
+        id: uuidv4(),
         originalPrompt: iterateInput,
         optimizedPrompt: result,
         type: 'iterate',
@@ -198,7 +199,7 @@ export class PromptService implements IPromptService {
       this.validateInput(testInput, modelKey);
 
       // 获取模型配置
-      const modelConfig = this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }
@@ -213,8 +214,8 @@ export class PromptService implements IPromptService {
       const result = await this.llmService.sendMessage(messages, modelKey);
 
       // 保存历史记录
-      this.historyManager.addRecord({
-        id: Date.now().toString(),
+      await this.historyManager.addRecord({
+        id: uuidv4(),
         originalPrompt: prompt,
         optimizedPrompt: result,
         type: 'optimize',
@@ -235,15 +236,15 @@ export class PromptService implements IPromptService {
   /**
    * 获取历史记录
    */
-  getHistory(): PromptRecord[] {
-    return this.historyManager.getRecords();
+  async getHistory(): Promise<PromptRecord[]> {
+    return await this.historyManager.getRecords();
   }
 
   /**
    * 获取迭代链
    */
-  getIterationChain(recordId: string): PromptRecord[] {
-    return this.historyManager.getIterationChain(recordId);
+  async getIterationChain(recordId: string): Promise<PromptRecord[]> {
+    return await this.historyManager.getIterationChain(recordId);
   }
 
   async testPromptStream(
@@ -260,7 +261,7 @@ export class PromptService implements IPromptService {
       this.validateInput(prompt, modelKey);
       this.validateInput(testInput, modelKey);
 
-      const modelConfig = this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }
@@ -296,7 +297,7 @@ export class PromptService implements IPromptService {
       this.validateInput(prompt, modelKey);
       
       // 获取模型配置
-      const modelConfig = this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new OptimizationError(
           `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_NOT_FOUND}`,
@@ -349,7 +350,7 @@ export class PromptService implements IPromptService {
       this.validateInput(iterateInput, modelKey);
       
       // 获取模型配置
-      const modelConfig = this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }

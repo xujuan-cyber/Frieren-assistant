@@ -82,13 +82,15 @@ export class LLMService implements ILLMService {
     const config: any = {
       apiKey: apiKey,
       baseURL: finalBaseURL,
-      dangerouslyAllowBrowser: true
+      dangerouslyAllowBrowser: true,
+      timeout: 60000, // 设置60秒超时时间，文本生成可能需要较长时间
+      maxRetries: 3   // 设置重试次数
     };
 
     // 为流式请求添加额外配置
     if (isStream) {
-      config.timeout = 30000; // 添加更短的超时时间，避免长时间等待
-      config.maxRetries = 2;  // 添加更积极的重试策略
+      config.timeout = 90000; // 流式请求使用更长的超时时间
+      config.maxRetries = 2;  // 流式请求减少重试次数
     }
 
     const instance = new OpenAI(config);
@@ -225,7 +227,7 @@ export class LLMService implements ILLMService {
         throw new RequestConfigError('模型提供商不能为空');
       }
 
-      const modelConfig = this.modelManager.getModel(provider);
+      const modelConfig = await this.modelManager.getModel(provider);
       if (!modelConfig) {
         throw new RequestConfigError(`模型 ${provider} 不存在`);
       }
@@ -265,7 +267,7 @@ export class LLMService implements ILLMService {
       console.log('开始流式请求:', { provider, messagesCount: messages.length });
       this.validateMessages(messages);
 
-      const modelConfig = this.modelManager.getModel(provider);
+      const modelConfig = await this.modelManager.getModel(provider);
       if (!modelConfig) {
         throw new RequestConfigError(`模型 ${provider} 不存在`);
       }
@@ -448,7 +450,7 @@ export class LLMService implements ILLMService {
   ): Promise<ModelOption[]> {
     try {
       // 获取基础配置
-      let modelConfig = this.modelManager.getModel(provider);
+      let modelConfig = await this.modelManager.getModel(provider);
 
       // 如果提供了自定义配置，则合并到基础配置
       if (customConfig) {

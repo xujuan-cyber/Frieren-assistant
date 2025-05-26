@@ -61,8 +61,10 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStorage } from '../composables/useStorage';
 
 const { t } = useI18n();
+const storage = useStorage();
 
 // Available themes list
 const availableThemes = computed(() => [
@@ -107,14 +109,14 @@ const toggleThemeMenu = () => {
 };
 
 // Select theme
-const selectTheme = (themeId) => {
+const selectTheme = async (themeId) => {
   currentTheme.value = themeId;
   showThemeMenu.value = false;
-  updateTheme();
+  await updateTheme();
 };
 
 // Update theme
-const updateTheme = () => {
+const updateTheme = async () => {
   // Get current theme
   const theme = availableThemes.value.find(t => t.id === currentTheme.value);
   if (!theme) return;
@@ -136,8 +138,12 @@ const updateTheme = () => {
   // Update data-theme attribute
   document.documentElement.setAttribute('data-theme', theme.id);
   
-  // Save theme settings to local storage
-  localStorage.setItem('theme-id', theme.id);
+  try {
+    // Save theme settings to storage
+    await storage.setItem('theme-id', theme.id);
+  } catch (error) {
+    console.error('保存主题设置失败:', error);
+  }
 
   // Trigger re-render
   nextTick(() => {
@@ -159,46 +165,58 @@ const handleClickOutside = (event) => {
 };
 
 // Initialize theme
-onMounted(() => {
+onMounted(async () => {
   // Ensure DOM is loaded before applying theme
-  requestAnimationFrame(() => {
-    // Get theme ID: prioritize theme-id, fallback to theme
-    let themeId = localStorage.getItem('theme-id');
-    
-    if (!themeId) {
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) {
-        const theme = availableThemes.value.find(t => t.cssClass === savedTheme);
-        if (theme) {
-          themeId = theme.id;
-          // Update to new format
-          localStorage.setItem('theme-id', themeId);
-          // Clear old format
-          localStorage.removeItem('theme');
+  requestAnimationFrame(async () => {
+    try {
+      // Get theme ID: prioritize theme-id, fallback to theme
+      let themeId = await storage.getItem('theme-id');
+      
+      if (!themeId) {
+        const savedTheme = await storage.getItem('theme');
+        if (savedTheme) {
+          const theme = availableThemes.value.find(t => t.cssClass === savedTheme);
+          if (theme) {
+            themeId = theme.id;
+            // Update to new format
+            await storage.setItem('theme-id', themeId);
+            // Clear old format
+            await storage.removeItem('theme');
+          }
         }
       }
-    }
 
-    // Set current theme
-    if (themeId && availableThemes.value.find(t => t.id === themeId)) {
-      currentTheme.value = themeId;
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      currentTheme.value = 'dark';
-    } else {
+      // Set current theme
+      if (themeId && availableThemes.value.find(t => t.id === themeId)) {
+        currentTheme.value = themeId;
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        currentTheme.value = 'dark';
+      } else {
+        currentTheme.value = 'light';
+      }
+      
+      // Apply theme
+      await updateTheme();
+    } catch (error) {
+      console.error('初始化主题失败:', error);
+      // 降级到默认主题
       currentTheme.value = 'light';
+      await updateTheme();
     }
-    
-    // Apply theme
-    updateTheme();
   });
   
   // Listen for system theme changes
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     // Only respond to system theme changes when no user theme is set
-    if (!localStorage.getItem('theme-id')) {
-      currentTheme.value = e.matches ? 'dark' : 'light';
-      updateTheme();
+    try {
+      const userTheme = await storage.getItem('theme-id');
+      if (!userTheme) {
+        currentTheme.value = e.matches ? 'dark' : 'light';
+        await updateTheme();
+      }
+    } catch (error) {
+      console.error('处理系统主题变化失败:', error);
     }
   };
   

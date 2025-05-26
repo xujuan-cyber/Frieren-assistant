@@ -326,10 +326,10 @@ const checkVercelProxy = async () => {
 };
 
 // 加载所有模型
-const loadModels = () => {
+const loadModels = async () => {
   try {
-    // 强制刷新模型数据
-    const allModels = modelManager.getAllModels();
+    // 强制刷新模型数据，使用异步调用
+    const allModels = await modelManager.getAllModels();
     
     // 使用深拷贝确保响应式更新
     models.value = JSON.parse(JSON.stringify(allModels)).sort((a, b) => {
@@ -370,7 +370,7 @@ const testConnection = async (key) => {
   if (isTestingConnectionFor(key)) return;
   try {
     testingConnections.value[key] = true;
-    const model = modelManager.getModel(key);
+    const model = await modelManager.getModel(key);
     if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
     const llm = createLLMService(modelManager);
@@ -378,7 +378,8 @@ const testConnection = async (key) => {
     toast.success(t('modelManager.testSuccess', { provider: model.name }));
   } catch (error) {
     console.error('连接测试失败:', error);
-    const modelName = modelManager.getModel(key)?.name || key;
+    const model = await modelManager.getModel(key);
+    const modelName = model?.name || key;
     toast.error(t('modelManager.testFailed', { 
       provider: modelName, 
       error: error.message || 'Unknown error' 
@@ -392,8 +393,8 @@ const testConnection = async (key) => {
 const handleDelete = async (key) => {
   if (confirm(t('modelManager.deleteConfirm'))) {
     try {
-      modelManager.deleteModel(key)
-      loadModels()
+      await modelManager.deleteModel(key)
+      await loadModels()
       toast.success(t('modelManager.deleteSuccess'))
     } catch (error) {
       console.error('删除模型失败:', error)
@@ -405,11 +406,11 @@ const handleDelete = async (key) => {
 // 启用模型
 const enableModel = async (key) => {
   try {
-    const model = modelManager.getModel(key)
+    const model = await modelManager.getModel(key)
     if (!model) throw new Error(t('modelManager.noModelsAvailable'))
 
-    modelManager.enableModel(key)
-    loadModels()
+    await modelManager.enableModel(key)
+    await loadModels()
     emit('modelsUpdated', key)
     toast.success(t('modelManager.enableSuccess'))
   } catch (error) {
@@ -421,11 +422,11 @@ const enableModel = async (key) => {
 // 禁用模型
 const disableModel = async (key) => {
   try {
-    const model = modelManager.getModel(key)
+    const model = await modelManager.getModel(key)
     if (!model) throw new Error(t('modelManager.noModelsAvailable'))
 
-    modelManager.disableModel(key)
-    loadModels()
+    await modelManager.disableModel(key)
+    await loadModels()
     emit('modelsUpdated', key)
     toast.success(t('modelManager.disableSuccess'))
   } catch (error) {
@@ -436,8 +437,8 @@ const disableModel = async (key) => {
 
 // =============== 编辑相关函数 ===============
 // 编辑模型
-const editModel = (key) => {
-  const model = modelManager.getModel(key);
+const editModel = async (key) => {
+  const model = await modelManager.getModel(key);
   if (model) {
     // 为API密钥创建加密显示文本
     let maskedApiKey = '';
@@ -571,7 +572,7 @@ const handleFetchEditingModels = async () => {
     
     // 如果是掩码密钥，使用原始密钥
     if (editingModel.value.displayMaskedKey && editingModel.value.originalKey) {
-      const originalModel = modelManager.getModel(editingModel.value.originalKey);
+      const originalModel = await modelManager.getModel(editingModel.value.originalKey);
       if (originalModel && originalModel.apiKey) {
         apiKey = originalModel.apiKey;
       }
@@ -713,10 +714,10 @@ const saveEdit = async () => {
     };
     
     // 直接更新原始模型
-    modelManager.updateModel(originalKey, config);
+    await modelManager.updateModel(originalKey, config);
     
     // 重新加载模型列表
-    loadModels();
+    await loadModels();
     
     // 触发更新事件
     emit('modelsUpdated', originalKey);
@@ -747,8 +748,8 @@ const addCustomModel = async () => {
       useVercelProxy: newModel.value.useVercelProxy
     }
 
-    modelManager.addModel(newModel.value.key, config)
-    loadModels()
+    await modelManager.addModel(newModel.value.key, config)
+    await loadModels()
     showAddForm.value = false
     // 修改这里，传递新添加的模型的 key
     emit('modelsUpdated', newModel.value.key)

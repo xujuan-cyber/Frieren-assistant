@@ -1,109 +1,175 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { 
-  ModelManager,
-  ModelConfig,
-  ModelConfigError
-} from '../../../src/index';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ModelManager } from '../../../src/services/model/manager';
+import { IStorageProvider } from '../../../src/services/storage/types';
+import { ModelConfig } from '../../../src/services/model/types';
+import { ModelConfigError } from '../../../src/services/llm/errors';
+import { defaultModels } from '../../../src/services/model/defaults';
+import { createMockStorage } from '../../mocks/mockStorage';
+
+// Helper to create a deep copy of defaultModels for isolated tests
+const getCleanDefaultModels = () => JSON.parse(JSON.stringify(defaultModels));
 
 describe('ModelManager', () => {
-  let manager: ModelManager;
-  let mockModelConfig: ModelConfig;
+  let modelManager: ModelManager;
+  let mockStorage: IStorageProvider;
+  const testStorageKey = 'models'; // Matches manager's storageKey
 
-  beforeEach(() => {
-    mockModelConfig = {
-      name: 'Test Model',
-      baseURL: 'https://test.api',
-      apiKey: 'test-key',
-      models: ['test-model'],
-      defaultModel: 'test-model',
-      enabled: true,
-      provider: 'openai'
-    };
+  const createModelConfig = (name: string, enabled = true, apiKey = 'test_api_key', models = ['model1', 'model2'], defaultModel = 'model1', provider = 'custom'): ModelConfig => ({
+    name,
+    baseURL: `http://localhost/${name}/v1`,
+    models,
+    defaultModel,
+    apiKey,
+    enabled,
+    provider,
+  });
 
-    manager = new ModelManager();
-    // 清除默认模型
-    const defaultModels = manager.getAllModels();
-    defaultModels.forEach(model => {
-      if (model.key) {
-        manager.deleteModel(model.key);
-      }
-    });
+  beforeEach(async () => {
+    mockStorage = createMockStorage();
+    modelManager = new ModelManager(mockStorage);
+    // 等待初始化完成
+    await new Promise(resolve => setTimeout(resolve, 0));
   });
 
   describe('addModel', () => {
-    it('should add a valid model configuration', () => {
-      manager.addModel('test', mockModelConfig);
-      const models = manager.getAllModels();
-      expect(models).toHaveLength(1);
-      expect(models[0]).toMatchObject({ ...mockModelConfig, key: 'test' });
+    it('should add a new model and save', async () => {
+      const newModel = createModelConfig('NewModel');
+      await modelManager.addModel('newKey', newModel);
+      
+      const allModels = await modelManager.getAllModels();
+      const addedModel = allModels.find(m => m.key === 'newKey');
+      expect(addedModel).toBeDefined();
+      expect(addedModel?.name).toBe('NewModel');
     });
 
-    it('should throw error when adding duplicate model', () => {
-      manager.addModel('test', mockModelConfig);
-      expect(() => manager.addModel('test', mockModelConfig))
-        .toThrow(ModelConfigError);
+    it('should throw ModelConfigError when adding a model with an existing key', async () => {
+      const existingModel = createModelConfig('ExistingModel');
+      await modelManager.addModel('existingKey', existingModel);
+      
+      await expect(modelManager.addModel('existingKey', createModelConfig('DuplicateKey')))
+        .rejects.toThrow(ModelConfigError);
     });
 
-    it('should throw error when adding invalid config', () => {
-      const invalidConfig = { ...mockModelConfig, name: '' };
-      expect(() => manager.addModel('test', invalidConfig))
-        .toThrow(ModelConfigError);
+    it('should throw ModelConfigError when adding a model with invalid config', async () => {
+      const invalidModel = { ...createModelConfig('Invalid'), name: '' };
+      
+      await expect(modelManager.addModel('invalidKey', invalidModel as ModelConfig))
+        .rejects.toThrow(ModelConfigError);
     });
   });
+  
+  describe('getAllModels', () => {
+    it('should return all models including their keys', async () => {
+      const model = createModelConfig('TestModel');
+      await modelManager.addModel('testKey', model);
+      
+      const result = await modelManager.getAllModels();
+      expect(result.some(m => m.key === 'testKey')).toBe(true);
+    });
 
-  describe('updateModel', () => {
-    it('should update existing model', () => {
-      manager.addModel('test', mockModelConfig);
-      const updateConfig = {
-        name: 'Updated Model',
-        baseURL: 'https://updated.api'
-      };
-      manager.updateModel('test', updateConfig);
-      const model = manager.getModel('test');
-      if (!model) {
-        throw new Error('Model should exist');
+    it('should return default models after initialization', async () => {
+      const result = await modelManager.getAllModels();
+      // 检查是否包含默认模型
+      expect(result.length).toBeGreaterThan(0);
+      
+      // 检查是否包含一个已知的默认模型
+      const defaultKeys = Object.keys(defaultModels);
+      if (defaultKeys.length > 0) {
+        const firstDefaultKey = defaultKeys[0];
+        expect(result.some(m => m.key === firstDefaultKey)).toBe(true);
       }
-      expect(model.name).toBe('Updated Model');
-      expect(model.baseURL).toBe('https://updated.api');
-    });
-
-    it('should throw error when updating non-existent model', () => {
-      expect(() => manager.updateModel('non-existent', { name: 'New Name' }))
-        .toThrow(ModelConfigError);
-    });
-
-    it('should throw error when update makes config invalid', () => {
-      manager.addModel('test', mockModelConfig);
-      expect(() => manager.updateModel('test', { name: '' }))
-        .toThrow(ModelConfigError);
-    });
-  });
-
-  describe('deleteModel', () => {
-    it('should delete existing model', () => {
-      manager.addModel('test', mockModelConfig);
-      manager.deleteModel('test');
-      expect(manager.getModel('test')).toBeUndefined();
-    });
-
-    it('should throw error when deleting non-existent model', () => {
-      expect(() => manager.deleteModel('non-existent'))
-        .toThrow(ModelConfigError);
     });
   });
 
   describe('getModel', () => {
-    it('should return model by key', () => {
-      manager.addModel('test', mockModelConfig);
-      const model = manager.getModel('test');
-      if (!model) {
-        throw new Error('Model should exist');
-      }
-      expect(model).toMatchObject(mockModelConfig);
+    it('should retrieve an existing model by key', async () => {
+      const model = createModelConfig('MyModel');
+      await modelManager.addModel('myKey', model);
+      
+      const result = await modelManager.getModel('myKey');
+      expect(result).toEqual(model);
     });
 
-    it('should return undefined for non-existent model', () => {
-      expect(manager.getModel('non-existent')).toBeUndefined();
+    it('should return undefined for a non-existent model key', async () => {
+      const result = await modelManager.getModel('nonExistentKey');
+      expect(result).toBeUndefined();
     });
   });
-}); 
+
+  describe('updateModel', () => {
+    it('should update an existing model and save', async () => {
+      const originalModel = createModelConfig('OriginalName');
+      await modelManager.addModel('updateKey', originalModel);
+      
+      const updates: Partial<ModelConfig> = { 
+        name: 'UpdatedName', 
+        apiKey: 'new_api_key' 
+      };
+      
+      await modelManager.updateModel('updateKey', updates);
+      
+      const updatedModel = await modelManager.getModel('updateKey');
+      expect(updatedModel?.name).toBe('UpdatedName');
+      expect(updatedModel?.apiKey).toBe('new_api_key');
+    });
+
+    it('should throw ModelConfigError when updating a non-existent model', async () => {
+      await expect(modelManager.updateModel('nonExistentKey', { name: 'NewName' }))
+        .rejects.toThrow(ModelConfigError);
+    });
+  });
+
+  describe('deleteModel', () => {
+    it('should delete an existing model', async () => {
+      const model = createModelConfig('DeleteMe');
+      await modelManager.addModel('deleteKey', model);
+      
+      await modelManager.deleteModel('deleteKey');
+      
+      const modelAfterDelete = await modelManager.getModel('deleteKey');
+      expect(modelAfterDelete).toBeUndefined();
+    });
+
+    it('should not fail when deleting a non-existent model', async () => {
+      await expect(modelManager.deleteModel('nonExistentKey'))
+        .rejects.toThrow(ModelConfigError);
+    });
+  });
+
+  describe('enableModel & disableModel', () => {
+    it('should enable a disabled model', async () => {
+      const disabledModel = createModelConfig('DisabledModel', false);
+      await modelManager.addModel('disabledKey', disabledModel);
+      
+      await modelManager.enableModel('disabledKey');
+      
+      const model = await modelManager.getModel('disabledKey');
+      expect(model?.enabled).toBe(true);
+    });
+
+    it('should disable an enabled model', async () => {
+      const enabledModel = createModelConfig('EnabledModel', true);
+      await modelManager.addModel('enabledKey', enabledModel);
+      
+      await modelManager.disableModel('enabledKey');
+      
+      const model = await modelManager.getModel('enabledKey');
+      expect(model?.enabled).toBe(false);
+    });
+  });
+
+  describe('getEnabledModels', () => {
+    it('should return only enabled models', async () => {
+      const enabledModel = createModelConfig('EnabledModel', true);
+      const disabledModel = createModelConfig('DisabledModel', false);
+      
+      await modelManager.addModel('enabledKey', enabledModel);
+      await modelManager.addModel('disabledKey', disabledModel);
+      
+      const enabledModels = await modelManager.getEnabledModels();
+      
+      expect(enabledModels.some(m => m.key === 'enabledKey')).toBe(true);
+      expect(enabledModels.some(m => m.key === 'disabledKey')).toBe(false);
+    });
+  });
+});

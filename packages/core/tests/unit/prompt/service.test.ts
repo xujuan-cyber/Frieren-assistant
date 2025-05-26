@@ -9,12 +9,15 @@ import {
   ModelConfig,
   Template,
   PromptRecord,
+  PromptRecordType,
   OptimizationError,
   IterationError,
   TestError,
   APIError,
-  TemplateError
+  TemplateError,
+  ServiceDependencyError
 } from '../../../src'
+import { createMockStorage } from '../../mocks/mockStorage';
 
 // 模拟 fetch API
 const mockFetch = vi.fn();
@@ -65,12 +68,13 @@ describe('PromptService', () => {
       text: () => Promise.resolve(JSON.stringify(mockTemplate))
     });
 
-    modelManager = new ModelManager();
+    const mockStorage = createMockStorage();
+    modelManager = new ModelManager(mockStorage);
     llmService = createLLMService(modelManager);
-    templateManager = new TemplateManager();
-    historyManager = new HistoryManager();
+    templateManager = new TemplateManager(mockStorage);
+    historyManager = new HistoryManager(mockStorage);
 
-    vi.spyOn(modelManager, 'getModel').mockReturnValue(mockModelConfig);
+    vi.spyOn(modelManager, 'getModel').mockResolvedValue(mockModelConfig);
     vi.spyOn(llmService, 'sendMessage').mockResolvedValue(JSON.stringify({ content: 'test result' }));
 
     // 初始化管理器
@@ -148,50 +152,58 @@ describe('PromptService', () => {
     });
 
     it('当模型不存在时应抛出错误', async () => {
-      vi.spyOn(modelManager, 'getModel').mockReturnValue(undefined);
+      vi.spyOn(llmService, 'sendMessage').mockImplementation(() => {
+        throw new ServiceDependencyError('模型不存在', 'ModelManager');
+      });
 
-      await expect(promptService.testPrompt('test prompt', 'test input', 'test-model'))
-        .rejects
-        .toThrow(TestError);
+      await expect(
+        promptService.testPrompt('test prompt', 'test input', 'test-model')
+      ).rejects.toThrow(TestError);
     });
   });
 
   describe('getHistory', () => {
-    it('应该返回历史记录', () => {
-      const mockHistory: PromptRecord[] = [{
-        id: '1',
-        originalPrompt: 'test prompt',
-        optimizedPrompt: 'test result',
-        type: 'optimize',
-        timestamp: Date.now(),
-        modelKey: 'test-model',
-        templateId: 'test',
-        chainId: 'test-chain',
-        version: 1
-      }];
-      vi.spyOn(historyManager, 'getRecords').mockReturnValue(mockHistory);
+    it('应该返回历史记录', async () => {
+      const mockHistory: PromptRecord[] = [
+        {
+          id: '1',
+          chainId: 'test-chain',
+          originalPrompt: 'test prompt',
+          optimizedPrompt: 'test result',
+          templateId: 'test',
+          modelKey: 'test-model',
+          timestamp: expect.any(Number),
+          type: 'optimize' as PromptRecordType,
+          version: 1
+        }
+      ];
 
-      const history = promptService.getHistory();
+      vi.spyOn(historyManager, 'getRecords').mockResolvedValue(mockHistory);
+
+      const history = await promptService.getHistory();
       expect(history).toEqual(mockHistory);
     });
   });
 
   describe('getIterationChain', () => {
-    it('应该返回迭代链', () => {
-      const mockChain: PromptRecord[] = [{
-        id: '1',
-        originalPrompt: 'test prompt',
-        optimizedPrompt: 'test result',
-        type: 'iterate',
-        timestamp: Date.now(),
-        modelKey: 'test-model',
-        templateId: 'test',
-        chainId: 'test-chain',
-        version: 1
-      }];
-      vi.spyOn(historyManager, 'getIterationChain').mockReturnValue(mockChain);
+    it('应该返回迭代链', async () => {
+      const mockChain: PromptRecord[] = [
+        {
+          id: '1',
+          chainId: 'test-chain',
+          originalPrompt: 'test prompt',
+          optimizedPrompt: 'test result',
+          templateId: 'test',
+          modelKey: 'test-model',
+          timestamp: expect.any(Number),
+          type: 'iterate' as PromptRecordType,
+          version: 1
+        }
+      ];
 
-      const chain = promptService.getIterationChain('test prompt');
+      vi.spyOn(historyManager, 'getIterationChain').mockResolvedValue(mockChain);
+
+      const chain = await promptService.getIterationChain('test-chain');
       expect(chain).toEqual(mockChain);
     });
   });
@@ -283,7 +295,8 @@ describe('PromptService', () => {
     describe('提示词管理器初始化场景', () => {
       it('提示词管理器未初始化时应抛出错误', async () => {
         // 创建一个未初始化的模板管理器
-        templateManager = new TemplateManager();
+        const mockStorage = createMockStorage();
+        templateManager = new TemplateManager(mockStorage);
         // 模拟getTemplate方法抛出错误
         vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
           throw new Error('提示词管理器未初始化');
@@ -329,12 +342,9 @@ describe('PromptService', () => {
 
     describe('提示词管理器状态检查', () => {
       it('应该能检测到提示词管理器的初始化状态', () => {
-        templateManager = new TemplateManager();
-        promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
-
         expect(() => {
-           templateManager.getTemplate('non-existent-template');
-        }).toThrow(/提示词 non-existent-template 不存在/);
+          templateManager.getTemplate('non-existent-template');
+        }).toThrow('Template non-existent-template not found');
       });
 
       it('提示词管理器初始化后应该能正常工作', async () => {
@@ -345,6 +355,69 @@ describe('PromptService', () => {
         const result = await promptService.optimizePrompt('test', 'test-model');
         expect(result).toBe('test result');
       });
+    });
+  });
+
+  describe('异步操作失败测试', () => {
+    it('当addRecord失败时optimizePrompt应该抛出错误', async () => {
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化结果');
+      vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
+
+      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+        .rejects
+        .toThrow(OptimizationError);
+    });
+
+    it('当addRecord失败时iteratePrompt应该抛出错误', async () => {
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
+      vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
+
+      await expect(promptService.iteratePrompt('test prompt', 'test input', 'test-model'))
+        .rejects
+        .toThrow(IterationError);
+    });
+
+    it('当addRecord失败时testPrompt应该抛出错误', async () => {
+      vi.spyOn(llmService, 'sendMessage').mockResolvedValue('测试结果');
+      vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
+
+      await expect(promptService.testPrompt('test prompt', 'test input', 'test-model'))
+        .rejects
+        .toThrow(TestError);
+    });
+
+    it('当getModel失败时optimizePrompt应该抛出错误', async () => {
+      vi.spyOn(modelManager, 'getModel').mockRejectedValue(new Error('Model fetch failed'));
+
+      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+        .rejects
+        .toThrow(OptimizationError);
+    });
+
+    it('当getModel返回null时应该抛出错误', async () => {
+      vi.spyOn(modelManager, 'getModel').mockResolvedValue(undefined);
+
+      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+        .rejects
+        .toThrow(OptimizationError);
+    });
+
+    it('当getRecords失败时getHistory应该抛出错误', async () => {
+      vi.spyOn(historyManager, 'getRecords').mockRejectedValue(new Error('Storage read failed'));
+
+      await expect(promptService.getHistory())
+        .rejects
+        .toThrow('Storage read failed');
+    });
+
+    it('当getIterationChain失败时应该抛出错误', async () => {
+      vi.spyOn(historyManager, 'getIterationChain').mockRejectedValue(new Error('Chain fetch failed'));
+
+      await expect(promptService.getIterationChain('test-chain'))
+        .rejects
+        .toThrow('Chain fetch failed');
     });
   });
 });

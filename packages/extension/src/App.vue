@@ -23,6 +23,11 @@
         :text="$t('nav.modelManager')"
         @click="showConfig = true"
       />
+      <ActionButtonUI
+        icon="💾"
+        :text="$t('nav.dataManager')"
+        @click="showDataManager = true"
+      />
       <LanguageSwitchUI />
     </template>
 
@@ -119,6 +124,14 @@
         :history="history"
         @reuse="handleSelectHistory"
         @clear="handleClearHistory"
+        @deleteChain="handleDeleteChain"
+      />
+
+      <!-- 数据管理弹窗 -->
+      <DataManagerUI
+        :show="showDataManager"
+        @close="handleDataManagerClose"
+        @imported="handleDataImported"
       />
     </template>
   </MainLayoutUI>
@@ -126,6 +139,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   // UI组件
   ToastUI,
@@ -143,6 +157,7 @@ import {
   ActionButtonUI,
   TestPanelUI,
   LanguageSwitchUI,
+  DataManagerUI,
   // composables
   usePromptOptimizer,
   usePromptTester,
@@ -163,10 +178,10 @@ import {
 onMounted(() => {
   // 检查本地存储的主题偏好
   const savedTheme = localStorage.getItem('theme')
-  
+
   // 移除所有主题类
   document.documentElement.classList.remove('dark', 'theme-blue', 'theme-green', 'theme-purple')
-  
+
   // 应用保存的主题或系统偏好
   if (savedTheme) {
     document.documentElement.classList.add(savedTheme)
@@ -177,6 +192,9 @@ onMounted(() => {
 
 // 初始化 toast
 const toast = useToast()
+
+// 初始化国际化
+const { t } = useI18n()
 
 // 初始化服务
 const {
@@ -231,7 +249,8 @@ const {
 const {
   history,
   handleSelectHistory: handleSelectHistoryBase,
-  handleClearHistory: handleClearHistoryBase
+  handleClearHistory: handleClearHistoryBase,
+  handleDeleteChain: handleDeleteChainBase
 } = usePromptHistory(
   historyManager,
   prompt,
@@ -245,7 +264,8 @@ const {
 const {
   showHistory,
   handleSelectHistory,
-  handleClearHistory
+  handleClearHistory,
+  handleDeleteChain
 } = useHistoryManager(
   historyManager,
   prompt,
@@ -253,7 +273,9 @@ const {
   currentChainId,
   currentVersions,
   currentVersionId,
-  handleSelectHistoryBase
+  handleSelectHistoryBase,
+  handleClearHistoryBase,
+  handleDeleteChainBase
 )
 
 // 初始化模板管理器
@@ -269,4 +291,20 @@ const {
   saveTemplateSelection,
   templateManager
 })
+
+// 数据管理器
+import { ref } from 'vue'
+const showDataManager = ref(false)
+
+const handleDataManagerClose = () => {
+  showDataManager.value = false
+}
+
+const handleDataImported = () => {
+  // 数据导入后重新加载所有数据
+  toast.success(t('dataManager.import.successWithRefresh'))
+  setTimeout(() => {
+    window.location.reload()
+  }, 1000)
+}
 </script>

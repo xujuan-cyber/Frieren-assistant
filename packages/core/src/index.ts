@@ -26,6 +26,15 @@ export { PromptService, createPromptService } from './services/prompt/service'
 export * from './services/prompt/types'
 export * from './services/prompt/errors'
 
+// 导出数据管理相关
+export { DataManager, dataManager } from './services/data/manager'
+
+// 导出存储相关
+export { LocalStorageProvider } from './services/storage/localStorageProvider'
+export { DexieStorageProvider } from './services/storage/dexieStorageProvider'
+export { StorageFactory } from './services/storage/factory'
+export * from './services/storage/types'
+
 // 导出环境工具函数
 export {
   isBrowser,
