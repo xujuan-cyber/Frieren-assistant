@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/vercel.md) ([密码保护](docs/vercel-password-protection_zh.md)) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/vercel.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -53,10 +53,12 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
    - 先Fork项目到自己的GitHub
    - 然后在Vercel中导入该项目
    - 可跟踪源项目更新，便于同步最新功能和修复
-  
+- 配置环境变量：
+  - `ACCESS_PASSWORD`：设置访问密码，启用访问限制
+  - `VITE_OPENAI_API_KEY`等：配置各AI服务商的API密钥
+
 更多详细的部署步骤和注意事项，请查看：
 - [Vercel部署指南](docs/vercel.md)
-- [Vercel密码保护指南](docs/vercel-password-protection_zh.md)
 
 ### 3. 安装Chrome插件
 1. 从Chrome商店安装（由于审批较慢，可能不是最新的）：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
@@ -67,12 +69,15 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 # 运行容器（默认配置）
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
 
-# 运行容器（配置API密钥）
+# 运行容器（配置API密钥和访问密码）
 docker run -d -p 80:80 \
   -e VITE_OPENAI_API_KEY=your_key \
+  -e ACCESS_USERNAME=your_username \  # 可选，默认为"admin"
+  -e ACCESS_PASSWORD=your_password \  # 设置访问密码
   --restart unless-stopped \
   --name prompt-optimizer \
   linshen/prompt-optimizer
+  
 ```
 
 ### 5. Docker Compose部署
@@ -81,11 +86,16 @@ docker run -d -p 80:80 \
 git clone https://github.com/linshenkx/prompt-optimizer.git
 cd prompt-optimizer
 
-# 2. 可选：创建.env文件配置API密钥
+# 2. 可选：创建.env文件配置API密钥和访问认证
 cat > .env << EOF
+# API密钥配置
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+
+# Basic认证配置（密码保护）
+ACCESS_USERNAME=your_username  # 可选，默认为"admin"
+ACCESS_PASSWORD=your_password  # 设置访问密码
 EOF
 
 # 3. 启动服务
@@ -171,7 +181,6 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [项目状态](docs/project-status.md) - 当前进度和计划
 - [产品需求](docs/prd.md) - 产品需求文档
 - [Vercel部署指南](docs/vercel.md) - Vercel部署详细说明
-- [Vercel密码保护指南](docs/vercel-password-protection_zh.md) - Vercel密码保护详细说明
 
 
 ## Star History

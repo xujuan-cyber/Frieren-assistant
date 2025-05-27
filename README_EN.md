@@ -53,10 +53,12 @@ Method 2: Fork the project and import to Vercel (Recommended):
    - First fork the project to your GitHub account
    - Then import the project to Vercel
    - This allows tracking of source project updates for easy syncing of new features and fixes
+- Configure environment variables:
+  - `ACCESS_PASSWORD`: Set access password to enable access restriction
+  - `VITE_OPENAI_API_KEY` etc.: Configure API keys for various AI service providers
   
 For more detailed deployment steps and important notes, please check:
 - [Vercel Deployment Guide](docs/vercel_en.md)
-- [Vercel Password Protection Guide](docs/vercel-password-protection.md)
 
 ### 3. Install Chrome Extension
 1. Install from Chrome Web Store (may not be the latest version due to approval delays): [Chrome Web Store](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
@@ -67,9 +69,11 @@ For more detailed deployment steps and important notes, please check:
 # Run container (default configuration)
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
 
-# Run container (with API key configuration)
+# Run container (with API key configuration and password protection)
 docker run -d -p 80:80 \
   -e VITE_OPENAI_API_KEY=your_key \
+  -e ACCESS_USERNAME=your_username \  # Optional, defaults to "admin"
+  -e ACCESS_PASSWORD=your_password \  # Required for password protection
   --restart unless-stopped \
   --name prompt-optimizer \
   linshen/prompt-optimizer
@@ -81,11 +85,16 @@ docker run -d -p 80:80 \
 git clone https://github.com/linshenkx/prompt-optimizer.git
 cd prompt-optimizer
 
-# 2. Optional: Create .env file for API keys
+# 2. Optional: Create .env file for API keys and authentication
 cat > .env << EOF
+# API Key Configuration
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+
+# Basic Authentication
+ACCESS_USERNAME=your_username  # Optional, defaults to "admin"
+ACCESS_PASSWORD=your_password  # Required for authentication
 EOF
 
 # 3. Start the service
@@ -171,7 +180,6 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 - [Project Status](docs/project-status.md) - Current progress and plans
 - [Product Requirements](docs/prd.md) - Product requirements document
 - [Vercel Deployment Guide](docs/vercel_en.md) - Detailed instructions for Vercel deployment
-- [Vercel Password Protection Guide](docs/vercel-password-protection.md) - Detailed instructions for Vercel password protection
 
 ## Star History
 

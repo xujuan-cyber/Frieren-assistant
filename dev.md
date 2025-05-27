@@ -51,7 +51,7 @@ docker build -t linshen/prompt-optimizer:$VERSION .
 docker tag linshen/prompt-optimizer:$VERSION linshen/prompt-optimizer:latest
 
 # 运行容器
-docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer:$VERSION
+docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer -e ACCESS_PASSWORD=1234!@#$  linshen/prompt-optimizer:$VERSION
 
 
 # 推送

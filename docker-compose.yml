@@ -1,3 +1,5 @@
+version: '3'
+
 services:
   prompt-optimizer:
     image: linshen/prompt-optimizer:latest
@@ -22,6 +24,9 @@ services:
       - VITE_CUSTOM_API_KEY=${VITE_CUSTOM_API_KEY:-}
       - VITE_CUSTOM_API_BASE_URL=${VITE_CUSTOM_API_BASE_URL:-}
       - VITE_CUSTOM_API_MODEL=${VITE_CUSTOM_API_MODEL:-}
+      # Basic认证配置（可选）
+      - ACCESS_USERNAME=${ACCESS_USERNAME:-admin}  # 可选，默认为"admin"
+      - ACCESS_PASSWORD=${ACCESS_PASSWORD:-}       # 设置访问密码
     # 健康检查
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]

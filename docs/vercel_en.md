@@ -39,19 +39,22 @@ This method allows you to track project updates, making it easier to sync the la
    
    ![Clear root directory setting](../images/vercel/setting.png)
 
-4. **Redeploy the project**
-   - After saving the settings, you need to manually trigger a redeployment to make the fix effective
+4. **Configure environment variables (Optional)**
+   - After deployment is complete, go to project settings
+   - Click "Environment Variables"
+   - Add the required API keys (e.g., `VITE_OPENAI_API_KEY`)
+   - To add access restriction functionality:
+     - Add an environment variable named `ACCESS_PASSWORD`
+     - Set a secure password as its value
+   - Save the environment variable settings
+
+5. **Redeploy the project**
+   - After saving the settings, you need to manually trigger a redeployment to make the fixes and environment variables effective
    - Click "Deployments" in the top navigation bar
    - On the right side of the latest deployment record, click the "..." button
    - Select the "Redeploy" option to trigger redeployment
    
    ![Redeploy the project](../images/vercel/redeploy.png)
-
-5. **Configure environment variables (Optional)**
-   - After deployment is complete, go to project settings
-   - Click "Environment Variables"
-   - Add the required API keys (e.g., `VITE_OPENAI_API_KEY`)
-   - Redeploy the project to make the environment variables effective
 
 6. **Sync upstream updates**
    - Open your forked project on GitHub
@@ -69,6 +72,13 @@ If you only need quick deployment and don't care about subsequent updates, you c
 2. Follow Vercel's guidance to complete the deployment process
    
    **Advantage:** With one-click deployment, Vercel can automatically correctly identify the root directory, no manual fixing required, and all features (including Vercel proxy) can work normally.
+
+### Password Protected Access
+
+When the `ACCESS_PASSWORD` environment variable is configured, your site will enable password protection:
+- A password verification page will be displayed when accessing the site
+- Access to the application is granted after entering the correct password
+- The system will set a cookie to remember the user, eliminating the need to re-enter the password for a period of time
 
 ### About Vercel Proxy Functionality
 
