@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/vercel.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/vercel.md) ([密码保护](docs/vercel-password-protection_zh.md)) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -54,7 +54,9 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
    - 然后在Vercel中导入该项目
    - 可跟踪源项目更新，便于同步最新功能和修复
   
-更多详细的部署步骤和注意事项，请查看 [Vercel部署指南](docs/vercel.md)
+更多详细的部署步骤和注意事项，请查看：
+- [Vercel部署指南](docs/vercel.md)
+- [Vercel密码保护指南](docs/vercel-password-protection_zh.md)
 
 ### 3. 安装Chrome插件
 1. 从Chrome商店安装（由于审批较慢，可能不是最新的）：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
@@ -169,6 +171,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [项目状态](docs/project-status.md) - 当前进度和计划
 - [产品需求](docs/prd.md) - 产品需求文档
 - [Vercel部署指南](docs/vercel.md) - Vercel部署详细说明
+- [Vercel密码保护指南](docs/vercel-password-protection_zh.md) - Vercel密码保护详细说明
 
 
 ## Star History

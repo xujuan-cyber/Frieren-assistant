@@ -54,7 +54,9 @@ Method 2: Fork the project and import to Vercel (Recommended):
    - Then import the project to Vercel
    - This allows tracking of source project updates for easy syncing of new features and fixes
   
-For more detailed deployment steps and important notes, please check the [Vercel Deployment Guide](docs/vercel_en.md)
+For more detailed deployment steps and important notes, please check:
+- [Vercel Deployment Guide](docs/vercel_en.md)
+- [Vercel Password Protection Guide](docs/vercel-password-protection.md)
 
 ### 3. Install Chrome Extension
 1. Install from Chrome Web Store (may not be the latest version due to approval delays): [Chrome Web Store](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
@@ -169,6 +171,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 - [Project Status](docs/project-status.md) - Current progress and plans
 - [Product Requirements](docs/prd.md) - Product requirements document
 - [Vercel Deployment Guide](docs/vercel_en.md) - Detailed instructions for Vercel deployment
+- [Vercel Password Protection Guide](docs/vercel-password-protection.md) - Detailed instructions for Vercel password protection
 
 ## Star History
 
