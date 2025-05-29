@@ -382,11 +382,28 @@ const cancelEdit = () => {
   }
 }
 
+// 生成唯一的模板ID
+const generateUniqueTemplateId = (baseName = 'template') => {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).slice(2, 8)
+  let candidateId = `${baseName}-${timestamp}-${random}`
+  
+  // 确保ID不与现有模板冲突
+  const existingIds = templates.value.map(t => t.id)
+  let counter = 1
+  while (existingIds.includes(candidateId)) {
+    candidateId = `${baseName}-${timestamp}-${random}-${counter}`
+    counter++
+  }
+  
+  return candidateId
+}
+
 // 提交表单
 const handleSubmit = () => {
   try {
     const templateData = {
-      id: editingTemplate.value?.id || `template-${Date.now()}`,
+      id: editingTemplate.value?.id || generateUniqueTemplateId('user-template'),
       name: form.value.name,
       content: form.value.content,
       metadata: {

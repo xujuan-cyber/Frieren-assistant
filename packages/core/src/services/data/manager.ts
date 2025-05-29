@@ -137,35 +137,46 @@ export class DataManager {
       // Import each model individually, capturing failures
       for (const model of typedData.models) {
         try {
-          // 检查模型是否已存在
+          // 验证模型配置的基本字段，对于旧版本数据要宽松一些
+          if (!model.key || !model.name) {
+            console.warn(`跳过无效的模型配置: 缺少关键字段 (key: ${model.key}, name: ${model.name})`);
+            continue;
+          }
+          
+          // 检查模型是否已存在（包括内置模型）
           const existingModel = await this.modelManagerInstance.getModel(model.key);
           
           if (existingModel) {
-            // 如果模型已存在，使用合并逻辑而不是直接替换
-            const mergedConfig = { 
-              ...existingModel, 
-              ...model,
-              // 保留原有的enabled状态，除非明确指定
-              enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled
+            // 内置模型和自定义模型都允许更新配置，使用导入文件中的启用状态
+            const mergedConfig: ModelConfig = { 
+              name: model.name,
+              baseURL: model.baseURL || existingModel.baseURL,
+              models: model.models || existingModel.models,
+              defaultModel: model.defaultModel || existingModel.defaultModel,
+              provider: model.provider || existingModel.provider,
+              enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled, // 优先使用导入的启用状态
+              ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
+              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy })
             };
             await this.modelManagerInstance.updateModel(model.key, mergedConfig);
-            console.log(`模型 ${model.key} 已存在，已更新配置`);
+            console.log(`模型 ${model.key} 已存在，已更新配置（使用导入的启用状态: ${mergedConfig.enabled}）`);
           } else {
-            // 如果模型不存在，添加新模型
-            await this.modelManagerInstance.addModel(model.key, model);
-            console.log(`已导入新模型 ${model.key}`);
+            // 如果模型不存在，添加新的自定义模型，使用导入文件中的启用状态
+            const newModelConfig: ModelConfig = {
+              name: model.name,
+              baseURL: model.baseURL || 'https://api.example.com/v1', // 提供默认值
+              models: model.models || [],
+              defaultModel: model.defaultModel || (model.models && model.models[0]) || 'default-model',
+              provider: model.provider || 'custom',
+              enabled: model.enabled !== undefined ? model.enabled : false, // 使用导入的启用状态，默认为false
+              ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
+              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy })
+            };
+            await this.modelManagerInstance.addModel(model.key, newModelConfig);
+            console.log(`已导入新模型 ${model.key}（启用状态: ${newModelConfig.enabled}）`);
           }
         } catch (error) {
-          // 增强错误处理，区分不同类型的错误
-          if (error instanceof Error) {
-            if (error.message.includes('模型配置') || error.message.includes('ModelConfig')) {
-              console.warn(`跳过无效的模型配置 ${model.key}:`, error.message);
-            } else {
-              console.warn(`导入模型 ${model.key} 时发生错误:`, error.message);
-            }
-          } else {
-            console.warn('导入模型时发生未知错误:', error);
-          }
+          console.warn(`导入模型 ${model.key} 时发生错误:`, error);
           failedModels.push({ model, error: error as Error });
         }
       }
@@ -201,7 +212,43 @@ export class DataManager {
       // Import each template individually, capturing failures
       for (const template of typedData.userTemplates) {
         try {
-          await this.templateManagerInstance.saveTemplate(template);
+          // 验证模板的基本字段，对于旧版本数据要宽松一些
+          if (!template.id || !template.name || !template.content) {
+            console.warn(`跳过无效的模板配置: 缺少关键字段 (id: ${template.id}, name: ${template.name})`);
+            continue;
+          }
+          
+          // 检查是否与内置模板ID冲突
+          const builtinTemplate = existingTemplates.find(t => t.id === template.id && t.isBuiltin);
+          let finalTemplateId = template.id;
+          let finalTemplateName = template.name;
+          
+          if (builtinTemplate) {
+            // 为冲突的模板生成新的ID和名称
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substr(2, 6);
+            finalTemplateId = `user-${template.id}-${timestamp}-${random}`;
+            finalTemplateName = `${template.name} (导入副本)`;
+            console.warn(`检测到与内置模板ID冲突: ${template.id}，已重命名为: ${finalTemplateId}`);
+          }
+          
+          // 确保导入的模板标记为用户模板，并为缺失字段提供默认值
+          const userTemplate: Template = {
+            ...template,
+            id: finalTemplateId,
+            name: finalTemplateName,
+            isBuiltin: false,
+            metadata: {
+              version: template.metadata?.version || '1.0.0',
+              lastModified: Date.now(), // 更新为当前时间
+              templateType: template.metadata?.templateType || 'optimize', // 为旧版本数据提供默认类型
+              author: template.metadata?.author || 'User', // 导入的模板标记为用户创建
+              ...(template.metadata?.description && { description: template.metadata.description })
+            }
+          };
+          
+          await this.templateManagerInstance.saveTemplate(userTemplate);
+          console.log(`已导入模板: ${finalTemplateId} (${finalTemplateName})`);
         } catch (error) {
           console.warn('Failed to import template:', error);
           failedTemplates.push({ template, error: error as Error });
