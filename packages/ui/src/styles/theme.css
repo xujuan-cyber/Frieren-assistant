@@ -922,6 +922,43 @@ html * {
   .markdown-think summary::before {
     @apply border-sky-800;
   }
+
+  /* 警告容器 */
+  .theme-manager-warning-container {
+    @apply bg-blue-50 dark:bg-blue-900/20 
+           border border-blue-200 dark:border-blue-800;
+  }
+
+  /* 警告图标 */
+  .theme-manager-warning-icon {
+    @apply text-blue-400;
+  }
+
+  /* 警告文本 */
+  .theme-manager-warning-text {
+    @apply text-blue-800 dark:text-blue-200;
+  }
+
+  /* 链接按钮 */
+  .theme-manager-button-link {
+    @apply text-blue-600 hover:text-blue-800 dark:text-blue-400 
+           hover:dark:text-blue-300 transition-colors;
+  }
+
+  /* 主题边框类 */
+  .theme-manager-border {
+    @apply border-blue-200 dark:border-blue-700;
+  }
+
+  /* 主题边框激活状态 */
+  .theme-manager-border-active {
+    @apply border-blue-500;
+  }
+
+  /* 主题背景激活状态 */
+  .theme-manager-bg-active {
+    @apply bg-blue-50 dark:bg-blue-900/20;
+  }
 }
 
 :root[data-theme="green"] {
@@ -1210,6 +1247,43 @@ html * {
   .markdown-think summary::before {
     @apply border-teal-200;
   }
+
+  /* 警告容器 */
+  .theme-manager-warning-container {
+    @apply bg-teal-800/60 
+           border border-teal-600/50;
+  }
+
+  /* 警告图标 */
+  .theme-manager-warning-icon {
+    @apply text-amber-400;
+  }
+
+  /* 警告文本 */
+  .theme-manager-warning-text {
+    @apply text-teal-200;
+  }
+
+  /* 链接按钮 */
+  .theme-manager-button-link {
+    @apply text-green-600 hover:text-green-800 dark:text-green-400 
+           hover:dark:text-green-300 transition-colors;
+  }
+
+  /* 主题边框类 */
+  .theme-manager-border {
+    @apply border-green-200 dark:border-green-700;
+  }
+
+  /* 主题边框激活状态 */
+  .theme-manager-border-active {
+    @apply border-green-500;
+  }
+
+  /* 主题背景激活状态 */
+  .theme-manager-bg-active {
+    @apply bg-green-50 dark:bg-green-900/20;
+  }
 }
 
 :root[data-theme="purple"] {
@@ -1477,24 +1551,128 @@ html * {
     @apply bg-red-700/60 hover:bg-red-600/60 text-white;
   }
 
-  /* 管理界面文本 - 主要 */
+  /* 警告容器 */
+  .theme-manager-warning-container {
+    @apply bg-purple-800/40 
+           border border-purple-600/50;
+  }
+
+  /* 警告图标 */
+  .theme-manager-warning-icon {
+    @apply text-amber-400;
+  }
+
+  /* 警告文本 */
+  .theme-manager-warning-text {
+    @apply text-purple-200;
+  }
+
+  /* 链接按钮 */
+  .theme-manager-button-link {
+    @apply text-purple-400 hover:text-purple-300 
+           transition-colors;
+  }
+
+  /* 主题边框类 */
+  .theme-manager-border {
+    @apply border-purple-200/30 dark:border-purple-700/30;
+  }
+
+  /* 主题边框激活状态 */
+  .theme-manager-border-active {
+    @apply border-purple-500;
+  }
+
+  /* 主题背景激活状态 */
+  .theme-manager-bg-active {
+    @apply bg-purple-50/10 dark:bg-purple-900/30;
+  }
+
+  .theme-markdown-content {
+    @apply prose prose-sm max-w-none prose-stone dark:prose-invert;
+  }
+
   .theme-manager-text {
     @apply text-white/90;
   }
 
-  /* 管理界面文本 - 次要 */
   .theme-manager-text-secondary {
     @apply text-white/70;
   }
 
-  /* 管理界面文本 - 禁用 */
   .theme-manager-text-disabled {
     @apply text-white/40;
   }
 
-  /* 紫色主题的 Markdown 样式 */
+  .theme-manager-input {
+    @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:ring-purple-600/50;
+  }
+
+  .theme-manager-button-primary {
+    @apply bg-slate-600 text-white;
+  }
+
+  .theme-manager-button-secondary {
+    @apply bg-slate-700 hover:bg-slate-600/80 text-slate-300 transition-all duration-300;
+  }
+
+  /* 通用开关按钮 */
+  .theme-button-on {
+    @apply bg-slate-700 hover:bg-slate-600 text-white;
+  }
+  .theme-button-off {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-600;
+  }
+  .theme-button-primary {
+    @apply bg-slate-700 hover:bg-slate-600 text-white;
+  }
+  /* 主题次要按钮 */
+  .theme-button-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-300;
+  }
+
+  .theme-manager-button-test {
+    @apply bg-sky-700/80 hover:bg-sky-700;
+  }
+
+  .theme-manager-button-edit {
+    @apply bg-purple-700/80 hover:bg-purple-700;
+  }
+  .theme-manager-button-success {
+    @apply bg-teal-600/80 hover:bg-teal-600;
+  }
+
+  .theme-manager-button-warning {
+    @apply bg-gray-600 hover:bg-gray-500;
+  }
+
+  .theme-manager-button-danger {
+    @apply bg-red-800/80 hover:bg-red-700/80;
+  }
+  /* 管理界面标签 */
+  .theme-manager-tag {
+    @apply bg-slate-500/50 text-slate-200;
+  }
+  .theme-manager-tag-optimize {
+    @apply bg-amber-500/50 text-white;
+  }
+
+  .theme-manager-tag-iterate {
+    @apply bg-green-500/50 text-white;
+  }
+  /* 历史记录卡片 */
+  .theme-history-card {
+    @apply bg-slate-800 border-slate-700;
+  }
+
+  /* 历史记录卡片头部 */
+  .theme-history-card-header {
+    @apply border-slate-700/50 /*卡片头部下边线*/;
+  }
+
+  /* 暗色主题的 Markdown 样式 */
   .theme-markdown-content {
-    @apply text-white/90;
+    @apply text-slate-100;
   }
   
   .theme-markdown-content h1,
@@ -1505,51 +1683,51 @@ html * {
   }
   
   .theme-markdown-content h2 {
-    @apply border-b border-purple-600/50;
+    @apply border-b border-slate-700;
   }
   
   .theme-markdown-content a {
-    @apply text-purple-300 hover:text-purple-200;
+    @apply text-white hover:text-purple-300;
   }
   
   .theme-markdown-content pre {
-    @apply bg-black/10 border border-purple-600/50;
+    @apply bg-slate-900/50 border border-slate-700;
   }
   
   .theme-markdown-content code {
-    @apply text-purple-400;
+    @apply text-slate-200;
   }
 
   .code-language-label {
-    @apply bg-purple-500/50 text-purple-300;
+    @apply bg-slate-600/50 text-slate-400;
   }
   
   .theme-markdown-content blockquote {
-    @apply border-l-4 border-purple-500 bg-purple-900/30 text-purple-200;
+    @apply border-l-4 border-slate-600 bg-slate-800/50 text-slate-300;
   }
   
   .theme-markdown-content table {
-    @apply border border-purple-700/50;
+    @apply border border-slate-700;
   }
   
   .theme-markdown-content table th {
-    @apply bg-purple-800/50 text-white border border-purple-600/50;
+    @apply bg-slate-700/70 text-slate-200 border border-slate-700;
   }
   
   .theme-markdown-content table td {
-    @apply border border-purple-700/50 text-white/90;
+    @apply border border-slate-700 text-slate-300;
   }
   
   .theme-markdown-content table tr:nth-child(even) {
-    @apply bg-purple-700/30;
+    @apply bg-slate-700/70;
   }
   
   .theme-markdown-content hr {
-    @apply border-purple-600/50;
+    @apply border-slate-700;
   }
   
   .theme-markdown-content img {
-    @apply border border-purple-600/50;
+    @apply border border-slate-700;
   }
   
   .theme-markdown-content strong {
@@ -1850,5 +2028,42 @@ html * {
   }
   .markdown-think summary::before {
     @apply border-white;
+  }
+
+  /* 警告容器 */
+  .theme-manager-warning-container {
+    @apply bg-gray-800 
+           border border-gray-700;
+  }
+
+  /* 警告图标 */
+  .theme-manager-warning-icon {
+    @apply text-amber-400;
+  }
+
+  /* 警告文本 */
+  .theme-manager-warning-text {
+    @apply text-gray-300;
+  }
+
+  /* 链接按钮 */
+  .theme-manager-button-link {
+    @apply text-blue-400 hover:text-blue-300 
+           transition-colors;
+  }
+
+  /* 主题边框类 */
+  .theme-manager-border {
+    @apply border-gray-700;
+  }
+
+  /* 主题边框激活状态 */
+  .theme-manager-border-active {
+    @apply border-blue-500;
+  }
+
+  /* 主题背景激活状态 */
+  .theme-manager-bg-active {
+    @apply bg-blue-900/20;
   }
 }

@@ -2,21 +2,21 @@
   <Teleport to="body">
     <div 
       v-if="show"
-      class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      class="fixed inset-0 theme-mask z-50 flex items-center justify-center p-4"
       @click="$emit('close')"
     >
       <div 
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-auto"
+        class="theme-manager-container w-full max-w-md mx-auto"
         @click.stop
       >
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+        <div class="flex items-center justify-between p-6 border-b theme-manager-border">
+          <h2 class="text-xl font-semibold theme-manager-text">
             {{ $t('dataManager.title') }}
           </h2>
           <button
             @click="$emit('close')"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            class="theme-manager-text-secondary hover:theme-manager-text transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -28,16 +28,16 @@
         <div class="p-6 space-y-6">
           <!-- 导出功能 -->
           <div class="space-y-3">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            <h3 class="text-lg font-medium theme-manager-text">
               {{ $t('dataManager.export.title') }}
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm theme-manager-text-secondary">
               {{ $t('dataManager.export.description') }}
             </p>
             <button
               @click="handleExport"
               :disabled="isExporting"
-              class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="w-full px-4 py-2 theme-manager-button-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <span v-if="isExporting" class="flex items-center justify-center">
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -54,17 +54,17 @@
 
           <!-- 导入功能 -->
           <div class="space-y-3">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            <h3 class="text-lg font-medium theme-manager-text">
               {{ $t('dataManager.import.title') }}
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm theme-manager-text-secondary">
               {{ $t('dataManager.import.description') }}
             </p>
             
             <!-- 文件选择区域 -->
             <div 
-              class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center transition-colors"
-              :class="{ 'border-blue-400 bg-blue-50 dark:bg-blue-900/20': isDragOver }"
+              class="border-2 border-dashed theme-manager-border rounded-lg p-6 text-center transition-colors"
+              :class="{ 'theme-manager-border-active theme-manager-bg-active': isDragOver }"
               @dragover.prevent="handleDragOver"
               @dragenter.prevent="handleDragEnter"
               @dragleave.prevent="handleDragLeave"
@@ -79,33 +79,33 @@
               />
               
               <div v-if="!selectedFile" @click="fileInput?.click()" class="cursor-pointer">
-                <div class="text-gray-400 mb-2">
+                <div class="theme-manager-text-secondary mb-2">
                   <svg class="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                     <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
+                <p class="text-sm theme-manager-text-secondary">
                   {{ $t('dataManager.import.selectFile') }}
                 </p>
               </div>
               
               <div v-else class="space-y-2">
-                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                <p class="text-sm font-medium theme-manager-text">
                   {{ selectedFile.name }}
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs theme-manager-text-secondary">
                   {{ formatFileSize(selectedFile.size) }}
                 </p>
                 <div class="flex gap-2 justify-center">
                   <button
                     @click="fileInput?.click()"
-                    class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                    class="text-sm theme-manager-button-link"
                   >
                     {{ $t('dataManager.import.changeFile') }}
                   </button>
                   <button
                     @click="clearSelectedFile"
-                    class="text-sm text-red-600 hover:text-red-800 dark:text-red-400"
+                    class="text-sm theme-manager-button-danger"
                   >
                     {{ $t('common.clear') }}
                   </button>
@@ -117,7 +117,7 @@
             <button
               @click="handleImport"
               :disabled="!selectedFile || isImporting"
-              class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="w-full px-4 py-2 theme-manager-button-success disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <span v-if="isImporting" class="flex items-center justify-center">
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -133,15 +133,15 @@
           </div>
 
           <!-- 警告信息 -->
-          <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div class="theme-manager-warning-container rounded-lg p-4">
             <div class="flex">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-5 w-5 theme-manager-warning-icon" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
               </div>
               <div class="ml-3">
-                <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                <p class="text-sm theme-manager-warning-text">
                   {{ $t('dataManager.warning') }}
                 </p>
               </div>

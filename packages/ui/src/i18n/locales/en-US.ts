@@ -396,6 +396,6 @@ export default {
       failed: 'Failed to import data',
       successWithRefresh: 'Data imported successfully, page will refresh to update data'
     },
-    warning: '⚠️ Importing data will overwrite existing history records, model configurations, custom templates and all user settings (including theme, language preferences, etc.). Please ensure you have backed up important data.'
+    warning: 'Importing data will overwrite existing history records, model configurations, custom templates and all user settings (including theme, language preferences, etc.). Please ensure you have backed up important data.'
   }
 }; 
