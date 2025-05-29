@@ -81,7 +81,7 @@
             >
               <div class="flex items-start justify-between">
                 <div>
-
+                  <h4 class="font-medium theme-manager-text">{{ template.name }}</h4>
                   <p class="text-sm theme-manager-text-secondary mt-1">
                     {{ template.metadata.description || t('common.noDescription') }}
                   </p>
