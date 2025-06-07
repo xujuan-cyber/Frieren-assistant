@@ -577,9 +577,6 @@ export class LLMService implements ILLMService {
 
     // Gemini API没有直接获取模型列表的接口，返回预定义列表
     return [
-      { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
       { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' }
     ];
   }
@@ -590,12 +587,12 @@ export class LLMService implements ILLMService {
   private async fetchAnthropicModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
     console.log(`获取${modelConfig.name || 'Anthropic'}的模型列表`);
 
-    // Anthropic API没有公开的模型列表接口
+    // Anthropic API的获取模型列表功能未兼容openai格式，所以这里返回一个默认列表
     return [
-      { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
-      { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet' },
-      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
-      { id: 'claude-2.1', name: 'Claude 2.1' }
+      { id: 'claude-opus-4-20250514', name: 'Claude 4.0 Opus' },
+      { id: 'claude-sonnet-4-20250514', name: 'Claude 4.0 Sonnet' },
+      { id: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet' },
+      { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku' }
     ];
   }
 
