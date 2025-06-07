@@ -105,10 +105,10 @@
         <Teleport to="body">
           <!-- 编辑模型弹窗 -->
           <div v-if="isEditing" 
-               class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto">
+               class="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
+            <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10"
                  @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
@@ -167,6 +167,116 @@
                       <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
                     </label>
                   </div>
+
+                  <!-- Advanced Parameters Section -->
+                  <div class="pt-4 mt-4 border-t theme-manager-border">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 class="text-md font-semibold theme-manager-text">
+                          {{ t('modelManager.advancedParameters.title') }}
+                        </h4>
+                        <p class="text-xs theme-manager-text-secondary mt-1">
+                          {{ t('modelManager.advancedParameters.currentProvider') }}: <span class="font-medium text-purple-600">{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</span>
+                          <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+                          <span v-else class="text-yellow-600"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</span>
+                        </p>
+                      </div>
+                      
+                      <!-- 参数选择器 -->
+                      <select v-model="selectedNewLLMParamId" 
+                              @change="handleQuickAddParam"
+                              class="theme-manager-input text-sm py-1.5 px-3 min-w-[180px] max-w-[220px]">
+                        <option disabled value="">{{ t('modelManager.advancedParameters.select') }}</option>
+                        <option v-for="paramDef in availableLLMParamDefinitions" :key="paramDef.id" :value="paramDef.id">
+                          {{ paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name }}
+                        </option>
+                        <option value="custom">{{ t('modelManager.advancedParameters.custom') }}</option>
+                      </select>
+                    </div>
+                    
+                    <div v-if="Object.keys(currentLLMParams || {}).length === 0" class="text-sm theme-manager-text-secondary mb-3">
+                      {{ t('modelManager.advancedParameters.noParamsConfigured') }}
+                    </div>
+
+                    <!-- 参数显示 -->
+                    <div v-for="(value, key) in currentLLMParams" :key="key" class="mb-4">
+                      <div class="p-3 theme-manager-card rounded-lg border theme-manager-border">
+                        <!-- 参数标题行 -->
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium theme-manager-text">
+                              {{ getParamMetadata(key)?.label || key }}
+                            </span>
+                            <span v-if="!getParamMetadata(key)" class="px-2 py-0.5 text-xs theme-manager-tag rounded">
+                              {{ t('modelManager.advancedParameters.customParam') }}
+                            </span>
+                          </div>
+                          <button @click="removeLLMParam(key)" type="button" 
+                                  class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors">
+                            ×
+                          </button>
+                        </div>
+                        
+                        <!-- 参数描述 -->
+                        <p v-if="getParamMetadata(key)?.description" class="text-xs theme-manager-text-secondary mb-2">
+                          {{ getParamMetadata(key)?.description }}
+                        </p>
+                        
+                        <!-- 输入字段 -->
+                        <div class="w-full">
+                          <!-- Boolean 类型 -->
+                          <template v-if="getParamMetadata(key)?.type === 'boolean'">
+                            <label class="flex items-center cursor-pointer">
+                              <input v-model="currentLLMParams[key]" 
+                                     type="checkbox" 
+                                     :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
+                                     class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                              <span class="ml-2 text-sm theme-manager-text">
+                                {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
+                              </span>
+                            </label>
+                          </template>
+                          
+                          <!-- Number/Integer 类型 -->
+                          <template v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')">
+                            <div class="space-y-2">
+                              <input v-model.number="currentLLMParams[key]" 
+                                     type="number"
+                                     :min="getParamMetadata(key)?.minValue" 
+                                     :max="getParamMetadata(key)?.maxValue" 
+                                     :step="getParamMetadata(key)?.step"
+                                     class="theme-manager-input w-full text-sm" 
+                                     :class="{ 'border-red-500': isParamInvalid(key, currentLLMParams[key]) }"
+                                     :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''" />
+                              
+                              <!-- 范围提示 -->
+                              <div v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined" 
+                                   class="text-xs theme-manager-text-secondary">
+                                范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
+                              </div>
+                              
+                              <!-- 错误提示 -->
+                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
+                                {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                              </div>
+                            </div>
+                          </template>
+                          
+                          <!-- String 类型 -->
+                          <template v-else>
+                            <input v-model="currentLLMParams[key]" 
+                                   type="text" 
+                                   class="theme-manager-input w-full text-sm" 
+                                   :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')" />
+                            <p v-if="getParamMetadata(key)?.name === 'stopSequences'" class="text-xs theme-manager-text-secondary mt-1">
+                              {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
+                            </p>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="flex justify-end space-x-3 pt-4">
                     <button
                       type="button"
@@ -188,10 +298,10 @@
           </div>
 
           <!-- 添加模型弹窗 -->
-          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto">
+          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10" @click.stop>
+            <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <h3 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.addModel') }}</h3>
@@ -250,6 +360,115 @@
                       <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
                     </label>
                   </div>
+                   <!-- Advanced Parameters Section FOR ADD MODEL -->
+                  <div class="pt-4 mt-4 border-t theme-manager-border">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 class="text-md font-semibold theme-manager-text">
+                          {{ t('modelManager.advancedParameters.title') }}
+                        </h4>
+                        <p class="text-xs theme-manager-text-secondary mt-1">
+                          {{ t('modelManager.advancedParameters.currentProvider') }}: <span class="font-medium text-purple-600">{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</span>
+                          <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+                          <span v-else class="text-yellow-600"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</span>
+                        </p>
+                      </div>
+                      
+                      <!-- 参数选择器 -->
+                      <select v-model="selectedNewLLMParamId" 
+                              @change="handleQuickAddParam"
+                              class="theme-manager-input text-sm py-1.5 px-3 min-w-[180px] max-w-[220px]">
+                        <option disabled value="">{{ t('modelManager.advancedParameters.select') }}</option>
+                        <option v-for="paramDef in availableLLMParamDefinitions" :key="paramDef.id" :value="paramDef.id">
+                          {{ paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name }}
+                        </option>
+                        <option value="custom">{{ t('modelManager.advancedParameters.custom') }}</option>
+                      </select>
+                    </div>
+                    
+                    <div v-if="Object.keys(currentLLMParams || {}).length === 0" class="text-sm theme-manager-text-secondary mb-3">
+                      {{ t('modelManager.advancedParameters.noParamsConfigured') }}
+                    </div>
+
+                    <!-- 参数显示 -->
+                    <div v-for="(value, key) in currentLLMParams" :key="key" class="mb-4">
+                      <div class="p-3 theme-manager-card rounded-lg border theme-manager-border">
+                        <!-- 参数标题行 -->
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium theme-manager-text">
+                              {{ getParamMetadata(key)?.label || key }}
+                            </span>
+                            <span v-if="!getParamMetadata(key)" class="px-2 py-0.5 text-xs theme-manager-tag rounded">
+                              {{ t('modelManager.advancedParameters.customParam') }}
+                            </span>
+                          </div>
+                          <button @click="removeLLMParam(key)" type="button" 
+                                  class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors">
+                            ×
+                          </button>
+                        </div>
+                        
+                        <!-- 参数描述 -->
+                        <p v-if="getParamMetadata(key)?.description" class="text-xs theme-manager-text-secondary mb-2">
+                          {{ getParamMetadata(key)?.description }}
+                        </p>
+                        
+                        <!-- 输入字段 -->
+                        <div class="w-full">
+                          <!-- Boolean 类型 -->
+                          <template v-if="getParamMetadata(key)?.type === 'boolean'">
+                            <label class="flex items-center cursor-pointer">
+                              <input v-model="currentLLMParams[key]" 
+                                     type="checkbox" 
+                                     :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
+                                     class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                              <span class="ml-2 text-sm theme-manager-text">
+                                {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
+                              </span>
+                            </label>
+                          </template>
+                          
+                          <!-- Number/Integer 类型 -->
+                          <template v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')">
+                            <div class="space-y-2">
+                              <input v-model.number="currentLLMParams[key]" 
+                                     type="number"
+                                     :min="getParamMetadata(key)?.minValue" 
+                                     :max="getParamMetadata(key)?.maxValue" 
+                                     :step="getParamMetadata(key)?.step"
+                                     class="theme-manager-input w-full text-sm" 
+                                     :class="{ 'border-red-500': isParamInvalid(key, currentLLMParams[key]) }"
+                                     :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''" />
+                              
+                              <!-- 范围提示 -->
+                              <div v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined" 
+                                   class="text-xs theme-manager-text-secondary">
+                                范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
+                              </div>
+                              
+                              <!-- 错误提示 -->
+                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
+                                {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                              </div>
+                            </div>
+                          </template>
+                          
+                          <!-- String 类型 -->
+                          <template v-else>
+                            <input v-model="currentLLMParams[key]" 
+                                   type="text" 
+                                   class="theme-manager-input w-full text-sm" 
+                                   :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')" />
+                            <p v-if="getParamMetadata(key)?.name === 'stopSequences'" class="text-xs theme-manager-text-secondary mt-1">
+                              {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
+                            </p>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="flex justify-end space-x-3 pt-4">
                     <button type="button" @click="showAddForm = false" class="theme-manager-button-secondary">
                       {{ t('common.cancel') }}
@@ -269,13 +488,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineEmits, watch } from 'vue';
+import { ref, onMounted, defineEmits, watch, computed } from 'vue'; // Added computed
 import { useI18n } from 'vue-i18n';
 import { 
   modelManager,
   createLLMService,
   checkVercelApiAvailability,
-  resetVercelStatusCache
+  resetVercelStatusCache,
+  advancedParameterDefinitions // NEW IMPORT
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
@@ -293,6 +513,9 @@ const isLoadingModels = ref(false);
 const testingConnections = ref({});
 // 是否支持Vercel代理
 const vercelProxyAvailable = ref(false);
+// For Advanced Parameters UI
+const selectedNewLLMParamId = ref(''); // Stores ID of param selected from dropdown
+const customLLMParam = ref({ key: '', value: '' });
 
 // 数据状态
 const models = ref([]);
@@ -306,7 +529,9 @@ const newModel = ref({
   baseURL: '',
   defaultModel: '',
   apiKey: '',
-  useVercelProxy: false
+  useVercelProxy: false,
+  provider: 'custom',
+  llmParams: {}
 });
 
 // =============== 初始化和辅助函数 ===============
@@ -465,10 +690,10 @@ const editModel = async (key) => {
       apiKey: maskedApiKey,
       displayMaskedKey: true,
       originalApiKey: model.apiKey,
-      useVercelProxy: model.useVercelProxy,
-      provider: model.provider,
+      useVercelProxy: model.useVercelProxy === undefined ? false : model.useVercelProxy, // Ensure default
+      provider: model.provider || 'custom', // Ensure provider is set
       enabled: model.enabled,
-      // 其他需要的字段...
+      llmParams: model.llmParams ? JSON.parse(JSON.stringify(model.llmParams)) : {} // Deep copy llmParams
     };
     
     // 初始化模型选项
@@ -652,7 +877,7 @@ const handleFetchNewModels = async () => {
     const customConfig = {
       baseURL: baseURL,
       apiKey: apiKey,
-      provider: 'custom',  // 新模型默认为自定义提供商
+      provider: currentProviderType.value || 'custom',
       useVercelProxy: newModel.value.useVercelProxy
     };
     
@@ -710,7 +935,8 @@ const saveEdit = async () => {
       provider: editingModel.value.provider || 'custom',
       enabled: editingModel.value.enabled !== undefined 
         ? editingModel.value.enabled 
-        : true
+        : true,
+      llmParams: editingModel.value.llmParams || {}
     };
     
     // 直接更新原始模型
@@ -744,8 +970,9 @@ const addCustomModel = async () => {
       defaultModel: newModel.value.defaultModel,
       apiKey: newModel.value.apiKey,
       enabled: true,
-      provider: 'custom',
-      useVercelProxy: newModel.value.useVercelProxy
+      provider: currentProviderType.value || 'custom',
+      useVercelProxy: newModel.value.useVercelProxy,
+      llmParams: newModel.value.llmParams || {}
     }
 
     await modelManager.addModel(newModel.value.key, config)
@@ -759,7 +986,9 @@ const addCustomModel = async () => {
       baseURL: '',
       defaultModel: '',
       apiKey: '',
-      useVercelProxy: false
+      useVercelProxy: false,
+      provider: 'custom',
+      llmParams: {}
     }
     toast.success('模型添加成功')
   } catch (error) {
@@ -777,6 +1006,208 @@ watch(() => editingModel.value?.apiKey, (newValue) => {
   }
 });
 
+ // =============== Advanced Parameters Computed Properties ===============
+ const currentLLMParams = computed(() => {
+   return isEditing.value ? (editingModel.value?.llmParams || {}) : newModel.value.llmParams;
+ });
+ 
+ const currentProviderType = computed(() => {
+   if (isEditing.value) {
+     return editingModel.value?.provider || 'custom';
+   }
+   // For new models, derive from key if it matches a known provider, else default to 'custom'
+   // This helps in suggesting relevant advanced parameters early.
+   const knownProviders = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow'];
+   if (newModel.value.key && knownProviders.includes(newModel.value.key.toLowerCase())) {
+     return newModel.value.key.toLowerCase();
+   }
+   return newModel.value.provider || 'custom';
+ });
+ 
+const getParamMetadata = (paramName) => {
+  if (!advancedParameterDefinitions) return null;
+  // Ensure currentProviderType.value is valid before using in .includes()
+  const provider = currentProviderType.value || 'custom';
+  const definition = advancedParameterDefinitions.find(def => def.name === paramName && def.appliesToProviders.includes(provider));
+  
+  if (definition) {
+    return {
+      ...definition,
+      label: definition.labelKey ? t(definition.labelKey) : definition.name,
+      description: definition.descriptionKey ? t(definition.descriptionKey) : `(${paramName})`, // Fallback description
+      unit: definition.unitKey ? t(definition.unitKey) : (definition.unit || '')
+    };
+  }
+  return null; // For custom params or if not found
+};
+
+const availableLLMParamDefinitions = computed(() => {
+  if (!advancedParameterDefinitions) return [];
+  const currentParams = currentLLMParams.value || {};
+  const provider = currentProviderType.value || 'custom';
+  
+  return advancedParameterDefinitions.filter(def => 
+    def.appliesToProviders.includes(provider) &&
+    !Object.keys(currentParams).includes(def.name)
+  );
+});
+
+const removeLLMParam = (paramKey) => {
+  if (currentLLMParams.value) {
+    delete currentLLMParams.value[paramKey];
+    // Vue 3 might need a bit more help for reactivity on nested objects if not using Vue.set or Vue.delete
+    // However, direct deletion and assignment for the whole llmParams object during save should be fine.
+    // For local reactivity within the form, this should work.
+  }
+};
+
+const quickAddLLMParam = () => {
+  const paramsObject = currentLLMParams.value;
+  if (!paramsObject) return; // Should not happen if initialized correctly
+
+  if (selectedNewLLMParamId.value === 'custom') {
+    if (customLLMParam.value.key && !paramsObject[customLLMParam.value.key]) {
+      // For custom params, initially store value as string.
+      // Type conversion can be attempted by user or upon processing if needed.
+      paramsObject[customLLMParam.value.key] = customLLMParam.value.value; 
+    }
+    customLLMParam.value = { key: '', value: '' }; // Reset custom input
+  } else {
+    const definition = advancedParameterDefinitions.find(def => def.id === selectedNewLLMParamId.value);
+    if (definition && !paramsObject[definition.name]) {
+      let val = definition.defaultValue;
+      // Basic type handling for default values
+      if (definition.type === 'boolean') {
+        val = (val === undefined) ? false : Boolean(val);
+      } else if (definition.type === 'integer' && val !== undefined) {
+        val = parseInt(String(val), 10);
+      } else if (definition.type === 'number' && val !== undefined) {
+        val = parseFloat(String(val));
+      } else if (definition.name === 'stopSequences') { // Special handling for stopSequences
+         val = Array.isArray(val) ? val : ( (typeof val === 'string' && val) ? val.split(',').map(s => s.trim()).filter(s => s) : [] );
+      }
+      // All other types, including string, or if val is undefined, will use val as is.
+      paramsObject[definition.name] = val;
+    }
+  }
+  selectedNewLLMParamId.value = ''; // Reset select
+};
+
+// 处理快速添加参数（选择后立即添加）
+const handleQuickAddParam = () => {
+  if (selectedNewLLMParamId.value !== 'custom') {
+    quickAddLLMParam();
+  }
+  // 如果是custom，等待用户输入完成后再添加
+};
+
+// 处理自定义参数添加
+const handleCustomParamAdd = () => {
+  if (customLLMParam.value.key && customLLMParam.value.value) {
+    quickAddLLMParam();
+  }
+};
+
+// 取消自定义参数输入
+const cancelCustomParam = () => {
+  selectedNewLLMParamId.value = '';
+  customLLMParam.value = { key: '', value: '' };
+};
+
+// 验证参数是否有效
+const isParamInvalid = (paramName, value) => {
+  const metadata = getParamMetadata(paramName);
+  // 如果是自定义参数（没有metadata），只做基础验证
+  if (!metadata) {
+    // 对自定义参数进行基础验证：不能为空且不能包含危险字符
+    if (value === undefined || value === null || value === '') return false;
+    
+    // 检查是否包含潜在危险的参数名
+    const dangerousNames = ['eval', 'exec', 'script', '__proto__', 'constructor'];
+    if (dangerousNames.some(dangerous => paramName.toLowerCase().includes(dangerous))) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  if (value === undefined || value === null || value === '') return false;
+  
+  if (metadata.type === 'number' || metadata.type === 'integer') {
+    const numValue = Number(value);
+    if (isNaN(numValue)) return true;
+    
+    if (metadata.minValue !== undefined && numValue < metadata.minValue) return true;
+    if (metadata.maxValue !== undefined && numValue > metadata.maxValue) return true;
+    
+    if (metadata.type === 'integer' && !Number.isInteger(numValue)) return true;
+  }
+  
+  return false;
+};
+
+// 获取参数验证错误信息
+const getParamValidationMessage = (paramName, value) => {
+  const metadata = getParamMetadata(paramName);
+  // 自定义参数的错误信息
+  if (!metadata) {
+    const dangerousNames = ['eval', 'exec', 'script', '__proto__', 'constructor'];
+    if (dangerousNames.some(dangerous => paramName.toLowerCase().includes(dangerous))) {
+      return t('modelManager.advancedParameters.validation.dangerousParam');
+    }
+    return '';
+  }
+  
+  if (metadata.type === 'number' || metadata.type === 'integer') {
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      return t('modelManager.advancedParameters.validation.invalidNumber', {
+        type: metadata.type === 'integer' ? t('common.integer') : t('common.number')
+      });
+    }
+    
+    if (metadata.minValue !== undefined && numValue < metadata.minValue) {
+      return t('modelManager.advancedParameters.validation.belowMin', {
+        min: metadata.minValue
+      });
+    }
+    if (metadata.maxValue !== undefined && numValue > metadata.maxValue) {
+      return t('modelManager.advancedParameters.validation.aboveMax', {
+        max: metadata.maxValue
+      });
+    }
+    
+    if (metadata.type === 'integer' && !Number.isInteger(numValue)) {
+      return t('modelManager.advancedParameters.validation.mustBeInteger');
+    }
+  }
+  
+  return '';
+};
+
+watch(() => newModel.value.key, (newKey) => {
+  // If the key changes and implies a different provider type for a new model, 
+  // it might be good to reset llmParams or re-evaluate defaults.
+  // For simplicity now, we can reset if the key change might imply a different context.
+  // This is a basic reset; more sophisticated logic could merge common params if desired.
+  const knownProviders = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow'];
+  let newProvider = 'custom';
+  if (newKey && knownProviders.includes(newKey.toLowerCase())) {
+    newProvider = newKey.toLowerCase();
+  }
+  
+  if (newModel.value.provider !== newProvider) {
+     // If provider type effectively changes, reset llmParams.
+     // This helps if user types "openai", then changes mind to "gemini".
+     // The UI will then show relevant default params for "gemini".
+    newModel.value.llmParams = {};
+    newModel.value.provider = newProvider; // Update the provider field too
+  } else if (newModel.value.provider === 'custom' && newProvider === 'custom' && newModel.value.key !== '') {
+    // If still custom but key has changed, it's a new custom model, reset llmParams
+    newModel.value.llmParams = {};
+  }
+});
+ 
 // =============== 生命周期钩子 ===============
 // 初始化
 onMounted(() => {
@@ -796,5 +1227,13 @@ onMounted(() => {
 .modal-leave-to {
   opacity: 0;
   transform: scale(0.95);
+}
+
+/* 文本截断样式 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

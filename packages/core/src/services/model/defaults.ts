@@ -51,7 +51,9 @@ export const defaultModels: Record<string, ModelConfig> = {
     defaultModel: 'gpt-3.5-turbo',
     apiKey: OPENAI_API_KEY,
     enabled: !!OPENAI_API_KEY,
-    provider: 'openai'
+    provider: 'openai',
+    llmParams: {
+    }
   },
   gemini: {
     name: 'Gemini',
@@ -60,7 +62,9 @@ export const defaultModels: Record<string, ModelConfig> = {
     defaultModel: 'gemini-2.0-flash',
     apiKey: GEMINI_API_KEY,
     enabled: !!GEMINI_API_KEY,
-    provider: 'gemini'
+    provider: 'gemini',
+    llmParams: {
+    }
   },
   deepseek: {
     name: 'DeepSeek',
@@ -69,7 +73,9 @@ export const defaultModels: Record<string, ModelConfig> = {
     defaultModel: 'deepseek-chat',
     apiKey: DEEPSEEK_API_KEY,
     enabled: !!DEEPSEEK_API_KEY,
-    provider: 'deepseek'
+    provider: 'deepseek',
+    llmParams: {
+    }
   },
   siliconflow: {
     name: 'SiliconFlow',
@@ -78,7 +84,9 @@ export const defaultModels: Record<string, ModelConfig> = {
     defaultModel: 'Pro/deepseek-ai/DeepSeek-V3',
     apiKey: SILICONFLOW_API_KEY,
     enabled: !!SILICONFLOW_API_KEY,
-    provider: 'siliconflow'
+    provider: 'siliconflow',
+    llmParams: {
+    }
   },
   zhipu: {
     name: 'Zhipu',
@@ -87,7 +95,9 @@ export const defaultModels: Record<string, ModelConfig> = {
     defaultModel: 'glm-4-flash',
     apiKey: ZHIPU_API_KEY,
     enabled: !!ZHIPU_API_KEY,
-    provider: 'zhipu'
+    provider: 'zhipu',
+    llmParams: {
+    }
   },
   custom: {
     name: 'Custom',
@@ -96,6 +106,8 @@ export const defaultModels: Record<string, ModelConfig> = {
     defaultModel: CUSTOM_API_MODEL,
     apiKey: CUSTOM_API_KEY,
     enabled: !!CUSTOM_API_KEY,
-    provider: 'custom'
+    provider: 'custom',
+    llmParams: {
+    }
   }
 }; 

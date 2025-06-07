@@ -20,6 +20,16 @@ export * from './services/llm/errors'
 export { ModelManager, modelManager } from './services/model/manager'
 export * from './services/model/types'
 export * from './services/model/defaults'
+export * from './services/model/advancedParameterDefinitions'
+export { 
+  validateLLMParams, 
+  getSupportedParameters
+} from './services/model/validation'
+export type { 
+  ValidationResult,
+  ValidationError as LLMValidationError,
+  ValidationWarning 
+} from './services/model/validation'
 
 // 导出提示词服务相关
 export { PromptService, createPromptService } from './services/prompt/service'

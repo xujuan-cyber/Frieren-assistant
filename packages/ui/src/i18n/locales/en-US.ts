@@ -19,6 +19,7 @@ export default {
     enabled: 'Enabled',
     disabled: 'Disabled',
     add: 'Add',
+    remove: 'Remove',
     title: 'Title',
     description: 'Description',
     lastModified: 'Last Modified',
@@ -40,6 +41,8 @@ export default {
     selectFile: 'Select File',
     exporting: 'Exporting...',
     importing: 'Importing...',
+    number: 'Number',
+    integer: 'Integer',
   },
   nav: {
     home: 'Home',
@@ -84,6 +87,32 @@ export default {
     useVercelProxy: 'Use Vercel Proxy',
     useVercelProxyHint: 'Using Vercel proxy can solve CORS issues, but may trigger risk control from some providers. Please use with caution',
     addModel: 'Add',
+
+    // Advanced Parameters
+    advancedParameters: {
+      title: 'Advanced Parameters',
+      noParamsConfigured: 'No advanced parameters configured',
+      customParam: 'Custom',
+      add: 'Add Parameter',
+      select: 'Select a parameter',
+      selectTitle: 'Add Advanced Parameter',
+      custom: 'Custom Parameter',
+      customKeyPlaceholder: 'Enter parameter name',
+      customValuePlaceholder: 'Enter parameter value',
+      stopSequencesPlaceholder: 'Enter stop sequences (comma-separated)',
+      unitLabel: 'Unit',
+      currentProvider: 'Current Provider',
+      customProvider: 'Custom',
+      availableParams: 'available parameters',
+      noAvailableParams: 'no available parameters',
+      validation: {
+        dangerousParam: 'This parameter is considered dangerous and is not allowed',
+        invalidNumber: 'Must be a valid number',
+        belowMin: 'Value cannot be less than {min}',
+        aboveMax: 'Value cannot be greater than {max}',
+        mustBeInteger: 'Must be an integer'
+      }
+    },
 
     // Placeholders
     modelKeyPlaceholder: 'Enter model key',
@@ -397,5 +426,50 @@ export default {
       successWithRefresh: 'Data imported successfully, page will refresh to update data'
     },
     warning: 'Importing data will overwrite existing history records, model configurations, custom templates and all user settings (including theme, language preferences, etc.). Please ensure you have backed up important data.'
+  },
+  params: {
+    "temperature": {
+      "label": "Temperature",
+      "description": "Controls randomness: Lower values (e.g., 0.2) make the output more focused and deterministic, while higher values (e.g., 0.8) make it more random."
+    },
+    "top_p": {
+      "label": "Top P",
+      "description": "Nucleus sampling. Considers tokens with top P probability mass. E.g., 0.1 means only tokens comprising the top 10% probability mass are considered."
+    },
+    "max_tokens": {
+      "label": "Max Tokens",
+      "description": "Maximum number of tokens to generate in the completion."
+    },
+    "presence_penalty": {
+      "label": "Presence Penalty",
+      "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics."
+    },
+    "frequency_penalty": {
+      "label": "Frequency Penalty",
+      "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim."
+    },
+    "timeout": {
+      "label": "Timeout (ms)",
+      "description_openai": "Request timeout in milliseconds for the OpenAI client connection."
+    },
+    "maxOutputTokens": {
+      "label": "Max Output Tokens",
+      "description": "Maximum number of tokens the model can output in a single response."
+    },
+    "top_k": {
+      "label": "Top K",
+      "description": "Filters the next token choices to the K most likely tokens. Helps to reduce nonsensical token generation."
+    },
+    "candidateCount": {
+      "label": "Candidate Count",
+      "description": "Number of generated responses to return. Must be between 1 and 8."
+    },
+    "stopSequences": {
+      "label": "Stop Sequences",
+      "description": "Custom strings that will stop output generation if encountered. Specify multiple sequences separated by commas."
+    },
+    "tokens": {
+      "unit": "tokens"
+    }
   }
 }; 

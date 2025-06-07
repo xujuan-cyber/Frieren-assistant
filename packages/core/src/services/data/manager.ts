@@ -156,7 +156,8 @@ export class DataManager {
               provider: model.provider || existingModel.provider,
               enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled, // 优先使用导入的启用状态
               ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
-              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy })
+              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
+              ...(model.llmParams !== undefined && { llmParams: model.llmParams })
             };
             await this.modelManagerInstance.updateModel(model.key, mergedConfig);
             console.log(`模型 ${model.key} 已存在，已更新配置（使用导入的启用状态: ${mergedConfig.enabled}）`);
@@ -170,7 +171,8 @@ export class DataManager {
               provider: model.provider || 'custom',
               enabled: model.enabled !== undefined ? model.enabled : false, // 使用导入的启用状态，默认为false
               ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
-              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy })
+              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
+              ...(model.llmParams !== undefined && { llmParams: model.llmParams })
             };
             await this.modelManagerInstance.addModel(model.key, newModelConfig);
             console.log(`已导入新模型 ${model.key}（启用状态: ${newModelConfig.enabled}）`);

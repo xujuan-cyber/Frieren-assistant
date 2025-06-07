@@ -4,6 +4,7 @@ import { StorageFactory } from '../storage/factory';
 import { StorageAdapter } from '../storage/adapter';
 import { defaultModels } from './defaults';
 import { ModelConfigError } from '../llm/errors';
+import { validateLLMParams } from './validation';
 
 /**
  * 模型管理器实现
@@ -36,10 +37,45 @@ export class ModelManager implements IModelManager {
       let hasChanges = false;
       Object.entries(defaultModels).forEach(([key, config]) => {
         if (!this.models[key]) {
-          this.models[key] = {
-            ...config
+          this.models[key] = { 
+            ...config,
+            // Deep copy llmParams to avoid reference sharing
+            ...(config.llmParams && { llmParams: { ...config.llmParams } })
           };
           hasChanges = true;
+        } else { // Model exists in storage, check for llmParams updates
+          let modelUpdated = false;
+          if (config.llmParams) { // If default config has llmParams
+            if (!this.models[key].llmParams) { // If stored model has no llmParams
+              this.models[key].llmParams = { ...config.llmParams };
+              modelUpdated = true;
+            } else { // Stored model has llmParams, merge new default keys
+              for (const paramKey in config.llmParams) {
+                if (this.models[key].llmParams[paramKey] === undefined && config.llmParams.hasOwnProperty(paramKey)) {
+                  this.models[key].llmParams[paramKey] = config.llmParams[paramKey];
+                  modelUpdated = true;
+                }
+              }
+            }
+          }
+          // Ensure llmParams is an object if it was created/modified
+          if (this.models[key].llmParams && (typeof this.models[key].llmParams !== 'object' || this.models[key].llmParams === null)) {
+            this.models[key].llmParams = {}; // Initialize to empty object if invalid
+            modelUpdated = true;
+          }
+
+          // Remove old top-level properties if they exist on stored model
+          const oldParams = ['maxTokens', 'temperature', 'timeout'];
+          for (const oldParam of oldParams) {
+            if (this.models[key].hasOwnProperty(oldParam)) {
+              delete (this.models[key] as any)[oldParam];
+              modelUpdated = true;
+            }
+          }
+
+          if (modelUpdated) {
+            hasChanges = true;
+          }
         }
       });
 
@@ -104,13 +140,21 @@ export class ModelManager implements IModelManager {
         }
         return {
           ...models,
-          [key]: { ...config }
+          [key]: { 
+            ...config,
+            // Deep copy llmParams to avoid reference sharing
+            ...(config.llmParams && { llmParams: { ...config.llmParams } })
+          }
         };
       }
     );
     
     // 更新内存状态
-    this.models[key] = { ...config };
+    this.models[key] = { 
+      ...config,
+      // Deep copy llmParams to avoid reference sharing
+      ...(config.llmParams && { llmParams: { ...config.llmParams } })
+    };
   }
 
   /**
@@ -130,7 +174,11 @@ export class ModelManager implements IModelManager {
             throw new ModelConfigError(`模型 ${key} 不存在`);
           }
           // 如果是内置模型但尚未配置，创建初始配置
-          models[key] = { ...defaultModels[key] };
+          models[key] = { 
+            ...defaultModels[key],
+            // Deep copy llmParams to avoid reference sharing
+            ...(defaultModels[key].llmParams && { llmParams: { ...defaultModels[key].llmParams } })
+          };
         }
         
         // 合并配置时保留原有 enabled 状态
@@ -138,16 +186,19 @@ export class ModelManager implements IModelManager {
           ...models[key],
           ...config,
           // 确保 enabled 属性存在
-          enabled: config.enabled !== undefined ? config.enabled : models[key].enabled
+          enabled: config.enabled !== undefined ? config.enabled : models[key].enabled,
+          // Deep copy llmParams to avoid reference sharing
+          ...(config.llmParams && { llmParams: { ...config.llmParams } })
         };
 
-        // 如果更新了关键字段或尝试启用模型，需要验证配置
+        // 如果更新了关键字段, 尝试启用模型, 或者更新了llmParams，需要验证配置
         if (
           config.name !== undefined ||
           config.baseURL !== undefined ||
           config.models !== undefined ||
           config.defaultModel !== undefined ||
           config.apiKey !== undefined ||
+          config.llmParams !== undefined || // Added llmParams as a trigger
           config.enabled
         ) {
           this.validateConfig(updatedConfig);
@@ -266,6 +317,24 @@ export class ModelManager implements IModelManager {
       errors.push('缺少默认模型(defaultModel)');
     } else if (!config.models?.includes(config.defaultModel)) {
       errors.push('默认模型必须在模型列表中');
+    }
+
+    // Validate llmParams structure
+    if (config.llmParams !== undefined && (typeof config.llmParams !== 'object' || config.llmParams === null || Array.isArray(config.llmParams))) {
+      errors.push('llmParams必须是一个对象');
+    }
+
+    // Validate llmParams content for security and correctness
+    if (config.llmParams && typeof config.llmParams === 'object') {
+      const provider = config.provider || 'openai'; // Default to openai provider for validation
+      const validation = validateLLMParams(config.llmParams, provider);
+      
+      if (!validation.isValid) {
+        const paramErrors = validation.errors.map(error => 
+          `参数 ${error.parameterName}: ${error.message}`
+        );
+        errors.push(...paramErrors);
+      }
     }
 
     if (errors.length > 0) {

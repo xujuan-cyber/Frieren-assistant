@@ -19,6 +19,7 @@ export default {
     enabled: '已启用',
     disabled: '已禁用',
     add: '添加',
+    remove: '移除',
     title: '标题',
     description: '描述',
     lastModified: '最后修改',
@@ -40,6 +41,8 @@ export default {
     selectFile: '选择文件',
     exporting: '导出中...',
     importing: '导入中...',
+    number: '数字',
+    integer: '整数',
   },
   nav: {
     home: '首页',
@@ -82,8 +85,34 @@ export default {
     clickToFetchModels: '点击箭头获取模型列表',
     apiKey: 'API密钥',
     useVercelProxy: '使用Vercel代理',
-    useVercelProxyHint: '使用Vercel代理可以解决跨域问题，但可能触发部分厂商风控，请酌情使用',
+    useVercelProxyHint: '使用Vercel代理可以解决跨域问题，但可能触发某些提供商的风控，请谨慎使用',
     addModel: '添加',
+
+    // 高级参数
+    advancedParameters: {
+      title: '高级参数',
+      noParamsConfigured: '未配置高级参数',
+      customParam: '自定义',
+      add: '添加参数',
+      select: '选择参数',
+      selectTitle: '添加高级参数',
+      custom: '自定义参数',
+      customKeyPlaceholder: '输入参数名称',
+      customValuePlaceholder: '输入参数值',
+      stopSequencesPlaceholder: '输入停止序列（逗号分隔）',
+      unitLabel: '单位',
+      currentProvider: '当前提供商',
+      customProvider: '自定义',
+      availableParams: '个可选参数',
+      noAvailableParams: '无可选参数',
+      validation: {
+        dangerousParam: '此参数名称包含潜在危险字符，不允许使用',
+        invalidNumber: '参数值必须是有效的{type}',
+        belowMin: '参数值不能小于 {min}',
+        aboveMax: '参数值不能大于 {max}',
+        mustBeInteger: '参数值必须是整数'
+      }
+    },
 
     // 占位符
     modelKeyPlaceholder: '请输入模型标识',
@@ -397,5 +426,50 @@ export default {
       successWithRefresh: '数据导入成功，页面将刷新以更新数据'
     },
     warning: '导入数据将覆盖现有的历史记录、模型配置、自定义提示词和所有用户设置（包括主题、语言偏好等），请确保已备份重要数据。'
+  },
+  params: {
+    "temperature": {
+      "label": "温度 (Temperature)",
+      "description": "控制随机性：较低的值（例如0.2）使输出更集中和确定，较高的值（例如0.8）使其更随机。"
+    },
+    "top_p": {
+      "label": "Top P (核心采样)",
+      "description": "核心采样。仅考虑累积概率达到Top P阈值的Token。例如，0.1表示仅考虑构成最高10%概率质量的Token。"
+    },
+    "max_tokens": {
+      "label": "最大Token数",
+      "description": "在补全中生成的最大Token数量。"
+    },
+    "presence_penalty": {
+      "label": "存在惩罚 (Presence Penalty)",
+      "description": "介于-2.0和2.0之间的数字。正值会根据新Token是否已在文本中出现来惩罚它们，增加模型谈论新主题的可能性。"
+    },
+    "frequency_penalty": {
+      "label": "频率惩罚 (Frequency Penalty)",
+      "description": "介于-2.0和2.0之间的数字。正值会根据新Token在文本中已出现的频率来惩罚它们，降低模型逐字重复相同行的可能性。"
+    },
+    "timeout": {
+      "label": "超时时间 (毫秒)",
+      "description_openai": "OpenAI客户端连接的请求超时时间（毫秒）。"
+    },
+    "maxOutputTokens": {
+      "label": "最大输出Token数",
+      "description": "模型在单个响应中可以输出的最大Token数。"
+    },
+    "top_k": {
+      "label": "Top K (K选顶)",
+      "description": "将下一个Token的选择范围限制为K个最可能的Token。有助于减少无意义Token的生成。"
+    },
+    "candidateCount": {
+      "label": "候选数量",
+      "description": "返回的生成响应数量。必须介于1和8之间。"
+    },
+    "stopSequences": {
+      "label": "停止序列",
+      "description": "遇到时将停止输出生成的自定义字符串。用逗号分隔多个序列。"
+    },
+    "tokens": {
+      "unit": "令牌"
+    }
   }
 }; 

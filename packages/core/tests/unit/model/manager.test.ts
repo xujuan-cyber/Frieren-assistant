@@ -162,14 +162,153 @@ describe('ModelManager', () => {
     it('should return only enabled models', async () => {
       const enabledModel = createModelConfig('EnabledModel', true);
       const disabledModel = createModelConfig('DisabledModel', false);
-      
-      await modelManager.addModel('enabledKey', enabledModel);
-      await modelManager.addModel('disabledKey', disabledModel);
-      
+
+      await modelManager.addModel('enabled', enabledModel);
+      await modelManager.addModel('disabled', disabledModel);
+
       const enabledModels = await modelManager.getEnabledModels();
+      expect(enabledModels).toHaveLength(1);
+      expect(enabledModels[0].key).toBe('enabled');
+    });
+  });
+
+  describe('llmParams deep copy', () => {
+    it('should deep copy llmParams to avoid reference sharing when adding models', async () => {
+      const originalLlmParams = {
+        temperature: 0.7,
+        max_tokens: 4096
+      };
       
-      expect(enabledModels.some(m => m.key === 'enabledKey')).toBe(true);
-      expect(enabledModels.some(m => m.key === 'disabledKey')).toBe(false);
+      const modelConfig = createModelConfig('TestModel', true, 'test_key', ['model1'], 'model1', 'openai');
+      modelConfig.llmParams = originalLlmParams;
+
+      await modelManager.addModel('test-model', modelConfig);
+      
+      // Modify the original llmParams
+      originalLlmParams.temperature = 0.9;
+      originalLlmParams.max_tokens = 2048;
+      
+      // Get the stored model and verify it wasn't affected
+      const storedModel = await modelManager.getModel('test-model');
+      expect(storedModel?.llmParams?.temperature).toBe(0.7);
+      expect(storedModel?.llmParams?.max_tokens).toBe(4096);
+    });
+
+    it('should deep copy llmParams when updating models', async () => {
+      const initialModel = createModelConfig('TestModel', true);
+      await modelManager.addModel('test-model', initialModel);
+
+      const updateLlmParams = {
+        temperature: 0.5,
+        top_p: 0.9
+      };
+
+      await modelManager.updateModel('test-model', {
+        llmParams: updateLlmParams
+      });
+
+      // Modify the original update params
+      updateLlmParams.temperature = 1.0;
+      updateLlmParams.top_p = 0.5;
+
+      // Get the stored model and verify it wasn't affected
+      const storedModel = await modelManager.getModel('test-model');
+      expect(storedModel?.llmParams?.temperature).toBe(0.5);
+      expect(storedModel?.llmParams?.top_p).toBe(0.9);
+    });
+
+    it('should handle undefined llmParams gracefully', async () => {
+      const modelConfig = createModelConfig('TestModel', true);
+      // Explicitly set llmParams to undefined
+      modelConfig.llmParams = undefined;
+
+      await modelManager.addModel('test-model', modelConfig);
+      
+      const storedModel = await modelManager.getModel('test-model');
+      expect(storedModel?.llmParams).toBeUndefined();
+    });
+  });
+
+  describe('llmParams security validation', () => {
+    it('should reject dangerous parameters when adding models', async () => {
+      const modelWithDangerousParams = createModelConfig('DangerousModel', true, 'test_key', ['model1'], 'model1', 'openai');
+      modelWithDangerousParams.llmParams = {
+        temperature: 0.7,
+        __proto__: { malicious: 'code' }, // Dangerous parameter
+        constructor: function() { return 'hack'; } // Another dangerous parameter
+      };
+
+      await expect(modelManager.addModel('dangerous-model', modelWithDangerousParams))
+        .rejects.toThrow(ModelConfigError);
+    });
+
+    it('should reject invalid parameter types when adding models', async () => {
+      const modelWithInvalidTypes = createModelConfig('InvalidModel', true, 'test_key', ['model1'], 'model1', 'openai');
+      modelWithInvalidTypes.llmParams = {
+        temperature: 'invalid_string', // Should be number
+        max_tokens: 1024.5 // Should be integer
+      };
+
+      await expect(modelManager.addModel('invalid-model', modelWithInvalidTypes))
+        .rejects.toThrow(ModelConfigError);
+    });
+
+    it('should reject out-of-range parameters when adding models', async () => {
+      const modelWithOutOfRangeParams = createModelConfig('OutOfRangeModel', true, 'test_key', ['model1'], 'model1', 'openai');
+      modelWithOutOfRangeParams.llmParams = {
+        temperature: 5.0, // Exceeds maximum 2.0
+        presence_penalty: -3.0 // Below minimum -2.0
+      };
+
+      await expect(modelManager.addModel('out-of-range-model', modelWithOutOfRangeParams))
+        .rejects.toThrow(ModelConfigError);
+    });
+
+    it('should accept valid parameters when adding models', async () => {
+      const modelWithValidParams = createModelConfig('ValidModel', true, 'test_key', ['model1'], 'model1', 'openai');
+      modelWithValidParams.llmParams = {
+        temperature: 0.7,
+        max_tokens: 2048,
+        top_p: 0.9,
+        presence_penalty: 0.1,
+        frequency_penalty: 0.1
+      };
+
+      await expect(modelManager.addModel('valid-model', modelWithValidParams))
+        .resolves.not.toThrow();
+      
+      const storedModel = await modelManager.getModel('valid-model');
+      expect(storedModel?.llmParams).toEqual(modelWithValidParams.llmParams);
+    });
+
+    it('should validate llmParams when updating models', async () => {
+      const initialModel = createModelConfig('TestModel', true, 'test_key', ['model1'], 'model1', 'openai');
+      await modelManager.addModel('test-model', initialModel);
+
+      // Try to update with dangerous parameters
+      await expect(modelManager.updateModel('test-model', {
+        llmParams: {
+          temperature: 0.5,
+          eval: 'malicious_code()' // Dangerous parameter
+        }
+      })).rejects.toThrow(ModelConfigError);
+    });
+
+    it('should validate provider-specific parameters', async () => {
+      const geminiModel = createModelConfig('GeminiModel', true, 'test_key', ['gemini-pro'], 'gemini-pro', 'gemini');
+      geminiModel.llmParams = {
+        temperature: 0.8,
+        maxOutputTokens: 2048,
+        topK: 40,
+        topP: 0.9,
+        stopSequences: ['END', 'STOP']
+      };
+
+      await expect(modelManager.addModel('gemini-model', geminiModel))
+        .resolves.not.toThrow();
+      
+      const storedModel = await modelManager.getModel('gemini-model');
+      expect(storedModel?.llmParams).toEqual(geminiModel.llmParams);
     });
   });
 });

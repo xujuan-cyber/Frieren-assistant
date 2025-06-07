@@ -1,4 +1,4 @@
-import { createLLMService, ModelManager } from '../../../src/index.js';
+import { createLLMService, ModelManager, LocalStorageProvider } from '../../../src/index.js';
 import { expect, describe, it, beforeEach, beforeAll } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -19,7 +19,8 @@ describe('DeepSeek API 测试', () => {
   }
 
   it('应该能正确调用 DeepSeek API', async () => {
-    const modelManager = new ModelManager();
+    const storage = new LocalStorageProvider();
+    const modelManager = new ModelManager(storage);
     const llmService = createLLMService(modelManager);
 
     // 更新 DeepSeek 配置
@@ -39,7 +40,8 @@ describe('DeepSeek API 测试', () => {
   }, 25000);
 
   it('应该能正确处理多轮对话', async () => {
-    const modelManager = new ModelManager();
+    const storage = new LocalStorageProvider();
+    const modelManager = new ModelManager(storage);
     const llmService = createLLMService(modelManager);
 
     // 更新 DeepSeek 配置

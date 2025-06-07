@@ -36,6 +36,7 @@ src/
 - **多服务商兼容**: Provider标识区分
 - **敏感信息管理**: 环境变量+本地加密存储
 - **用户自管理API密钥**: 避免后端开销，保持应用简单性
+- **参数透明化**: 只使用用户明确配置的参数，不设置默认值避免误解
 
 ---
 
@@ -68,6 +69,7 @@ try {
 2. **测试隔离**: 使用动态唯一标识符避免冲突
 3. **错误场景**: 覆盖网络错误、无效Token等异常
 4. **状态管理**: 独立测试数据库、正确清理状态
+5. **参数测试**: 为每个LLM参数创建独立测试用例，确保参数兼容性
 
 ### 测试模板
 ```js
@@ -79,6 +81,32 @@ describe("功能测试", () => {
   
   it("应正确处理异常", async () => {
     await expect(func()).rejects.toThrow("预期错误");
+  });
+});
+
+// LLM参数测试最佳实践
+describe("Individual Parameter Tests", () => {
+  // 为每个advancedParameterDefinitions中的参数创建独立测试
+  it("should accept valid temperature", async () => {
+    await modelManager.updateModel(configKey, {
+      // ... 基础配置
+      llmParams: { temperature: 0.3 } // 只测试一个参数
+    });
+    
+    const response = await llmService.sendMessage(messages, configKey);
+    expect(response).toBeDefined();
+  });
+  
+  // 组合参数测试
+  it("should handle multiple parameters together", async () => {
+    await modelManager.updateModel(configKey, {
+      // ... 基础配置  
+      llmParams: {
+        temperature: 0.6,
+        max_tokens: 150,
+        top_p: 0.9
+      }
+    });
   });
 });
 ```
@@ -126,6 +154,7 @@ const handlers = {
 | UI配置导入验证不充分 | 中 | ✅ 已修复 |
 | 数据迁移竞态条件 | 中 | ✅ 已修复 |
 | 测试覆盖缺失 | 高 | ✅ 已修复 |
+| LLM参数默认值误导用户 | 中 | ✅ 已修复 |
 
 #### 关键修复示例
 ```ts
@@ -143,6 +172,20 @@ for (const [key, value] of Object.entries(typedData.userSettings)) {
   }
   await this.storage.setItem(key, value);
 }
+
+// LLM参数透明化处理 (2024-12-20)
+// ❌ 旧版本：自动设置默认值
+if (completionConfig.temperature === undefined) {
+  completionConfig.temperature = 0.7; // 可能误导用户
+}
+
+// ✅ 新版本：只使用用户明确配置的参数
+const completionConfig: any = {
+  model: modelConfig.defaultModel,
+  messages: formattedMessages,
+  ...restLlmParams // 只传递用户配置的参数
+};
+// 不设置任何默认值，让API服务商使用其默认配置
 ```
 
 ---

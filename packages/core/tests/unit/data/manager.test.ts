@@ -295,6 +295,191 @@ describe('DataManager', () => {
         expect(mockTemplateManager.deleteTemplate).toHaveBeenCalledWith(id);
       });
     });
+
+    it('should handle partial UI setting import failures gracefully', async () => {
+      const partialFailData = {
+        userSettings: {
+          'theme-id': 'dark',
+          'preferred-language': 'en-US',
+          'app:selected-optimize-model': 'model1'
+        }
+      };
+
+      // 模拟第二个设置项失败
+      mockStorage.setItem = vi.fn()
+        .mockResolvedValueOnce(undefined) // 第一个成功
+        .mockRejectedValueOnce(new Error('Storage quota exceeded')) // 第二个失败
+        .mockResolvedValueOnce(undefined); // 第三个成功
+
+      // 不应该抛出异常，而是继续导入其他设置
+      await expect(dataManager.importAllData(JSON.stringify(partialFailData))).resolves.not.toThrow();
+
+      // 验证失败的设置被记录但不影响其他设置的导入
+      expect(mockStorage.setItem).toHaveBeenCalledTimes(3);
+    });
+
+    it('should correctly import and export models with llmParams', async () => {
+      // 测试包含 llmParams 的模型配置
+      const modelsWithLlmParams = [
+        { 
+          key: 'openai', 
+          name: 'OpenAI Model', 
+          provider: 'openai', 
+          enabled: true,
+          baseURL: 'https://api.openai.com/v1',
+          models: ['gpt-3.5-turbo'],
+          defaultModel: 'gpt-3.5-turbo',
+          llmParams: {
+            temperature: 0.7,
+            max_tokens: 4096,
+            timeout: 30000
+          }
+        },
+        { 
+          key: 'gemini', 
+          name: 'Gemini Model', 
+          provider: 'gemini', 
+          enabled: false,
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          models: ['gemini-2.0-flash'],
+          defaultModel: 'gemini-2.0-flash',
+          llmParams: {
+            temperature: 0.8,
+            maxOutputTokens: 2048,
+            topP: 0.95,
+            topK: 40
+          }
+        }
+      ];
+
+      // 设置导出模拟
+      mockModelManager.getAllModels.mockResolvedValue(modelsWithLlmParams);
+      
+      // 导出数据
+      const exportedData = await dataManager.exportAllData();
+      const parsedData = JSON.parse(exportedData);
+      
+      // 验证导出的模型包含 llmParams
+      expect(parsedData.models).toHaveLength(2);
+      expect(parsedData.models[0].llmParams).toEqual({
+        temperature: 0.7,
+        max_tokens: 4096,
+        timeout: 30000
+      });
+      expect(parsedData.models[1].llmParams).toEqual({
+        temperature: 0.8,
+        maxOutputTokens: 2048,
+        topP: 0.95,
+        topK: 40
+      });
+
+      // 重置模拟
+      vi.clearAllMocks();
+      
+      // 模拟getModel返回空（新模型）
+      mockModelManager.getModel.mockResolvedValue(null);
+      
+      // 导入数据
+      await dataManager.importAllData(exportedData);
+      
+      // 验证导入时 llmParams 被正确传递
+      expect(mockModelManager.addModel).toHaveBeenCalledTimes(2);
+      
+      const firstModelCall = mockModelManager.addModel.mock.calls[0];
+      const secondModelCall = mockModelManager.addModel.mock.calls[1];
+      
+      expect(firstModelCall[1].llmParams).toEqual({
+        temperature: 0.7,
+        max_tokens: 4096,
+        timeout: 30000
+      });
+      
+      expect(secondModelCall[1].llmParams).toEqual({
+        temperature: 0.8,
+        maxOutputTokens: 2048,
+        topP: 0.95,
+        topK: 40
+      });
+    });
+
+    it('should handle models without llmParams during import', async () => {
+      // 测试不包含 llmParams 的模型（向后兼容性）
+      const modelsWithoutLlmParams = {
+        models: [
+          { 
+            key: 'legacy-model', 
+            name: 'Legacy Model', 
+            provider: 'custom', 
+            enabled: true,
+            baseURL: 'https://api.example.com/v1',
+            models: ['legacy-model'],
+            defaultModel: 'legacy-model'
+            // 没有 llmParams 字段
+          }
+        ]
+      };
+      
+      // 模拟getModel返回空（新模型）
+      mockModelManager.getModel.mockResolvedValue(null);
+      
+      // 导入数据
+      await dataManager.importAllData(JSON.stringify(modelsWithoutLlmParams));
+      
+      // 验证导入成功
+      expect(mockModelManager.addModel).toHaveBeenCalledTimes(1);
+      
+      const modelCall = mockModelManager.addModel.mock.calls[0];
+      
+      // 验证没有 llmParams 字段（undefined 不会被包含在配置中）
+      expect(modelCall[1]).not.toHaveProperty('llmParams');
+    });
+
+    it('should update existing models with llmParams', async () => {
+      // 测试更新现有模型时包含 llmParams
+      const existingModel = {
+        name: 'Existing Model',
+        provider: 'openai',
+        enabled: false,
+        baseURL: 'https://api.openai.com/v1',
+        models: ['gpt-3.5-turbo'],
+        defaultModel: 'gpt-3.5-turbo'
+        // 现有模型没有 llmParams
+      };
+
+      const updatedModelData = {
+        models: [{
+          key: 'existing-model',
+          name: 'Updated Model',
+          provider: 'openai',
+          enabled: true,
+          baseURL: 'https://api.openai.com/v1',
+          models: ['gpt-4'],
+          defaultModel: 'gpt-4',
+          llmParams: {
+            temperature: 0.5,
+            max_tokens: 2048
+          }
+        }]
+      };
+
+      // 模拟现有模型
+      mockModelManager.getModel.mockResolvedValue(existingModel);
+      
+      // 导入数据
+      await dataManager.importAllData(JSON.stringify(updatedModelData));
+      
+      // 验证调用了updateModel而不是addModel
+      expect(mockModelManager.updateModel).toHaveBeenCalledTimes(1);
+      expect(mockModelManager.addModel).not.toHaveBeenCalled();
+      
+      const updateCall = mockModelManager.updateModel.mock.calls[0];
+      
+      // 验证 llmParams 被包含在更新配置中
+      expect(updateCall[1].llmParams).toEqual({
+        temperature: 0.5,
+        max_tokens: 2048
+      });
+    });
   });
 
   describe('UI配置导入安全性测试', () => {
@@ -340,28 +525,6 @@ describe('DataManager', () => {
       expect(mockStorage.setItem).not.toHaveBeenCalledWith('preferred-language', expect.any(String));
       expect(mockStorage.setItem).not.toHaveBeenCalledWith('app:selected-optimize-model', expect.any(String));
       expect(mockStorage.setItem).not.toHaveBeenCalledWith('app:selected-test-model', expect.any(String));
-    });
-
-    it('should handle partial UI setting import failures gracefully', async () => {
-      const partialFailData = {
-        userSettings: {
-          'theme-id': 'dark',
-          'preferred-language': 'en-US',
-          'app:selected-optimize-model': 'model1'
-        }
-      };
-
-      // 模拟第二个设置项失败
-      mockStorage.setItem = vi.fn()
-        .mockResolvedValueOnce(undefined) // 第一个成功
-        .mockRejectedValueOnce(new Error('Storage quota exceeded')) // 第二个失败
-        .mockResolvedValueOnce(undefined); // 第三个成功
-
-      // 不应该抛出异常，而是继续导入其他设置
-      await expect(dataManager.importAllData(JSON.stringify(partialFailData))).resolves.not.toThrow();
-
-      // 验证失败的设置被记录但不影响其他设置的导入
-      expect(mockStorage.setItem).toHaveBeenCalledTimes(3);
     });
   });
 });
