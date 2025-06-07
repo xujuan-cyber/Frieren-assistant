@@ -15,15 +15,16 @@
 
 - [README.md](../README.md) - 项目总体介绍
 - [technical-development-guide.md](./technical-development-guide.md) - 技术开发指南，包含技术栈和开发规范
+- [llm-params-guide.md](./llm-params-guide.md) - LLM参数配置详细指南
 - [project-structure.md](./project-structure.md) - 项目结构，专注于文件和目录组织
 - [project-status.md](./project-status.md) - 项目状态，包含进度和计划
 - [prd.md](./prd.md) - 产品需求文档
 
 ## 其他资源
 
-- [experience.md](../experience.md) - 项目经验总结
-- [scratchpad.md](../scratchpad.md) - 开发笔记
-- [CHANGELOG.md](./CHANGELOG.md) - 文档更新日志
+- [experience.md](./experience.md) - 项目经验总结
+- [scratchpad.md](./scratchpad.md) - 开发笔记 (已简化)
+- [vercel.md](./vercel.md) / [vercel_en.md](./vercel_en.md) - Vercel部署指南
 
 ## 如何使用文档
 
@@ -50,4 +51,4 @@
 5. 注意区分不同文档的职责，避免内容重复
 6. 弃用的文档应标记为已弃用，并引导用户使用新文档
 
-最后更新：2024-03-02 
+最后更新：2025-01-06

@@ -28,14 +28,16 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 
 ## ✨ Core Features
 
-- 🎯 Intelligent Optimization: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
-- 🔄 Comparison Testing: Real-time comparison between original and optimized prompts for intuitive demonstration of optimization effects
-- 🔄 Multi-model Integration: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, etc., to meet different needs
-- 🔒 Secure Architecture: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
-- 💾 Privacy Protection: Local encrypted storage of history records and API keys to ensure data security
-- 📱 Multi-platform Support: Available as both a web application and Chrome extension
-- 🎨 User Experience: Clean and intuitive interface design with responsive layout and smooth interaction effects
-- 🌐 Cross-domain Support: Edge Runtime proxy for cross-domain issues when deployed on Vercel (may trigger risk control from some providers)
+- 🎯 **Intelligent Optimization**: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
+- 🔄 **Comparison Testing**: Real-time comparison between original and optimized prompts for intuitive demonstration of optimization effects
+- 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, etc.
+- ⚙️ **Advanced Parameter Configuration**: Support for individual LLM parameter configuration (temperature, max_tokens, etc.) for each model
+- 🔒 **Secure Architecture**: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
+- 💾 **Privacy Protection**: Local encrypted storage of history records and API keys with data import/export support
+- 📱 **Multi-platform Support**: Available as both a web application and Chrome extension
+- 🎨 **User Experience**: Clean and intuitive interface design with responsive layout and smooth interaction effects
+- 🌐 **Cross-domain Support**: Edge Runtime proxy for cross-domain issues when deployed on Vercel
+- 🔐 **Access Control**: Password protection feature for secure deployment
 
 ## Quick Start
 
@@ -91,6 +93,8 @@ cat > .env << EOF
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+VITE_ZHIPU_API_KEY=your_zhipu_api_key
+VITE_SILICONFLOW_API_KEY=your_siliconflow_api_key
 
 # Basic Authentication
 ACCESS_USERNAME=your_username  # Optional, defaults to "admin"
@@ -127,10 +131,21 @@ services:
 5. Click "Save"
 
 Supported models:
-- OpenAI (gpt-3.5-turbo, gpt-4)
-- Gemini (gemini-2.0-flash)
-- DeepSeek (DeepSeek-V3)
+- OpenAI (gpt-3.5-turbo, gpt-4, gpt-4o)
+- Gemini (gemini-1.5-pro, gemini-2.0-flash)
+- DeepSeek (deepseek-chat, deepseek-coder)
+- Zhipu AI (glm-4-flash, glm-4, glm-3-turbo)
+- SiliconFlow (Pro/deepseek-ai/DeepSeek-V3)
 - Custom API (OpenAI compatible interface)
+
+In addition to API keys, you can configure advanced LLM parameters for each model individually. These parameters are configured through a field called `llmParams`, which allows you to specify any parameters supported by the LLM SDK in key-value pairs for fine-grained control over model behavior.
+
+**Advanced LLM Parameter Configuration Examples:**
+- **OpenAI/Compatible APIs**: `{"temperature": 0.7, "max_tokens": 4096, "timeout": 60000}`
+- **Gemini**: `{"temperature": 0.8, "maxOutputTokens": 2048, "topP": 0.95}`
+- **DeepSeek**: `{"temperature": 0.5, "top_p": 0.9, "frequency_penalty": 0.1}`
+
+For more detailed information about `llmParams` configuration, please refer to the [LLM Parameters Configuration Guide](docs/llm-params-guide.md).
 
 ### Method 2: Via Environment Variables
 Configure environment variables through the `-e` parameter when deploying with Docker:
@@ -138,10 +153,11 @@ Configure environment variables through the `-e` parameter when deploying with D
 -e VITE_OPENAI_API_KEY=your_key
 -e VITE_GEMINI_API_KEY=your_key
 -e VITE_DEEPSEEK_API_KEY=your_key
+-e VITE_ZHIPU_API_KEY=your_key
 -e VITE_SILICONFLOW_API_KEY=your_key
 -e VITE_CUSTOM_API_KEY=your_custom_api_key
 -e VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
--e VITE_CUSTOM_API_MODEL=your_custom_model_name 
+-e VITE_CUSTOM_API_MODEL=your_custom_model_name
 ```
 
 ## Local Development
@@ -176,6 +192,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 
 - [Documentation Index](docs/README.md) - Index of all documentation
 - [Technical Development Guide](docs/technical-development-guide.md) - Technology stack and development specifications
+- [LLM Parameters Configuration Guide](docs/llm-params-guide.md) - Detailed guide for advanced LLM parameter configuration
 - [Project Structure](docs/project-structure.md) - Detailed project structure description
 - [Project Status](docs/project-status.md) - Current progress and plans
 - [Product Requirements](docs/prd.md) - Product requirements document
