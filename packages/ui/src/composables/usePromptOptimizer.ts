@@ -67,7 +67,7 @@ export function usePromptOptimizer(
       await promptService.value.optimizePromptStream(
         prompt.value, 
         selectedOptimizeModel.value,
-        typeof selectedOptimizeTemplate.value.content === 'string' ? selectedOptimizeTemplate.value.content : JSON.stringify(selectedOptimizeTemplate.value.content),
+        selectedOptimizeTemplate.value.id,
         {
           onToken: (token: string) => {
             optimizedPrompt.value += token
@@ -167,7 +167,7 @@ export function usePromptOptimizer(
             toast.error(t('toast.error.iterateFailed'))
           }
         },
-        selectedIterateTemplate.value
+        selectedIterateTemplate.value.id
       )
     } catch (error) {
       console.error('[Iterate] 迭代失败:', error)

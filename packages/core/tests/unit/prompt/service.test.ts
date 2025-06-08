@@ -274,7 +274,7 @@ describe('PromptService', () => {
         originalPrompt: 'test prompt',
         optimizedPrompt: '优化结果',
         modelKey: 'test-model',
-        templateId: 'optimize'
+        templateId: 'general-optimize'
       }));
     });
 
@@ -307,7 +307,7 @@ describe('PromptService', () => {
         originalPrompt: 'test prompt',
         optimizedPrompt: '测试结果',
         modelKey: 'test-model',
-        templateId: 'test'
+        templateId: 'test-prompt'
       }));
     });
   });

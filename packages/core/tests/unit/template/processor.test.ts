@@ -93,7 +93,7 @@ describe('TemplateProcessor (Simplified)', () => {
 
       expect(() => {
         TemplateProcessor.processTemplate(template, context);
-      }).toThrow('迭代场景必须使用高级模板（消息数组格式），因为需要进行变量替换');
+      }).toThrow('Iteration context requires advanced template (message array format) for variable substitution');
     });
 
     it('should handle iteration context with advanced template', () => {

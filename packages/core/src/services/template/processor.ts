@@ -9,35 +9,70 @@ export interface TemplateContext {
   originalPrompt?: string;
   iterateInput?: string;
   lastOptimizedPrompt?: string;
+  // Allow additional string properties for template flexibility
+  // but with stricter typing than the previous implementation
   [key: string]: string | undefined;
 }
 
 /**
- * 超级简化模板处理器
+ * Simplified template processor with organized methods
  */
 export class TemplateProcessor {
   /**
-   * 处理模板，返回消息数组
+   * Process template and return message array
    */
   static processTemplate(template: Template, context: TemplateContext): Message[] {
-    // 检查迭代场景必须使用高级模板
+    // Validate template content
+    this.validateTemplate(template);
+    
+    // Validate context compatibility
+    this.validateContextCompatibility(template, context);
+    
+    // Build messages based on template type
+    return this.buildMessages(template, context);
+  }
+
+  /**
+   * Validate template content
+   */
+  private static validateTemplate(template: Template): void {
+    if (!template?.content) {
+      throw new Error(`Template content is missing or invalid for template: ${template?.id || 'unknown'}`);
+    }
+
+    // Check for empty array content
+    if (Array.isArray(template.content) && template.content.length === 0) {
+      throw new Error(`Template content cannot be empty for template: ${template.id}`);
+    }
+  }
+
+  /**
+   * Validate context compatibility with template type
+   */
+  private static validateContextCompatibility(template: Template, context: TemplateContext): void {
+    // Check that iteration context requires advanced template
     const isIterateContext = context.originalPrompt && context.iterateInput;
     if (isIterateContext && typeof template.content === 'string') {
       throw new Error(
-        `迭代场景必须使用高级模板（消息数组格式），因为需要进行变量替换。\n` +
-        `模板ID: ${template.id}\n` +
-        `当前模板类型: 简单模板（字符串格式）\n` +
-        `建议: 请使用支持变量替换的消息数组格式模板`
+        `Iteration context requires advanced template (message array format) for variable substitution.\n` +
+        `Template ID: ${template.id}\n` +
+        `Current template type: Simple template (string format)\n` +
+        `Suggestion: Please use message array format template that supports variable substitution`
       );
     }
+  }
 
-    // 简单模板：不使用模板技术，直接作为系统提示词
+  /**
+   * Build messages from template
+   */
+  private static buildMessages(template: Template, context: TemplateContext): Message[] {
+    // Simple template: no template technology, directly use as system prompt
     if (typeof template.content === 'string') {
       const messages: Message[] = [
         { role: 'system', content: template.content }
       ];
       
-      // 添加用户消息 - 直接传入用户内容，不进行模板替换
+      // Add user message - pass user content directly without template replacement
       if (context.originalPrompt) {
         messages.push({ role: 'user', content: context.originalPrompt });
       }
@@ -45,7 +80,7 @@ export class TemplateProcessor {
       return messages;
     }
 
-    // 高级模板：使用模板技术进行变量替换
+    // Advanced template: use template technology for variable substitution
     if (Array.isArray(template.content)) {
       return template.content.map(msg => ({
         role: msg.role,
@@ -57,7 +92,7 @@ export class TemplateProcessor {
   }
 
   /**
-   * 判断模板是否为简单模板
+   * Check if template is simple type
    */
   static isSimpleTemplate(template: Template): boolean {
     return typeof template.content === 'string';
