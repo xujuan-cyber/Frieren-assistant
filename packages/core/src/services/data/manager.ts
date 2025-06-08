@@ -17,7 +17,8 @@ interface AllData {
 // 需要导出的UI配置键
 const UI_SETTINGS_KEYS = [
   'theme-id',
-  'preferred-language', 
+  'preferred-language',
+  'builtin-template-language',
   'app:selected-optimize-model',
   'app:selected-test-model',
   'app:selected-optimize-template',

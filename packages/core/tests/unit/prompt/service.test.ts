@@ -362,7 +362,10 @@ describe('PromptService', () => {
     });
 
     describe('提示词管理器状态检查', () => {
-      it('应该能检测到提示词管理器的初始化状态', () => {
+      it('应该能检测到提示词管理器的初始化状态', async () => {
+        // 确保模板管理器已初始化
+        await templateManager.ensureInitialized();
+        
         expect(() => {
           templateManager.getTemplate('non-existent-template');
         }).toThrow('Template non-existent-template not found');

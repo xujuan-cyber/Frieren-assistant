@@ -27,7 +27,7 @@ export function useModals(
   // 加载提示词模板
   const loadTemplates = async () => {
     try {
-      await templateManager.init()
+      await templateManager.ensureInitialized()
       await initTemplateSelection()
     } catch (error) {
       console.error(t('toast.error.loadTemplatesFailed'), error)

@@ -39,6 +39,9 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
   // Initialize template selection
   const initTemplateSelection = async () => {
     try {
+      // 确保模板管理器已初始化
+      await templateManager.ensureInitialized()
+
       // Load optimization template
       const optimizeTemplateId = await storage.getItem('app:selected-optimize-template')
       if (optimizeTemplateId) {
@@ -48,7 +51,7 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
             selectedOptimizeTemplate.value = optimizeTemplate
           }
         } catch (error) {
-          console.warn(t('toast.warn.loadOptimizeTemplateFailed'), error)
+          console.warn('加载已保存的优化提示词失败', error)
         }
       }
       
@@ -69,7 +72,7 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
             selectedIterateTemplate.value = iterateTemplate
           }
         } catch (error) {
-          console.warn(t('toast.warn.loadIterateTemplateFailed'), error)
+          console.warn('加载已保存的迭代提示词失败', error)
         }
       }
       
@@ -83,11 +86,11 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
 
       // If still unable to load any templates, show error
       if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
-        throw new Error(t('toast.error.noDefaultTemplate'))
+        throw new Error('无法加载默认提示词')
       }
     } catch (error) {
-      console.error(t('toast.error.initTemplateFailed'), error)
-      toast.error(t('toast.error.initTemplateFailed'))
+      console.error('初始化模板选择失败', error)
+      toast.error('初始化模板选择失败')
     }
   }
 

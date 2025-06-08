@@ -22,6 +22,8 @@
               </svg>
               <span class="hidden md:inline">{{ t('templateManager.syntaxGuide') }}</span>
             </button>
+            <!-- Built-in Template Language Switch -->
+            <BuiltinTemplateLanguageSwitch @language-changed="handleLanguageChanged" />
           </div>
           <div class="flex items-center space-x-4">
             <span v-if="selectedTemplate" class="text-sm theme-manager-text-secondary">
@@ -617,6 +619,7 @@ import { useI18n } from 'vue-i18n'
 import { templateManager, TemplateProcessor } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import BuiltinTemplateLanguageSwitch from './BuiltinTemplateLanguageSwitch.vue'
 import { syntaxGuideContent } from '../docs/syntax-guide'
 
 const { t } = useI18n()
@@ -696,8 +699,11 @@ const processedPreview = computed(() => {
 })
 
 // 加载提示词列表
-const loadTemplates = () => {
+const loadTemplates = async () => {
   try {
+    // Ensure template manager is initialized
+    await templateManager.ensureInitialized()
+
     const allTemplates = templateManager.listTemplates()
     templates.value = allTemplates
     console.log('加载到的提示词:', templates.value)
@@ -881,9 +887,13 @@ const applyMigration = async () => {
                             (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === template.id)
 
     if (isCurrentSelected) {
-      const updated = templateManager.getTemplate(template.id)
-      if (updated) {
-        emit('select', updated, currentType.value)
+      try {
+        const updated = templateManager.getTemplate(template.id)
+        if (updated) {
+          emit('select', updated, currentType.value)
+        }
+      } catch (error) {
+        console.error('Failed to get updated template:', error)
       }
     }
 
@@ -937,9 +947,13 @@ const handleSubmit = () => {
                             (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateData.id)
 
     if (editingTemplate.value && isCurrentSelected) {
-      const updatedTemplate = templateManager.getTemplate(templateData.id)
-      if (updatedTemplate) {
-        emit('select', updatedTemplate, currentType.value)
+      try {
+        const updatedTemplate = templateManager.getTemplate(templateData.id)
+        if (updatedTemplate) {
+          emit('select', updatedTemplate, currentType.value)
+        }
+      } catch (error) {
+        console.error('Failed to get updated template after save:', error)
       }
     }
 
@@ -952,12 +966,12 @@ const handleSubmit = () => {
 }
 
 // 确认删除
-const confirmDelete = (templateId) => {
+const confirmDelete = async (templateId) => {
   if (confirm(t('template.deleteConfirm'))) {
     try {
       templateManager.deleteTemplate(templateId)
       const remainingTemplates = templateManager.listTemplatesByType(currentType.value)
-      loadTemplates()
+      await loadTemplates()
       
       if (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateId) {
         emit('select', remainingTemplates[0] || null, 'optimize')
@@ -1048,9 +1062,41 @@ const syntaxGuideMarkdown = computed(() => {
   return syntaxGuideContent[locale] || syntaxGuideContent['zh-CN']
 })
 
-// 生命周期钩子
-onMounted(() => {
+// 处理内置模板语言变化
+const handleLanguageChanged = (newLanguage) => {
+  // 重新加载模板列表以反映新的语言
   loadTemplates()
+
+  // 如果当前选中的模板是内置模板，需要重新选择以获取新语言版本
+  const currentSelected = currentType.value === 'optimize'
+    ? props.selectedOptimizeTemplate
+    : props.selectedIterateTemplate
+
+  if (currentSelected && currentSelected.isBuiltin) {
+    try {
+      // 获取新语言版本的同一模板
+      const updatedTemplate = templateManager.getTemplate(currentSelected.id)
+      if (updatedTemplate) {
+        emit('select', updatedTemplate, currentType.value)
+      }
+    } catch (error) {
+      console.error('Failed to update selected template after language change:', error)
+      // 如果获取失败，选择第一个可用的模板
+      try {
+        const availableTemplates = templateManager.listTemplatesByType(currentType.value)
+        if (availableTemplates.length > 0) {
+          emit('select', availableTemplates[0], currentType.value)
+        }
+      } catch (listError) {
+        console.error('Failed to list templates after language change:', listError)
+      }
+    }
+  }
+}
+
+// 生命周期钩子
+onMounted(async () => {
+  await loadTemplates()
 })
 
 // 监听表单消息数量变化，只在新增消息时初始化新textarea

@@ -2,8 +2,12 @@ import { ITemplateManager, Template, TemplateManagerConfig } from './types';
 import { IStorageProvider } from '../storage/types';
 import { StorageFactory } from '../storage/factory';
 import { DEFAULT_TEMPLATES } from './defaults';
+import { DEFAULT_TEMPLATES_EN } from './defaults_en';
 import { TemplateError, TemplateValidationError } from './errors';
 import { templateSchema } from './types';
+import { templateLanguageService, BuiltinTemplateLanguage } from './languageService';
+
+
 
 /**
  * 提示词管理器实现
@@ -12,6 +16,8 @@ export class TemplateManager implements ITemplateManager {
   private readonly builtinTemplates: Map<string, Template>;
   private readonly userTemplates: Map<string, Template>;
   private readonly config: Required<TemplateManagerConfig>;
+  private initPromise: Promise<void> | null = null;
+  protected initialized = false;
 
   constructor(private storageProvider: IStorageProvider, config?: TemplateManagerConfig) {
     // Default configuration
@@ -25,23 +31,112 @@ export class TemplateManager implements ITemplateManager {
     this.builtinTemplates = new Map();
     this.userTemplates = new Map();
 
-    // Load built-in templates
-    for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
-      this.builtinTemplates.set(id, { ...template, isBuiltin: true });
-    }
-
-    // Initialize asynchronously - load user templates
-    this.init().catch(error => {
+    // Initialize asynchronously with improved error handling
+    this.initPromise = this.init().catch(error => {
       console.error('Template manager initialization failed:', error);
+      // Don't rethrow - allow fallback initialization
+      return this.fallbackInit();
     });
   }
 
   private async init(): Promise<void> {
     try {
+      // Initialize template language service first
+      await templateLanguageService.initialize();
+
+      // Load built-in templates based on current language
+      await this.loadBuiltinTemplates();
+
+      // Load user templates
       await this.loadUserTemplates();
+
+      this.initialized = true;
     } catch (error) {
       console.error('Template manager initialization failed:', error);
+      this.initialized = false;
+      throw error;
     }
+  }
+
+  /**
+   * Fallback initialization with default templates
+   */
+  private async fallbackInit(): Promise<void> {
+    try {
+      console.log('Attempting fallback initialization with default templates');
+      
+      // Clear any partially loaded templates
+      this.builtinTemplates.clear();
+      
+      // Load default Chinese templates as fallback
+      const { DEFAULT_TEMPLATES } = await import('./defaults');
+      for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
+        this.builtinTemplates.set(id, { ...template, isBuiltin: true });
+      }
+      
+      // Try to load user templates (non-critical)
+      try {
+        await this.loadUserTemplates();
+      } catch (userTemplateError) {
+        console.warn('Failed to load user templates during fallback:', userTemplateError);
+      }
+      
+      this.initialized = true;
+      console.log('Fallback initialization completed');
+    } catch (fallbackError) {
+      console.error('Fallback initialization also failed:', fallbackError);
+      this.initialized = false;
+      throw fallbackError;
+    }
+  }
+
+  /**
+   * Ensure the template manager is initialized
+   * This should be called before any template operations
+   */
+  async ensureInitialized(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    if (!this.initPromise) {
+      this.initPromise = this.init();
+    }
+
+    try {
+      await this.initPromise;
+    } catch (error) {
+      // Reset initPromise to allow retry
+      this.initPromise = null;
+      // If initialization still fails, at least ensure we have some templates
+      if (!this.initialized) {
+        console.error('Initialization failed, attempting emergency fallback');
+        await this.fallbackInit();
+      }
+    }
+  }
+
+  /**
+   * Check if the template manager is initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  /**
+   * Private method to check initialization state for sync methods
+   */
+  private checkInitialized(methodName: string): void {
+    if (!this.initialized) {
+      throw new TemplateError(`Template manager not initialized. Call ensureInitialized() first before using ${methodName}.`);
+    }
+  }
+
+  /**
+   * Private method to ensure initialization for async methods
+   */
+  private async ensureInitForAsyncMethod(): Promise<void> {
+    await this.ensureInitialized();
   }
 
   private validateTemplateSchema(template: Partial<Template>): void {
@@ -89,19 +184,25 @@ export class TemplateManager implements ITemplateManager {
    * @param id Template ID
    * @returns Template
    */
+  /**
+   * Gets a template by ID
+   * @param id Template ID
+   * @returns Template
+   */
   getTemplate(id: string | null | undefined): Template {
+    this.checkInitialized('getTemplate');
     this.validateTemplateId(id);
-    
+
     // Check built-in templates first
     if (this.builtinTemplates.has(id!)) {
       return this.builtinTemplates.get(id!)!;
     }
-    
+
     // Check user templates
     if (this.userTemplates.has(id!)) {
       return this.userTemplates.get(id!)!;
     }
-    
+
     // If we get here, the template wasn't found
     const available = [...this.builtinTemplates.keys(), ...this.userTemplates.keys()];
     throw new TemplateError(`Template ${id} not found, available templates: ${JSON.stringify(available, null, 2)}`);
@@ -113,22 +214,24 @@ export class TemplateManager implements ITemplateManager {
    * @returns Promise<void>
    */
   async saveTemplate(template: Template): Promise<void> {
+    await this.ensureInitForAsyncMethod();
+
     // Validate ID
     this.validateTemplateId(template.id);
-    
+
     // Validate template type
     if (template.metadata?.templateType) {
       this.validateTemplateType(template.metadata.templateType);
     }
-    
+
     // Prevent overwriting built-in templates
     if (this.builtinTemplates.has(template.id)) {
       throw new TemplateError(`Cannot overwrite built-in template: ${template.id}`);
     }
-    
+
     // Validate schema
     this.validateTemplateSchema(template);
-    
+
     // Set isBuiltin to false and add timestamp
     const templateToSave: Template = {
       ...template,
@@ -138,10 +241,10 @@ export class TemplateManager implements ITemplateManager {
         lastModified: Date.now()
       }
     };
-    
+
     // Add to user templates
     this.userTemplates.set(template.id, templateToSave);
-    
+
     // Persist
     await this.persistUserTemplates();
   }
@@ -151,6 +254,8 @@ export class TemplateManager implements ITemplateManager {
    * @param id Template ID
    */
   async deleteTemplate(id: string): Promise<void> {
+    await this.ensureInitForAsyncMethod();
+
     // Validate ID
     this.validateTemplateId(id);
     
@@ -175,6 +280,8 @@ export class TemplateManager implements ITemplateManager {
    * List all templates
    */
   listTemplates(): Template[] {
+    this.checkInitialized('listTemplates');
+
     const templates = [
       ...Array.from(this.builtinTemplates.values()),
       ...Array.from(this.userTemplates.values())
@@ -184,14 +291,14 @@ export class TemplateManager implements ITemplateManager {
       if (a.isBuiltin !== b.isBuiltin) {
         return a.isBuiltin ? -1 : 1;
       }
-      
+
       // Non-built-in templates sorted by timestamp descending
       if (!a.isBuiltin && !b.isBuiltin) {
         const timeA = a.metadata.lastModified || 0;
         const timeB = b.metadata.lastModified || 0;
         return timeB - timeA;
       }
-      
+
       return 0;
     });
   }
@@ -255,6 +362,59 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
+   * Load built-in templates based on current language setting
+   */
+  private async loadBuiltinTemplates(): Promise<void> {
+    try {
+      // Clear existing built-in templates
+      this.builtinTemplates.clear();
+
+      // Get current language from template language service
+      const currentLanguage = templateLanguageService.getCurrentLanguage();
+
+      // Load appropriate template set based on language
+      const templateSet = await this.getTemplateSet(currentLanguage);
+
+      // Load templates from selected set
+      for (const [id, template] of Object.entries(templateSet)) {
+        this.builtinTemplates.set(id, { ...template, isBuiltin: true });
+      }
+
+      console.log(`Loaded built-in templates in ${currentLanguage} (${this.builtinTemplates.size} templates)`);
+    } catch (error) {
+      console.error('Failed to load built-in templates:', error);
+      // Fallback to Chinese templates
+      for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
+        this.builtinTemplates.set(id, { ...template, isBuiltin: true });
+      }
+    }
+  }
+
+  /**
+   * Get template set for the specified language
+   * This method provides better extensibility for adding new languages
+   */
+  private async getTemplateSet(language: BuiltinTemplateLanguage): Promise<Record<string, Template>> {
+    switch (language) {
+      case 'en-US':
+        return DEFAULT_TEMPLATES_EN;
+      case 'zh-CN':
+        return DEFAULT_TEMPLATES;
+      default:
+        console.warn(`Unsupported language: ${language}, falling back to Chinese templates`);
+        return DEFAULT_TEMPLATES;
+    }
+  }
+
+  /**
+   * Reload built-in templates with new language
+   * This method can be called when user changes built-in template language
+   */
+  async reloadBuiltinTemplates(): Promise<void> {
+    await this.loadBuiltinTemplates();
+  }
+
+  /**
    * Loads user templates from storage
    */
   private async loadUserTemplates(): Promise<void> {
@@ -297,6 +457,38 @@ export class TemplateManager implements ITemplateManager {
       console.error(`Failed to get ${type} template list:`, error);
       return [];
     }
+  }
+
+  /**
+   * Change built-in template language
+   */
+  async changeBuiltinTemplateLanguage(language: BuiltinTemplateLanguage): Promise<void> {
+    try {
+      // Update language service
+      await templateLanguageService.setLanguage(language);
+
+      // Reload built-in templates with new language
+      await this.reloadBuiltinTemplates();
+
+      console.log(`Changed built-in template language to ${language}`);
+    } catch (error) {
+      console.error('Failed to change built-in template language:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current built-in template language
+   */
+  getCurrentBuiltinTemplateLanguage(): BuiltinTemplateLanguage {
+    return templateLanguageService.getCurrentLanguage();
+  }
+
+  /**
+   * Get supported built-in template languages
+   */
+  getSupportedBuiltinTemplateLanguages(): BuiltinTemplateLanguage[] {
+    return templateLanguageService.getSupportedLanguages();
   }
 }
 

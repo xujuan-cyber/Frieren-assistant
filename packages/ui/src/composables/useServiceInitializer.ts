@@ -15,9 +15,12 @@ export function useServiceInitializer(
   const llmService = createLLMService(modelManager)
 
   // Initialize base services
-  const initBaseServices = () => {
+  const initBaseServices = async () => {
     try {
       console.log(t('log.info.initBaseServicesStart'))
+
+      // 确保模板管理器已初始化
+      await templateManager.ensureInitialized()
 
       // Get and verify template list
       const templates = templateManager.listTemplates()
@@ -26,7 +29,7 @@ export function useServiceInitializer(
       // Create prompt service
       console.log(t('log.info.createPromptService'))
       promptServiceRef.value = createPromptService(modelManager, llmService, templateManager, historyManager)
-      
+
       console.log(t('log.info.initComplete'))
     } catch (error) {
       console.error(t('log.error.initBaseServicesFailed'), error)
@@ -36,8 +39,8 @@ export function useServiceInitializer(
   }
 
   // Auto initialize on mounted
-  onMounted(() => {
-    initBaseServices()
+  onMounted(async () => {
+    await initBaseServices()
   })
 
   return {

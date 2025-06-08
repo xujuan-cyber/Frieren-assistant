@@ -316,6 +316,11 @@ export default {
     configure: '配置提示词',
     selected: '已选择',
     select: '选择',
+    builtinLanguage: '内置模板语言',
+    switchBuiltinLanguage: '切换内置模板语言',
+    languageChanged: '内置模板语言已切换为 {language}',
+    languageChangeError: '切换内置模板语言失败',
+    languageInitError: '初始化内置模板语言失败',
     type: {
       optimize: '优化',
       iterate: '迭代'
@@ -421,6 +426,7 @@ export default {
     },
     success: {
       optimizeSuccess: '优化成功',
+      iterateComplete: '迭代完成',
       iterateSuccess: '迭代优化成功',
       modelSelected: '已选择模型: {name}',
       templateSelected: '已选择{type}提示词: {name}',

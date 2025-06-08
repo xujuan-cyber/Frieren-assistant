@@ -3,6 +3,8 @@
 // 导出模板相关
 export { TemplateManager, templateManager } from './services/template/manager'
 export { TemplateProcessor } from './services/template/processor'
+export { TemplateLanguageService, templateLanguageService } from './services/template/languageService'
+export type { BuiltinTemplateLanguage } from './services/template/languageService'
 export * from './services/template/types'
 export * from './services/template/defaults'
 export * from './services/template/errors'

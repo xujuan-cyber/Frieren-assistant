@@ -136,8 +136,10 @@ const handleResize = () => {
   updateDropdownPosition()
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('resize', handleResize)
+  // 确保模板管理器已初始化
+  await templateManager.ensureInitialized()
   refreshTemplates()
 })
 
@@ -159,6 +161,10 @@ watch(isOpen, async (newValue) => {
 const templates = computed(() => {
   // 使用 refreshTrigger 触发重新计算
   refreshTrigger.value
+  // 检查模板管理器是否已初始化
+  if (!templateManager.isInitialized()) {
+    return []
+  }
   return templateManager.listTemplatesByType(props.type)
 })
 
@@ -180,6 +186,10 @@ watch(
 // 改进刷新方法
 const refreshTemplates = () => {
   refreshTrigger.value++
+  // 检查模板管理器是否已初始化
+  if (!templateManager.isInitialized()) {
+    return
+  }
   // 刷新时也检查当前选中状态
   const currentTemplates = templateManager.listTemplatesByType(props.type)
   const currentTemplate = props.modelValue

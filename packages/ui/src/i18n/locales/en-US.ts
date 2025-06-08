@@ -316,6 +316,11 @@ export default {
     configure: 'Configure Template',
     selected: 'Selected',
     select: 'Select',
+    builtinLanguage: 'Built-in Template Language',
+    switchBuiltinLanguage: 'Switch built-in template language',
+    languageChanged: 'Built-in template language switched to {language}',
+    languageChangeError: 'Failed to switch built-in template language',
+    languageInitError: 'Failed to initialize built-in template language',
     type: {
       optimize: 'Optimize',
       iterate: 'Iterate'
@@ -421,6 +426,7 @@ export default {
     },
     success: {
       optimizeSuccess: 'Optimization successful',
+      iterateComplete: 'Iteration completed',
       iterateSuccess: 'Iteration optimization successful',
       modelSelected: 'Model selected: {name}',
       templateSelected: '{type} template selected: {name}',

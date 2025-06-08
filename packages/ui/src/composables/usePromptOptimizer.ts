@@ -198,6 +198,9 @@ export function usePromptOptimizer(
   // 初始化提示词选择
   const initTemplateSelection = async () => {
     try {
+      // 确保模板管理器已初始化
+      await templateManager.ensureInitialized()
+
       // 加载优化提示词
       const optimizeTemplateId = await storage.getItem(STORAGE_KEYS.OPTIMIZE_TEMPLATE)
       if (optimizeTemplateId) {
@@ -207,7 +210,7 @@ export function usePromptOptimizer(
             selectedOptimizeTemplate.value = optimizeTemplate
           }
         } catch (error) {
-          console.warn(t('toast.warn.loadOptimizeTemplateFailed'), error)
+          console.warn('加载已保存的优化提示词失败', error)
         }
       }
       
@@ -228,7 +231,7 @@ export function usePromptOptimizer(
             selectedIterateTemplate.value = iterateTemplate
           }
         } catch (error) {
-          console.warn(t('toast.warn.loadIterateTemplateFailed'), error)
+          console.warn('加载已保存的迭代提示词失败', error)
         }
       }
       
@@ -242,11 +245,11 @@ export function usePromptOptimizer(
 
       // 如果仍然无法加载任何提示词，显示错误
       if (!selectedOptimizeTemplate.value || !selectedIterateTemplate.value) {
-        throw new Error(t('toast.error.noDefaultTemplate'))
+        throw new Error('无法加载默认提示词')
       }
     } catch (error) {
-      console.error(t('toast.error.loadTemplateFailed'), error)
-      toast.error(t('toast.error.loadTemplateFailed'))
+      console.error('加载模板失败', error)
+      toast.error('加载模板失败')
     }
   }
 
