@@ -62,7 +62,7 @@ export class DexieStorageProvider implements IStorageProvider {
       await this.migrateFromLocalStorage();
       this.migrated = true;
     } catch (error) {
-      console.error('Dexie存储初始化失败:', error);
+      console.error('Dexie storage initialization failed:', error);
       throw error;
     }
   }

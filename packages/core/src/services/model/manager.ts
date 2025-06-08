@@ -18,7 +18,7 @@ export class ModelManager implements IModelManager {
     this.models = { ...defaultModels };
     // 使用适配器确保所有存储提供者都支持高级方法
     this.storage = new StorageAdapter(storageProvider);
-    this.init().catch(err => console.error('初始化模型管理器失败:', err));
+    this.init().catch(err => console.error('Model manager initialization failed:', err));
   }
 
   /**
@@ -84,7 +84,7 @@ export class ModelManager implements IModelManager {
         await this.saveToStorage();
       }
     } catch (error) {
-      console.error('初始化模型管理器失败:', error);
+      console.error('Model manager initialization failed:', error);
     }
   }
 
@@ -98,7 +98,7 @@ export class ModelManager implements IModelManager {
       try {
         this.models = JSON.parse(storedData);
       } catch (error) {
-        console.error('解析模型配置失败:', error);
+        console.error('Failed to parse model configuration:', error);
       }
     }
 
@@ -118,7 +118,7 @@ export class ModelManager implements IModelManager {
       try {
         this.models = JSON.parse(storedData);
       } catch (error) {
-        console.error('解析模型配置失败:', error);
+        console.error('Failed to parse model configuration:', error);
         return undefined;
       }
     }
@@ -136,7 +136,7 @@ export class ModelManager implements IModelManager {
       (currentModels) => {
         const models = currentModels || {};
         if (models[key]) {
-          throw new ModelConfigError(`模型 ${key} 已存在`);
+          throw new ModelConfigError(`Model ${key} already exists`);
         }
         return {
           ...models,
@@ -171,7 +171,7 @@ export class ModelManager implements IModelManager {
         // 如果模型不存在，检查是否是内置模型
         if (!models[key]) {
           if (!defaultModels[key]) {
-            throw new ModelConfigError(`模型 ${key} 不存在`);
+            throw new ModelConfigError(`Model ${key} does not exist`);
           }
           // 如果是内置模型但尚未配置，创建初始配置
           models[key] = { 
@@ -226,7 +226,7 @@ export class ModelManager implements IModelManager {
       (currentModels) => {
         const models = currentModels || {};
         if (!models[key]) {
-          throw new ModelConfigError(`模型 ${key} 不存在`);
+          throw new ModelConfigError(`Model ${key} does not exist`);
         }
         const { [key]: removed, ...remaining } = models;
         return remaining;
@@ -246,7 +246,7 @@ export class ModelManager implements IModelManager {
       (currentModels) => {
         const models = currentModels || {};
         if (!models[key]) {
-          throw new ModelConfigError(`未知的模型: ${key}`);
+          throw new ModelConfigError(`Unknown model: ${key}`);
         }
 
         // 使用完整验证
@@ -277,7 +277,7 @@ export class ModelManager implements IModelManager {
       (currentModels) => {
         const models = currentModels || {};
         if (!models[key]) {
-          throw new ModelConfigError(`未知的模型: ${key}`);
+          throw new ModelConfigError(`Unknown model: ${key}`);
         }
 
         return {
@@ -303,25 +303,25 @@ export class ModelManager implements IModelManager {
     const errors: string[] = [];
 
     if (!config.name) {
-      errors.push('缺少模型名称(name)');
+      errors.push('Missing model name (name)');
     }
     if (!config.baseURL) {
-      errors.push('缺少基础URL(baseURL)');
+      errors.push('Missing base URL (baseURL)');
     }
     if (!Array.isArray(config.models)) {
-      errors.push('模型列表(models)必须是数组');
+      errors.push('Model list (models) must be an array');
     } else if (config.models.length === 0) {
-      errors.push('模型列表(models)不能为空');
+      errors.push('Model list (models) cannot be empty');
     }
     if (!config.defaultModel) {
-      errors.push('缺少默认模型(defaultModel)');
+      errors.push('Missing default model (defaultModel)');
     } else if (!config.models?.includes(config.defaultModel)) {
-      errors.push('默认模型必须在模型列表中');
+      errors.push('Default model must be in the model list');
     }
 
     // Validate llmParams structure
     if (config.llmParams !== undefined && (typeof config.llmParams !== 'object' || config.llmParams === null || Array.isArray(config.llmParams))) {
-      errors.push('llmParams必须是一个对象');
+      errors.push('llmParams must be an object');
     }
 
     // Validate llmParams content for security and correctness
@@ -331,14 +331,14 @@ export class ModelManager implements IModelManager {
       
       if (!validation.isValid) {
         const paramErrors = validation.errors.map(error => 
-          `参数 ${error.parameterName}: ${error.message}`
+          `Parameter ${error.parameterName}: ${error.message}`
         );
         errors.push(...paramErrors);
       }
     }
 
     if (errors.length > 0) {
-      throw new ModelConfigError('无效的模型配置：' + errors.join('、'));
+      throw new ModelConfigError('Invalid model configuration: ' + errors.join(', '));
     }
   }
 
@@ -346,7 +346,7 @@ export class ModelManager implements IModelManager {
     this.validateConfig(config);
 
     if (!config.apiKey) {
-      throw new ModelConfigError('启用模型需要提供API密钥');
+      throw new ModelConfigError('API key is required to enable model');
     }
   }
 
@@ -357,7 +357,7 @@ export class ModelManager implements IModelManager {
     try {
       await this.storage.setItem(this.storageKey, JSON.stringify(this.models));
     } catch (error) {
-      console.error('保存模型配置失败:', error);
+      console.error('Failed to save model configuration:', error);
     }
   }
 

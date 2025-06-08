@@ -43,7 +43,7 @@ export const checkVercelApiAvailability = async (): Promise<boolean> => {
     // 检查响应状态，只有200状态码且内容proxySupport为true
     if (response.status !== 200) {
       vercelStatusCache = { available: false, checked: true };
-      console.log('[环境检测] 未检测到Vercel部署环境，代理功能不可用');
+      console.log('[Environment Detection] Vercel deployment environment not detected, proxy functionality unavailable');
       return false;
     }
     
@@ -54,14 +54,14 @@ export const checkVercelApiAvailability = async (): Promise<boolean> => {
     vercelStatusCache = { available: isAvailable, checked: true };
     
     if (isAvailable) {
-      console.log('[环境检测] 检测到Vercel部署环境，代理功能可用');
+      console.log('[Environment Detection] Vercel deployment environment detected, proxy functionality available');
     } else {
-      console.log('[环境检测] 未检测到Vercel部署环境，代理功能不可用');
+      console.log('[Environment Detection] Vercel deployment environment not detected, proxy functionality unavailable');
     }
     
     return isAvailable;
   } catch (error) {
-    console.log('[环境检测] Vercel API检测失败', error);
+    console.log('[Environment Detection] Vercel API detection failed', error);
     vercelStatusCache = { available: false, checked: true };
     return false;
   }

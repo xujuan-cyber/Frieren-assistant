@@ -180,6 +180,43 @@ export default {
     copyTemplate: 'Copy',
     useTemplate: 'Use',
     viewTemplate: 'View',
+    migrate: 'Upgrade',
+    help: 'Help',
+
+    // Template Format
+    templateFormat: 'Template Format',
+    simpleTemplate: 'Simple Template',
+    advancedTemplate: 'Advanced Template',
+    simpleTemplateHint: 'Use double brace syntax for variable substitution, e.g. originalPrompt',
+    advancedTemplateHint: 'Supports multi-message structure and advanced template syntax',
+
+    // Message Templates
+    messageTemplates: 'Message Templates',
+    addMessage: 'Add Message',
+    removeMessage: 'Remove Message',
+    moveUp: 'Move Up',
+    moveDown: 'Move Down',
+    messageContentPlaceholder: 'Enter message content, supports variables like {originalPrompt}',
+
+    // Roles
+    roleSystem: 'System',
+    roleUser: 'User',
+    roleAssistant: 'Assistant',
+
+    // Preview
+    preview: 'Preview',
+
+    // Migration
+    convertToAdvanced: 'Convert to Advanced Format',
+    migrationDescription: 'Convert simple template to advanced message format for more flexible control.',
+    originalTemplate: 'Original Template',
+    convertedTemplate: 'Converted Template',
+    applyMigration: 'Apply Conversion',
+    migrationSuccess: 'Template converted successfully',
+    migrationFailed: 'Template conversion failed',
+
+    // Syntax Guide
+    syntaxGuide: 'Syntax Guide',
 
     // Form Fields
     name: 'Template Name',
@@ -192,6 +229,11 @@ export default {
     contentPlaceholder: 'Enter template content',
     descriptionPlaceholder: 'Enter template description (optional)',
     searchPlaceholder: 'Search templates...',
+
+    // Validation Errors
+    noMessagesError: 'Advanced template requires at least one message',
+    emptyMessageError: 'Message content cannot be empty',
+    emptyContentError: 'Template content cannot be empty',
 
     // Confirmation
     deleteConfirm: 'Are you sure you want to delete this template? This action cannot be undone.',

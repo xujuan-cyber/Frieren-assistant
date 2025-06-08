@@ -12,6 +12,7 @@ export interface IPromptService {
   /** 迭代优化提示词 */
   iteratePrompt(
     originalPrompt: string,
+    lastOptimizedPrompt: string,
     iterateInput: string,
     modelKey: string
   ): Promise<string>;
@@ -40,6 +41,7 @@ export interface IPromptService {
   /** 迭代优化提示词（流式） */
   iteratePromptStream(
     originalPrompt: string,
+    lastOptimizedPrompt: string,
     iterateInput: string,
     modelKey: string,
     handlers: StreamHandlers,

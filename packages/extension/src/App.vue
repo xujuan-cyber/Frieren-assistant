@@ -74,6 +74,7 @@
       <div class="flex-1 min-h-0 overflow-y-auto">
         <PromptPanelUI
           v-model:optimized-prompt="optimizedPrompt"
+          :original-prompt="prompt"
           :is-iterating="isIterating"
           v-model:selected-iterate-template="selectedIterateTemplate"
           :versions="currentVersions"
@@ -81,6 +82,7 @@
           @iterate="handleIteratePrompt"
           @openTemplateManager="openTemplateManager"
           @switchVersion="handleSwitchVersion"
+          @templateSelect="handleTemplateSelect"
         />
       </div>
     </ContentCardUI>

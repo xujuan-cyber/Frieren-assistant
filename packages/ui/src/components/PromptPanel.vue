@@ -81,6 +81,7 @@
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
             :type="templateType"
             @manage="$emit('openTemplateManager', templateType)"
+            @select="handleTemplateSelect"
           />
         </div>
         
@@ -153,6 +154,7 @@ const { elementRef: promptTextarea, watchSource, forceScrollToBottom, shouldAuto
 
 interface IteratePayload {
   originalPrompt: string;
+  optimizedPrompt: string;
   iterateInput: string;
 }
 
@@ -176,6 +178,10 @@ const props = defineProps({
   currentVersionId: {
     type: String,
     default: ''
+  },
+  originalPrompt: {
+    type: String,
+    default: ''
   }
 })
 
@@ -185,6 +191,7 @@ const emit = defineEmits<{
   'openTemplateManager': [type: 'optimize' | 'iterate'];
   'update:selectedIterateTemplate': [template: Template | null];
   'switchVersion': [version: PromptRecord];
+  'templateSelect': [template: Template, type: 'optimize' | 'iterate'];
 }>()
 
 const showIterateInput = ref(false)
@@ -241,13 +248,19 @@ const submitIterate = () => {
   }
   
   emit('iterate', {
-    originalPrompt: props.optimizedPrompt,
+    originalPrompt: props.originalPrompt,
+    optimizedPrompt: props.optimizedPrompt,
     iterateInput: iterateInput.value.trim()
   })
   
   // 重置输入
   iterateInput.value = ''
   showIterateInput.value = false
+}
+
+// 处理模板选择并保存
+const handleTemplateSelect = (template: Template, type: 'optimize' | 'iterate') => {
+  emit('templateSelect', template, type)
 }
 
 // 添加版本切换函数

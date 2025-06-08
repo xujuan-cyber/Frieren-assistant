@@ -12,12 +12,20 @@ export interface TemplateMetadata {
 }
 
 /**
+ * 消息模板定义
+ */
+export interface MessageTemplate {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+/**
  * 提示词定义
  */
 export interface Template {
   id: string;              // 提示词唯一标识
   name: string;            // 提示词名称
-  content: string;         // 提示词内容
+  content: string | MessageTemplate[];         // 提示词内容 - 支持字符串或消息数组
   metadata: TemplateMetadata;
   isBuiltin?: boolean;     // 是否为内置提示词
 }
@@ -71,12 +79,23 @@ export interface ITemplateManager {
 }
 
 /**
+ * 消息模板验证Schema
+ */
+export const messageTemplateSchema = z.object({
+  role: z.enum(['system', 'user', 'assistant']),
+  content: z.string().min(1)
+});
+
+/**
  * 提示词验证Schema
  */
 export const templateSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  content: z.string().min(1),
+  content: z.union([
+    z.string().min(1),
+    z.array(messageTemplateSchema).min(1)
+  ]),
   metadata: z.object({
     version: z.string(),
     lastModified: z.number(),
@@ -85,4 +104,4 @@ export const templateSchema = z.object({
     templateType: z.enum(['optimize', 'iterate'])
   }),
   isBuiltin: z.boolean().optional()
-}); 
+});

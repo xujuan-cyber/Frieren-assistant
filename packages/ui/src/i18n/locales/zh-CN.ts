@@ -180,6 +180,43 @@ export default {
     copyTemplate: '复制',
     useTemplate: '使用此提示词',
     viewTemplate: '查看',
+    migrate: '升级',
+    help: '帮助',
+
+    // 模板格式
+    templateFormat: '模板格式',
+    simpleTemplate: '简单模板',
+    advancedTemplate: '高级模板',
+    simpleTemplateHint: '使用双花括号语法进行变量替换，如 originalPrompt',
+    advancedTemplateHint: '支持多消息结构和高级模板语法',
+
+    // 消息模板
+    messageTemplates: '消息模板',
+    addMessage: '添加消息',
+    removeMessage: '删除消息',
+    moveUp: '上移',
+    moveDown: '下移',
+    messageContentPlaceholder: '输入消息内容，支持变量如 {originalPrompt}',
+
+    // 角色
+    roleSystem: '系统',
+    roleUser: '用户',
+    roleAssistant: '助手',
+
+    // 预览
+    preview: '预览',
+
+    // 迁移
+    convertToAdvanced: '转换为高级格式',
+    migrationDescription: '将简单模板转换为高级消息格式，提供更灵活的控制能力。',
+    originalTemplate: '原始模板',
+    convertedTemplate: '转换后模板',
+    applyMigration: '应用转换',
+    migrationSuccess: '模板转换成功',
+    migrationFailed: '模板转换失败',
+
+    // 语法指南
+    syntaxGuide: '语法指南',
 
     // 表单字段
     name: '提示词名称',
@@ -192,6 +229,11 @@ export default {
     contentPlaceholder: '请输入提示词内容',
     descriptionPlaceholder: '请输入提示词描述（可选）',
     searchPlaceholder: '搜索提示词...',
+
+    // 验证错误
+    noMessagesError: '高级模板至少需要一条消息',
+    emptyMessageError: '消息内容不能为空',
+    emptyContentError: '模板内容不能为空',
 
     // 确认信息
     deleteConfirm: '确定要删除此提示词吗？此操作不可恢复。',

@@ -2,6 +2,7 @@
 
 // 导出模板相关
 export { TemplateManager, templateManager } from './services/template/manager'
+export { TemplateProcessor } from './services/template/processor'
 export * from './services/template/types'
 export * from './services/template/defaults'
 export * from './services/template/errors'

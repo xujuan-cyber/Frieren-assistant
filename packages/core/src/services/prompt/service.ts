@@ -7,7 +7,9 @@ import { TemplateManager, templateManager as defaultTemplateManager } from '../t
 import { HistoryManager, historyManager as defaultHistoryManager } from '../history/manager';
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
 import { ERROR_MESSAGES } from '../llm/errors';
+import { TemplateProcessor, TemplateContext } from '../template/processor';
 import { v4 as uuidv4 } from 'uuid';
+import { MessageTemplate } from '../template/types';
 
 /**
  * 提示词服务实现
@@ -74,7 +76,7 @@ export class PromptService implements IPromptService {
   async optimizePrompt(prompt: string, modelKey: string): Promise<string> {
     try {
       this.validateInput(prompt, modelKey);
-      
+
       // 获取模型配置（使用统一错误）
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -97,11 +99,9 @@ export class PromptService implements IPromptService {
         throw new OptimizationError('优化失败: 提示词不存在或无效', prompt);
       }
 
-      // 构建消息
-      const messages: Message[] = [
-        { role: 'system', content: template.content },
-        { role: 'user', content: prompt }
-      ];
+      // 使用TemplateProcessor处理模板和变量替换
+      const context: TemplateContext = { originalPrompt: prompt };
+      const messages = TemplateProcessor.processTemplate(template, context);
 
       // 发送请求
       const result = await this.llmService.sendMessage(messages, modelKey);
@@ -134,13 +134,15 @@ export class PromptService implements IPromptService {
    */
   async iteratePrompt(
     originalPrompt: string,
+    lastOptimizedPrompt: string,
     iterateInput: string,
     modelKey: string
   ): Promise<string> {
     try {
       this.validateInput(originalPrompt, modelKey);
+      this.validateInput(lastOptimizedPrompt, modelKey);
       this.validateInput(iterateInput, modelKey);
-      
+
       // 获取模型配置
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -150,7 +152,7 @@ export class PromptService implements IPromptService {
       // 获取迭代提示词
       let template;
       try {
-        template = await this.templateManager.getTemplate('iterate');
+        template = this.templateManager.getTemplate('iterate');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new IterationError(`迭代失败: ${errorMessage}`, originalPrompt, iterateInput);
@@ -160,11 +162,13 @@ export class PromptService implements IPromptService {
         throw new IterationError('迭代失败: 提示词不存在或无效', originalPrompt, iterateInput);
       }
 
-      // 构建消息
-      const messages: Message[] = [
-        { role: 'system', content: template.content },
-        { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
-      ];
+      // 使用TemplateProcessor处理模板和变量替换
+      const context: TemplateContext = {
+        originalPrompt,
+        lastOptimizedPrompt,
+        iterateInput
+      };
+      const messages = TemplateProcessor.processTemplate(template, context);
 
       // 发送请求
       const result = await this.llmService.sendMessage(messages, modelKey);
@@ -295,7 +299,7 @@ export class PromptService implements IPromptService {
   ): Promise<void> {
     try {
       this.validateInput(prompt, modelKey);
-      
+
       // 获取模型配置
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
@@ -305,6 +309,7 @@ export class PromptService implements IPromptService {
         );
       }
 
+      // 为了保持向后兼容，这里直接使用传入的template字符串
       // 构建消息
       const messages: Message[] = [
         { role: 'system', content: template },
@@ -340,39 +345,50 @@ export class PromptService implements IPromptService {
    */
   async iteratePromptStream(
     originalPrompt: string,
+    lastOptimizedPrompt: string,
     iterateInput: string,
     modelKey: string,
     handlers: StreamHandlers,
-    template: { content: string } | string
+    template: { content: string | MessageTemplate[] } | string
   ): Promise<void> {
     try {
       this.validateInput(originalPrompt, modelKey);
+      this.validateInput(lastOptimizedPrompt, modelKey);
       this.validateInput(iterateInput, modelKey);
-      
+
       // 获取模型配置
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new ServiceDependencyError('模型不存在', 'ModelManager');
       }
 
-      // 获取迭代提示词
-      let templateContent: string;
+      let messages: Message[];
+
+      // 处理不同类型的模板
       if (typeof template === 'string') {
-        templateContent = template;
-      } else if (template && typeof template.content === 'string') {
-        templateContent = template.content;
+        // 字符串模板，保持向后兼容
+        messages = [
+          { role: 'system', content: template },
+          { role: 'user', content: `原始提示词：${originalPrompt}\n\n上一次优化版本：${lastOptimizedPrompt}\n\n优化需求：${iterateInput}` }
+        ];
+      } else if (template && template.content) {
+        // Template对象，使用TemplateProcessor处理
+        const templateObj = {
+          id: 'temp',
+          name: 'temp',
+          content: template.content,
+          metadata: { version: '1.0', lastModified: Date.now(), templateType: 'iterate' as const }
+        };
+
+        const context: TemplateContext = {
+          originalPrompt,
+          lastOptimizedPrompt,
+          iterateInput
+        };
+        messages = TemplateProcessor.processTemplate(templateObj, context);
       } else {
         throw new IterationError('迭代失败: 未提供有效的提示词模板', originalPrompt, iterateInput);
       }
-
-      // 构建消息
-      const messages: Message[] = [
-        {
-          role: 'system',
-          content: templateContent
-        },
-        { role: 'user', content: `原始提示词：${originalPrompt}\n\n优化需求：${iterateInput}` }
-      ];
 
       // 使用流式调用
       let result = '';
@@ -408,6 +424,6 @@ export function createPromptService(
     return new PromptService(modelManager, llmService, templateManager, historyManager);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`初始化失败: ${errorMessage}`);
+    throw new Error(`Initialization failed: ${errorMessage}`);
   }
 } 

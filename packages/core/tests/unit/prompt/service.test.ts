@@ -8,6 +8,7 @@ import {
   HistoryManager,
   ModelConfig,
   Template,
+  MessageTemplate,
   PromptRecord,
   PromptRecordType,
   OptimizationError,
@@ -48,6 +49,26 @@ describe('PromptService', () => {
       version: '1.0',
       lastModified: Date.now(),
       templateType: 'optimize' as const
+    }
+  };
+
+  const mockIterateTemplate: Template = {
+    id: 'iterate',
+    name: 'Iterate Template',
+    content: [
+      {
+        role: 'system',
+        content: 'You are a prompt optimizer.'
+      },
+      {
+        role: 'user',
+        content: 'Original: {{originalPrompt}}\n\nImprove: {{iterateInput}}'
+      }
+    ] as MessageTemplate[],
+    metadata: {
+      version: '1.0',
+      lastModified: Date.now(),
+      templateType: 'iterate' as const
     }
   };
 
@@ -125,10 +146,10 @@ describe('PromptService', () => {
 
   describe('iteratePrompt', () => {
     it('应该成功迭代提示词', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockIterateTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代后的提示词');
 
-      const result = await promptService.iteratePrompt('test prompt', 'test input', 'test-model');
+      const result = await promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model');
       expect(result).toBe('迭代后的提示词');
     });
 
@@ -137,7 +158,7 @@ describe('PromptService', () => {
         throw new Error('提示词管理器未初始化');
       });
 
-      await expect(promptService.iteratePrompt('test prompt', 'test input', 'test-model'))
+      await expect(promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model'))
         .rejects
         .toThrow(IterationError);
     });
@@ -258,11 +279,11 @@ describe('PromptService', () => {
     });
 
     it('应该正确记录迭代历史', async () => {
-      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockIterateTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
       const addRecordSpy = vi.spyOn(historyManager, 'addRecord');
 
-      await promptService.iteratePrompt('test prompt', 'test input', 'test-model');
+      await promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model');
 
       expect(addRecordSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'iterate',
@@ -374,7 +395,7 @@ describe('PromptService', () => {
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
       vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
 
-      await expect(promptService.iteratePrompt('test prompt', 'test input', 'test-model'))
+      await expect(promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model'))
         .rejects
         .toThrow(IterationError);
     });
