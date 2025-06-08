@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "zh_CN",
   "name": "__MSG_extName__",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "__MSG_extDesc__",
   "icons": {
     "16": "icons/icon16.png",
@@ -20,8 +20,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": [
-  ],
+  "permissions": [],
   "homepage_url": "https://github.com/linshenkx/prompt-optimizer",
   "author": "linshenkx",
   "content_security_policy": {
@@ -31,4 +30,4 @@
   "incognito": "split",
   "short_name": "__MSG_extShortName__",
   "minimum_chrome_version": "88"
-} 
+}
