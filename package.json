@@ -38,7 +38,9 @@
     "clean:dist": "npm-run-all clean:core clean:ui clean:web clean:ext",
     "clean": "npm-run-all clean:dist clean:vite",
     "setup:install": "pnpm install",
-    "dev:fresh": "npm-run-all clean setup:install dev"
+    "dev:fresh": "npm-run-all clean setup:install dev",
+    "version:sync": "node scripts/sync-versions.js",
+    "version": "pnpm run version:sync && git add -A"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

@@ -187,8 +187,8 @@ export default {
     templateFormat: '模板格式',
     simpleTemplate: '简单模板',
     advancedTemplate: '高级模板',
-    simpleTemplateHint: '使用双花括号语法进行变量替换，如 originalPrompt',
-    advancedTemplateHint: '支持多消息结构和高级模板语法',
+    simpleTemplateHint: '不使用模板技术，直接将模板内容作为系统提示词，用户输入作为用户消息',
+    advancedTemplateHint: '支持多消息结构和高级模板语法，可使用变量：{{originalPrompt}}、{{lastOptimizedPrompt}}、{{iterateInput}}',
 
     // 消息模板
     messageTemplates: '消息模板',
@@ -196,7 +196,7 @@ export default {
     removeMessage: '删除消息',
     moveUp: '上移',
     moveDown: '下移',
-    messageContentPlaceholder: '输入消息内容，支持变量如 {originalPrompt}',
+    messageContentPlaceholder: '输入消息内容，支持变量如 {{originalPrompt}}',
 
     // 角色
     roleSystem: '系统',
