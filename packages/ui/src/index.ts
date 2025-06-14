@@ -1,4 +1,4 @@
-﻿﻿// 导入样式
+﻿﻿﻿﻿// 导入样式
 import 'element-plus/dist/index.css'
 import './styles/index.css'
 import './styles/scrollbar.css'
@@ -31,6 +31,7 @@ export { default as TestPanelUI } from './components/TestPanel.vue'
 export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
 export { default as BuiltinTemplateLanguageSwitchUi } from './components/BuiltinTemplateLanguageSwitch.vue'
 export { default as DataManagerUI } from './components/DataManager.vue'
+export { default as PromptTypeSelectorUI } from './components/PromptTypeSelector.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'

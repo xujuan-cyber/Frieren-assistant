@@ -39,21 +39,47 @@
         </div>
 
         <!-- 新增类型切换标签 -->
-        <div class="flex space-x-4 mb-6 p-1 theme-manager-card">
-          <button 
-            v-for="type in ['optimize', 'iterate']" 
-            :key="type"
-            @click="currentType = type"
+        <div class="flex space-x-2 mb-6 p-1 theme-manager-card">
+          <button
+            @click="currentCategory = 'system-optimize'"
             :class="[
-              'flex-1 font-medium transition-all duration-200',
-              currentType === type 
-                ? 'theme-manager-button-primary' 
+              'flex-1 font-medium transition-all duration-200 text-sm',
+              currentCategory === 'system-optimize'
+                ? 'theme-manager-button-primary'
                 : 'theme-manager-button-secondary'
             ]"
           >
             <div class="flex items-center justify-center space-x-2">
-              <span class="text-lg">{{ type === 'optimize' ? '🎯' : '🔄' }}</span>
-              <span>{{ t(`templateManager.${type}Templates`) }}</span>
+              <span class="text-lg">🎯</span>
+              <span>{{ t('templateManager.optimizeTemplates') }}</span>
+            </div>
+          </button>
+          <button
+            @click="currentCategory = 'user-optimize'"
+            :class="[
+              'flex-1 font-medium transition-all duration-200 text-sm',
+              currentCategory === 'user-optimize'
+                ? 'theme-manager-button-primary'
+                : 'theme-manager-button-secondary'
+            ]"
+          >
+            <div class="flex items-center justify-center space-x-2">
+              <span class="text-lg">👤</span>
+              <span>{{ t('templateManager.userOptimizeTemplates') }}</span>
+            </div>
+          </button>
+          <button
+            @click="currentCategory = 'iterate'"
+            :class="[
+              'flex-1 font-medium transition-all duration-200 text-sm',
+              currentCategory === 'iterate'
+                ? 'theme-manager-button-primary'
+                : 'theme-manager-button-secondary'
+            ]"
+          >
+            <div class="flex items-center justify-center space-x-2">
+              <span class="text-lg">🔄</span>
+              <span>{{ t('templateManager.iterateTemplates') }}</span>
             </div>
           </button>
         </div>
@@ -63,7 +89,7 @@
           <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold flex items-center gap-2 min-w-0 overflow-hidden">
               <span class="theme-manager-text truncate">
-                {{ t(`templateManager.${currentType}TemplateList`) }}
+                {{ getCurrentCategoryLabel() }}
               </span>
               <span class="theme-manager-tag whitespace-nowrap flex-shrink-0 mr-2">
                 {{ t('templateManager.templateCount', { count: filteredTemplates.length }) }}
@@ -85,13 +111,11 @@
               :key="template.id"
               class="theme-manager-card p-4 group relative transition-all duration-300 ease-in-out"
               :class="[
-                (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
-                  ? template.metadata.templateType === 'optimize'
-                    ? 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
-                    : 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
+                getSelectedTemplateId() === template.id
+                  ? 'opacity-70 shadow-none hover:shadow-none scale-[0.99] transform'
                   : 'theme-manager-card'
               ]"
-              @click="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) !== template.id && selectTemplate(template)"
+              @click="getSelectedTemplateId() !== template.id && selectTemplate(template)"
             >
               <div class="flex items-start justify-between">
                 <div>
@@ -108,13 +132,13 @@
                     @click="selectTemplate(template)"
                     :class="[
                       'rounded-lg hidden text-sm',
-                      (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id
+                      getSelectedTemplateId() === template.id
                         ? 'theme-manager-button-primary'
                         : 'theme-manager-button-secondary'
                     ]"
                   >
-                    {{ (currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id 
-                      ? t('template.selected') 
+                    {{ getSelectedTemplateId() === template.id
+                      ? t('template.selected')
                       : t('template.select') }}
                   </button>
                   <button
@@ -199,7 +223,7 @@
                 </span>
                 <transition name="fade">
                     <span
-                    v-if="(currentType === 'optimize' ? selectedOptimizeTemplate?.id : selectedIterateTemplate?.id) === template.id"
+                    v-if="getSelectedTemplateId() === template.id"
                     class="capitalize ml-2 theme-manager-tag transition-opacity duration-300 ease-in-out"
                   >{{ t('template.selected') }}</span>
                 </transition>
@@ -625,12 +649,13 @@ import { syntaxGuideContent } from '../docs/syntax-guide'
 const { t } = useI18n()
 
 const props = defineProps({
-  selectedOptimizeTemplate: Object,
+  selectedSystemOptimizeTemplate: Object,
+  selectedUserOptimizeTemplate: Object,
   selectedIterateTemplate: Object,
   templateType: {
     type: String,
     required: true,
-    validator: (value) => ['optimize', 'iterate'].includes(value)
+    validator: (value) => ['optimize', 'userOptimize', 'iterate'].includes(value)
   }
 })
 
@@ -638,7 +663,8 @@ const emit = defineEmits(['close', 'select'])
 const toast = useToast()
 
 const templates = ref([])
-const currentType = ref(props.templateType)
+const currentCategory = ref(getCategoryFromProps())
+const currentType = computed(() => getCurrentTemplateType())
 const showAddForm = ref(false)
 const editingTemplate = ref(null)
 const viewingTemplate = ref(null)
@@ -661,10 +687,55 @@ const migrationDialog = ref({
 
 // 添加计算属性
 const selectedTemplate = computed(() => {
-  return currentType.value === 'optimize'
-    ? props.selectedOptimizeTemplate
-    : props.selectedIterateTemplate
+  switch (props.templateType) {
+    case 'optimize':
+      return props.selectedSystemOptimizeTemplate
+    case 'userOptimize':
+      return props.selectedUserOptimizeTemplate
+    case 'iterate':
+      return props.selectedIterateTemplate
+    default:
+      return null
+  }
 })
+
+// 根据props确定初始分类
+function getCategoryFromProps() {
+  switch (props.templateType) {
+    case 'optimize':
+      return 'system-optimize'
+    case 'userOptimize':
+      return 'user-optimize'
+    case 'iterate':
+      return 'iterate'
+    default:
+      return 'system-optimize'
+  }
+}
+
+// 获取当前模板类型
+function getCurrentTemplateType() {
+  return props.templateType
+}
+
+// 获取当前选中的模板ID
+function getSelectedTemplateId() {
+  return selectedTemplate.value?.id
+}
+
+// 获取当前分类标签
+function getCurrentCategoryLabel() {
+  switch (currentCategory.value) {
+    case 'system-optimize':
+      return t('templateManager.optimizeTemplateList')
+    case 'user-optimize':
+      return t('templateManager.userOptimizeTemplateList')
+    case 'iterate':
+      return t('templateManager.iterateTemplateList')
+    default:
+      return ''
+  }
+}
 
 // 检查是否为字符串模板
 const isStringTemplate = (template) => {
@@ -883,14 +954,14 @@ const applyMigration = async () => {
     loadTemplates()
 
     // 如果当前选中的模板被更新，重新选择
-    const isCurrentSelected = (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === template.id) ||
-                            (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === template.id)
+    const isCurrentSelected = getSelectedTemplateId() === template.id
 
     if (isCurrentSelected) {
       try {
         const updated = templateManager.getTemplate(template.id)
         if (updated) {
-          emit('select', updated, currentType.value)
+          const templateType = currentCategory.value === 'iterate' ? 'iterate' : 'optimize'
+          emit('select', updated, templateType)
         }
       } catch (error) {
         console.error('Failed to get updated template:', error)
@@ -927,30 +998,31 @@ const handleSubmit = () => {
       }
     }
 
+    const metadata = {
+      version: '1.0.0',
+      lastModified: Date.now(),
+      description: form.value.description,
+      author: 'User',
+      templateType: getCurrentTemplateType()
+    }
+
     const templateData = {
       id: editingTemplate.value?.id || generateUniqueTemplateId('user-template'),
       name: form.value.name,
       content: form.value.isAdvanced ? form.value.messages : form.value.content,
-      metadata: {
-        version: '1.0.0',
-        lastModified: Date.now(),
-        description: form.value.description,
-        author: 'User',
-        templateType: currentType.value
-      }
+      metadata
     }
 
     templateManager.saveTemplate(templateData)
     loadTemplates()
 
-    const isCurrentSelected = (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateData.id) ||
-                            (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateData.id)
+    const isCurrentSelected = getSelectedTemplateId() === templateData.id
 
     if (editingTemplate.value && isCurrentSelected) {
       try {
         const updatedTemplate = templateManager.getTemplate(templateData.id)
         if (updatedTemplate) {
-          emit('select', updatedTemplate, currentType.value)
+          emit('select', updatedTemplate, getCurrentTemplateType());
         }
       } catch (error) {
         console.error('Failed to get updated template after save:', error)
@@ -970,13 +1042,13 @@ const confirmDelete = async (templateId) => {
   if (confirm(t('template.deleteConfirm'))) {
     try {
       templateManager.deleteTemplate(templateId)
-      const remainingTemplates = templateManager.listTemplatesByType(currentType.value)
       await loadTemplates()
-      
-      if (currentType.value === 'optimize' && props.selectedOptimizeTemplate?.id === templateId) {
-        emit('select', remainingTemplates[0] || null, 'optimize')
-      } else if (currentType.value === 'iterate' && props.selectedIterateTemplate?.id === templateId) {
-        emit('select', remainingTemplates[0] || null, 'iterate')
+
+      // 获取当前分类的剩余模板
+      const remainingTemplates = filteredTemplates.value
+
+      if (getSelectedTemplateId() === templateId) {
+        emit('select', remainingTemplates[0] || null, getCurrentTemplateType())
       }
       
       toast.success(t('template.success.deleted'))
@@ -1048,13 +1120,32 @@ const copyTemplate = (template) => {
 
 // 选择提示词
 const selectTemplate = (template) => {
-  emit('select', template, currentType.value)
+  emit('select', template, getCurrentTemplateType());
 }
 
-// 按类型过滤提示词
-const filteredTemplates = computed(() => 
-  templates.value.filter(t => t.metadata.templateType === currentType.value)
-)
+// 按分类过滤提示词
+const filteredTemplates = computed(() => {
+  return templates.value.filter(t => {
+    const templateType = t.metadata.templateType
+
+    switch (currentCategory.value) {
+      case 'system-optimize':
+        // 系统提示词优化模板：optimize类型
+        return templateType === 'optimize'
+
+      case 'user-optimize':
+        // 用户提示词优化模板：userOptimize类型
+        return templateType === 'userOptimize'
+
+      case 'iterate':
+        // 迭代优化模板：iterate类型
+        return templateType === 'iterate'
+
+      default:
+        return false
+    }
+  })
+})
 
 // 获取当前语言的语法指南内容
 const syntaxGuideMarkdown = computed(() => {
@@ -1062,37 +1153,35 @@ const syntaxGuideMarkdown = computed(() => {
   return syntaxGuideContent[locale] || syntaxGuideContent['zh-CN']
 })
 
-// 处理内置模板语言变化
-const handleLanguageChanged = (newLanguage) => {
-  // 重新加载模板列表以反映新的语言
-  loadTemplates()
+  // 处理内置模板语言变化
+  const handleLanguageChanged = (newLanguage) => {
+    // 重新加载模板列表以反映新的语言
+    loadTemplates()
 
-  // 如果当前选中的模板是内置模板，需要重新选择以获取新语言版本
-  const currentSelected = currentType.value === 'optimize'
-    ? props.selectedOptimizeTemplate
-    : props.selectedIterateTemplate
+    // 如果当前选中的模板是内置模板，需要重新选择以获取新语言版本
+    const currentSelected = selectedTemplate.value
 
-  if (currentSelected && currentSelected.isBuiltin) {
-    try {
-      // 获取新语言版本的同一模板
-      const updatedTemplate = templateManager.getTemplate(currentSelected.id)
-      if (updatedTemplate) {
-        emit('select', updatedTemplate, currentType.value)
-      }
-    } catch (error) {
-      console.error('Failed to update selected template after language change:', error)
-      // 如果获取失败，选择第一个可用的模板
+    if (currentSelected && currentSelected.isBuiltin) {
       try {
-        const availableTemplates = templateManager.listTemplatesByType(currentType.value)
-        if (availableTemplates.length > 0) {
-          emit('select', availableTemplates[0], currentType.value)
+        // 获取新语言版本的同一模板
+        const updatedTemplate = templateManager.getTemplate(currentSelected.id)
+        if (updatedTemplate) {
+          emit('select', updatedTemplate, getCurrentTemplateType());
         }
-      } catch (listError) {
-        console.error('Failed to list templates after language change:', listError)
+      } catch (error) {
+        console.error('Failed to update selected template after language change:', error)
+        // 如果获取失败，选择第一个可用的模板
+        try {
+          const availableTemplates = filteredTemplates.value
+          if (availableTemplates.length > 0) {
+            emit('select', availableTemplates[0], getCurrentTemplateType());
+          }
+        } catch (listError) {
+          console.error('Failed to list templates after language change:', listError)
+        }
       }
     }
   }
-}
 
 // 生命周期钩子
 onMounted(async () => {
@@ -1112,8 +1201,6 @@ watch([() => showAddForm.value, () => editingTemplate.value, () => viewingTempla
     initializeAllTextareas()
   }
 })
-
-
 
 // 统一初始化所有textarea高度 - 只在打开时调用一次
 const initializeAllTextareas = () => {

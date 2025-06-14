@@ -43,6 +43,7 @@ export default {
     importing: '导入中...',
     number: '数字',
     integer: '整数',
+    optional: '可选',
   },
   nav: {
     home: '首页',
@@ -64,6 +65,17 @@ export default {
     originalPrompt: '原始提示词',
     optimizeModel: '优化模型',
     templateLabel: '优化提示词',
+
+    // 新增：优化模式相关
+    promptType: '优化模式',
+    systemPrompt: '系统提示词优化',
+    userPrompt: '用户提示词优化',
+    systemPromptInput: '系统提示词',
+    userPromptInput: '用户提示词',
+    systemPromptPlaceholder: '请输入需要优化的系统提示词...',
+    userPromptPlaceholder: '请输入需要优化的用户提示词...',
+    systemPromptHelp: '系统提示词优化模式：优化用于定义AI助手角色、行为和回应风格的系统提示词',
+    userPromptHelp: '用户提示词优化模式：优化用户与AI交互时使用的提示词，提高交互效果和准确性'
   },
   settings: {
     title: '设置',
@@ -165,10 +177,12 @@ export default {
   },
   templateManager: {
     title: '功能提示词管理',
-    optimizeTemplates: '优化提示词',
-    iterateTemplates: '迭代提示词',
-    optimizeTemplateList: '优化提示词列表',
-    iterateTemplateList: '迭代提示词列表',
+    optimizeTemplates: '系统提示词优化模板',
+    iterateTemplates: '迭代优化模板',
+    optimizeTemplateList: '系统提示词优化模板列表',
+    iterateTemplateList: '迭代优化模板列表',
+    userOptimizeTemplates: '用户提示词优化模板',
+    userOptimizeTemplateList: '用户提示词优化模板列表',
     addTemplate: '添加',
     editTemplate: '编辑',
     deleteTemplate: '删除',
@@ -303,9 +317,12 @@ export default {
     originalResult: '原始提示词结果',
     optimizedResult: '优化后提示词结果',
     testResult: '测试结果',
+    userPromptTest: '用户提示词测试',
+    userPromptTestHelp: '测试优化后的用户提示词效果。系统提示词将作为上下文，用户提示词将被发送给AI进行响应。',
     error: {
       failed: '测试失败',
-      noModel: '请先选择测试模型'
+      noModel: '请先选择测试模型',
+      noTestContent: '请输入测试内容'
     },
     enableMarkdown: '启用Markdown渲染',
     disableMarkdown: '关闭Markdown渲染',
@@ -417,6 +434,7 @@ export default {
       historyChainDeleteFailed: '删除历史记录失败',
       selectTemplateFailed: '选择提示词失败：{error}',
       noOptimizeTemplate: '请先选择优化提示词',
+      noOptimizeModel: '请先选择优化模型',
       noIterateTemplate: '请先选择迭代提示词',
       incompleteTestInfo: '请填写完整的测试信息',
       noDefaultTemplate: '无法加载默认提示词',

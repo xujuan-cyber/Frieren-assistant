@@ -75,10 +75,12 @@ describe('Real API Integration Tests', () => {
       await modelManager.addModel('test-openai', openaiModel)
 
       // 执行优化
-      const result = await promptService.optimizePrompt(
-        '请优化这个提示词：写一个关于人工智能的故事',
-        'test-openai'
-      )
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '请优化这个提示词：写一个关于人工智能的故事',
+        modelKey: 'test-openai'
+      };
+      const result = await promptService.optimizePrompt(request)
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
@@ -149,10 +151,12 @@ describe('Real API Integration Tests', () => {
       await modelManager.addModel('test-gemini', geminiModel)
 
       // 执行优化
-      const result = await promptService.optimizePrompt(
-        '请优化这个提示词：写一个关于太空探索的故事',
-        'test-gemini'
-      )
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '请优化这个提示词：写一个关于太空探索的故事',
+        modelKey: 'test-gemini'
+      };
+      const result = await promptService.optimizePrompt(request)
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
@@ -186,10 +190,12 @@ describe('Real API Integration Tests', () => {
       await modelManager.addModel('test-deepseek', deepseekModel)
 
       // 执行优化
-      const result = await promptService.optimizePrompt(
-        '请优化这个提示词：写一个关于人工智能的故事',
-        'test-deepseek'
-      )
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '请优化这个提示词：写一个关于人工智能的故事',
+        modelKey: 'test-deepseek'
+      };
+      const result = await promptService.optimizePrompt(request)
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
@@ -228,10 +234,12 @@ describe('Real API Integration Tests', () => {
       })
 
       // 优化原始提示词
-      const optimizeResult = await promptService.optimizePrompt(
-        '写一个故事',
-        modelKey
-      )
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '写一个故事',
+        modelKey: modelKey
+      };
+      const optimizeResult = await promptService.optimizePrompt(request)
 
       expect(typeof optimizeResult).toBe('string')
       expect(optimizeResult.length).toBeGreaterThan(0)
@@ -264,10 +272,12 @@ describe('Real API Integration Tests', () => {
       })
 
       // 尝试优化应该失败
-      await expect(promptService.optimizePrompt(
-        '测试提示词',
-        'invalid-model'
-      )).rejects.toThrow()
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '测试提示词',
+        modelKey: 'invalid-model'
+      };
+      await expect(promptService.optimizePrompt(request)).rejects.toThrow()
 
       // 验证没有创建无效的历史记录
       const records = await historyManager.getRecords()

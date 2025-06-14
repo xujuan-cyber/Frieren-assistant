@@ -3,7 +3,9 @@
     <div class="flex flex-col h-full">
       <!-- Test Input Area -->
       <div class="flex-none">
+        <!-- Show test input only for system prompt optimization -->
         <InputPanelUI
+          v-if="promptType === 'system'"
           v-model="testContent"
           v-model:selectedModel="selectedTestModel"
           :label="t('test.content')"
@@ -17,6 +19,20 @@
           @configModel="$emit('showConfig')"
         >
           <template #model-select>
+            <ModelSelectUI
+              ref="testModelSelect"
+              :modelValue="selectedTestModel"
+              @update:modelValue="updateSelectedModel"
+              :disabled="isTesting"
+              @config="$emit('showConfig')"
+            />
+          </template>
+        </InputPanelUI>
+
+        <!-- For user prompt optimization, show simplified test controls -->
+        <div v-else class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium theme-text">{{ t('test.userPromptTest') }}</h3>
             <div class="flex items-center gap-2">
               <ModelSelectUI
                 ref="testModelSelect"
@@ -24,7 +40,7 @@
                 @update:modelValue="updateSelectedModel"
                 :disabled="isTesting"
                 @config="$emit('showConfig')"
-                class="flex-1"
+                class="w-48"
               />
               <button
                 @click="isCompareMode = !isCompareMode"
@@ -40,14 +56,24 @@
                 :title="enableMarkdown ? t('test.disableMarkdown') : t('test.enableMarkdown')"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 335.03 257.27" style="fill: currentColor;">
-                  <path 
+                  <path
                     d="M310.91,2.5H24.12C12.18,2.5,2.5,12.18,2.5,24.12v209.04c0,11.94,9.68,21.62,21.62,21.62h286.8c11.94,0,21.62-9.68,21.62-21.62V24.12c0-11.94-9.68-21.62-21.62-21.62ZM169.68,189.91h-25.89v-70.01h-.86l-23.88,39.01h-20.14l-23.88-38.4h-.86v69.39h-25.89v-121.82h23.73l36.54,60.29h.86l36.54-60.29h23.73v121.82ZM294.42,136.67l-45.07,49.94c-2.3,2.55-6.31,2.55-8.61,0l-45.07-49.94c-3.37-3.73-.72-9.69,4.31-9.69h30.17v-60.1h29.81v60.1h30.17c5.03,0,7.68,5.96,4.31,9.69Z"
                   />
                 </svg>
               </button>
+              <button
+                @click="handleTest"
+                :disabled="isTesting || !selectedTestModel"
+                class="h-10 px-4 text-sm font-medium theme-button-primary"
+              >
+                {{ isTesting ? t('test.testing') : (isCompareMode ? t('test.startCompare') : t('test.startTest')) }}
+              </button>
             </div>
-          </template>
-        </InputPanelUI>
+          </div>
+          <p class="text-sm theme-text-secondary">
+            {{ t('test.userPromptTestHelp') }}
+          </p>
+        </div>
       </div>
 
       <!-- Test Results Area -->
@@ -127,6 +153,10 @@ const props = defineProps({
   modelValue: {
     type: String,
     default: ''
+  },
+  promptType: {
+    type: String,
+    default: 'system'
   }
 })
 
@@ -177,9 +207,9 @@ const ensureString = (value) => {
   return String(value)
 }
 
-// Test original prompt
+// Test original prompt with context awareness
 const testOriginalPrompt = async () => {
-  if (!props.originalPrompt || !testContent.value) return
+  if (!props.originalPrompt) return
 
   isTestingOriginal.value = true
   originalTestError.value = ''
@@ -188,13 +218,26 @@ const testOriginalPrompt = async () => {
     if (originalOutputPanelRef.value) {
       const streamHandler = originalOutputPanelRef.value.handleStream()
 
-      // Ensure prompt is a string
-      const promptStr = ensureString(props.originalPrompt)
-      console.log('[TestPanel] Original prompt type:', typeof promptStr, promptStr.substring(0, 30))
+      // Determine system and user prompts based on prompt type
+      let systemPrompt = ''
+      let userPrompt = ''
 
+      if (props.promptType === 'user') {
+        // For user prompt optimization: original is user prompt, no system context
+        systemPrompt = ''
+        userPrompt = ensureString(props.originalPrompt)
+      } else {
+        // For system prompt optimization: original is system, test content is user
+        systemPrompt = ensureString(props.originalPrompt)
+        userPrompt = testContent.value
+      }
+
+      console.log('[TestPanel] Original test - System:', systemPrompt.substring(0, 30), 'User:', userPrompt.substring(0, 30))
+
+      // Use updated testPromptStream method
       await props.promptService.testPromptStream(
-        promptStr,
-        testContent.value,
+        systemPrompt,
+        userPrompt,
         selectedTestModel.value,
         {
           onToken: streamHandler.onToken,
@@ -214,9 +257,9 @@ const testOriginalPrompt = async () => {
 
 // 添加Markdown渲染控制
 const enableMarkdown = ref(true);
-// Test optimized prompt
+// Test optimized prompt with context awareness
 const testOptimizedPrompt = async () => {
-  if (!props.optimizedPrompt || !testContent.value) return
+  if (!props.optimizedPrompt) return
 
   isTestingOptimized.value = true
   optimizedTestError.value = ''
@@ -227,13 +270,26 @@ const testOptimizedPrompt = async () => {
     if (outputPanel) {
       const streamHandler = outputPanel.handleStream()
 
-      // Ensure prompt is a string
-      const promptStr = ensureString(props.optimizedPrompt)
-      console.log('[TestPanel] Optimized prompt type:', typeof promptStr, promptStr.substring(0, 30))
+      // Determine system and user prompts based on prompt type
+      let systemPrompt = ''
+      let userPrompt = ''
 
+      if (props.promptType === 'user') {
+        // For user prompt optimization: optimized is user prompt, no system context
+        systemPrompt = ''
+        userPrompt = ensureString(props.optimizedPrompt)
+      } else {
+        // For system prompt optimization: optimized is system, test content is user
+        systemPrompt = ensureString(props.optimizedPrompt)
+        userPrompt = testContent.value
+      }
+
+      console.log('[TestPanel] Optimized test - System:', systemPrompt.substring(0, 30), 'User:', userPrompt.substring(0, 30))
+
+      // Use updated testPromptStream method
       await props.promptService.testPromptStream(
-        promptStr,
-        testContent.value,
+        systemPrompt,
+        userPrompt,
         selectedTestModel.value,
         {
           onToken: streamHandler.onToken,
@@ -251,10 +307,19 @@ const testOptimizedPrompt = async () => {
   }
 }
 
-// Test handler function
+// Test handler function with context awareness
 const handleTest = async () => {
   if (!selectedTestModel.value) {
     const errorMsg = t('test.error.noModel')
+    originalTestError.value = errorMsg
+    optimizedTestError.value = errorMsg
+    return
+  }
+
+  // For user prompt optimization, we don't need test content input
+  // For system prompt optimization, we need test content input
+  if (props.promptType === 'system' && !testContent.value) {
+    const errorMsg = t('test.error.noTestContent')
     originalTestError.value = errorMsg
     optimizedTestError.value = errorMsg
     return

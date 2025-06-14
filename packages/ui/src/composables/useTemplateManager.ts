@@ -16,7 +16,7 @@ interface TemplateSelector extends Element {
 export interface TemplateManagerHooks {
   showTemplates: Ref<boolean>
   currentType: Ref<string>
-  handleTemplateSelect: (template: Template | null, type: string) => void
+  handleTemplateSelect: (template: Template | null, type: string, showToast?: boolean) => void
   openTemplateManager: (type: string) => void
   handleTemplateManagerClose: () => void
 }
@@ -94,15 +94,15 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
     }
   }
 
-  const handleTemplateSelect = (template: Template | null, type: string) => {
+  const handleTemplateSelect = (template: Template | null, type: string, showToast: boolean = true) => {
     try {
-      console.log(t('log.info.templateSelected'), { 
+      console.log(t('log.info.templateSelected'), {
         template: template ? {
           id: template.id,
           name: template.name,
           type: template.metadata?.templateType
-        } : null, 
-        type 
+        } : null,
+        type
       })
 
       if (type === 'optimize') {
@@ -110,17 +110,23 @@ export function useTemplateManager(options: TemplateManagerOptions): TemplateMan
       } else {
         selectedIterateTemplate.value = template
       }
-      
+
       if (template) {
         saveTemplateSelection(template, type as 'optimize' | 'iterate')
-        toast.success(t('toast.success.templateSelected', {
-          type: type === 'optimize' ? t('common.optimize') : t('common.iterate'),
-          name: template.name
-        }))
+
+        // 只在明确要求时显示toast
+        if (showToast) {
+          toast.success(t('toast.success.templateSelected', {
+            type: type === 'optimize' ? t('common.optimize') : t('common.iterate'),
+            name: template.name
+          }))
+        }
       }
     } catch (error) {
       console.error(t('toast.error.selectTemplateFailed'), error)
-      toast.error(t('toast.error.selectTemplateFailed', { error: error instanceof Error ? error.message : String(error) }))
+      if (showToast) {
+        toast.error(t('toast.error.selectTemplateFailed', { error: error instanceof Error ? error.message : String(error) }))
+      }
     }
   }
 

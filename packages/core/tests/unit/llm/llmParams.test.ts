@@ -548,21 +548,21 @@ describe('LLM Parameters (llmParams) Functionality', () => {
             models: [config.defaultModel],
             llmParams: {
               temperature: 0.6,
-              max_tokens: 150,
+              max_tokens: 50, // 减少token数量以加快响应
               top_p: 0.9,
               presence_penalty: 0.2,
               frequency_penalty: 0.1,
-              timeout: 25000
+              timeout: 20000 // 减少超时时间
             }
           });
 
-          const messages = [{ role: 'user' as const, content: 'Tell me a short story' }];
+          const messages = [{ role: 'user' as const, content: 'Say hello' }]; // 简化请求
 
           const response = await llmService.sendMessage(messages, config.key);
             expect(response).toBeDefined();
             expect(typeof response).toBe('string');
             expect(response.length).toBeGreaterThan(0);
-        }, 30000);
+        }, 45000); // 增加测试超时时间
       });
     });
   });

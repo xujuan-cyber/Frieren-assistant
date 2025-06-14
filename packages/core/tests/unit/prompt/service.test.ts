@@ -107,7 +107,12 @@ describe('PromptService', () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化后的提示词');
 
-      const result = await promptService.optimizePrompt('test prompt', 'test-model');
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      const result = await promptService.optimizePrompt(request);
       expect(result).toBe('优化后的提示词');
     });
 
@@ -116,7 +121,12 @@ describe('PromptService', () => {
         throw new Error('提示词管理器未初始化');
       });
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -231,13 +241,23 @@ describe('PromptService', () => {
 
   describe('边界条件测试', () => {
     it('当提示词为空字符串时应抛出错误', async () => {
-      await expect(promptService.optimizePrompt('', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
 
     it('当模型Key为空时应抛出错误', async () => {
-      await expect(promptService.optimizePrompt('test prompt', ''))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: ''
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -246,7 +266,12 @@ describe('PromptService', () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('');
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -255,7 +280,12 @@ describe('PromptService', () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
       vi.spyOn(llmService, 'sendMessage').mockRejectedValue(new APIError('请求超时'));
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -267,14 +297,18 @@ describe('PromptService', () => {
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化结果');
       const addRecordSpy = vi.spyOn(historyManager, 'addRecord');
 
-      await promptService.optimizePrompt('test prompt', 'test-model');
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await promptService.optimizePrompt(request);
 
       expect(addRecordSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'optimize',
         originalPrompt: 'test prompt',
         optimizedPrompt: '优化结果',
-        modelKey: 'test-model',
-        templateId: 'general-optimize'
+        modelKey: 'test-model'
       }));
     });
 
@@ -306,8 +340,7 @@ describe('PromptService', () => {
         type: 'optimize',
         originalPrompt: 'test prompt',
         optimizedPrompt: '测试结果',
-        modelKey: 'test-model',
-        templateId: 'test-prompt'
+        modelKey: 'test-model'
       }));
     });
   });
@@ -325,7 +358,12 @@ describe('PromptService', () => {
         
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        await expect(promptService.optimizePrompt('test', 'test-model'))
+        const request = {
+          promptType: 'system' as const,
+          targetPrompt: 'test',
+          modelKey: 'test-model'
+        };
+        await expect(promptService.optimizePrompt(request))
           .rejects
           .toThrow(OptimizationError);
       });
@@ -336,7 +374,12 @@ describe('PromptService', () => {
         });
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        await expect(promptService.optimizePrompt('test', 'test-model'))
+        const request = {
+          promptType: 'system' as const,
+          targetPrompt: 'test',
+          modelKey: 'test-model'
+        };
+        await expect(promptService.optimizePrompt(request))
           .rejects
           .toThrow(OptimizationError);
       });
@@ -346,7 +389,12 @@ describe('PromptService', () => {
         vi.spyOn(templateManager, 'getTemplate').mockReturnValue(emptyTemplate);
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        await expect(promptService.optimizePrompt('test', 'test-model'))
+        const request = {
+          promptType: 'system' as const,
+          targetPrompt: 'test',
+          modelKey: 'test-model'
+        };
+        await expect(promptService.optimizePrompt(request))
           .rejects
           .toThrow(OptimizationError);
       });
@@ -356,7 +404,12 @@ describe('PromptService', () => {
         vi.spyOn(llmService, 'sendMessage').mockResolvedValue('test result');
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        const result = await promptService.optimizePrompt('test', 'test-model');
+        const request = {
+          promptType: 'system' as const,
+          targetPrompt: 'test',
+          modelKey: 'test-model'
+        };
+        const result = await promptService.optimizePrompt(request);
         expect(result).toBe('test result');
       });
     });
@@ -376,7 +429,12 @@ describe('PromptService', () => {
         vi.spyOn(llmService, 'sendMessage').mockResolvedValue('test result');
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
-        const result = await promptService.optimizePrompt('test', 'test-model');
+        const request = {
+          promptType: 'system' as const,
+          targetPrompt: 'test',
+          modelKey: 'test-model'
+        };
+        const result = await promptService.optimizePrompt(request);
         expect(result).toBe('test result');
       });
     });
@@ -388,7 +446,12 @@ describe('PromptService', () => {
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化结果');
       vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -415,7 +478,12 @@ describe('PromptService', () => {
     it('当getModel失败时optimizePrompt应该抛出错误', async () => {
       vi.spyOn(modelManager, 'getModel').mockRejectedValue(new Error('Model fetch failed'));
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -423,7 +491,12 @@ describe('PromptService', () => {
     it('当getModel返回null时应该抛出错误', async () => {
       vi.spyOn(modelManager, 'getModel').mockResolvedValue(undefined);
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });

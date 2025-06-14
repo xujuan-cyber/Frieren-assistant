@@ -61,7 +61,12 @@ describe('PromptService Integration Tests', () => {
 
   describe('optimizePrompt with different template formats', () => {
     it.runIf(hasGeminiKey)('should work with string-based templates', async () => {
-      const result = await promptService.optimizePrompt('Write a simple greeting', 'test-gemini');
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'Write a simple greeting',
+        modelKey: 'test-gemini'
+      };
+      const result = await promptService.optimizePrompt(request);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -100,7 +105,12 @@ describe('PromptService Integration Tests', () => {
       // 使用spy来模拟getTemplate返回我们的模板
       const getTemplateSpy = vi.spyOn(templateManager, 'getTemplate').mockReturnValue(messageTemplate);
 
-      const result = await promptService.optimizePrompt('Write a simple greeting', 'test-gemini');
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'Write a simple greeting',
+        modelKey: 'test-gemini'
+      };
+      const result = await promptService.optimizePrompt(request);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -196,16 +206,29 @@ describe('PromptService Integration Tests', () => {
       const tokens: string[] = [];
       let completed = false;
 
-      await promptService.optimizePromptStream(
-        'Write a simple greeting',
-        'test-gemini',
-        'general-optimize',
-        {
-          onToken: (token) => tokens.push(token),
-          onComplete: () => { completed = true; },
-          onError: (error) => { throw error; }
-        }
-      );
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'Write a simple greeting',
+        modelKey: 'test-gemini',
+        templateId: 'general-optimize'
+      };
+
+      // 使用Promise来确保onComplete被正确等待
+      await new Promise<void>((resolve, reject) => {
+        promptService.optimizePromptStream(
+          request,
+          {
+            onToken: (token) => tokens.push(token),
+            onComplete: () => {
+              completed = true;
+              resolve();
+            },
+            onError: (error) => {
+              reject(error);
+            }
+          }
+        ).catch(reject);
+      });
 
       expect(tokens.length).toBeGreaterThan(0);
       expect(completed).toBe(true);
@@ -219,18 +242,26 @@ describe('PromptService Integration Tests', () => {
       const tokens: string[] = [];
       let completed = false;
 
-      await promptService.iteratePromptStream(
-        'Write a simple greeting',
-        'Hello world',
-        'Make it better',
-        'test-gemini',
-        {
-          onToken: (token) => tokens.push(token),
-          onComplete: () => { completed = true; },
-          onError: (error) => { throw error; }
-        },
-        'iterate'
-      );
+      // 使用Promise来确保onComplete被正确等待
+      await new Promise<void>((resolve, reject) => {
+        promptService.iteratePromptStream(
+          'Write a simple greeting',
+          'Hello world',
+          'Make it better',
+          'test-gemini',
+          {
+            onToken: (token) => tokens.push(token),
+            onComplete: () => {
+              completed = true;
+              resolve();
+            },
+            onError: (error) => {
+              reject(error);
+            }
+          },
+          'iterate'
+        ).catch(reject);
+      });
 
       expect(tokens.length).toBeGreaterThan(0);
       expect(completed).toBe(true);
@@ -252,8 +283,13 @@ describe('PromptService Integration Tests', () => {
         throw new Error('Template not found');
       });
 
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'Test prompt',
+        modelKey: 'test-gemini'
+      };
       await expect(
-        promptService.optimizePrompt('Test prompt', 'test-gemini')
+        promptService.optimizePrompt(request)
       ).rejects.toThrow(/Template not found/);
 
       // 恢复spy
@@ -274,8 +310,13 @@ describe('PromptService Integration Tests', () => {
 
       const getTemplateSpy = vi.spyOn(templateManager, 'getTemplate').mockReturnValue(invalidTemplate);
 
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: 'Test prompt',
+        modelKey: 'test-gemini'
+      };
       await expect(
-        promptService.optimizePrompt('Test prompt', 'test-gemini')
+        promptService.optimizePrompt(request)
       ).rejects.toThrow(/Template not found or invalid/);
 
       // 恢复spy

@@ -43,6 +43,7 @@ export default {
     importing: 'Importing...',
     number: 'Number',
     integer: 'Integer',
+    optional: 'Optional',
   },
   nav: {
     home: 'Home',
@@ -64,6 +65,17 @@ export default {
     originalPrompt: 'Original Prompt',
     optimizeModel: 'Optimization Model',
     templateLabel: 'Optimization Template',
+
+    // New: Optimization Mode Related
+    promptType: 'Optimization Mode',
+    systemPrompt: 'System Prompt Optimization',
+    userPrompt: 'User Prompt Optimization',
+    systemPromptInput: 'System Prompt',
+    userPromptInput: 'User Prompt',
+    systemPromptPlaceholder: 'Enter the system prompt to optimize...',
+    userPromptPlaceholder: 'Enter the user prompt to optimize...',
+    systemPromptHelp: 'System Prompt Optimization Mode: Optimize system prompts that define AI assistant role, behavior and response style',
+    userPromptHelp: 'User Prompt Optimization Mode: Optimize user prompts to improve AI interaction effectiveness and accuracy'
   },
   settings: {
     title: 'Settings',
@@ -165,10 +177,12 @@ export default {
   },
   templateManager: {
     title: 'Template Manager',
-    optimizeTemplates: 'Optimization Templates',
-    iterateTemplates: 'Iteration Templates',
-    optimizeTemplateList: 'Optimization Template List',
-    iterateTemplateList: 'Iteration Template List',
+    optimizeTemplates: 'System Prompt Optimization Templates',
+    iterateTemplates: 'Iteration Optimization Templates',
+    optimizeTemplateList: 'System Prompt Optimization Template List',
+    iterateTemplateList: 'Iteration Optimization Template List',
+    userOptimizeTemplates: 'User Prompt Optimization Templates',
+    userOptimizeTemplateList: 'User Prompt Optimization Template List',
     addTemplate: 'Add',
     editTemplate: 'Edit',
     deleteTemplate: 'Delete',
@@ -303,9 +317,12 @@ export default {
     originalResult: 'Original Prompt Result',
     optimizedResult: 'Optimized Prompt Result',
     testResult: 'Test Result',
+    userPromptTest: 'User Prompt Test',
+    userPromptTestHelp: 'Test the effectiveness of the optimized user prompt. The system prompt will serve as context, and the user prompt will be sent to the AI for response.',
     error: {
       failed: 'Test Failed',
-      noModel: 'Please select a test model first'
+      noModel: 'Please select a test model first',
+      noTestContent: 'Please enter test content'
     },
     enableMarkdown: 'Enable Markdown rendering',
     disableMarkdown: 'Disable Markdown rendering',
@@ -417,6 +434,7 @@ export default {
       historyChainDeleteFailed: 'Failed to delete history record',
       selectTemplateFailed: 'Failed to select template: {error}',
       noOptimizeTemplate: 'Please select an optimization template first',
+      noOptimizeModel: 'Please select an optimization model first',
       noIterateTemplate: 'Please select an iteration template first',
       incompleteTestInfo: 'Please fill in complete test information',
       noDefaultTemplate: 'Failed to load default template',

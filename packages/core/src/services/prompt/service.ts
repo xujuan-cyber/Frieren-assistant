@@ -1,4 +1,4 @@
-import { IPromptService } from './types';
+import { IPromptService, OptimizationRequest, PromptType } from './types';
 import { Message, StreamHandlers } from '../llm/types';
 import { PromptRecord } from '../history/types';
 import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
@@ -8,6 +8,7 @@ import { HistoryManager, historyManager as defaultHistoryManager } from '../hist
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
 import { ERROR_MESSAGES } from '../llm/errors';
 import { TemplateProcessor, TemplateContext } from '../template/processor';
+import { DEFAULT_TEMPLATES as TEMPLATE_DEFAULTS } from '../template/defaults';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -79,61 +80,40 @@ export class PromptService implements IPromptService {
   }
 
   /**
-   * 优化提示词
+   * 优化提示词 - 支持提示词类型和增强功能
    */
-  async optimizePrompt(prompt: string, modelKey: string, templateId?: string): Promise<string> {
+  async optimizePrompt(request: OptimizationRequest): Promise<string> {
     try {
-      this.validateInput(prompt, modelKey);
+      this.validateOptimizationRequest(request);
 
-      // 获取模型配置（使用统一错误）
-      const modelConfig = await this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(request.modelKey);
       if (!modelConfig) {
-        throw new OptimizationError(
-          `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_NOT_FOUND}`,
-          prompt
-        );
+        throw new OptimizationError('Model not found', request.targetPrompt);
       }
 
-      // 获取优化提示词
-      let template;
-      try {
-        template = this.templateManager.getTemplate(templateId || DEFAULT_TEMPLATES.OPTIMIZE);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new OptimizationError(`Optimization failed: ${errorMessage}`, prompt);
-      }
+      const template = this.templateManager.getTemplate(
+        request.templateId || this.getDefaultTemplateId('optimize', request.promptType)
+      );
 
       if (!template?.content) {
-        throw new OptimizationError('Optimization failed: Template not found or invalid', prompt);
+        throw new OptimizationError('Template not found or invalid', request.targetPrompt);
       }
 
-      // 使用TemplateProcessor处理模板和变量替换
-      const context: TemplateContext = { originalPrompt: prompt };
+      const context: TemplateContext = {
+        originalPrompt: request.targetPrompt,
+        promptType: request.promptType
+      };
+
       const messages = TemplateProcessor.processTemplate(template, context);
+      const result = await this.llmService.sendMessage(messages, request.modelKey);
 
-      // 发送请求
-      const result = await this.llmService.sendMessage(messages, modelKey);
-
-      // 验证响应
-      this.validateResponse(result, prompt);
-
-      // 保存历史记录
-      await this.historyManager.addRecord({
-        id: uuidv4(),
-        originalPrompt: prompt,
-        optimizedPrompt: result,
-        type: 'optimize',
-        chainId: uuidv4(),
-        version: 1,
-        timestamp: Date.now(),
-        modelKey,
-        templateId: templateId || DEFAULT_TEMPLATES.OPTIMIZE
-      });
+      this.validateResponse(result, request.targetPrompt);
+      await this.saveOptimizationHistory(request, result);
 
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new OptimizationError(`优化失败: ${errorMessage}`, prompt);
+      throw new OptimizationError(`Optimization failed: ${errorMessage}`, request.targetPrompt);
     }
   }
 
@@ -204,35 +184,41 @@ export class PromptService implements IPromptService {
   }
 
   /**
-   * 测试提示词
+   * 测试提示词 - 支持可选系统提示词
    */
-  async testPrompt(prompt: string, testInput: string, modelKey: string): Promise<string> {
+  async testPrompt(systemPrompt: string, userPrompt: string, modelKey: string): Promise<string> {
     try {
-      this.validateInput(prompt, modelKey);
-      this.validateInput(testInput, modelKey);
-
-      // 获取模型配置
-      const modelConfig = await this.modelManager.getModel(modelKey);
-      if (!modelConfig) {
-        throw new ServiceDependencyError('模型不存在', 'ModelManager');
+      // 对于用户提示词优化，systemPrompt 可以为空
+      if (!userPrompt?.trim()) {
+        throw new TestError('User prompt is required', systemPrompt, userPrompt);
+      }
+      if (!modelKey?.trim()) {
+        throw new TestError('Model key is required', systemPrompt, userPrompt);
       }
 
-      // 构建消息
-      const messages: Message[] = [
-        { role: 'system', content: prompt },
-        { role: 'user', content: testInput }
-      ];
+      const modelConfig = await this.modelManager.getModel(modelKey);
+      if (!modelConfig) {
+        throw new TestError('Model not found', systemPrompt, userPrompt);
+      }
 
-      // 发送请求
+      const messages: Message[] = [];
+
+      // 只有当 systemPrompt 不为空时才添加 system 消息
+      if (systemPrompt?.trim()) {
+        messages.push({ role: 'system', content: systemPrompt });
+      }
+
+      messages.push({ role: 'user', content: userPrompt });
+
       const result = await this.llmService.sendMessage(messages, modelKey);
 
       // 保存历史记录
       await this.historyManager.addRecord({
         id: uuidv4(),
-        originalPrompt: prompt,
+        originalPrompt: systemPrompt || userPrompt,
         optimizedPrompt: result,
         type: 'optimize',
-        chainId: prompt,
+        chainId: systemPrompt || userPrompt,
         version: 1,
         timestamp: Date.now(),
         modelKey,
@@ -242,7 +228,7 @@ export class PromptService implements IPromptService {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new TestError(`测试失败: ${errorMessage}`, prompt, testInput);
+      throw new TestError(`Test failed: ${errorMessage}`, systemPrompt, userPrompt);
     }
   }
 
@@ -260,9 +246,12 @@ export class PromptService implements IPromptService {
     return await this.historyManager.getIterationChain(recordId);
   }
 
+  /**
+   * 测试提示词（流式）- 支持可选系统提示词
+   */
   async testPromptStream(
-    prompt: string,
-    testInput: string,
+    systemPrompt: string,
+    userPrompt: string,
     modelKey: string,
     callbacks: {
       onToken: (token: string) => void;
@@ -271,83 +260,77 @@ export class PromptService implements IPromptService {
     }
   ): Promise<void> {
     try {
-      this.validateInput(prompt, modelKey);
-      this.validateInput(testInput, modelKey);
+      // 对于用户提示词优化，systemPrompt 可以为空
+      if (!userPrompt?.trim()) {
+        throw new TestError('User prompt is required', systemPrompt, userPrompt);
+      }
+      if (!modelKey?.trim()) {
+        throw new TestError('Model key is required', systemPrompt, userPrompt);
+      }
 
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
-        throw new ServiceDependencyError('模型不存在', 'ModelManager');
+        throw new TestError('Model not found', systemPrompt, userPrompt);
       }
 
-      const messages: Message[] = [
-        { role: 'system', content: prompt },
-        { role: 'user', content: testInput }
-      ];
+      const messages: Message[] = [];
+
+      // 只有当 systemPrompt 不为空时才添加 system 消息
+      if (systemPrompt?.trim()) {
+        messages.push({ role: 'system', content: systemPrompt });
+      }
+
+      messages.push({ role: 'user', content: userPrompt });
 
       await this.llmService.sendMessageStream(messages, modelKey, callbacks);
-      
-      // 移除历史记录相关操作
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new TestError(`测试失败: ${errorMessage}`, prompt, testInput);
+      throw new TestError(`Test failed: ${errorMessage}`, systemPrompt, userPrompt);
     }
   }
 
   /**
-   * 优化提示词（流式）
+   * 优化提示词（流式）- 支持提示词类型和增强功能
    */
   async optimizePromptStream(
-    prompt: string,
-    modelKey: string,
-    templateId: string,
-    callbacks: {
-      onToken: (token: string) => void;
-      onComplete: () => void;
-      onError: (error: Error) => void;
-    }
+    request: OptimizationRequest,
+    callbacks: StreamHandlers
   ): Promise<void> {
     try {
-      this.validateInput(prompt, modelKey);
+      this.validateOptimizationRequest(request);
 
-      // 获取模型配置
-      const modelConfig = await this.modelManager.getModel(modelKey);
+      const modelConfig = await this.modelManager.getModel(request.modelKey);
       if (!modelConfig) {
-        throw new OptimizationError(
-          `${ERROR_MESSAGES.OPTIMIZATION_FAILED}: ${ERROR_MESSAGES.MODEL_NOT_FOUND}`,
-          prompt
-        );
+        throw new OptimizationError('Model not found', request.targetPrompt);
       }
 
-      // 获取优化提示词
-      let template;
-      try {
-        template = this.templateManager.getTemplate(templateId);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new OptimizationError(`Optimization failed: ${errorMessage}`, prompt);
-      }
+      const template = this.templateManager.getTemplate(
+        request.templateId || this.getDefaultTemplateId('optimize', request.promptType)
+      );
 
       if (!template?.content) {
-        throw new OptimizationError('Optimization failed: Template not found or invalid', prompt);
+        throw new OptimizationError('Template not found or invalid', request.targetPrompt);
       }
 
-      // 使用TemplateProcessor处理模板和变量替换
-      const context: TemplateContext = { originalPrompt: prompt };
+      const context: TemplateContext = {
+        originalPrompt: request.targetPrompt,
+        promptType: request.promptType
+      };
+
       const messages = TemplateProcessor.processTemplate(template, context);
 
-      // 使用流式调用
       let result = '';
       await this.llmService.sendMessageStream(
         messages,
-        modelKey,
+        request.modelKey,
         {
           onToken: (token) => {
             result += token;
             callbacks.onToken(token);
           },
-          onComplete: () => {
-            // 验证响应
-            this.validateResponse(result, prompt);
+          onComplete: async () => {
+            this.validateResponse(result, request.targetPrompt);
+            await this.saveOptimizationHistory(request, result);
             callbacks.onComplete();
           },
           onError: callbacks.onError
@@ -355,7 +338,7 @@ export class PromptService implements IPromptService {
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new OptimizationError(`Optimization failed: ${errorMessage}`, prompt);
+      throw new OptimizationError(`Optimization failed: ${errorMessage}`, request.targetPrompt);
     }
   }
 
@@ -423,6 +406,82 @@ export class PromptService implements IPromptService {
       throw new IterationError(`Iteration failed: ${errorMessage}`, originalPrompt, iterateInput);
     }
   }
+
+  // === 新增：支持提示词类型的增强方法 ===
+
+  /**
+   * 验证优化请求参数
+   */
+  private validateOptimizationRequest(request: OptimizationRequest) {
+    if (!request.targetPrompt?.trim()) {
+      throw new OptimizationError('Target prompt is required', '');
+    }
+    if (!request.modelKey?.trim()) {
+      throw new OptimizationError('Model key is required', request.targetPrompt);
+    }
+    // 用户提示词优化时，contextPrompt 是可选的
+    // 不再强制要求 contextPrompt
+  }
+
+  /**
+   * 获取默认模板ID
+   */
+  private getDefaultTemplateId(templateType: 'optimize' | 'iterate', promptType: PromptType): string {
+    // 尝试获取特定类型的模板
+    try {
+      // 根据promptType确定实际的templateType
+      let actualTemplateType: 'optimize' | 'userOptimize' | 'iterate';
+      if (templateType === 'optimize') {
+        actualTemplateType = promptType === 'user' ? 'userOptimize' : 'optimize';
+      } else {
+        actualTemplateType = 'iterate';
+      }
+
+      const templates = this.templateManager.listTemplatesByType(actualTemplateType);
+      if (templates.length > 0) {
+        return templates[0].id;
+      }
+    } catch (error) {
+      console.warn(`Failed to get templates for type ${templateType}:${promptType}`, error);
+    }
+
+    // 回退到通用模板ID
+    if (templateType === 'optimize') {
+      // 对于用户提示词优化，优先使用用户提示词优化模板
+      if (promptType === 'user' && TEMPLATE_DEFAULTS['user-prompt-optimize']) {
+        return 'user-prompt-optimize';
+      }
+      // 回退到通用优化模板
+      return 'general-optimize';
+    } else {
+      // 迭代使用通用迭代模板，不区分提示词类型
+      return 'iterate';
+    }
+  }
+
+  /**
+   * 保存优化历史记录
+   */
+  private async saveOptimizationHistory(request: OptimizationRequest, result: string) {
+    await this.historyManager.addRecord({
+      id: uuidv4(),
+      originalPrompt: request.targetPrompt,
+      optimizedPrompt: result,
+      type: 'optimize',
+      chainId: uuidv4(),
+      version: 1,
+      timestamp: Date.now(),
+      modelKey: request.modelKey,
+      templateId: request.templateId || this.getDefaultTemplateId('optimize', request.promptType),
+      metadata: {
+        promptType: request.promptType
+      }
+    });
+  }
+
+
+
+
 }
 
 // 导出工厂函数

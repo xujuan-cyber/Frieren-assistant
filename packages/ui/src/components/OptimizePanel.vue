@@ -1,12 +1,22 @@
 <template>
   <ContentCardUI>
+    <!-- 提示词类型选择器 -->
+    <div class="flex-none mb-4">
+      <PromptTypeSelectorUI
+        v-model="selectedPromptType"
+        @change="handlePromptTypeChange"
+      />
+    </div>
+
+
+
     <!-- 输入区域 -->
     <div class="flex-none">
       <InputPanelUI
         v-model="prompt"
         v-model:selectedModel="selectedOptimizeModel"
-        :label="t('promptOptimizer.originalPrompt')"
-        :placeholder="t('promptOptimizer.inputPlaceholder')"
+        :label="promptInputLabel"
+        :placeholder="promptInputPlaceholder"
         :model-label="t('promptOptimizer.optimizeModel')"
         :template-label="t('promptOptimizer.templateLabel')"
         :button-text="t('promptOptimizer.optimize')"
@@ -29,6 +39,7 @@
           <TemplateSelectUI
             v-model="selectedOptimizeTemplate"
             type="optimize"
+            :prompt-type="selectedPromptType"
             @manage="$emit('openTemplateManager', 'optimize')"
             @select="handleTemplateSelect"
           />
@@ -55,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePromptOptimizer } from '../composables/usePromptOptimizer'
 import ContentCardUI from './ContentCard.vue'
@@ -63,6 +74,7 @@ import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
 import TemplateSelectUI from './TemplateSelect.vue'
 import PromptPanelUI from './PromptPanel.vue'
+import PromptTypeSelectorUI from './PromptTypeSelector.vue'
 
 const { t } = useI18n()
 
@@ -89,6 +101,27 @@ const emit = defineEmits(['showConfig', 'openTemplateManager'])
 
 const optimizeModelSelect = ref(null)
 
+// 新增状态
+const selectedPromptType = ref('system')
+
+// 计算属性：动态标签
+const promptInputLabel = computed(() => {
+  return selectedPromptType.value === 'system'
+    ? t('promptOptimizer.systemPromptInput')
+    : t('promptOptimizer.userPromptInput')
+})
+
+const promptInputPlaceholder = computed(() => {
+  return selectedPromptType.value === 'system'
+    ? t('promptOptimizer.systemPromptPlaceholder')
+    : t('promptOptimizer.userPromptPlaceholder')
+})
+
+// 事件处理
+const handlePromptTypeChange = (type) => {
+  selectedPromptType.value = type
+}
+
 const {
   prompt,
   optimizedPrompt,
@@ -113,7 +146,8 @@ const {
   props.modelManager,
   props.templateManager,
   props.historyManager,
-  props.promptService
+  props.promptService,
+  selectedPromptType
 )
 
 // 暴露需要的方法和属性给父组件
@@ -127,6 +161,7 @@ defineExpose({
   initTemplateSelection,
   initModelSelection,
   loadModels,
-  saveTemplateSelection
+  saveTemplateSelection,
+  selectedPromptType
 })
 </script> 

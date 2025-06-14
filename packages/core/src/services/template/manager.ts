@@ -157,7 +157,7 @@ export class TemplateManager implements ITemplateManager {
    * @param type Template type
    */
   private validateTemplateType(type: string): void {
-    const validTypes = ['optimize', 'iterate'];
+    const validTypes = ['optimize', 'userOptimize', 'iterate'];
     if (!validTypes.includes(type)) {
       throw new TemplateValidationError('Invalid template type');
     }
@@ -448,7 +448,7 @@ export class TemplateManager implements ITemplateManager {
   /**
    * List templates by type
    */
-  listTemplatesByType(type: 'optimize' | 'iterate'): Template[] {
+  listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Template[] {
     try {
       return this.listTemplates().filter(
         template => template.metadata.templateType === type

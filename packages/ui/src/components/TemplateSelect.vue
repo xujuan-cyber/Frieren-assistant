@@ -69,6 +69,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { templateManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
+import type { PromptType } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
@@ -78,11 +79,11 @@ interface Template {
   isBuiltin?: boolean;
   metadata: {
     description?: string;
-    templateType: 'optimize' | 'iterate';
+    templateType: 'optimize' | 'userOptimize' | 'iterate';
   };
 }
 
-type TemplateType = 'optimize' | 'iterate';
+type TemplateType = 'optimize' | 'userOptimize' | 'iterate';
 
 const props = defineProps({
   modelValue: {
@@ -92,7 +93,11 @@ const props = defineProps({
   type: {
     type: String as () => TemplateType,
     required: true,
-    validator: (value: string): boolean => ['optimize', 'iterate'].includes(value)
+    validator: (value: string): boolean => ['optimize', 'userOptimize', 'iterate'].includes(value)
+  },
+  promptType: {
+    type: String as () => PromptType,
+    default: 'system'
   }
 })
 
@@ -158,6 +163,11 @@ watch(isOpen, async (newValue) => {
   }
 })
 
+// 监听提示词类型变化
+watch(() => props.promptType, () => {
+  refreshTemplates()
+})
+
 const templates = computed(() => {
   // 使用 refreshTrigger 触发重新计算
   refreshTrigger.value
@@ -165,8 +175,21 @@ const templates = computed(() => {
   if (!templateManager.isInitialized()) {
     return []
   }
+
+  // 使用按类型筛选方法
   return templateManager.listTemplatesByType(props.type)
 })
+
+// 添加对promptType变化的监听
+watch(
+  () => props.promptType,
+  (newPromptType, oldPromptType) => {
+    if (newPromptType !== oldPromptType) {
+      // promptType变化时，静默刷新模板列表（避免重复toast）
+      refreshTemplates()
+    }
+  }
+)
 
 // 添加对模板列表变化的监听
 watch(
@@ -177,7 +200,8 @@ watch(
     if (currentTemplate && !newTemplates.find(t => t.id === currentTemplate.id)) {
       const firstTemplate = newTemplates.find(t => t.metadata.templateType === props.type) || null
       emit('update:modelValue', firstTemplate)
-      emit('select', firstTemplate, props.type)
+      // 静默选择，不显示toast
+      emit('select', firstTemplate, props.type, false)
     }
   },
   { deep: true }
@@ -192,11 +216,13 @@ const refreshTemplates = () => {
   }
   // 刷新时也检查当前选中状态
   const currentTemplates = templateManager.listTemplatesByType(props.type)
+
   const currentTemplate = props.modelValue
   if (currentTemplate && !currentTemplates.find(t => t.id === currentTemplate.id)) {
     const firstTemplate = currentTemplates[0] || null
     emit('update:modelValue', firstTemplate)
-    emit('select', firstTemplate, props.type)
+    // 静默选择，不显示toast（通过传递false参数）
+    emit('select', firstTemplate, props.type, false)
   }
 }
 
@@ -207,7 +233,8 @@ defineExpose({
 
 const selectTemplate = (template: Template) => {
   emit('update:modelValue', template)
-  emit('select', template, props.type)
+  // 用户主动选择时显示toast（传递true参数）
+  emit('select', template, props.type, true)
   isOpen.value = false
   // 选择后刷新列表
   refreshTemplates()

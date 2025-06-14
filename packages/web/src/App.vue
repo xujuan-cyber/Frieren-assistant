@@ -44,13 +44,23 @@
     <!-- 主要内容插槽 -->
     <!-- 提示词区 -->
     <ContentCardUI>
+      <!-- 提示词类型选择器 -->
+      <div class="flex-none mb-4">
+        <PromptTypeSelectorUI
+          v-model="selectedPromptType"
+          @change="handlePromptTypeChange"
+        />
+      </div>
+
+
+
       <!-- 输入区域 -->
       <div class="flex-none">
         <InputPanelUI
           v-model="prompt"
           v-model:selectedModel="selectedOptimizeModel"
-          :label="$t('promptOptimizer.originalPrompt')"
-          :placeholder="$t('promptOptimizer.inputPlaceholder')"
+          :label="promptInputLabel"
+          :placeholder="promptInputPlaceholder"
           :model-label="$t('promptOptimizer.optimizeModel')"
           :template-label="$t('promptOptimizer.templateLabel')"
           :button-text="$t('promptOptimizer.optimize')"
@@ -72,8 +82,8 @@
           <template #template-select>
             <TemplateSelectUI
               v-model="selectedOptimizeTemplate"
-              type="optimize"
-              @manage="openTemplateManager('optimize')"
+              :type="selectedPromptType === 'system' ? 'optimize' : 'userOptimize'"
+              @manage="openTemplateManager(selectedPromptType === 'system' ? 'optimize' : 'userOptimize')"
               @select="handleTemplateSelect"
             />
           </template>
@@ -102,6 +112,7 @@
       :prompt-service="promptServiceRef"
       :original-prompt="prompt"
       :optimized-prompt="optimizedPrompt"
+      :prompt-type="selectedPromptType"
       v-model="selectedTestModel"
       @showConfig="showConfig = true"
     />
@@ -123,6 +134,7 @@
         <TemplateManagerUI
           v-if="showTemplates"
           :template-type="currentType"
+          :prompt-type="selectedPromptType"
           :selected-optimize-template="selectedOptimizeTemplate"
           :selected-iterate-template="selectedIterateTemplate"
           @close="handleTemplateManagerClose"
@@ -150,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   // UI组件
@@ -170,6 +182,7 @@ import {
   TestPanelUI,
   LanguageSwitchUI,
   DataManagerUI,
+  PromptTypeSelectorUI,
   // composables
   usePromptOptimizer,
   usePromptTester,
@@ -207,6 +220,27 @@ const toast = useToast()
 
 // 初始化国际化
 const { t } = useI18n()
+
+// 新增状态
+const selectedPromptType = ref('system')
+
+// 计算属性：动态标签
+const promptInputLabel = computed(() => {
+  return selectedPromptType.value === 'system'
+    ? t('promptOptimizer.systemPromptInput')
+    : t('promptOptimizer.userPromptInput')
+})
+
+const promptInputPlaceholder = computed(() => {
+  return selectedPromptType.value === 'system'
+    ? t('promptOptimizer.systemPromptPlaceholder')
+    : t('promptOptimizer.userPromptPlaceholder')
+})
+
+// 事件处理
+const handlePromptTypeChange = (type) => {
+  selectedPromptType.value = type
+}
 
 // 初始化服务
 const {
@@ -253,8 +287,9 @@ const {
   templateManager,
   historyManager,
   promptServiceRef,
-  selectedOptimizeModel,
-  selectedTestModel
+  selectedPromptType,  // 新增：提示词类型
+  selectedOptimizeModel, // 新增：优化模型选择
+  selectedTestModel    // 新增：测试模型选择
 )
 
 // 初始化历史记录管理器
@@ -305,7 +340,6 @@ const {
 })
 
 // 数据管理器
-import { ref } from 'vue'
 const showDataManager = ref(false)
 
 const handleDataManagerClose = () => {

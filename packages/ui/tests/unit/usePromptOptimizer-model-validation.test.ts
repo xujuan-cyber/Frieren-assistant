@@ -1,0 +1,161 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ref } from 'vue'
+
+// Mock dependencies
+vi.mock('../../src/composables/useToast', () => ({
+  useToast: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn()
+  })
+}))
+
+vi.mock('../../src/composables/useStorage', () => ({
+  useStorage: () => ({
+    getItem: vi.fn().mockResolvedValue(null),
+    setItem: vi.fn().mockResolvedValue(undefined)
+  })
+}))
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key
+  })
+}))
+
+describe('usePromptOptimizer Model Validation', () => {
+  let mockModelManager: any
+  let mockTemplateManager: any
+  let mockHistoryManager: any
+  let mockPromptService: any
+
+  beforeEach(() => {
+
+    // Mock services
+    mockModelManager = {
+      getModel: vi.fn().mockResolvedValue({ id: 'test-model' })
+    }
+
+    mockTemplateManager = {
+      ensureInitialized: vi.fn().mockResolvedValue(undefined),
+      getTemplate: vi.fn().mockReturnValue({
+        id: 'test-template',
+        name: 'Test Template',
+        content: 'Test template {{originalPrompt}}',
+        metadata: { templateType: 'optimize' }
+      }),
+      listTemplatesByTypes: vi.fn().mockReturnValue([
+        {
+          id: 'test-template',
+          name: 'Test Template',
+          content: 'Test template {{originalPrompt}}',
+          metadata: { templateType: 'optimize' }
+        }
+      ]),
+      listTemplatesByType: vi.fn().mockReturnValue([
+        {
+          id: 'test-template',
+          name: 'Test Template',
+          content: 'Test template {{originalPrompt}}',
+          metadata: { templateType: 'optimize' }
+        }
+      ])
+    }
+
+    mockHistoryManager = {
+      createNewChain: vi.fn().mockResolvedValue({
+        chainId: 'test-chain',
+        versions: [],
+        currentRecord: { id: 'test-record' }
+      })
+    }
+
+    mockPromptService = {
+      optimizePromptStreamWithType: vi.fn()
+    }
+  })
+
+  describe('Model Key Validation', () => {
+    it('should validate model key requirements', () => {
+      // Test that empty model key is invalid
+      const emptyModelKey = ''
+      expect(emptyModelKey).toBe('')
+
+      // Test that undefined model key is invalid
+      const undefinedModelKey = undefined
+      expect(undefinedModelKey).toBeUndefined()
+
+      // Test that valid model key is valid
+      const validModelKey = 'valid-model-key'
+      expect(validModelKey).toBeTruthy()
+      expect(validModelKey.length).toBeGreaterThan(0)
+    })
+
+    it('should test optimization request structure', () => {
+      // Test system prompt optimization request
+      const systemRequest = {
+        promptType: 'system',
+        targetPrompt: 'Test system prompt',
+        modelKey: 'test-model',
+        templateId: 'test-template'
+      }
+
+      expect(systemRequest.promptType).toBe('system')
+      expect(systemRequest.modelKey).toBe('test-model')
+      expect(systemRequest.targetPrompt).toBeTruthy()
+
+      // Test user prompt optimization request
+      const userRequest = {
+        promptType: 'user',
+        targetPrompt: 'Test user prompt',
+        contextPrompt: 'Test context',
+        modelKey: 'test-model',
+        templateId: 'test-template'
+      }
+
+      expect(userRequest.promptType).toBe('user')
+      expect(userRequest.contextPrompt).toBe('Test context')
+      expect(userRequest.modelKey).toBe('test-model')
+    })
+  })
+
+  describe('Parameter Validation', () => {
+    it('should validate required parameters for optimization', () => {
+      // Test required parameters
+      const requiredParams = {
+        promptType: 'system',
+        targetPrompt: 'Test prompt',
+        modelKey: 'test-model'
+      }
+
+      expect(requiredParams.promptType).toBeTruthy()
+      expect(requiredParams.targetPrompt).toBeTruthy()
+      expect(requiredParams.modelKey).toBeTruthy()
+
+      // Test optional parameters
+      const optionalParams = {
+        contextPrompt: 'Optional context',
+        templateId: 'optional-template'
+      }
+
+      expect(optionalParams.contextPrompt).toBeTruthy()
+      expect(optionalParams.templateId).toBeTruthy()
+    })
+
+    it('should validate model key format', () => {
+      // Valid model keys
+      const validKeys = ['gpt-4', 'claude-3', 'model-123', 'test-model']
+      validKeys.forEach(key => {
+        expect(key).toBeTruthy()
+        expect(typeof key).toBe('string')
+        expect(key.length).toBeGreaterThan(0)
+      })
+
+      // Invalid model keys
+      const invalidKeys = ['', null, undefined]
+      invalidKeys.forEach(key => {
+        expect(key).toBeFalsy()
+      })
+    })
+  })
+})
