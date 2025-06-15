@@ -419,8 +419,6 @@ export class PromptService implements IPromptService {
     if (!request.modelKey?.trim()) {
       throw new OptimizationError('Model key is required', request.targetPrompt);
     }
-    // 用户提示词优化时，contextPrompt 是可选的
-    // 不再强制要求 contextPrompt
   }
 
   /**
@@ -478,10 +476,6 @@ export class PromptService implements IPromptService {
       }
     });
   }
-
-
-
-
 }
 
 // 导出工厂函数

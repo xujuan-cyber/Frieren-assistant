@@ -108,14 +108,13 @@ describe('usePromptOptimizer Model Validation', () => {
       const userRequest = {
         promptType: 'user',
         targetPrompt: 'Test user prompt',
-        contextPrompt: 'Test context',
         modelKey: 'test-model',
         templateId: 'test-template'
       }
 
       expect(userRequest.promptType).toBe('user')
-      expect(userRequest.contextPrompt).toBe('Test context')
       expect(userRequest.modelKey).toBe('test-model')
+      expect(userRequest.targetPrompt).toBeTruthy()
     })
   })
 
@@ -134,11 +133,9 @@ describe('usePromptOptimizer Model Validation', () => {
 
       // Test optional parameters
       const optionalParams = {
-        contextPrompt: 'Optional context',
         templateId: 'optional-template'
       }
 
-      expect(optionalParams.contextPrompt).toBeTruthy()
       expect(optionalParams.templateId).toBeTruthy()
     })
 

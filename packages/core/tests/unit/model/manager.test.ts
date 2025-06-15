@@ -160,15 +160,29 @@ describe('ModelManager', () => {
 
   describe('getEnabledModels', () => {
     it('should return only enabled models', async () => {
+      // 先获取当前启用的模型数量（包括默认模型）
+      const initialEnabledModels = await modelManager.getEnabledModels();
+      const initialCount = initialEnabledModels.length;
+
       const enabledModel = createModelConfig('EnabledModel', true);
       const disabledModel = createModelConfig('DisabledModel', false);
 
-      await modelManager.addModel('enabled', enabledModel);
-      await modelManager.addModel('disabled', disabledModel);
+      await modelManager.addModel('test-enabled', enabledModel);
+      await modelManager.addModel('test-disabled', disabledModel);
 
       const enabledModels = await modelManager.getEnabledModels();
-      expect(enabledModels).toHaveLength(1);
-      expect(enabledModels[0].key).toBe('enabled');
+      
+      // 应该比初始数量多1个（新增的启用模型）
+      expect(enabledModels).toHaveLength(initialCount + 1);
+      
+      // 验证新添加的启用模型存在
+      const addedEnabledModel = enabledModels.find(m => m.key === 'test-enabled');
+      expect(addedEnabledModel).toBeDefined();
+      expect(addedEnabledModel?.name).toBe('EnabledModel');
+      
+      // 验证禁用的模型不存在
+      const disabledModelInResults = enabledModels.find(m => m.key === 'test-disabled');
+      expect(disabledModelInResults).toBeUndefined();
     });
   });
 

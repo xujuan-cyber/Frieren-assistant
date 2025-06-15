@@ -318,7 +318,6 @@ export default {
     optimizedResult: '优化后提示词结果',
     testResult: '测试结果',
     userPromptTest: '用户提示词测试',
-    userPromptTestHelp: '测试优化后的用户提示词效果。系统提示词将作为上下文，用户提示词将被发送给AI进行响应。',
     error: {
       failed: '测试失败',
       noModel: '请先选择测试模型',

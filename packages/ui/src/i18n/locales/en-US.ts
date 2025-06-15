@@ -318,7 +318,6 @@ export default {
     optimizedResult: 'Optimized Prompt Result',
     testResult: 'Test Result',
     userPromptTest: 'User Prompt Test',
-    userPromptTestHelp: 'Test the effectiveness of the optimized user prompt. The system prompt will serve as context, and the user prompt will be sent to the AI for response.',
     error: {
       failed: 'Test Failed',
       noModel: 'Please select a test model first',

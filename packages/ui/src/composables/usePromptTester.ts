@@ -7,8 +7,7 @@ import type { IPromptService, PromptType } from '@prompt-optimizer/core'
 export function usePromptTester(
   promptService: Ref<IPromptService | null>,
   selectedTestModel: Ref<string>,
-  promptType?: Ref<PromptType>,
-  contextPrompt?: Ref<string>
+  promptType?: Ref<PromptType>
 ) {
   const toast = useToast()
   const { t } = useI18n()
@@ -19,7 +18,7 @@ export function usePromptTester(
   const testError = ref('')
   const isTesting = ref(false)
   
-  // Test prompt with context awareness
+  // Test prompt with prompt type awareness
   const handleTest = async (optimizedPrompt: string) => {
     if (!promptService.value) {
       toast.error(t('toast.error.serviceInit'))
@@ -49,8 +48,8 @@ export function usePromptTester(
       let userPrompt = ''
 
       if (currentPromptType === 'user') {
-        // For user prompt optimization: context is system, optimized is user
-        systemPrompt = contextPrompt?.value || ''
+        // For user prompt optimization: no system context, optimized is user
+        systemPrompt = ''
         userPrompt = optimizedPrompt
       } else {
         // For system prompt optimization: optimized is system, test content is user
@@ -58,7 +57,6 @@ export function usePromptTester(
         userPrompt = testContent.value
       }
 
-      // Use updated testPromptStream method with flexible parameters
       await promptService.value.testPromptStream(
         systemPrompt,
         userPrompt,
@@ -104,7 +102,6 @@ export function usePromptTester(
     testResult.value = ''
 
     try {
-      // Use updated testPromptStream method with flexible parameters
       await promptService.value.testPromptStream(
         systemPrompt,
         userPrompt,

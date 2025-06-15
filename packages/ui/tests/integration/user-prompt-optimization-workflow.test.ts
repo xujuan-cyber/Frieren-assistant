@@ -28,9 +28,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
             userPrompt: 'User Prompt',
             systemPromptHelp: 'Optimize system prompts',
             userPromptHelp: 'Optimize user prompts',
-            contextPrompt: 'System Prompt Context',
-            contextPromptPlaceholder: 'Enter context...',
-            contextPromptHelp: 'Provide context for optimization',
             suggestions: {
               assistant: 'General Assistant',
               assistantContent: 'You are a helpful AI assistant.',
@@ -90,7 +87,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
 
     mockPromptService = {
       optimizePromptStream: vi.fn(),
-      testPromptWithContext: vi.fn()
+      testPrompt: vi.fn()
     }
   })
 
@@ -123,7 +120,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
 
     it('should handle prompt type changes correctly', async () => {
       const selectedPromptType = ref('system')
-      const contextPrompt = ref('')
 
       const wrapper = mount(PromptTypeSelector, {
         props: {
@@ -151,7 +147,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
       const request = {
         promptType: 'user',
         targetPrompt: 'Help me write an essay',
-        contextPrompt: 'You are a helpful assistant.',
         templateId: 'user-prompt-optimize',
         modelKey: 'test-model'
       }
@@ -183,7 +178,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
         expect.objectContaining({
           promptType: 'user',
           targetPrompt: 'Help me write an essay',
-          contextPrompt: 'You are a helpful assistant.',
           templateId: 'user-prompt-optimize'
         }),
         expect.any(Object)
@@ -198,7 +192,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
       const request = {
         promptType: 'system',
         targetPrompt: 'You are a helpful assistant',
-        contextPrompt: undefined, // No context for system prompt
         templateId: 'general-optimize',
         modelKey: 'test-model'
       }
@@ -229,7 +222,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
         expect.objectContaining({
           promptType: 'system',
           targetPrompt: 'You are a helpful assistant',
-          contextPrompt: undefined,
           templateId: 'general-optimize'
         }),
         expect.any(Object)
@@ -270,7 +262,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
       const request = {
         promptType: 'user',
         targetPrompt: 'Test prompt',
-        contextPrompt: 'Test context',
         templateId: 'test-template',
         modelKey: 'test-model'
       }
@@ -305,48 +296,6 @@ describe('User Prompt Optimization Workflow Integration', () => {
       // First button should be system, second should be user
       expect(buttons[0].text()).toContain('System')
       expect(buttons[1].text()).toContain('User')
-    })
-  })
-
-  describe('Backward Compatibility', () => {
-    it('should maintain compatibility with existing system prompt optimization', async () => {
-      // Test default behavior (should default to system prompt type)
-      const request = {
-        promptType: 'system', // Default behavior
-        targetPrompt: 'Test system prompt',
-        contextPrompt: undefined,
-        templateId: 'general-optimize',
-        modelKey: 'test-model'
-      }
-
-      mockPromptService.optimizePromptStream.mockImplementation(
-        async (req, callbacks) => {
-          expect(req.promptType).toBe('system')
-          expect(req.contextPrompt).toBeUndefined()
-
-          callbacks.onToken('Compatible')
-          callbacks.onToken(' result')
-          await callbacks.onComplete()
-        }
-      )
-
-      let result = ''
-      await mockPromptService.optimizePromptStream(request, {
-        onToken: (token) => { result += token },
-        onComplete: () => {},
-        onError: () => {}
-      })
-
-      // Should work with default system prompt type
-      expect(mockPromptService.optimizePromptStream).toHaveBeenCalledWith(
-        expect.objectContaining({
-          promptType: 'system',
-          targetPrompt: 'Test system prompt'
-        }),
-        expect.any(Object)
-      )
-
-      expect(result).toBe('Compatible result')
     })
   })
 })

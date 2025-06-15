@@ -70,9 +70,6 @@
               </button>
             </div>
           </div>
-          <p class="text-sm theme-text-secondary">
-            {{ t('test.userPromptTestHelp') }}
-          </p>
         </div>
       </div>
 
