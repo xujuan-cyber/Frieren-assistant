@@ -259,7 +259,7 @@ export class DexieStorageProvider implements IStorageProvider {
 
   /**
    * 原子更新操作
-   * 使用 Dexie 的事务机制确保原子性
+   * 使用 Dexie 的事务机制确保原子性，带重试和降级机制
    */
   async atomicUpdate<T>(
     key: string,
@@ -273,7 +273,7 @@ export class DexieStorageProvider implements IStorageProvider {
       await this.keyLocks.get(lockKey);
     }
 
-    const lockPromise = this._performAtomicUpdate(key, updateFn);
+    const lockPromise = this._performAtomicUpdateWithRetry(key, updateFn);
     this.keyLocks.set(lockKey, lockPromise);
 
     try {
@@ -296,6 +296,85 @@ export class DexieStorageProvider implements IStorageProvider {
   }
 
   /**
+   * 类型守卫：检查是否为Error对象
+   */
+  private isError(error: unknown): error is Error {
+    return error instanceof Error || (typeof error === 'object' && error !== null && 'name' in error && 'message' in error);
+  }
+
+  /**
+   * 带重试机制的原子更新
+   */
+  private async _performAtomicUpdateWithRetry<T>(
+    key: string,
+    updateFn: (currentValue: T | null) => T,
+    maxRetries: number = 3
+  ): Promise<void> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this._performAtomicUpdate(key, updateFn);
+        return; // 成功，直接返回
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`原子更新尝试 ${attempt}/${maxRetries} 失败 (${key}):`, error);
+
+        // 如果是事务错误且还有重试机会，等待一段时间后重试
+        if (this.isError(error) && error.name === 'PrematureCommitError' && attempt < maxRetries) {
+          const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000); // 指数退避，最大1秒
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        // 如果是最后一次尝试或非事务错误，尝试降级到简单更新
+        if (attempt === maxRetries) {
+          console.warn(`所有重试失败，尝试降级到简单更新 (${key})`);
+          try {
+            await this._performSimpleUpdate(key, updateFn);
+            console.log(`降级更新成功 (${key})`);
+            return;
+          } catch (fallbackError) {
+            console.error(`降级更新也失败 (${key}):`, fallbackError);
+            throw lastError; // 抛出原始错误
+          }
+        }
+      }
+    }
+
+    throw lastError || new Error(`Failed to perform atomic update after ${maxRetries} attempts`);
+  }
+
+  /**
+   * 简单更新（降级方案）
+   */
+  private async _performSimpleUpdate<T>(
+    key: string,
+    updateFn: (currentValue: T | null) => T
+  ): Promise<void> {
+    try {
+      // 读取当前值
+      const currentRecord = await this.db.storage.get(key);
+      const currentValue = currentRecord?.value
+        ? JSON.parse(currentRecord.value) as T
+        : null;
+
+      // 应用更新函数
+      const newValue = updateFn(currentValue);
+
+      // 直接写入新值（不使用事务）
+      await this.db.storage.put({
+        key,
+        value: JSON.stringify(newValue),
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error(`简单更新失败 (${key}):`, error);
+      throw new Error(`Failed to perform simple update: ${key}`);
+    }
+  }
+
+  /**
    * 执行原子更新
    */
   private async _performAtomicUpdate<T>(
@@ -303,25 +382,38 @@ export class DexieStorageProvider implements IStorageProvider {
     updateFn: (currentValue: T | null) => T
   ): Promise<void> {
     try {
-      await this.db.transaction('rw', this.db.storage, async () => {
-        // 读取当前值
-        const currentRecord = await this.db.storage.get(key);
-        const currentValue = currentRecord?.value 
-          ? JSON.parse(currentRecord.value) as T
-          : null;
+      // 使用更安全的事务处理方式
+      await this.db.transaction('rw', this.db.storage, async (tx) => {
+        try {
+          // 读取当前值
+          const currentRecord = await tx.table('storage').get(key);
+          const currentValue = currentRecord?.value
+            ? JSON.parse(currentRecord.value) as T
+            : null;
 
-        // 应用更新函数
-        const newValue = updateFn(currentValue);
+          // 应用更新函数 - 确保同步执行
+          const newValue = updateFn(currentValue);
 
-        // 写入新值
-        await this.db.storage.put({
-          key,
-          value: JSON.stringify(newValue),
-          timestamp: Date.now()
-        });
+          // 写入新值
+          await tx.table('storage').put({
+            key,
+            value: JSON.stringify(newValue),
+            timestamp: Date.now()
+          });
+        } catch (innerError) {
+          // 事务内部错误，让事务回滚
+          console.error(`事务内部操作失败 (${key}):`, innerError);
+          throw innerError;
+        }
       });
     } catch (error) {
       console.error(`原子更新失败 (${key}):`, error);
+
+      // 如果是Dexie事务错误，提供更详细的错误信息
+      if (this.isError(error) && error.name === 'PrematureCommitError') {
+        throw new Error(`Database transaction error for key ${key}: ${error.message}. Please try again.`);
+      }
+
       throw new Error(`Failed to perform atomic update: ${key}`);
     }
   }
@@ -384,7 +476,7 @@ export class DexieStorageProvider implements IStorageProvider {
       const lastRecord = await this.db.storage
         .orderBy('timestamp')
         .last();
-      
+
       // 估算存储大小（粗略计算）
       const allRecords = await this.db.storage.toArray();
       const estimatedSize = allRecords.reduce(
@@ -416,7 +508,7 @@ export class DexieStorageProvider implements IStorageProvider {
     try {
       const allRecords = await this.db.storage.toArray();
       const result: Record<string, string> = {};
-      
+
       allRecords.forEach(record => {
         result[record.key] = record.value;
       });

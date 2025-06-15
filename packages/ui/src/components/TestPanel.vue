@@ -5,7 +5,7 @@
       <div class="flex-none">
         <!-- Show test input only for system prompt optimization -->
         <InputPanelUI
-          v-if="promptType === 'system'"
+          v-if="optimizationMode === 'system'"
           v-model="testContent"
           v-model:selectedModel="selectedTestModel"
           :label="t('test.content')"
@@ -151,7 +151,7 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  promptType: {
+  optimizationMode: {
     type: String,
     default: 'system'
   }
@@ -215,11 +215,11 @@ const testOriginalPrompt = async () => {
     if (originalOutputPanelRef.value) {
       const streamHandler = originalOutputPanelRef.value.handleStream()
 
-      // Determine system and user prompts based on prompt type
+      // Determine system and user prompts based on optimization mode
       let systemPrompt = ''
       let userPrompt = ''
 
-      if (props.promptType === 'user') {
+      if (props.optimizationMode === 'user') {
         // For user prompt optimization: original is user prompt, no system context
         systemPrompt = ''
         userPrompt = ensureString(props.originalPrompt)
@@ -267,11 +267,11 @@ const testOptimizedPrompt = async () => {
     if (outputPanel) {
       const streamHandler = outputPanel.handleStream()
 
-      // Determine system and user prompts based on prompt type
+      // Determine system and user prompts based on optimization mode
       let systemPrompt = ''
       let userPrompt = ''
 
-      if (props.promptType === 'user') {
+      if (props.optimizationMode === 'user') {
         // For user prompt optimization: optimized is user prompt, no system context
         systemPrompt = ''
         userPrompt = ensureString(props.optimizedPrompt)
@@ -315,7 +315,7 @@ const handleTest = async () => {
 
   // For user prompt optimization, we don't need test content input
   // For system prompt optimization, we need test content input
-  if (props.promptType === 'system' && !testContent.value) {
+  if (props.optimizationMode === 'system' && !testContent.value) {
     const errorMsg = t('test.error.noTestContent')
     originalTestError.value = errorMsg
     optimizedTestError.value = errorMsg

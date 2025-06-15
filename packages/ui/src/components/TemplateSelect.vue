@@ -69,7 +69,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { templateManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
-import type { PromptType } from '@prompt-optimizer/core'
+import type { OptimizationMode } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
@@ -95,8 +95,8 @@ const props = defineProps({
     required: true,
     validator: (value: string): boolean => ['optimize', 'userOptimize', 'iterate'].includes(value)
   },
-  promptType: {
-    type: String as () => PromptType,
+  optimizationMode: {
+    type: String as () => OptimizationMode,
     default: 'system'
   }
 })
@@ -163,8 +163,8 @@ watch(isOpen, async (newValue) => {
   }
 })
 
-// 监听提示词类型变化
-watch(() => props.promptType, () => {
+// 监听优化模式变化
+watch(() => props.optimizationMode, () => {
   refreshTemplates()
 })
 
@@ -180,12 +180,12 @@ const templates = computed(() => {
   return templateManager.listTemplatesByType(props.type)
 })
 
-// 添加对promptType变化的监听
+// 添加对optimizationMode变化的监听
 watch(
-  () => props.promptType,
-  (newPromptType, oldPromptType) => {
-    if (newPromptType !== oldPromptType) {
-      // promptType变化时，静默刷新模板列表（避免重复toast）
+  () => props.optimizationMode,
+  (newOptimizationMode, oldOptimizationMode) => {
+    if (newOptimizationMode !== oldOptimizationMode) {
+      // optimizationMode变化时，静默刷新模板列表（避免重复toast）
       refreshTemplates()
     }
   }

@@ -62,8 +62,8 @@
         >
           <template #prompt-type-selector>
             <PromptTypeSelectorUI
-              v-model="selectedPromptType"
-              @change="handlePromptTypeChange"
+              v-model="selectedOptimizationMode"
+              @change="handleOptimizationModeChange"
             />
           </template>
           <template #model-select>
@@ -78,8 +78,9 @@
           <template #template-select>
             <TemplateSelectUI
               v-model="selectedOptimizeTemplate"
-              :type="selectedPromptType === 'system' ? 'optimize' : 'userOptimize'"
-              @manage="openTemplateManager(selectedPromptType === 'system' ? 'optimize' : 'userOptimize')"
+              :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
+              :optimization-mode="selectedOptimizationMode"
+              @manage="openTemplateManager(selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize')"
               @select="handleTemplateSelect"
             />
           </template>
@@ -108,7 +109,7 @@
       :prompt-service="promptServiceRef"
       :original-prompt="prompt"
       :optimized-prompt="optimizedPrompt"
-      :prompt-type="selectedPromptType"
+      :optimization-mode="selectedOptimizationMode"
       v-model="selectedTestModel"
       @showConfig="showConfig = true"
     />
@@ -130,7 +131,7 @@
         <TemplateManagerUI
           v-if="showTemplates"
           :template-type="currentType"
-          :prompt-type="selectedPromptType"
+          :optimization-mode="selectedOptimizationMode"
           :selected-optimize-template="selectedOptimizeTemplate"
           :selected-iterate-template="selectedIterateTemplate"
           @close="handleTemplateManagerClose"
@@ -217,24 +218,24 @@ const toast = useToast()
 const { t } = useI18n()
 
 // 新增状态
-const selectedPromptType = ref('system')
+const selectedOptimizationMode = ref('system')
 
 // 计算属性：动态标签
 const promptInputLabel = computed(() => {
-  return selectedPromptType.value === 'system'
+  return selectedOptimizationMode.value === 'system'
     ? t('promptOptimizer.systemPromptInput')
     : t('promptOptimizer.userPromptInput')
 })
 
 const promptInputPlaceholder = computed(() => {
-  return selectedPromptType.value === 'system'
+  return selectedOptimizationMode.value === 'system'
     ? t('promptOptimizer.systemPromptPlaceholder')
     : t('promptOptimizer.userPromptPlaceholder')
 })
 
 // 事件处理
-const handlePromptTypeChange = (type) => {
-  selectedPromptType.value = type
+const handleOptimizationModeChange = (mode) => {
+  selectedOptimizationMode.value = mode
 }
 
 // 初始化服务
@@ -282,7 +283,7 @@ const {
   templateManager,
   historyManager,
   promptServiceRef,
-  selectedPromptType,
+  selectedOptimizationMode,
   selectedOptimizeModel,
   selectedTestModel
 )

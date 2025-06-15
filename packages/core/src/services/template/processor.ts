@@ -1,7 +1,7 @@
 import { Template } from './types';
 import { Message } from '../llm/types';
 import { Handlebars } from './minimal';
-import type { PromptType } from '../prompt/types';
+import type { OptimizationMode } from '../prompt/types';
 
 /**
  * 模板变量上下文
@@ -10,7 +10,7 @@ export interface TemplateContext {
   originalPrompt?: string;
   iterateInput?: string;
   lastOptimizedPrompt?: string;
-  promptType?: PromptType;       // 新增：提示词类型
+  optimizationMode?: OptimizationMode;  // 优化模式
   // Allow additional string properties for template flexibility
   // but with stricter typing than the previous implementation
   [key: string]: string | undefined;

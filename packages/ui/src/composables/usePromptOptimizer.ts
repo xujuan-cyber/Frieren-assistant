@@ -12,7 +12,7 @@ import type {
   PromptRecordChain,
   IPromptService,
   ITemplateManager,
-  PromptType,
+  OptimizationMode,
   OptimizationRequest
 } from '@prompt-optimizer/core'
 
@@ -24,12 +24,12 @@ export function usePromptOptimizer(
   templateManager: ITemplateManager,
   historyManager: IHistoryManager,
   promptService: Ref<IPromptService | null>,
-  selectedPromptType?: Ref<PromptType>,    // 新增：提示词类型
-  selectedOptimizeModel?: Ref<string>,     // 新增：优化模型选择
-  selectedTestModel?: Ref<string>          // 新增：测试模型选择
+  selectedOptimizationMode?: Ref<OptimizationMode>,    // 新增：优化模式
+  selectedOptimizeModel?: Ref<string>,                 // 新增：优化模型选择
+  selectedTestModel?: Ref<string>                      // 新增：测试模型选择
 ) {
   // 如果没有传入参数，使用默认值
-  const promptType = selectedPromptType || ref<PromptType>('system')
+  const optimizationMode = selectedOptimizationMode || ref<OptimizationMode>('system')
   const optimizeModel = selectedOptimizeModel || ref('')
   const testModel = selectedTestModel || ref('')
   const toast = useToast()
@@ -78,7 +78,7 @@ export function usePromptOptimizer(
     try {
       // 构建优化请求
       const request: OptimizationRequest = {
-        promptType: promptType.value,
+        optimizationMode: optimizationMode.value,
         targetPrompt: prompt.value,
         templateId: selectedOptimizeTemplate.value.id,
         modelKey: optimizeModel.value
@@ -105,7 +105,7 @@ export function usePromptOptimizer(
                 templateId: selectedOptimizeTemplate.value.id,
                 timestamp: Date.now(),
                 metadata: {
-                  promptType: promptType.value
+                  optimizationMode: optimizationMode.value
                 }
               });
 
@@ -209,8 +209,8 @@ export function usePromptOptimizer(
     try {
       let storageKey: string
       if (type === 'optimize') {
-        // 根据当前提示词类型选择不同的存储键
-        storageKey = promptType.value === 'system'
+        // 根据当前优化模式选择不同的存储键
+        storageKey = optimizationMode.value === 'system'
           ? STORAGE_KEYS.SYSTEM_OPTIMIZE_TEMPLATE
           : STORAGE_KEYS.USER_OPTIMIZE_TEMPLATE
       } else {
@@ -229,9 +229,9 @@ export function usePromptOptimizer(
       // 确保模板管理器已初始化
       await templateManager.ensureInitialized()
 
-      // 加载优化模板的函数 - 根据提示词类型选择不同的存储键
+      // 加载优化模板的函数 - 根据优化模式选择不同的存储键
       const loadOptimizeTemplate = async () => {
-        const storageKey = promptType.value === 'system'
+        const storageKey = optimizationMode.value === 'system'
           ? STORAGE_KEYS.SYSTEM_OPTIMIZE_TEMPLATE
           : STORAGE_KEYS.USER_OPTIMIZE_TEMPLATE
 
@@ -240,19 +240,19 @@ export function usePromptOptimizer(
           try {
             const template = templateManager.getTemplate(savedTemplateId)
             if (template && template.metadata.templateType === 'optimize') {
-              // 检查模板是否适用于当前提示词类型
-              if (!template.metadata.promptType || template.metadata.promptType === promptType.value) {
+              // 检查模板是否适用于当前优化模式
+              if (!template.metadata.optimizationMode || template.metadata.optimizationMode === optimizationMode.value) {
                 selectedOptimizeTemplate.value = template
                 return
               }
             }
           } catch (error) {
-            console.warn(`Failed to load saved optimize template for ${promptType.value} mode`, error)
+            console.warn(`Failed to load saved optimize template for ${optimizationMode.value} mode`, error)
           }
         }
 
-        // 回退到第一个可用的模板（根据提示词类型选择对应的templateType）
-        const templateType = promptType.value === 'system' ? 'optimize' : 'userOptimize'
+        // 回退到第一个可用的模板（根据优化模式选择对应的templateType）
+        const templateType = optimizationMode.value === 'system' ? 'optimize' : 'userOptimize'
         const templates = templateManager.listTemplatesByType(templateType)
         if (templates.length > 0) {
           selectedOptimizeTemplate.value = templates[0]
@@ -300,9 +300,9 @@ export function usePromptOptimizer(
     }
   }
 
-  // 监听提示词类型变化，静默重新加载模板（避免重复toast）
-  watch(promptType, async (newType, oldType) => {
-    if (newType !== oldType) {
+  // 监听优化模式变化，静默重新加载模板（避免重复toast）
+  watch(optimizationMode, async (newMode, oldMode) => {
+    if (newMode !== oldMode) {
       // 静默加载，不显示toast
       await initTemplateSelection()
     }

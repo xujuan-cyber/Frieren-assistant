@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { PromptType } from '../prompt/types';
 
 /**
  * 提示词元数据
@@ -10,7 +9,6 @@ export interface TemplateMetadata {
   author?: string;          // 作者（可选）
   description?: string;     // 描述（可选）
   templateType: 'optimize' | 'userOptimize' | 'iterate'; // 模板类型标识
-  promptType?: PromptType;  // 新增：目标提示词类型（可选，用于向后兼容）
 }
 
 /**
@@ -103,8 +101,7 @@ export const templateSchema = z.object({
     lastModified: z.number(),
     author: z.string().optional(),
     description: z.string().optional(),
-    templateType: z.enum(['optimize', 'userOptimize', 'iterate']),
-    promptType: z.enum(['system', 'user']).optional()
+    templateType: z.enum(['optimize', 'userOptimize', 'iterate'])
   }),
   isBuiltin: z.boolean().optional()
 });

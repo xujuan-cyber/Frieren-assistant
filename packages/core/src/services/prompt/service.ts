@@ -1,4 +1,4 @@
-import { IPromptService, OptimizationRequest, PromptType } from './types';
+import { IPromptService, OptimizationRequest, OptimizationMode } from './types';
 import { Message, StreamHandlers } from '../llm/types';
 import { PromptRecord } from '../history/types';
 import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
@@ -92,7 +92,7 @@ export class PromptService implements IPromptService {
       }
 
       const template = this.templateManager.getTemplate(
-        request.templateId || this.getDefaultTemplateId('optimize', request.promptType)
+        request.templateId || this.getDefaultTemplateId('optimize', request.optimizationMode)
       );
 
       if (!template?.content) {
@@ -101,7 +101,7 @@ export class PromptService implements IPromptService {
 
       const context: TemplateContext = {
         originalPrompt: request.targetPrompt,
-        promptType: request.promptType
+        optimizationMode: request.optimizationMode
       };
 
       const messages = TemplateProcessor.processTemplate(template, context);
@@ -305,7 +305,7 @@ export class PromptService implements IPromptService {
       }
 
       const template = this.templateManager.getTemplate(
-        request.templateId || this.getDefaultTemplateId('optimize', request.promptType)
+        request.templateId || this.getDefaultTemplateId('optimize', request.optimizationMode)
       );
 
       if (!template?.content) {
@@ -314,7 +314,7 @@ export class PromptService implements IPromptService {
 
       const context: TemplateContext = {
         originalPrompt: request.targetPrompt,
-        promptType: request.promptType
+        optimizationMode: request.optimizationMode
       };
 
       const messages = TemplateProcessor.processTemplate(template, context);
@@ -424,13 +424,13 @@ export class PromptService implements IPromptService {
   /**
    * 获取默认模板ID
    */
-  private getDefaultTemplateId(templateType: 'optimize' | 'iterate', promptType: PromptType): string {
+  private getDefaultTemplateId(templateType: 'optimize' | 'iterate', optimizationMode: OptimizationMode): string {
     // 尝试获取特定类型的模板
     try {
-      // 根据promptType确定实际的templateType
+      // 根据optimizationMode确定实际的templateType
       let actualTemplateType: 'optimize' | 'userOptimize' | 'iterate';
       if (templateType === 'optimize') {
-        actualTemplateType = promptType === 'user' ? 'userOptimize' : 'optimize';
+        actualTemplateType = optimizationMode === 'user' ? 'userOptimize' : 'optimize';
       } else {
         actualTemplateType = 'iterate';
       }
@@ -440,13 +440,13 @@ export class PromptService implements IPromptService {
         return templates[0].id;
       }
     } catch (error) {
-      console.warn(`Failed to get templates for type ${templateType}:${promptType}`, error);
+      console.warn(`Failed to get templates for type ${templateType}:${optimizationMode}`, error);
     }
 
     // 回退到通用模板ID
     if (templateType === 'optimize') {
       // 对于用户提示词优化，优先使用用户提示词优化模板
-      if (promptType === 'user' && TEMPLATE_DEFAULTS['user-prompt-optimize']) {
+      if (optimizationMode === 'user' && TEMPLATE_DEFAULTS['user-prompt-optimize']) {
         return 'user-prompt-optimize';
       }
       // 回退到通用优化模板
@@ -470,9 +470,9 @@ export class PromptService implements IPromptService {
       version: 1,
       timestamp: Date.now(),
       modelKey: request.modelKey,
-      templateId: request.templateId || this.getDefaultTemplateId('optimize', request.promptType),
+      templateId: request.templateId || this.getDefaultTemplateId('optimize', request.optimizationMode),
       metadata: {
-        promptType: request.promptType
+        optimizationMode: request.optimizationMode
       }
     });
   }

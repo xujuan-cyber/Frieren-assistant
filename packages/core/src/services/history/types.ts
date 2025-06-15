@@ -1,4 +1,4 @@
-import type { PromptType } from '../prompt/types';
+import type { OptimizationMode } from '../prompt/types';
 
 /**
  * 提示词记录类型
@@ -39,8 +39,8 @@ export interface PromptRecord {
   iterationNote?: string;
   /** 元数据 */
   metadata?: {
-    promptType?: PromptType;     // 新增：提示词类型
-    [key: string]: any;          // 保持扩展性
+    optimizationMode?: OptimizationMode;  // 优化模式
+    [key: string]: any;                   // 保持扩展性
   };
 }
 

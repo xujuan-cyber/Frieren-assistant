@@ -2,12 +2,12 @@ import { ref } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import type { Ref } from 'vue'
-import type { IPromptService, PromptType } from '@prompt-optimizer/core'
+import type { IPromptService, OptimizationMode } from '@prompt-optimizer/core'
 
 export function usePromptTester(
   promptService: Ref<IPromptService | null>,
   selectedTestModel: Ref<string>,
-  promptType?: Ref<PromptType>
+  optimizationMode?: Ref<OptimizationMode>
 ) {
   const toast = useToast()
   const { t } = useI18n()
@@ -32,8 +32,8 @@ export function usePromptTester(
 
     // For system prompt optimization, we need test content
     // For user prompt optimization, we don't need test content (the optimized prompt IS the user input)
-    const currentPromptType = promptType?.value || 'system'
-    if (currentPromptType === 'system' && !testContent.value) {
+    const currentOptimizationMode = optimizationMode?.value || 'system'
+    if (currentOptimizationMode === 'system' && !testContent.value) {
       toast.error(t('test.error.noTestContent'))
       return
     }
@@ -43,11 +43,11 @@ export function usePromptTester(
     testResult.value = ''
 
     try {
-      // Determine system and user prompts based on prompt type
+      // Determine system and user prompts based on optimization mode
       let systemPrompt = ''
       let userPrompt = ''
 
-      if (currentPromptType === 'user') {
+      if (currentOptimizationMode === 'user') {
         // For user prompt optimization: no system context, optimized is user
         systemPrompt = ''
         userPrompt = optimizedPrompt

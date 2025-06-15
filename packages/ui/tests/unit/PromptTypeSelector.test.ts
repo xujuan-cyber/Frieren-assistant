@@ -34,7 +34,7 @@ describe('PromptTypeSelector', () => {
       }
     })
 
-    expect(wrapper.find('.prompt-type-selector').exists()).toBe(true)
+    expect(wrapper.find('.optimization-mode-selector').exists()).toBe(true)
     // 移除了"优化模式："标签前缀，只显示按钮
     expect(wrapper.text()).toContain('System Prompt')
     expect(wrapper.text()).toContain('User Prompt')

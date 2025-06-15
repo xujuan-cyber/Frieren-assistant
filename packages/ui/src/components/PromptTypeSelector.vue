@@ -1,9 +1,9 @@
-<!-- 提示词类型选择器组件 - 简化版 -->
+<!-- 优化模式选择器组件 - 简化版 -->
 <template>
-  <div class="prompt-type-selector">
+  <div class="optimization-mode-selector">
     <div class="inline-flex bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 text-[10px]">
       <button
-        @click="updatePromptType('system')"
+        @click="updateOptimizationMode('system')"
         :class="[
           'px-1.5 py-0.5 transition-colors duration-150 rounded-l',
           'focus:outline-none focus:ring-1 focus:ring-blue-400',
@@ -18,7 +18,7 @@
       </button>
       <div class="w-px bg-gray-200 dark:bg-gray-600"></div>
       <button
-        @click="updatePromptType('user')"
+        @click="updateOptimizationMode('user')"
         :class="[
           'px-1.5 py-0.5 transition-colors duration-150 rounded-r',
           'focus:outline-none focus:ring-1 focus:ring-blue-400',
@@ -37,17 +37,17 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { PromptType } from '@prompt-optimizer/core'
+import type { OptimizationMode } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
 interface Props {
-  modelValue?: PromptType
+  modelValue?: OptimizationMode
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: PromptType): void
-  (e: 'change', value: PromptType): void
+  (e: 'update:modelValue', value: OptimizationMode): void
+  (e: 'change', value: OptimizationMode): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -56,38 +56,38 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 /**
- * 更新提示词类型
+ * 更新优化模式
  */
-const updatePromptType = (type: PromptType) => {
-  if (type !== props.modelValue) {
-    emit('update:modelValue', type)
-    emit('change', type)
+const updateOptimizationMode = (mode: OptimizationMode) => {
+  if (mode !== props.modelValue) {
+    emit('update:modelValue', mode)
+    emit('change', mode)
   }
 }
 </script>
 
 <style scoped>
-.prompt-type-selector {
+.optimization-mode-selector {
   display: inline-flex;
 }
 
 /* 微妙的按钮反馈 */
-.prompt-type-selector button:active {
+.optimization-mode-selector button:active {
   transform: scale(0.95);
 }
 
 /* 响应式设计 */
 @media (max-width: 640px) {
-  .prompt-type-selector {
+  .optimization-mode-selector {
     width: 100%;
   }
 
-  .prompt-type-selector .inline-flex {
+  .optimization-mode-selector .inline-flex {
     display: flex;
     width: 100%;
   }
 
-  .prompt-type-selector button {
+  .optimization-mode-selector button {
     flex: 1;
   }
 }

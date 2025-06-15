@@ -2,17 +2,16 @@ import { PromptRecord } from '../history/types';
 import { StreamHandlers } from '../llm/types';
 
 /**
- * 提示词类型枚举
+ * 优化模式枚举
+ * 用于区分不同的提示词优化类型
  */
-export type PromptType = 'system' | 'user';
-
-
+export type OptimizationMode = 'system' | 'user';
 
 /**
  * 优化请求接口
  */
 export interface OptimizationRequest {
-  promptType: PromptType;
+  optimizationMode: OptimizationMode;
   targetPrompt: string;           // 待优化的提示词
   templateId?: string;
   modelKey: string;
