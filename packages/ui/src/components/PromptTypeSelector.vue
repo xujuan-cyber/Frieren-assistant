@@ -1,41 +1,36 @@
 <!-- 提示词类型选择器组件 - 简化版 -->
 <template>
   <div class="prompt-type-selector">
-    <div class="flex items-center gap-2">
-      <span class="text-xs text-gray-500 dark:text-gray-400">
-        {{ t('promptOptimizer.promptType') }}:
-      </span>
-      <div class="inline-flex bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 text-xs">
-        <button
-          @click="updatePromptType('system')"
-          :class="[
-            'px-2 py-1 transition-colors duration-150 rounded-l',
-            'focus:outline-none focus:ring-1 focus:ring-blue-400',
-            modelValue === 'system'
-              ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-75 dark:hover:bg-gray-750'
-          ]"
-          :aria-pressed="modelValue === 'system'"
-          :title="t('promptOptimizer.systemPromptHelp')"
-        >
-          {{ t('promptOptimizer.systemPrompt') }}
-        </button>
-        <div class="w-px bg-gray-200 dark:bg-gray-600"></div>
-        <button
-          @click="updatePromptType('user')"
-          :class="[
-            'px-2 py-1 transition-colors duration-150 rounded-r',
-            'focus:outline-none focus:ring-1 focus:ring-blue-400',
-            modelValue === 'user'
-              ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-75 dark:hover:bg-gray-750'
-          ]"
-          :aria-pressed="modelValue === 'user'"
-          :title="t('promptOptimizer.userPromptHelp')"
-        >
-          {{ t('promptOptimizer.userPrompt') }}
-        </button>
-      </div>
+    <div class="inline-flex bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 text-[10px]">
+      <button
+        @click="updatePromptType('system')"
+        :class="[
+          'px-1.5 py-0.5 transition-colors duration-150 rounded-l',
+          'focus:outline-none focus:ring-1 focus:ring-blue-400',
+          modelValue === 'system'
+            ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-75 dark:hover:bg-gray-750'
+        ]"
+        :aria-pressed="modelValue === 'system'"
+        :title="t('promptOptimizer.systemPromptHelp')"
+      >
+        {{ t('promptOptimizer.systemPrompt') }}
+      </button>
+      <div class="w-px bg-gray-200 dark:bg-gray-600"></div>
+      <button
+        @click="updatePromptType('user')"
+        :class="[
+          'px-1.5 py-0.5 transition-colors duration-150 rounded-r',
+          'focus:outline-none focus:ring-1 focus:ring-blue-400',
+          modelValue === 'user'
+            ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-75 dark:hover:bg-gray-750'
+        ]"
+        :aria-pressed="modelValue === 'user'"
+        :title="t('promptOptimizer.userPromptHelp')"
+      >
+        {{ t('promptOptimizer.userPrompt') }}
+      </button>
     </div>
   </div>
 </template>

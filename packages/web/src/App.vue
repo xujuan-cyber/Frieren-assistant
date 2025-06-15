@@ -44,16 +44,6 @@
     <!-- 主要内容插槽 -->
     <!-- 提示词区 -->
     <ContentCardUI>
-      <!-- 提示词类型选择器 -->
-      <div class="flex-none mb-4">
-        <PromptTypeSelectorUI
-          v-model="selectedPromptType"
-          @change="handlePromptTypeChange"
-        />
-      </div>
-
-
-
       <!-- 输入区域 -->
       <div class="flex-none">
         <InputPanelUI
@@ -70,6 +60,12 @@
           @submit="handleOptimizePrompt"
           @configModel="showConfig = true"
         >
+          <template #prompt-type-selector>
+            <PromptTypeSelectorUI
+              v-model="selectedPromptType"
+              @change="handlePromptTypeChange"
+            />
+          </template>
           <template #model-select>
             <ModelSelectUI
               ref="optimizeModelSelect"
@@ -92,7 +88,7 @@
 
       <!-- 优化结果区域 -->
       <div class="flex-1 min-h-0 overflow-y-auto">
-        <PromptPanelUI 
+        <PromptPanelUI
           v-model:optimized-prompt="optimizedPrompt"
           :original-prompt="prompt"
           :is-iterating="isIterating"
@@ -169,20 +165,19 @@ import {
   ToastUI,
   ModelManagerUI,
   ThemeToggleUI,
-  OutputPanelUI,
-  PromptPanelUI,
   TemplateManagerUI,
-  TemplateSelectUI,
-  ModelSelectUI,
   HistoryDrawerUI,
-  InputPanelUI,
   MainLayoutUI,
-  ContentCardUI,
   ActionButtonUI,
   TestPanelUI,
   LanguageSwitchUI,
   DataManagerUI,
+  InputPanelUI,
+  PromptPanelUI,
   PromptTypeSelectorUI,
+  ModelSelectUI,
+  TemplateSelectUI,
+  ContentCardUI,
   // composables
   usePromptOptimizer,
   usePromptTester,
@@ -287,9 +282,9 @@ const {
   templateManager,
   historyManager,
   promptServiceRef,
-  selectedPromptType,  // 新增：提示词类型
-  selectedOptimizeModel, // 新增：优化模型选择
-  selectedTestModel    // 新增：测试模型选择
+  selectedPromptType,
+  selectedOptimizeModel,
+  selectedTestModel
 )
 
 // 初始化历史记录管理器

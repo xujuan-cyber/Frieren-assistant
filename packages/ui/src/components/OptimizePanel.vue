@@ -1,15 +1,5 @@
 <template>
   <ContentCardUI>
-    <!-- 提示词类型选择器 -->
-    <div class="flex-none mb-4">
-      <PromptTypeSelectorUI
-        v-model="selectedPromptType"
-        @change="handlePromptTypeChange"
-      />
-    </div>
-
-
-
     <!-- 输入区域 -->
     <div class="flex-none">
       <InputPanelUI
@@ -26,6 +16,12 @@
         @submit="handleOptimizePrompt"
         @configModel="$emit('showConfig')"
       >
+        <template #prompt-type-selector>
+          <PromptTypeSelectorUI
+            v-model="selectedPromptType"
+            @change="handlePromptTypeChange"
+          />
+        </template>
         <template #model-select>
           <ModelSelectUI
             ref="optimizeModelSelect"
@@ -38,9 +34,9 @@
         <template #template-select>
           <TemplateSelectUI
             v-model="selectedOptimizeTemplate"
-            type="optimize"
+            :type="selectedPromptType === 'system' ? 'optimize' : 'userOptimize'"
             :prompt-type="selectedPromptType"
-            @manage="$emit('openTemplateManager', 'optimize')"
+            @manage="$emit('openTemplateManager', selectedPromptType === 'system' ? 'optimize' : 'userOptimize')"
             @select="handleTemplateSelect"
           />
         </template>
@@ -162,6 +158,18 @@ defineExpose({
   initModelSelection,
   loadModels,
   saveTemplateSelection,
-  selectedPromptType
+  selectedPromptType,
+  selectedOptimizeTemplate,
+  selectedIterateTemplate,
+  handleTemplateSelect,
+  handleSelectHistory: (record) => {
+    // 处理历史记录选择
+    prompt.value = record.originalPrompt
+    optimizedPrompt.value = record.optimizedPrompt
+  }
 })
-</script> 
+</script>
+
+<style scoped>
+/* OptimizePanel 样式 */
+</style>

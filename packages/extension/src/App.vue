@@ -43,65 +43,22 @@
 
     <!-- 主要内容插槽 -->
     <!-- 提示词区 -->
-    <ContentCardUI>
-      <!-- 输入区域 -->
-      <div class="flex-none">
-        <InputPanelUI
-          v-model="prompt"
-          v-model:selectedModel="selectedOptimizeModel"
-          :label="$t('promptOptimizer.originalPrompt')"
-          :placeholder="$t('promptOptimizer.inputPlaceholder')"
-          :model-label="$t('promptOptimizer.optimizeModel')"
-          :template-label="$t('promptOptimizer.templateLabel')"
-          :button-text="$t('promptOptimizer.optimize')"
-          :loading-text="$t('common.loading')"
-          :loading="isOptimizing"
-          :disabled="isOptimizing"
-          @submit="handleOptimizePrompt"
-          @configModel="showConfig = true"
-        >
-          <template #model-select>
-            <ModelSelectUI
-              ref="optimizeModelSelect"
-              :modelValue="selectedOptimizeModel"
-              @update:modelValue="selectedOptimizeModel = $event"
-              :disabled="isOptimizing"
-              @config="showConfig = true"
-            />
-          </template>
-          <template #template-select>
-            <TemplateSelectUI
-              v-model="selectedOptimizeTemplate"
-              type="optimize"
-              @manage="openTemplateManager('optimize')"
-              @select="handleTemplateSelect"
-            />
-          </template>
-        </InputPanelUI>
-      </div>
-
-      <!-- 优化结果区域 -->
-      <div class="flex-1 min-h-0 overflow-y-auto">
-        <PromptPanelUI
-          v-model:optimized-prompt="optimizedPrompt"
-          :original-prompt="prompt"
-          :is-iterating="isIterating"
-          v-model:selected-iterate-template="selectedIterateTemplate"
-          :versions="currentVersions"
-          :current-version-id="currentVersionId"
-          @iterate="handleIteratePrompt"
-          @openTemplateManager="openTemplateManager"
-          @switchVersion="handleSwitchVersion"
-          @templateSelect="handleTemplateSelect"
-        />
-      </div>
-    </ContentCardUI>
+    <OptimizePanelUI
+      ref="optimizePanel"
+      :model-manager="modelManager"
+      :template-manager="templateManager"
+      :history-manager="historyManager"
+      :prompt-service="promptServiceRef"
+      @showConfig="showConfig = true"
+      @openTemplateManager="openTemplateManager"
+    />
 
     <!-- 测试区域 -->
     <TestPanelUI
       :prompt-service="promptServiceRef"
       :original-prompt="prompt"
       :optimized-prompt="optimizedPrompt"
+      :prompt-type="selectedPromptType"
       v-model="selectedTestModel"
       @showConfig="showConfig = true"
     />
@@ -123,8 +80,9 @@
         <TemplateManagerUI
           v-if="showTemplates"
           :template-type="currentType"
-          :selected-optimize-template="selectedOptimizeTemplate"
-          :selected-iterate-template="selectedIterateTemplate"
+          :prompt-type="selectedPromptType"
+          :selected-optimize-template="optimizePanel?.selectedOptimizeTemplate"
+          :selected-iterate-template="optimizePanel?.selectedIterateTemplate"
           @close="handleTemplateManagerClose"
           @select="handleTemplateSelect"
         />
@@ -150,31 +108,24 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   // UI组件
   ToastUI,
   ModelManagerUI,
   ThemeToggleUI,
-  OutputPanelUI,
-  PromptPanelUI,
   TemplateManagerUI,
-  TemplateSelectUI,
-  ModelSelectUI,
   HistoryDrawerUI,
-  InputPanelUI,
   MainLayoutUI,
-  ContentCardUI,
   ActionButtonUI,
   TestPanelUI,
   LanguageSwitchUI,
   DataManagerUI,
+  OptimizePanelUI,
   // composables
-  usePromptOptimizer,
   usePromptTester,
   useToast,
-  usePromptHistory,
   useServiceInitializer,
   useTemplateManager,
   useModelManager,
@@ -208,6 +159,9 @@ const toast = useToast()
 // 初始化国际化
 const { t } = useI18n()
 
+// OptimizePanel 引用
+const optimizePanel = ref(null)
+
 // 初始化服务
 const {
   promptServiceRef
@@ -233,79 +187,51 @@ const {
   testModelSelect
 })
 
-// 初始化组合式函数
-const {
-  prompt,
-  optimizedPrompt,
-  isOptimizing,
-  isIterating,
-  selectedOptimizeTemplate,
-  selectedIterateTemplate,
-  currentVersions,
-  currentVersionId,
-  currentChainId,
-  handleOptimizePrompt,
-  handleIteratePrompt,
-  handleSwitchVersion,
-  saveTemplateSelection
-} = usePromptOptimizer(
-  modelManager,
-  templateManager,
-  historyManager,
-  promptServiceRef,
-  selectedOptimizeModel,
-  selectedTestModel
-)
+// 通过 OptimizePanel 获取状态
+const prompt = computed(() => optimizePanel.value?.prompt || '')
+const optimizedPrompt = computed(() => optimizePanel.value?.optimizedPrompt || '')
+const selectedPromptType = computed(() => optimizePanel.value?.selectedPromptType || 'system')
 
-// 初始化历史记录管理器
-const {
-  history,
-  handleSelectHistory: handleSelectHistoryBase,
-  handleClearHistory: handleClearHistoryBase,
-  handleDeleteChain: handleDeleteChainBase
-} = usePromptHistory(
-  historyManager,
-  prompt,
-  optimizedPrompt,
-  currentChainId,
-  currentVersions,
-  currentVersionId
-)
+// 历史记录管理
+const showHistory = ref(false)
+const history = computed(() => historyManager.getHistory())
 
-// 初始化历史记录管理器UI
-const {
-  showHistory,
-  handleSelectHistory,
-  handleClearHistory,
-  handleDeleteChain
-} = useHistoryManager(
-  historyManager,
-  prompt,
-  optimizedPrompt,
-  currentChainId,
-  currentVersions,
-  currentVersionId,
-  handleSelectHistoryBase,
-  handleClearHistoryBase,
-  handleDeleteChainBase
-)
+const handleSelectHistory = (record) => {
+  if (optimizePanel.value) {
+    optimizePanel.value.handleSelectHistory(record)
+  }
+}
 
-// 初始化模板管理器
-const {
-  showTemplates,
-  currentType,
-  handleTemplateSelect,
-  openTemplateManager,
-  handleTemplateManagerClose
-} = useTemplateManager({
-  selectedOptimizeTemplate,
-  selectedIterateTemplate,
-  saveTemplateSelection,
-  templateManager
-})
+const handleClearHistory = () => {
+  historyManager.clearHistory()
+  toast.success(t('history.cleared'))
+}
+
+const handleDeleteChain = (chainId) => {
+  historyManager.deleteChain(chainId)
+  toast.success(t('history.chainDeleted'))
+}
+
+// 模板管理器
+const showTemplates = ref(false)
+const currentType = ref('optimize')
+
+const openTemplateManager = (type) => {
+  currentType.value = type
+  showTemplates.value = true
+}
+
+const handleTemplateManagerClose = () => {
+  showTemplates.value = false
+}
+
+const handleTemplateSelect = (template, type) => {
+  if (optimizePanel.value) {
+    optimizePanel.value.handleTemplateSelect(template, type)
+  }
+}
 
 // 数据管理器
-import { ref } from 'vue'
 const showDataManager = ref(false)
 
 const handleDataManagerClose = () => {

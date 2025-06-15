@@ -35,7 +35,7 @@ describe('PromptTypeSelector', () => {
     })
 
     expect(wrapper.find('.prompt-type-selector').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Prompt Type')
+    // 移除了"优化模式："标签前缀，只显示按钮
     expect(wrapper.text()).toContain('System Prompt')
     expect(wrapper.text()).toContain('User Prompt')
   })
@@ -162,11 +162,11 @@ describe('PromptTypeSelector', () => {
       }
     })
 
-    // Should show prompt type label and buttons, but no help text
-    expect(wrapper.text()).toContain('Prompt Type')
+    // Should show buttons but no label prefix or help text (simplified design)
     expect(wrapper.text()).toContain('System Prompt')
     expect(wrapper.text()).toContain('User Prompt')
-    // Should not contain help text (simplified design)
+    // Should not contain label prefix or help text (simplified design)
+    expect(wrapper.text()).not.toContain('Prompt Type')
     expect(wrapper.text()).not.toContain('Optimize system prompts to define AI assistant role')
   })
 
@@ -180,11 +180,11 @@ describe('PromptTypeSelector', () => {
       }
     })
 
-    // Should show compact design without help text
-    expect(wrapper.text()).toContain('Prompt Type')
+    // Should show compact design without label prefix or help text
     expect(wrapper.text()).toContain('System Prompt')
     expect(wrapper.text()).toContain('User Prompt')
-    // Should not contain help text (simplified design)
+    // Should not contain label prefix or help text (simplified design)
+    expect(wrapper.text()).not.toContain('Prompt Type')
     expect(wrapper.text()).not.toContain('Optimize user prompts to improve AI interaction')
   })
 
