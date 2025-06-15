@@ -188,7 +188,7 @@ export default {
     simpleTemplate: 'Simple Template',
     advancedTemplate: 'Advanced Template',
     simpleTemplateHint: 'No template technology used, template content directly serves as system prompt, user input as user message',
-    advancedTemplateHint: 'Supports multi-message structure and advanced template syntax, available variables: {{originalPrompt}}, {{lastOptimizedPrompt}}, {{iterateInput}}',
+    advancedTemplateHint: 'Supports multi-message structure and advanced template syntax, available variables: originalPrompt, lastOptimizedPrompt, iterateInput',
 
     // Message Templates
     messageTemplates: 'Message Templates',
@@ -196,7 +196,7 @@ export default {
     removeMessage: 'Remove Message',
     moveUp: 'Move Up',
     moveDown: 'Move Down',
-    messageContentPlaceholder: 'Enter message content, supports variables like {{originalPrompt}}',
+    messageContentPlaceholder: 'Enter message content, supports variables like originalPrompt',
 
     // Roles
     roleSystem: 'System',
