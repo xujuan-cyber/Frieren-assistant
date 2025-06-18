@@ -27,6 +27,32 @@
               @config="$emit('showConfig')"
             />
           </template>
+          <template #control-buttons>
+            <div class="flex-1">
+              <div class="h-[20px] mb-1.5"><!-- 占位，与其他元素对齐 --></div>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="isCompareMode = !isCompareMode"
+                  class="h-10 text-sm whitespace-nowrap"
+                  :class="isCompareMode ? 'theme-button-primary' : 'theme-button-secondary'"
+                >
+                  {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
+                </button>
+                <button
+                  @click="enableMarkdown = !enableMarkdown"
+                  class="h-10 text-sm whitespace-nowrap"
+                  :class="enableMarkdown ? 'theme-button-on' : 'theme-button-off'"
+                  :title="enableMarkdown ? t('test.disableMarkdown') : t('test.enableMarkdown')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 335.03 257.27" style="fill: currentColor;">
+                    <path
+                      d="M310.91,2.5H24.12C12.18,2.5,2.5,12.18,2.5,24.12v209.04c0,11.94,9.68,21.62,21.62,21.62h286.8c11.94,0,21.62-9.68,21.62-21.62V24.12c0-11.94-9.68-21.62-21.62-21.62ZM169.68,189.91h-25.89v-70.01h-.86l-23.88,39.01h-20.14l-23.88-38.4h-.86v69.39h-25.89v-121.82h23.73l36.54,60.29h.86l36.54-60.29h23.73v121.82ZM294.42,136.67l-45.07,49.94c-2.3,2.55-6.31,2.55-8.61,0l-45.07-49.94c-3.37-3.73-.72-9.69,4.31-9.69h30.17v-60.1h29.81v60.1h30.17c5.03,0,7.68,5.96,4.31,9.69Z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </template>
         </InputPanelUI>
 
         <!-- For user prompt optimization, show simplified test controls -->

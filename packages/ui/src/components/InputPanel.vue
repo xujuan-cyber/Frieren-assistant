@@ -38,10 +38,13 @@
       </div>
       
       <!-- 提示词模板选择 -->
-      <div class="flex-1 min-w-0">
-        <label v-if="templateLabel" class="block text-sm theme-label mb-1.5 truncate">{{ templateLabel }}</label>
+      <div v-if="templateLabel" class="flex-1 min-w-0">
+        <label class="block text-sm theme-label mb-1.5 truncate">{{ templateLabel }}</label>
         <slot name="template-select"></slot>
       </div>
+
+      <!-- 控制按钮组插槽 -->
+      <slot name="control-buttons"></slot>
 
       <!-- 提交按钮 -->
       <div class="min-w-[60px]">
