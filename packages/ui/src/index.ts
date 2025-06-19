@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿// 导入样式
+﻿// 导入样式
 import 'element-plus/dist/index.css'
 import './styles/index.css'
 import './styles/scrollbar.css'
@@ -49,3 +49,6 @@ export {
     createLLMService,
     createPromptService
 } from '@prompt-optimizer/core'
+
+// 导出类型
+export type { OptimizationMode } from '@prompt-optimizer/core'

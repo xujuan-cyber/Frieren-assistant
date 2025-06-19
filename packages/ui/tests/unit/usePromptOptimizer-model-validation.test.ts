@@ -42,14 +42,14 @@ describe('usePromptOptimizer Model Validation', () => {
         id: 'test-template',
         name: 'Test Template',
         content: 'Test template {{originalPrompt}}',
-        metadata: { templateType: 'optimize' }
+        metadata: { templateType: 'optimize', version: '1.0', lastModified: Date.now(), language: 'zh' }
       }),
       listTemplatesByTypes: vi.fn().mockReturnValue([
         {
           id: 'test-template',
           name: 'Test Template',
           content: 'Test template {{originalPrompt}}',
-          metadata: { templateType: 'optimize' }
+          metadata: { templateType: 'optimize', version: '1.0', lastModified: Date.now(), language: 'zh' }
         }
       ]),
       listTemplatesByType: vi.fn().mockReturnValue([
@@ -57,7 +57,7 @@ describe('usePromptOptimizer Model Validation', () => {
           id: 'test-template',
           name: 'Test Template',
           content: 'Test template {{originalPrompt}}',
-          metadata: { templateType: 'optimize' }
+          metadata: { templateType: 'optimize', version: '1.0', lastModified: Date.now(), language: 'zh' }
         }
       ])
     }

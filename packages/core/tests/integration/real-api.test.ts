@@ -52,7 +52,8 @@ describe('Real API Integration Tests', () => {
       metadata: {
         version: '1.0',
         lastModified: Date.now(),
-        templateType: 'optimize' as const
+        templateType: 'optimize' as const,
+        language: 'zh' as const
       }
     }
     await templateManager.saveTemplate(template)
@@ -78,7 +79,8 @@ describe('Real API Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: '请优化这个提示词：写一个关于人工智能的故事',
-        modelKey: 'test-openai'
+        modelKey: 'test-openai',
+        optimizationMode: 'system' as const
       };
       const result = await promptService.optimizePrompt(request)
 
@@ -114,10 +116,13 @@ describe('Real API Integration Tests', () => {
       await modelManager.addModel('test-custom', customModel)
 
       // 执行优化
-      const result = await promptService.optimizePrompt(
-        '请优化这个提示词：写一个关于机器人的故事',
-        'test-custom'
-      )
+      const request = {
+        promptType: 'system' as const,
+        targetPrompt: '请优化这个提示词：写一个关于机器人的故事',
+        modelKey: 'test-custom',
+        optimizationMode: 'system' as const
+      };
+      const result = await promptService.optimizePrompt(request)
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
@@ -154,7 +159,8 @@ describe('Real API Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: '请优化这个提示词：写一个关于太空探索的故事',
-        modelKey: 'test-gemini'
+        modelKey: 'test-gemini',
+        optimizationMode: 'system' as const
       };
       const result = await promptService.optimizePrompt(request)
 
@@ -193,7 +199,8 @@ describe('Real API Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: '请优化这个提示词：写一个关于人工智能的故事',
-        modelKey: 'test-deepseek'
+        modelKey: 'test-deepseek',
+        optimizationMode: 'system' as const
       };
       const result = await promptService.optimizePrompt(request)
 
@@ -237,7 +244,8 @@ describe('Real API Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: '写一个故事',
-        modelKey: modelKey
+        modelKey: modelKey,
+        optimizationMode: 'system' as const
       };
       const optimizeResult = await promptService.optimizePrompt(request)
 
@@ -275,7 +283,8 @@ describe('Real API Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: '测试提示词',
-        modelKey: 'invalid-model'
+        modelKey: 'invalid-model',
+        optimizationMode: 'system' as const
       };
       await expect(promptService.optimizePrompt(request)).rejects.toThrow()
 

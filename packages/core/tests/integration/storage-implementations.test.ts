@@ -330,7 +330,8 @@ describe('存储实现通用测试', () => {
             metadata: {
               version: '1.0.0',
               templateType: 'optimize' as const,
-              lastModified: Date.now()
+              lastModified: Date.now(),
+              language: 'zh' as const
             }
           };
 
@@ -350,7 +351,8 @@ describe('存储实现通用测试', () => {
             metadata: {
               version: '1.0.0',
               templateType: 'optimize' as const,
-              lastModified: Date.now()
+              lastModified: Date.now(),
+              language: 'zh' as const
             }
           };
 
@@ -362,7 +364,8 @@ describe('存储实现通用测试', () => {
             metadata: {
               version: '1.0.0',
               templateType: 'iterate' as const,
-              lastModified: Date.now()
+              lastModified: Date.now(),
+              language: 'zh' as const
             }
           };
 

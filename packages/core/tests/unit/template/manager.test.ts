@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TemplateManager } from '../../../src/services/template/manager';
-import { IStorageProvider } from '../../../src/services/storage/types';
-import { Template, templateSchema } from '../../../src/services/template/types'; // Removed TemplateSchema as it's not directly used, templateSchema is
+import { DexieStorageProvider } from '../../../src/services/storage/dexieStorageProvider';
+import { Template } from '../../../src/services/template/types';
+import { StaticLoader } from '../../../src/services/template/static-loader';
 import { TemplateError, TemplateValidationError } from '../../../src/services/template/errors';
-import { DEFAULT_TEMPLATES } from '../../../src/services/template/defaults';
-import { DEFAULT_TEMPLATES_EN } from '../../../src/services/template/defaults_en';
 import { templateLanguageService } from '../../../src/services/template/languageService';
 import { createMockStorage } from '../../mocks/mockStorage';
 
-// Helper for deep cloning default templates for isolated tests
-const getCleanDefaultTemplates = () => JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+// 测试辅助函数
+const staticLoader = new StaticLoader();
+const getCleanDefaultTemplates = () => JSON.parse(JSON.stringify(staticLoader.getDefaultTemplates()));
 
 describe('TemplateManager', () => {
   let templateManager: TemplateManager;
@@ -28,7 +28,7 @@ describe('TemplateManager', () => {
     id: id.toLowerCase().replace(/[^a-z0-9-]/g, '-'),  // 确保ID符合规范
     name,
     content,
-    metadata: { templateType: type, lastModified, version: '1.0' },
+    metadata: { templateType: type, lastModified, version: '1.0', language: 'zh' },
     isBuiltin,
   });
 
@@ -54,7 +54,7 @@ describe('TemplateManager', () => {
     });
 
     it('should load built-in templates correctly', () => {
-      const builtInIds = Object.keys(DEFAULT_TEMPLATES);
+      const builtInIds = Object.keys(staticLoader.getDefaultTemplates());
       expect(builtInIds.length).toBeGreaterThan(0);
       const firstBuiltInId = builtInIds[0];
       const template = templateManager.getTemplate(firstBuiltInId);
@@ -169,7 +169,7 @@ describe('TemplateManager', () => {
     });
 
     it('should throw TemplateError when trying to save with an ID of a built-in template', async () => {
-      const builtInId = Object.keys(DEFAULT_TEMPLATES)[0];
+      const builtInId = Object.keys(staticLoader.getDefaultTemplates())[0];
       const tpl = createTemplate(builtInId, 'Attempt to overwrite built-in');
       await expect(templateManager.saveTemplate(tpl)).rejects.toThrow(TemplateError);
       await expect(templateManager.saveTemplate(tpl)).rejects.toThrow(`Cannot overwrite built-in template: ${builtInId}`);
@@ -188,7 +188,7 @@ describe('TemplateManager', () => {
         id: 'id', // 太短
         name: 'Short ID',
         content: 'content',
-        metadata: { templateType: 'optimize' as const, lastModified: Date.now(), version: '1.0' }
+        metadata: { templateType: 'optimize' as const, lastModified: Date.now(), version: '1.0', language: 'zh' as const }
       };
       
       await expect(templateManager.saveTemplate(shortIdTpl)).rejects.toThrow(TemplateValidationError);
@@ -198,7 +198,7 @@ describe('TemplateManager', () => {
         id: 'id with spaces', // 包含空格
         name: 'ID With Spaces',
         content: 'content',
-        metadata: { templateType: 'optimize' as const, lastModified: Date.now(), version: '1.0' }
+        metadata: { templateType: 'optimize' as const, lastModified: Date.now(), version: '1.0', language: 'zh' as const }
       };
       
       await expect(templateManager.saveTemplate(spacesIdTpl)).rejects.toThrow(TemplateValidationError);
@@ -215,7 +215,7 @@ describe('TemplateManager', () => {
 
   describe('getTemplate', () => {
     it('should retrieve a built-in template', () => {
-      const builtInId = Object.keys(DEFAULT_TEMPLATES)[0];
+      const builtInId = Object.keys(staticLoader.getDefaultTemplates())[0];
       const template = templateManager.getTemplate(builtInId);
       expect(template.id).toBe(builtInId);
       expect(template.isBuiltin).toBe(true);
@@ -253,7 +253,7 @@ describe('TemplateManager', () => {
     });
 
     it('should throw TemplateError when trying to delete a built-in template', async () => {
-      const builtInId = Object.keys(DEFAULT_TEMPLATES)[0];
+      const builtInId = Object.keys(staticLoader.getDefaultTemplates())[0];
       await expect(templateManager.deleteTemplate(builtInId)).rejects.toThrow(TemplateError);
       await expect(templateManager.deleteTemplate(builtInId)).rejects.toThrow(`Cannot delete built-in template: ${builtInId}`);
       expect(mockStorage.setItem).not.toHaveBeenCalled();
@@ -289,7 +289,7 @@ describe('TemplateManager', () => {
   describe('listTemplates', () => {
     it('should return built-in templates if no user templates exist', () => {
       const templates = templateManager.listTemplates();
-      const defaultKeys = Object.keys(DEFAULT_TEMPLATES);
+      const defaultKeys = Object.keys(staticLoader.getDefaultTemplates());
       expect(templates.length).toBe(defaultKeys.length);
       defaultKeys.forEach(key => expect(templates.find(t => t.id === key && t.isBuiltin)).toBeDefined());
     });
@@ -319,7 +319,7 @@ describe('TemplateManager', () => {
       
       // 获取排序后的模板
       const templates = customTemplateManager.listTemplates();
-      const builtInCount = Object.keys(DEFAULT_TEMPLATES).length;
+      const builtInCount = Object.keys(staticLoader.getDefaultTemplates()).length;
       
       // 检查内置模板在前
       for (let i = 0; i < builtInCount; i++) {
@@ -338,11 +338,11 @@ describe('TemplateManager', () => {
 
   describe('exportTemplate', () => {
     it('should export a built-in template as JSON string', () => {
-      const builtInId = Object.keys(DEFAULT_TEMPLATES)[0];
+      const builtInId = Object.keys(staticLoader.getDefaultTemplates())[0];
       const jsonString = templateManager.exportTemplate(builtInId);
       const parsed = JSON.parse(jsonString);
       expect(parsed.id).toBe(builtInId);
-      expect(parsed.name).toBe(DEFAULT_TEMPLATES[builtInId].name);
+      expect(parsed.name).toBe(staticLoader.getDefaultTemplates()[builtInId].name);
     });
 
     it('should export a user template as JSON string', async () => {
@@ -429,7 +429,7 @@ describe('TemplateManager', () => {
       expect(optimizeTemplates.some(t => t.id === 'opti1')).toBe(true);
       expect(optimizeTemplates.some(t => t.id === 'iter1')).toBe(false);
       // Also check built-in defaults
-      const defaultOptimizeCount = Object.values(DEFAULT_TEMPLATES).filter(t => t.metadata.templateType === 'optimize').length;
+      const defaultOptimizeCount = Object.values(staticLoader.getDefaultTemplates()).filter(t => t.metadata.templateType === 'optimize').length;
       expect(optimizeTemplates.filter(t=>t.isBuiltin).length).toBe(defaultOptimizeCount);
     });
 
@@ -442,13 +442,13 @@ describe('TemplateManager', () => {
         const iterateTemplates = templateManager.listTemplatesByType('iterate');
         expect(iterateTemplates.some(t => t.id === 'opti2')).toBe(false);
         expect(iterateTemplates.some(t => t.id === 'iter2')).toBe(true);
-        const defaultIterateCount = Object.values(DEFAULT_TEMPLATES).filter(t => t.metadata.templateType === 'iterate').length;
+        const defaultIterateCount = Object.values(staticLoader.getDefaultTemplates()).filter(t => t.metadata.templateType === 'iterate').length;
         expect(iterateTemplates.filter(t=>t.isBuiltin).length).toBe(defaultIterateCount);
       });
 
     it('should return empty array if no templates of the specified type exist', () => {
         // Clear all user templates by not saving any
-        const onlyOptimizeBuiltin = Object.values(DEFAULT_TEMPLATES).every(t => t.metadata.templateType === 'optimize');
+        const onlyOptimizeBuiltin = Object.values(staticLoader.getDefaultTemplates()).every(t => t.metadata.templateType === 'optimize');
         if (onlyOptimizeBuiltin) { // only run if this condition is true for current defaults
             const iterateTemplates = templateManager.listTemplatesByType('iterate');
             expect(iterateTemplates.filter(t => !t.isBuiltin).length).toBe(0); // No user iterate templates

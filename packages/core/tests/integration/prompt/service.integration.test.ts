@@ -64,7 +64,8 @@ describe('PromptService Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: 'Write a simple greeting',
-        modelKey: 'test-gemini'
+        modelKey: 'test-gemini',
+        optimizationMode: 'system' as const
       };
       const result = await promptService.optimizePrompt(request);
 
@@ -96,7 +97,8 @@ describe('PromptService Integration Tests', () => {
         metadata: {
           version: '1.0',
           lastModified: Date.now(),
-          templateType: 'optimize'
+          templateType: 'optimize',
+          language: 'zh' as const
         }
       };
 
@@ -108,7 +110,8 @@ describe('PromptService Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: 'Write a simple greeting',
-        modelKey: 'test-gemini'
+        modelKey: 'test-gemini',
+        optimizationMode: 'system' as const
       };
       const result = await promptService.optimizePrompt(request);
 
@@ -169,7 +172,8 @@ describe('PromptService Integration Tests', () => {
         metadata: {
           version: '1.0',
           lastModified: Date.now(),
-          templateType: 'iterate'
+          templateType: 'iterate',
+          language: 'zh' as const
         }
       };
 
@@ -210,7 +214,8 @@ describe('PromptService Integration Tests', () => {
         promptType: 'system' as const,
         targetPrompt: 'Write a simple greeting',
         modelKey: 'test-gemini',
-        templateId: 'general-optimize'
+        templateId: 'general-optimize',
+        optimizationMode: 'system' as const
       };
 
       // 使用Promise来确保onComplete被正确等待
@@ -286,7 +291,8 @@ describe('PromptService Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: 'Test prompt',
-        modelKey: 'test-gemini'
+        modelKey: 'test-gemini',
+        optimizationMode: 'system' as const
       };
       await expect(
         promptService.optimizePrompt(request)
@@ -304,7 +310,8 @@ describe('PromptService Integration Tests', () => {
         metadata: {
           version: '1.0',
           lastModified: Date.now(),
-          templateType: 'optimize'
+          templateType: 'optimize',
+          language: 'zh' as const
         }
       };
 
@@ -313,7 +320,8 @@ describe('PromptService Integration Tests', () => {
       const request = {
         promptType: 'system' as const,
         targetPrompt: 'Test prompt',
-        modelKey: 'test-gemini'
+        modelKey: 'test-gemini',
+        optimizationMode: 'system' as const
       };
       await expect(
         promptService.optimizePrompt(request)

@@ -246,7 +246,8 @@ export class DataManager {
               lastModified: Date.now(), // 更新为当前时间
               templateType: template.metadata?.templateType || 'optimize', // 为旧版本数据提供默认类型
               author: template.metadata?.author || 'User', // 导入的模板标记为用户创建
-              ...(template.metadata?.description && { description: template.metadata.description })
+              ...(template.metadata?.description && { description: template.metadata.description }),
+              ...(template.metadata?.language && { language: template.metadata.language }) // 只在原本有language字段时才保留
             }
           };
           

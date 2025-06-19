@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { ref } from 'vue'
 import PromptTypeSelector from '../../src/components/PromptTypeSelector.vue'
-import { usePromptOptimizer } from '../../src/composables/usePromptOptimizer'
+import type { OptimizationMode } from '@prompt-optimizer/core'
 
 describe('User Prompt Optimization Workflow Integration', () => {
   let i18n: any
@@ -64,7 +64,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
       getTemplate: vi.fn().mockReturnValue({
         id: 'test-template',
         content: 'Test template {{originalPrompt}}',
-        metadata: { promptType: 'user', templateType: 'optimize' }
+        metadata: { templateType: 'optimize', version: '1.0', lastModified: Date.now(), language: 'zh' }
       }),
 
       listTemplatesByType: vi.fn().mockReturnValue([
@@ -72,7 +72,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
           id: 'general-optimize',
           name: 'General Optimization',
           content: 'Optimize: {{originalPrompt}}',
-          metadata: { templateType: 'optimize' }
+          metadata: { templateType: 'optimize', version: '1.0', lastModified: Date.now(), language: 'zh' }
         }
       ])
     }
@@ -93,7 +93,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
 
   describe('Component Integration', () => {
     it('should handle PromptTypeSelector correctly', async () => {
-      const selectedPromptType = ref('system')
+      const selectedPromptType = ref<OptimizationMode>('system')
 
       // Mount PromptTypeSelector
       const typeSelectorWrapper = mount(PromptTypeSelector, {
@@ -115,11 +115,11 @@ describe('User Prompt Optimization Workflow Integration', () => {
 
       // Should emit the change
       expect(typeSelectorWrapper.emitted('update:modelValue')).toBeTruthy()
-      expect(typeSelectorWrapper.emitted('update:modelValue')[0]).toEqual(['user'])
+      expect(typeSelectorWrapper.emitted('update:modelValue')![0]).toEqual(['user'])
     })
 
     it('should handle prompt type changes correctly', async () => {
-      const selectedPromptType = ref('system')
+      const selectedPromptType = ref<OptimizationMode>('system')
 
       const wrapper = mount(PromptTypeSelector, {
         props: {
@@ -135,9 +135,9 @@ describe('User Prompt Optimization Workflow Integration', () => {
       await userButton.trigger('click')
 
       expect(wrapper.emitted('update:modelValue')).toBeTruthy()
-      expect(wrapper.emitted('update:modelValue')[0]).toEqual(['user'])
+      expect(wrapper.emitted('update:modelValue')![0]).toEqual(['user'])
       expect(wrapper.emitted('change')).toBeTruthy()
-      expect(wrapper.emitted('change')[0]).toEqual(['user'])
+      expect(wrapper.emitted('change')![0]).toEqual(['user'])
     })
   })
 

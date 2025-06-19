@@ -163,7 +163,6 @@ import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   // UI组件
-  ToastUI,
   ModelManagerUI,
   ThemeToggleUI,
   TemplateManagerUI,
@@ -181,7 +180,6 @@ import {
   ContentCardUI,
   // composables
   usePromptOptimizer,
-  usePromptTester,
   useToast,
   usePromptHistory,
   useServiceInitializer,
@@ -192,7 +190,9 @@ import {
   // 服务
   modelManager,
   templateManager,
-  historyManager
+  historyManager,
+  // 类型
+  type OptimizationMode
 } from '@prompt-optimizer/ui'
 
 // 初始化主题
@@ -218,7 +218,7 @@ const toast = useToast()
 const { t } = useI18n()
 
 // 新增状态
-const selectedOptimizationMode = ref('system')
+const selectedOptimizationMode = ref<OptimizationMode>('system')
 
 // 计算属性：动态标签
 const promptInputLabel = computed(() => {
@@ -234,7 +234,7 @@ const promptInputPlaceholder = computed(() => {
 })
 
 // 事件处理
-const handleOptimizationModeChange = (mode) => {
+const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
 }
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { ModelManager, HistoryManager, TemplateManager, PromptService, DataManager } from '../../src'
 import { LocalStorageProvider } from '../../src/services/storage/localStorageProvider'
 import { createLLMService } from '../../src/services/llm/service'
+import { Template } from '../../src/services/template/types'
 
 /**
  * 真实组件集成测试
@@ -107,7 +108,8 @@ describe('Real Components Integration Tests', () => {
         metadata: {
           version: '1.0',
           lastModified: Date.now(),
-          templateType: 'optimize' as const
+          templateType: 'optimize' as const,
+          language: 'zh' as const
         }
       }
 
@@ -162,7 +164,8 @@ describe('Real Components Integration Tests', () => {
         metadata: {
           version: '1.0',
           lastModified: Date.now(),
-          templateType: 'optimize' as const
+          templateType: 'optimize' as const,
+          language: 'zh' as const
         }
       }
       await templateManager.saveTemplate(template)
@@ -194,14 +197,15 @@ describe('Real Components Integration Tests', () => {
         provider: 'openai' as const
       }
       
-      const template = {
+      const template: Template = {
         id: 'user-export-template',
         name: 'User Export Template',
         content: 'Export test content',
         metadata: {
           version: '1.0',
           lastModified: Date.now(),
-          templateType: 'optimize' as const
+          templateType: 'optimize' as const,
+          language: 'zh' as const
         }
       }
 

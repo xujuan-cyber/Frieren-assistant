@@ -1,4 +1,4 @@
-import { IPromptService, OptimizationRequest, OptimizationMode } from './types';
+import { IPromptService, OptimizationRequest } from './types';
 import { Message, StreamHandlers } from '../llm/types';
 import { PromptRecord } from '../history/types';
 import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
@@ -8,7 +8,6 @@ import { HistoryManager, historyManager as defaultHistoryManager } from '../hist
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
 import { ERROR_MESSAGES } from '../llm/errors';
 import { TemplateProcessor, TemplateContext } from '../template/processor';
-import { DEFAULT_TEMPLATES as TEMPLATE_DEFAULTS } from '../template/defaults';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -92,7 +91,9 @@ export class PromptService implements IPromptService {
       }
 
       const template = this.templateManager.getTemplate(
-        request.templateId || this.getDefaultTemplateId('optimize', request.optimizationMode)
+        request.templateId || this.getDefaultTemplateId(
+          request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
+        )
       );
 
       if (!template?.content) {
@@ -305,7 +306,9 @@ export class PromptService implements IPromptService {
       }
 
       const template = this.templateManager.getTemplate(
-        request.templateId || this.getDefaultTemplateId('optimize', request.optimizationMode)
+        request.templateId || this.getDefaultTemplateId(
+          request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
+        )
       );
 
       if (!template?.content) {
@@ -424,37 +427,51 @@ export class PromptService implements IPromptService {
   /**
    * 获取默认模板ID
    */
-  private getDefaultTemplateId(templateType: 'optimize' | 'iterate', optimizationMode: OptimizationMode): string {
-    // 尝试获取特定类型的模板
+  private getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'iterate'): string {
     try {
-      // 根据optimizationMode确定实际的templateType
-      let actualTemplateType: 'optimize' | 'userOptimize' | 'iterate';
-      if (templateType === 'optimize') {
-        actualTemplateType = optimizationMode === 'user' ? 'userOptimize' : 'optimize';
-      } else {
-        actualTemplateType = 'iterate';
-      }
-
-      const templates = this.templateManager.listTemplatesByType(actualTemplateType);
+      // 尝试获取指定类型的模板列表
+      const templates = this.templateManager.listTemplatesByType(templateType);
       if (templates.length > 0) {
+        // 返回列表中第一个模板的ID
         return templates[0].id;
       }
     } catch (error) {
-      console.warn(`Failed to get templates for type ${templateType}:${optimizationMode}`, error);
+      console.warn(`Failed to get templates for type ${templateType}`, error);
     }
 
-    // 回退到通用模板ID
-    if (templateType === 'optimize') {
-      // 对于用户提示词优化，优先使用用户提示词优化模板
-      if (optimizationMode === 'user' && TEMPLATE_DEFAULTS['user-prompt-optimize']) {
-        return 'user-prompt-optimize';
+    // 如果指定类型没有模板，尝试获取相关类型的模板作为回退
+    try {
+      let fallbackTypes: ('optimize' | 'userOptimize' | 'iterate')[] = [];
+      
+      if (templateType === 'optimize') {
+        fallbackTypes = ['userOptimize']; // optimize类型回退到userOptimize
+      } else if (templateType === 'userOptimize') {
+        fallbackTypes = ['optimize']; // userOptimize类型回退到optimize
+      } else if (templateType === 'iterate') {
+        fallbackTypes = ['optimize', 'userOptimize']; // iterate类型回退到任意优化类型
       }
-      // 回退到通用优化模板
-      return 'general-optimize';
-    } else {
-      // 迭代使用通用迭代模板，不区分提示词类型
-      return 'iterate';
+      
+      for (const fallbackType of fallbackTypes) {
+        const fallbackTemplates = this.templateManager.listTemplatesByType(fallbackType);
+        if (fallbackTemplates.length > 0) {
+          console.log(`Using fallback template type ${fallbackType} for ${templateType}`);
+          return fallbackTemplates[0].id;
+        }
+      }
+      
+      // 最后的回退：获取所有模板中第一个可用的内置模板
+      const allTemplates = this.templateManager.listTemplates();
+      const availableTemplate = allTemplates.find(t => t.isBuiltin);
+      if (availableTemplate) {
+        console.warn(`Using fallback builtin template: ${availableTemplate.id} for type ${templateType}`);
+        return availableTemplate.id;
+      }
+    } catch (fallbackError) {
+      console.error(`Fallback template search failed:`, fallbackError);
     }
+
+    // 如果所有方法都失败，抛出错误
+    throw new Error(`No templates available for type: ${templateType}`);
   }
 
   /**
@@ -470,7 +487,9 @@ export class PromptService implements IPromptService {
       version: 1,
       timestamp: Date.now(),
       modelKey: request.modelKey,
-      templateId: request.templateId || this.getDefaultTemplateId('optimize', request.optimizationMode),
+      templateId: request.templateId || this.getDefaultTemplateId(
+        request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
+      ),
       metadata: {
         optimizationMode: request.optimizationMode
       }

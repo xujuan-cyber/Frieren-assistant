@@ -6,7 +6,7 @@ export { TemplateProcessor } from './services/template/processor'
 export { TemplateLanguageService, templateLanguageService } from './services/template/languageService'
 export type { BuiltinTemplateLanguage } from './services/template/languageService'
 export * from './services/template/types'
-export * from './services/template/defaults'
+export { StaticLoader } from './services/template/static-loader'
 export * from './services/template/errors'
 
 // 导出历史记录相关

@@ -1,8 +1,7 @@
 import { ITemplateManager, Template, TemplateManagerConfig } from './types';
 import { IStorageProvider } from '../storage/types';
 import { StorageFactory } from '../storage/factory';
-import { DEFAULT_TEMPLATES } from './defaults';
-import { DEFAULT_TEMPLATES_EN } from './defaults_en';
+import { StaticLoader } from './static-loader';
 import { TemplateError, TemplateValidationError } from './errors';
 import { templateSchema } from './types';
 import { templateLanguageService, BuiltinTemplateLanguage } from './languageService';
@@ -16,6 +15,7 @@ export class TemplateManager implements ITemplateManager {
   private readonly builtinTemplates: Map<string, Template>;
   private readonly userTemplates: Map<string, Template>;
   private readonly config: Required<TemplateManagerConfig>;
+  private readonly staticLoader: StaticLoader;
   private initPromise: Promise<void> | null = null;
   protected initialized = false;
 
@@ -30,6 +30,9 @@ export class TemplateManager implements ITemplateManager {
     // Initialize template maps
     this.builtinTemplates = new Map();
     this.userTemplates = new Map();
+    
+    // Initialize static loader
+    this.staticLoader = new StaticLoader();
 
     // Initialize asynchronously with improved error handling
     this.initPromise = this.init().catch(error => {
@@ -69,8 +72,8 @@ export class TemplateManager implements ITemplateManager {
       this.builtinTemplates.clear();
       
       // Load default Chinese templates as fallback
-      const { DEFAULT_TEMPLATES } = await import('./defaults');
-      for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
+      const defaultTemplates = this.staticLoader.getDefaultTemplates();
+      for (const [id, template] of Object.entries(defaultTemplates)) {
         this.builtinTemplates.set(id, { ...template, isBuiltin: true });
       }
       
@@ -142,12 +145,11 @@ export class TemplateManager implements ITemplateManager {
   private validateTemplateSchema(template: Partial<Template>): void {
     const result = templateSchema.safeParse(template);
     if (!result.success) {
-      const errors = result.error.format();
+      const errorDetails = result.error.issues.map(issue => 
+        `${issue.path.join('.')}: ${issue.message}`
+      ).join(', ');
       throw new TemplateValidationError(
-        'Template validation failed: ' + Object.keys(errors)
-          .filter(key => key !== '_errors')
-          .map(() => 'Required')
-          .join(', ')
+        'Template validation failed: ' + errorDetails
       );
     }
   }
@@ -384,7 +386,8 @@ export class TemplateManager implements ITemplateManager {
     } catch (error) {
       console.error('Failed to load built-in templates:', error);
       // Fallback to Chinese templates
-      for (const [id, template] of Object.entries(DEFAULT_TEMPLATES)) {
+      const defaultTemplates = this.staticLoader.getDefaultTemplates();
+      for (const [id, template] of Object.entries(defaultTemplates)) {
         this.builtinTemplates.set(id, { ...template, isBuiltin: true });
       }
     }
@@ -397,12 +400,12 @@ export class TemplateManager implements ITemplateManager {
   private async getTemplateSet(language: BuiltinTemplateLanguage): Promise<Record<string, Template>> {
     switch (language) {
       case 'en-US':
-        return DEFAULT_TEMPLATES_EN;
+        return this.staticLoader.getDefaultTemplatesEn();
       case 'zh-CN':
-        return DEFAULT_TEMPLATES;
+        return this.staticLoader.getDefaultTemplates();
       default:
         console.warn(`Unsupported language: ${language}, falling back to Chinese templates`);
-        return DEFAULT_TEMPLATES;
+        return this.staticLoader.getDefaultTemplates();
     }
   }
 

@@ -67,7 +67,6 @@ src/
 │   ├── template/      # 模板服务
 │   │   ├── manager.ts # 模板管理器
 │   │   ├── types.ts   # 类型定义
-│   │   └── defaults.ts# 默认配置
 │   └── history/       # 历史记录服务
 │       ├── manager.ts # 历史管理器
 │       └── types.ts   # 类型定义

@@ -105,10 +105,11 @@ describe('PromptService', () => {
   describe('optimizePrompt', () => {
     it('应该成功优化提示词', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化后的提示词');
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -122,7 +123,7 @@ describe('PromptService', () => {
       });
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -136,7 +137,12 @@ describe('PromptService', () => {
         throw new Error('提示词不存在');
       });
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        optimizationMode: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -148,7 +154,12 @@ describe('PromptService', () => {
       };
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(emptyTemplate);
 
-      await expect(promptService.optimizePrompt('test prompt', 'test-model'))
+      const request = {
+        optimizationMode: 'system' as const,
+        targetPrompt: 'test prompt',
+        modelKey: 'test-model'
+      };
+      await expect(promptService.optimizePrompt(request))
         .rejects
         .toThrow(OptimizationError);
     });
@@ -157,6 +168,7 @@ describe('PromptService', () => {
   describe('iteratePrompt', () => {
     it('应该成功迭代提示词', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockIterateTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockIterateTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代后的提示词');
 
       const result = await promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model');
@@ -167,6 +179,17 @@ describe('PromptService', () => {
       vi.spyOn(templateManager, 'getTemplate').mockImplementation(() => {
         throw new Error('提示词管理器未初始化');
       });
+
+      await expect(promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model'))
+        .rejects
+        .toThrow(IterationError);
+    });
+
+    it('当addRecord失败时iteratePrompt应该抛出错误', async () => {
+      vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
+      vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
+      vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
 
       await expect(promptService.iteratePrompt('test prompt', 'last optimized prompt', 'test input', 'test-model'))
         .rejects
@@ -242,7 +265,7 @@ describe('PromptService', () => {
   describe('边界条件测试', () => {
     it('当提示词为空字符串时应抛出错误', async () => {
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: '',
         modelKey: 'test-model'
       };
@@ -253,7 +276,7 @@ describe('PromptService', () => {
 
     it('当模型Key为空时应抛出错误', async () => {
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: ''
       };
@@ -264,10 +287,11 @@ describe('PromptService', () => {
 
     it('当LLM服务返回空结果时应抛出错误', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('');
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -278,10 +302,11 @@ describe('PromptService', () => {
 
     it('当LLM服务超时时应抛出错误', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockRejectedValue(new APIError('请求超时'));
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -294,11 +319,12 @@ describe('PromptService', () => {
   describe('历史记录管理测试', () => {
     it('应该正确记录优化历史', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('优化结果');
       const addRecordSpy = vi.spyOn(historyManager, 'addRecord');
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -314,6 +340,7 @@ describe('PromptService', () => {
 
     it('应该正确记录迭代历史', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockIterateTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockIterateTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
       const addRecordSpy = vi.spyOn(historyManager, 'addRecord');
 
@@ -359,7 +386,7 @@ describe('PromptService', () => {
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         const request = {
-          promptType: 'system' as const,
+          optimizationMode: 'system' as const,
           targetPrompt: 'test',
           modelKey: 'test-model'
         };
@@ -375,7 +402,7 @@ describe('PromptService', () => {
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         const request = {
-          promptType: 'system' as const,
+          optimizationMode: 'system' as const,
           targetPrompt: 'test',
           modelKey: 'test-model'
         };
@@ -387,10 +414,11 @@ describe('PromptService', () => {
       it('提示词管理器正确初始化但提示词内容为空时应抛出错误', async () => {
         const emptyTemplate = { ...mockTemplate, content: '' };
         vi.spyOn(templateManager, 'getTemplate').mockReturnValue(emptyTemplate);
+        vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([emptyTemplate]);
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         const request = {
-          promptType: 'system' as const,
+          optimizationMode: 'system' as const,
           targetPrompt: 'test',
           modelKey: 'test-model'
         };
@@ -401,11 +429,12 @@ describe('PromptService', () => {
 
       it('提示词管理器初始化成功时应正常执行', async () => {
         vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+        vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
         vi.spyOn(llmService, 'sendMessage').mockResolvedValue('test result');
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         const request = {
-          promptType: 'system' as const,
+          optimizationMode: 'system' as const,
           targetPrompt: 'test',
           modelKey: 'test-model'
         };
@@ -426,11 +455,12 @@ describe('PromptService', () => {
 
       it('提示词管理器初始化后应该能正常工作', async () => {
         vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+        vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
         vi.spyOn(llmService, 'sendMessage').mockResolvedValue('test result');
         promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
 
         const request = {
-          promptType: 'system' as const,
+          optimizationMode: 'system' as const,
           targetPrompt: 'test',
           modelKey: 'test-model'
         };
@@ -447,7 +477,7 @@ describe('PromptService', () => {
       vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -458,6 +488,7 @@ describe('PromptService', () => {
 
     it('当addRecord失败时iteratePrompt应该抛出错误', async () => {
       vi.spyOn(templateManager, 'getTemplate').mockReturnValue(mockTemplate);
+      vi.spyOn(templateManager, 'listTemplatesByType').mockReturnValue([mockTemplate]);
       vi.spyOn(llmService, 'sendMessage').mockResolvedValue('迭代结果');
       vi.spyOn(historyManager, 'addRecord').mockRejectedValue(new Error('Storage failed'));
 
@@ -479,7 +510,7 @@ describe('PromptService', () => {
       vi.spyOn(modelManager, 'getModel').mockRejectedValue(new Error('Model fetch failed'));
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
@@ -492,7 +523,7 @@ describe('PromptService', () => {
       vi.spyOn(modelManager, 'getModel').mockResolvedValue(undefined);
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'test prompt',
         modelKey: 'test-model'
       };
