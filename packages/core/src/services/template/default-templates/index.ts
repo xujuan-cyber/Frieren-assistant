@@ -11,8 +11,6 @@ import { template as output_format_optimize } from './optimize/output-format-opt
 import { template as output_format_optimize_en } from './optimize/output-format-optimize_en';
 import { advanced_optimize } from './optimize/advanced-optimize';
 import { advanced_optimize_en } from './optimize/advanced-optimize_en';
-import { structured_format } from './optimize/structured-format';
-import { structured_format_en } from './optimize/structured-format_en';
 
 import { template as iterate } from './iterate/iterate';
 import { template as iterate_en } from './iterate/iterate_en';
@@ -25,6 +23,8 @@ import { user_prompt_specific } from './user-optimize/user-prompt-specific';
 import { user_prompt_specific_en } from './user-optimize/user-prompt-specific_en';
 import { user_prompt_structured } from './user-optimize/user-prompt-structured';
 import { user_prompt_structured_en } from './user-optimize/user-prompt-structured_en';
+import { user_prompt_steps } from './user-optimize/user-prompt-steps';
+import { user_prompt_steps_en } from './user-optimize/user-prompt-steps_en';
 
 // 简单的模板集合 - 模板自身已包含完整信息（id、name、language、type等）
 export const ALL_TEMPLATES = {
@@ -34,8 +34,8 @@ export const ALL_TEMPLATES = {
   output_format_optimize_en,
   advanced_optimize,
   advanced_optimize_en,
-  structured_format,
-  structured_format_en,
+  user_prompt_steps,
+  user_prompt_steps_en,
   iterate,
   iterate_en,
   user_prompt_optimize,
