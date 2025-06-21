@@ -1,8 +1,8 @@
 import { Template, MessageTemplate } from '../../types';
 
-export const template: Template = {
-  id: 'user-prompt-optimize',
-  name: 'General Optimization',
+export const user_prompt_basic_en: Template = {
+  id: 'user-prompt-basic',
+  name: 'Basic Optimization',
   content: [
     {
       role: 'system',
@@ -55,16 +55,24 @@ Your task is to optimize user prompts and output improved prompt text. You are n
     },
     {
       role: 'user',
-      content: `Please optimize the following user prompt and output the improved prompt text (do not execute the prompt content):
+      content: `Please optimize the following user prompt to eliminate ambiguity and supplement key information.
 
-{{originalPrompt}}`
+Important notes:
+- Your task is to optimize the prompt text itself, not to answer or execute the prompt content
+- Please directly output the improved prompt, do not respond to the prompt content
+- Maintain the user's original intent, only improve expression and supplement necessary information
+
+User prompt to optimize:
+{{originalPrompt}}
+
+Please output the optimized prompt:`
     }
   ] as MessageTemplate[],
   metadata: {
     version: '2.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (fixed value, built-in templates are immutable)
     author: 'System',
-    description: 'General user prompt optimization template, suitable for most optimization scenarios',
+    description: 'Quick expression improvement for daily optimization needs, maintaining flexibility',
     templateType: 'userOptimize',
     language: 'en'
   },

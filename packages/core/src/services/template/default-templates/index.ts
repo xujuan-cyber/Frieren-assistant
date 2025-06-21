@@ -15,16 +15,12 @@ import { template as analytical_optimize_en } from './optimize/analytical-optimi
 import { template as iterate } from './iterate/iterate';
 import { template as iterate_en } from './iterate/iterate_en';
 
-import { template as user_prompt_optimize } from './user-optimize/user-prompt-optimize';
-import { template as user_prompt_optimize_en } from './user-optimize/user-prompt-optimize_en';
-import { user_prompt_clarity } from './user-optimize/user-prompt-clarity';
-import { user_prompt_clarity_en } from './user-optimize/user-prompt-clarity_en';
-import { user_prompt_specific } from './user-optimize/user-prompt-specific';
-import { user_prompt_specific_en } from './user-optimize/user-prompt-specific_en';
-import { user_prompt_structured } from './user-optimize/user-prompt-structured';
-import { user_prompt_structured_en } from './user-optimize/user-prompt-structured_en';
-import { user_prompt_steps } from './user-optimize/user-prompt-steps';
-import { user_prompt_steps_en } from './user-optimize/user-prompt-steps_en';
+import { user_prompt_professional } from './user-optimize/user-prompt-professional';
+import { user_prompt_professional_en } from './user-optimize/user-prompt-professional_en';
+import { user_prompt_basic } from './user-optimize/user-prompt-basic';
+import { user_prompt_basic_en } from './user-optimize/user-prompt-basic_en';
+import { user_prompt_planning } from './user-optimize/user-prompt-planning';
+import { user_prompt_planning_en } from './user-optimize/user-prompt-planning_en';
 
 // 简单的模板集合 - 模板自身已包含完整信息（id、name、language、type等）
 export const ALL_TEMPLATES = {
@@ -34,16 +30,12 @@ export const ALL_TEMPLATES = {
   output_format_optimize_en,
   analytical_optimize,
   analytical_optimize_en,
-  user_prompt_steps,
-  user_prompt_steps_en,
+  user_prompt_professional,
+  user_prompt_professional_en,
   iterate,
   iterate_en,
-  user_prompt_optimize,
-  user_prompt_optimize_en,
-  user_prompt_clarity,
-  user_prompt_clarity_en,
-  user_prompt_specific,
-  user_prompt_specific_en,
-  user_prompt_structured,
-  user_prompt_structured_en,
+  user_prompt_basic,
+  user_prompt_basic_en,
+  user_prompt_planning,
+  user_prompt_planning_en,
 };

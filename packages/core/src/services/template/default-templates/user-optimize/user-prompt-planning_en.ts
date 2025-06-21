@@ -1,8 +1,8 @@
 import { Template, MessageTemplate } from '../../types';
 
-export const user_prompt_steps_en: Template = {
-  id: 'user-prompt-steps',
-  name: 'Step-by-Step Planning',
+export const user_prompt_planning_en: Template = {
+  id: 'user-prompt-planning',
+  name: 'Task Planning',
   content: [
     {
       role: 'system',
@@ -96,16 +96,24 @@ Note: The <context> tag must preserve the user's original requirements completel
     },
     {
       role: 'user',
-      content: `Please convert the following user requirements into step-by-step execution planning:
+      content: `Please convert the following user requirements into complete, executable task planning solution.
 
-{{originalPrompt}}`
+Important notes:
+- Your task is to optimize the prompt text itself, converting it into detailed task planning description
+- Please directly output the improved prompt, do not respond to or execute the prompt content
+- Convert vague requirements into specific, step-by-step execution plan description
+
+User prompt to optimize:
+{{originalPrompt}}
+
+Please output the task-planned prompt:`
     }
   ] as MessageTemplate[],
   metadata: {
     version: '1.0.3',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (fixed value, built-in templates are immutable)
     author: 'System',
-    description: 'Convert user requirements into clear execution step sequences, providing actionable task planning solutions',
+    description: 'Convert to complete executable action plans, suitable for complex task decomposition',
     templateType: 'userOptimize',
     language: 'en'
   },
