@@ -43,22 +43,71 @@
 
     <!-- 主要内容插槽 -->
     <!-- 提示词区 -->
-    <OptimizePanelUI
-      ref="optimizePanel"
-      :model-manager="modelManager"
-      :template-manager="templateManager"
-      :history-manager="historyManager"
-      :prompt-service="promptServiceRef"
-      @showConfig="showConfig = true"
-      @openTemplateManager="openTemplateManager"
-    />
+    <ContentCardUI>
+      <!-- 输入区域 -->
+      <div class="flex-none">
+        <InputPanelUI
+          v-model="prompt"
+          v-model:selectedModel="selectedOptimizeModel"
+          :label="promptInputLabel"
+          :placeholder="promptInputPlaceholder"
+          :model-label="$t('promptOptimizer.optimizeModel')"
+          :template-label="$t('promptOptimizer.templateLabel')"
+          :button-text="$t('promptOptimizer.optimize')"
+          :loading-text="$t('common.loading')"
+          :loading="isOptimizing"
+          :disabled="isOptimizing"
+          @submit="handleOptimizePrompt"
+          @configModel="showConfig = true"
+        >
+          <template #optimization-mode-selector>
+            <OptimizationModeSelectorUI
+              v-model="selectedOptimizationMode"
+              @change="handleOptimizationModeChange"
+            />
+          </template>
+          <template #model-select>
+            <ModelSelectUI
+              ref="optimizeModelSelect"
+              :modelValue="selectedOptimizeModel"
+              @update:modelValue="selectedOptimizeModel = $event"
+              :disabled="isOptimizing"
+              @config="showConfig = true"
+            />
+          </template>
+          <template #template-select>
+            <TemplateSelectUI
+              v-model="currentSelectedTemplate"
+              :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
+              :optimization-mode="selectedOptimizationMode"
+              @manage="openTemplateManager(selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize')"
+            />
+          </template>
+        </InputPanelUI>
+      </div>
+
+      <!-- 优化结果区域 -->
+      <div class="flex-1 min-h-0 overflow-y-auto">
+        <PromptPanelUI
+          v-model:optimized-prompt="optimizedPrompt"
+          :original-prompt="prompt"
+          :is-iterating="isIterating"
+          v-model:selected-iterate-template="selectedIterateTemplate"
+          :versions="currentVersions"
+          :current-version-id="currentVersionId"
+          @iterate="handleIteratePrompt"
+          @openTemplateManager="openTemplateManager"
+          @switchVersion="handleSwitchVersion"
+        />
+      </div>
+    </ContentCardUI>
 
     <!-- 测试区域 -->
     <TestPanelUI
       :prompt-service="promptServiceRef"
       :original-prompt="prompt"
       :optimized-prompt="optimizedPrompt"
-      :prompt-type="selectedPromptType"
+      :optimization-mode="selectedOptimizationMode"
       v-model="selectedTestModel"
       @showConfig="showConfig = true"
     />
@@ -80,11 +129,11 @@
         <TemplateManagerUI
           v-if="showTemplates"
           :template-type="currentType"
-          :prompt-type="selectedPromptType"
-          :selected-optimize-template="optimizePanel?.selectedOptimizeTemplate"
-          :selected-iterate-template="optimizePanel?.selectedIterateTemplate"
+          :optimization-mode="selectedOptimizationMode"
+          :selected-optimize-template="selectedOptimizeTemplate"
+          :selected-user-optimize-template="selectedUserOptimizeTemplate"
+          :selected-iterate-template="selectedIterateTemplate"
           @close="handleTemplateManagerClose"
-          @select="handleTemplateSelect"
         />
       </Teleport>
 
@@ -112,7 +161,6 @@ import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   // UI组件
-  ToastUI,
   ModelManagerUI,
   ThemeToggleUI,
   TemplateManagerUI,
@@ -122,19 +170,26 @@ import {
   TestPanelUI,
   LanguageSwitchUI,
   DataManagerUI,
-  OptimizePanelUI,
+  InputPanelUI,
+  PromptPanelUI,
+  OptimizationModeSelectorUI,
+  ModelSelectUI,
+  TemplateSelectUI,
+  ContentCardUI,
   // composables
-  usePromptTester,
+  usePromptOptimizer,
   useToast,
+  usePromptHistory,
   useServiceInitializer,
-  useTemplateManager,
   useModelManager,
   useHistoryManager,
   useModelSelectors,
   // 服务
   modelManager,
   templateManager,
-  historyManager
+  historyManager,
+  // 类型
+  type OptimizationMode
 } from '@prompt-optimizer/ui'
 
 // 初始化主题
@@ -159,8 +214,13 @@ const toast = useToast()
 // 初始化国际化
 const { t } = useI18n()
 
-// OptimizePanel 引用
-const optimizePanel = ref(null)
+// 新增状态
+const selectedOptimizationMode = ref<OptimizationMode>('system')
+
+// 事件处理
+const handleOptimizationModeChange = (mode: OptimizationMode) => {
+  selectedOptimizationMode.value = mode
+}
 
 // 初始化服务
 const {
@@ -187,48 +247,105 @@ const {
   testModelSelect
 })
 
-// 通过 OptimizePanel 获取状态
-const prompt = computed(() => optimizePanel.value?.prompt || '')
-const optimizedPrompt = computed(() => optimizePanel.value?.optimizedPrompt || '')
-const selectedPromptType = computed(() => optimizePanel.value?.selectedPromptType || 'system')
+// 初始化组合式函数
+const {
+  prompt,
+  optimizedPrompt,
+  isOptimizing,
+  isIterating,
+  selectedOptimizeTemplate,
+  selectedUserOptimizeTemplate,
+  selectedIterateTemplate,
+  currentVersions,
+  currentVersionId,
+  currentChainId,
+  handleOptimizePrompt,
+  handleIteratePrompt,
+  handleSwitchVersion
+} = usePromptOptimizer(
+  modelManager,
+  templateManager,
+  historyManager,
+  promptServiceRef,
+  selectedOptimizationMode,
+  selectedOptimizeModel,
+  selectedTestModel
+)
 
-// 历史记录管理
-const showHistory = ref(false)
-const history = computed(() => historyManager.getHistory())
-
-const handleSelectHistory = (record) => {
-  if (optimizePanel.value) {
-    optimizePanel.value.handleSelectHistory(record)
+// 计算属性：根据优化模式选择对应的模板
+const currentSelectedTemplate = computed({
+  get() {
+    return selectedOptimizationMode.value === 'system'
+      ? selectedOptimizeTemplate.value
+      : selectedUserOptimizeTemplate.value
+  },
+  set(newValue) {
+    if (!newValue) return;
+    if (selectedOptimizationMode.value === 'system') {
+      selectedOptimizeTemplate.value = newValue
+    } else {
+      selectedUserOptimizeTemplate.value = newValue
+    }
   }
-}
+})
 
-const handleClearHistory = () => {
-  historyManager.clearHistory()
-  toast.success(t('history.cleared'))
-}
+// 计算属性：动态标签
+const promptInputLabel = computed(() => {
+  return selectedOptimizationMode.value === 'system'
+    ? t('promptOptimizer.systemPromptInput')
+    : t('promptOptimizer.userPromptInput')
+})
 
-const handleDeleteChain = (chainId) => {
-  historyManager.deleteChain(chainId)
-  toast.success(t('history.chainDeleted'))
-}
+const promptInputPlaceholder = computed(() => {
+  return selectedOptimizationMode.value === 'system'
+    ? t('promptOptimizer.systemPromptPlaceholder')
+    : t('promptOptimizer.userPromptPlaceholder')
+})
 
-// 模板管理器
+// 初始化历史记录管理器
+const {
+  history,
+  handleSelectHistory: handleSelectHistoryBase,
+  handleClearHistory: handleClearHistoryBase,
+  handleDeleteChain: handleDeleteChainBase
+} = usePromptHistory(
+  historyManager,
+  prompt,
+  optimizedPrompt,
+  currentChainId,
+  currentVersions,
+  currentVersionId
+)
+
+// 初始化历史记录管理器UI
+const {
+  showHistory,
+  handleSelectHistory,
+  handleClearHistory,
+  handleDeleteChain
+} = useHistoryManager(
+  historyManager,
+  prompt,
+  optimizedPrompt,
+  currentChainId,
+  currentVersions,
+  currentVersionId,
+  handleSelectHistoryBase,
+  handleClearHistoryBase,
+  handleDeleteChainBase
+)
+
+// Template Manager state
 const showTemplates = ref(false)
-const currentType = ref('optimize')
+const currentType = ref('')
 
-const openTemplateManager = (type) => {
+const openTemplateManager = (type: string) => {
   currentType.value = type
   showTemplates.value = true
 }
 
 const handleTemplateManagerClose = () => {
   showTemplates.value = false
-}
-
-const handleTemplateSelect = (template, type) => {
-  if (optimizePanel.value) {
-    optimizePanel.value.handleTemplateSelect(template, type)
-  }
 }
 
 // 数据管理器

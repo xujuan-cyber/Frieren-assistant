@@ -67,7 +67,7 @@ export default {
     templateLabel: 'Optimization Template',
 
     // New: Optimization Mode Related
-    promptType: 'Optimization Mode',
+    optimizationMode: 'Optimization Mode',
     systemPrompt: 'System Prompt Optimization',
     userPrompt: 'User Prompt Optimization',
     systemPromptInput: 'System Prompt',

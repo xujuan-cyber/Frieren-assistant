@@ -5,7 +5,7 @@
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
       <label class="block text-lg theme-label">{{ label }}</label>
       <div class="flex items-center space-x-3">
-        <slot name="prompt-type-selector"></slot>
+        <slot name="optimization-mode-selector"></slot>
         <button
           @click="openFullscreen"
           class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"

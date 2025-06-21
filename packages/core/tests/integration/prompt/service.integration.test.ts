@@ -62,10 +62,9 @@ describe('PromptService Integration Tests', () => {
   describe('optimizePrompt with different template formats', () => {
     it.runIf(hasGeminiKey)('should work with string-based templates', async () => {
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'Write a simple greeting',
-        modelKey: 'test-gemini',
-        optimizationMode: 'system' as const
+        modelKey: 'test-gemini'
       };
       const result = await promptService.optimizePrompt(request);
 
@@ -108,10 +107,9 @@ describe('PromptService Integration Tests', () => {
       const getTemplateSpy = vi.spyOn(templateManager, 'getTemplate').mockReturnValue(messageTemplate);
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'Write a simple greeting',
-        modelKey: 'test-gemini',
-        optimizationMode: 'system' as const
+        modelKey: 'test-gemini'
       };
       const result = await promptService.optimizePrompt(request);
 
@@ -211,11 +209,10 @@ describe('PromptService Integration Tests', () => {
       let completed = false;
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'Write a simple greeting',
         modelKey: 'test-gemini',
-        templateId: 'general-optimize',
-        optimizationMode: 'system' as const
+        templateId: 'general-optimize'
       };
 
       // 使用Promise来确保onComplete被正确等待
@@ -289,10 +286,9 @@ describe('PromptService Integration Tests', () => {
       });
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'Test prompt',
-        modelKey: 'test-gemini',
-        optimizationMode: 'system' as const
+        modelKey: 'test-gemini'
       };
       await expect(
         promptService.optimizePrompt(request)
@@ -318,10 +314,9 @@ describe('PromptService Integration Tests', () => {
       const getTemplateSpy = vi.spyOn(templateManager, 'getTemplate').mockReturnValue(invalidTemplate);
 
       const request = {
-        promptType: 'system' as const,
+        optimizationMode: 'system' as const,
         targetPrompt: 'Test prompt',
-        modelKey: 'test-gemini',
-        optimizationMode: 'system' as const
+        modelKey: 'test-gemini'
       };
       await expect(
         promptService.optimizePrompt(request)

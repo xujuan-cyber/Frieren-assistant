@@ -60,8 +60,8 @@
           @submit="handleOptimizePrompt"
           @configModel="showConfig = true"
         >
-          <template #prompt-type-selector>
-            <PromptTypeSelectorUI
+          <template #optimization-mode-selector>
+            <OptimizationModeSelectorUI
               v-model="selectedOptimizationMode"
               @change="handleOptimizationModeChange"
             />
@@ -77,11 +77,10 @@
           </template>
           <template #template-select>
             <TemplateSelectUI
-              v-model="selectedOptimizeTemplate"
+              v-model="currentSelectedTemplate"
               :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
               :optimization-mode="selectedOptimizationMode"
               @manage="openTemplateManager(selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize')"
-              @select="handleTemplateSelect"
             />
           </template>
         </InputPanelUI>
@@ -99,7 +98,6 @@
           @iterate="handleIteratePrompt"
           @openTemplateManager="openTemplateManager"
           @switchVersion="handleSwitchVersion"
-          @templateSelect="handleTemplateSelect"
         />
       </div>
     </ContentCardUI>
@@ -133,9 +131,9 @@
           :template-type="currentType"
           :optimization-mode="selectedOptimizationMode"
           :selected-optimize-template="selectedOptimizeTemplate"
+          :selected-user-optimize-template="selectedUserOptimizeTemplate"
           :selected-iterate-template="selectedIterateTemplate"
           @close="handleTemplateManagerClose"
-          @select="handleTemplateSelect"
         />
       </Teleport>
 
@@ -174,7 +172,7 @@ import {
   DataManagerUI,
   InputPanelUI,
   PromptPanelUI,
-  PromptTypeSelectorUI,
+  OptimizationModeSelectorUI,
   ModelSelectUI,
   TemplateSelectUI,
   ContentCardUI,
@@ -183,7 +181,6 @@ import {
   useToast,
   usePromptHistory,
   useServiceInitializer,
-  useTemplateManager,
   useModelManager,
   useHistoryManager,
   useModelSelectors,
@@ -219,19 +216,6 @@ const { t } = useI18n()
 
 // 新增状态
 const selectedOptimizationMode = ref<OptimizationMode>('system')
-
-// 计算属性：动态标签
-const promptInputLabel = computed(() => {
-  return selectedOptimizationMode.value === 'system'
-    ? t('promptOptimizer.systemPromptInput')
-    : t('promptOptimizer.userPromptInput')
-})
-
-const promptInputPlaceholder = computed(() => {
-  return selectedOptimizationMode.value === 'system'
-    ? t('promptOptimizer.systemPromptPlaceholder')
-    : t('promptOptimizer.userPromptPlaceholder')
-})
 
 // 事件处理
 const handleOptimizationModeChange = (mode: OptimizationMode) => {
@@ -270,14 +254,14 @@ const {
   isOptimizing,
   isIterating,
   selectedOptimizeTemplate,
+  selectedUserOptimizeTemplate,
   selectedIterateTemplate,
   currentVersions,
   currentVersionId,
   currentChainId,
   handleOptimizePrompt,
   handleIteratePrompt,
-  handleSwitchVersion,
-  saveTemplateSelection
+  handleSwitchVersion
 } = usePromptOptimizer(
   modelManager,
   templateManager,
@@ -287,6 +271,36 @@ const {
   selectedOptimizeModel,
   selectedTestModel
 )
+
+// 计算属性：根据优化模式选择对应的模板
+const currentSelectedTemplate = computed({
+  get() {
+    return selectedOptimizationMode.value === 'system'
+      ? selectedOptimizeTemplate.value
+      : selectedUserOptimizeTemplate.value
+  },
+  set(newValue) {
+    if (!newValue) return;
+    if (selectedOptimizationMode.value === 'system') {
+      selectedOptimizeTemplate.value = newValue
+    } else {
+      selectedUserOptimizeTemplate.value = newValue
+    }
+  }
+})
+
+// 计算属性：动态标签
+const promptInputLabel = computed(() => {
+  return selectedOptimizationMode.value === 'system'
+    ? t('promptOptimizer.systemPromptInput')
+    : t('promptOptimizer.userPromptInput')
+})
+
+const promptInputPlaceholder = computed(() => {
+  return selectedOptimizationMode.value === 'system'
+    ? t('promptOptimizer.systemPromptPlaceholder')
+    : t('promptOptimizer.userPromptPlaceholder')
+})
 
 // 初始化历史记录管理器
 const {
@@ -321,19 +335,18 @@ const {
   handleDeleteChainBase
 )
 
-// 初始化模板管理器
-const {
-  showTemplates,
-  currentType,
-  handleTemplateSelect,
-  openTemplateManager,
-  handleTemplateManagerClose
-} = useTemplateManager({
-  selectedOptimizeTemplate,
-  selectedIterateTemplate,
-  saveTemplateSelection,
-  templateManager
-})
+// Template Manager state
+const showTemplates = ref(false)
+const currentType = ref('')
+
+const openTemplateManager = (type: string) => {
+  currentType.value = type
+  showTemplates.value = true
+}
+
+const handleTemplateManagerClose = () => {
+  showTemplates.value = false
+}
 
 // 数据管理器
 const showDataManager = ref(false)

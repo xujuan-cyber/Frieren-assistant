@@ -81,7 +81,6 @@
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
             :type="templateType"
             @manage="$emit('openTemplateManager', templateType)"
-            @select="handleTemplateSelect"
           />
         </div>
         
@@ -191,7 +190,7 @@ const emit = defineEmits<{
   'openTemplateManager': [type: 'optimize' | 'iterate'];
   'update:selectedIterateTemplate': [template: Template | null];
   'switchVersion': [version: PromptRecord];
-  'templateSelect': [template: Template, type: 'optimize' | 'iterate'];
+  'templateSelect': [template: Template];
 }>()
 
 const showIterateInput = ref(false)
@@ -256,11 +255,6 @@ const submitIterate = () => {
   // 重置输入
   iterateInput.value = ''
   showIterateInput.value = false
-}
-
-// 处理模板选择并保存
-const handleTemplateSelect = (template: Template, type: 'optimize' | 'iterate') => {
-  emit('templateSelect', template, type)
 }
 
 // 添加版本切换函数

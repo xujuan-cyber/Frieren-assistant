@@ -31,7 +31,7 @@ export { default as TestPanelUI } from './components/TestPanel.vue'
 export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
 export { default as BuiltinTemplateLanguageSwitchUi } from './components/BuiltinTemplateLanguageSwitch.vue'
 export { default as DataManagerUI } from './components/DataManager.vue'
-export { default as PromptTypeSelectorUI } from './components/PromptTypeSelector.vue'
+export { default as OptimizationModeSelectorUI } from './components/OptimizationModeSelector.vue'
 export { default as OptimizePanelUI } from './components/OptimizePanel.vue'
 
 // 导出指令

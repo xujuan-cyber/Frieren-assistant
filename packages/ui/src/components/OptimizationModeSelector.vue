@@ -91,4 +91,4 @@ const updateOptimizationMode = (mode: OptimizationMode) => {
     flex: 1;
   }
 }
-</style>
+</style> 

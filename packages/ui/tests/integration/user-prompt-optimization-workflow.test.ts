@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { ref } from 'vue'
-import PromptTypeSelector from '../../src/components/PromptTypeSelector.vue'
+import OptimizationModeSelector from '../../src/components/OptimizationModeSelector.vue'
 import type { OptimizationMode } from '@prompt-optimizer/core'
 
 describe('User Prompt Optimization Workflow Integration', () => {
@@ -23,7 +23,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
             collapse: 'Collapse'
           },
           promptOptimizer: {
-            promptType: 'Prompt Type',
+            optimizationMode: 'Optimization Mode',
             systemPrompt: 'System Prompt',
             userPrompt: 'User Prompt',
             systemPromptHelp: 'Optimize system prompts',
@@ -92,20 +92,20 @@ describe('User Prompt Optimization Workflow Integration', () => {
   })
 
   describe('Component Integration', () => {
-    it('should handle PromptTypeSelector correctly', async () => {
-      const selectedPromptType = ref<OptimizationMode>('system')
+    it('should handle OptimizationModeSelector correctly', async () => {
+      const selectedOptimizationMode = ref<OptimizationMode>('system')
 
-      // Mount PromptTypeSelector
-      const typeSelectorWrapper = mount(PromptTypeSelector, {
+      // Mount OptimizationModeSelector
+      const typeSelectorWrapper = mount(OptimizationModeSelector, {
         props: {
-          modelValue: selectedPromptType.value
+          modelValue: selectedOptimizationMode.value
         },
         global: {
           plugins: [i18n]
         }
       })
 
-      // Initially should show system prompt type selected
+      // Initially should show system optimization mode selected
       const buttons = typeSelectorWrapper.findAll('button')
       expect(buttons).toHaveLength(2)
 
@@ -118,12 +118,12 @@ describe('User Prompt Optimization Workflow Integration', () => {
       expect(typeSelectorWrapper.emitted('update:modelValue')![0]).toEqual(['user'])
     })
 
-    it('should handle prompt type changes correctly', async () => {
-      const selectedPromptType = ref<OptimizationMode>('system')
+    it('should handle optimization mode changes correctly', async () => {
+      const selectedOptimizationMode = ref<OptimizationMode>('system')
 
-      const wrapper = mount(PromptTypeSelector, {
+      const wrapper = mount(OptimizationModeSelector, {
         props: {
-          modelValue: selectedPromptType.value
+          modelValue: selectedOptimizationMode.value
         },
         global: {
           plugins: [i18n]
@@ -145,7 +145,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
     it('should handle user prompt optimization workflow', async () => {
       // Test the optimization request structure instead of the full composable
       const request = {
-        promptType: 'user',
+        optimizationMode: 'user',
         targetPrompt: 'Help me write an essay',
         templateId: 'user-prompt-optimize',
         modelKey: 'test-model'
@@ -176,7 +176,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
       // Verify the correct API was called with correct parameters
       expect(mockPromptService.optimizePromptStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          promptType: 'user',
+          optimizationMode: 'user',
           targetPrompt: 'Help me write an essay',
           templateId: 'user-prompt-optimize'
         }),
@@ -190,7 +190,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
     it('should handle system prompt optimization workflow (backward compatibility)', async () => {
       // Test the optimization request structure for system prompts
       const request = {
-        promptType: 'system',
+        optimizationMode: 'system',
         targetPrompt: 'You are a helpful assistant',
         templateId: 'general-optimize',
         modelKey: 'test-model'
@@ -220,7 +220,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
       // Verify the correct API was called
       expect(mockPromptService.optimizePromptStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          promptType: 'system',
+          optimizationMode: 'system',
           targetPrompt: 'You are a helpful assistant',
           templateId: 'general-optimize'
         }),
@@ -231,7 +231,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
       expect(result).toBe('Optimized system prompt')
     })
 
-    it('should handle template filtering by prompt type', () => {
+    it('should handle template filtering by optimization mode', () => {
       // Test template filtering logic directly
       const templates = mockTemplateManager.listTemplatesByType('optimize')
 
@@ -260,7 +260,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
       )
 
       const request = {
-        promptType: 'user',
+        optimizationMode: 'user',
         targetPrompt: 'Test prompt',
         templateId: 'test-template',
         modelKey: 'test-model'
@@ -279,8 +279,8 @@ describe('User Prompt Optimization Workflow Integration', () => {
       expect(errorOccurred).toBe(true)
     })
 
-    it('should validate prompt type selection', () => {
-      const wrapper = mount(PromptTypeSelector, {
+    it('should validate optimization mode selection', () => {
+      const wrapper = mount(OptimizationModeSelector, {
         props: {
           modelValue: 'system'
         },

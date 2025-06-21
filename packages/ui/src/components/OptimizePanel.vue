@@ -16,10 +16,10 @@
         @submit="handleOptimizePrompt"
         @configModel="$emit('showConfig')"
       >
-        <template #prompt-type-selector>
-          <PromptTypeSelectorUI
-            v-model="selectedPromptType"
-            @change="handlePromptTypeChange"
+        <template #optimization-mode-selector>
+          <OptimizationModeSelectorUI
+            v-model="selectedOptimizationMode"
+            @change="handleOptimizationModeChange"
           />
         </template>
         <template #model-select>
@@ -33,11 +33,10 @@
         </template>
         <template #template-select>
           <TemplateSelectUI
-            v-model="selectedOptimizeTemplate"
-            :type="selectedPromptType === 'system' ? 'optimize' : 'userOptimize'"
-            :prompt-type="selectedPromptType"
-            @manage="$emit('openTemplateManager', selectedPromptType === 'system' ? 'optimize' : 'userOptimize')"
-            @select="handleTemplateSelect"
+            v-model="currentSelectedTemplate"
+            :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
+            :optimization-mode="selectedOptimizationMode"
+            @manage="$emit('openTemplateManager', selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize')"
           />
         </template>
       </InputPanelUI>
@@ -55,7 +54,6 @@
         @iterate="handleIteratePrompt"
         @openTemplateManager="$emit('openTemplateManager', $event)"
         @switchVersion="handleSwitchVersion"
-        @templateSelect="handleTemplateSelect"
       />
     </div>
   </ContentCardUI>
@@ -70,7 +68,7 @@ import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
 import TemplateSelectUI from './TemplateSelect.vue'
 import PromptPanelUI from './PromptPanel.vue'
-import PromptTypeSelectorUI from './PromptTypeSelector.vue'
+import OptimizationModeSelectorUI from './OptimizationModeSelector.vue'
 
 const { t } = useI18n()
 
@@ -98,24 +96,41 @@ const emit = defineEmits(['showConfig', 'openTemplateManager'])
 const optimizeModelSelect = ref(null)
 
 // 新增状态
-const selectedPromptType = ref('system')
+const selectedOptimizationMode = ref('system')
 
 // 计算属性：动态标签
 const promptInputLabel = computed(() => {
-  return selectedPromptType.value === 'system'
+  return selectedOptimizationMode.value === 'system'
     ? t('promptOptimizer.systemPromptInput')
     : t('promptOptimizer.userPromptInput')
 })
 
 const promptInputPlaceholder = computed(() => {
-  return selectedPromptType.value === 'system'
+  return selectedOptimizationMode.value === 'system'
     ? t('promptOptimizer.systemPromptPlaceholder')
     : t('promptOptimizer.userPromptPlaceholder')
 })
 
+// 计算属性：根据提示词类型选择对应的模板
+const currentSelectedTemplate = computed({
+  get() {
+    return selectedOptimizationMode.value === 'system'
+      ? selectedOptimizeTemplate.value
+      : selectedUserOptimizeTemplate.value
+  },
+  set(newValue) {
+    if (!newValue) return;
+    if (selectedOptimizationMode.value === 'system') {
+      selectedOptimizeTemplate.value = newValue
+    } else {
+      selectedUserOptimizeTemplate.value = newValue
+    }
+  }
+})
+
 // 事件处理
-const handlePromptTypeChange = (type) => {
-  selectedPromptType.value = type
+const handleOptimizationModeChange = (mode) => {
+  selectedOptimizationMode.value = mode
 }
 
 const {
@@ -124,6 +139,7 @@ const {
   isOptimizing,
   isIterating,
   selectedOptimizeTemplate,
+  selectedUserOptimizeTemplate,
   selectedIterateTemplate,
   selectedOptimizeModel,
   currentVersions,
@@ -132,7 +148,6 @@ const {
   handleOptimizePrompt,
   handleIteratePrompt,
   handleSwitchVersion,
-  handleTemplateSelect,
   saveTemplateSelection,
   initTemplateSelection,
   handleModelSelect,
@@ -143,7 +158,7 @@ const {
   props.templateManager,
   props.historyManager,
   props.promptService,
-  selectedPromptType
+  selectedOptimizationMode
 )
 
 // 暴露需要的方法和属性给父组件
@@ -158,10 +173,10 @@ defineExpose({
   initModelSelection,
   loadModels,
   saveTemplateSelection,
-  selectedPromptType,
+  selectedOptimizationMode,
   selectedOptimizeTemplate,
+  selectedUserOptimizeTemplate,
   selectedIterateTemplate,
-  handleTemplateSelect,
   handleSelectHistory: (record) => {
     // 处理历史记录选择
     prompt.value = record.originalPrompt

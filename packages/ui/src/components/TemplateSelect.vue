@@ -163,11 +163,6 @@ watch(isOpen, async (newValue) => {
   }
 })
 
-// 监听优化模式变化
-watch(() => props.optimizationMode, () => {
-  refreshTemplates()
-})
-
 const templates = computed(() => {
   // 使用 refreshTrigger 触发重新计算
   refreshTrigger.value
@@ -194,14 +189,17 @@ watch(
 // 添加对模板列表变化的监听
 watch(
   templates,  // 监听模板列表
-  (newTemplates) => {
+  (newTemplates, oldTemplates) => {
     const currentTemplate = props.modelValue
-    // 如果当前选中的模板不在列表中，自动切换到第一个
+    // 只有在模板列表真正发生变化，且当前模板不在新列表中时才自动切换
     if (currentTemplate && !newTemplates.find(t => t.id === currentTemplate.id)) {
       const firstTemplate = newTemplates.find(t => t.metadata.templateType === props.type) || null
-      emit('update:modelValue', firstTemplate)
-      // 静默选择，不显示toast
-      emit('select', firstTemplate, props.type, false)
+      // 避免重复触发：只在实际发生变化时emit
+      if (firstTemplate && firstTemplate.id !== currentTemplate?.id) {
+        emit('update:modelValue', firstTemplate)
+        // 静默选择，不显示toast
+        emit('select', firstTemplate, false)
+      }
     }
   },
   { deep: true }
@@ -209,20 +207,26 @@ watch(
 
 // 改进刷新方法
 const refreshTemplates = () => {
+  const oldTrigger = refreshTrigger.value
   refreshTrigger.value++
+  
   // 检查模板管理器是否已初始化
   if (!templateManager.isInitialized()) {
     return
   }
-  // 刷新时也检查当前选中状态
+  
+  // 只在初始化时检查和自动选择模板，避免重复触发
   const currentTemplates = templateManager.listTemplatesByType(props.type)
-
   const currentTemplate = props.modelValue
-  if (currentTemplate && !currentTemplates.find(t => t.id === currentTemplate.id)) {
+  
+  // 仅在当前没有选中模板或选中的模板不在列表中时才自动选择
+  if (!currentTemplate || !currentTemplates.find(t => t.id === currentTemplate.id)) {
     const firstTemplate = currentTemplates[0] || null
-    emit('update:modelValue', firstTemplate)
-    // 静默选择，不显示toast（通过传递false参数）
-    emit('select', firstTemplate, props.type, false)
+    if (firstTemplate && firstTemplate.id !== currentTemplate?.id) {
+      emit('update:modelValue', firstTemplate)
+      // 静默选择，不显示toast（通过传递false参数）
+      emit('select', firstTemplate, false)
+    }
   }
 }
 
@@ -232,12 +236,17 @@ defineExpose({
 })
 
 const selectTemplate = (template: Template) => {
+  // 避免选择相同模板时的重复调用
+  if (template.id === props.modelValue?.id) {
+    isOpen.value = false
+    return
+  }
+  
   emit('update:modelValue', template)
   // 用户主动选择时显示toast（传递true参数）
-  emit('select', template, props.type, true)
+  emit('select', template, true)
   isOpen.value = false
-  // 选择后刷新列表
-  refreshTemplates()
+  // 选择后不需要再次刷新列表，避免连锁反应
 }
 </script>
 

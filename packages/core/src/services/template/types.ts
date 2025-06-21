@@ -49,6 +49,9 @@ export interface TemplateManagerConfig {
  * 提示词管理器接口
  */
 export interface ITemplateManager {
+  /** 确保管理器已初始化 */
+  ensureInitialized(): Promise<void>;
+
   /** 获取指定ID的模板 */
   getTemplate(templateId: string): Template; // Stays synchronous
 

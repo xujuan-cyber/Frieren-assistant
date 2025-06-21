@@ -67,7 +67,7 @@ export default {
     templateLabel: '优化提示词',
 
     // 新增：优化模式相关
-    promptType: '优化模式',
+    optimizationMode: '优化模式',
     systemPrompt: '系统提示词优化',
     userPrompt: '用户提示词优化',
     systemPromptInput: '系统提示词',

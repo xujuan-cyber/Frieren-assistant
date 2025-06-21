@@ -30,7 +30,7 @@ describe('PromptService Enhanced Features', () => {
         return {
           id: id,
           content: 'test template content {{originalPrompt}}',
-          metadata: { promptType: 'system' }
+          metadata: { optimizationMode: 'system' }
         }
       }),
       listTemplatesByType: vi.fn().mockReturnValue([
