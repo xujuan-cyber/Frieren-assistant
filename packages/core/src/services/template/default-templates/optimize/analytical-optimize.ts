@@ -131,7 +131,7 @@ export const template: Template = {
     version: '2.1.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '深度分析原始需求，生成完整11维度结构化Prompt，包含背景分析和工作建议',
+    description: '深度分析式优化，适合重要业务和复杂应用场景',
     templateType: 'optimize',
     language: 'zh'
   },

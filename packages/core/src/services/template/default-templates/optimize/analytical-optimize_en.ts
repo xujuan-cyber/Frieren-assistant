@@ -113,7 +113,7 @@ export const template: Template = {
     version: '2.1.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (fixed value, built-in templates are immutable)
     author: 'System',
-    description: 'Deep analysis of original requirements, generating complete 11-dimension structured prompts with background analysis and work suggestions',
+    description: 'In-depth analytical optimization for critical business and complex application scenarios',
     templateType: 'optimize',
     language: 'en'
   },
