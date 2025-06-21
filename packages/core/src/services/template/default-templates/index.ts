@@ -9,8 +9,8 @@ import { template as general_optimize } from './optimize/general-optimize';
 import { template as general_optimize_en } from './optimize/general-optimize_en';
 import { template as output_format_optimize } from './optimize/output-format-optimize';
 import { template as output_format_optimize_en } from './optimize/output-format-optimize_en';
-import { advanced_optimize } from './optimize/advanced-optimize';
-import { advanced_optimize_en } from './optimize/advanced-optimize_en';
+import { template as analytical_optimize } from './optimize/analytical-optimize';
+import { template as analytical_optimize_en } from './optimize/analytical-optimize_en';
 
 import { template as iterate } from './iterate/iterate';
 import { template as iterate_en } from './iterate/iterate_en';
@@ -32,8 +32,8 @@ export const ALL_TEMPLATES = {
   general_optimize_en,
   output_format_optimize,
   output_format_optimize_en,
-  advanced_optimize,
-  advanced_optimize_en,
+  analytical_optimize,
+  analytical_optimize_en,
   user_prompt_steps,
   user_prompt_steps_en,
   iterate,

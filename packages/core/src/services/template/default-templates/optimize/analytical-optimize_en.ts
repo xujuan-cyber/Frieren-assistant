@@ -1,8 +1,8 @@
 import { Template } from '../../types';
 
-export const advanced_optimize_en: Template = {
-  id: 'advanced-optimize',
-  name: 'Optimization with Suggestions',
+export const template: Template = {
+  id: 'analytical-optimize',
+  name: 'Analytical Structured Optimization',
   content: `# Role: Prompt Engineer
 
 ## Attention:
@@ -113,7 +113,7 @@ export const advanced_optimize_en: Template = {
     version: '2.1.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (fixed value, built-in templates are immutable)
     author: 'System',
-    description: 'Optimization prompt with suggestions, relies on high-intelligence optimization models',
+    description: 'Deep analysis of original requirements, generating complete 11-dimension structured prompts with background analysis and work suggestions',
     templateType: 'optimize',
     language: 'en'
   },
