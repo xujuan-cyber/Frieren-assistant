@@ -12,9 +12,34 @@ export interface Message {
   content: string;
 }
 
+/**
+ * LLM响应结构
+ */
+export interface LLMResponse {
+  content: string;
+  reasoning?: string;
+  metadata?: {
+    model?: string;
+    tokens?: number;
+    finishReason?: string;
+  };
+}
+
+/**
+ * 流式响应处理器
+ * 支持传统格式和结构化格式
+ */
 export interface StreamHandlers {
+  // 主要内容流（必需，向后兼容）
   onToken: (token: string) => void;
-  onComplete: () => void;
+  
+  // 推理内容流（可选，新增功能）
+  onReasoningToken?: (token: string) => void;
+  
+  // 完成回调（现在传递完整响应，向后兼容通过可选参数）
+  onComplete: (response?: LLMResponse) => void;
+  
+  // 错误回调
   onError: (error: Error) => void;
 }
 
@@ -39,14 +64,24 @@ export interface ModelOption {
  */
 export interface ILLMService {
   /**
-   * 发送消息
+   * 发送消息（传统格式，返回合并的字符串）
+   * @deprecated 建议使用 sendMessageStructured 获得更好的语义支持
    * @throws {RequestConfigError} 当参数无效时
    * @throws {APIError} 当请求失败时
    */
   sendMessage(messages: Message[], provider: string): Promise<string>;
 
   /**
-   * 发送流式消息
+   * 发送消息（结构化格式）
+   * @throws {RequestConfigError} 当参数无效时
+   * @throws {APIError} 当请求失败时
+   */
+  sendMessageStructured(messages: Message[], provider: string): Promise<LLMResponse>;
+
+
+
+  /**
+   * 发送流式消息（支持结构化和传统格式）
    * @throws {RequestConfigError} 当参数无效时
    * @throws {APIError} 当请求失败时
    */

@@ -476,6 +476,8 @@ describe('LLM Parameters (llmParams) Functionality', () => {
     describe('Gemini Specific Parameters', () => {
       if (hasGeminiKey && geminiConfig) {
         it('should accept valid maxOutputTokens for Gemini provider', async () => {
+          // 添加间隔，避免频率限制，先等10秒
+          await new Promise(resolve => setTimeout(resolve, 10000)); 
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
           const llmService = createLLMService(modelManager);
@@ -499,9 +501,10 @@ describe('LLM Parameters (llmParams) Functionality', () => {
             expect(response).toBeDefined();
             expect(typeof response).toBe('string');
             expect(response.length).toBeGreaterThan(0);
-        }, 30000);
-
+        }, 60000);
         it('should accept valid candidateCount for Gemini provider', async () => {
+          // 添加间隔，避免频率限制，先等10秒
+          await new Promise(resolve => setTimeout(resolve, 10000)); 
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
           const llmService = createLLMService(modelManager);
@@ -525,7 +528,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
             expect(response).toBeDefined();
             expect(typeof response).toBe('string');
             expect(response.length).toBeGreaterThan(0);
-        }, 30000);
+        }, 60000);
       }
     });
 

@@ -111,3 +111,39 @@ const completionConfig: any = {
 
 **最后更新**: 2025年1月
 **文档状态**: 已简化，移除过时内容，保留核心技术要点
+
+## 任务：LLM服务结构化响应重构审查 - 2024-01-XX
+
+### 代码审查建议
+
+#### 1. Think标签处理器重构建议
+当前 `processStreamContentWithThinkTags` 方法过于复杂，建议创建独立的 `ThinkTagProcessor` 类：
+
+```typescript
+class ThinkTagProcessor {
+  private isInThinkMode = false;
+  private buffer = '';
+  
+  processChunk(content: string, callbacks: StreamHandlers): void {
+    // 简化的处理逻辑
+  }
+  
+  reset(): void {
+    this.isInThinkMode = false;
+    this.buffer = '';
+  }
+}
+```
+
+#### 2. 错误处理增强
+- 推理内容解析失败时的降级策略
+- 不同提供商API差异的统一处理
+
+#### 3. 测试覆盖建议
+- 添加错误场景的测试用例
+- 性能测试：大量think标签的处理性能
+- 边界条件：恶意构造的think标签
+
+#### 4. 文档更新需求
+- API文档需要更新，说明新的结构化响应格式
+- 使用示例和最佳实践指南
