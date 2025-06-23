@@ -1,218 +1,197 @@
-# 项目核心经验总结
+# 项目核心经验指南
 
-## 📋 核心知识点
-- [架构设计](#架构设计) - API集成、模块化结构
-- [错误处理](#错误处理) - 常见问题与解决方案  
-- [测试规范](#测试规范) - 关键测试要点
-- [开发实践](#开发实践) - Vue、工具配置、最佳实践
-- [重要Bug修复](#重要bug修复) - 安全漏洞与性能问题
+本指南收录项目开发中的关键经验与最佳实践，快速解决常见问题，提升开发效率。
 
 ---
 
-## 架构设计
+## 🎯 核心布局经验：动态 Flex 布局
 
-### API集成核心原则
-```js
-// 统一OpenAI兼容格式
-export default {
-  baseURL: "https://api.openai.com/v1", 
-  models: ["gpt-4", "gpt-3.5"],
-  apiKey: import.meta.env.VITE_API_KEY // Vite项目必须使用import.meta.env
+**这是本项目最重要的经验。** 摒弃固定尺寸，全面使用 Flexbox 动态空间分配。
+
+### 核心原则
+- **最高指导原则**：一个元素若要作为 Flex 子项（`flex-1`）进行伸缩，其直接父元素必须是 Flex 容器（`display: flex`）
+- **约束链完整性**：从顶层到底层的所有相关父子元素都必须遵循 Flex 规则
+- **黄金组合**：`flex: 1` + `min-h-0`（或 `min-w-0`）
+
+### 实施要点
+```css
+/* 父容器 */
+.parent {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* 或其他明确高度 */
+}
+
+/* 动态子项 */
+.child {
+  flex: 1;
+  min-height: 0; /* 关键：允许收缩 */
+}
+
+/* 滚动容器 */
+.scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 ```
 
-### 模块化结构
-```
-src/
-├─ api/        # API封装层
-├─ services/   # 业务逻辑  
-├─ config/     # 配置管理
-├─ components/ # UI组件
-└─ prompts/    # 提示模板
-```
-
-### LLM服务设计要点
-- **接口标准化**: 统一使用OpenAI格式
-- **多服务商兼容**: Provider标识区分
-- **敏感信息管理**: 环境变量+本地加密存储
-- **用户自管理API密钥**: 避免后端开销，保持应用简单性
-- **参数透明化**: 只使用用户明确配置的参数，不设置默认值避免误解
+### 调试方法
+当 Flex 布局失效时，从出问题的元素开始，逐层向上检查父元素是否为 `display: flex`。
 
 ---
 
-## 错误处理
+## 🔧 开发规范
 
-### 核心处理策略
-```js
-// 统一错误处理模板
-try {
-  await apiCall();
-} catch (err) {
-  console.error("[API Error]", err.context);
-  throw new Error("友好的错误提示");
-}
-```
-
-### 常见问题速查表
-| 问题 | 解决方案 | 日期 |
-|------|----------|------|
-| 模板ID与模型Key混淆 | 明确功能ID与API Key分离 | 2024-03-22 |
-| 状态同步异常 | 增加状态同步处理函数 | 2024-03-22 |
-| 全局Provider污染 | 显式传递模型参数 | 2024-03-22 |
-
----
-
-## 测试规范
-
-### 关键要点
-1. **环境变量**: Vite项目使用 `import.meta.env.VITE_*`
-2. **测试隔离**: 使用动态唯一标识符避免冲突
-3. **错误场景**: 覆盖网络错误、无效Token等异常
-4. **状态管理**: 独立测试数据库、正确清理状态
-5. **参数测试**: 为每个LLM参数创建独立测试用例，确保参数兼容性
-
-### 测试模板
-```js
-describe("功能测试", () => {
-  beforeEach(() => {
-    // 使用唯一标识符
-    testId = `test-${Date.now()}`;
-  });
-  
-  it("应正确处理异常", async () => {
-    await expect(func()).rejects.toThrow("预期错误");
-  });
-});
-
-// LLM参数测试最佳实践
-describe("Individual Parameter Tests", () => {
-  // 为每个advancedParameterDefinitions中的参数创建独立测试
-  it("should accept valid temperature", async () => {
-    await modelManager.updateModel(configKey, {
-      // ... 基础配置
-      llmParams: { temperature: 0.3 } // 只测试一个参数
-    });
-    
-    const response = await llmService.sendMessage(messages, configKey);
-    expect(response).toBeDefined();
-  });
-  
-  // 组合参数测试
-  it("should handle multiple parameters together", async () => {
-    await modelManager.updateModel(configKey, {
-      // ... 基础配置  
-      llmParams: {
-        temperature: 0.6,
-        max_tokens: 150,
-        top_p: 0.9
-      }
-    });
-  });
-});
-```
-
----
-
-## 开发实践
-
-### Vue开发规范
-```js
-// ✅ 正确: 组件顶层调用Composable
-const { data } = useFetch();
-
-// ❌ 错误: 生命周期内调用
-onMounted(() => {
-  const { data } = useFetch(); // 禁止
-});
-```
-
-### 工具配置
-```bash
-# 常用NPM命令
-npm outdated          # 检查更新
-ncu -u "eslint*"      # 安全更新指定包
-npm run test          # 每次修改后必须执行
-```
-
-### 流式处理最佳实践
-```js
-// 统一流式处理器
-const handlers = {
-  onToken: (token) => result.value += token,
-  onComplete: () => isLoading.value = false,
-  onError: (error) => toast.error(error.message)
+### API 集成
+```typescript
+// 统一 OpenAI 兼容格式
+const config = {
+  baseURL: "https://api.provider.com/v1",
+  models: ["model-name"],
+  apiKey: import.meta.env.VITE_API_KEY // 必须使用 Vite 环境变量
 };
 ```
 
+**核心原则**：
+- 业务逻辑与API配置分离
+- 只传递用户明确配置的参数，不设默认值
+- 敏感信息通过环境变量管理
+
+### 错误处理
+```typescript
+try {
+  await apiCall();
+} catch (error) {
+  console.error('[Service Error]', error); // 开发日志
+  throw new Error('操作失败，请稍后重试'); // 用户友好提示
+}
+```
+
+### 测试规范
+```javascript
+describe("功能测试", () => {
+  beforeEach(() => {
+    testId = `test-${Date.now()}`; // 唯一标识避免冲突
+  });
+  
+  // LLM参数测试：每个参数独立测试
+  it("should handle temperature parameter", async () => {
+    await modelManager.updateModel(configKey, {
+      llmParams: { temperature: 0.7 } // 只测试一个参数
+    });
+  });
+});
+```
+
+**要点**：
+- 使用动态唯一标识符
+- 每个LLM参数创建独立测试
+- 覆盖异常场景
+- 正确清理测试状态
+
 ---
 
-## 重要Bug修复
+## 🚨 关键Bug修复经验
 
-### 安全漏洞修复 (2024-12-20)
-| Bug类型 | 风险等级 | 修复状态 |
-|---------|----------|----------|
-| UI配置导入验证不充分 | 中 | ✅ 已修复 |
-| 数据迁移竞态条件 | 中 | ✅ 已修复 |
-| 测试覆盖缺失 | 高 | ✅ 已修复 |
-| LLM参数默认值误导用户 | 中 | ✅ 已修复 |
+### 1. 参数透明化（2024-12-20）
+**问题**：LLM参数默认值误导用户
+```typescript
+// ❌ 错误：自动设置默认值
+if (!config.temperature) config.temperature = 0.7;
 
-#### 关键修复示例
-```ts
-// UI配置导入安全验证
-for (const [key, value] of Object.entries(typedData.userSettings)) {
-  // 白名单验证
-  if (!UI_SETTINGS_KEYS.includes(key as any)) {
-    console.warn(`跳过未知的UI配置键: ${key}`);
+// ✅ 正确：只使用用户配置的参数
+const requestConfig = {
+  model: modelConfig.defaultModel,
+  messages: formattedMessages,
+  ...userLlmParams // 只传递用户明确配置的参数
+};
+```
+
+### 2. 数据导入安全验证
+```typescript
+// 白名单验证 + 类型检查
+for (const [key, value] of Object.entries(importData)) {
+  if (!ALLOWED_KEYS.includes(key)) {
+    console.warn(`跳过未知配置: ${key}`);
     continue;
   }
-  // 类型验证
   if (typeof value !== 'string') {
     console.warn(`跳过无效类型 ${key}: ${typeof value}`);
     continue;
   }
-  await this.storage.setItem(key, value);
+  await storage.setItem(key, value);
 }
+```
 
-// LLM参数透明化处理 (2024-12-20)
-// ❌ 旧版本：自动设置默认值
-if (completionConfig.temperature === undefined) {
-  completionConfig.temperature = 0.7; // 可能误导用户
-}
+### 3. Flex 约束链断裂修复
+**典型错误**：
+```html
+<!-- ❌ 父容器不是 flex，子元素 flex-1 失效 -->
+<div class="h-full relative">
+  <TextDiff class="flex-1 min-h-0" />
+</div>
 
-// ✅ 新版本：只使用用户明确配置的参数
-const completionConfig: any = {
-  model: modelConfig.defaultModel,
-  messages: formattedMessages,
-  ...restLlmParams // 只传递用户配置的参数
-};
-// 不设置任何默认值，让API服务商使用其默认配置
+<!-- ✅ 正确：父容器必须是 flex -->
+<div class="h-full flex flex-col">
+  <TextDiff class="flex-1 min-h-0" />
+</div>
 ```
 
 ---
 
-## 核心经验要点
+## ⚡ 快速问题排查
 
-### 配置管理
-- 业务逻辑与API配置解耦
-- 支持动态配置更新
-- 环境变量使用Vite规范
+### 布局问题
+1. 检查 Flex 约束链是否完整
+2. 确认 `min-h-0` 是否添加
+3. 验证父容器是否为 `display: flex`
 
-### 错误处理
-- 开发环境保留完整堆栈
-- 生产环境友好提示+日志
-- 统一错误处理机制
+### 滚动问题
+1. 检查是否有中间层错误的 `overflow` 属性
+2. 确认高度约束是否从顶层正确传递
+3. 验证滚动容器是否有正确的 `overflow-y: auto`
 
-### 测试策略  
-- 测试用例隔离
-- 覆盖边界条件
-- Mock最小必要依赖
+### API调用问题
+1. 检查环境变量是否正确设置（`VITE_` 前缀）
+2. 确认参数是否过度设置默认值
+3. 验证错误处理是否用户友好
 
-### 安全考虑
-- 输入验证白名单
-- 防止原型污染
-- 数据迁移原子性
+### 测试失败
+1. 检查测试ID是否唯一
+2. 确认测试后是否正确清理状态
+3. 验证LLM参数测试是否独立
 
-### 性能优化
-- 流式处理提升体验
-- 组件懒加载
-- 合理状态管理
+---
+
+## 🔄 版本管理
+
+### 版本同步
+```json
+// package.json
+{
+  "scripts": {
+    "version": "pnpm run version:sync && git add -A"
+  }
+}
+```
+**关键**：使用 `version` 钩子而非 `postversion`，确保同步文件包含在版本提交中。
+
+### 模板管理
+- **内置模板**：不可修改，不可导出
+- **用户模板**：可修改，导入时生成新ID
+- **导入规则**：跳过与内置模板ID重复的模板
+
+---
+
+## 📝 文档更新规范
+
+遇到新问题或找到更好解决方案时，应及时更新此文档：
+1. 在对应章节添加新经验
+2. 更新代码示例
+3. 记录修复时间和问题背景
+4. 保持文档简洁性，避免过度详细的过程描述
+
+---
+
+**记住**：好的经验文档应该能让团队成员快速找到解决方案，而不是重新踩坑。

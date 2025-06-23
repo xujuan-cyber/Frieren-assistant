@@ -63,7 +63,7 @@
     
     <!-- 内容区域 -->
     <div class="flex-1 min-h-0 p-[2px] overflow-hidden">
-      <div class="h-full relative">
+      <div class="h-full relative flex">
         <!-- 对比模式：显示TextDiff组件 -->
         <TextDiffUI
           v-if="isDiffMode"
@@ -73,7 +73,7 @@
           :isEnabled="true"
           :showHeader="false"
           displayMode="optimized"
-          class="h-full"
+          class="w-full flex-1 min-h-0"
           @toggleDiff="toggleDiffMode"
         />
         
@@ -83,7 +83,7 @@
           ref="promptTextarea"
           :value="optimizedPrompt"
           @input="handleInput"
-          class="w-full h-full px-4 py-3 theme-input resize-none"
+          class="w-full flex-1 min-h-0 px-4 py-3 theme-input resize-none"
           :placeholder="t('prompt.optimizedPlaceholder')"
         ></textarea>
       </div>

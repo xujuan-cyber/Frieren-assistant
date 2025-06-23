@@ -346,11 +346,6 @@ export class LLMService implements ILLMService {
       for await (const chunk of stream as any) {
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
-          console.log('收到数据块:', {
-            contentLength: content.length,
-            content: content.substring(0, 50) + (content.length > 50 ? '...' : '')
-          });
-
           callbacks.onToken(content);
           // 添加小延迟，让UI有时间更新
           await new Promise(resolve => setTimeout(resolve, 10));
@@ -418,12 +413,7 @@ export class LLMService implements ILLMService {
       for await (const chunk of result.stream) {
         const text = chunk.text();
         if (text) {
-          console.log('收到数据块:', {
-            contentLength: text.length,
-            content: text.substring(0, 50) + (text.length > 50 ? '...' : '')
-          });
-
-          await callbacks.onToken(text);
+          callbacks.onToken(text);
           // 添加小延迟，让UI有时间更新
           await new Promise(resolve => setTimeout(resolve, 10));
         }

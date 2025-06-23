@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen transition-colors duration-300">
+  <div class="h-screen flex flex-col min-h-0 transition-colors duration-300">
     <!-- 顶部导航栏 -->
-    <header class="theme-header">
+    <header class="theme-header flex-none">
       <div class="container mx-auto px-2 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
         <h1 class="text-lg sm:text-xl font-bold theme-title flex items-center gap-2">
           <img src="../assets/logo.jpg" alt="Logo" class="h-8 w-8 rounded-lg" />
@@ -14,8 +14,8 @@
     </header>
 
     <!-- 主要内容区域 -->
-    <main class="flex-1 container mx-auto p-2 sm:p-4 lg:overflow-hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 sm:h-[calc(100vh-5.8rem)]">
+    <main class="flex-1 min-h-0 container mx-auto p-2 sm:p-4">
+      <div class="flex flex-col lg:flex-row gap-2 sm:gap-4 h-full">
         <slot></slot>
       </div>
     </main>

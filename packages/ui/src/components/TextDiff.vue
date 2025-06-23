@@ -23,7 +23,7 @@
       </div>
   
       <!-- 文本内容 -->
-      <div>
+      <div class="text-diff-content flex-1 min-h-0">
         <template v-if="isEnabled && compareResult">
           <!-- 对比模式：显示高亮的差异 -->
           <div class="diff-text">
@@ -86,8 +86,6 @@
         return 'fragment-added'
       case 'removed':
         return 'fragment-removed'
-      case 'modified':
-        return 'fragment-modified'
       case 'unchanged':
       default:
         return 'fragment-unchanged'
@@ -97,11 +95,17 @@
   
   <style scoped>
   .text-diff {
+    /* 使用 flex 布局自适应父容器高度 */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     border-radius: 8px;
     border: 1px solid var(--el-border-color);
   }
   
   .diff-header {
+    flex-shrink: 0;
     padding: 12px 16px;
     border-bottom: 1px solid var(--el-border-color-light);
     background: var(--el-bg-color-page);
@@ -153,17 +157,31 @@
   .stat.removed {
     background: var(--el-color-danger);
   }
+
+  .text-diff-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    box-sizing: border-box; /* 确保内边距被计算在高度之内 */
+    padding-bottom: 3rem;   /* 将缓冲区作为内边距，从根本上解决问题 */
+  }
   
   .diff-text,
   .normal-text {
+    padding: 0.75rem 1rem; /* 移除底部填充，改用伪元素实现 */
     line-height: 1.6;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 1rem;
     white-space: pre-wrap;
     word-break: break-word;
+    /* 确保内容可以正常显示和滚动 */
+    width: 100%;
+    box-sizing: border-box;
   }
   
-  .text-fragment {
+.text-fragment {
     position: relative;
   }
   
@@ -186,13 +204,6 @@
     text-decoration: line-through;
   }
   
-  .fragment-modified {
-    background: rgba(245, 158, 11, 0.15);
-    color: var(--el-color-warning-dark-2);
-    border-radius: 2px;
-    padding: 1px 2px;
-  }
-  
   /* 暗黑模式适配 */
   .dark .fragment-added {
     background: rgba(34, 197, 94, 0.25);
@@ -200,13 +211,8 @@
   }
   
   .dark .fragment-removed {
-    background: rgba(239, 68, 68, 0.25);
+    background: rgba(244, 63, 94, 0.25);
     color: var(--el-color-danger-light-3);
-  }
-  
-  .dark .fragment-modified {
-    background: rgba(245, 158, 11, 0.25);
-    color: var(--el-color-warning-light-3);
   }
   
   /* 响应式设计 */
@@ -220,4 +226,4 @@
       justify-content: center;
     }
   }
-  </style> 
+  </style>
