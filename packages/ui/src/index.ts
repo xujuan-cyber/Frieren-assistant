@@ -1,4 +1,4 @@
-﻿﻿// 导入样式
+﻿// 导入样式
 import 'element-plus/dist/index.css'
 import './styles/index.css'
 import './styles/scrollbar.css'

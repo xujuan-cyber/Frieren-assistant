@@ -177,6 +177,9 @@ const { copyText } = useClipboard()
 const isDiffMode = ref(false)
 const compareResult = ref<CompareResult | undefined>()
 
+// 简化：目标模式管理（流式结束后的目标状态）
+const targetMode = ref<'diff' | 'normal' | null>(null)
+
 // 使用自动滚动组合式函数
 const { elementRef: promptTextarea, watchSource, forceScrollToBottom, shouldAutoScroll } = useAutoScroll<HTMLTextAreaElement>({
   debug: import.meta.env.DEV,
@@ -193,6 +196,10 @@ const props = defineProps({
   optimizedPrompt: {
     type: String,
     default: ''
+  },
+  isOptimizing: {
+    type: Boolean,
+    default: false
   },
   isIterating: {
     type: Boolean,
@@ -334,9 +341,20 @@ watch(
 // 监听optimizedPrompt变化，自动滚动到底部
 watchSource(() => props.optimizedPrompt, true)
 
-// 切换对比模式
+// 切换对比模式（简化版：清晰的用户意图处理）
 const toggleDiffMode = async () => {
-  isDiffMode.value = !isDiffMode.value
+  const newMode = !isDiffMode.value
+  
+  // 检查是否在流式处理期间（根据props状态判断）
+  const isStreaming = props.isOptimizing || props.isIterating
+  
+  if (isStreaming) {
+    // 用户在流式期间手动切换 = 放弃自动恢复
+    targetMode.value = null
+  }
+  
+  // 执行模式切换
+  isDiffMode.value = newMode
   
   if (isDiffMode.value) {
     await updateCompareResult()
@@ -402,6 +420,54 @@ const updateCompareResult = async () => {
     compareResult.value = undefined
   }
 }
+
+// 监听优化和迭代状态，实现简洁的目标模式管理
+watch(
+  () => [props.isOptimizing, props.isIterating],
+  ([newIsOptimizing, newIsIterating], [oldIsOptimizing, oldIsIterating]) => {
+    const isStartingStream = (!oldIsOptimizing && newIsOptimizing) || (!oldIsIterating && newIsIterating)
+    const isEndingStream = (oldIsOptimizing && !newIsOptimizing) || (oldIsIterating && !newIsIterating)
+    
+    if (isStartingStream) {
+      // 开始流式处理：记录当前模式为目标模式，切换到普通模式，清空对比区域
+      targetMode.value = isDiffMode.value ? 'diff' : 'normal'
+      
+      // 切换到普通模式以显示实时更新
+      if (isDiffMode.value) {
+        isDiffMode.value = false
+      }
+      
+      // 清空对比区域
+      compareResult.value = undefined
+      
+      // 确保切换后能立即看到流式内容
+      nextTick(() => {
+        forceScrollToBottom()
+      })
+    }
+    
+    if (isEndingStream) {
+      // 流式处理结束：根据目标模式决定是否恢复
+      if (targetMode.value === 'diff') {
+        // 有目标模式且为对比模式，自动恢复
+        nextTick(async () => {
+          isDiffMode.value = true
+          await updateCompareResult()
+          
+          // 确保对比结果显示后能看到完整内容
+          setTimeout(() => {
+            forceScrollToBottom()
+          }, 100)
+        })
+      }
+      // 如果 targetMode.value 为 null 或 'normal'，则保持当前模式
+      
+      // 重置目标模式
+      targetMode.value = null
+    }
+  },
+  { immediate: false }
+)
 </script>
 
 <style scoped>

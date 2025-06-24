@@ -43,7 +43,7 @@
 
     <!-- 主要内容插槽 -->
     <!-- 提示词区 -->
-    <ContentCardUI>
+    <ContentCardUI class="flex-1 min-w-0 flex flex-col">
       <!-- 输入区域 -->
       <div class="flex-none">
         <InputPanelUI
@@ -87,10 +87,11 @@
       </div>
 
       <!-- 优化结果区域 -->
-      <div class="flex-1 min-h-0 overflow-y-auto">
+      <div class="flex-1 min-h-0">
         <PromptPanelUI
           v-model:optimized-prompt="optimizedPrompt"
           :original-prompt="prompt"
+          :is-optimizing="isOptimizing"
           :is-iterating="isIterating"
           v-model:selected-iterate-template="selectedIterateTemplate"
           :versions="currentVersions"
@@ -104,6 +105,7 @@
 
     <!-- 测试区域 -->
     <TestPanelUI
+      class="flex-1 min-w-0 flex flex-col"
       :prompt-service="promptServiceRef"
       :original-prompt="prompt"
       :optimized-prompt="optimizedPrompt"
