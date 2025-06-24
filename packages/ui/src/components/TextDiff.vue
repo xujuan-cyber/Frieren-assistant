@@ -1,10 +1,10 @@
 <template>
-    <div class="text-diff theme-input">
+    <div class="text-diff theme-textdiff">
       <!-- 对比模式切换 -->
-      <div class="diff-header" v-if="showHeader">
+      <div class="diff-header theme-textdiff-header" v-if="showHeader">
         <div class="diff-controls">
           <button 
-            class="diff-toggle-btn"
+            class="diff-toggle-btn theme-textdiff-toggle"
             @click="$emit('toggleDiff')"
             :aria-label="isEnabled ? '关闭对比模式' : '开启对比模式'"
           >
@@ -12,10 +12,10 @@
           </button>
           
           <div v-if="isEnabled && compareResult" class="diff-stats">
-            <span class="stat added" v-if="compareResult.summary.additions > 0">
+            <span class="stat theme-textdiff-stat-added" v-if="compareResult.summary.additions > 0">
               +{{ compareResult.summary.additions }}
             </span>
-            <span class="stat removed" v-if="compareResult.summary.deletions > 0">
+            <span class="stat theme-textdiff-stat-removed" v-if="compareResult.summary.deletions > 0">
               -{{ compareResult.summary.deletions }}
             </span>
           </div>
@@ -23,7 +23,7 @@
       </div>
   
       <!-- 文本内容 -->
-      <div class="text-diff-content flex-1 min-h-0">
+      <div class="text-diff-content theme-textdiff-content flex-1 min-h-0">
         <template v-if="isEnabled && compareResult">
           <!-- 对比模式：显示高亮的差异 -->
           <div class="diff-text">
@@ -81,149 +81,108 @@
   })
   
   const getFragmentClass = (type: ChangeType): string => {
-    switch (type) {
-      case 'added':
-        return 'fragment-added'
-      case 'removed':
-        return 'fragment-removed'
-      case 'unchanged':
-      default:
-        return 'fragment-unchanged'
-    }
+  switch (type) {
+    case 'added':
+      return 'theme-textdiff-added'
+    case 'removed':
+      return 'theme-textdiff-removed'
+    case 'unchanged':
+    default:
+      return 'theme-textdiff-unchanged'
   }
+}
   </script>
   
   <style scoped>
-  .text-diff {
-    /* 使用 flex 布局自适应父容器高度 */
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color);
-  }
-  
-  .diff-header {
-    flex-shrink: 0;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--el-border-color-light);
-    background: var(--el-bg-color-page);
-  }
-  
+.text-diff {
+  /* 使用 flex 布局自适应父容器高度 */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-radius: 8px;
+}
+
+.diff-header {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid currentColor;
+  border-opacity: 0.2;
+}
+
+.diff-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diff-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.diff-stats {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stat {
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.text-diff-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  box-sizing: border-box; /* 确保内边距被计算在高度之内 */
+  padding-bottom: 3rem;   /* 将缓冲区作为内边距，从根本上解决问题 */
+}
+
+.diff-text,
+.normal-text {
+  padding: 0.75rem 1rem; /* 移除底部填充，改用伪元素实现 */
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* 确保内容可以正常显示和滚动 */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.text-fragment {
+  position: relative;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+/* 添加删除线样式 */
+:deep(.theme-textdiff-removed) {
+  text-decoration: line-through;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
   .diff-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  
-  .diff-toggle-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid var(--el-border-color);
-    border-radius: 6px;
-    background: var(--el-bg-color);
-    color: var(--el-text-color-primary);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .diff-toggle-btn:hover {
-    border-color: var(--el-color-primary);
-    color: var(--el-color-primary);
+    flex-direction: column;
+    align-items: stretch;
   }
   
   .diff-stats {
-    display: flex;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 500;
+    justify-content: center;
   }
-  
-  .stat {
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: white;
-  }
-  
-  .stat.added {
-    background: var(--el-color-success);
-  }
-  
-  .stat.removed {
-    background: var(--el-color-danger);
-  }
-
-  .text-diff-content {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    position: relative;
-    box-sizing: border-box; /* 确保内边距被计算在高度之内 */
-    padding-bottom: 3rem;   /* 将缓冲区作为内边距，从根本上解决问题 */
-  }
-  
-  .diff-text,
-  .normal-text {
-    padding: 0.75rem 1rem; /* 移除底部填充，改用伪元素实现 */
-    line-height: 1.6;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-    font-size: 1rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-    /* 确保内容可以正常显示和滚动 */
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-.text-fragment {
-    position: relative;
-  }
-  
-  .fragment-unchanged {
-    color: var(--el-text-color-primary);
-  }
-  
-  .fragment-added {
-    background: rgba(34, 197, 94, 0.15);
-    color: var(--el-color-success-dark-2);
-    border-radius: 2px;
-    padding: 1px 2px;
-  }
-  
-  .fragment-removed {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--el-color-danger-dark-2);
-    border-radius: 2px;
-    padding: 1px 2px;
-    text-decoration: line-through;
-  }
-  
-  /* 暗黑模式适配 */
-  .dark .fragment-added {
-    background: rgba(34, 197, 94, 0.25);
-    color: var(--el-color-success-light-3);
-  }
-  
-  .dark .fragment-removed {
-    background: rgba(244, 63, 94, 0.25);
-    color: var(--el-color-danger-light-3);
-  }
-  
-  /* 响应式设计 */
-  @media (max-width: 768px) {
-    .diff-controls {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .diff-stats {
-      justify-content: center;
-    }
-  }
-  </style>
+}
+</style>

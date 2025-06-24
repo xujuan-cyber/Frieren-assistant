@@ -530,6 +530,50 @@ html * {
   .markdown-think summary::before {
     @apply border-stone-700;
   }
+
+  /* ===== TextDiff 组件 ===== */
+  /* TextDiff 容器 */
+  .theme-textdiff {
+    @apply bg-stone-50 border-stone-300;
+  }
+
+  /* TextDiff 头部 */
+  .theme-textdiff-header {
+    @apply bg-stone-100 border-stone-200;
+  }
+
+  /* TextDiff 切换按钮 */
+  .theme-textdiff-toggle {
+    @apply bg-stone-100 border-stone-300 text-stone-700 
+           hover:border-stone-500 hover:text-stone-800;
+  }
+
+  /* TextDiff 统计信息 */
+  .theme-textdiff-stat-added {
+    @apply bg-green-600 text-white;
+  }
+
+  .theme-textdiff-stat-removed {
+    @apply bg-red-600 text-white;
+  }
+
+  /* TextDiff 内容区域 */
+  .theme-textdiff-content {
+    @apply text-stone-800;
+  }
+
+  /* TextDiff 文本片段 */
+  .theme-textdiff-unchanged {
+    @apply text-stone-800;
+  }
+
+  .theme-textdiff-added {
+    @apply bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .theme-textdiff-removed {
+    @apply bg-red-100 text-red-800 border border-red-200;
+  }
 }
 
 /* 主题变体 */
@@ -959,6 +1003,50 @@ html * {
   .theme-manager-bg-active {
     @apply bg-blue-50 dark:bg-blue-900/20;
   }
+
+  /* ===== TextDiff 组件 ===== */
+  /* TextDiff 容器 */
+  .theme-textdiff {
+    @apply bg-sky-50 border-sky-300;
+  }
+
+  /* TextDiff 头部 */
+  .theme-textdiff-header {
+    @apply bg-sky-100 border-sky-200;
+  }
+
+  /* TextDiff 切换按钮 */
+  .theme-textdiff-toggle {
+    @apply bg-sky-100 border-sky-300 text-sky-700 
+           hover:border-sky-500 hover:text-sky-800;
+  }
+
+  /* TextDiff 统计信息 */
+  .theme-textdiff-stat-added {
+    @apply bg-green-600 text-white;
+  }
+
+  .theme-textdiff-stat-removed {
+    @apply bg-red-600 text-white;
+  }
+
+  /* TextDiff 内容区域 */
+  .theme-textdiff-content {
+    @apply text-sky-800;
+  }
+
+  /* TextDiff 文本片段 */
+  .theme-textdiff-unchanged {
+    @apply text-sky-800;
+  }
+
+  .theme-textdiff-added {
+    @apply bg-green-100 text-green-800 border border-green-300;
+  }
+
+  .theme-textdiff-removed {
+    @apply bg-red-100 text-red-800 border border-red-300;
+  }
 }
 
 :root[data-theme="green"] {
@@ -1283,6 +1371,50 @@ html * {
   /* 主题背景激活状态 */
   .theme-manager-bg-active {
     @apply bg-green-50 dark:bg-green-900/20;
+  }
+
+  /* ===== TextDiff 组件 ===== */
+  /* TextDiff 容器 */
+  .theme-textdiff {
+    @apply bg-teal-800/50 border-teal-700;
+  }
+
+  /* TextDiff 头部 */
+  .theme-textdiff-header {
+    @apply bg-teal-900/70 border-teal-700;
+  }
+
+  /* TextDiff 切换按钮 */
+  .theme-textdiff-toggle {
+    @apply bg-teal-700 border-teal-600 text-teal-300 
+           hover:border-teal-500 hover:text-teal-200;
+  }
+
+  /* TextDiff 统计信息 */
+  .theme-textdiff-stat-added {
+    @apply bg-amber-500 text-teal-900;
+  }
+
+  .theme-textdiff-stat-removed {
+    @apply bg-red-400 text-red-900;
+  }
+
+  /* TextDiff 内容区域 */
+  .theme-textdiff-content {
+    @apply text-teal-200;
+  }
+
+  /* TextDiff 文本片段 */
+  .theme-textdiff-unchanged {
+    @apply text-teal-200;
+  }
+
+  .theme-textdiff-added {
+    @apply bg-amber-500/30 text-amber-200 border border-amber-400/50;
+  }
+
+  .theme-textdiff-removed {
+    @apply bg-red-500/30 text-red-200 border border-red-400/50;
   }
 }
 
@@ -1736,6 +1868,50 @@ html * {
   .markdown-think summary::before {
     @apply border-white;
   }
+
+  /* ===== TextDiff 组件 ===== */
+  /* TextDiff 容器 */
+  .theme-textdiff {
+    @apply bg-purple-800/50 border-purple-600/50;
+  }
+
+  /* TextDiff 头部 */
+  .theme-textdiff-header {
+    @apply bg-purple-900/70 border-purple-700/50;
+  }
+
+  /* TextDiff 切换按钮 */
+  .theme-textdiff-toggle {
+    @apply bg-purple-600/20 border-purple-600/50 text-purple-300 
+           hover:border-purple-400 hover:text-purple-200;
+  }
+
+  /* TextDiff 统计信息 */
+  .theme-textdiff-stat-added {
+    @apply bg-teal-500 text-white;
+  }
+
+  .theme-textdiff-stat-removed {
+    @apply bg-red-500 text-white;
+  }
+
+  /* TextDiff 内容区域 */
+  .theme-textdiff-content {
+    @apply text-white/90;
+  }
+
+  /* TextDiff 文本片段 */
+  .theme-textdiff-unchanged {
+    @apply text-white/90;
+  }
+
+  .theme-textdiff-added {
+    @apply bg-teal-500/30 text-teal-200 border border-teal-400/50;
+  }
+
+  .theme-textdiff-removed {
+    @apply bg-red-500/30 text-red-200 border border-red-400/50;
+  }
 }
 
 :root[data-theme="dark"] {
@@ -2065,5 +2241,49 @@ html * {
   /* 主题背景激活状态 */
   .theme-manager-bg-active {
     @apply bg-blue-900/20;
+  }
+
+  /* ===== TextDiff 组件 ===== */
+  /* TextDiff 容器 */
+  .theme-textdiff {
+    @apply bg-slate-800 border-slate-700;
+  }
+
+  /* TextDiff 头部 */
+  .theme-textdiff-header {
+    @apply bg-slate-900/70 border-slate-700;
+  }
+
+  /* TextDiff 切换按钮 */
+  .theme-textdiff-toggle {
+    @apply bg-slate-700 border-slate-600 text-slate-300 
+           hover:border-slate-500 hover:text-slate-200;
+  }
+
+  /* TextDiff 统计信息 */
+  .theme-textdiff-stat-added {
+    @apply bg-green-600 text-white;
+  }
+
+  .theme-textdiff-stat-removed {
+    @apply bg-red-600 text-white;
+  }
+
+  /* TextDiff 内容区域 */
+  .theme-textdiff-content {
+    @apply text-slate-100;
+  }
+
+  /* TextDiff 文本片段 */
+  .theme-textdiff-unchanged {
+    @apply text-slate-100;
+  }
+
+  .theme-textdiff-added {
+    @apply bg-green-500/25 text-green-200 border border-green-400/50;
+  }
+
+  .theme-textdiff-removed {
+    @apply bg-red-500/25 text-red-200 border border-red-400/50;
   }
 }

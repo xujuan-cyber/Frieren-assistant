@@ -332,7 +332,6 @@ watch(
   () => props.currentVersionId,
   async (newVersionId, oldVersionId) => {
     if (isDiffMode.value && newVersionId !== oldVersionId) {
-      console.log('[VersionSwitch] 版本切换，更新对比结果')
       await updateCompareResult()
     }
   }
@@ -373,23 +372,13 @@ const updateCompareResult = async () => {
       if (props.versions && props.versions.length >= 2) {
         // 找到当前版本在原始数组中的位置
         const currentIndex = props.versions.findIndex(v => v.id === props.currentVersionId)
-        
-        console.log('[UpdateCompareResult] 版本信息:', {
-          currentVersionId: props.currentVersionId,
-          currentIndex,
-          versionsLength: props.versions.length,
-          versions: props.versions.map(v => ({ id: v.id, version: v.version }))
-        })
-        
         if (currentIndex !== -1) {
           // 获取上一个版本：如果是V2(index=1)，上一版本是V1(index=0)
           if (currentIndex > 0) {
             previousVersionText = props.versions[currentIndex - 1].optimizedPrompt
-            console.log('[UpdateCompareResult] 找到上一版本:', props.versions[currentIndex - 1].version)
           } else if (currentIndex === 0 && props.originalPrompt) {
             // 如果是V1(index=0)，使用originalPrompt
             previousVersionText = props.originalPrompt
-            console.log('[UpdateCompareResult] 使用原始提示词作为上一版本')
           }
         }
       }
@@ -397,7 +386,6 @@ const updateCompareResult = async () => {
       // 如果没有找到上一个版本，尝试使用originalPrompt
       if (!previousVersionText && props.originalPrompt) {
         previousVersionText = props.originalPrompt
-        console.log('[UpdateCompareResult] 回退使用原始提示词')
       }
       
       if (previousVersionText) {
@@ -405,7 +393,6 @@ const updateCompareResult = async () => {
           previousVersionText,
           props.optimizedPrompt
         )
-        console.log('[UpdateCompareResult] 对比完成')
       } else {
         console.log('[UpdateCompareResult] 没有找到可对比的版本')
         toast.error(t('toast.error.noPreviousVersion'))
