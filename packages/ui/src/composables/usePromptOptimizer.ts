@@ -1,4 +1,4 @@
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { useStorage } from './useStorage'
@@ -39,6 +39,7 @@ export function usePromptOptimizer(
   // 状态
   const prompt = ref('')
   const optimizedPrompt = ref('')
+  const optimizedReasoning = ref('') // 新增：优化推理内容
   const isOptimizing = ref(false)
   const isIterating = ref(false)
   const isInitializing = ref(true) // 新增：初始化状态标志
@@ -79,8 +80,13 @@ export function usePromptOptimizer(
       return
     }
 
+    // 在开始优化前立即清空状态，确保没有竞态条件
     isOptimizing.value = true
-    optimizedPrompt.value = ''  // Clear previous result
+    optimizedPrompt.value = ''  // 强制同步清空
+    optimizedReasoning.value = '' // 强制同步清空
+    
+    // 等待一个微任务确保状态更新完成
+    await nextTick()
 
     try {
       // 构建优化请求
@@ -97,6 +103,9 @@ export function usePromptOptimizer(
         {
           onToken: (token: string) => {
             optimizedPrompt.value += token
+          },
+          onReasoningToken: (reasoningToken: string) => {
+            optimizedReasoning.value += reasoningToken
           },
           onComplete: async () => {
             if (!currentTemplate) return
@@ -155,8 +164,13 @@ export function usePromptOptimizer(
       return
     }
 
+    // 在开始迭代前立即清空状态，确保没有竞态条件
     isIterating.value = true
-    optimizedPrompt.value = ''  // Clear previous result
+    optimizedPrompt.value = ''  // 强制同步清空
+    optimizedReasoning.value = '' // 强制同步清空
+    
+    // 等待一个微任务确保状态更新完成
+    await nextTick()
     
     try {
       await promptService.value.iteratePromptStream(
@@ -168,10 +182,17 @@ export function usePromptOptimizer(
           onToken: (token: string) => {
             optimizedPrompt.value += token
           },
-          onComplete: async () => {
-            if (!selectedIterateTemplate.value) return
+          onReasoningToken: (reasoningToken: string) => {
+            optimizedReasoning.value += reasoningToken
+          },
+          onComplete: async (response) => {
+            if (!selectedIterateTemplate.value) {
+              isIterating.value = false
+              return
+            }
             
             try {
+              // 使用正确的addIteration方法来保存迭代历史
               const updatedChain = await historyManager.addIteration({
                 chainId: currentChainId.value,
                 originalPrompt: originalPrompt,
@@ -188,11 +209,14 @@ export function usePromptOptimizer(
             } catch (error) {
               console.error('[History] 迭代记录失败:', error)
               toast.warning(t('toast.warning.historyFailed'))
+            } finally {
+              isIterating.value = false
             }
           },
           onError: (error: Error) => {
             console.error('[Iterate] 迭代失败:', error)
             toast.error(t('toast.error.iterateFailed'))
+            isIterating.value = false
           }
         },
         selectedIterateTemplate.value.id
@@ -200,15 +224,18 @@ export function usePromptOptimizer(
     } catch (error) {
       console.error('[Iterate] 迭代失败:', error)
       toast.error(t('toast.error.iterateFailed'))
-    } finally {
       isIterating.value = false
     }
   }
   
-  // 切换版本
-  const handleSwitchVersion = (version: PromptChain['versions'][number]) => {
+  // 切换版本 - 增强版本，确保强制更新
+  const handleSwitchVersion = async (version: PromptChain['versions'][number]) => {
+    // 强制更新内容，确保UI同步
     optimizedPrompt.value = version.optimizedPrompt;
     currentVersionId.value = version.id;
+    
+    // 等待一个微任务确保状态更新完成
+    await nextTick()
   }
   
   // 初始化提示词选择
@@ -490,10 +517,13 @@ export function usePromptOptimizer(
     }
   })
 
+
+
   return {
     // 状态
     prompt,
     optimizedPrompt,
+    optimizedReasoning,
     isOptimizing,
     isIterating,
     selectedOptimizeTemplate,

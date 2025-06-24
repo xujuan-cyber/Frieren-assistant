@@ -91,9 +91,11 @@
       <div class="flex-1 min-h-0">
         <PromptPanelUI
           v-model:optimized-prompt="optimizedPrompt"
+          :optimized-reasoning="optimizedReasoning"
           :original-prompt="prompt"
           :is-optimizing="isOptimizing"
           :is-iterating="isIterating"
+          :is-optimizing="isOptimizing"
           v-model:selected-iterate-template="selectedIterateTemplate"
           :versions="currentVersions"
           :current-version-id="currentVersionId"
@@ -254,6 +256,7 @@ const {
 const {
   prompt,
   optimizedPrompt,
+  optimizedReasoning,
   isOptimizing,
   isIterating,
   selectedOptimizeTemplate,

@@ -254,11 +254,7 @@ export class PromptService implements IPromptService {
     systemPrompt: string,
     userPrompt: string,
     modelKey: string,
-    callbacks: {
-      onToken: (token: string) => void;
-      onComplete: () => void;
-      onError: (error: Error) => void;
-    }
+    callbacks: StreamHandlers
   ): Promise<void> {
     try {
       // 对于用户提示词优化，systemPrompt 可以为空
@@ -283,7 +279,13 @@ export class PromptService implements IPromptService {
 
       messages.push({ role: 'user', content: userPrompt });
 
-      await this.llmService.sendMessageStream(messages, modelKey, callbacks);
+      // 使用新的结构化流式响应
+      await this.llmService.sendMessageStream(messages, modelKey, {
+        onToken: callbacks.onToken,
+        onReasoningToken: callbacks.onReasoningToken, // 支持推理内容流
+        onComplete: callbacks.onComplete,
+        onError: callbacks.onError
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new TestError(`Test failed: ${errorMessage}`, systemPrompt, userPrompt);
@@ -322,19 +324,24 @@ export class PromptService implements IPromptService {
 
       const messages = TemplateProcessor.processTemplate(template, context);
 
-      let result = '';
+      // 使用新的结构化流式响应
       await this.llmService.sendMessageStream(
         messages,
         request.modelKey,
         {
-          onToken: (token) => {
-            result += token;
-            callbacks.onToken(token);
-          },
-          onComplete: async () => {
-            this.validateResponse(result, request.targetPrompt);
-            await this.saveOptimizationHistory(request, result);
-            callbacks.onComplete();
+          onToken: callbacks.onToken,
+          onReasoningToken: callbacks.onReasoningToken, // 支持推理内容流
+          onComplete: async (response) => {
+            if (response) {
+              // 验证主要内容
+              this.validateResponse(response.content, request.targetPrompt);
+              
+              // 保存优化历史 - 只保存主要内容
+              await this.saveOptimizationHistory(request, response.content);
+            }
+            
+            // 调用原始完成回调，传递结构化响应
+            callbacks.onComplete(response);
           },
           onError: callbacks.onError
         }
@@ -388,18 +395,22 @@ export class PromptService implements IPromptService {
       };
       const messages = TemplateProcessor.processTemplate(template, context);
 
-      // 使用流式调用
-      let result = '';
+      // 使用新的结构化流式响应
       await this.llmService.sendMessageStream(
         messages,
         modelKey,
         {
-          onToken: (token) => {
-            result += token;
-            handlers.onToken(token);
-          },
-          onComplete: () => {
-            handlers.onComplete();
+          onToken: handlers.onToken,
+          onReasoningToken: handlers.onReasoningToken, // 支持推理内容流
+          onComplete: async (response) => {
+            if (response) {
+              // 验证迭代结果
+              this.validateResponse(response.content, lastOptimizedPrompt);
+            }
+            
+            // 调用原始完成回调，传递结构化响应
+            // 注意：迭代历史记录由UI层的historyManager.addIteration方法处理
+            handlers.onComplete(response);
           },
           onError: handlers.onError
         }
@@ -495,6 +506,15 @@ export class PromptService implements IPromptService {
       }
     });
   }
+
+  // 注意：迭代历史记录由UI层管理，而非核心服务层
+  // 原因：
+  // 1. 迭代需要现有的chainId，这个信息由UI层的状态管理器维护
+  // 2. 迭代与用户交互紧密结合，需要实时更新UI状态
+  // 3. 版本管理逻辑在UI层更容易处理
+  // 
+  // 相比之下，优化操作会创建新的链，所以可以在核心层处理
+  // 这种混合架构是经过权衡的设计决策
 }
 
 // 导出工厂函数

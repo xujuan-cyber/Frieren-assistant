@@ -18,6 +18,7 @@ export { default as ToastUI } from './components/Toast.vue'
 export { default as ModelManagerUI } from './components/ModelManager.vue'
 export { default as OutputPanelUI } from './components/OutputPanel.vue'
 export { default as PromptPanelUI } from './components/PromptPanel.vue'
+export { default as OutputDisplay } from './components/OutputDisplay.vue'
 export { default as TemplateManagerUI } from './components/TemplateManager.vue'
 export { default as TemplateSelectUI } from './components/TemplateSelect.vue'
 export { default as ModelSelectUI } from './components/ModelSelect.vue'
@@ -33,6 +34,7 @@ export { default as BuiltinTemplateLanguageSwitchUi } from './components/Builtin
 export { default as DataManagerUI } from './components/DataManager.vue'
 export { default as OptimizationModeSelectorUI } from './components/OptimizationModeSelector.vue'
 export { default as TextDiffUI } from './components/TextDiff.vue'
+export { default as OutputDisplayFullscreen } from './components/OutputDisplayFullscreen.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'

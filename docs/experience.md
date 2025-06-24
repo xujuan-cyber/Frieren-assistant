@@ -138,6 +138,96 @@ for (const [key, value] of Object.entries(importData)) {
 </div>
 ```
 
+### 4. UI状态同步与响应式数据流最佳实践（2024-12-21）
+
+**典型问题**：在复杂的Vue组件交互中，子组件内部状态的变更未能正确反映到其他兄弟组件，导致UI显示与底层数据不一致。例如，用户在A组件中编辑内容后，B组件（如测试面板）获取到的仍然是编辑前的数据。
+
+**根因分析**：该问题的核心在于 **单向数据流** 与 **组件本地状态** 之间的同步间隙。当一个子组件（如`OutputDisplay`）的内部状态（`editingContent`）发生变化时，它通过`emit`事件通知父组件更新顶层状态。然而，依赖同一顶层状态的其他兄弟组件（如`TestPanel`）接收到的`props`是静态的，不会自动响应由`emit`触发的间接状态变更，从而导致数据不同步。
+
+```mermaid
+graph TD
+    subgraph App.vue (顶层状态)
+        A[state: optimizedPrompt]
+    end
+
+    subgraph "子/兄弟组件"
+        B(OutputDisplay)
+        C(TestPanel)
+    end
+
+    A -- "Props (v-model)" --> B
+    A -- "Props (静态传递)" --> C
+
+    B -- "1. 用户编辑触发内部状态变更" --> B_InternalState(Local state: editingContent)
+    B_InternalState -- "2. emit('update:content')" --> A
+    A -- "3. 顶层状态更新" --> A
+    
+    C -- "4. 用户操作触发" --> C_InternalState(props.optimizedPrompt 仍为旧值)
+    
+    subgraph "问题"
+        D{C组件数据未同步}
+    end
+
+    C_InternalState -- "使用旧数据执行操作" --> D
+```
+
+---
+
+#### 解决方案：构建可靠的响应式数据流架构
+
+**核心目标**：确保任何源于用户交互的状态变更，都能**立即、单向地**同步回单一数据源（Single Source of Truth），并使所有依赖该数据源的组件都能自动响应更新。
+
+**实施模式**:
+
+1.  **模式一：实时状态提升 (Real-time State Hoisting)**
+
+    子组件不应持有临时的、未同步的"草稿"状态。任何可编辑的状态都应在变更的瞬间通过`emit`事件向上同步，而不是等待某个特定动作（如"保存"或"失焦"）触发。
+
+    ```typescript
+    // 子组件：OutputDisplayCore.vue
+    // 通过 watch 实时将内部编辑内容同步到父级
+    watch(editingContent, (newContent) => {
+      if (isEditing.value) {
+        emit('update:content', newContent);
+      }
+    }, { immediate: false });
+    ```
+
+2.  **模式二：时序与竞态控制 (Timing and Race Condition Control)**
+
+    对于需要清空或重置状态的异步操作（如开始流式加载），必须确保状态变更操作（如退出编辑、清空内容）在异步任务启动前完成。`nextTick` 是解决此类DOM更新与状态变更竞态问题的关键。
+
+    ```typescript
+    // 状态管理方：usePromptOptimizer.ts
+    async function handleOptimize() {
+        isOptimizing.value = true;
+        optimizedPrompt.value = ''; // 1. 同步清空状态
+        await nextTick();          // 2. 等待DOM和状态更新完成
+        
+        // 3. 启动异步服务
+        await promptService.value.optimizePromptStream(...);
+    }
+    ```
+   
+3.  **模式三：外部事件驱动的状态重置**
+
+    当一个动作（如优化）需要影响兄弟组件的状态（如强制退出编辑）时，应通过顶层组件的监听与方法调用（`ref.method()`）来实现，而不是让组件间直接通信。
+
+    ```typescript
+    // 父组件：PromptPanel.vue
+    // 监听顶层状态变化，调用子组件方法
+    watch(() => props.isOptimizing, (newVal) => {
+      if (newVal) {
+        outputDisplayRef.value?.forceExitEditing();
+      }
+    });
+    ```
+
+#### 核心设计原则
+- **单一数据源 (Single Source of Truth)**：任何共享状态都必须由唯一的、高阶的组件或状态管理器拥有。子组件只能通过`props`接收和通过`emit`请求变更。
+- **响应式数据流闭环**：确保"用户输入 -> `emit` -> 更新顶层状态 -> `props` -> 更新所有相关子组件"这个数据流是完整且自动响应的。
+- **系统化调试策略**：当遇到状态不同步问题时，从数据源头（顶层状态）到消费端（子组件Props）逐级添加临时日志，是快速定位数据流"断点"的最有效方法。
+
 ---
 
 ## ⚡ 快速问题排查

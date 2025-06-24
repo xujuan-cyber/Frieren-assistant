@@ -72,6 +72,8 @@ export interface IHistoryManager {
   clearHistory(): Promise<void>;
   /** 获取所有记录链 */
   getAllChains(): Promise<PromptRecordChain[]>;
+  /** 获取指定链 */
+  getChain(chainId: string): Promise<PromptRecordChain>;
   /** 创建新的记录链 */
   createNewChain(record: Omit<PromptRecord, 'chainId' | 'version' | 'previousId'>): Promise<PromptRecordChain>;
   /** 添加迭代记录 */

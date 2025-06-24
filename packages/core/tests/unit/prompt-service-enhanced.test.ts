@@ -189,7 +189,12 @@ describe('PromptService Enhanced Features', () => {
       mockLLMService.sendMessageStream.mockImplementation(async (messages, modelKey, streamCallbacks) => {
         streamCallbacks.onToken('test')
         streamCallbacks.onToken(' result')
-        await streamCallbacks.onComplete()
+        // 模拟结构化响应
+        const mockResponse = {
+          content: 'test result',
+          reasoning: 'some reasoning'
+        }
+        await streamCallbacks.onComplete(mockResponse)
       })
 
       await promptService.optimizePromptStream(request, callbacks)

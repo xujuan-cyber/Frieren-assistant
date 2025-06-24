@@ -3,10 +3,10 @@
     <div v-if="modelValue" 
          class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
          @click="close">
-      <div class="relative theme-manager-container min-h-[80vh] max-h-[90vh] w-[90vw] m-4 flex flex-col"
+      <div class="relative theme-manager-container min-h-[80vh] h-[90vh] w-[90vw] m-4 flex flex-col"
            @click.stop>
         <!-- 标题栏 -->
-        <div class="flex items-center justify-between p-4 border-b theme-manager-border">
+        <div class="flex items-center justify-between p-4 border-b theme-manager-border flex-none">
           <h3 class="text-lg font-semibold theme-manager-text">{{ title }}</h3>
           <button
             @click="close"
@@ -17,7 +17,7 @@
         </div>
         
         <!-- 内容区域 -->
-        <div class="flex-1 p-4 overflow-auto h-full">
+        <div class="flex-1 min-h-0 p-4">
           <slot></slot>
         </div>
       </div>

@@ -15,6 +15,11 @@ const props = defineProps({
   content: {
     type: String,
     default: ''
+  },
+  // 新增：流式模式标识，用于优化流式渲染性能
+  streaming: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -36,20 +41,6 @@ const handleError = (error, context = '') => {
   renderError.value = error.message;
   return ''; // 返回空字符串作为默认值
 };
-
-// 使用响应式对象管理思考标签状态
-const thinkTagState = reactive({
-  hasOpenedThinkBlock: false,
-  hasCompletedThinkBlock: false,
-  currentThinkBlock: null,
-  thinkContent: '',
-  reset() {
-    this.hasOpenedThinkBlock = false;
-    this.hasCompletedThinkBlock = false;
-    this.currentThinkBlock = null;
-    this.thinkContent = '';
-  }
-});
 
 // 创建 markdown-it 实例并配置插件
 const md = new MarkdownIt({
@@ -73,112 +64,6 @@ const md = new MarkdownIt({
 const removeExtraEmptyLines = (content) => {
   if (!content) return '';
   return content.replace(/\n\s*\n\s*(\n\s*)+/g, '\n\n');
-};
-
-// 检测思考标签的状态
-const detectThinkTagStatus = (content) => {
-  const hasOpenTag = content.includes('<think>');
-  const hasCloseTag = content.includes('</think>');
-  
-  if (hasOpenTag && !thinkTagState.hasOpenedThinkBlock) {
-    thinkTagState.hasOpenedThinkBlock = true;
-    thinkTagState.hasCompletedThinkBlock = false;
-  }
-  
-  if (hasCloseTag && thinkTagState.hasOpenedThinkBlock) {
-    thinkTagState.hasCompletedThinkBlock = true;
-  }
-  
-  return { hasOpenTag, hasCloseTag };
-};
-
-// 预处理<think>标签，将其转换为<details>和<summary>
-const preprocessThinkTags = (content) => {
-  if (!content) return content;
-  
-  const { hasOpenTag, hasCloseTag } = detectThinkTagStatus(content);
-  if (!hasOpenTag) return content;
-
-  const thinkingLabel = t('test.thinking') || '思考过程';
-  
-  try {
-    let processedContent = content;
-    
-    // 如果有开始标签但没有结束标签，添加一个临时的结束标签用于渲染
-    if (hasOpenTag && !hasCloseTag) {
-      const thinkMatch = /<think>([\s\S]*?)$/.exec(content);
-      if (thinkMatch) {
-        thinkTagState.thinkContent = thinkMatch[1];
-      }
-      
-      processedContent = processedContent.replace(
-        /<think>([\s\S]*?)$/,
-        `<details class="markdown-think" open data-streaming="true"><summary>${thinkingLabel}</summary><div class="think-content">$1</div></details>`
-      );
-    } else if (hasOpenTag && hasCloseTag) {
-      const openAttr = thinkTagState.hasCompletedThinkBlock ? '' : ' open';
-      processedContent = processedContent.replace(
-        /<think>([\s\S]*?)<\/think>/g,
-        `<details class="markdown-think"${openAttr}><summary>${thinkingLabel}</summary><div class="think-content">$1</div></details>`
-      );
-    }
-    
-    return processedContent;
-  } catch (error) {
-    return handleError(error, 'think tag processing');
-  }
-};
-
-// 思考区块处理实现
-const handleThinkBlocksImpl = () => {
-  if (!markdownContainer.value) return;
-  
-  try {
-    // 找到所有思考区块
-    const thinkBlocks = markdownContainer.value.querySelectorAll('.markdown-think');
-    if (!thinkBlocks.length) return;
-    
-    // 找到流式渲染的块
-    const streamingBlock = markdownContainer.value.querySelector('.markdown-think[data-streaming="true"]');
-    if (streamingBlock) {
-      thinkTagState.currentThinkBlock = streamingBlock;
-    }
-    
-    // 如果已完成思考块，则折叠所有思考区块
-    if (thinkTagState.hasCompletedThinkBlock) {
-      thinkBlocks.forEach(block => {
-        block.removeAttribute('data-streaming');
-        block.removeAttribute('open');
-      });
-    }
-  } catch (error) {
-    handleError(error, 'think block handling');
-  }
-};
-
-// 使用防抖处理思考区块
-const handleThinkBlocks = debounce(() => {
-  if (!markdownContainer.value) return;
-  nextTick(handleThinkBlocksImpl);
-}, 100);
-
-// 防止思考块闪烁的处理器
-const preventThinkBlockFlickering = () => {
-  if (!markdownContainer.value || markdownContainer.value._hasClickListener) return;
-  
-  try {
-    markdownContainer.value.addEventListener('click', (event) => {
-      const summary = event.target.closest('summary');
-      if (summary && summary.parentElement && summary.parentElement.hasAttribute('data-streaming')) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    }, true);
-    
-    markdownContainer.value._hasClickListener = true;
-  } catch (error) {
-    handleError(error, 'click handling');
-  }
 };
 
 // 为代码块添加语言标签的高效实现
@@ -327,15 +212,12 @@ const renderMarkdown = () => {
     if (markdownContainer.value) {
       markdownContainer.value.innerHTML = '';
     }
-    thinkTagState.reset();
     return;
   }
   
   try {
     // 预处理内容
-    const processedContent = preprocessThinkTags(
-      removeExtraEmptyLines(props.content)
-    );
+    const processedContent = removeExtraEmptyLines(props.content);
     
     // 使用markdown-it将Markdown转为HTML
     const rawHtml = md.render(processedContent);
@@ -343,14 +225,8 @@ const renderMarkdown = () => {
     // 处理HTML
     const processedHtml = processHTML(rawHtml);
     
-    // 配置DOMPurify允许details和summary标签以及自定义属性
-    const purifyConfig = {
-      ADD_TAGS: ['details', 'summary', 'div'],
-      ADD_ATTR: ['open', 'class', 'id', 'data-streaming']
-    };
-    
     // 使用DOMPurify清理HTML
-    const cleanHtml = DOMPurify.sanitize(processedHtml, purifyConfig);
+    const cleanHtml = DOMPurify.sanitize(processedHtml);
     
     if (markdownContainer.value) {
       markdownContainer.value.innerHTML = cleanHtml;
@@ -358,8 +234,6 @@ const renderMarkdown = () => {
       // 使用requestAnimationFrame提高渲染性能
       requestAnimationFrame(() => {
         addLanguageLabels();
-        handleThinkBlocks();
-        preventThinkBlockFlickering();
       });
     }
   } catch (error) {
@@ -370,15 +244,26 @@ const renderMarkdown = () => {
   }
 };
 
-// 使用防抖处理内容变化
-const debouncedRenderMarkdown = debounce(renderMarkdown, 50);
+// 使用防抖处理内容变化，但对流式场景优化
+const debouncedRenderMarkdown = debounce(renderMarkdown, 10); // 从50ms降低到10ms
+const streamingRenderMarkdown = debounce(renderMarkdown, 5); // 流式模式使用更短的延迟
 
 // 监听content变化时重新渲染
 watch(() => props.content, (newContent) => {
   if (!newContent || newContent.trim() === '') {
-    thinkTagState.reset();
+    // 对于空内容，立即渲染，不使用防抖
+    renderMarkdown();
+    return;
   }
-  debouncedRenderMarkdown();
+  
+  // 根据是否在流式模式选择不同的渲染策略
+  if (props.streaming) {
+    // 流式模式：使用更短的防抖延迟以获得更快的响应
+    streamingRenderMarkdown();
+  } else {
+    // 普通模式：使用标准防抖
+    debouncedRenderMarkdown();
+  }
 }, { immediate: true });
 
 // 组件挂载时渲染
@@ -392,6 +277,30 @@ onMounted(renderMarkdown);
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
+  /* 使用与 theme-input 相同的背景色系统 */
+  @apply bg-stone-50;
+  /* 填满容器并处理滚动 */
+  height: 100%;
+  overflow-y: auto;
+  padding: 0.75rem; /* 提供合适的内边距，与其他组件保持一致 */
+  /* 隐藏滚动条但保持可滚动 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* 隐藏 Webkit 滚动条 */
+.markdown-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* 移除第一个子元素的上边距，避免顶部空白 */
+.markdown-content > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* 移除最后一个子元素的下边距，保持底部对齐 */
+.markdown-content > *:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* 使用CSS变量，方便主题切换 */
@@ -574,63 +483,5 @@ onMounted(renderMarkdown);
 
 .markdown-content a:hover {
   text-decoration: underline;
-}
-
-/* 思考区块样式 */
-.markdown-think {
-  white-space: pre-line;
-  margin-bottom: 0.5em;
-  transition: max-height 0.3s ease;
-  border-radius: 8px;
-}
-
-/* 自定义summary箭头样式 */
-.markdown-think summary {
-  position: relative;
-  list-style: none; /* 移除默认的三角形 */
-  cursor: pointer;
-  padding: 0.3em 0.5em 0.3em 1.5em; /* 为箭头留出空间 */
-  user-select: none;
-  font-weight: 600;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-/* 移除所有浏览器的默认标记 */
-.markdown-think summary::-webkit-details-marker,
-.markdown-think summary::marker {
-  display: none;
-}
-
-/* 添加自定义箭头 */
-.markdown-think summary::before {
-  content: '';
-  position: absolute;
-  left: 0.5em;
-  top: 50%;
-  transform: translateY(-50%) rotate(-45deg);
-  width: 0.4em;
-  height: 0.4em;
-  border-style: solid;
-  border-width: 0 0 2px 2px;
-  transition: transform 0.2s ease;
-}
-
-/* 打开状态的箭头 */
-.markdown-think[open] > summary::before {
-  transform: translateY(-50%) rotate(135deg);
-}
-
-/* 鼠标悬停效果 */
-.markdown-think summary:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-}
-
-/* 内容区域样式调整 */
-.markdown-think .think-content {
-  padding: 0 0.7em;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  margin-top: 0.3em;
 }
 </style>

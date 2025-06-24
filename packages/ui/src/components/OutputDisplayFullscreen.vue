@@ -1,0 +1,111 @@
+<template>
+  <FullscreenDialog v-model="internalVisible" :title="title || t('common.content')">
+    <OutputDisplayCore
+        ref="coreDisplayRef"
+        class="border-none"
+        :content="content"
+        :originalContent="originalContent"
+        :reasoning="reasoning"
+        :mode="mode"
+        :reasoningMode="reasoningMode"
+        :enabledActions="['diff', 'copy', 'edit', 'reasoning']"
+        height="100%"
+        :placeholder="placeholder"
+        :loading="loading"
+        :streaming="streaming"
+        @update:content="handleContentUpdate"
+        @copy="handleCopy"
+    />
+  </FullscreenDialog>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import FullscreenDialog from './FullscreenDialog.vue'
+import OutputDisplayCore from './OutputDisplayCore.vue'
+
+const { t } = useI18n()
+
+// Props
+interface Props {
+  modelValue: boolean
+  content?: string
+  originalContent?: string
+  reasoning?: string
+  title?: string
+  mode: 'readonly' | 'editable'
+  reasoningMode?: 'show' | 'hide' | 'auto'
+  streaming?: boolean
+  loading?: boolean
+  placeholder?: string
+}
+const props = withDefaults(defineProps<Props>(), {
+  content: '',
+  originalContent: '',
+  reasoning: '',
+  title: '',
+  mode: 'readonly',
+  reasoningMode: 'auto',
+  placeholder: ''
+})
+
+// Emits
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
+  'update:content': [content: string]
+  'copy': [content: string, type: 'content' | 'reasoning' | 'all']
+}>()
+
+
+// Internal state
+const coreDisplayRef = ref<InstanceType<typeof OutputDisplayCore> | null>(null)
+const internalVisible = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+})
+
+const internalContent = ref(props.content)
+const isFullscreenReasoningExpanded = ref(true)
+
+watch(() => props.content, (newVal) => {
+  internalContent.value = newVal
+})
+
+// Sync back changes when dialog closes
+watch(internalVisible, (newVal) => {
+  if (newVal) {
+    // Dialog is opening, decide the initial state of the reasoning panel.
+    const hasMainContent = !!props.content;
+    // Main content is loading if streaming has started AND there's some content already.
+    const isMainContentLoading = props.loading || (props.streaming && hasMainContent);
+
+    const shouldReasoningBeExpanded = !(hasMainContent || isMainContentLoading);
+
+    nextTick(() => {
+      coreDisplayRef.value?.resetReasoningState(shouldReasoningBeExpanded)
+    })
+  } else {
+    // Dialog is closing
+    if (props.content !== internalContent.value) {
+      emit('update:content', internalContent.value || '')
+    }
+  }
+})
+
+// Methods
+const handleContentUpdate = (newContent: string) => {
+    internalContent.value = newContent
+}
+
+const handleCopy = (content: string, type: 'content' | 'reasoning' | 'all') => {
+  emit('copy', content, type)
+}
+
+</script>
+
+<style scoped>
+.border-none {
+    border: none !important;
+}
+</style> 

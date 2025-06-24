@@ -620,6 +620,11 @@ html * {
          focus:ring-blue-500/50;
   }
 
+  /* Markdown 内容区域背景色 - 蓝色主题 */
+  .markdown-content {
+    @apply bg-sky-50; /* 与 theme-input 一致 */
+  }
+
   /* ===== 按钮组件 ===== */
   /* 通用开关按钮 */
   .theme-button-on {
@@ -1209,6 +1214,11 @@ html * {
     @apply bg-teal-800/50 border-teal-700 text-teal-300 placeholder-teal-500/80 focus:ring-teal-500/80;
   }
 
+  /* Markdown 内容区域背景色 - 绿色主题 */
+  .markdown-content {
+    @apply bg-teal-800/50; /* 与 theme-input 一致 */
+  }
+
   .theme-template-select-button {
     @apply bg-teal-700 border-teal-600 hover:ring-2 hover:ring-teal-500/80 text-teal-300;
   }
@@ -1452,6 +1462,11 @@ html * {
   .theme-input {
     @apply bg-black/20 border-purple-600/50 text-white
          placeholder-white/50 focus:ring-purple-300/50;
+  }
+
+  /* Markdown 内容区域背景色 - 紫色主题 */
+  .markdown-content {
+    @apply bg-black/20; /* 与 theme-input 一致 */
   }
 
   /* ===== 按钮组件 ===== */
@@ -1724,6 +1739,11 @@ html * {
     @apply prose prose-sm max-w-none prose-stone dark:prose-invert;
   }
 
+  /* Markdown 内容区域背景色 */
+  .markdown-content {
+    @apply bg-stone-50; /* 默认主题背景色，与 theme-input 一致 */
+  }
+
   .theme-manager-text {
     @apply text-white/90;
   }
@@ -1943,6 +1963,11 @@ html * {
   .theme-input {
     @apply bg-slate-800 border-slate-600 
     text-slate-100 placeholder-slate-500/80 focus:ring-purple-600/50;
+  }
+
+  /* Markdown 内容区域背景色 - 深色主题 */
+  .markdown-content {
+    @apply bg-slate-800; /* 与 theme-input 一致 */
   }
   .theme-template-select-button {
     @apply bg-slate-800 border-gray-700/50 text-slate-100 hover:ring-purple-600/50;
