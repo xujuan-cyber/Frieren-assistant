@@ -140,6 +140,11 @@ describe('Real API Integration Tests', () => {
   describe('Gemini API 测试', () => {
     const runGeminiTests = hasGeminiKey
 
+    // Gemini API 可能会有频率限制，因此在每个测试之间添加延迟
+    beforeEach(async () => {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // 等待 5 秒
+    });
+
     it.runIf(runGeminiTests)('应该能使用Gemini API优化提示词', async () => {
       // 添加Gemini模型
       const geminiModel = {

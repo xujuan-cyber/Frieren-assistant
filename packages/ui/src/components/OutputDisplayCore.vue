@@ -4,7 +4,7 @@
     :class="displayClasses"
   >
     <!-- 统一顶层工具栏 -->
-    <div v-if="hasToolbar" class="theme-toolbar-bg flex items-center justify-between px-3 py-2 border-b" :class="themeToolbarBorder">
+    <div v-if="hasToolbar" data-testid="output-display-toolbar" class="theme-toolbar-bg flex items-center justify-between px-3 py-2 border-b" :class="themeToolbarBorder">
       <!-- 左侧：视图控制按钮组 -->
       <div class="flex items-center border rounded-md" :class="themeToolbarBorder">
         <button 

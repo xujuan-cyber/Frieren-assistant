@@ -96,7 +96,7 @@ describe('OutputDisplay 组件', () => {
     })
 
     // V2版本中，检查工具栏是否存在
-    const toolbar = wrapper.find('.output-display-toolbar')
+    const toolbar = wrapper.find('[data-testid="output-display-toolbar"]')
     expect(toolbar.exists()).toBe(true)
     
     // 检查视图控制按钮

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { createLLMService, ModelManager, LocalStorageProvider } from '../../../src/index.js';
 import { validateLLMParams } from '../../../src/services/model/validation';
 import type { ModelConfig } from '../../../src/services/model/types';
@@ -474,6 +474,10 @@ describe('LLM Parameters (llmParams) Functionality', () => {
 
     // Gemini specific parameters
     describe('Gemini Specific Parameters', () => {
+      beforeEach(async () => {
+        await new Promise(resolve => setTimeout(resolve, 10000)); // 等待 10 秒
+      });
+
       if (hasGeminiKey && geminiConfig) {
         it('should accept valid maxOutputTokens for Gemini provider', async () => {
           // 添加间隔，避免频率限制，先等10秒
