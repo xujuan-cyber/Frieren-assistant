@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, defineProps, watch, nextTick, onMounted, computed } from 'vue'
+import { ref, watch, nextTick, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
 import { useAutoScroll } from '../composables/useAutoScroll'

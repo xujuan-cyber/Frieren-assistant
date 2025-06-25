@@ -2,7 +2,6 @@
   <FullscreenDialog v-model="internalVisible" :title="title || t('common.content')">
     <OutputDisplayCore
         ref="coreDisplayRef"
-        class="border-none"
         :content="content"
         :originalContent="originalContent"
         :reasoning="reasoning"
@@ -102,10 +101,4 @@ const handleCopy = (content: string, type: 'content' | 'reasoning' | 'all') => {
   emit('copy', content, type)
 }
 
-</script>
-
-<style scoped>
-.border-none {
-    border: none !important;
-}
-</style> 
+</script> 

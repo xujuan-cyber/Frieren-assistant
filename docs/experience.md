@@ -339,3 +339,45 @@ if (updatedTemplate && contentChanged) {
 ---
 
 **记住**：好的经验文档应该能让团队成员快速找到解决方案，而不是重新踩坑。
+
+## 7. UI 主题系统与第三方库样式冲突处理
+
+**问题场景**: 在开发多主题功能（特别是紫色、绿色等自定义深色主题）时，发现集成了 Tailwind Typography (`prose`) 插件的 Markdown 渲染组件，其背景和文本颜色无法正确应用主题色，而是被覆盖为不协调的亮色样式（如白色背景）。
+
+**根本原因分析**:
+
+问题的核心在于项目自定义的、基于 `data-theme` 属性的颜色主题系统，与 Tailwind Typography (`prose`) 插件预设的、自成体系的颜色方案发生了直接冲突。
+
+1.  **`prose` 的强主张**: `@tailwindcss/typography` 插件不仅仅是一个布局工具，它会为 HTML 内容注入一套完整的视觉方案，其中**包含了固定的颜色、字体、背景等样式**。
+2.  **默认亮色偏好**: `prose` 的默认配置（如 `prose-stone`）是为亮色背景设计的，它会强制设定深色的文本颜色。
+3.  **`dark:` 模式的局限性**: `prose` 的颜色反转机制 (`dark:prose-invert`) 强依赖于 `<html>` 标签上的 `dark` 类。我们自定义的深色主题（如 `data-theme="purple"`）虽然视觉上是深色的，但并未触发 Tailwind 的 `dark` 模式，因此 `prose` 依然应用其默认的亮色样式，导致了颜色覆盖。
+
+**解决方案与最佳实践**:
+
+面对这种强样式主张的第三方库，必须采取**彻底隔离**的策略，不能试图"混合"使用。
+
+1.  **禁止部分应用**: 实践证明，试图通过 `@apply prose-sm` 等方式只"借用" `prose` 的布局功能是行不通的。这依然会引入我们不希望的颜色样式，导致不可预测的覆盖问题。
+
+2.  **手动重建布局**: 最稳健的解决方案是，在需要应用自定义主题的组件中，**完全移除** `@apply prose` 或其任何变体。然后，参考 `prose` 的文档或默认样式，**手动为各个 Markdown 元素 (`h1`, `p`, `ul` 等) 添加纯粹的、不包含颜色的布局和间距样式**。
+
+3.  **控制权归还**: 通过手动重建布局，我们将样式的控制权完全收归到自己的主题系统中。这样，我们在各个主题下为元素定义的颜色、背景、边框等样式才能不受干扰地、正确地应用。
+
+**示例 - 手动重建的 Markdown 布局**:
+
+```css
+/* 在全局 theme.css 中定义，不属于任何特定主题 */
+.theme-markdown-content {
+  @apply max-w-none;
+}
+
+.theme-markdown-content > :first-child { @apply mt-0; }
+.theme-markdown-content > :last-child { @apply mb-0; }
+.theme-markdown-content h1 { @apply text-2xl font-bold my-4; }
+.theme-markdown-content h2 { @apply text-xl font-semibold my-3; }
+.theme-markdown-content p { @apply my-3 leading-relaxed; }
+.theme-markdown-content ul,
+.theme-markdown-content ol { @apply my-3 pl-6 space-y-2; }
+.theme-markdown-content pre { @apply my-4 p-4 rounded-lg text-sm; }
+/* ... etc ... */
+```
+通过这种方式，我们既保留了优美的排版，又确保了自定义主题的颜色能够正确渲染。

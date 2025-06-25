@@ -106,7 +106,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, defineProps, defineEmits, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useToast } from '../composables/useToast'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'

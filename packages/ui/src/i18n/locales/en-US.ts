@@ -50,7 +50,6 @@ export default {
     clickToEdit: 'Click to edit',
     generating: 'Generating...',
     generatingReasoning: 'Thinking...',
-    copyReasoning: 'Copy Reasoning',
     copyContent: 'Copy Content',
     copyAll: 'Copy All',
     expandReasoning: 'Expand reasoning',
@@ -65,7 +64,11 @@ export default {
     text: 'Text',
     switchToTextView: 'Switch to Plain Text View',
     switchToMarkdownView: 'Switch to Markdown Render View',
-    copied: 'Copied'
+    copied: 'Copied',
+    render: 'Render',
+    source: 'Source',
+    reasoning: 'Reasoning',
+    compare: 'Compare'
   },
   nav: {
     home: 'Home',

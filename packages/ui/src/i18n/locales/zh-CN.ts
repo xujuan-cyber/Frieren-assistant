@@ -50,7 +50,6 @@ export default {
     clickToEdit: '点击编辑',
     generating: '生成中...',
     generatingReasoning: '思考中...',
-    copyReasoning: '复制推理过程',
     copyContent: '复制内容',
     copyAll: '复制全部',
     expandReasoning: '展开思考过程',
@@ -65,7 +64,11 @@ export default {
     text: '文本',
     switchToTextView: '切换到纯文本视图',
     switchToMarkdownView: '切换到Markdown渲染视图',
-    copied: '已复制'
+    copied: '已复制',
+    render: '渲染',
+    source: '原文',
+    reasoning: '思考过程',
+    compare: '对比'
   },
   nav: {
     home: '首页',

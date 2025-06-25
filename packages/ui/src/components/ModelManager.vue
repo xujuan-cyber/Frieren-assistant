@@ -488,7 +488,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineEmits, watch, computed } from 'vue'; // Added computed
+import { ref, onMounted, watch, computed } from 'vue'; // Added computed
 import { useI18n } from 'vue-i18n';
 import { 
   modelManager,
