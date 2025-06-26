@@ -70,6 +70,10 @@ export default {
     reasoning: '思考过程',
     compare: '对比'
   },
+  actions: {
+    copy: '复制',
+    fullscreen: '全屏'
+  },
   nav: {
     home: '首页',
     dashboard: '仪表盘',

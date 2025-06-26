@@ -45,7 +45,7 @@ V2版本的核心目标是解决V1版本中功能控件布局混淆、作用域�
     -   **右侧组 (动作执行)**:
         -   **成员**: `复制(Copy)`, `全屏(Fullscreen)` 按钮。
         -   **作用**: 对内容或组件执行单次动作。`复制`按钮作用于"主要内容"，`全屏`按钮作用于整个组件。
-        -   **特殊规则**: `全屏`按钮在组件已处于全屏模式时（如在 `OutputDisplayFullscreen.vue` 中使用时）应被隐藏。
+        -   **特殊规则**: `全屏`按钮在组件已处于全屏模式时应被隐藏。该逻辑由 `OutputDisplayFullscreen.vue` 组件**内部封装实现**。它会自动过滤掉父组件传入的 `enabledActions` 中的 `'fullscreen'` 选项，确保了组件行为的自洽性。
 
 #### 2.2.2 "思考过程"面板 (Reasoning Panel)
 
@@ -132,8 +132,7 @@ graph TD
 
 ### 5.2. `OutputDisplayCore` 内部结构
 
-```
-OutputDisplayCore
+```OutputDisplayCore
 ├── FloatingToolbar
 │   ├── ViewModeButtons (渲染 / 原文 / 对比)
 │   └── ActionButtons (复制 / 全屏等)
@@ -162,7 +161,7 @@ OutputDisplayCore
     -   是展示流式输出的最佳模式。
 
 -   **对比模式 (`diff`)**:
-    -   **可用性**：仅当 `originalContent` prop 被传入有效内容时，此模式的切换按钮才可见。
+    -   **可用性**：仅当 `originalContent` prop 被传入有效内容时，此模式的切换按钮才会被**渲染**出来 (通过 `v-if` 控制)。如果 `originalContent` 为空，按钮将从DOM中彻底移除，而不仅仅是禁用。
     -   使用 `TextDiffUI` 组件清晰地展示 `content` 与 `originalContent` 之间的差异。
 
 ### 6.2. 智能自动切换

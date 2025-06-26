@@ -38,18 +38,6 @@
                 >
                   {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
                 </button>
-                <button
-                  @click="enableMarkdown = !enableMarkdown"
-                  class="h-10 text-sm whitespace-nowrap"
-                  :class="enableMarkdown ? 'theme-button-on' : 'theme-button-off'"
-                  :title="enableMarkdown ? t('test.disableMarkdown') : t('test.enableMarkdown')"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 335.03 257.27" style="fill: currentColor;">
-                    <path
-                      d="M310.91,2.5H24.12C12.18,2.5,2.5,12.18,2.5,24.12v209.04c0,11.94,9.68,21.62,21.62,21.62h286.8c11.94,0,21.62-9.68,21.62-21.62V24.12c0-11.94-9.68-21.62-21.62-21.62ZM169.68,189.91h-25.89v-70.01h-.86l-23.88,39.01h-20.14l-23.88-38.4h-.86v69.39h-25.89v-121.82h23.73l36.54,60.29h.86l36.54-60.29h23.73v121.82ZM294.42,136.67l-45.07,49.94c-2.3,2.55-6.31,2.55-8.61,0l-45.07-49.94c-3.37-3.73-.72-9.69,4.31-9.69h30.17v-60.1h29.81v60.1h30.17c5.03,0,7.68,5.96,4.31,9.69Z"
-                    />
-                  </svg>
-                </button>
               </div>
             </div>
           </template>
@@ -76,18 +64,6 @@
                 {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
               </button>
               <button
-                @click="enableMarkdown = !enableMarkdown"
-                class="h-10 text-sm whitespace-nowrap"
-                :class="enableMarkdown ? 'theme-button-on' : 'theme-button-off'"
-                :title="enableMarkdown ? t('test.disableMarkdown') : t('test.enableMarkdown')"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 335.03 257.27" style="fill: currentColor;">
-                  <path
-                    d="M310.91,2.5H24.12C12.18,2.5,2.5,12.18,2.5,24.12v209.04c0,11.94,9.68,21.62,21.62,21.62h286.8c11.94,0,21.62-9.68,21.62-21.62V24.12c0-11.94-9.68-21.62-21.62-21.62ZM169.68,189.91h-25.89v-70.01h-.86l-23.88,39.01h-20.14l-23.88-38.4h-.86v69.39h-25.89v-121.82h23.73l36.54,60.29h.86l36.54-60.29h23.73v121.82ZM294.42,136.67l-45.07,49.94c-2.3,2.55-6.31,2.55-8.61,0l-45.07-49.94c-3.37-3.73-.72-9.69,4.31-9.69h30.17v-60.1h29.81v60.1h30.17c5.03,0,7.68,5.96,4.31,9.69Z"
-                  />
-                </svg>
-              </button>
-              <button
                 @click="handleTest"
                 :disabled="isTesting || !selectedTestModel"
                 class="h-10 px-4 text-sm font-medium theme-button-primary"
@@ -105,27 +81,27 @@
           <!-- Original Prompt Test Result -->
           <div
             v-show="isCompareMode"
-            class="flex flex-col transition-all duration-300 min-h-[80px] mb-4 md:mb-0 md:absolute md:inset-0 md:h-full md:w-[calc(50%-6px)] md:mr-3"
+            class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px] mb-4 md:mb-0 md:absolute md:inset-0 md:h-full md:w-[calc(50%-6px)] md:mr-3"
             :style="{
               height: isCompareMode ? 'auto' : '0',
               opacity: isCompareMode ? 1 : 0,
               pointerEvents: isCompareMode ? 'auto' : 'none'
             }"
           >
-            <OutputPanelUI
-              ref="originalOutputPanelRef"
-              :loading="isTestingOriginal"
-              :error="originalTestError"
-              v-model:result="originalTestResult"
-              class="flex-1 h-full"
-              :resultTitle="t('test.originalResult')"
-              :enableMarkdown="enableMarkdown"
+            <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">{{ t('test.originalResult') }}</h3>
+            <OutputDisplay
+              :content="originalTestResult"
+              :reasoning="originalTestReasoning"
+              :streaming="isTestingOriginal"
+              :enableDiff="false"
+              mode="readonly"
+              class="flex-1 min-h-0"
             />
           </div>
 
           <!-- Optimized Prompt Test Result -->
           <div
-            class="flex flex-col transition-all duration-300 min-h-[80px]"
+            class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px]"
             :style="{
               height: isCompareMode ? 'auto' : '100%'
             }"
@@ -134,14 +110,16 @@
               'md:absolute md:inset-0 md:h-full md:w-full md:left-0': !isCompareMode
             }"
           >
-            <OutputPanelUI
-              ref="optimizedOutputPanelRef"
-              :loading="isTestingOptimized"
-              :error="optimizedTestError"
-              v-model:result="optimizedTestResult"
-              class="flex-1 h-full"
-              :resultTitle="isCompareMode ? t('test.optimizedResult') : t('test.testResult')"
-              :enableMarkdown="enableMarkdown"
+            <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">
+              {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
+            </h3>
+            <OutputDisplay
+              :content="optimizedTestResult"
+              :reasoning="optimizedTestReasoning"
+              :streaming="isTestingOptimized"
+              :enableDiff="false"
+              mode="readonly"
+              class="flex-1 min-h-0"
             />
           </div>
         </div>
@@ -151,14 +129,16 @@
 </template>
 
 <script setup>
-import { ref, toRef, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '../composables/useToast'
 import ContentCardUI from './ContentCard.vue'
 import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
-import OutputPanelUI from './OutputPanel.vue'
+import OutputDisplay from './OutputDisplay.vue'
 
 const { t } = useI18n()
+const toast = useToast()
 
 const props = defineProps({
   promptService: {
@@ -185,168 +165,164 @@ const props = defineProps({
 
 const emit = defineEmits(['showConfig', 'update:modelValue'])
 
-// Test mode control
 const isCompareMode = ref(true)
-
 const testModelSelect = ref(null)
-const originalOutputPanelRef = ref(null)
-const optimizedOutputPanelRef = ref(null)
 const selectedTestModel = ref(props.modelValue || '')
-const promptServiceRef = toRef(props, 'promptService')
 
-// Listen for external model value changes
 watch(() => props.modelValue, (newVal) => {
   if (newVal && newVal !== selectedTestModel.value) {
     selectedTestModel.value = newVal
   }
 })
 
-
-
-// Update selected model
 const updateSelectedModel = (value) => {
   selectedTestModel.value = value
   emit('update:modelValue', value)
 }
 
-// Original prompt test status
 const originalTestResult = ref('')
 const originalTestError = ref('')
 const isTestingOriginal = ref(false)
 
-// Optimized prompt test status
+// 添加推理内容状态
+const originalTestReasoning = ref('')
+
 const optimizedTestResult = ref('')
 const optimizedTestError = ref('')
 const isTestingOptimized = ref(false)
 
-// Overall test status
-const isTesting = computed(() => isTestingOriginal.value || isTestingOptimized.value)
+// 添加推理内容状态
+const optimizedTestReasoning = ref('')
 
-// Test content
+const isTesting = computed(() => isTestingOriginal.value || isTestingOptimized.value)
 const testContent = ref('')
 
-// Ensure prompt is a string
 const ensureString = (value) => {
   if (typeof value === 'string') return value
   if (value === null || value === undefined) return ''
   return String(value)
 }
 
-// Test original prompt with context awareness
 const testOriginalPrompt = async () => {
   if (!props.originalPrompt) return
 
   isTestingOriginal.value = true
+  originalTestResult.value = ''
   originalTestError.value = ''
+  originalTestReasoning.value = ''
+  
+  await nextTick(); // 确保状态更新和DOM清空完成
 
   try {
-    if (originalOutputPanelRef.value) {
-      const streamHandler = originalOutputPanelRef.value.handleStream()
-
-      // Determine system and user prompts based on optimization mode
-      let systemPrompt = ''
-      let userPrompt = ''
-
-      if (props.optimizationMode === 'user') {
-        // For user prompt optimization: original is user prompt, no system context
-        systemPrompt = ''
-        userPrompt = ensureString(props.originalPrompt)
-      } else {
-        // For system prompt optimization: original is system, test content is user
-        systemPrompt = ensureString(props.originalPrompt)
-        userPrompt = testContent.value
+    const streamHandler = {
+      onToken: (token) => {
+        originalTestResult.value += token
+      },
+      onReasoningToken: (reasoningToken) => {
+        originalTestReasoning.value += reasoningToken
+      },
+      onComplete: () => { /* 流结束后不再需要设置 isTesting, 由 finally 处理 */ },
+      onError: (err) => {
+        const errorMessage = err.message || t('test.error.failed')
+        originalTestError.value = errorMessage
+        toast.error(errorMessage)
       }
-
-      console.log('[TestPanel] Original test - System:', systemPrompt.substring(0, 30), 'User:', userPrompt.substring(0, 30))
-
-      // Use updated testPromptStream method
-      await props.promptService.testPromptStream(
-        systemPrompt,
-        userPrompt,
-        selectedTestModel.value,
-        {
-          onToken: streamHandler.onToken,
-          onComplete: streamHandler.onComplete,
-          onError: streamHandler.onError
-        }
-      )
     }
+
+    let systemPrompt = ''
+    let userPrompt = ''
+
+    if (props.optimizationMode === 'user') {
+      systemPrompt = ''
+      userPrompt = ensureString(props.originalPrompt)
+    } else {
+      systemPrompt = ensureString(props.originalPrompt)
+      userPrompt = testContent.value
+    }
+
+    await props.promptService.testPromptStream(
+      systemPrompt,
+      userPrompt,
+      selectedTestModel.value,
+      streamHandler
+    )
   } catch (error) {
-    console.error('[TestPanel] Original prompt test failed:', error)
-    originalTestError.value = error.message || t('test.error.failed')
+    console.error('[TestPanel] Original prompt test failed:', error); // 增加详细错误日志
+    const errorMessage = error.message || t('test.error.failed')
+    originalTestError.value = errorMessage
+    toast.error(errorMessage)
     originalTestResult.value = ''
   } finally {
+    // 确保无论成功或失败，加载状态最终都会被关闭
     isTestingOriginal.value = false
   }
 }
 
-// 添加Markdown渲染控制
-const enableMarkdown = ref(true);
-// Test optimized prompt with context awareness
 const testOptimizedPrompt = async () => {
   if (!props.optimizedPrompt) return
 
   isTestingOptimized.value = true
+  optimizedTestResult.value = ''
   optimizedTestError.value = ''
+  optimizedTestReasoning.value = ''
+  
+  await nextTick(); // 确保状态更新和DOM清空完成
 
   try {
-    const outputPanel = optimizedOutputPanelRef.value
-
-    if (outputPanel) {
-      const streamHandler = outputPanel.handleStream()
-
-      // Determine system and user prompts based on optimization mode
-      let systemPrompt = ''
-      let userPrompt = ''
-
-      if (props.optimizationMode === 'user') {
-        // For user prompt optimization: optimized is user prompt, no system context
-        systemPrompt = ''
-        userPrompt = ensureString(props.optimizedPrompt)
-      } else {
-        // For system prompt optimization: optimized is system, test content is user
-        systemPrompt = ensureString(props.optimizedPrompt)
-        userPrompt = testContent.value
+    const streamHandler = {
+      onToken: (token) => {
+        optimizedTestResult.value += token
+      },
+      onReasoningToken: (reasoningToken) => {
+        optimizedTestReasoning.value += reasoningToken
+      },
+      onComplete: () => { /* 流结束后不再需要设置 isTesting, 由 finally 处理 */ },
+      onError: (err) => {
+        const errorMessage = err.message || t('test.error.failed')
+        optimizedTestError.value = errorMessage
+        toast.error(errorMessage)
       }
-
-      console.log('[TestPanel] Optimized test - System:', systemPrompt.substring(0, 30), 'User:', userPrompt.substring(0, 30))
-
-      // Use updated testPromptStream method
-      await props.promptService.testPromptStream(
-        systemPrompt,
-        userPrompt,
-        selectedTestModel.value,
-        {
-          onToken: streamHandler.onToken,
-          onComplete: streamHandler.onComplete,
-          onError: streamHandler.onError
-        }
-      )
     }
+
+    let systemPrompt = ''
+    let userPrompt = ''
+
+    if (props.optimizationMode === 'user') {
+      systemPrompt = ''
+      userPrompt = ensureString(props.optimizedPrompt)
+    } else {
+      systemPrompt = ensureString(props.optimizedPrompt)
+      userPrompt = testContent.value
+    }
+
+    await props.promptService.testPromptStream(
+      systemPrompt,
+      userPrompt,
+      selectedTestModel.value,
+      streamHandler
+    )
   } catch (error) {
-    console.error('[TestPanel] Optimized prompt test failed:', error)
-    optimizedTestError.value = error.message || t('test.error.failed')
+    console.error('[TestPanel] Optimized prompt test failed:', error); // 增加详细错误日志
+    const errorMessage = error.message || t('test.error.failed')
+    optimizedTestError.value = errorMessage
+    toast.error(errorMessage)
     optimizedTestResult.value = ''
   } finally {
+    // 确保无论成功或失败，加载状态最终都会被关闭
     isTestingOptimized.value = false
   }
 }
 
-// Test handler function with context awareness
 const handleTest = async () => {
   if (!selectedTestModel.value) {
-    const errorMsg = t('test.error.noModel')
-    originalTestError.value = errorMsg
-    optimizedTestError.value = errorMsg
+    toast.error(t('test.error.noModel'))
     return
   }
 
   // For user prompt optimization, we don't need test content input
   // For system prompt optimization, we need test content input
   if (props.optimizationMode === 'system' && !testContent.value) {
-    const errorMsg = t('test.error.noTestContent')
-    originalTestError.value = errorMsg
-    optimizedTestError.value = errorMsg
+    toast.error(t('test.error.noTestContent'))
     return
   }
 
@@ -356,11 +332,15 @@ const handleTest = async () => {
       await Promise.all([
         testOriginalPrompt().catch(error => {
           console.error('[TestPanel] Original prompt test failed:', error)
-          originalTestError.value = error.message || t('test.error.failed')
+          const errorMessage = error.message || t('test.error.failed')
+          originalTestError.value = errorMessage
+          toast.error(errorMessage)
         }),
         testOptimizedPrompt().catch(error => {
           console.error('[TestPanel] Optimized prompt test failed:', error)
-          optimizedTestError.value = error.message || t('test.error.failed')
+          const errorMessage = error.message || t('test.error.failed')
+          optimizedTestError.value = errorMessage
+          toast.error(errorMessage)
         })
       ])
     } catch (error) {
@@ -372,24 +352,10 @@ const handleTest = async () => {
   }
 }
 
-// Component mounted, if there is a default model, select it automatically
 onMounted(() => {
-  console.log("hideTitle value:", originalOutputPanelRef.value?.hideTitle);
   if (props.modelValue) {
     selectedTestModel.value = props.modelValue
   }
-})
-
-// Expose methods and attributes to parent component
-defineExpose({
-  testModelSelect,
-  selectedTestModel,
-  testContent,
-  originalTestResult,
-  optimizedTestResult,
-  isTesting,
-  isCompareMode,
-  enableMarkdown
 })
 </script>
 

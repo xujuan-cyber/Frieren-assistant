@@ -24,7 +24,7 @@
           {{ t('common.source') }}
         </button>
         <button 
-          v-if="isActionEnabled('diff')"
+          v-if="isActionEnabled('diff') && originalContent"
           @click="internalViewMode = 'diff'" 
           :disabled="internalViewMode === 'diff' || !originalContent"
           :title="!originalContent ? t('messages.noOriginalContentForDiff') : ''"
@@ -54,10 +54,11 @@
     <div v-if="shouldShowReasoning">
       <!-- 推理面板标题栏 -->
       <div 
-        class="reasoning-header flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+        class="reasoning-header flex items-center justify-between px-3 py-2 border-b cursor-pointer theme-toolbar-bg theme-toolbar-hover-bg"
+        :class="themeToolbarBorder"
         @click="toggleReasoning"
       >
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <span class="text-sm font-medium theme-label">
           {{ t('common.reasoning') }}
         </span>
         <div class="flex items-center gap-2">
@@ -89,7 +90,7 @@
             v-if="displayReasoning" 
             :content="displayReasoning"
             :streaming="streaming"
-            class="prose prose-sm max-w-none px-3 py-2"
+            class="theme-markdown-content prose-sm max-w-none px-3 py-2"
           />
           <div v-else-if="streaming" class="text-gray-500 text-sm italic px-3 py-2">
             {{ t('common.generatingReasoning') }}
@@ -206,6 +207,7 @@ const emit = defineEmits<{
 // 内部状态
 const isReasoningExpanded = ref(false)
 const reasoningContentRef = ref<HTMLDivElement | null>(null)
+const userHasManuallyToggledReasoning = ref(false)
 
 // 新的视图状态机
 const internalViewMode = ref<'render' | 'source' | 'diff'>('render')
@@ -225,6 +227,7 @@ const hasContent = computed(() => !!displayContent.value)
 const hasReasoning = computed(() => !!displayReasoning.value)
 
 const isReasoningStreaming = computed(() => {
+  // isReasoningStreaming 应该精确地表示"思考过程正在流式输出，而主内容尚未开始"
   return props.streaming && hasReasoning.value && !hasContent.value
 })
 
@@ -232,7 +235,8 @@ const shouldShowReasoning = computed(() => {
   if (!isActionEnabled('reasoning')) return false
   if (props.reasoningMode === 'hide') return false
   if (props.reasoningMode === 'show') return true
-  return hasReasoning.value || props.streaming
+  // 只有在有实际的思考内容时，才应该显示整个区域
+  return hasReasoning.value
 })
 
 const isEmpty = computed(() => !hasContent.value && !props.loading && !props.streaming)
@@ -289,6 +293,7 @@ const handleFullscreen = () => {
 // 推理内容
 const toggleReasoning = () => {
   isReasoningExpanded.value = !isReasoningExpanded.value
+  userHasManuallyToggledReasoning.value = true // 用户手动操作，锁定自动行为
   emit('reasoning-toggle', isReasoningExpanded.value)
 }
 
@@ -321,7 +326,19 @@ const updateCompareResult = async () => {
 // 智能自动切换逻辑
 const previousViewMode = ref<'render' | 'source' | 'diff' | null>(null)
 
-watch(() => props.streaming, (isStreaming) => {
+watch(() => props.streaming, (isStreaming, wasStreaming) => {
+  // --- 用户意图记忆状态机 ---
+  if (isStreaming && !wasStreaming) {
+    // 新任务开始，重置用户记忆
+    userHasManuallyToggledReasoning.value = false
+  } else if (!isStreaming && wasStreaming) {
+    // 任务结束，如果用户未干预且思考区域仍然展开，自动折叠
+    if (!userHasManuallyToggledReasoning.value && isReasoningExpanded.value) {
+      isReasoningExpanded.value = false
+    }
+  }
+  // -------------------------
+
   if (isStreaming) {
     // 记住当前模式，并强制切换到原文模式
     if (internalViewMode.value !== 'source') {
@@ -345,8 +362,8 @@ watch(() => [props.content, props.originalContent], () => {
 })
 
 watch(() => props.reasoning, (newReasoning, oldReasoning) => {
-  // 当推理内容从无到有，且没有主要内容时，自动展开思考过程
-  if (!oldReasoning && newReasoning && !hasContent.value) {
+  // 当推理内容从无到有，且用户未手动干预时，自动展开
+  if (newReasoning && !oldReasoning && !userHasManuallyToggledReasoning.value) {
     isReasoningExpanded.value = true
     emit('reasoning-toggle', true)
   }
@@ -357,9 +374,18 @@ watch(() => props.reasoning, (newReasoning, oldReasoning) => {
   }
 })
 
+watch(() => props.content, (newContent, oldContent) => {
+  // 当主要内容开始流式输出时，如果用户未干预，自动折叠思考过程
+  const mainContentJustStarted = newContent && !oldContent;
+  if (props.streaming && mainContentJustStarted && !userHasManuallyToggledReasoning.value) {
+    isReasoningExpanded.value = false;
+  }
+})
+
 // 暴露方法给父组件
 const resetReasoningState = (initialState: boolean) => {
   isReasoningExpanded.value = initialState
+  userHasManuallyToggledReasoning.value = false // 重置全屏状态时，也应重置用户意图
 }
 
 // 强制退出编辑状态 - 重构为强制切换到渲染模式

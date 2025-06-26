@@ -90,11 +90,59 @@ describe("功能测试", () => {
 - 覆盖异常场景
 - 正确清理测试状态
 
+### Vue 开发最佳实践
+
+#### 1. 多根组件的属性继承
+**问题**：当一个Vue组件有多个根节点时，它无法自动继承父组件传递的非prop属性（如 `class`），并会产生警告。
+**方案**：
+1.  在 `<script setup>` 中使用 `defineOptions({ inheritAttrs: false })` 禁用默认的属性继承行为。
+2.  在模板中，将 `v-bind="$attrs"` 手动绑定到你希望接收这些属性的**特定**根节点上。
+**示例** (`OutputDisplay.vue`):
+```html
+<template>
+  <!-- $attrs 会将 class, id 等属性应用到此组件 -->
+  <OutputDisplayCore v-bind="$attrs" ... />
+  <OutputDisplayFullscreen ... />
+</template>
+
+<script setup>
+defineOptions({
+  inheritAttrs: false,
+});
+</script>
+```
+**优点**：代码意图清晰，避免了为解决问题而添加不必要的 `<div>` 包装器，同时精确控制了属性的流向。
+
 ---
 
 ## 🚨 关键Bug修复经验
 
-### 1. 参数透明化（2024-12-20）
+### 1. 国际化(i18n)键值同步
+**问题**：`[intlify] Not found 'key' in 'locale' messages` 错误，通常由中英文语言包键值不同步引起。
+**方案**：手动排查耗时且易错。可以创建一个临时的Node.js脚本来自动化地比较两个语言文件，并列出差异。
+**示例脚本** (`scripts/check-i18n.js`):
+```javascript
+const fs = require('fs');
+
+// 递归函数，用于从对象中提取所有键路径
+function getKeys(obj, prefix = '') { /* ... */ }
+
+// 加载并解析语言文件内容
+function loadLangFile(filePath) { /* ... */ }
+
+const zhKeys = new Set(loadLangFile('zh-CN.ts'));
+const enKeys = new Set(loadLangFile('en-US.ts'));
+
+const missingInZh = [...enKeys].filter(key => !zhKeys.has(key));
+const missingInEn = [...zhKeys].filter(key => !enKeys.has(key));
+
+// 输出差异报告
+console.log('Missing in zh-CN:', missingInZh);
+console.log('Missing in en-US:', missingInEn);
+```
+**优点**：快速、准确地定位所有缺失或多余的翻译键，保证多语言体验的一致性。
+
+### 2. 参数透明化（2024-12-20）
 **问题**：LLM参数默认值误导用户
 ```typescript
 // ❌ 错误：自动设置默认值
@@ -108,7 +156,7 @@ const requestConfig = {
 };
 ```
 
-### 2. 数据导入安全验证
+### 3. 数据导入安全验证
 ```typescript
 // 白名单验证 + 类型检查
 for (const [key, value] of Object.entries(importData)) {
@@ -124,7 +172,7 @@ for (const [key, value] of Object.entries(importData)) {
 }
 ```
 
-### 3. Flex 约束链断裂修复
+### 4. Flex 约束链断裂修复
 **典型错误**：
 ```html
 <!-- ❌ 父容器不是 flex，子元素 flex-1 失效 -->
@@ -138,7 +186,41 @@ for (const [key, value] of Object.entries(importData)) {
 </div>
 ```
 
-### 4. UI状态同步与响应式数据流最佳实践（2024-12-21）
+### 5. TestPanel 复杂响应式布局修复（2024-12-21）
+
+**问题现象**：TestPanel.vue 中的测试结果区域存在 flex 布局问题，内容被推向上方而非正确占用可用空间，特别是在小屏模式下使用垂直堆叠布局时。
+
+**根本原因**：
+1. **高度约束传递不完整**：flex 容器缺少 `min-h-0` 约束，导致子项无法正确缩小
+2. **混合布局模式处理不当**：大屏使用绝对定位，小屏使用 flex 布局，但两种模式下的高度约束规则不一致
+3. **标题元素参与空间分配**：h3 标题未标记为 `flex-none`，错误地参与了 flex 空间分配
+
+**修复方案**：
+```html
+<!-- 修复前：缺少关键的 min-h-0 约束 -->
+<div class="flex flex-col transition-all duration-300 min-h-[80px]">
+  <h3 class="text-lg font-semibold theme-text truncate mb-3">标题</h3>
+  <OutputDisplay class="flex-1" />
+</div>
+
+<!-- 修复后：完整的 flex 约束链 -->
+<div class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px]">
+  <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">标题</h3>
+  <OutputDisplay class="flex-1 min-h-0" />
+</div>
+```
+
+**关键修复点**：
+- 为每个结果容器添加 `min-h-0` 约束
+- 将标题标记为 `flex-none`，防止参与空间分配  
+- 为 OutputDisplay 组件添加 `min-h-0`，确保高度约束正确传递到组件内部
+
+**经验总结**：
+- 复杂响应式布局中，每种布局模式（flex vs absolute）都需要独立验证高度约束
+- 混合布局模式的组件特别容易出现约束传递断裂，需要逐层检查
+- 标题等固定高度元素必须明确标记为 `flex-none`
+
+### 6. UI状态同步与响应式数据流最佳实践（2024-12-21）
 
 **典型问题**：在复杂的Vue组件交互中，子组件内部状态的变更未能正确反映到其他兄弟组件，导致UI显示与底层数据不一致。例如，用户在A组件中编辑内容后，B组件（如测试面板）获取到的仍然是编辑前的数据。
 

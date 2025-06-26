@@ -1,6 +1,7 @@
 <template>
   <OutputDisplayCore
     ref="coreDisplayRef"
+    v-bind="$attrs"
     :content="content"
     :originalContent="originalContent"
     :reasoning="reasoning"
@@ -29,6 +30,7 @@
     :title="title"
     :mode="mode"
     :reasoningMode="reasoningMode"
+    :enabledActions="enabledActions"
     :streaming="streaming"
     :loading="loading"
     :placeholder="placeholder"
@@ -41,6 +43,10 @@
 import { computed, ref } from 'vue';
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import OutputDisplayFullscreen from './OutputDisplayFullscreen.vue';
+
+defineOptions({
+  inheritAttrs: false,
+});
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning'
 

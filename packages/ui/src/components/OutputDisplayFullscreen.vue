@@ -7,7 +7,7 @@
         :reasoning="reasoning"
         :mode="mode"
         :reasoningMode="reasoningMode"
-        :enabledActions="['diff', 'copy', 'edit', 'reasoning']"
+        :enabledActions="coreEnabledActions"
         height="100%"
         :placeholder="placeholder"
         :loading="loading"
@@ -35,6 +35,7 @@ interface Props {
   title?: string
   mode: 'readonly' | 'editable'
   reasoningMode?: 'show' | 'hide' | 'auto'
+  enabledActions?: ('fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning')[]
   streaming?: boolean
   loading?: boolean
   placeholder?: string
@@ -46,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: '',
   mode: 'readonly',
   reasoningMode: 'auto',
+  enabledActions: () => ['diff', 'copy', 'edit', 'reasoning'],
   placeholder: ''
 })
 
@@ -62,6 +64,10 @@ const coreDisplayRef = ref<InstanceType<typeof OutputDisplayCore> | null>(null)
 const internalVisible = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
+})
+
+const coreEnabledActions = computed(() => {
+  return props.enabledActions?.filter(action => action !== 'fullscreen')
 })
 
 const internalContent = ref(props.content)

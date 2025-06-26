@@ -70,6 +70,10 @@ export default {
     reasoning: 'Reasoning',
     compare: 'Compare'
   },
+  actions: {
+    copy: 'Copy',
+    fullscreen: 'Fullscreen'
+  },
   nav: {
     home: 'Home',
     dashboard: 'Dashboard',
