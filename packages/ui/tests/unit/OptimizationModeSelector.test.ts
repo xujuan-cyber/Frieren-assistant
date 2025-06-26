@@ -95,11 +95,11 @@ describe('OptimizationModeSelector', () => {
     const userButton = buttons[1]
 
     // System button should have active styles
-    expect(systemButton.classes()).toContain('bg-gray-100')
+    expect(systemButton.classes()).toContain('theme-button-toggle-active')
     expect(systemButton.attributes('aria-pressed')).toBe('true')
 
     // User button should not have active styles
-    expect(userButton.classes()).not.toContain('bg-gray-100')
+    expect(userButton.classes()).toContain('theme-button-toggle-inactive')
     expect(userButton.attributes('aria-pressed')).toBe('false')
   })
 
@@ -125,11 +125,11 @@ describe('OptimizationModeSelector', () => {
     const userButton = buttons[1]
 
     // User button should have active styles
-    expect(userButton.classes()).toContain('bg-gray-100')
+    expect(userButton.classes()).toContain('theme-button-toggle-active')
     expect(userButton.attributes('aria-pressed')).toBe('true')
 
     // System button should not have active styles
-    expect(systemButton.classes()).not.toContain('bg-gray-100')
+    expect(systemButton.classes()).toContain('theme-button-toggle-inactive')
     expect(systemButton.attributes('aria-pressed')).toBe('false')
   })
 
