@@ -1,18 +1,18 @@
 <template>
   <div
+    v-if="show"
     class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
-    @click="$emit('close')"
+    @click="onMainBackdropClick"
   >
     <div
       class="relative theme-manager-container w-full max-w-3xl m-4"
-      @click.stop
     >
       <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.title') }}</h2>
           <button
-            @click="$emit('close')"
+            @click="close"
             class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
           >
             ×
@@ -298,7 +298,8 @@
           </div>
 
           <!-- 添加模型弹窗 -->
-          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div v-if="showAddForm" 
+               class="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
             <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
@@ -501,7 +502,27 @@ import InputWithSelect from './InputWithSelect.vue'
 
 const { t } = useI18n()
 const toast = useToast();
-const emit = defineEmits(['modelsUpdated', 'close', 'select']);
+const emit = defineEmits(['modelsUpdated', 'close', 'select', 'update:show']);
+
+// 组件属性
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false
+  }
+});
+
+// 关闭模态框
+const close = () => {
+  emit('update:show', false);
+  emit('close');
+};
+
+const onMainBackdropClick = (event) => {
+  if (event.target === event.currentTarget) {
+    close();
+  }
+};
 
 // 通过依赖注入获取服务
 const services = inject('services');
@@ -1215,6 +1236,8 @@ watch(() => newModel.value.key, (newKey) => {
   }
 });
  
+
+
 // =============== 生命周期钩子 ===============
 // 初始化
 onMounted(() => {

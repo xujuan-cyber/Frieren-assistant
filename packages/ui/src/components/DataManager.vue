@@ -3,7 +3,7 @@
     <div 
       v-if="show"
       class="fixed inset-0 theme-mask z-50 flex items-center justify-center p-4"
-      @click="$emit('close')"
+      @click="close"
     >
       <div 
         class="theme-manager-container w-full max-w-md mx-auto"
@@ -15,7 +15,7 @@
             {{ $t('dataManager.title') }}
           </h2>
           <button
-            @click="$emit('close')"
+            @click="close"
             class="theme-manager-text-secondary hover:theme-manager-text transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
 import type { IDataManager } from '@prompt-optimizer/core'
@@ -167,6 +167,7 @@ interface Props {
 interface Emits {
   (e: 'close'): void
   (e: 'imported'): void
+  (e: 'update:show', value: boolean): void
 }
 
 const props = defineProps<Props>()
@@ -198,6 +199,26 @@ const isImporting = ref(false)
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement>()
 const isDragOver = ref(false)
+
+// --- Close Logic ---
+const close = () => {
+  emit('update:show', false)
+  emit('close')
+}
+
+const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && props.show) {
+    close()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 
 // 处理导出
 const handleExport = async () => {

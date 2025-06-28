@@ -2,9 +2,8 @@
   <Teleport to="body">
     <div v-if="modelValue" 
          class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
-         @click="close">
-      <div class="relative theme-manager-container min-h-[80vh] h-[90vh] w-[90vw] m-4 flex flex-col"
-           @click.stop>
+         @click="onBackdropClick">
+      <div class="relative theme-manager-container min-h-[80vh] h-[90vh] w-[90vw] m-4 flex flex-col">
         <!-- 标题栏 -->
         <div class="flex items-center justify-between p-4 border-b theme-manager-border flex-none">
           <h3 class="text-lg font-semibold theme-manager-text">{{ title }}</h3>
@@ -44,6 +43,12 @@ const emit = defineEmits(['update:modelValue'])
 // 关闭弹窗
 const close = () => {
   emit('update:modelValue', false)
+}
+
+const onBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    close()
+  }
 }
 
 // 监听ESC键

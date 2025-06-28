@@ -2,12 +2,11 @@
   <div
     v-if="show"
     class="fixed inset-0 theme-mask z-[60] flex items-center justify-center"
-    @click="emit('update:show', false)"
+    @click="onBackdropClick"
   >
     <div
       class="w-full max-w-4xl h-[85vh] theme-history transform transition-all duration-300 ease-in-out"
       :class="show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
-      @click.stop
     >
       <div class="h-full flex flex-col">
         <div class="flex-none p-3 sm:p-4 theme-history-header flex items-center justify-between">
@@ -22,7 +21,7 @@
             </button>
           </div>
           <button
-            @click.stop="emit('update:show', false)"
+            @click.stop="close"
             class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
           >
             ×
@@ -135,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, onUnmounted } from 'vue'
 import type { PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
@@ -164,6 +163,31 @@ const emit = defineEmits<{
 
 const toast = useToast()
 const expandedVersions = ref<Record<string, boolean>>({})
+
+// --- Close Logic ---
+const close = () => {
+  emit('update:show', false)
+}
+
+const onBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    close()
+  }
+}
+
+const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && props.show) {
+    close()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 
 // 修改排序后的历史记录计算属性，使用props.history而不是直接调用historyManager.getAllChains()
 const sortedHistory = computed(() => {

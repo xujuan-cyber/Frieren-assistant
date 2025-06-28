@@ -133,8 +133,20 @@
 
     <!-- Modals and Drawers that are conditionally rendered -->
     <ModelManagerUI v-if="isReady" v-model:show="modelManager.showConfig" />
-    <TemplateManagerUI v-if="isReady" v-model:show="templateManager.showTemplates" :templateType="templateManager.currentType" />
-    <HistoryDrawerUI v-if="isReady" v-model:show="historyManager.showHistory" />
+    <TemplateManagerUI 
+      v-if="isReady" 
+      v-model:show="templateManagerState.showTemplates" 
+      :templateType="templateManagerState.currentType" 
+      @close="templateManagerState.handleTemplateManagerClose"
+    />
+    <HistoryDrawerUI 
+      v-if="isReady" 
+      v-model:show="historyManager.showHistory"
+      :history="promptHistory.history"
+      @reuse="promptHistory.handleSelectHistory"
+      @clear="promptHistory.handleClearHistory"
+      @deleteChain="promptHistory.handleDeleteChain"
+    />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" />
 
     <ToastUI />
@@ -211,18 +223,18 @@ const modelManager = useModelManager(
 const optimizer = usePromptOptimizer(
   services as any,
   selectedOptimizationMode,
-  modelManager.selectedOptimizeModel as any,
-  modelManager.selectedTestModel as any
+  toRef(modelManager, 'selectedOptimizeModel'),
+  toRef(modelManager, 'selectedTestModel')
 )
 
 // 提示词历史
 const promptHistory = usePromptHistory(
   services as any,
-  optimizer.prompt as any,
-  optimizer.optimizedPrompt as any,
-  optimizer.currentChainId as any,
-  optimizer.currentVersions as any,
-  optimizer.currentVersionId as any
+  toRef(optimizer, 'prompt') as any,
+  toRef(optimizer, 'optimizedPrompt') as any,
+  toRef(optimizer, 'currentChainId') as any,
+  toRef(optimizer, 'currentVersions') as any,
+  toRef(optimizer, 'currentVersionId') as any
 )
 
 // 历史管理器
@@ -239,7 +251,7 @@ const historyManager = useHistoryManager(
 )
 
 // 模板管理器
-const templateManager = useTemplateManager(
+const templateManagerState = useTemplateManager(
   services as any,
   {
     selectedOptimizeTemplate: toRef(optimizer, 'selectedOptimizeTemplate'),
@@ -297,8 +309,8 @@ const openGithubRepo = () => {
 
 // 打开模板管理器
 const openTemplateManager = () => {
-  templateManager.currentType = selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize'
-  templateManager.showTemplates = true
+  templateManagerState.currentType = selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize'
+  templateManagerState.showTemplates = true
 }
 
 // 处理优化模式变更

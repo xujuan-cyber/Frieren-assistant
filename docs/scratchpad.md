@@ -1,5 +1,65 @@
 # 开发笔记 - 提示词优化器
 
+## 组件标准化重构计划 (最终)
+
+**目标**: 将项目中所有模态框/弹窗类组件的行为和API统一，使其完全符合"最佳实践范式"，提高代码一致性、可维护性和开发者体验。
+
+| 组件 | 目标Prop | `Escape`键支持 | 状态 |
+| :--- | :--- | :--- | :--- |
+| **`FullscreenDialog.vue`** | ✅ `modelValue` | ✅ 已支持 | **最佳范式** |
+| **`Modal.vue`** | ✅ `modelValue` | ⏳ **待实现** | `v-model`已规范 |
+| **`DataManager.vue`** | ⏳ **`modelValue`** | ✅ 已支持 | `Esc`键已规范 |
+| **`HistoryDrawer.vue`** | ⏳ **`modelValue`** | ✅ 已支持 | `Esc`键已规范 |
+| **`ModelManager.vue`** | ⏳ **`modelValue`** | ⏳ **待实现** | **需要改进** |
+| **`TemplateManager.vue`** | ⏳ **`modelValue`** | ⏳ **待实现** | **需要改进** |
+
+### 1. 标准化Prop为 `modelValue`
+- **任务**: 将所有使用 `show` 作为 `v-model` prop 的组件，统一重构为使用 `modelValue`。
+- **影响范围**:
+  - [ ] `DataManager.vue`
+  - [ ] `HistoryDrawer.vue`
+  - [ ] `ModelManager.vue`
+  - [ ] `TemplateManager.vue`
+- **配套修改**:
+  - [ ] **`App.vue`**: 更新所有对上述组件的调用，将 `v-model:show="..."` 修改为 `v-model="..."`。
+
+### 2. 补全 `Escape` 键支持
+- **任务**: 为所有尚未支持 `Escape` 键关闭的模态框组件添加该功能。
+- **影响范围**:
+  - [ ] `ModelManager.vue`
+  - [ ] `TemplateManager.vue`
+  - [ ] `Modal.vue` (基础组件)
+- **实现方式**:
+  - [ ] 在组件的 `script` 中，使用 `onMounted` 和 `onUnmounted` 生命周期钩子来添加和移除键盘事件监听器。
+
+## 后续重构与优化计划
+
+根据最近的调试会话和静态代码分析（Linting）结果，制定以下重构计划以提高代码质量和可维护性。
+
+### 1. 修复 `ModelManager.vue` 弹窗问题 (高优先级)
+- [ ] **任务:** 与 `TemplateManager.vue` 类似，在 `ModelManager.vue` 的根 `div` 元素上添加 `v-if="show"` 指令。
+- **原因:** 修复其在应用启动时自动显示且无法关闭的 BUG。
+
+### 2. 解决 TypeScript 类型错误 (中优先级)
+- [ ] **任务:** 审查 `TemplateManager.vue` 中报告的 `Property '...' does not exist on type 'never'` 等大量类型错误。
+- **方案:**
+    - [ ] 为 `Template` 对象（以及其他相关对象）创建并导入明确的 TypeScript 接口（`interface` 或 `type`）。
+    - [ ] 确保所有 `props`、`reactive` 变量和事件负载都具有正确的类型定义。
+    - [ ] 修复 `null` 值无法赋给 `Booleanish` 等类型不匹配问题。
+- **影响范围:** `TemplateManager.vue`, `useTemplateManager.ts`, 可能还有其他相关组件。
+
+### 3. 修复 CSS 兼容性问题 (低优先级)
+- [ ] **任务:** 在 `ModelManager.vue` 中为 `-webkit-line-clamp` 属性添加标准 `line-clamp` 属性。
+- **原因:** 提高 CSS 的浏览器兼容性。
+
+### 4. 统一模态框（Modal）组件实现 (长期)
+- [ ] **任务:** 考虑创建一个可复用的 `BaseModal.vue` 组件。
+- **方案:**
+    - [ ] 将通用的模态框逻辑（如 `v-if="show"` 控制显示/隐藏、点击蒙层关闭、关闭按钮等）抽象到 `Base-Modal` 中。
+    - [ ] `TemplateManager.vue` 和 `ModelManager.vue` 可以通过插槽（slots）的方式使用 `BaseModal`，只填充自己的特定内容。
+- **好处:** 减少代码重复，统一行为，便于维护。
+
+
 ## 任务：Vue Composable 架构重构 - 2025-07-05
 
 ### 目标

@@ -181,11 +181,11 @@ const templates = computed(() => {
 
 // 添加对services变化的监听
 watch(
-  () => props.services,
-  async (newServices) => {
-    if (newServices?.value?.templateManager) {
-    await ensureTemplateManagerReady()
-  }
+  () => props.services?.value?.templateManager,
+  async (newTemplateManager) => {
+    if (newTemplateManager) {
+      await ensureTemplateManagerReady()
+    }
   },
   { immediate: true, deep: true }
 )

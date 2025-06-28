@@ -1,11 +1,11 @@
 <template>
   <div
+    v-if="show"
     class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
-    @click="$emit('close')"
+    @click="onBackdropClick"
   >
     <div
       class="relative theme-manager-container w-full max-w-4xl m-4"
-      @click.stop
     >
       <div class="p-6 space-y-6">
         <!-- 标题和关闭按钮 -->
@@ -32,7 +32,7 @@
               {{ t('common.currentTemplate') }}: {{ selectedTemplate.name }}
             </span>
             <button
-              @click="$emit('close')"
+              @click="close"
               class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
             >
               ×
@@ -239,11 +239,10 @@
           <!-- 查看/编辑模态框 -->
           <div v-if="showAddForm || editingTemplate || viewingTemplate" 
                class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto py-4"
-               @click="viewingTemplate ? cancelEdit() : null">
+               @click="onEditModalBackdropClick">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
             
-            <div class="relative theme-manager-container w-full max-w-4xl mx-4 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto z-10"
-                 @click.stop>
+            <div class="relative theme-manager-container w-full max-w-4xl mx-4 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto z-10">
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-3">
@@ -522,11 +521,10 @@
           <!-- Syntax Guide Panel -->
           <div v-if="showSyntaxGuide"
                class="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto py-4"
-               @click="showSyntaxGuide = false">
+               @click="onSyntaxGuideBackdropClick">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
 
-            <div class="relative theme-manager-container w-full max-w-4xl mx-4 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto z-10"
-                 @click.stop>
+            <div class="relative theme-manager-container w-full max-w-4xl mx-4 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto z-10">
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <h3 class="text-xl font-semibold theme-manager-text">{{ t('templateManager.syntaxGuide') }}</h3>
@@ -558,11 +556,10 @@
           <!-- Migration Dialog -->
           <div v-if="migrationDialog.show"
                class="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto"
-               @click="migrationDialog.show = false">
+               @click="onMigrationDialogBackdropClick">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
 
-            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10"
-                 @click.stop>
+            <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10">
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <h3 class="text-xl font-semibold theme-manager-text">{{ t('templateManager.convertToAdvanced') }}</h3>
@@ -639,10 +636,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TemplateProcessor } from '@prompt-optimizer/core'
+import { TemplateProcessor, type Template } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import BuiltinTemplateLanguageSwitch from './BuiltinTemplateLanguageSwitch.vue'
@@ -663,10 +660,14 @@ const props = defineProps({
     type: String,
     required: true,
     validator: (value) => ['optimize', 'userOptimize', 'iterate'].includes(value)
+  },
+  show: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['close', 'select'])
+const emit = defineEmits(['close', 'select', 'update:show'])
 const toast = useToast()
 
 const templates = ref([])
@@ -721,8 +722,8 @@ function getCategoryFromProps() {
 }
 
 // 获取当前模板类型
-function getCurrentTemplateType() {
-  return props.templateType
+function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' {
+  return props.templateType as 'optimize' | 'userOptimize' | 'iterate'
 }
 
 // 获取当前选中的模板ID
@@ -745,7 +746,7 @@ function getCurrentCategoryLabel() {
 }
 
 // 检查是否为字符串模板
-const isStringTemplate = (template) => {
+const isStringTemplate = (template: Template) => {
   return typeof template.content === 'string'
 }
 
@@ -792,13 +793,13 @@ const loadTemplates = async () => {
 }
 
 // 格式化日期
-const formatDate = (timestamp) => {
+const formatDate = (timestamp: number) => {
   if (!timestamp) return t('template.unknownTime')
   return new Date(timestamp).toLocaleString()
 }
 
 // 编辑提示词
-const editTemplate = (template) => {
+const editTemplate = (template: Template) => {
   editingTemplate.value = template
   const isAdvanced = Array.isArray(template.content)
 
@@ -817,7 +818,7 @@ const editTemplate = (template) => {
 }
 
 // 查看提示词
-const viewTemplate = (template) => {
+const viewTemplate = (template: Template) => {
   viewingTemplate.value = template
   const isAdvanced = Array.isArray(template.content)
 
@@ -922,7 +923,7 @@ const initializeTextareaHeight = (textarea) => {
 }
 
 // 显示迁移对话框
-const showMigrationDialog = (template) => {
+const showMigrationDialog = (template: Template) => {
   if (!isStringTemplate(template)) return
 
   const converted = [
@@ -1045,7 +1046,7 @@ const handleSubmit = () => {
 }
 
 // 确认删除
-const confirmDelete = async (templateId) => {
+const confirmDelete = async (templateId: string) => {
   if (confirm(t('template.deleteConfirm'))) {
     try {
       getTemplateManager.value.deleteTemplate(templateId)
@@ -1067,7 +1068,7 @@ const confirmDelete = async (templateId) => {
 }
 
 // 导出提示词
-const exportTemplate = (templateId) => {
+const exportTemplate = (templateId: string) => {
   try {
     const templateJson = getTemplateManager.value.exportTemplate(templateId)
     const blob = new Blob([templateJson], { type: 'application/json' })
@@ -1112,7 +1113,7 @@ const handleFileImport = (event) => {
 }
 
 // 复制内置提示词
-const copyTemplate = (template) => {
+const copyTemplate = (template: Template) => {
   showAddForm.value = true
   const isAdvanced = Array.isArray(template.content)
 
@@ -1126,7 +1127,7 @@ const copyTemplate = (template) => {
 }
 
 // 选择提示词
-const selectTemplate = (template) => {
+const selectTemplate = (template: Template) => {
   emit('select', template, getCurrentTemplateType());
 }
 
@@ -1222,6 +1223,38 @@ const initializeAllTextareas = () => {
       }
     })
   })
+}
+
+// 关闭模板管理器
+const close = () => {
+  emit('update:show', false)
+  emit('close')
+}
+
+const onBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    close()
+  }
+}
+
+const onEditModalBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    if (viewingTemplate.value) {
+      cancelEdit()
+    }
+  }
+}
+
+const onSyntaxGuideBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    showSyntaxGuide.value = false
+  }
+}
+
+const onMigrationDialogBackdropClick = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    migrationDialog.value.show = false
+  }
 }
 </script>
 
