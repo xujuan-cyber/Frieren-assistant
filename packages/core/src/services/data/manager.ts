@@ -1,8 +1,5 @@
-import { historyManager } from '../history/manager';
 import { IHistoryManager, PromptRecord } from '../history/types';
-import { modelManager } from '../model/manager';
 import { IModelManager, ModelConfig } from '../model/types';
-import { templateManager } from '../template/manager';
 import { ITemplateManager, Template } from '../template/types';
 import { StorageFactory } from '../storage/factory';
 import { IStorageProvider } from '../storage/types';
@@ -301,9 +298,19 @@ export class DataManager {
   }
 }
 
-// Export a singleton instance, injecting the existing singletons
-export const dataManager = new DataManager(
-  historyManager,
-  modelManager,
-  templateManager
-);
+/**
+ * 工厂函数：创建 DataManager 实例
+ * @param historyManager HistoryManager 的实例
+ * @param modelManager ModelManager 的实例
+ * @param templateManager TemplateManager 的实例
+ * @param storage (可选) IStorageProvider 的实例
+ * @returns DataManager 的新实例
+ */
+export function createDataManager(
+  historyManager: IHistoryManager,
+  modelManager: IModelManager,
+  templateManager: ITemplateManager,
+  storage?: IStorageProvider
+): DataManager {
+  return new DataManager(historyManager, modelManager, templateManager, storage);
+}

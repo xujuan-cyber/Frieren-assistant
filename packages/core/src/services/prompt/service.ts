@@ -1,10 +1,9 @@
 import { IPromptService, OptimizationRequest } from './types';
-import { Message, StreamHandlers } from '../llm/types';
+import { Message, StreamHandlers, ILLMService } from '../llm/types';
 import { PromptRecord } from '../history/types';
-import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
-import { LLMService, createLLMService } from '../llm/service';
-import { TemplateManager, templateManager as defaultTemplateManager } from '../template/manager';
-import { HistoryManager, historyManager as defaultHistoryManager } from '../history/manager';
+import { IModelManager } from '../model/types';
+import { ITemplateManager } from '../template/types';
+import { IHistoryManager } from '../history/types';
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
 import { ERROR_MESSAGES } from '../llm/errors';
 import { TemplateProcessor, TemplateContext } from '../template/processor';
@@ -24,10 +23,10 @@ const DEFAULT_TEMPLATES = {
  */
 export class PromptService implements IPromptService {
   constructor(
-    private modelManager: ModelManager,
-    private llmService: LLMService,
-    private templateManager: TemplateManager,
-    private historyManager: HistoryManager
+    private modelManager: IModelManager,
+    private llmService: ILLMService,
+    private templateManager: ITemplateManager,
+    private historyManager: IHistoryManager
   ) {
     this.checkDependencies();
   }
@@ -225,6 +224,8 @@ export class PromptService implements IPromptService {
         modelKey,
         templateId: DEFAULT_TEMPLATES.TEST
       });
+
+      await this.saveTestHistory(systemPrompt, userPrompt, modelKey, result);
 
       return result;
     } catch (error) {
@@ -507,6 +508,28 @@ export class PromptService implements IPromptService {
     });
   }
 
+  private async saveTestHistory(systemPrompt: string, userPrompt: string, modelKey: string, result: string) {
+    try {
+      await this.historyManager.addRecord({
+        id: uuidv4(),
+        originalPrompt: userPrompt,
+        optimizedPrompt: result,
+        type: 'test',
+        chainId: userPrompt,
+        version: 1,
+        previousId: undefined,
+        timestamp: Date.now(),
+        modelKey: modelKey,
+        templateId: 'test-prompt',
+        metadata: {
+          systemPrompt: systemPrompt,
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to save test history:', error);
+    }
+  }
+
   // 注意：迭代历史记录由UI层管理，而非核心服务层
   // 原因：
   // 1. 迭代需要现有的chainId，这个信息由UI层的状态管理器维护
@@ -517,17 +540,14 @@ export class PromptService implements IPromptService {
   // 这种混合架构是经过权衡的设计决策
 }
 
-// 导出工厂函数
+/**
+ * 创建 PromptService 实例
+ */
 export function createPromptService(
-  modelManager: ModelManager = defaultModelManager,
-  llmService: LLMService = createLLMService(modelManager),
-  templateManager: TemplateManager = defaultTemplateManager,
-  historyManager: HistoryManager = defaultHistoryManager
-): PromptService {
-  try {
-    return new PromptService(modelManager, llmService, templateManager, historyManager);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`Initialization failed: ${errorMessage}`);
-  }
+  modelManager: IModelManager,
+  llmService: ILLMService,
+  templateManager: ITemplateManager,
+  historyManager: IHistoryManager
+): IPromptService {
+  return new PromptService(modelManager, llmService, templateManager, historyManager);
 } 

@@ -1,10 +1,9 @@
 import { IHistoryManager, PromptRecord, PromptRecordChain } from './types';
 import { IStorageProvider } from '../storage/types';
-import { StorageFactory } from '../storage/factory';
 import { StorageAdapter } from '../storage/adapter';
 import { RecordNotFoundError, RecordValidationError, StorageError, HistoryError } from './errors';
 import { v4 as uuidv4 } from 'uuid';
-import { modelManager } from '../model/manager';
+import { IModelManager } from '../model/types';
 
 /**
  * History Manager implementation
@@ -12,11 +11,12 @@ import { modelManager } from '../model/manager';
 export class HistoryManager implements IHistoryManager {
   private readonly storageKey = 'prompt_history';
   private readonly maxRecords = 50; // Maximum 50 records
-  private readonly storage: IStorageProvider;
+  private readonly storage: StorageAdapter;
+  private readonly modelManager: IModelManager;
 
-  constructor(storageProvider: IStorageProvider) {
-    // 使用适配器确保所有存储提供者都支持高级方法
+  constructor(storageProvider: IStorageProvider, modelManager: IModelManager) {
     this.storage = new StorageAdapter(storageProvider);
+    this.modelManager = modelManager;
   }
 
   /**
@@ -28,9 +28,10 @@ export class HistoryManager implements IHistoryManager {
     if (!modelKey) return undefined;
     
     try {
-      const model = await modelManager.getModel(modelKey);
-      return model?.defaultModel;
+      const model = await this.modelManager.getModel(modelKey);
+      return model?.name;
     } catch (err) {
+      // If model not found or other error, simply return undefined
       return undefined;
     }
   }
@@ -348,7 +349,26 @@ export class HistoryManager implements IHistoryManager {
     
     return results;
   }
+
+  private async getFallbackModelName(modelKey?: string): Promise<string | undefined> {
+    if (!modelKey) return undefined;
+    
+    try {
+      // 恢复这里的逻辑
+      const model = await this.modelManager.getModel(modelKey);
+      return model?.defaultModel;
+    } catch (err) {
+      return undefined;
+    }
+  }
 }
 
-// Export singleton instance
-export const historyManager = new HistoryManager(StorageFactory.createDefault());
+/**
+ * 创建聊天历史管理器的工厂函数
+ * @param storageProvider 存储提供器实例
+ * @param modelManager 模型管理器实例
+ * @returns 聊天历史管理器实例
+ */
+export function createHistoryManager(storageProvider: IStorageProvider, modelManager: IModelManager): HistoryManager {
+  return new HistoryManager(storageProvider, modelManager);
+}

@@ -501,6 +501,7 @@ export default {
   },
   log: {
     info: {
+      initializing: '正在初始化...',
       initBaseServicesStart: '开始初始化基础服务...',
       templateList: '模板列表',
       createPromptService: '创建提示词服务...',

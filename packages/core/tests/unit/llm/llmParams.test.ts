@@ -130,6 +130,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
     it('should use custom parameters from llmParams', async () => {
       const storage = new LocalStorageProvider();
       const modelManager = new ModelManager(storage);
+      await modelManager.ensureInitialized();
       const llmService = createLLMService(modelManager);
 
       // Configure model with llmParams
@@ -162,6 +163,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
     it('should handle timeout parameter for OpenAI compatible providers', async () => {
       const storage = new LocalStorageProvider();
       const modelManager = new ModelManager(storage);
+      await modelManager.ensureInitialized();
       const llmService = createLLMService(modelManager);
 
       // Configure model with custom timeout
@@ -202,6 +204,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
     it('should use Gemini-specific parameters from llmParams', async () => {
       const storage = new LocalStorageProvider();
       const modelManager = new ModelManager(storage);
+      await modelManager.ensureInitialized();
       const llmService = createLLMService(modelManager);
 
       // Configure Gemini model with llmParams
@@ -351,6 +354,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
         it(`should accept valid temperature for ${config.provider} provider`, async () => {
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(config.key, {
@@ -383,6 +387,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
         it(`should accept valid top_p for ${config.provider} provider`, async () => {
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(config.key, {
@@ -415,6 +420,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
         it(`should accept valid max_tokens for ${config.provider} provider`, async () => {
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(config.key, {
@@ -447,6 +453,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
         it(`should accept valid frequency_penalty for ${config.provider} provider`, async () => {
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(config.key, {
@@ -484,6 +491,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
           await new Promise(resolve => setTimeout(resolve, 10000)); 
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(geminiConfig.key, {
@@ -511,6 +519,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
           await new Promise(resolve => setTimeout(resolve, 10000)); 
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(geminiConfig.key, {
@@ -543,6 +552,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
         it(`should handle multiple parameters for ${config.provider} provider`, async () => {
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(config.key, {
@@ -598,6 +608,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
         it(`should not set default values when not provided for ${config.provider}`, async () => {
           const storage = new LocalStorageProvider();
           const modelManager = new ModelManager(storage);
+          await modelManager.ensureInitialized();
           const llmService = createLLMService(modelManager);
 
           await modelManager.updateModel(config.key, {

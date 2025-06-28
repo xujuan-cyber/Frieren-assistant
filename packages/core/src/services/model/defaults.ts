@@ -2,7 +2,15 @@ import { ModelConfig } from './types';
 
 // 获取环境变量的辅助函数
 const getEnvVar = (key: string): string => {
-  // 0. 首先检查运行时配置
+  // 0. 在Electron渲染进程中，优先从主进程获取环境变量（确保状态一致）
+  if (typeof window !== 'undefined' && window.electronAPI) {
+    // 注意：这里是同步调用，但electronAPI.config.getEnvironmentVariables是异步的
+    // 我们需要在初始化时异步获取，这里先返回空字符串
+    // 实际的环境变量将通过异步初始化设置
+    return '';
+  }
+
+  // 1. 首先检查运行时配置
   if (typeof window !== 'undefined' && window.runtime_config) {
     // 移除 VITE_ 前缀以匹配运行时配置中的键名
     const runtimeKey = key.replace('VITE_', '');
@@ -12,12 +20,12 @@ const getEnvVar = (key: string): string => {
     }
   }
 
-  // 1. 然后尝试 process.env
+  // 2. 然后尝试 process.env
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key] || '';
   }
 
-  // 2. 然后尝试 import.meta.env（Vite 环境）
+  // 3. 然后尝试 import.meta.env（Vite 环境）
   try {
     // @ts-ignore - 在构建时忽略此错误
     if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -29,7 +37,7 @@ const getEnvVar = (key: string): string => {
     // 忽略错误
   }
 
-  // 3. 最后返回空字符串
+  // 4. 最后返回空字符串
   return '';
 };
 

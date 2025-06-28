@@ -501,6 +501,7 @@ export default {
   },
   log: {
     info: {
+      initializing: 'Initializing...',
       initBaseServicesStart: 'Starting to initialize base services...',
       templateList: 'Template list',
       createPromptService: 'Creating prompt service...',

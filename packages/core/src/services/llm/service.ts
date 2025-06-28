@@ -5,6 +5,7 @@ import { APIError, RequestConfigError, ERROR_MESSAGES } from './errors';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { isVercel, getProxyUrl } from '../../utils/environment';
+import { ElectronLLMProxy, isRunningInElectron } from './electron-proxy';
 
 /**
  * LLM服务实现 - 基于官方SDK
@@ -69,10 +70,8 @@ export class LLMService implements ILLMService {
       processedBaseURL = processedBaseURL.slice(0, -'/chat/completions'.length);
     }
 
-    // 使用代理处理跨域问题
+    // 使用代理处理跨域问题（仅在 Vercel 环境）
     let finalBaseURL = processedBaseURL;
-    // 如果模型配置启用了Vercel代理且当前环境是Vercel，则使用代理
-    // 允许所有API包括OpenAI使用代理
     if (modelConfig.useVercelProxy === true && isVercel() && processedBaseURL) {
       finalBaseURL = getProxyUrl(processedBaseURL, isStream);
       console.log(`使用${isStream ? '流式' : ''}API代理:`, finalBaseURL);
@@ -83,13 +82,20 @@ export class LLMService implements ILLMService {
     const timeout = modelConfig.llmParams?.timeout !== undefined
                     ? modelConfig.llmParams.timeout
                     : defaultTimeout;
+    
     const config: any = {
       apiKey: apiKey,
       baseURL: finalBaseURL,
-      dangerouslyAllowBrowser: true,
-      timeout: timeout, // Use the new timeout logic
+      timeout: timeout,
       maxRetries: isStream ? 2 : 3
     };
+
+    // In any browser-like environment, we must set this flag to true 
+    // to bypass the SDK's environment check.
+    if (typeof window !== 'undefined') {
+      config.dangerouslyAllowBrowser = true;
+      console.log('[LLM Service] Browser-like environment detected. Setting dangerouslyAllowBrowser=true.');
+    }
 
     const instance = new OpenAI(config);
 
@@ -101,7 +107,13 @@ export class LLMService implements ILLMService {
    */
   private getGeminiModel(modelConfig: ModelConfig, systemInstruction?: string, isStream: boolean = false): GenerativeModel {
     const apiKey = modelConfig.apiKey || '';
-    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // 创建GoogleGenerativeAI实例配置
+    const genAIConfig: any = {
+      apiKey: apiKey
+    };
+
+    const genAI = new GoogleGenerativeAI(genAIConfig);
 
     // 创建模型配置
     const modelOptions: any = {
@@ -118,10 +130,8 @@ export class LLMService implements ILLMService {
     if (processedBaseURL?.endsWith('/v1beta')) {
       processedBaseURL = processedBaseURL.slice(0, -'/v1beta'.length);
     }
-    // 使用代理处理跨域问题
+    // 使用代理处理跨域问题（仅在 Vercel 环境）
     let finalBaseURL = processedBaseURL;
-    // 如果模型配置启用了Vercel代理且当前环境是Vercel，则使用代理
-    // 允许所有API包括OpenAI使用代理
     if (modelConfig.useVercelProxy === true && isVercel() && processedBaseURL) {
       finalBaseURL = getProxyUrl(processedBaseURL, isStream);
       console.log(`使用${isStream ? '流式' : ''}API代理:`, finalBaseURL);
@@ -868,6 +878,14 @@ export class LLMService implements ILLMService {
 }
 
 // 导出工厂函数
-export function createLLMService(modelManager: ModelManager = defaultModelManager): LLMService {
+export function createLLMService(modelManager: ModelManager = defaultModelManager): ILLMService {
+  // 在Electron环境中，返回代理实例
+  if (isRunningInElectron()) {
+    console.log('[LLM Service Factory] Electron environment detected, creating ElectronLLMProxy');
+    return new ElectronLLMProxy();
+  }
+  
+  // 在Web环境中，返回真实的LLMService实例
+  console.log('[LLM Service Factory] Web environment detected, creating LLMService');
   return new LLMService(modelManager);
 } 

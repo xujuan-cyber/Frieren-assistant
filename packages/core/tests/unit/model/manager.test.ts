@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ModelManager } from '../../../src/services/model/manager';
+import { ModelManager, createModelManager } from '../../../src/services/model/manager';
 import { IStorageProvider } from '../../../src/services/storage/types';
 import { ModelConfig } from '../../../src/services/model/types';
 import { ModelConfigError } from '../../../src/services/llm/errors';
 import { defaultModels } from '../../../src/services/model/defaults';
 import { createMockStorage } from '../../mocks/mockStorage';
+import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
 
 // Helper to create a deep copy of defaultModels for isolated tests
 const getCleanDefaultModels = () => JSON.parse(JSON.stringify(defaultModels));
@@ -160,25 +161,31 @@ describe('ModelManager', () => {
 
   describe('getEnabledModels', () => {
     it('should return only enabled models', async () => {
-      // 先获取当前启用的模型数量（包括默认模型）
-      const initialEnabledModels = await modelManager.getEnabledModels();
-      const initialCount = initialEnabledModels.length;
+      // 创建一个新的 ModelManager 实例以便有一个干净的状态
+      const cleanStorage = new MemoryStorageProvider();
+      const cleanModelManager = createModelManager(cleanStorage);
 
-      const enabledModel = createModelConfig('EnabledModel', true);
+      // 添加一些测试模型
+      const enabledModel1 = createModelConfig('EnabledModel1', true);
+      const enabledModel2 = createModelConfig('EnabledModel2', true);
       const disabledModel = createModelConfig('DisabledModel', false);
 
-      await modelManager.addModel('test-enabled', enabledModel);
-      await modelManager.addModel('test-disabled', disabledModel);
+      await cleanModelManager.addModel('test-enabled-1', enabledModel1);
+      await cleanModelManager.addModel('test-enabled-2', enabledModel2);
+      await cleanModelManager.addModel('test-disabled', disabledModel);
 
-      const enabledModels = await modelManager.getEnabledModels();
+      const enabledModels = await cleanModelManager.getEnabledModels();
       
-      // 应该比初始数量多1个（新增的启用模型）
-      expect(enabledModels).toHaveLength(initialCount + 1);
+      // 应该只有2个启用的模型
+      expect(enabledModels).toHaveLength(2);
       
-      // 验证新添加的启用模型存在
-      const addedEnabledModel = enabledModels.find(m => m.key === 'test-enabled');
-      expect(addedEnabledModel).toBeDefined();
-      expect(addedEnabledModel?.name).toBe('EnabledModel');
+      // 验证启用的模型存在
+      const enabledModel1Found = enabledModels.find(m => m.key === 'test-enabled-1');
+      const enabledModel2Found = enabledModels.find(m => m.key === 'test-enabled-2');
+      expect(enabledModel1Found).toBeDefined();
+      expect(enabledModel1Found?.name).toBe('EnabledModel1');
+      expect(enabledModel2Found).toBeDefined();
+      expect(enabledModel2Found?.name).toBe('EnabledModel2');
       
       // 验证禁用的模型不存在
       const disabledModelInResults = enabledModels.find(m => m.key === 'test-disabled');

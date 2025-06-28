@@ -1,6 +1,5 @@
 import Dexie, { type Table } from 'dexie';
 import { IStorageProvider } from './types';
-import { LocalStorageProvider } from './localStorageProvider';
 
 /**
  * 数据表接口定义
@@ -38,162 +37,33 @@ class PromptOptimizerDB extends Dexie {
  */
 export class DexieStorageProvider implements IStorageProvider {
   private db: PromptOptimizerDB;
-  private migrated = false;
-  
-  // 全局静态迁移状态，防止多个实例重复迁移
-  private static globalMigrationCompleted = false;
-  private static migrationLock = Promise.resolve();
+  private dbOpened: Promise<void>;
   
   // 用于原子操作的锁机制
   private keyLocks = new Map<string, Promise<void>>();
 
   constructor() {
     this.db = new PromptOptimizerDB();
+    this.dbOpened = this.db.open().then(() => undefined).catch((error) => {
+      console.error('Failed to open Dexie database:', error);
+      // 抛出错误以使所有后续操作失败
+      throw error;
+    });
   }
 
   /**
-   * 初始化并执行数据迁移（如果需要）
+   * 确保数据库已打开
    */
   private async initialize(): Promise<void> {
-    if (this.migrated) return;
-
-    try {
-      // 检查是否需要从 localStorage 迁移数据
-      await this.migrateFromLocalStorage();
-      this.migrated = true;
-    } catch (error) {
-      console.error('Dexie storage initialization failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 从 localStorage 迁移数据到 Dexie
-   */
-  private async migrateFromLocalStorage(): Promise<void> {
-    // 使用原子锁确保迁移的线程安全
-    DexieStorageProvider.migrationLock = DexieStorageProvider.migrationLock.then(async () => {
-      // 如果全局迁移已完成，直接返回
-      if (DexieStorageProvider.globalMigrationCompleted) {
-        console.log('全局迁移已完成，跳过重复迁移');
-        return;
-      }
-
-      try {
-        await this.performMigration();
-        DexieStorageProvider.globalMigrationCompleted = true;
-        console.log('数据迁移成功完成');
-      } catch (error) {
-        console.error('数据迁移失败:', error);
-        // 迁移失败时重置状态，允许重试
-        DexieStorageProvider.globalMigrationCompleted = false;
-        throw error;
-      }
-    });
-    
-    await DexieStorageProvider.migrationLock;
-  }
-
-
-
-  /**
-   * 执行实际的迁移操作
-   */
-  private async performMigration(): Promise<void> {
-    try {
-      // 检查 Dexie 中是否已有数据
-      const existingCount = await this.db.storage.count();
-      if (existingCount > 0) {
-        console.log('Dexie存储已有数据，跳过迁移');
-        return;
-      }
-
-      // 检查是否已经迁移过（防止重复迁移）
-      const migrationFlag = 'dexie_migration_completed';
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const migrationCompleted = window.localStorage.getItem(migrationFlag);
-        if (migrationCompleted === 'true') {
-          console.log('数据迁移已完成，跳过重复迁移');
-          return;
-        }
-      }
-
-      // 获取 localStorage 中的所有数据
-      const localStorageProvider = new LocalStorageProvider();
-      const allLocalStorageData: Record<string, string> = {};
-      
-      // 遍历所有 localStorage 键
-      if (typeof window !== 'undefined' && window.localStorage) {
-        for (let i = 0; i < window.localStorage.length; i++) {
-          const key = window.localStorage.key(i);
-          if (key && !key.startsWith('dexie_')) { // 排除 Dexie 内部键
-            const value = await localStorageProvider.getItem(key);
-            if (value !== null) {
-              allLocalStorageData[key] = value;
-            }
-          }
-        }
-      }
-
-      const keysToMigrate = Object.keys(allLocalStorageData);
-      if (keysToMigrate.length === 0) {
-        console.log('localStorage中没有找到需要迁移的数据');
-        return;
-      }
-
-      console.log(`开始迁移localStorage数据，共发现 ${keysToMigrate.length} 个键:`, keysToMigrate);
-
-      // 批量迁移数据
-      const migratePromises = keysToMigrate.map(async (key) => {
-        try {
-          const value = allLocalStorageData[key];
-          await this.db.storage.put({
-            key,
-            value,
-            timestamp: Date.now()
-          });
-          console.log(`✅ 已迁移数据: ${key} (${Math.round(value.length / 1024)}KB)`);
-          return { key, success: true, size: value.length };
-        } catch (error) {
-          console.warn(`❌ 迁移数据失败 ${key}:`, error);
-          return { key, success: false, error };
-        }
-      });
-
-      const results = await Promise.all(migratePromises);
-      const successful = results.filter(r => r.success);
-      const failed = results.filter(r => !r.success);
-
-      console.log(`数据迁移完成: 成功 ${successful.length}/${keysToMigrate.length} 项`);
-      
-      if (failed.length > 0) {
-        console.warn(`迁移失败的键:`, failed.map(f => f.key));
-      }
-
-      // 标记迁移完成，防止重复迁移
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(migrationFlag, 'true');
-      }
-      
-      console.log('原localStorage数据已保留作为备份');
-      
-    } catch (error) {
-      console.error('数据迁移过程中出现错误:', error);
-      // 迁移失败不应该阻止 Dexie 的正常使用
-    }
+    await this.dbOpened;
   }
 
   /**
    * 重置迁移状态（主要用于测试）
    */
   static resetMigrationState(): void {
-    DexieStorageProvider.globalMigrationCompleted = false;
-    DexieStorageProvider.migrationLock = Promise.resolve();
-    
-    // 清除localStorage中的迁移标志
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('dexie_migration_completed');
-    }
+    // 因为迁移逻辑已移除，此函数不再需要
+    // 保留为空函数以避免破坏测试的API
   }
 
   /**

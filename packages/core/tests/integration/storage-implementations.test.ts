@@ -5,6 +5,9 @@ import { StorageFactory } from '../../src/services/storage/factory';
 import { HistoryManager } from '../../src/services/history/manager';
 import { TemplateManager } from '../../src/services/template/manager';
 import { ModelManager } from '../../src/services/model/manager';
+import { createTemplateManager } from '../../src/services/template/manager';
+import { createTemplateLanguageService } from '../../src/services/template/languageService';
+import { createModelManager } from '../../src/services/model/manager';
 import { IStorageProvider } from '../../src/services/storage/types';
 import { PromptRecord } from '../../src/services/history/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -317,8 +320,10 @@ describe('存储实现通用测试', () => {
       describe('TemplateManager 集成测试', () => {
         let templateManager: TemplateManager;
 
-        beforeEach(() => {
-          templateManager = new TemplateManager(storageProvider);
+        beforeEach(async () => {
+          const languageService = createTemplateLanguageService(storageProvider);
+          templateManager = createTemplateManager(storageProvider, languageService);
+          await templateManager.ensureInitialized();
         });
 
         it('应该能够保存和获取模板', async () => {
@@ -382,8 +387,8 @@ describe('存储实现通用测试', () => {
       describe('ModelManager 集成测试', () => {
         let modelManager: ModelManager;
 
-        beforeEach(() => {
-          modelManager = new ModelManager(storageProvider);
+        beforeEach(async () => {
+          modelManager = createModelManager(storageProvider);
         });
 
         it('应该能够添加和获取模型配置', async () => {

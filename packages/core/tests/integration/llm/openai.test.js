@@ -276,7 +276,7 @@ describe('OpenAI API 真实连接测试', () => {
       console.error('兼容性测试失败:', error);
       throw error;
     }
-  },60000);
+  },120000);
 
   it('应该能正确处理reasoning_content的流式输出', async () => {
     const storage = new LocalStorageProvider();

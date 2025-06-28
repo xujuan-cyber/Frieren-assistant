@@ -1,5 +1,9 @@
 <template>
-  <MainLayoutUI>
+  <div v-if="isInitializing" class="fullscreen-loading">
+    <div class="spinner"></div>
+    <p>{{ $t('log.info.initializing') }}</p>
+  </div>
+  <MainLayoutUI v-else>
     <!-- 标题插槽 -->
     <template #title>
       {{ $t('promptOptimizer.title') }}
@@ -192,12 +196,16 @@ import {
   modelManager,
   templateManager,
   historyManager,
+  storageProvider,
   // 类型
   type OptimizationMode
 } from '@prompt-optimizer/ui'
 
-// 初始化主题
-onMounted(() => {
+// 初始化状态
+const isInitializing = ref(true)
+
+// 初始化主题和异步服务
+onMounted(async () => {
   // 检查本地存储的主题偏好
   const savedTheme = localStorage.getItem('theme')
   
@@ -209,6 +217,23 @@ onMounted(() => {
     document.documentElement.classList.add(savedTheme)
   } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
     document.documentElement.classList.add('dark')
+  }
+
+  // 确保核心服务已初始化
+  try {
+    // 1. 强制初始化存储
+    await storageProvider.initialize()
+    console.log('Storage provider initialized successfully.')
+
+    // 2. 初始化上层服务
+    await initBaseServices()
+    console.log('Base services initialized successfully.')
+
+    // 3. 所有初始化完成，显示UI
+    isInitializing.value = false
+  } catch (error) {
+    console.error('Application initialization failed:', error)
+    toast.error(t('toast.error.appInitFailed'))
   }
 })
 
@@ -228,7 +253,8 @@ const handleOptimizationModeChange = (mode: OptimizationMode) => {
 
 // 初始化服务
 const {
-  promptServiceRef
+  promptServiceRef,
+  initBaseServices
 } = useServiceInitializer(modelManager, templateManager, historyManager)
 
 // 初始化模型选择器
@@ -382,3 +408,39 @@ const openGithubRepo = () => {
   window.open('https://github.com/linshenkx/prompt-optimizer', '_blank')
 }
 </script>
+
+<style scoped>
+.fullscreen-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  z-index: 9999;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: var(--primary-color);
+  animation: spin 1s ease infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>

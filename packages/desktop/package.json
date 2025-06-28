@@ -1,0 +1,50 @@
+{
+  "name": "@prompt-optimizer/desktop",
+  "version": "1.0.0",
+  "description": "Desktop application for Prompt Optimizer",
+  "main": "main.js",
+  "scripts": {
+    "build": "pnpm run build:web && pnpm run package",
+    "build:web": "cd ../web && cross-env ELECTRON_BUILD=true vite build --base=./ && (robocopy dist ..\\\\desktop\\\\web-dist /E /NFL /NDL /NJH /NJS /NC /NS /NP || exit 0)",
+    "package": "electron-builder",
+    "dev": "cross-env NODE_ENV=development electron ."
+  },
+  "devDependencies": {
+    "electron": "^37.1.0",
+    "electron-builder": "^24.0.0",
+    "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "build": {
+    "appId": "com.promptoptimizer.desktop",
+    "productName": "Prompt Optimizer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web-dist/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "keywords": [
+    "electron",
+    "prompt",
+    "optimizer"
+  ],
+  "author": "Prompt Optimizer Team",
+  "license": "MIT"
+}

@@ -1,8 +1,9 @@
 import { IStorageProvider } from './types';
 import { LocalStorageProvider } from './localStorageProvider';
 import { DexieStorageProvider } from './dexieStorageProvider';
+import { MemoryStorageProvider } from './memoryStorageProvider';
 
-export type StorageType = 'localStorage' | 'dexie';
+export type StorageType = 'localStorage' | 'dexie' | 'memory';
 
 /**
  * 存储工厂类
@@ -30,6 +31,9 @@ export class StorageFactory {
         break;
       case 'dexie':
         instance = new DexieStorageProvider();
+        break;
+      case 'memory':
+        instance = new MemoryStorageProvider();
         break;
       default:
         throw new Error(`Unsupported storage type: ${type}`);
@@ -90,6 +94,9 @@ export class StorageFactory {
    */
   static getSupportedTypes(): StorageType[] {
     const types: StorageType[] = [];
+
+    // memory 存储总是支持的
+    types.push('memory');
 
     // 检查 localStorage 支持
     if (typeof window !== 'undefined' && window.localStorage) {

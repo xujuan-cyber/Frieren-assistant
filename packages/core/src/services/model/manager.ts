@@ -5,6 +5,7 @@ import { StorageAdapter } from '../storage/adapter';
 import { defaultModels } from './defaults';
 import { ModelConfigError } from '../llm/errors';
 import { validateLLMParams } from './validation';
+import { ElectronConfigManager, isElectronRenderer } from './electron-config';
 
 /**
  * 模型管理器实现
@@ -28,7 +29,7 @@ export class ModelManager implements IModelManager {
   /**
    * 确保初始化完成
    */
-  private async ensureInitialized(): Promise<void> {
+  public async ensureInitialized(): Promise<void> {
     await this.initPromise;
   }
 
@@ -37,70 +38,93 @@ export class ModelManager implements IModelManager {
    */
   private async init(): Promise<void> {
     try {
-      // 1. 先从本地存储加载所有模型配置
+      console.log('[ModelManager] Initializing...');
+      
+      // 在Electron渲染进程中，先同步环境变量
+      if (isElectronRenderer()) {
+        console.log('[ModelManager] Electron environment detected, syncing config from main process...');
+        const configManager = ElectronConfigManager.getInstance();
+        await configManager.syncFromMainProcess();
+        console.log('[ModelManager] Environment variables synced from main process');
+      }
+      
+      // 从存储中加载现有配置
       const storedData = await this.storage.getItem(this.storageKey);
-
-      if (!storedData) {
-        // 首次运行，存储中没有数据，默认模型写入存储
-        await this.saveToStorage();
-        return;
+      
+      if (storedData) {
+        try {
+          this.models = JSON.parse(storedData);
+          console.log('[ModelManager] Loaded existing models from storage');
+        } catch (error) {
+          console.error('[ModelManager] Failed to parse stored models, using defaults:', error);
+          this.models = this.getDefaultModels();
+        }
+      } else {
+        console.log('[ModelManager] No existing models found, using defaults');
+        this.models = this.getDefaultModels();
       }
 
-      this.models = JSON.parse(storedData);
+      // 确保所有默认模型都存在，但保留用户的自定义配置
+      const defaults = this.getDefaultModels();
+      let hasUpdates = false;
 
-      // 2. 检查内置模型是否存在，不存在则添加到本地存储
-      let hasChanges = false;
-      Object.entries(defaultModels).forEach(([key, config]) => {
+      for (const [key, defaultConfig] of Object.entries(defaults)) {
         if (!this.models[key]) {
-          this.models[key] = { 
-            ...config,
-            // Deep copy llmParams to avoid reference sharing
-            ...(config.llmParams && { llmParams: { ...config.llmParams } })
+          // 添加缺失的默认模型
+          this.models[key] = defaultConfig;
+          hasUpdates = true;
+          console.log(`[ModelManager] Added missing default model: ${key}`);
+        } else {
+          // 更新现有模型的默认字段（保留用户的 apiKey 和 enabled 状态）
+          const existingModel = this.models[key];
+          const updatedModel = {
+            ...defaultConfig,
+            // 保留用户配置的关键字段
+            apiKey: existingModel.apiKey || defaultConfig.apiKey,
+            enabled: existingModel.enabled !== undefined ? existingModel.enabled : defaultConfig.enabled,
+            // 保留用户的自定义 llmParams
+            llmParams: existingModel.llmParams || defaultConfig.llmParams
           };
-          hasChanges = true;
-        } else { // Model exists in storage, check for llmParams updates
-          let modelUpdated = false;
-          if (config.llmParams) { // If default config has llmParams
-            if (!this.models[key].llmParams) { // If stored model has no llmParams
-              this.models[key].llmParams = { ...config.llmParams };
-              modelUpdated = true;
-            } else { // Stored model has llmParams, merge new default keys
-              for (const paramKey in config.llmParams) {
-                if (this.models[key].llmParams[paramKey] === undefined && config.llmParams.hasOwnProperty(paramKey)) {
-                  this.models[key].llmParams[paramKey] = config.llmParams[paramKey];
-                  modelUpdated = true;
-                }
-              }
-            }
-          }
-          // Ensure llmParams is an object if it was created/modified
-          if (this.models[key].llmParams && (typeof this.models[key].llmParams !== 'object' || this.models[key].llmParams === null)) {
-            this.models[key].llmParams = {}; // Initialize to empty object if invalid
-            modelUpdated = true;
-          }
 
-          // Remove old top-level properties if they exist on stored model
-          const oldParams = ['maxTokens', 'temperature', 'timeout'];
-          for (const oldParam of oldParams) {
-            if (this.models[key].hasOwnProperty(oldParam)) {
-              delete (this.models[key] as any)[oldParam];
-              modelUpdated = true;
-            }
-          }
-
-          if (modelUpdated) {
-            hasChanges = true;
+          // 检查是否有变化
+          if (JSON.stringify(this.models[key]) !== JSON.stringify(updatedModel)) {
+            this.models[key] = updatedModel;
+            hasUpdates = true;
+            console.log(`[ModelManager] Updated default model: ${key}`);
           }
         }
-      });
-
-      // 3. 如果有新增的内置模型，保存到本地存储
-      if (hasChanges) {
-        await this.saveToStorage();
       }
+
+      // 如果有更新，保存到存储
+      if (hasUpdates) {
+        await this.saveToStorage();
+        console.log('[ModelManager] Saved updated models to storage');
+      }
+
+      console.log('[ModelManager] Initialization completed');
     } catch (error) {
-      console.error('Model manager initialization failed:', error);
+      console.error('[ModelManager] Initialization failed:', error);
+      // 如果初始化失败，至少使用默认配置
+      this.models = this.getDefaultModels();
     }
+  }
+
+  /**
+   * 获取默认模型配置
+   */
+  private getDefaultModels(): Record<string, ModelConfig> {
+    // 在Electron环境下使用配置管理器生成配置
+    if (isElectronRenderer()) {
+      const configManager = ElectronConfigManager.getInstance();
+      if (configManager.isInitialized()) {
+        return configManager.generateDefaultModels();
+      } else {
+        console.warn('[ModelManager] ElectronConfigManager not initialized, using fallback defaults');
+      }
+    }
+    
+    // 否则使用原有的默认配置
+    return defaultModels;
   }
 
   /**
@@ -393,5 +417,11 @@ export class ModelManager implements IModelManager {
   }
 }
 
-// 导出单例实例
-export const modelManager = new ModelManager(StorageFactory.createDefault());
+/**
+ * 创建模型管理器的工厂函数
+ * @param storageProvider 存储提供器实例
+ * @returns 模型管理器实例
+ */
+export function createModelManager(storageProvider: IStorageProvider): ModelManager {
+  return new ModelManager(storageProvider);
+}

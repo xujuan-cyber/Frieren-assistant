@@ -114,5 +114,11 @@ export class TemplateLanguageService {
   }
 }
 
-// Export singleton instance
-export const templateLanguageService = new TemplateLanguageService();
+/**
+ * 创建模板语言服务实例的工厂函数
+ * @param storageProvider 存储提供器实例
+ * @returns 模板语言服务实例
+ */
+export function createTemplateLanguageService(storageProvider: IStorageProvider): TemplateLanguageService {
+  return new TemplateLanguageService(storageProvider);
+}

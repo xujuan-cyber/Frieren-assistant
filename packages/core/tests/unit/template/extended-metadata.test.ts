@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TemplateManager } from '../../../src/services/template/manager';
-import { createMockStorage } from '../../mocks/mockStorage';
+import { createTemplateManager } from '../../../src/services/template/manager';
+import { createTemplateLanguageService } from '../../../src/services/template/languageService';
+import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
 
 describe('Extended Metadata Fields Support', () => {
-  let templateManager: TemplateManager;
+  let templateManager: any;
+  let storageProvider: MemoryStorageProvider;
+  let languageService: any;
 
   beforeEach(async () => {
-    const mockStorage = createMockStorage();
-    templateManager = new TemplateManager(mockStorage);
+    storageProvider = new MemoryStorageProvider();
+    languageService = createTemplateLanguageService(storageProvider);
+    templateManager = createTemplateManager(storageProvider, languageService);
     await templateManager.ensureInitialized();
   });
 

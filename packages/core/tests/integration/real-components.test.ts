@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { ModelManager, HistoryManager, TemplateManager, PromptService, DataManager } from '../../src'
 import { LocalStorageProvider } from '../../src/services/storage/localStorageProvider'
 import { createLLMService } from '../../src/services/llm/service'
+import { createTemplateManager } from '../../src/services/template/manager'
+import { createTemplateLanguageService } from '../../src/services/template/languageService'
+import { createModelManager } from '../../src/services/model/manager'
+import { createHistoryManager } from '../../src/services/history/manager'
 import { Template } from '../../src/services/template/types'
 
 /**
@@ -19,9 +23,13 @@ describe('Real Components Integration Tests', () => {
   beforeEach(async () => {
     // 使用真实的LocalStorageProvider
     storage = new LocalStorageProvider()
-    modelManager = new ModelManager(storage)
-    historyManager = new HistoryManager(storage)
-    templateManager = new TemplateManager(storage)
+    modelManager = createModelManager(storage)
+    historyManager = createHistoryManager(storage)
+    
+    const languageService = createTemplateLanguageService(storage)
+    templateManager = createTemplateManager(storage, languageService)
+    await templateManager.ensureInitialized()
+    
     dataManager = new DataManager(historyManager, modelManager, templateManager)
     
     const llmService = createLLMService(modelManager)

@@ -5,6 +5,10 @@ import { TemplateManager } from '../../../src/services/template/manager';
 import { HistoryManager } from '../../../src/services/history/manager';
 import { LocalStorageProvider } from '../../../src/services/storage/localStorageProvider';
 import { createLLMService } from '../../../src/services/llm/service';
+import { createTemplateManager } from '../../../src/services/template/manager';
+import { createTemplateLanguageService } from '../../../src/services/template/languageService';
+import { createModelManager } from '../../../src/services/model/manager';
+import { createHistoryManager } from '../../../src/services/history/manager';
 import { Template, MessageTemplate } from '../../../src/services/template/types';
 
 /**
@@ -30,10 +34,14 @@ describe('PromptService Integration Tests', () => {
   beforeEach(async () => {
     // 初始化存储和管理器
     storage = new LocalStorageProvider();
-    modelManager = new ModelManager(storage);
+    modelManager = createModelManager(storage);
     llmService = createLLMService(modelManager);
-    templateManager = new TemplateManager(storage);
-    historyManager = new HistoryManager(storage);
+    
+    const languageService = createTemplateLanguageService(storage);
+    templateManager = createTemplateManager(storage, languageService);
+    await templateManager.ensureInitialized();
+    
+    historyManager = createHistoryManager(storage);
 
     // 初始化服务
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager);
