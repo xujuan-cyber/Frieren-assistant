@@ -276,6 +276,14 @@
 - 2024-02-14: 重构提示词服务
 - 2024-02-12: 重构UI组件结构
 
+- **2024-07-28**:
+  - **完成 Composable 重构后的大规模修复**：
+    - 解决了因 `ref` 迁移到 `reactive` 引起的系列问题。
+    - 修复了 `templateLanguageService` 依赖注入失败的 bug。
+    - 使用 `toRef` 优雅地解决了 `useTemplateManager` 与 `usePromptOptimizer` 之间响应式状态传递的接口不匹配问题。
+    - 修复了 i18n 键值缺失和 Vercel API 检测误报的警告。
+  - **状态**: 应用初始化流程恢复稳定，核心功能回归正常。
+
 ## 13. Chrome扩展开发经验
 
 ### 13.1 图标问题排查

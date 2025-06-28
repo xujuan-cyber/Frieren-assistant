@@ -214,4 +214,12 @@ export class CompareService implements ICompareService {
     
     return summary;
   }
+}
+
+/**
+ * 创建文本对比服务实例
+ * @returns 文本对比服务实例
+ */
+export function createCompareService(): ICompareService {
+  return new CompareService();
 } 

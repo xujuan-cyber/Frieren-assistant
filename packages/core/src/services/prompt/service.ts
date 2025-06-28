@@ -541,7 +541,12 @@ export class PromptService implements IPromptService {
 }
 
 /**
- * 创建 PromptService 实例
+ * 工厂函数，用于创建 PromptService 实例
+ * @param modelManager 模型管理器
+ * @param llmService LLM服务
+ * @param templateManager 模板管理器
+ * @param historyManager 历史记录管理器
+ * @returns IPromptService 实例
  */
 export function createPromptService(
   modelManager: IModelManager,

@@ -69,4 +69,6 @@ export interface IPromptService {
     modelKey: string,
     callbacks: StreamHandlers
   ): Promise<void>;
-} 
+}
+
+export type { StreamHandlers }; 

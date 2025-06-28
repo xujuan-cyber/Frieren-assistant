@@ -1,9 +1,9 @@
 // Core package entry point
 
 // 导出模板相关
-export { TemplateManager, templateManager, createTemplateManager } from './services/template/manager'
+export { TemplateManager, createTemplateManager } from './services/template/manager'
 export { TemplateProcessor } from './services/template/processor'
-export { TemplateLanguageService, templateLanguageService } from './services/template/languageService'
+export { TemplateLanguageService, createTemplateLanguageService } from './services/template/languageService'
 export type { BuiltinTemplateLanguage } from './services/template/languageService'
 export * from './services/template/types'
 export { StaticLoader } from './services/template/static-loader'
@@ -11,7 +11,7 @@ export * from './services/template/errors'
 export { ElectronTemplateManagerProxy } from './services/template/electron-proxy'
 
 // 导出历史记录相关
-export { HistoryManager, historyManager, createHistoryManager } from './services/history/manager'
+export { HistoryManager, createHistoryManager } from './services/history/manager'
 export * from './services/history/types'
 export * from './services/history/errors'
 export { ElectronHistoryManagerProxy } from './services/history/electron-proxy'
@@ -19,7 +19,7 @@ export { ElectronHistoryManagerProxy } from './services/history/electron-proxy'
 // 导出LLM服务相关
 export type { ILLMService, Message, StreamHandlers, LLMResponse, ModelInfo, ModelOption } from './services/llm/types'
 export { LLMService, createLLMService } from './services/llm/service'
-export { ElectronLLMProxy, isRunningInElectron } from './services/llm/electron-proxy'
+export { ElectronLLMProxy } from './services/llm/electron-proxy'
 export * from './services/llm/errors'
 
 // 导出模型管理相关
@@ -40,15 +40,18 @@ export { MemoryStorageProvider } from './services/storage/memoryStorageProvider'
 // 导出提示词服务相关
 export { PromptService, createPromptService } from './services/prompt/service'
 export * from './services/prompt/types'
+export { ElectronPromptServiceProxy } from './services/prompt/electron-proxy'
 export * from './services/prompt/errors'
 
 // 导出对比服务相关
-export { CompareService } from './services/compare/service'
+export { CompareService, createCompareService } from './services/compare/service'
+export type { ICompareService } from './services/compare/types'
 export * from './services/compare/types'
 export * from './services/compare/errors'
 
 // 导出数据管理相关
-export { DataManager, dataManager } from './services/data/manager'
+export { DataManager, createDataManager } from './services/data/manager'
+export type { IDataManager } from './services/data/manager'
 
-// 导出环境检测工具 (暂时注释，解决编译问题)
-// export { isVercel, getProxyUrl, checkVercelApiAvailability, resetVercelStatusCache } from './utils/environment'
+// 导出环境检测工具
+export { isRunningInElectron, checkVercelApiAvailability, resetVercelStatusCache, isBrowser, getProxyUrl } from './utils/environment'

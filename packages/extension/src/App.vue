@@ -1,384 +1,340 @@
 <template>
-  <MainLayoutUI>
-    <!-- 标题插槽 -->
-    <template #title>
-      {{ $t('promptOptimizer.title') }}
-    </template>
+  <div v-if="isInitializing" class="loading-container">
+    <div class="spinner"></div>
+    <p>{{ t('log.info.initializing') }}</p>
+  </div>
+  <div v-else-if="!services" class="loading-container error">
+    <p>{{ t('toast.error.appInitFailed') }}</p>
+  </div>
+  <template v-if="isReady">
+    <MainLayoutUI>
+      <!-- Title Slot -->
+      <template #title>
+        {{ $t('promptOptimizer.title') }}
+      </template>
 
-    <!-- 操作按钮插槽 -->
-    <template #actions>
-      <ThemeToggleUI />
-      <ActionButtonUI
-        icon="📝"
-        :text="$t('nav.templates')"
-        @click="openTemplateManager('optimize')"
-      />
-      <ActionButtonUI
-        icon="📜"
-        :text="$t('nav.history')"
-        @click="showHistory = true"
-      />
-      <ActionButtonUI
-        icon="⚙️"
-        :text="$t('nav.modelManager')"
-        @click="showConfig = true"
-      />
-      <ActionButtonUI
-        icon="💾"
-        :text="$t('nav.dataManager')"
-        @click="showDataManager = true"
-      />
-      <!-- GitHub 按钮 -->
-      <button
-        @click="openGithubRepo"
-        class="theme-icon-button"
-        title="GitHub"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-        </svg>
-      </button>
-      <LanguageSwitchUI />
-    </template>
-
-    <!-- 主要内容插槽 -->
-    <!-- 提示词区 -->
-    <ContentCardUI class="flex-1 min-w-0 flex flex-col">
-      <!-- 输入区域 -->
-      <div class="flex-none">
-        <InputPanelUI
-          v-model="prompt"
-          v-model:selectedModel="selectedOptimizeModel"
-          :label="promptInputLabel"
-          :placeholder="promptInputPlaceholder"
-          :model-label="$t('promptOptimizer.optimizeModel')"
-          :template-label="$t('promptOptimizer.templateLabel')"
-          :button-text="$t('promptOptimizer.optimize')"
-          :loading-text="$t('common.loading')"
-          :loading="isOptimizing"
-          :disabled="isOptimizing"
-          @submit="handleOptimizePrompt"
-          @configModel="showConfig = true"
+      <!-- Actions Slot -->
+      <template #actions>
+        <ThemeToggleUI />
+        <ActionButtonUI
+          icon="📝"
+          :text="$t('nav.templates')"
+          @click="openTemplateManager"
+        />
+        <ActionButtonUI
+          icon="📜"
+          :text="$t('nav.history')"
+          @click="showHistory = true"
+        />
+        <ActionButtonUI
+          icon="⚙️"
+          :text="$t('nav.modelManager')"
+          @click="showConfig = true"
+        />
+        <ActionButtonUI
+          icon="💾"
+          :text="$t('nav.dataManager')"
+          @click="showDataManager = true"
+        />
+        <button
+          @click="openGithubRepo"
+          class="theme-icon-button"
+          title="GitHub"
         >
-          <template #optimization-mode-selector>
-            <OptimizationModeSelectorUI
-              v-model="selectedOptimizationMode"
-              @change="handleOptimizationModeChange"
-            />
-          </template>
-          <template #model-select>
-            <ModelSelectUI
-              ref="optimizeModelSelect"
-              :modelValue="selectedOptimizeModel"
-              @update:modelValue="selectedOptimizeModel = $event"
-              :disabled="isOptimizing"
-              @config="showConfig = true"
-            />
-          </template>
-          <template #template-select>
-            <TemplateSelectUI
-              ref="templateSelectRef"
-              v-model="currentSelectedTemplate"
-              :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
-              :optimization-mode="selectedOptimizationMode"
-              @manage="openTemplateManager(selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize')"
-            />
-          </template>
-        </InputPanelUI>
-      </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </button>
+        <LanguageSwitchUI />
+      </template>
 
-      <!-- 优化结果区域 -->
-      <div class="flex-1 min-h-0">
-        <PromptPanelUI
-          v-model:optimized-prompt="optimizedPrompt"
-          :reasoning="optimizedReasoning"
-          :original-prompt="prompt"
-          :is-optimizing="isOptimizing"
-          :is-iterating="isIterating"
-          v-model:selected-iterate-template="selectedIterateTemplate"
-          :versions="currentVersions"
-          :current-version-id="currentVersionId"
-          @iterate="handleIteratePrompt"
-          @openTemplateManager="openTemplateManager"
-          @switchVersion="handleSwitchVersion"
-        />
-      </div>
-    </ContentCardUI>
+      <!-- Main Content -->
+      <ContentCardUI class="flex-1 min-w-0 flex flex-col">
+        <div class="flex-none">
+          <InputPanelUI
+            v-model="prompt"
+            v-model:selectedModel="selectedOptimizeModel"
+            :label="promptInputLabel"
+            :placeholder="promptInputPlaceholder"
+            :model-label="$t('promptOptimizer.optimizeModel')"
+            :template-label="$t('promptOptimizer.templateLabel')"
+            :button-text="$t('promptOptimizer.optimize')"
+            :loading-text="$t('common.loading')"
+            :loading="isOptimizing"
+            :disabled="isOptimizing"
+            @submit="handleOptimizePrompt"
+            @configModel="showConfig = true"
+          >
+            <template #optimization-mode-selector>
+              <OptimizationModeSelectorUI
+                v-model="selectedOptimizationMode"
+                @change="handleOptimizationModeChange"
+              />
+            </template>
+            <template #model-select>
+              <ModelSelectUI
+                ref="optimizeModelSelect"
+                :modelValue="selectedOptimizeModel"
+                @update:modelValue="selectedOptimizeModel = $event"
+                :disabled="isOptimizing"
+                @config="showConfig = true"
+              />
+            </template>
+            <template #template-select>
+              <TemplateSelectUI
+                v-model="currentSelectedTemplate"
+                :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
+                :optimization-mode="selectedOptimizationMode"
+                @manage="openTemplateManager"
+              />
+            </template>
+          </InputPanelUI>
+        </div>
+        <div class="flex-1 min-h-0">
+          <PromptPanelUI
+            v-model:optimized-prompt="optimizedPrompt"
+            :reasoning="optimizedReasoning"
+            :original-prompt="prompt"
+            :is-optimizing="isOptimizing"
+            :is-iterating="isIterating"
+            v-model:selected-iterate-template="selectedIterateTemplate"
+            :versions="currentVersions"
+            :current-version-id="currentVersionId"
+            @iterate="handleIteratePrompt"
+            @openTemplateManager="openTemplateManager"
+            @switchVersion="handleSwitchVersion"
+          />
+        </div>
+      </ContentCardUI>
 
-    <!-- 测试区域 -->
-    <TestPanelUI
-      class="flex-1 min-w-0 flex flex-col"
-      :prompt-service="promptServiceRef"
-      :original-prompt="prompt"
-      :optimized-prompt="optimizedPrompt"
-      :optimization-mode="selectedOptimizationMode"
-      v-model="selectedTestModel"
-      @showConfig="showConfig = true"
-    />
-
-    <!-- 弹窗插槽 -->
-    <template #modals>
-      <!-- 配置弹窗 -->
-      <Teleport to="body">
-        <ModelManagerUI
-          v-if="showConfig"
-          @close="handleModelManagerClose"
-          @modelsUpdated="handleModelsUpdated"
-          @select="handleModelSelect"
-        />
-      </Teleport>
-
-      <!-- 提示词管理弹窗 -->
-      <Teleport to="body">
-        <TemplateManagerUI
-          v-if="showTemplates"
-          :template-type="currentType"
-          :optimization-mode="selectedOptimizationMode"
-          :selected-optimize-template="selectedOptimizeTemplate"
-          :selected-user-optimize-template="selectedUserOptimizeTemplate"
-          :selected-iterate-template="selectedIterateTemplate"
-          @close="handleTemplateManagerClose"
-        />
-      </Teleport>
-
-      <!-- 历史记录弹窗 -->
-      <HistoryDrawerUI
-        v-model:show="showHistory"
-        :history="history"
-        @reuse="handleSelectHistory"
-        @clear="handleClearHistory"
-        @deleteChain="handleDeleteChain"
+      <TestPanelUI
+        ref="testPanelRef"
+        class="flex-1 min-w-0 flex flex-col"
+        :prompt-service="promptService"
+        :original-prompt="prompt"
+        :optimized-prompt="optimizedPrompt"
+        :optimization-mode="selectedOptimizationMode"
+        v-model="selectedTestModel"
+        @showConfig="showConfig = true"
       />
+    </MainLayoutUI>
 
-      <!-- 数据管理弹窗 -->
-      <DataManagerUI
-        :show="showDataManager"
-        @close="handleDataManagerClose"
-        @imported="handleDataImported"
-      />
-    </template>
-  </MainLayoutUI>
+    <!-- Modals and Drawers that are conditionally rendered -->
+    <ModelManagerUI v-if="isReady" v-model:show="showConfig" />
+    <TemplateManagerUI v-if="isReady" v-model:show="showTemplateManager" :type="currentTemplateManagerType" />
+    <HistoryDrawerUI v-if="isReady" v-model:show="showHistory" />
+    <DataManagerUI v-if="isReady" v-model:show="showDataManager" />
+
+    <ToastUI />
+  </template>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { ref, watch, provide, computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  // UI组件
-  ModelManagerUI,
-  ThemeToggleUI,
-  TemplateManagerUI,
-  HistoryDrawerUI,
-  MainLayoutUI,
-  ActionButtonUI,
-  TestPanelUI,
-  LanguageSwitchUI,
-  DataManagerUI,
-  InputPanelUI,
-  PromptPanelUI,
-  OptimizationModeSelectorUI,
-  ModelSelectUI,
-  TemplateSelectUI,
-  ContentCardUI,
-  // composables
+  // UI Components
+  MainLayoutUI, ThemeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
+  LanguageSwitchUI, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
+  ModelSelectUI, TemplateSelectUI, ContentCardUI, ToastUI, TestPanelUI,
+
+  // Composables
   usePromptOptimizer,
   useToast,
-  usePromptHistory,
-  useServiceInitializer,
-  useModelManager,
   useHistoryManager,
-  useModelSelectors,
-  // 服务
-  modelManager,
-  templateManager,
-  historyManager,
-  // 类型
-  type OptimizationMode
+  useModelManager,
+  useTemplateManager,
+  useAppInitializer,
+  usePromptHistory,
+
+  // Other
+  installI18n,
+
+  // Types from UI package
+  type OptimizationMode,
 } from '@prompt-optimizer/ui'
+import type { IPromptService } from '@prompt-optimizer/core'
 
-// 初始化主题
-onMounted(() => {
-  // 检查本地存储的主题偏好
-  const savedTheme = localStorage.getItem('theme')
-
-  // 移除所有主题类
-  document.documentElement.classList.remove('dark', 'theme-blue', 'theme-green', 'theme-purple')
-
-  // 应用保存的主题或系统偏好
-  if (savedTheme) {
-    document.documentElement.classList.add(savedTheme)
-  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.classList.add('dark')
-  }
-})
-
-// 初始化 toast
+// 1. Install i18n and setup basic composables
+installI18n()
+const { t } = useI18n()
 const toast = useToast()
 
-// 初始化国际化
-const { t } = useI18n()
+// 2. Initialize all application services
+const { services, isInitializing } = useAppInitializer()
 
-// 新增状态
-const selectedOptimizationMode = ref<OptimizationMode>('system')
+// 3. Provide services to all child components
+provide('services', services)
+provide('toast', toast)
 
-// 事件处理
+// 4. This flag controls the rendering of the main UI.
+const isReady = ref(false)
+
+// 5. Define placeholders for all state and functions.
+let promptService = shallowRef<IPromptService | null>(null)
+let prompt = ref('')
+let optimizedPrompt = ref('')
+let optimizedReasoning = ref('')
+let isOptimizing = ref(false)
+let isIterating = ref(false)
+let selectedOptimizeModel = ref('')
+let selectedTestModel = ref('')
+let selectedOptimizationMode = ref<OptimizationMode>('system')
+let selectedIterateTemplate = ref('')
+let currentVersions = ref<any[]>([])
+let currentVersionId = ref<string | null>(null)
+let currentChainId = ref<string | null>(null)
+let currentSelectedTemplate = ref('')
+let showConfig = ref(false)
+let showHistory = ref(false)
+let showDataManager = ref(false)
+let showTemplateManager = ref(false)
+let currentTemplateManagerType = ref<'optimize' | 'userOptimize' | 'iterate'>('optimize')
+
+let handleOptimizePrompt = () => {}
+let handleIteratePrompt = (payload: any) => {}
+let handleSwitchVersion = (versionId: string) => {}
+
+const optimizeModelSelect = ref(null)
+const testPanelRef = ref(null)
+
+// 6. Watch for services to become available, then initialize all business logic
+watch(services, (newServices) => {
+  if (!newServices) return
+
+  promptService.value = newServices.promptService;
+
+  const testModelSelect = computed(() => (testPanelRef.value as any)?.modelSelectRef || null)
+
+  const modelMgr = useModelManager({
+    modelManager: newServices.modelManager,
+    optimizeModelSelect: optimizeModelSelect,
+    testModelSelect: testModelSelect
+  });
+  showConfig = modelMgr.showConfig
+  selectedOptimizeModel = modelMgr.selectedOptimizeModel
+  selectedTestModel = modelMgr.selectedTestModel
+
+  const optimizer = usePromptOptimizer(
+    newServices.modelManager,
+    newServices.templateManager,
+    newServices.historyManager,
+    newServices.promptService,
+    selectedOptimizationMode,
+    selectedOptimizeModel,
+    selectedTestModel,
+  );
+  prompt = optimizer.prompt
+  optimizedPrompt = optimizer.optimizedPrompt
+  optimizedReasoning = optimizer.optimizedReasoning
+  isOptimizing = optimizer.isOptimizing
+  isIterating = optimizer.isIterating
+  selectedIterateTemplate = optimizer.selectedIterateTemplate
+  currentVersions = optimizer.currentVersions
+  currentVersionId = optimizer.currentVersionId
+  currentChainId = optimizer.currentChainId
+  handleOptimizePrompt = optimizer.handleOptimizePrompt
+  handleIteratePrompt = optimizer.handleIteratePrompt
+  handleSwitchVersion = optimizer.handleSwitchVersion
+
+  const promptHistory = usePromptHistory(
+    newServices.historyManager,
+    prompt,
+    optimizedPrompt,
+    currentChainId,
+    currentVersions,
+    currentVersionId
+  )
+
+  const historyMgr = useHistoryManager(
+    newServices.historyManager,
+    prompt,
+    optimizedPrompt,
+    currentChainId,
+    currentVersions,
+    currentVersionId,
+    promptHistory.handleSelectHistory,
+    promptHistory.handleClearHistory,
+    promptHistory.handleDeleteChain
+  )
+  showHistory = historyMgr.showHistory
+
+  const templateMgr = useTemplateManager({
+    templateManager: newServices.templateManager,
+    selectedOptimizeTemplate: optimizer.selectedOptimizeTemplate,
+    selectedIterateTemplate: optimizer.selectedIterateTemplate,
+    saveTemplateSelection: optimizer.saveTemplateSelection
+  })
+  showTemplateManager = templateMgr.showTemplates
+  currentTemplateManagerType = templateMgr.currentType
+
+  currentSelectedTemplate = computed({
+    get() {
+      return selectedOptimizationMode.value === 'system'
+        ? optimizer.selectedOptimizeTemplate.value
+        : optimizer.selectedUserOptimizeTemplate.value
+    },
+    set(newValue) {
+      if (!newValue) return;
+      if (selectedOptimizationMode.value === 'system') {
+        optimizer.selectedOptimizeTemplate.value = newValue
+      } else {
+        optimizer.selectedUserOptimizeTemplate.value = newValue
+      }
+    }
+  })
+
+  isReady.value = true
+  console.log('All services and composables initialized.')
+})
+
+// Helper functions for template
+const openGithubRepo = () => {
+  window.open('https://github.com/prompt-optimizer/prompt-optimizer', '_blank');
+}
+const openTemplateManager = () => {
+  currentTemplateManagerType.value = selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize'
+  showTemplateManager.value = true
+}
 const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
 }
-
-// 初始化服务
-const {
-  promptServiceRef
-} = useServiceInitializer(modelManager, templateManager, historyManager)
-
-// 初始化模型选择器
-const {
-  optimizeModelSelect,
-  testModelSelect
-} = useModelSelectors()
-
-// 初始化模型管理器
-const {
-  showConfig,
-  selectedOptimizeModel,
-  selectedTestModel,
-  handleModelManagerClose,
-  handleModelsUpdated,
-  handleModelSelect
-} = useModelManager({
-  modelManager,
-  optimizeModelSelect,
-  testModelSelect
-})
-
-// 初始化组合式函数
-const {
-  prompt,
-  optimizedPrompt,
-  optimizedReasoning,
-  isOptimizing,
-  isIterating,
-  selectedOptimizeTemplate,
-  selectedUserOptimizeTemplate,
-  selectedIterateTemplate,
-  currentVersions,
-  currentVersionId,
-  currentChainId,
-  handleOptimizePrompt,
-  handleIteratePrompt,
-  handleSwitchVersion
-} = usePromptOptimizer(
-  modelManager,
-  templateManager,
-  historyManager,
-  promptServiceRef,
-  selectedOptimizationMode,
-  selectedOptimizeModel,
-  selectedTestModel
-)
-
-// 计算属性：根据优化模式选择对应的模板
-const currentSelectedTemplate = computed({
-  get() {
-    return selectedOptimizationMode.value === 'system'
-      ? selectedOptimizeTemplate.value
-      : selectedUserOptimizeTemplate.value
-  },
-  set(newValue) {
-    if (!newValue) return;
-    if (selectedOptimizationMode.value === 'system') {
-      selectedOptimizeTemplate.value = newValue
-    } else {
-      selectedUserOptimizeTemplate.value = newValue
-    }
-  }
-})
-
-// 计算属性：动态标签
 const promptInputLabel = computed(() => {
-  return selectedOptimizationMode.value === 'system'
-    ? t('promptOptimizer.systemPromptInput')
-    : t('promptOptimizer.userPromptInput')
+  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPrompt') : t('promptOptimizer.userPrompt')
 })
-
 const promptInputPlaceholder = computed(() => {
-  return selectedOptimizationMode.value === 'system'
-    ? t('promptOptimizer.systemPromptPlaceholder')
-    : t('promptOptimizer.userPromptPlaceholder')
+  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPromptPlaceholder') : t('promptOptimizer.userPromptPlaceholder')
 })
-
-// 初始化历史记录管理器
-const {
-  history,
-  handleSelectHistory: handleSelectHistoryBase,
-  handleClearHistory: handleClearHistoryBase,
-  handleDeleteChain: handleDeleteChainBase
-} = usePromptHistory(
-  historyManager,
-  prompt,
-  optimizedPrompt,
-  currentChainId,
-  currentVersions,
-  currentVersionId
-)
-
-// 初始化历史记录管理器UI
-const {
-  showHistory,
-  handleSelectHistory,
-  handleClearHistory,
-  handleDeleteChain
-} = useHistoryManager(
-  historyManager,
-  prompt,
-  optimizedPrompt,
-  currentChainId,
-  currentVersions,
-  currentVersionId,
-  handleSelectHistoryBase,
-  handleClearHistoryBase,
-  handleDeleteChainBase
-)
-
-// Template Manager state
-const showTemplates = ref(false)
-const currentType = ref('')
-
-const openTemplateManager = (type: string) => {
-  currentType.value = type
-  showTemplates.value = true
-}
-
-// 模板选择器引用
-const templateSelectRef = ref()
-
-const handleTemplateManagerClose = () => {
-  showTemplates.value = false
-
-  // 刷新模板选择器以反映语言变更后的模板
-  // 子组件会通过 v-model 自动更新父组件的状态
-  if (templateSelectRef.value?.refresh) {
-    templateSelectRef.value.refresh()
-  }
-}
-
-// 数据管理器
-const showDataManager = ref(false)
-
-const handleDataManagerClose = () => {
-  showDataManager.value = false
-}
-
-const handleDataImported = () => {
-  // 数据导入后重新加载所有数据
-  toast.success(t('dataManager.import.successWithRefresh'))
-  setTimeout(() => {
-    window.location.reload()
-  }, 1000)
-}
-
-// GitHub 链接处理
-const openGithubRepo = () => {
-  window.open('https://github.com/linshenkx/prompt-optimizer', '_blank')
-}
 </script>
+
+<style scoped>
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.2rem;
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+.loading-container.error {
+  color: #f56c6c;
+}
+
+.spinner {
+  border: 4px solid rgba(128, 128, 128, 0.2);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: var(--primary-color);
+  animation: spin 1s ease infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>

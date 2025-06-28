@@ -94,6 +94,7 @@ export default {
     originalPrompt: '原始提示词',
     optimizeModel: '优化模型',
     templateLabel: '优化提示词',
+    originalPromptPlaceholder: '请输入需要优化的原始提示词...',
 
     // 新增：优化模式相关
     optimizationMode: '优化模式',
@@ -477,7 +478,8 @@ export default {
       noDefaultTemplate: '无法加载默认提示词',
       optimizeProcessFailed: '优化过程出错',
       testProcessError: '测试过程中发生错误',
-      initTemplateFailed: '初始化模板选择失败'
+      initTemplateFailed: '初始化模板选择失败',
+      appInitFailed: '应用初始化失败，请刷新或联系支持'
     },
     success: {
       optimizeSuccess: '优化成功',

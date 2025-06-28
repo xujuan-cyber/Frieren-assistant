@@ -23,7 +23,9 @@
               <span class="hidden md:inline">{{ t('templateManager.syntaxGuide') }}</span>
             </button>
             <!-- Built-in Template Language Switch -->
-            <BuiltinTemplateLanguageSwitch @language-changed="handleLanguageChanged" />
+            <BuiltinTemplateLanguageSwitch 
+              @language-changed="handleLanguageChanged" 
+            />
           </div>
           <div class="flex items-center space-x-4">
             <span v-if="selectedTemplate" class="text-sm theme-manager-text-secondary">
@@ -638,15 +640,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { templateManager, TemplateProcessor } from '@prompt-optimizer/core'
+import { TemplateProcessor } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import BuiltinTemplateLanguageSwitch from './BuiltinTemplateLanguageSwitch.vue'
 import { syntaxGuideContent } from '../docs/syntax-guide'
 
 const { t } = useI18n()
+
+// 通过依赖注入获取服务
+const services = inject('services', { value: null })
+const getTemplateManager = computed(() => services.value?.templateManager)
+const getTemplateLanguageService = computed(() => services.value?.templateLanguageService)
 
 const props = defineProps({
   selectedSystemOptimizeTemplate: Object,
@@ -773,9 +780,9 @@ const processedPreview = computed(() => {
 const loadTemplates = async () => {
   try {
     // Ensure template manager is initialized
-    await templateManager.ensureInitialized()
+    await getTemplateManager.value.ensureInitialized()
 
-    const allTemplates = templateManager.listTemplates()
+    const allTemplates = getTemplateManager.value.listTemplates()
     templates.value = allTemplates
     console.log('加载到的提示词:', templates.value)
   } catch (error) {
@@ -950,7 +957,7 @@ const applyMigration = async () => {
       }
     }
 
-    await templateManager.saveTemplate(updatedTemplate)
+    await getTemplateManager.value.saveTemplate(updatedTemplate)
     loadTemplates()
 
     // 如果当前选中的模板被更新，重新选择
@@ -958,7 +965,7 @@ const applyMigration = async () => {
 
     if (isCurrentSelected) {
       try {
-        const updated = templateManager.getTemplate(template.id)
+        const updated = getTemplateManager.value.getTemplate(template.id)
         if (updated) {
           const templateType = currentCategory.value === 'iterate' ? 'iterate' : 'optimize'
           emit('select', updated, templateType)
@@ -1013,14 +1020,14 @@ const handleSubmit = () => {
       metadata
     }
 
-    templateManager.saveTemplate(templateData)
+    getTemplateManager.value.saveTemplate(templateData)
     loadTemplates()
 
     const isCurrentSelected = getSelectedTemplateId() === templateData.id
 
     if (editingTemplate.value && isCurrentSelected) {
       try {
-        const updatedTemplate = templateManager.getTemplate(templateData.id)
+        const updatedTemplate = getTemplateManager.value.getTemplate(templateData.id)
         if (updatedTemplate) {
           emit('select', updatedTemplate, getCurrentTemplateType());
         }
@@ -1041,7 +1048,7 @@ const handleSubmit = () => {
 const confirmDelete = async (templateId) => {
   if (confirm(t('template.deleteConfirm'))) {
     try {
-      templateManager.deleteTemplate(templateId)
+      getTemplateManager.value.deleteTemplate(templateId)
       await loadTemplates()
 
       // 获取当前分类的剩余模板
@@ -1062,7 +1069,7 @@ const confirmDelete = async (templateId) => {
 // 导出提示词
 const exportTemplate = (templateId) => {
   try {
-    const templateJson = templateManager.exportTemplate(templateId)
+    const templateJson = getTemplateManager.value.exportTemplate(templateId)
     const blob = new Blob([templateJson], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -1088,7 +1095,7 @@ const handleFileImport = (event) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        templateManager.importTemplate(e.target.result)
+        getTemplateManager.value.importTemplate(e.target.result)
         loadTemplates()
         toast.success(t('template.success.imported'))
         event.target.value = ''
@@ -1164,7 +1171,7 @@ const syntaxGuideMarkdown = computed(() => {
     if (currentSelected && currentSelected.isBuiltin) {
       try {
         // 获取新语言版本的同一模板
-        const updatedTemplate = templateManager.getTemplate(currentSelected.id)
+        const updatedTemplate = getTemplateManager.value.getTemplate(currentSelected.id)
         if (updatedTemplate) {
           emit('select', updatedTemplate, getCurrentTemplateType());
         }

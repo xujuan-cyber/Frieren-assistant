@@ -20,6 +20,11 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
     return Promise.resolve();
   }
 
+  isInitialized(): boolean {
+    // 在代理模式下，我们假设主进程中的服务总是已初始化的
+    return true;
+  }
+
   getTemplate(templateId: string): Template {
     // 注意：ITemplateManager接口要求这是同步方法，但IPC是异步的
     // 这里需要抛出错误，因为代理模式下无法提供同步访问

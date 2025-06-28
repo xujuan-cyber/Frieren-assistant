@@ -150,8 +150,7 @@ import { useI18n } from 'vue-i18n'
 import { useClipboard } from '../composables/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
-import { compareService } from '@prompt-optimizer/core'
-import type { CompareResult } from '@prompt-optimizer/core'
+import type { CompareResult, ICompareService } from '@prompt-optimizer/core'
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning'
 
@@ -179,6 +178,9 @@ interface Props {
   // 状态
   loading?: boolean
   streaming?: boolean
+  
+  // 服务
+  compareService: ICompareService
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -311,12 +313,17 @@ const scrollReasoningToBottom = () => {
 const updateCompareResult = async () => {
   if (internalViewMode.value === 'diff' && props.originalContent && props.content) {
     try {
-      compareResult.value = await compareService.compareTexts(
+      if (!props.compareService) {
+        throw new Error('CompareService is required but not provided');
+      }
+      compareResult.value = await props.compareService.compareTexts(
         props.originalContent,
         props.content
       )
     } catch (error) {
-      console.error('Error calculating diff:', error)
+      console.error('Error calculating diff:', error);
+      // 重新抛出错误，让调用者处理
+      throw error;
     }
   } else {
     compareResult.value = undefined

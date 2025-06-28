@@ -61,9 +61,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { modelManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
 
 const { t } = useI18n()
@@ -76,6 +75,10 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  modelManager: {
+    type: Object,
+    required: false
   }
 })
 
@@ -85,6 +88,24 @@ const isOpen = ref(false)
 const refreshTrigger = ref(0)
 const vClickOutside = clickOutside
 
+// 从服务中注入modelManager，如果props中提供了则优先使用props
+const services = inject('services', null)
+const getModelManager = computed(() => {
+  // 优先使用props中的modelManager
+  if (props.modelManager) {
+    return props.modelManager
+  }
+  
+  // 其次尝试从services中获取
+  if (services && services.value && services.value.modelManager) {
+    return services.value.modelManager
+  }
+  
+  // 如果都没有，抛出错误
+  console.error('ModelManager not available. Please provide modelManager prop or inject services.')
+  return null
+})
+
 // 响应式数据存储
 const allModels = ref([])
 const enabledModels = ref([])
@@ -92,8 +113,13 @@ const enabledModels = ref([])
 // 加载模型数据
 const loadModels = async () => {
   try {
-    allModels.value = await modelManager.getAllModels()
-    enabledModels.value = await modelManager.getEnabledModels()
+    const manager = getModelManager.value
+    if (!manager) {
+      throw new Error('ModelManager not available')
+    }
+    
+    allModels.value = await manager.getAllModels()
+    enabledModels.value = await manager.getEnabledModels()
   } catch (error) {
     console.error('Failed to load models:', error)
     allModels.value = []

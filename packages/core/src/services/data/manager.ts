@@ -1,7 +1,6 @@
 import { IHistoryManager, PromptRecord } from '../history/types';
 import { IModelManager, ModelConfig } from '../model/types';
 import { ITemplateManager, Template } from '../template/types';
-import { StorageFactory } from '../storage/factory';
 import { IStorageProvider } from '../storage/types';
 
 interface AllData {
@@ -11,11 +10,27 @@ interface AllData {
   userSettings?: Record<string, string>; // UI配置数据
 }
 
+/**
+ * 数据管理器接口
+ */
+export interface IDataManager {
+  /**
+   * 导出所有数据
+   */
+  exportAllData(): Promise<string>;
+
+  /**
+   * 导入所有数据
+   * @param dataString JSON格式的数据字符串
+   */
+  importAllData(dataString: string): Promise<void>;
+}
+
 // 需要导出的UI配置键
 const UI_SETTINGS_KEYS = [
-  'theme-id',
-  'preferred-language',
-  'builtin-template-language',
+  'app:settings:ui:theme-id',
+  'app:settings:ui:preferred-language',
+  'app:settings:ui:builtin-template-language',
   'app:selected-optimize-model',
   'app:selected-test-model',
   'app:selected-optimize-template',
@@ -41,22 +56,28 @@ const isValidSettingValue = (value: any): value is string => {
          !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/.test(value); // 排除控制字符
 };
 
-export class DataManager {
+export class DataManager implements IDataManager {
   private storage: IStorageProvider;
+  private modelManager: IModelManager;
+  private templateManager: ITemplateManager;
+  private historyManager: IHistoryManager;
 
   constructor(
-    private historyManagerInstance: IHistoryManager,
-    private modelManagerInstance: IModelManager,
-    private templateManagerInstance: ITemplateManager,
-    storage?: IStorageProvider
+    modelManager: IModelManager,
+    templateManager: ITemplateManager,
+    historyManager: IHistoryManager,
+    storage: IStorageProvider
   ) {
-    this.storage = storage || StorageFactory.createDefault();
+    this.modelManager = modelManager;
+    this.templateManager = templateManager;
+    this.historyManager = historyManager;
+    this.storage = storage;
   }
 
   async exportAllData(): Promise<string> {
-    const historyRecords = await this.historyManagerInstance.getRecords();
-    const modelConfigs = await this.modelManagerInstance.getAllModels();
-    const allTemplates = await this.templateManagerInstance.listTemplates();
+    const historyRecords = await this.historyManager.getRecords();
+    const modelConfigs = await this.modelManager.getAllModels();
+    const allTemplates = await this.templateManager.listTemplates();
     
     // Only export user templates (isBuiltin = false)
     const userTemplates = allTemplates.filter(template => !template.isBuiltin);
@@ -81,7 +102,12 @@ export class DataManager {
       userSettings
     };
     
-    return JSON.stringify(data, null, 2); // 格式化输出，便于调试
+    const exportFormat = {
+      version: 1,
+      data
+    };
+    
+    return JSON.stringify(exportFormat, null, 2); // 格式化输出，便于调试
   }
 
   async importAllData(dataString: string): Promise<void> {
@@ -97,7 +123,24 @@ export class DataManager {
       throw new Error('Invalid data format: data must be an object');
     }
     
-    const typedData = data as AllData;
+    // Support both old and new format for backward compatibility
+    let typedData: AllData;
+    const parsedData = data as any;
+    
+    // New format: { version: 1, data: { ... } }
+    if (parsedData.version) {
+      if (!parsedData.data || typeof parsedData.data !== 'object' || Array.isArray(parsedData.data)) {
+        throw new Error('Invalid data format: "data" property is missing or not an object');
+      }
+      typedData = parsedData.data as AllData;
+    }
+    // Old format: direct data object { history: [...], models: [...], ... }
+    else if (parsedData.history || parsedData.models || parsedData.userTemplates || parsedData.userSettings) {
+      typedData = parsedData as AllData;
+    }
+    else {
+      throw new Error('Invalid data format: unrecognized data structure');
+    }
     
     // Import history records
     if (typedData.history !== undefined) {
@@ -105,14 +148,14 @@ export class DataManager {
         throw new Error('Invalid history format: must be an array');
       }
       
-      await this.historyManagerInstance.clearHistory();
+      await this.historyManager.clearHistory();
       
       const failedRecords: { record: PromptRecord; error: Error }[] = [];
       
       // Import each record individually, capturing failures
       for (const record of typedData.history) {
         try {
-          await this.historyManagerInstance.addRecord(record);
+          await this.historyManager.addRecord(record);
         } catch (error) {
           console.warn('Failed to import history record:', error);
           failedRecords.push({ record, error: error as Error });
@@ -142,7 +185,7 @@ export class DataManager {
           }
           
           // 检查模型是否已存在（包括内置模型）
-          const existingModel = await this.modelManagerInstance.getModel(model.key);
+          const existingModel = await this.modelManager.getModel(model.key);
           
           if (existingModel) {
             // 内置模型和自定义模型都允许更新配置，使用导入文件中的启用状态
@@ -157,7 +200,7 @@ export class DataManager {
               ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
               ...(model.llmParams !== undefined && { llmParams: model.llmParams })
             };
-            await this.modelManagerInstance.updateModel(model.key, mergedConfig);
+            await this.modelManager.updateModel(model.key, mergedConfig);
             console.log(`Model ${model.key} already exists, configuration updated (using imported enabled status: ${mergedConfig.enabled})`);
           } else {
             // 如果模型不存在，添加新的自定义模型，使用导入文件中的启用状态
@@ -172,7 +215,7 @@ export class DataManager {
               ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
               ...(model.llmParams !== undefined && { llmParams: model.llmParams })
             };
-            await this.modelManagerInstance.addModel(model.key, newModelConfig);
+            await this.modelManager.addModel(model.key, newModelConfig);
             console.log(`Imported new model ${model.key} (enabled: ${newModelConfig.enabled})`);
           }
         } catch (error) {
@@ -193,7 +236,7 @@ export class DataManager {
       }
       
       // Get existing user templates to clean up
-      const existingTemplates = await this.templateManagerInstance.listTemplates();
+      const existingTemplates = await this.templateManager.listTemplates();
       const userTemplateIds = existingTemplates
         .filter(template => !template.isBuiltin)
         .map(template => template.id);
@@ -201,7 +244,7 @@ export class DataManager {
       // Delete all existing user templates
       for (const id of userTemplateIds) {
         try {
-          await this.templateManagerInstance.deleteTemplate(id);
+          await this.templateManager.deleteTemplate(id);
         } catch (error) {
           console.warn(`Failed to delete template ${id}:`, error);
         }
@@ -248,7 +291,7 @@ export class DataManager {
             }
           };
           
-          await this.templateManagerInstance.saveTemplate(userTemplate);
+          await this.templateManager.saveTemplate(userTemplate);
           console.log(`Imported template: ${finalTemplateId} (${finalTemplateName})`);
         } catch (error) {
           console.warn('Failed to import template:', error);
@@ -299,18 +342,18 @@ export class DataManager {
 }
 
 /**
- * 工厂函数：创建 DataManager 实例
- * @param historyManager HistoryManager 的实例
- * @param modelManager ModelManager 的实例
- * @param templateManager TemplateManager 的实例
- * @param storage (可选) IStorageProvider 的实例
- * @returns DataManager 的新实例
+ * 创建数据管理器的工厂函数
+ * @param modelManager 模型管理器实例
+ * @param templateManager 模板管理器实例
+ * @param historyManager 历史记录管理器实例
+ * @param storage 存储提供器实例
+ * @returns 数据管理器实例
  */
 export function createDataManager(
-  historyManager: IHistoryManager,
   modelManager: IModelManager,
   templateManager: ITemplateManager,
-  storage?: IStorageProvider
+  historyManager: IHistoryManager,
+  storage: IStorageProvider
 ): DataManager {
-  return new DataManager(historyManager, modelManager, templateManager, storage);
+  return new DataManager(modelManager, templateManager, historyManager, storage);
 }

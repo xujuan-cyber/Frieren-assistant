@@ -475,7 +475,7 @@ describe('LLM Parameters (llmParams) Functionality', () => {
             expect(response).toBeDefined();
             expect(typeof response).toBe('string');
             expect(response.length).toBeGreaterThan(0);
-        }, 20000);
+        }, 60000);
       });
     });
 
@@ -542,6 +542,10 @@ describe('LLM Parameters (llmParams) Functionality', () => {
             expect(typeof response).toBe('string');
             expect(response.length).toBeGreaterThan(0);
         }, 60000);
+      } else {
+        it('should skip Gemini tests when API key is not available', () => {
+          expect(true).toBe(true); // 占位测试，确保套件不为空
+        });
       }
     });
 

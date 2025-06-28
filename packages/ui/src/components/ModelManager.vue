@@ -488,14 +488,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'; // Added computed
+import { ref, onMounted, watch, computed, inject } from 'vue'; // Added computed and inject
 import { useI18n } from 'vue-i18n';
 import { 
-  modelManager,
   createLLMService,
+  advancedParameterDefinitions,
   checkVercelApiAvailability,
-  resetVercelStatusCache,
-  advancedParameterDefinitions // NEW IMPORT
+  resetVercelStatusCache
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
@@ -503,6 +502,14 @@ import InputWithSelect from './InputWithSelect.vue'
 const { t } = useI18n()
 const toast = useToast();
 const emit = defineEmits(['modelsUpdated', 'close', 'select']);
+
+// 通过依赖注入获取服务
+const services = inject('services');
+if (!services) {
+  throw new Error('Services not provided!');
+}
+const modelManager = services.value.modelManager;
+const llmService = services.value.llmService;
 
 // =============== 状态变量 ===============
 // UI状态
@@ -598,8 +605,8 @@ const testConnection = async (key) => {
     const model = await modelManager.getModel(key);
     if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
-    const llm = createLLMService(modelManager);
-    await llm.testConnection(key);
+    // 不再需要手动创建LLMService，使用注入的实例
+    await llmService.testConnection(key);
     toast.success(t('modelManager.testSuccess', { provider: model.name }));
   } catch (error) {
     console.error('连接测试失败:', error);
@@ -809,8 +816,8 @@ const handleFetchEditingModels = async () => {
       return;
     }
     
-    // 使用 LLM 服务获取模型列表
-    const llm = createLLMService(modelManager);
+    // 使用注入的 LLM 服务获取模型列表
+    // const llm = createLLMService(modelManager);
     
     // 构建自定义配置
     const customConfig = {
@@ -824,7 +831,7 @@ const handleFetchEditingModels = async () => {
     const providerKey = editingModel.value.originalKey || editingModel.value.key;
     
     // 获取模型列表
-    const models = await llm.fetchModelList(providerKey, customConfig);
+    const models = await llmService.fetchModelList(providerKey, customConfig);
     
     if (models.length > 0) {
       modelOptions.value = models;
@@ -870,8 +877,8 @@ const handleFetchNewModels = async () => {
   isLoadingModels.value = true;
   
   try {
-    // 使用 LLM 服务获取模型列表
-    const llm = createLLMService(modelManager);
+    // 使用注入的 LLM 服务获取模型列表
+    // const llm = createLLMService(modelManager);
     
     // 构建自定义配置
     const customConfig = {
@@ -882,7 +889,7 @@ const handleFetchNewModels = async () => {
     };
     
     // 获取模型列表
-    const models = await llm.fetchModelList(provider, customConfig);
+    const models = await llmService.fetchModelList(provider, customConfig);
     
     if (models.length > 0) {
       modelOptions.value = models;

@@ -14,11 +14,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject, type Ref } from 'vue'
 import { i18n } from '../plugins/i18n'
 import { useStorage } from '../composables/useStorage'
+import type { AppServices } from '../types/services'
 
-const storage = useStorage()
+const services = inject('services') as Ref<AppServices | null>
+const storage = useStorage(services)
 
 // 当前语言
 const currentLocale = computed(() => i18n.global.locale.value)

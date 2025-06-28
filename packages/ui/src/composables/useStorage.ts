@@ -1,12 +1,30 @@
-import { StorageFactory } from '@prompt-optimizer/core'
+import { watch } from 'vue'
+import type { Ref } from 'vue'
+import type { IStorageProvider } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
+
+/**
+ * Services 接口定义，仅包含此 composable 需要的部分
+ */
+interface Services {
+  storageProvider: IStorageProvider;
+}
 
 /**
  * 统一存储服务Hook
  * 使用core提供的存储抽象，支持localStorage和Dexie
+ * @param services 服务实例引用
  */
-export function useStorage() {
-  // 获取默认存储提供器（单例）
-  const storage = StorageFactory.createDefault()
+export function useStorage(services: Ref<AppServices | null>) {
+  // 存储提供器实例引用
+  let storage: IStorageProvider | null = null
+
+  // 监听服务实例变化
+  watch(services, (newServices) => {
+    if (!newServices) return
+    // 使用服务提供的存储实例，而不是自行创建
+    storage = newServices.storageProvider
+  }, { immediate: true })
 
   /**
    * 获取存储项
@@ -15,7 +33,7 @@ export function useStorage() {
    */
   const getItem = async (key: string): Promise<string | null> => {
     try {
-      return await storage.getItem(key)
+      return await storage!.getItem(key)
     } catch (error) {
       console.error(`获取存储项失败 (${key}):`, error)
       return null
@@ -29,7 +47,7 @@ export function useStorage() {
    */
   const setItem = async (key: string, value: string): Promise<void> => {
     try {
-      await storage.setItem(key, value)
+      await storage!.setItem(key, value)
     } catch (error) {
       console.error(`设置存储项失败 (${key}):`, error)
       throw error
@@ -42,7 +60,7 @@ export function useStorage() {
    */
   const removeItem = async (key: string): Promise<void> => {
     try {
-      await storage.removeItem(key)
+      await storage!.removeItem(key)
     } catch (error) {
       console.error(`删除存储项失败 (${key}):`, error)
       throw error
@@ -88,6 +106,7 @@ export function useStorage() {
     value?: string;
   }>): Promise<void> => {
     try {
+      // @ts-ignore
       if ('batchUpdate' in storage) {
         await storage.batchUpdate(operations)
       } else {

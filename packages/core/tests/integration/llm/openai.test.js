@@ -125,7 +125,7 @@ describe('OpenAI API 真实连接测试', () => {
       }
       throw error;
     }
-  }, 30000);
+  }, 300000);
 
   it('应该能正确处理多轮对话', async () => {
     const storage = new LocalStorageProvider();
@@ -160,7 +160,7 @@ describe('OpenAI API 真实连接测试', () => {
       }
       throw error;
     }
-  }, 30000);
+  }, 300000);
 
   it('应该能正确使用高级参数', async () => {
     const storage = new LocalStorageProvider();
@@ -199,7 +199,7 @@ describe('OpenAI API 真实连接测试', () => {
       }
       throw error;
     }
-  }, 30000);
+  }, 300000);
 
   it('应该能兼容处理所有模型的响应格式（reasoning_content + think标签 + 普通文本）', async () => {
     const storage = new LocalStorageProvider();
@@ -276,7 +276,7 @@ describe('OpenAI API 真实连接测试', () => {
       console.error('兼容性测试失败:', error);
       throw error;
     }
-  },120000);
+  },300000);
 
   it('应该能正确处理reasoning_content的流式输出', async () => {
     const storage = new LocalStorageProvider();
@@ -365,7 +365,7 @@ describe('OpenAI API 真实连接测试', () => {
       console.error('reasoning_content流式测试失败:', error);
       throw error;
     }
-  });
+  },300000);
 
   it('应该能使用结构化API发送消息', async () => {
     const storage = new LocalStorageProvider();
@@ -418,7 +418,7 @@ describe('OpenAI API 真实连接测试', () => {
       console.error('结构化API测试失败:', error);
       throw error;
     }
-  }, 60000);
+  }, 300000);
 
   it('应该能使用结构化回调进行流式处理', async () => {
     const storage = new LocalStorageProvider();
@@ -505,5 +505,5 @@ describe('OpenAI API 真实连接测试', () => {
       console.error('结构化流式测试失败:', error);
       throw error;
     }
-  }, 60000);
+  }, 300000);
 }); 

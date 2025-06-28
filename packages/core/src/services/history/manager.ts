@@ -350,17 +350,7 @@ export class HistoryManager implements IHistoryManager {
     return results;
   }
 
-  private async getFallbackModelName(modelKey?: string): Promise<string | undefined> {
-    if (!modelKey) return undefined;
-    
-    try {
-      // 恢复这里的逻辑
-      const model = await this.modelManager.getModel(modelKey);
-      return model?.defaultModel;
-    } catch (err) {
-      return undefined;
-    }
-  }
+
 }
 
 /**
@@ -369,6 +359,9 @@ export class HistoryManager implements IHistoryManager {
  * @param modelManager 模型管理器实例
  * @returns 聊天历史管理器实例
  */
-export function createHistoryManager(storageProvider: IStorageProvider, modelManager: IModelManager): HistoryManager {
+export function createHistoryManager(
+  storageProvider: IStorageProvider,
+  modelManager: IModelManager
+): HistoryManager {
   return new HistoryManager(storageProvider, modelManager);
 }

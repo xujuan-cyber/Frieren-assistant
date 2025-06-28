@@ -94,6 +94,7 @@ export default {
     originalPrompt: 'Original Prompt',
     optimizeModel: 'Optimization Model',
     templateLabel: 'Optimization Template',
+    originalPromptPlaceholder: 'Enter your original prompt to optimize...',
 
     // New: Optimization Mode Related
     optimizationMode: 'Optimization Mode',
@@ -477,7 +478,8 @@ export default {
       noDefaultTemplate: 'Failed to load default template',
       optimizeProcessFailed: 'Error in optimization process',
       testProcessError: 'Error occurred during test process',
-      initTemplateFailed: 'Failed to initialize template selection'
+      initTemplateFailed: 'Failed to initialize template selection',
+      appInitFailed: 'Application initialization failed, please refresh or contact support'
     },
     success: {
       optimizeSuccess: 'Optimization successful',

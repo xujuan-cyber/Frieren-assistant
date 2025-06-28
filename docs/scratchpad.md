@@ -1,5 +1,150 @@
 # 开发笔记 - 提示词优化器
 
+## 任务：Vue Composable 架构重构 - 2025-07-05
+
+### 目标
+解决在异步回调中调用 Vue Composable 函数导致的错误：`Uncaught (in promise) SyntaxError: Must be called at the top of a 'setup' function`。重构所有 Composable 文件，实现"顶层声明，响应式连接，内部自治"的设计模式。
+
+### 计划步骤
+[x] 1. **创建统一的服务接口定义**
+    - 完成时间：2025-07-05 上午
+    - 实际结果：成功创建 `packages/ui/src/types/services.ts` 文件，定义 `AppServices` 接口
+    - 经验总结：中心化类型定义提高了代码一致性和可维护性
+
+[x] 2. **重构核心 Composable 文件**
+    - 完成时间：2025-07-05 下午
+    - 实际结果：成功重构 8 个主要 Composable 文件，使其接收 `services: Ref<AppServices | null>` 参数
+    - 经验总结：统一的参数模式使代码更加一致，易于理解
+
+[x] 3. **更新 useAppInitializer**
+    - 完成时间：2025-07-05 晚上
+    - 实际结果：增强了错误处理和日志记录，添加了 `error` 状态
+    - 经验总结：良好的错误处理对调试至关重要
+
+[x] 4. **更新 useModals**
+    - 完成时间：2025-07-05 晚上
+    - 实际结果：将 useModals 也纳入新架构，接收 services 参数
+    - 经验总结：保持架构一致性对于长期维护非常重要
+
+[x] 5. **更新文档**
+    - 完成时间：2025-07-05 晚上
+    - 实际结果：更新了 `docs/composables-refactor-plan.md` 和 `docs/experience.md`
+    - 经验总结：及时记录架构决策和经验对团队知识传承很重要
+
+[ ] 6. **更新 App.vue**
+    - 进行中：2025-07-06
+    - 当前状态：遇到类型错误，需要进一步解决
+    - 问题记录：
+      - `services` 对象与 `AppServices` 接口不匹配，特别是 `dataManager` 属性
+      - 尝试使用类型断言 `as any` 临时解决，但仍有类型错误
+      - 需要进一步研究 `DataManager` 类型定义和实现
+
+### 问题记录
+1. **Vue Composable 调用时机问题**
+   - 原因：Vue 要求 Composable 函数必须在 `<script setup>` 顶层同步调用，而非在异步回调中
+   - 解决方案：将 Composable 调用提升到顶层，通过 `watch(services, ...)` 响应服务就绪
+   - 经验总结：理解 Vue 的响应式上下文机制对于正确使用 Composition API 至关重要
+
+2. **防御性编程 vs 快速失败**
+   - 原因：团队对安全检查（如 `if (!modelManager.value) return`）的处理有不同意见
+   - 解决方案：经讨论后采用"快速失败"模式，使用 TypeScript 非空断言操作符 `!`
+   - 经验总结：架构决策应考虑团队偏好和项目特性，在此情况下快速暴露问题比隐藏问题更有价值
+
+3. **App.vue 类型错误**
+   - 原因：`services` 对象与 `AppServices` 接口定义不匹配，特别是 `dataManager` 属性
+   - 临时解决方案：使用 TypeScript 类型断言 `as any` 绕过类型检查
+   - 后续计划：
+     - 检查 `DataManager` 类型定义和实现
+     - 确保 `useAppInitializer` 返回的对象符合 `AppServices` 接口
+     - 可能需要调整 `AppServices` 接口或服务实现
+
+### 里程碑
+- [x] 完成 `AppServices` 接口定义
+- [x] 重构所有依赖服务的 Composable 文件
+- [x] 更新 `useAppInitializer` 错误处理
+- [x] 更新架构文档
+- [ ] 在 App.vue 中应用新架构
+
+### 💯 当前进展
+
+**核心目标 80% 达成**：
+✅ 解决了 `Must be called at the top of a 'setup' function` 错误
+✅ 实现了统一、可预测的 Composable 设计模式
+✅ 提高了代码的可维护性和健壮性
+✅ 完成了全面的文档更新
+❌ App.vue 中的类型错误仍需解决
+
+**技术实现**：
+- 创建了中心化的 `AppServices` 接口
+- 重构了 9 个 Composable 文件，使用统一的参数模式
+- 增强了 `useAppInitializer` 的错误处理和日志记录
+- 采用了"快速失败"模式，提早暴露潜在问题
+- 尝试在 App.vue 中应用新架构，但遇到类型错误
+
+**架构特点**：
+- 所有 Composable 在 `<script setup>` 顶层调用
+- Composable 接收 `services: Ref<Services | null>` 参数
+- 内部通过 `watch(services, ...)` 响应服务就绪
+- 明确的单向依赖关系
+
+**验证状态**：
+- ✅ Composable 文件类型检查通过
+- ❌ App.vue 类型检查失败
+- ✅ 架构一致性检查通过
+- ✅ 文档更新完成
+
+### 下一步建议
+
+1. **解决 App.vue 类型错误**：
+   - 深入研究 `DataManager` 类型定义和实现
+   - 检查 `useAppInitializer` 返回的对象结构
+   - 可能需要调整 `AppServices` 接口或服务实现
+   - 考虑创建适配器或类型转换函数
+
+2. **添加错误处理UI**：
+   - 利用 `useAppInitializer` 返回的 `error` 状态
+   - 添加友好的错误提示界面
+   - 提供重试机制
+
+3. **编写架构指南**：
+   - 为新开发人员创建详细的架构指南
+   - 说明 Composable 的正确使用方式
+   - 提供代码示例和最佳实践
+
+### 核心经验总结
+
+1. **Vue 响应式上下文**: Vue Composable 必须在 `<script setup>` 顶层同步调用，异步回调中调用会导致错误
+2. **响应式连接模式**: 使用 `watch(services, ...)` 模式处理服务的异步初始化，保持代码清晰和可维护
+3. **快速失败原则**: 在开发环境中，快速暴露问题比隐藏问题更有价值，有助于及早发现和修复问题
+4. **统一架构**: 保持所有 Composable 的一致架构模式，有助于代码理解和维护
+5. **类型系统挑战**: 复杂的类型系统可能导致接口不匹配问题，需要仔细处理类型定义和实现
+
+**任务状态：⚠️ 部分完成，需要解决类型错误**
+
+## 任务：架构重构：切换到高层服务代理IPC模型 - 2024-07-25
+### 目标
+解决当前底层 `fetch` 代理方案因模拟不完善导致的脆弱性和兼容性问题。建立一个稳定、可维护、职责清晰的桌面端应用架构，将主进程作为后端服务提供者，渲染进程作为纯粹的前端消费者。
+
+### 计划步骤
+- [ ] 1. **清理 `core` 包**: 移除所有特定于 Electron 的逻辑（如 `isRunningInElectron` 和 `fetch` 注入），使其回归为一个纯粹、平台无关的核心业务逻辑库。
+- [ ] 2. **改造 `main.js`**: 使其成为服务提供者，通过 `require('@prompt-optimizer/core')` 直接消费 `core` 包，并在主进程中实例化 `LLMService` 等核心服务。
+- [ ] 3. **实现主进程存储方案**: 为 `main.js` 中的服务提供一个适合 Node.js 环境的存储方案。第一阶段先实现一个临时的 `MemoryStorageProvider`。
+- [ ] 4. **重构 IPC 通信协议**: 废弃底层的 `api-fetch` 代理，在 `main.js` 和 `preload.js` 中建立基于 `ILLMService` 公共方法（如 `testConnection`, `sendMessageStream`）的高层 IPC 接口。
+- [ ] 5. **创建渲染进程代理**: 在 `core` 包中创建一个 `ElectronLLMProxy` 类，该类实现 `ILLMService` 接口，其内部方法通过 `window.electronAPI.llm.*` 调用 IPC 接口。
+- [ ] 6. **改造服务初始化逻辑**: 修改 `useServiceInitializer.ts`，使其能够根据当前环境（Web 或 Electron）判断，为应用提供真实的 `LLMService` 实例或 `ElectronLLMProxy` 代理实例。
+
+### 问题记录
+1. 底层`fetch`代理导致`AbortSignal`、`Headers`等对象在跨IPC传输时出现序列化和实例类型不匹配的问题，导致应用崩溃且难以维护。
+   - 原因：试图模拟一个复杂且不稳定的底层Web API，违反了关注点分离原则。
+   - 解决方案：切换到代理我们自己定义的高层、稳定的服务接口。
+   - 经验总结：跨进程通信应基于稳定、简单、可序列化的数据结构和接口，避免代理复杂的底层原生对象。
+
+### 里程碑
+- [ ] 完成方案设计与文档同步
+- [ ] 完成代码重构
+- [ ] 桌面应用在新架构下成功运行
+- [ ] 实现主进程的文件持久化存储
+
 ## 任务：Prompt Optimizer 桌面应用改造 - 2025-06-27
 
 ### 目标
@@ -129,27 +274,3 @@
 5. **工具链配置**：构建配置需要针对目标环境进行定制化
 
 **任务状态：✅ 完全成功**
-
-## 任务：架构重构：切换到高层服务代理IPC模型 - 2024-07-25
-### 目标
-解决当前底层 `fetch` 代理方案因模拟不完善导致的脆弱性和兼容性问题。建立一个稳定、可维护、职责清晰的桌面端应用架构，将主进程作为后端服务提供者，渲染进程作为纯粹的前端消费者。
-
-### 计划步骤
-- [ ] 1. **清理 `core` 包**: 移除所有特定于 Electron 的逻辑（如 `isRunningInElectron` 和 `fetch` 注入），使其回归为一个纯粹、平台无关的核心业务逻辑库。
-- [ ] 2. **改造 `main.js`**: 使其成为服务提供者，通过 `require('@prompt-optimizer/core')` 直接消费 `core` 包，并在主进程中实例化 `LLMService` 等核心服务。
-- [ ] 3. **实现主进程存储方案**: 为 `main.js` 中的服务提供一个适合 Node.js 环境的存储方案。第一阶段先实现一个临时的 `MemoryStorageProvider`。
-- [ ] 4. **重构 IPC 通信协议**: 废弃底层的 `api-fetch` 代理，在 `main.js` 和 `preload.js` 中建立基于 `ILLMService` 公共方法（如 `testConnection`, `sendMessageStream`）的高层 IPC 接口。
-- [ ] 5. **创建渲染进程代理**: 在 `core` 包中创建一个 `ElectronLLMProxy` 类，该类实现 `ILLMService` 接口，其内部方法通过 `window.electronAPI.llm.*` 调用 IPC 接口。
-- [ ] 6. **改造服务初始化逻辑**: 修改 `useServiceInitializer.ts`，使其能够根据当前环境（Web 或 Electron）判断，为应用提供真实的 `LLMService` 实例或 `ElectronLLMProxy` 代理实例。
-
-### 问题记录
-1. 底层`fetch`代理导致`AbortSignal`、`Headers`等对象在跨IPC传输时出现序列化和实例类型不匹配的问题，导致应用崩溃且难以维护。
-   - 原因：试图模拟一个复杂且不稳定的底层Web API，违反了关注点分离原则。
-   - 解决方案：切换到代理我们自己定义的高层、稳定的服务接口。
-   - 经验总结：跨进程通信应基于稳定、简单、可序列化的数据结构和接口，避免代理复杂的底层原生对象。
-
-### 里程碑
-- [ ] 完成方案设计与文档同步
-- [ ] 完成代码重构
-- [ ] 桌面应用在新架构下成功运行
-- [ ] 实现主进程的文件持久化存储

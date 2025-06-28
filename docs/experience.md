@@ -463,3 +463,144 @@ if (updatedTemplate && contentChanged) {
 /* ... etc ... */
 ```
 通过这种方式，我们既保留了优美的排版，又确保了自定义主题的颜色能够正确渲染。
+
+## 8. Vue Composable 架构重构：解决异步初始化问题
+
+### 问题背景
+在异步回调中调用Vue Composable函数会导致错误：`Uncaught (in promise) SyntaxError: Must be called at the top of a 'setup' function`。这违反了Vue Composition API的核心规则，需要重构架构。
+
+### 核心解决方案：顶层声明，响应式连接，内部自治
+```typescript
+// ❌ 错误：在异步回调中调用Composable
+onMounted(async () => {
+  const services = await initServices();
+  const modelManager = useModelManager(); // 错误：不在setup顶层调用
+});
+
+// ✅ 正确：顶层声明，响应式连接
+const { services } = useAppInitializer(); // 在顶层调用
+const modelManager = useModelManager(services); // 在顶层调用，传入services引用
+
+// 内部实现：响应式连接
+export function useModelManager(services: Ref<AppServices | null>) {
+  // 状态定义...
+  
+  // 响应式连接：监听服务就绪
+  watch(services, (newServices) => {
+    if (!newServices) return;
+    // 使用已就绪的服务...
+  }, { immediate: true });
+  
+  return { /* 返回状态和方法 */ };
+}
+```
+
+### 架构设计要点
+1. **统一服务接口**：创建`AppServices`接口，统一管理所有核心服务
+   ```typescript
+   // packages/ui/src/types/services.ts
+   export interface AppServices {
+     storageProvider: IStorageProvider;
+     modelManager: IModelManager;
+     templateManager: ITemplateManager;
+     historyManager: IHistoryManager;
+     dataManager: DataManager;
+     llmService: ILLMService;
+     promptService: IPromptService;
+   }
+   ```
+
+2. **服务初始化器**：`useAppInitializer`负责创建和初始化所有服务
+   ```typescript
+   // 返回带有错误处理的服务引用
+   export function useAppInitializer() {
+     const services = ref<AppServices | null>(null);
+     const isInitializing = ref(true);
+     const error = ref<Error | null>(null);
+     
+     onMounted(async () => {
+       try {
+         // 初始化服务...
+         services.value = { /* 服务实例 */ };
+       } catch (err) {
+         error.value = err instanceof Error ? err : new Error(String(err));
+       } finally {
+         isInitializing.value = false;
+       }
+     });
+     
+     return { services, isInitializing, error };
+   }
+   ```
+
+3. **Composable参数模式**：所有Composable接收`services`引用作为参数
+   ```typescript
+   export function useModelManager(services: Ref<AppServices | null>) {
+     // ...
+   }
+   
+   export function useTemplateManager(services: Ref<AppServices | null>) {
+     // ...
+   }
+   ```
+
+### 关键经验
+1. **Vue响应式上下文**: Vue Composable必须在`<script setup>`顶层同步调用，异步回调中调用会导致错误
+2. **响应式连接模式**: 使用`watch`监听服务就绪，而不是在回调中调用Composable
+3. **快速失败原则**: 在开发环境中，快速暴露问题比隐藏问题更有价值，有助于及早发现和修复问题
+4. **统一架构**: 保持所有Composable的一致架构模式，有助于代码理解和维护
+5. **类型系统挑战**: 复杂的类型系统可能导致接口不匹配问题，需要仔细处理类型定义和实现
+
+### 实施建议
+- 所有Composable在`<script setup>`顶层调用
+- 使用`watch`监听服务就绪，而不是在回调中调用Composable
+- 使用TypeScript非空断言操作符`!`快速暴露潜在问题
+- 统一服务接口和参数模式，提高代码一致性
+- 详细记录架构决策和经验，便于团队知识传承
+
+### 7. Composable 重构：`reactive` vs `ref` 的深度实践 (2024-07-28)
+
+**背景**: 为解决 Vue 深层嵌套 `ref` 无法自动解包的问题，我们将多个核心 Composables（如 `usePromptOptimizer`）的返回值从包含多个 `ref` 的对象，重构为了单一的 `reactive` 对象。此举虽然简化了顶层状态管理，但引发了一系列复杂的联动错误。
+
+**核心挑战与解决方案**:
+
+1.  **依赖注入失败 (`templateLanguageService`)**
+    *   **现象**: `BuiltinTemplateLanguageSwitch` 组件无法通过 `inject` 获取 `templateLanguageService` 实例，导致初始化失败。
+    *   **根因**: `useAppInitializer.ts` 在初始化服务时，虽然创建了 `languageService`，但**没有将其添加到最终提供给整个应用的 `services` 对象中**。
+    *   **修复步骤**:
+        1.  修改 `useAppInitializer.ts`，将 `templateLanguageService` 添加到返回的 `services` 对象中。
+        2.  修改 `packages/ui/src/types/services.ts`，在 `AppServices` 接口中添加 `templateLanguageService: TemplateLanguageService` 类型定义，解决 TypeScript 报错。
+    *   **教训**: 依赖注入的链条必须完整。服务不仅要被创建，还要被正确地"注册"和"提供"。
+
+2.  **响应式接口不匹配 (`reactive` -> `ref`)**
+    *   **现象**: `useTemplateManager` 中出现 `Cannot read properties of null (reading 'value')` 错误。
+    *   **根因**: `useTemplateManager` 期望接收一个 `ref` 类型的参数 (`selectedTemplate`)，以便能通过 `.value` 进行双向绑定。而重构后的 `App.vue` 直接传递了 `optimizer.selectedOptimizeTemplate`，这是一个普通值，而非 `ref`。
+    *   **优雅的解决方案**: 使用 `toRef` 作为"适配器"。
+        ```typescript
+        // App.vue
+        import { toRef } from 'vue';
+
+        const optimizer = usePromptOptimizer(...);
+        
+        // 为 reactive 对象的属性创建一个双向绑定的 ref
+        const selectedOptimizeTemplateRef = toRef(optimizer, 'selectedOptimizeTemplate');
+
+        const templateManager = useTemplateManager({
+            // 将创建的 ref 传入，满足 useTemplateManager 的接口期望
+            selectedTemplate: selectedOptimizeTemplateRef,
+            // ...
+        });
+        ```
+    *   **教训**: 在 Composable 之间传递响应式状态时，必须注意"接口"匹配。`toRef` 是连接 `reactive` 对象和期望 `ref` 的旧代码或子模块的完美桥梁。
+
+3.  **健壮性修复 (Vercel API 检测)**
+    *   **现象**: 控制台出现 `Vercel API detection failed SyntaxError: Unexpected token '<'` 警告。
+    *   **根因**: `environment.ts` 中的检测函数在服务端返回 HTML 错误页面（而非 JSON）时，依然尝试调用 `response.json()`，导致解析失败。
+    *   **修复**: 在解析前增加 `Content-Type` 响应头检查，确保只在内容为 `application/json` 时才执行解析。
+    *   **教训**: 所有与外部 API 的交互都应假定可能失败。在解析响应前，务必检查其内容类型和状态码。
+
+**总结**: 本次重构深刻揭示了 Vue 3 响应式系统的几个关键点：
+- `reactive` 适用于管理**一组**相关状态，简化顶层 API。
+- `ref` 依然是跨组件或 Composable 边界传递**单个**响应式变量的可靠方式。
+- `toRef` 和 `toRefs` 是在 `reactive` 和 `ref` 之间无缝切换、适配新旧代码的必备工具。
+- 依赖注入和服务初始化流程的正确性，是复杂应用稳定运行的基石。

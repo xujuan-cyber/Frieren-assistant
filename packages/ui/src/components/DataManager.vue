@@ -154,13 +154,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { dataManager } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
+import type { IDataManager } from '@prompt-optimizer/core'
 
 interface Props {
-  show: boolean
+  show: boolean;
+  dataManager?: IDataManager;
 }
 
 interface Emits {
@@ -174,6 +175,24 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
 
+// 从服务中注入dataManager，如果props中提供了则优先使用props
+const services = inject('services', null)
+const getDataManager = computed(() => {
+  // 优先使用props中的dataManager
+  if (props.dataManager) {
+    return props.dataManager
+  }
+  
+  // 其次尝试从services中获取
+  if (services && services.value && services.value.dataManager) {
+    return services.value.dataManager
+  }
+  
+  // 如果都没有，抛出错误
+  console.error('DataManager not available. Please provide dataManager prop or inject services.')
+  return null
+})
+
 const isExporting = ref(false)
 const isImporting = ref(false)
 const selectedFile = ref<File | null>(null)
@@ -183,6 +202,12 @@ const isDragOver = ref(false)
 // 处理导出
 const handleExport = async () => {
   try {
+    const dataManager = getDataManager.value
+    if (!dataManager) {
+      toast.error(t('toast.error.dataManagerNotAvailable'))
+      return
+    }
+
     isExporting.value = true
     
     const data = await dataManager.exportAllData()
@@ -227,11 +252,16 @@ const clearSelectedFile = () => {
 // 处理导入
 const handleImport = async () => {
   if (!selectedFile.value) return
-
+  
   try {
     isImporting.value = true
     
     const content = await selectedFile.value.text()
+    const dataManager = getDataManager.value
+    if (!dataManager) {
+      toast.error(t('toast.error.dataManagerNotAvailable'))
+      return
+    }
     await dataManager.importAllData(content)
     
     toast.success(t('dataManager.import.success'))

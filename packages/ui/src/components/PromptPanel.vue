@@ -68,6 +68,7 @@
             :modelValue="selectedIterateTemplate"
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
             :type="templateType"
+            :services="services"
             @manage="$emit('openTemplateManager', templateType)"
           />
         </div>
@@ -106,7 +107,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, type Ref } from 'vue'
 import { useToast } from '../composables/useToast'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
@@ -115,6 +116,7 @@ import type {
   Template,
   PromptRecord
 } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -157,6 +159,10 @@ const props = defineProps({
   originalPrompt: {
     type: String,
     default: ''
+  },
+  services: {
+    type: Object as () => Ref<AppServices | null>,
+    required: true
   }
 })
 

@@ -1,6 +1,5 @@
 import { ITemplateManager, Template, TemplateManagerConfig } from './types';
 import { IStorageProvider } from '../storage/types';
-import { StorageFactory } from '../storage/factory';
 import { StaticLoader } from './static-loader';
 import { TemplateError, TemplateValidationError } from './errors';
 import { templateSchema } from './types';

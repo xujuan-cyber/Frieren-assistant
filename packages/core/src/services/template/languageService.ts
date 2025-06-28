@@ -89,7 +89,7 @@ export class TemplateLanguageService {
    * Get supported languages list
    */
   getSupportedLanguages(): BuiltinTemplateLanguage[] {
-    return [...this.SUPPORTED_LANGUAGES];
+    return ['zh-CN', 'en-US'];
   }
 
   /**

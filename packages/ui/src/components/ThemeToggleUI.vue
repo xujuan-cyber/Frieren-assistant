@@ -59,12 +59,13 @@
 </template>
   
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStorage } from '../composables/useStorage';
 
 const { t } = useI18n();
-const storage = useStorage();
+const services = inject('services');
+const storage = useStorage(services);
 
 // Available themes list
 const availableThemes = computed(() => [

@@ -1,11 +1,11 @@
 import { ILLMService, Message, StreamHandlers, LLMResponse, ModelInfo, ModelOption } from './types';
 import { ModelConfig } from '../model/types';
-import { ModelManager, modelManager as defaultModelManager } from '../model/manager';
+import { ModelManager } from '../model/manager';
 import { APIError, RequestConfigError, ERROR_MESSAGES } from './errors';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
-import { isVercel, getProxyUrl } from '../../utils/environment';
-import { ElectronLLMProxy, isRunningInElectron } from './electron-proxy';
+import { isVercel, getProxyUrl, isRunningInElectron } from '../../utils/environment';
+import { ElectronLLMProxy } from './electron-proxy';
 
 /**
  * LLM服务实现 - 基于官方SDK
@@ -877,15 +877,16 @@ export class LLMService implements ILLMService {
   }
 }
 
-// 导出工厂函数
-export function createLLMService(modelManager: ModelManager = defaultModelManager): ILLMService {
+/**
+ * 创建LLM服务实例的工厂函数
+ * @param modelManager 模型管理器实例
+ * @returns LLM服务实例
+ */
+export function createLLMService(modelManager: ModelManager): ILLMService {
   // 在Electron环境中，返回代理实例
   if (isRunningInElectron()) {
-    console.log('[LLM Service Factory] Electron environment detected, creating ElectronLLMProxy');
+    console.log('[LLM Service Factory] Electron environment detected, using proxy.');
     return new ElectronLLMProxy();
   }
-  
-  // 在Web环境中，返回真实的LLMService实例
-  console.log('[LLM Service Factory] Web environment detected, creating LLMService');
   return new LLMService(modelManager);
 } 

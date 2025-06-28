@@ -42,16 +42,37 @@ export { clickOutside } from './directives/clickOutside'
 // 导出 composables
 export * from './composables'
 
-// 从core重新导出需要的内容
+// 从core重新导出需要的内容, 仅保留工厂函数、代理类和必要的工具/类型
 export {
-    templateManager,
-    modelManager,
-    historyManager,
-    dataManager,
-    storageProvider,
+    StorageFactory,
+    createModelManager,
+    createTemplateManager,
+    createHistoryManager,
+    createDataManager,
     createLLMService,
-    createPromptService
+    createPromptService,
+    createTemplateLanguageService,
+    ElectronModelManagerProxy,
+    ElectronTemplateManagerProxy,
+    ElectronHistoryManagerProxy,
+    ElectronLLMProxy,
+    ElectronPromptServiceProxy,
+    ElectronConfigManager,
+    isRunningInElectron,
+    // Also export the service classes/types themselves for type-checking
+    DataManager,
+    ModelManager,
+    TemplateManager,
+    HistoryManager
 } from '@prompt-optimizer/core'
 
 // 导出类型
-export type { OptimizationMode } from '@prompt-optimizer/core'
+export type { 
+    OptimizationMode,
+    IModelManager,
+    ITemplateManager,
+    IHistoryManager,
+    ILLMService,
+    IPromptService,
+    Template
+} from '@prompt-optimizer/core'

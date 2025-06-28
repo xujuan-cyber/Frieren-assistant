@@ -1,6 +1,5 @@
 import { IModelManager, ModelConfig } from './types';
 import { IStorageProvider } from '../storage/types';
-import { StorageFactory } from '../storage/factory';
 import { StorageAdapter } from '../storage/adapter';
 import { defaultModels } from './defaults';
 import { ModelConfigError } from '../llm/errors';

@@ -37,9 +37,15 @@
 - **文件**: `packages/core/src/index.ts` ✅
 - **操作**: 导出 `MemoryStorageProvider` 类 ✅
 
+#### 3. 创建工厂函数 ✅
+- **文件**: `packages/core/src/services/storage/factory.ts` ✅
+- **操作**: 在 `StorageFactory.create()` 中添加 `'memory'` 选项 ✅
+- **文件**: `packages/core/src/index.ts` ✅
+- **操作**: 导出 `MemoryStorageProvider` 类 ✅
+
 ### 阶段二：后端改造 (主进程)
 
-#### 3. 清理并重构主进程
+#### 4. 清理并重构主进程
 - **文件**: `packages/desktop/main.js`
 - **删除内容**:
   - 所有 `ipcMain.handle('api-fetch', ...)` 处理器
@@ -50,7 +56,7 @@
   - 使用 `StorageFactory.create('memory')` 创建存储实例
   - 实例化所有核心服务 (`ModelManager`, `TemplateManager`, etc.)
 
-#### 4. 建立高层服务 IPC 接口
+#### 5. 建立高层服务 IPC 接口
 - **文件**: `packages/desktop/main.js`
 - **接口清单**:
   ```javascript
@@ -82,7 +88,7 @@
 
 ### 阶段三：通信与前端改造
 
-#### 5. 重构预加载脚本
+#### 6. 重构预加载脚本
 - **文件**: `packages/desktop/preload.js`
 - **删除内容**: 所有 `fetch` 拦截和模拟逻辑
 - **新增内容**: 结构化的 `electronAPI` 对象
@@ -102,7 +108,7 @@
   });
   ```
 
-#### 6. 创建渲染进程服务代理类
+#### 7. 创建渲染进程服务代理类
 - **目标**: 为每个核心服务创建 Electron 代理类
 - **文件清单**:
   - `packages/core/src/services/model/electron-proxy.ts`
@@ -111,21 +117,14 @@
   - `packages/core/src/services/prompt/electron-proxy.ts`
 - **要求**: 每个代理类实现对应服务的接口，内部调用 `window.electronAPI`
 
-#### 7. 改造UI服务初始化逻辑
-- **文件**: `packages/ui/src/composables/useServiceInitializer.ts`
-- **逻辑**:
+#### 8. 改造UI服务初始化逻辑
+- **文件**: `packages/ui/src/composables/useAppInitializer.ts`
+- **逻辑**: `useAppInitializer` 会自动检测运行环境。
   ```typescript
-  if (isRunningInElectron()) {
-    // 使用代理类
-    const modelManager = new ElectronModelManagerProxy();
-    const templateManager = new ElectronTemplateManagerProxy();
-    // ...
-  } else {
-    // 使用真实服务类
-    const storageProvider = StorageFactory.create('dexie');
-    const modelManager = new ModelManager(storageProvider);
-    const templateManager = new TemplateManager(storageProvider);
-    // ...
+  if (isRunningInElectron()) { // Electron 环境
+    // 初始化所有代理服务...
+  } else { // Web 环境
+    // 初始化所有真实服务...
   }
   ```
 
@@ -196,18 +195,23 @@
    - `createHistoryManager()` 工厂函数
    - 所有工厂函数正确导出
 
+4. **✅ 接口完善与代理适配**
+   - 在 `ITemplateManager` 接口中添加 `isInitialized()` 方法
+   - 在 `ElectronTemplateManagerProxy` 类中实现 `isInitialized()` 方法
+   - 确保所有代理类正确实现了对应的接口
+
 #### 阶段二：后端改造 (主进程) - 100% 完成
-4. **✅ 重构 main.js**
+5. **✅ 重构 main.js**
    - 使用 `MemoryStorageProvider` 替代 `LocalStorageProvider`
    - 实现完整的高层 IPC 服务接口
    - 支持 LLM、Model、Template、History 所有服务
 
-5. **✅ 更新 preload.js**
+6. **✅ 更新 preload.js**
    - 提供完整的 `electronAPI` 接口
    - 支持所有核心服务的 IPC 通信
    - 正确的错误处理和类型安全
 
-6. **✅ 创建代理类**
+7. **✅ 创建代理类**
    - `ElectronLLMProxy` 适配 IPC 接口
    - `ElectronModelManagerProxy` 实现模型管理
    - 更新全局类型定义
@@ -238,4 +242,6 @@
 | **代码复用** | ❌ 重复的代理逻辑 | ✅ 主进程直接消费 core 包 |
 | **类型安全** | ❌ 复杂的类型适配 | ✅ 完整的 TypeScript 支持 |
 
-**最后更新**: 2024年12月28日 
+**架构结论**: 本次重构已**圆满完成**。随着统一初始化器 `useAppInitializer` 的引入和应用，桌面端的"高层服务代理"架构已完全落地，实现了各平台间架构的统一和代码的高度复用。
+
+**最后更新**: 2024年12月29日 

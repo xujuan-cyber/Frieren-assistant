@@ -29,7 +29,7 @@ describe('Advanced Optimize Template Real API Test', () => {
     const modelManager = createModelManager(storageProvider);
     const languageService = createTemplateLanguageService(storageProvider);
     const templateManager = createTemplateManager(storageProvider, languageService);
-    const historyManager = createHistoryManager(storageProvider);
+    const historyManager = createHistoryManager(storageProvider, modelManager);
     const llmService = createLLMService(modelManager);
 
     // 2. 初始化服务 (ModelManager会自动初始化)
@@ -72,5 +72,5 @@ describe('Advanced Optimize Template Real API Test', () => {
 
     expect(result).toBeDefined();
     expect(result.length).toBeGreaterThan(0);
-  }, 30000); // 30秒超时
+  }, 300000); // 300秒超时
 }); 

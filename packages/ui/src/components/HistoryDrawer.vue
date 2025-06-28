@@ -139,7 +139,6 @@ import { ref, watch, onMounted, computed } from 'vue'
 import type { PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
-import { historyManager } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 
 const props = defineProps({

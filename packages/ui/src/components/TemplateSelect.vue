@@ -65,24 +65,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { templateManager } from '@prompt-optimizer/core'
 import { clickOutside } from '../directives/clickOutside'
-import type { OptimizationMode } from '@prompt-optimizer/core'
+import type { OptimizationMode, ITemplateManager, Template } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
+import type { Ref } from 'vue'
 
 const { t } = useI18n()
-
-interface Template {
-  id: string;
-  name: string;
-  content: string | Array<{role: string; content: string}>;
-  isBuiltin?: boolean;
-  metadata: {
-    description?: string;
-    templateType: 'optimize' | 'userOptimize' | 'iterate';
-  };
-}
 
 type TemplateType = 'optimize' | 'userOptimize' | 'iterate';
 
@@ -99,6 +89,10 @@ const props = defineProps({
   optimizationMode: {
     type: String as () => OptimizationMode,
     default: 'system'
+  },
+  services: {
+    type: Object as () => Ref<AppServices | null>,
+    default: () => inject('services', ref(null))
   }
 })
 
@@ -107,7 +101,12 @@ const emit = defineEmits(['update:modelValue', 'manage', 'select'])
 
 const isOpen = ref(false)
 const dropdownStyle = ref<Record<string, string>>({})
-const refreshTrigger = ref(0)
+const isReady = ref(false)
+
+// 从services中获取templateManager
+const templateManager = computed(() => {
+  return props.services?.value?.templateManager
+})
 
 // 计算下拉菜单位置
 const updateDropdownPosition = () => {
@@ -142,39 +141,54 @@ const handleResize = () => {
   updateDropdownPosition()
 }
 
-onMounted(async () => {
-  window.addEventListener('resize', handleResize)
-  // 确保模板管理器已初始化
-  await templateManager.ensureInitialized()
-  refreshTemplates()
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-})
-
 // 监听下拉框打开状态
 watch(isOpen, async (newValue) => {
   if (newValue) {
-    // 打开时刷新列表
-    refreshTrigger.value++
+    // 确保列表已加载
+    if (!isReady.value) {
+      await ensureTemplateManagerReady()
+    }
     nextTick(() => {
       updateDropdownPosition()
     })
   }
 })
 
-const templates = computed(() => {
-  // 使用 refreshTrigger 触发重新计算
-  refreshTrigger.value
-  // 检查模板管理器是否已初始化
-  if (!templateManager.isInitialized()) {
-    return []
+// 确保模板管理器已准备就绪
+const ensureTemplateManagerReady = async () => {
+  if (!templateManager.value) {
+    console.warn('[TemplateSelect] 模板管理器尚未就绪')
+    return false
   }
+  
+  try {
+    await templateManager.value.ensureInitialized()
+    isReady.value = true
+    return true
+  } catch (err) {
+    console.error('[TemplateSelect] 模板管理器初始化失败:', err)
+    isReady.value = false
+    return false
+  }
+}
 
-  // 使用按类型筛选方法
-  return templateManager.listTemplatesByType(props.type)
+const templates = computed(() => {
+  if (!isReady.value) return []
+
+  // 直接使用 props.type，因为它的值已经被 validator 保证是有效的
+  return templateManager.value!.listTemplatesByType(props.type)
 })
+
+// 添加对services变化的监听
+watch(
+  () => props.services,
+  async (newServices) => {
+    if (newServices?.value?.templateManager) {
+    await ensureTemplateManagerReady()
+  }
+  },
+  { immediate: true, deep: true }
+)
 
 // 添加对optimizationMode变化的监听
 watch(
@@ -246,49 +260,7 @@ const deepCompareTemplateContent = (content1: any, content2: any): boolean => {
  * 3. 处理模板不存在的情况（自动选择默认模板）
  */
 const refreshTemplates = () => {
-  refreshTrigger.value++
-
-  // 检查模板管理器是否已初始化
-  if (!templateManager.isInitialized()) {
-    return
-  }
-
-  const currentTemplates = templateManager.listTemplatesByType(props.type)
-  const currentTemplate = props.modelValue
-
-  // 处理当前选中模板的更新（主要用于语言切换场景）
-  if (currentTemplate) {
-    try {
-      const updatedTemplate = templateManager.getTemplate(currentTemplate.id)
-      // 使用深度比较检查模板内容是否发生变化（修复 BugBot 发现的数组比较问题）
-      if (updatedTemplate && (
-        updatedTemplate.name !== currentTemplate.name ||
-        !deepCompareTemplateContent(updatedTemplate.content, currentTemplate.content)
-      )) {
-        // 验证更新后的模板是否还匹配当前类型过滤器（修复类型过滤器忽略问题）
-        if (updatedTemplate.metadata.templateType === props.type) {
-          // 通过 v-model 更新父组件状态
-          emit('update:modelValue', updatedTemplate)
-          // 静默更新，不显示用户提示
-          emit('select', updatedTemplate, false)
-          return
-        }
-        // 如果类型不匹配，继续执行后续逻辑选择合适的模板
-      }
-    } catch (error) {
-      console.warn('[TemplateSelect] Failed to get updated template:', error)
-    }
-  }
-
-  // 处理模板不存在的情况：当前模板已被删除或不在当前类型列表中
-  if (!currentTemplate || !currentTemplates.find(t => t.id === currentTemplate.id)) {
-    const defaultTemplate = currentTemplates[0] || null
-    if (defaultTemplate && defaultTemplate.id !== currentTemplate?.id) {
-      emit('update:modelValue', defaultTemplate)
-      // 静默选择，不显示用户提示
-      emit('select', defaultTemplate, false)
-    }
-  }
+  // 这个方法可以被外部调用以强制刷新，现在主要依赖计算属性的响应性
 }
 
 /**

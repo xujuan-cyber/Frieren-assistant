@@ -51,12 +51,4 @@ export class ElectronLLMProxy implements ILLMService {
     // Convert string array to ModelOption array
     return modelNames.map(name => ({ value: name, label: name }));
   }
-}
-
-/**
- * 检测是否在Electron环境中运行
- */
-export function isRunningInElectron(): boolean {
-  return typeof window !== 'undefined' && 
-         typeof window.electronAPI !== 'undefined';
 } 

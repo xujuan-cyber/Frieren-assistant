@@ -24,13 +24,13 @@ describe('Real Components Integration Tests', () => {
     // 使用真实的LocalStorageProvider
     storage = new LocalStorageProvider()
     modelManager = createModelManager(storage)
-    historyManager = createHistoryManager(storage)
+    historyManager = createHistoryManager(storage, modelManager)
     
     const languageService = createTemplateLanguageService(storage)
     templateManager = createTemplateManager(storage, languageService)
     await templateManager.ensureInitialized()
     
-    dataManager = new DataManager(historyManager, modelManager, templateManager)
+    dataManager = new DataManager(modelManager, templateManager, historyManager)
     
     const llmService = createLLMService(modelManager)
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager)
@@ -238,12 +238,14 @@ describe('Real Components Integration Tests', () => {
       const exportedDataString = await dataManager.exportAllData()
       const exportedData = JSON.parse(exportedDataString)
       
-      expect(exportedData.models).toBeDefined()
-      expect(exportedData.userTemplates).toBeDefined()
-      expect(exportedData.history).toBeDefined()
-      expect(exportedData.models.length).toBeGreaterThan(0)
-      expect(exportedData.userTemplates.length).toBeGreaterThan(0)
-      expect(exportedData.history.length).toBe(1)
+      expect(exportedData.version).toBe(1)
+      expect(exportedData.data).toBeDefined()
+      expect(exportedData.data.models).toBeDefined()
+      expect(exportedData.data.userTemplates).toBeDefined()
+      expect(exportedData.data.history).toBeDefined()
+      expect(exportedData.data.models.length).toBeGreaterThan(0)
+      expect(exportedData.data.userTemplates.length).toBeGreaterThan(0)
+      expect(exportedData.data.history.length).toBe(1)
 
       // 清空数据
       await storage.clearAll()

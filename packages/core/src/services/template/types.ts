@@ -51,6 +51,9 @@ export interface TemplateManagerConfig {
 export interface ITemplateManager {
   /** 确保管理器已初始化 */
   ensureInitialized(): Promise<void>;
+  
+  /** 检查管理器是否已初始化 */
+  isInitialized(): boolean;
 
   /** 获取指定ID的模板 */
   getTemplate(templateId: string): Template; // Stays synchronous
