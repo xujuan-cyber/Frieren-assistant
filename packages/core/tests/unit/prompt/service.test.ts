@@ -44,7 +44,6 @@ describe('PromptService', () => {
     llmService = createLLMService(modelManager);
 
     // Initialize services
-    await templateManager.ensureInitialized();
     await modelManager.addModel('test-model', mockModelConfig);
 
     // Create PromptService directly

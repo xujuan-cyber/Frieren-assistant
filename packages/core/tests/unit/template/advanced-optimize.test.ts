@@ -33,7 +33,7 @@ describe('Advanced Optimize Template Real API Test', () => {
     const llmService = createLLMService(modelManager);
 
     // 2. 初始化服务 (ModelManager会自动初始化)
-    await templateManager.ensureInitialized();
+
 
     // 3. 创建被测试的服务
     const promptService = createPromptService(

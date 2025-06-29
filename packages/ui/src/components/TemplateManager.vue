@@ -804,9 +804,6 @@ const processedPreview = computed(() => {
 // 加载提示词列表
 const loadTemplates = async () => {
   try {
-    // Ensure template manager is initialized
-    await getTemplateManager.value.ensureInitialized()
-
     // 统一使用异步方法
     const allTemplates = await getTemplateManager.value.listTemplates()
     templates.value = allTemplates
@@ -1199,9 +1196,9 @@ const syntaxGuideMarkdown = computed(() => {
 })
 
   // 处理内置模板语言变化
-  const handleLanguageChanged = (newLanguage: string) => {
+  const handleLanguageChanged = async (newLanguage: string) => {
     // 重新加载模板列表以反映新的语言
-    loadTemplates()
+    await loadTemplates()
 
     // 如果当前选中的模板是内置模板，需要重新选择以获取新语言版本
     const currentSelected = selectedTemplate.value
@@ -1209,7 +1206,7 @@ const syntaxGuideMarkdown = computed(() => {
     if (currentSelected && currentSelected.isBuiltin) {
       try {
         // 获取新语言版本的同一模板
-        const updatedTemplate = getTemplateManager.value.getTemplate(currentSelected.id)
+        const updatedTemplate = await getTemplateManager.value.getTemplate(currentSelected.id)
         if (updatedTemplate) {
           emit('select', updatedTemplate, getCurrentTemplateType());
         }

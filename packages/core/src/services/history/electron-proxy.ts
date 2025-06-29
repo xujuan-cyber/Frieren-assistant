@@ -63,4 +63,8 @@ export class ElectronHistoryManagerProxy implements IHistoryManager {
   }): Promise<PromptRecordChain> {
     return this.electronAPI.history.addIteration(params);
   }
+
+  async deleteChain(chainId: string): Promise<void> {
+    return this.electronAPI.history.deleteChain(chainId);
+  }
 } 

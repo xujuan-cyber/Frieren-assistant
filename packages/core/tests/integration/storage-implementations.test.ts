@@ -325,7 +325,7 @@ describe('存储实现通用测试', () => {
         beforeEach(async () => {
           const languageService = createTemplateLanguageService(storageProvider);
           templateManager = createTemplateManager(storageProvider, languageService);
-          await templateManager.ensureInitialized();
+    
         });
 
         it('应该能够保存和获取模板', async () => {

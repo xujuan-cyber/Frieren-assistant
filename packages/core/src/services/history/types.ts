@@ -74,15 +74,18 @@ export interface IHistoryManager {
   getAllChains(): Promise<PromptRecordChain[]>;
   /** 获取指定链 */
   getChain(chainId: string): Promise<PromptRecordChain>;
-  /** 创建新的记录链 */
-  createNewChain(record: Omit<PromptRecord, 'chainId' | 'version' | 'previousId'>): Promise<PromptRecordChain>;
-  /** 添加迭代记录 */
+  /** 创建一个新的记录链 */
+  createNewChain(params: Omit<PromptRecord, 'chainId' | 'version' | 'previousId'>): Promise<PromptRecordChain>;
+  /** 向现有链中添加一次迭代 */
   addIteration(params: {
     chainId: string;
     originalPrompt: string;
     optimizedPrompt: string;
-    iterationNote?: string; // Made optional to match manager.ts implementation
     modelKey: string;
     templateId: string;
+    iterationNote?: string;
+    metadata?: Record<string, any>;
   }): Promise<PromptRecordChain>;
+  /** 删除指定ID的记录链 */
+  deleteChain(chainId: string): Promise<void>;
 } 

@@ -179,9 +179,8 @@ watch(isOpen, async (newValue) => {
 // 确保模板管理器已准备就绪
 const ensureTemplateManagerReady = async () => {
   // templateManager的检查已经在computed中进行，这里直接使用
-  await templateManager.value.ensureInitialized()
   isReady.value = true
-  console.debug('[TemplateSelect] 模板管理器初始化成功')
+  console.debug('[TemplateSelect] 模板管理器已就绪')
   return true
 }
 
@@ -298,8 +297,35 @@ const deepCompareTemplateContent = (content1: any, content2: any): boolean => {
  * 2. 检查当前选中模板是否需要更新（如语言切换）
  * 3. 处理模板不存在的情况（自动选择默认模板）
  */
-const refreshTemplates = () => {
-  // 这个方法可以被外部调用以强制刷新，现在主要依赖计算属性的响应性
+const refreshTemplates = async () => {
+  try {
+    // 重新加载模板列表
+    await loadTemplatesByType()
+    
+    // 检查当前选中的模板是否仍然有效
+    const currentTemplate = props.modelValue
+    if (currentTemplate && currentTemplate.isBuiltin) {
+      // 对于内置模板，需要重新获取以确保语言正确
+      try {
+        const updatedTemplate = await templateManager.value?.getTemplate(currentTemplate.id)
+        if (updatedTemplate && deepCompareTemplateContent(updatedTemplate.content, currentTemplate.content) === false) {
+          // 模板内容已更新（比如语言切换），通知父组件
+          emit('update:modelValue', updatedTemplate)
+          emit('select', updatedTemplate, false) // 静默更新，不显示toast
+        }
+      } catch (error) {
+        console.warn('[TemplateSelect] Failed to get updated template:', error)
+        // 如果获取失败，尝试选择第一个可用的模板
+        const availableTemplates = templates.value.filter(t => t.metadata.templateType === props.type)
+        if (availableTemplates.length > 0) {
+          emit('update:modelValue', availableTemplates[0])
+          emit('select', availableTemplates[0], false) // 静默选择
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[TemplateSelect] Failed to refresh templates:', error)
+  }
 }
 
 /**

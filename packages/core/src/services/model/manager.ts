@@ -33,6 +33,13 @@ export class ModelManager implements IModelManager {
   }
 
   /**
+   * 检查管理器是否已初始化
+   */
+  public isInitialized(): boolean {
+    return Object.keys(this.models).length > 0;
+  }
+
+  /**
    * 初始化模型管理器
    */
   private async init(): Promise<void> {
@@ -399,11 +406,8 @@ export class ModelManager implements IModelManager {
    * 保存配置到本地存储
    */
   private async saveToStorage(): Promise<void> {
-    try {
-      await this.storage.setItem(this.storageKey, JSON.stringify(this.models));
-    } catch (error) {
-      console.error('Failed to save model configuration:', error);
-    }
+    const dataToSave = JSON.stringify(this.models, null, 2);
+    await this.storage.setItem(this.storageKey, dataToSave);
   }
 
   /**

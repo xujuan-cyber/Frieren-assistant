@@ -82,6 +82,7 @@
             </template>
             <template #template-select>
               <TemplateSelectUI
+                ref="templateSelectRef"
                 v-model="currentSelectedTemplate"
                 :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
                 :optimization-mode="selectedOptimizationMode"
@@ -205,6 +206,7 @@ let handleSwitchVersion = (versionId: string) => {}
 
 const optimizeModelSelect = ref(null)
 const testPanelRef = ref(null)
+const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 
 // 6. Watch for services to become available, then initialize all business logic
 watch(services, (newServices) => {

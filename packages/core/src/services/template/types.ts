@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { BuiltinTemplateLanguage } from './languageService';
 
 /**
  * 提示词元数据
@@ -49,41 +50,61 @@ export interface TemplateManagerConfig {
  * 提示词管理器接口
  */
 export interface ITemplateManager {
-  /** 确保管理器已初始化 */
-  ensureInitialized(): Promise<void>;
-  
-  /** 检查管理器是否已初始化 */
-  isInitialized(): boolean;
+  /**
+   * Get a template by ID
+   */
+  getTemplate(id: string): Promise<Template>;
 
-  /** 获取指定ID的模板 */
-  getTemplate(templateId: string): Promise<Template>;
-
-  /** 保存模板 */
+  /**
+   * Save a template
+   */
   saveTemplate(template: Template): Promise<void>;
 
-  /** 删除模板 */
-  deleteTemplate(templateId: string): Promise<void>;
+  /**
+   * Delete a template
+   */
+  deleteTemplate(id: string): Promise<void>;
 
-  /** 列出所有模板 */
+  /**
+   * List all templates
+   */
   listTemplates(): Promise<Template[]>;
 
-  /** 导出模板 */
-  exportTemplate(templateId: string): Promise<string>;
+  /**
+   * Export a template as JSON string
+   */
+  exportTemplate(id: string): Promise<string>;
 
-  /** 导入模板 */
-  importTemplate(templateJson: string): Promise<void>;
+  /**
+   * Import a template from JSON string
+   */
+  importTemplate(jsonString: string): Promise<void>;
 
-  /** 清除缓存 */
-  clearCache(templateId?: string): void; // 保持同步，因为只是内存操作
-
-  /** 按类型列出模板 */
+  /**
+   * List templates by type
+   */
   listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]>;
 
   /**
-   * 根据类型获取模板列表（已废弃）
-   * @deprecated 使用 listTemplatesByType 替代
+   * Get templates by type
+   * @deprecated Use listTemplatesByType instead
    */
   getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]>;
+
+  /**
+   * Change built-in template language
+   */
+  changeBuiltinTemplateLanguage(language: BuiltinTemplateLanguage): Promise<void>;
+
+  /**
+   * Get current built-in template language
+   */
+  getCurrentBuiltinTemplateLanguage(): BuiltinTemplateLanguage;
+
+  /**
+   * Get supported built-in template languages
+   */
+  getSupportedBuiltinTemplateLanguages(): BuiltinTemplateLanguage[];
 }
 
 /**

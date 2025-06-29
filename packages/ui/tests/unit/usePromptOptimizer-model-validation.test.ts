@@ -37,7 +37,7 @@ describe('usePromptOptimizer Model Validation', () => {
     }
 
     mockTemplateManager = {
-      ensureInitialized: vi.fn().mockResolvedValue(undefined),
+  
       getTemplate: vi.fn().mockReturnValue({
         id: 'test-template',
         name: 'Test Template',

@@ -1,71 +1,86 @@
-import { ITemplateManager, Template } from './types';
+import type { Template, ITemplateManager } from './types';
+import type { BuiltinTemplateLanguage } from './languageService';
+
+// 为window.electronAPI提供完整的类型定义，以确保类型安全
+interface ElectronAPI {
+  template: {
+    getTemplate: (id: string) => Promise<Template>;
+    createTemplate: (template: Template) => Promise<void>;
+    deleteTemplate: (id: string) => Promise<void>;
+    getTemplates: () => Promise<Template[]>;
+    exportTemplate: (id: string) => Promise<string>;
+    importTemplate: (jsonString: string) => Promise<void>;
+    listTemplatesByType: (type: 'optimize' | 'userOptimize' | 'iterate') => Promise<Template[]>;
+    changeBuiltinTemplateLanguage: (language: BuiltinTemplateLanguage) => Promise<void>;
+    getCurrentBuiltinTemplateLanguage: () => BuiltinTemplateLanguage;
+    getSupportedBuiltinTemplateLanguages: () => BuiltinTemplateLanguage[];
+  };
+  // 添加其他服务的定义以避免编译错误
+  [key: string]: any;
+}
+
+declare const window: {
+  electronAPI: ElectronAPI;
+};
+
 
 /**
  * Electron环境下的TemplateManager代理
  * 通过IPC调用主进程中的真实TemplateManager实例
  */
 export class ElectronTemplateManagerProxy implements ITemplateManager {
-  private electronAPI: NonNullable<Window['electronAPI']>;
+  private electronAPI: ElectronAPI['template'];
 
   constructor() {
-    // 验证Electron环境
-    if (typeof window === 'undefined' || !window.electronAPI) {
-      throw new Error('ElectronTemplateManagerProxy can only be used in Electron renderer process');
+    if (!window.electronAPI?.template) {
+      throw new Error('Electron API for TemplateManager not available. Please ensure preload script is loaded.');
     }
-    this.electronAPI = window.electronAPI;
+    this.electronAPI = window.electronAPI.template;
   }
 
-  async ensureInitialized(): Promise<void> {
-    // 在代理模式下，初始化由主进程负责，这里只是一个空实现
-    return Promise.resolve();
-  }
 
-  isInitialized(): boolean {
-    // 在代理模式下，我们假设主进程中的服务总是已初始化的
-    return true;
-  }
 
-  async getTemplate(templateId: string): Promise<Template> {
-    return this.electronAPI.template.getTemplate(templateId);
+  async getTemplate(id: string): Promise<Template> {
+    return this.electronAPI.getTemplate(id);
   }
 
   async saveTemplate(template: Template): Promise<void> {
-    if (template.isBuiltin) {
-      throw new Error('Cannot save builtin template');
-    }
-    await this.electronAPI.template.createTemplate(template);
+    return this.electronAPI.createTemplate(template);
   }
 
-  async deleteTemplate(templateId: string): Promise<void> {
-    await this.electronAPI.template.deleteTemplate(templateId);
+  async deleteTemplate(id: string): Promise<void> {
+    return this.electronAPI.deleteTemplate(id);
   }
 
   async listTemplates(): Promise<Template[]> {
-    return this.electronAPI.template.getTemplates();
+    return this.electronAPI.getTemplates();
   }
 
-  async exportTemplate(templateId: string): Promise<string> {
-    const template = await this.getTemplate(templateId);
-    return JSON.stringify(template, null, 2);
+  async exportTemplate(id: string): Promise<string> {
+    return this.electronAPI.exportTemplate(id);
   }
 
-  async importTemplate(templateJson: string): Promise<void> {
-    const template = JSON.parse(templateJson);
-    await this.saveTemplate(template);
-  }
-
-  clearCache(_templateId?: string): void {
-    // 在代理模式下，缓存由主进程管理，这里是空实现
+  async importTemplate(jsonString: string): Promise<void> {
+    return this.electronAPI.importTemplate(jsonString);
   }
 
   async listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
-    return this.electronAPI.template.listTemplatesByType(type);
+    return this.electronAPI.listTemplatesByType(type);
   }
 
   async getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
-    return this.listTemplatesByType(type);
+    return this.electronAPI.listTemplatesByType(type);
   }
 
+  async changeBuiltinTemplateLanguage(language: BuiltinTemplateLanguage): Promise<void> {
+    return this.electronAPI.changeBuiltinTemplateLanguage(language);
+  }
 
+  getCurrentBuiltinTemplateLanguage(): BuiltinTemplateLanguage {
+    return this.electronAPI.getCurrentBuiltinTemplateLanguage();
+  }
 
+  getSupportedBuiltinTemplateLanguages(): BuiltinTemplateLanguage[] {
+    return this.electronAPI.getSupportedBuiltinTemplateLanguages();
+  }
 }

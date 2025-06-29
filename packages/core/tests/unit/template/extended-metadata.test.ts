@@ -12,7 +12,7 @@ describe('Extended Metadata Fields Support', () => {
     storageProvider = new MemoryStorageProvider();
     languageService = createTemplateLanguageService(storageProvider);
     templateManager = createTemplateManager(storageProvider, languageService);
-    await templateManager.ensureInitialized();
+
   });
 
   it('should save and retrieve template with custom metadata fields', async () => {

@@ -33,7 +33,7 @@ interface Window {
       addModel: (model: any) => Promise<void>;
       updateModel: (id: string, updates: any) => Promise<void>;
       deleteModel: (id: string) => Promise<void>;
-      getModelOptions: () => Promise<any[]>;
+      getEnabledModels: () => Promise<Array<any>>;
     };
     template: {
       getTemplates: () => Promise<any[]>;
@@ -60,6 +60,7 @@ interface Window {
         modelKey: string;
         templateId: string;
       }) => Promise<any>;
+      deleteChain: (chainId: string) => Promise<void>;
     };
     config: {
       getEnvironmentVariables: () => Promise<Record<string, string>>;

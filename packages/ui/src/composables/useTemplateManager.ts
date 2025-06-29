@@ -20,7 +20,7 @@ export interface TemplateManagerHooks {
   currentType: string
   handleTemplateSelect: (template: Template | null, type: string, showToast?: boolean) => void
   openTemplateManager: (type: string) => void
-  handleTemplateManagerClose: () => void
+  handleTemplateManagerClose: (refreshCallback?: () => void) => void
 }
 
 export interface TemplateManagerOptions {
@@ -98,14 +98,11 @@ export function useTemplateManager(
       state.currentType = type
       state.showTemplates = true
     },
-    handleTemplateManagerClose: () => {
-      // Ensure all template selectors refresh their state
-      const templateSelectors = document.querySelectorAll('template-select') as NodeListOf<TemplateSelector>
-      templateSelectors.forEach(selector => {
-        if (selector.__vueParentComponent?.ctx?.refresh) {
-          selector.__vueParentComponent.ctx.refresh()
+    handleTemplateManagerClose: (refreshCallback?: () => void) => {
+      // Call the refresh callback if provided
+      if (refreshCallback) {
+        refreshCallback()
         }
-      })
       state.showTemplates = false
     }
   })
@@ -132,8 +129,6 @@ export function useTemplateManager(
   // Initialize template selection
   const initTemplateSelection = async () => {
     try {
-      // 确保模板管理器已初始化
-      await templateManager.value!.ensureInitialized();
 
       const loadTemplate = async (
         type: 'optimize' | 'userOptimize' | 'iterate',
@@ -142,7 +137,7 @@ export function useTemplateManager(
       ) => {
         const savedTemplateId = await getPreference(storageKey, null)
         
-        if (savedTemplateId) {
+        if (typeof savedTemplateId === 'string' && savedTemplateId) {
           try {
             const template = await templateManager.value!.getTemplate(savedTemplateId);
             if (template && template.metadata.templateType === type) {

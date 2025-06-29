@@ -33,12 +33,9 @@ describe('TemplateManager with Mocked LanguageService', () => {
     // Manually inject the mocked staticLoader into the private field for testing purposes
     (templateManager as any).staticLoader = staticLoader;
 
-    // We must call ensureInitialized to trigger the loading logic
-      await templateManager.ensureInitialized();
     });
 
   it('should load English templates by default in a test environment', async () => {
-    // ensureInitialized in beforeEach already loaded templates
     const templates = await templateManager.listTemplates();
     const enTemplate = templates.find(t => t.id === 'test-en');
     const zhTemplate = templates.find(t => t.id === 'test-zh');

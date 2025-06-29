@@ -15,8 +15,21 @@ export class ElectronModelManagerProxy implements IModelManager {
     this.electronAPI = (window as any).electronAPI;
   }
 
+  async ensureInitialized(): Promise<void> {
+    // 在代理模式下，初始化由主进程负责，这里只是一个空实现
+    // 但我们可以添加一个IPC调用来触发主进程的ensureInitialized
+    await this.electronAPI.model.ensureInitialized();
+  }
+
+  isInitialized(): boolean {
+    // 同步方法在IPC中难以实现，返回true并依赖主进程
+    return true; 
+  }
+
+
+
   async getAllModels(): Promise<Array<ModelConfig & { key: string }>> {
-    return this.electronAPI.model.getModels();
+    return this.electronAPI.model.getAllModels();
   }
 
   async getModel(key: string): Promise<ModelConfig | undefined> {
@@ -45,7 +58,6 @@ export class ElectronModelManagerProxy implements IModelManager {
   }
 
   async getEnabledModels(): Promise<Array<ModelConfig & { key: string }>> {
-    const allModels = await this.getAllModels();
-    return allModels.filter(m => m.enabled);
+    return this.electronAPI.model.getEnabledModels();
   }
 } 

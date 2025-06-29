@@ -28,7 +28,7 @@ describe('Real Components Integration Tests', () => {
     
     const languageService = createTemplateLanguageService(storage)
     templateManager = createTemplateManager(storage, languageService)
-    await templateManager.ensureInitialized()
+
     
     dataManager = new DataManager(modelManager, templateManager, historyManager, storage)
     

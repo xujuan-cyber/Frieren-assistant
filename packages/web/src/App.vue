@@ -83,6 +83,7 @@
             <template #template-select>
               <template v-if="services && services.templateManager">
                 <TemplateSelectUI
+                  ref="templateSelectRef"
                   v-model="currentSelectedTemplate"
                   :type="templateSelectType"
                   :optimization-mode="selectedOptimizationMode"
@@ -136,7 +137,7 @@
       v-if="isReady" 
       v-model:show="templateManagerState.showTemplates" 
       :templateType="templateManagerState.currentType" 
-      @close="templateManagerState.handleTemplateManagerClose"
+      @close="() => templateManagerState.handleTemplateManagerClose(() => templateSelectRef?.refresh?.())"
     />
     <HistoryDrawerUI 
       v-if="isReady" 
@@ -211,6 +212,7 @@ const selectedOptimizationMode = ref<OptimizationMode>('system')
 const showDataManager = ref(false)
 const optimizeModelSelect = ref(null)
 const testPanelRef = ref(null)
+const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 
 const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
   return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
@@ -322,7 +324,7 @@ const openGithubRepo = () => {
 }
 
 // 打开模板管理器
-const openTemplateManager = (templateType?: string) => {
+const openTemplateManager = (templateType?: 'optimize' | 'userOptimize' | 'iterate') => {
   // 如果传入了模板类型，直接使用；否则根据当前优化模式判断（向后兼容）
   templateManagerState.currentType = templateType || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
   templateManagerState.showTemplates = true

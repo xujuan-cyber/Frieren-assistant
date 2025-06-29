@@ -60,7 +60,7 @@ describe('User Prompt Optimization Workflow Integration', () => {
     }
 
     mockTemplateManager = {
-      ensureInitialized: vi.fn().mockResolvedValue(undefined),
+  
       getTemplate: vi.fn().mockReturnValue({
         id: 'test-template',
         content: 'Test template {{originalPrompt}}',

@@ -9,6 +9,7 @@ export * from './services/template/types'
 export { StaticLoader } from './services/template/static-loader'
 export * from './services/template/errors'
 export { ElectronTemplateManagerProxy } from './services/template/electron-proxy'
+export { ElectronTemplateLanguageServiceProxy } from './services/template/electron-language-proxy'
 
 // 导出历史记录相关
 export { HistoryManager, createHistoryManager } from './services/history/manager'
@@ -53,6 +54,7 @@ export * from './services/compare/errors'
 // 导出数据管理相关
 export { DataManager, createDataManager } from './services/data/manager'
 export type { IDataManager } from './services/data/manager'
+export { ElectronDataManagerProxy } from './services/data/electron-proxy'
 
 // 导出偏好设置服务相关
 export * from './services/preference/types'

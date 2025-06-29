@@ -39,9 +39,9 @@ describe('PromptService Integration Tests', () => {
     
     const languageService = createTemplateLanguageService(storage);
     templateManager = createTemplateManager(storage, languageService);
-    await templateManager.ensureInitialized();
+
     
-    historyManager = createHistoryManager(storage);
+    historyManager = createHistoryManager(storage, modelManager);
 
     // 初始化服务
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager);

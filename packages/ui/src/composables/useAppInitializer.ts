@@ -11,8 +11,10 @@ import {
   ElectronModelManagerProxy,
   ElectronTemplateManagerProxy,
   ElectronHistoryManagerProxy,
+  ElectronDataManagerProxy,
   ElectronLLMProxy,
   ElectronPromptServiceProxy,
+  ElectronTemplateLanguageServiceProxy, // 暂时注释掉直到构建完成
   isRunningInElectron,
   waitForElectronApi,
   DataManager,
@@ -88,15 +90,11 @@ export function useAppInitializer() {
         promptService = new ElectronPromptServiceProxy();
         preferenceService = new ElectronPreferenceServiceProxy();
 
-        // DataManager在Electron环境下也使用代理模式，不需要本地存储
-        // 创建一个空的DataManager，因为所有操作都通过代理进行
-        dataManager = {
-          exportData: async () => { throw new Error('Export not implemented in Electron proxy mode'); },
-          importData: async () => { throw new Error('Import not implemented in Electron proxy mode'); },
-          clearAllData: async () => { throw new Error('Clear not implemented in Electron proxy mode'); }
-        } as any;
+        // DataManager在Electron环境下使用代理模式
+        dataManager = new ElectronDataManagerProxy();
 
-        // 在Electron环境中，模板语言服务由主进程管理，渲染进程不需要初始化
+        // 使用真正的 Electron 模板语言服务代理
+        const templateLanguageService = new ElectronTemplateLanguageServiceProxy();
 
         services.value = {
           storageProvider, // 使用代理存储提供器
@@ -106,7 +104,7 @@ export function useAppInitializer() {
           dataManager,
           llmService,
           promptService,
-          templateLanguageService: null as any, // 由主进程管理
+          templateLanguageService, // 使用代理而不是null
           preferenceService, // 使用从core包导入的ElectronPreferenceServiceProxy
         };
         console.log('[AppInitializer] Electron代理服务初始化完成');
@@ -131,17 +129,66 @@ export function useAppInitializer() {
         // Initialize managers that depend on other managers
         const historyManagerInstance = createHistoryManager(storageProvider, modelManagerInstance);
         
-        // Now ensure all managers with async init are ready
-        console.log('[AppInitializer] 确保所有管理器初始化完成...');
-        await Promise.all([
-          modelManagerInstance.ensureInitialized(),
-          templateManagerInstance.ensureInitialized(),
-        ]);
+        // Now ensure model manager with async init is ready (template manager no longer needs async init)
+        console.log('[AppInitializer] 确保模型管理器初始化完成...');
+        await modelManagerInstance.ensureInitialized();
 
         // Assign instances after they are fully initialized
         modelManager = modelManagerInstance;
         templateManager = templateManagerInstance;
         historyManager = historyManagerInstance;
+
+        // 创建严格符合接口的适配器
+        const modelManagerAdapter: IModelManager = {
+          ensureInitialized: () => modelManagerInstance.ensureInitialized(),
+          isInitialized: () => modelManagerInstance.isInitialized(),
+          getAllModels: () => modelManagerInstance.getAllModels(),
+          getModel: (key) => modelManagerInstance.getModel(key),
+          addModel: (key, config) => modelManagerInstance.addModel(key, config),
+          updateModel: (id, updates) => modelManagerInstance.updateModel(id, updates),
+          deleteModel: (id) => modelManagerInstance.deleteModel(id),
+          enableModel: (key) => modelManagerInstance.enableModel(key),
+          disableModel: (key) => modelManagerInstance.disableModel(key),
+          getEnabledModels: () => modelManagerInstance.getEnabledModels(),
+        };
+
+        const languageServiceAdapter = {
+          initialize: () => languageService.initialize(),
+          getCurrentLanguage: () => languageService.getCurrentLanguage(),
+          setLanguage: (language: any) => languageService.setLanguage(language),
+          toggleLanguage: () => languageService.toggleLanguage(),
+          isValidLanguage: (language: string) => languageService.isValidLanguage(language),
+          getSupportedLanguages: () => [...languageService.getSupportedLanguages()],
+          getLanguageDisplayName: (language: any) => languageService.getLanguageDisplayName(language),
+          isInitialized: () => languageService.isInitialized(),
+        };
+
+        const templateManagerAdapter: ITemplateManager = {
+          getTemplate: (id) => templateManagerInstance.getTemplate(id),
+          saveTemplate: (template) => templateManagerInstance.saveTemplate(template),
+          deleteTemplate: (id) => templateManagerInstance.deleteTemplate(id),
+          listTemplates: () => templateManagerInstance.listTemplates(),
+          exportTemplate: (id) => templateManagerInstance.exportTemplate(id),
+          importTemplate: (json) => templateManagerInstance.importTemplate(json),
+          listTemplatesByType: (type) => templateManagerInstance.listTemplatesByType(type),
+          getTemplatesByType: (type) => templateManagerInstance.getTemplatesByType(type),
+          changeBuiltinTemplateLanguage: (language) => templateManagerInstance.changeBuiltinTemplateLanguage(language),
+          getCurrentBuiltinTemplateLanguage: () => templateManagerInstance.getCurrentBuiltinTemplateLanguage(),
+          getSupportedBuiltinTemplateLanguages: () => templateManagerInstance.getSupportedBuiltinTemplateLanguages(),
+        };
+
+        const historyManagerAdapter: IHistoryManager = {
+          getRecords: () => historyManagerInstance.getRecords(),
+          addRecord: (record) => historyManagerInstance.addRecord(record),
+          deleteRecord: (id) => historyManagerInstance.deleteRecord(id),
+          clearHistory: () => historyManagerInstance.clearHistory(),
+          getIterationChain: (id) => historyManagerInstance.getIterationChain(id),
+          getAllChains: () => historyManagerInstance.getAllChains(),
+          getChain: (id) => historyManagerInstance.getChain(id),
+          createNewChain: (record) => historyManagerInstance.createNewChain(record),
+          addIteration: (params) => historyManagerInstance.addIteration(params),
+          deleteChain: (id) => historyManagerInstance.deleteChain(id),
+        };
 
         // Services that depend on initialized managers
         console.log('[AppInitializer] 创建依赖其他管理器的服务...');
@@ -155,9 +202,9 @@ export function useAppInitializer() {
         // 将所有服务实例赋值给 services.value
       services.value = {
         storageProvider,
-        modelManager,
-        templateManager,
-        historyManager,
+          modelManager: modelManagerAdapter, // 使用适配器
+          templateManager: templateManagerAdapter, // 使用适配器
+          historyManager: historyManagerAdapter, // 使用适配器
         dataManager,
         llmService,
         promptService,

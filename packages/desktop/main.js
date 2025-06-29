@@ -10,11 +10,12 @@ const {
   createLLMService,
   createPromptService,
   createTemplateLanguageService,
+  createDataManager,
   StorageFactory,
 } = require('@prompt-optimizer/core');
 
 let mainWindow;
-let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService;
+let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager;
 
 async function initializePreferenceService(storageProvider) {
   console.log('[DESKTOP] Initializing PreferenceService with the provided storage provider...');
@@ -138,6 +139,9 @@ async function initializeServices() {
 
     console.log('[DESKTOP] Creating Prompt service...');
     promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
+    
+    console.log('[DESKTOP] Creating Data manager...');
+    dataManager = createDataManager(modelManager, templateManager, historyManager, storageProvider);
     
     console.log('[Main Process] Core services initialized successfully.');
     
@@ -378,16 +382,41 @@ function setupIPC() {
     }
   });
 
-  ipcMain.handle('model-getModelOptions', async (event) => {
+  ipcMain.handle('model-ensureInitialized', async () => {
     try {
-      const result = await modelManager.getModelOptions();
+      await modelManager.ensureInitialized();
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('model-getAllModels', async () => {
+    try {
+      const result = await modelManager.getAllModels();
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
     }
   });
 
+  ipcMain.handle('model-getEnabledModels', async (event) => {
+    console.log('[Main] IPC: model-getEnabledModels called');
+    const result = await modelManager.getEnabledModels();
+    console.log('[Main] Model getEnabledModels result:', result);
+    return result;
+  });
+
   // Template Manager handlers
+  ipcMain.handle('template-ensureInitialized', async (event) => {
+    try {
+      await templateManager.ensureInitialized();
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
   ipcMain.handle('template-getTemplates', async (event) => {
     try {
       const result = await templateManager.listTemplates();
@@ -439,6 +468,62 @@ function setupIPC() {
   ipcMain.handle('template-listTemplatesByType', async (event, type) => {
     try {
       const result = await templateManager.listTemplatesByType(type);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Template Import/Export handlers
+  ipcMain.handle('template-exportTemplate', async (event, id) => {
+    try {
+      const result = await templateManager.exportTemplate(id);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-importTemplate', async (event, jsonString) => {
+    try {
+      await templateManager.importTemplate(jsonString);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Template language handlers
+  ipcMain.handle('template-changeBuiltinTemplateLanguage', async (event, language) => {
+    try {
+      await templateManager.changeBuiltinTemplateLanguage(language);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-getCurrentBuiltinTemplateLanguage', async (event) => {
+    try {
+      const result = templateManager.getCurrentBuiltinTemplateLanguage();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-getSupportedBuiltinTemplateLanguages', async (event) => {
+    try {
+      const result = templateManager.getSupportedBuiltinTemplateLanguages();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-getSupportedLanguages', async (event, template) => {
+    try {
+      const result = templateManager.getSupportedLanguages(template);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
@@ -523,6 +608,34 @@ function setupIPC() {
     try {
       const result = await historyManager.addIteration(params);
       return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('history-deleteChain', async (event, chainId) => {
+    try {
+      await historyManager.deleteChain(chainId);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Data Manager handlers
+  ipcMain.handle('data-exportAllData', async (event) => {
+    try {
+      const result = await dataManager.exportAllData();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('data-importAllData', async (event, dataString) => {
+    try {
+      await dataManager.importAllData(dataString);
+      return createSuccessResponse(null);
     } catch (error) {
       return createErrorResponse(error);
     }

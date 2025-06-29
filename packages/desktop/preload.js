@@ -102,9 +102,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Model Manager interface
   model: {
+    ensureInitialized: async () => {
+      const result = await ipcRenderer.invoke('model-ensureInitialized');
+      if (!result.success) throw new Error(result.error);
+    },
+
+    // Get all models
+    getAllModels: async () => {
+      const result = await ipcRenderer.invoke('model-getAllModels');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
     // Get all models
     getModels: async () => {
-      const result = await ipcRenderer.invoke('model-getModels');
+      console.warn('`getModels` is deprecated, please use `getAllModels`');
+      const result = await ipcRenderer.invoke('model-getAllModels');
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -117,6 +132,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error);
       }
+      return result.data;
     },
 
     // Update an existing model
@@ -135,18 +151,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
 
-    // Get model options for dropdowns
-    getModelOptions: async () => {
-      const result = await ipcRenderer.invoke('model-getModelOptions');
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      return result.data;
-    }
+    getEnabledModels: async () => {
+      const result = await ipcRenderer.invoke('model-getEnabledModels');
+      console.log('[Preload] Model getEnabledModels result:', result);
+      return result;
+    },
   },
 
   // Template Manager interface
   template: {
+    // Initialization methods
+    ensureInitialized: async () => {
+      const result = await ipcRenderer.invoke('template-ensureInitialized');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+
+    isInitialized: () => {
+      // 同步方法，但在IPC中难以实现，返回true并依赖主进程状态
+      return true;
+    },
+
     // Get all templates
     getTemplates: async () => {
       const result = await ipcRenderer.invoke('template-getTemplates');
@@ -197,7 +223,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error);
       }
       return result.data;
-    }
+    },
+
+    // Template Import/Export
+    exportTemplate: async (id) => {
+      const result = await ipcRenderer.invoke('template-exportTemplate', id);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    importTemplate: async (jsonString) => {
+      const result = await ipcRenderer.invoke('template-importTemplate', jsonString);
+      if (!result.success) throw new Error(result.error);
+    },
+
+    // Template language methods
+    changeBuiltinTemplateLanguage: async (language) => {
+      const result = await ipcRenderer.invoke('template-changeBuiltinTemplateLanguage', language);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+
+    getCurrentBuiltinTemplateLanguage: async () => {
+      const result = await ipcRenderer.invoke('template-getCurrentBuiltinTemplateLanguage');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+
+    getSupportedBuiltinTemplateLanguages: async () => {
+      const result = await ipcRenderer.invoke('template-getSupportedBuiltinTemplateLanguages');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+
   },
 
   // History Manager interface
@@ -275,6 +333,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error);
       }
       return result.data;
+    },
+
+    deleteChain: async (chainId) => {
+      const result = await ipcRenderer.invoke('history-deleteChain', chainId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
     }
   },
 
@@ -347,14 +412,64 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   
+  // Data Manager interface
+  data: {
+    // Export all data
+    exportAllData: async () => {
+      const result = await ipcRenderer.invoke('data-exportAllData');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Import all data
+    importAllData: async (dataString) => {
+      const result = await ipcRenderer.invoke('data-importAllData', dataString);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    }
+  },
+
   // Add an identifier so the frontend knows it's running in Electron
   isElectron: true,
 
+  // Preference Service interface
   preference: {
-    get: (key, defaultValue) => ipcRenderer.invoke('preference-get', key, defaultValue),
-    set: (key, value) => ipcRenderer.invoke('preference-set', key, value),
-    delete: (key) => ipcRenderer.invoke('preference-delete', key),
-    keys: () => ipcRenderer.invoke('preference-keys'),
-    clear: () => ipcRenderer.invoke('preference-clear'),
+    get: async (key, defaultValue) => {
+      const result = await ipcRenderer.invoke('preference-get', key, defaultValue);
+      if (!result.success) {
+        console.error(`[Preload] Failed to get preference key "${key}":`, result.error);
+        // 在出错时返回默认值，以保持与原始服务签名一致
+        return defaultValue;
+      }
+      return result.data;
+    },
+    set: async (key, value) => {
+      const result = await ipcRenderer.invoke('preference-set', key, value);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    delete: async (key) => {
+      const result = await ipcRenderer.invoke('preference-delete', key);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    keys: async () => {
+      const result = await ipcRenderer.invoke('preference-keys');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    clear: async () => {
+      const result = await ipcRenderer.invoke('preference-clear');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
   },
 }); 

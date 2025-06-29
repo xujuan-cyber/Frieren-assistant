@@ -350,7 +350,20 @@ export class HistoryManager implements IHistoryManager {
     return results;
   }
 
+  /**
+   * Delete a chain by its ID
+   * @param chainId The ID of the chain to delete
+   */
+  async deleteChain(chainId: string): Promise<void> {
+    const allRecords = await this.getRecords();
+    const recordsToKeep = allRecords.filter(record => record.chainId !== chainId);
 
+    if (recordsToKeep.length === allRecords.length) {
+      throw new RecordNotFoundError(`Chain with ID ${chainId} not found`, chainId);
+    }
+
+    await this.saveToStorage(recordsToKeep);
+  }
 }
 
 /**

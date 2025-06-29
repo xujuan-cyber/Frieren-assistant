@@ -43,7 +43,7 @@ describe('Real API Integration Tests', () => {
     
     const languageService = createTemplateLanguageService(storage)
     templateManager = createTemplateManager(storage, languageService)
-    await templateManager.ensureInitialized()
+
     
     const llmService = createLLMService(modelManager)
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager)
