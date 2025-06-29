@@ -169,7 +169,7 @@ const props = defineProps({
 const emit = defineEmits<{
   'update:optimizedPrompt': [value: string];
   'iterate': [payload: IteratePayload];
-  'openTemplateManager': [type: 'optimize' | 'iterate'];
+  'openTemplateManager': [type: 'optimize' | 'userOptimize' | 'iterate'];
   'update:selectedIterateTemplate': [template: Template | null];
   'switchVersion': [version: PromptRecord];
   'templateSelect': [template: Template];

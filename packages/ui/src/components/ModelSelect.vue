@@ -60,10 +60,11 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch, onMounted, inject } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { clickOutside } from '../directives/clickOutside'
+import type { AppServices } from '../types/services'
 
 const { t } = useI18n()
 
@@ -75,11 +76,8 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
-  },
-  modelManager: {
-    type: Object,
-    required: false
   }
+  // modelManager现在通过inject获取，不再需要props
 })
 
 const emit = defineEmits(['update:modelValue', 'config'])
@@ -88,22 +86,24 @@ const isOpen = ref(false)
 const refreshTrigger = ref(0)
 const vClickOutside = clickOutside
 
-// 从服务中注入modelManager，如果props中提供了则优先使用props
-const services = inject('services', null)
+// 统一使用inject获取services
+const services = inject<Ref<AppServices | null>>('services')
+if (!services) {
+  throw new Error('[ModelSelect] services未正确注入，请确保在App组件中正确provide了services')
+}
+
 const getModelManager = computed(() => {
-  // 优先使用props中的modelManager
-  if (props.modelManager) {
-    return props.modelManager
+  const servicesValue = services.value
+  if (!servicesValue) {
+    throw new Error('[ModelSelect] services未初始化，请确保应用已正确启动')
   }
-  
-  // 其次尝试从services中获取
-  if (services && services.value && services.value.modelManager) {
-    return services.value.modelManager
+
+  const manager = servicesValue.modelManager
+  if (!manager) {
+    throw new Error('[ModelSelect] modelManager未初始化，请确保服务已正确配置')
   }
-  
-  // 如果都没有，抛出错误
-  console.error('ModelManager not available. Please provide modelManager prop or inject services.')
-  return null
+
+  return manager
 })
 
 // 响应式数据存储

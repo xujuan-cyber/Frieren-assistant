@@ -154,14 +154,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
 import type { IDataManager } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
 
 interface Props {
   show: boolean;
-  dataManager?: IDataManager;
+  // dataManager现在通过inject获取，不再需要props
 }
 
 interface Emits {
@@ -176,22 +177,24 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
 
-// 从服务中注入dataManager，如果props中提供了则优先使用props
-const services = inject('services', null)
+// 统一使用inject获取services
+const services = inject<Ref<AppServices | null>>('services')
+if (!services) {
+  throw new Error('[DataManager] services未正确注入，请确保在App组件中正确provide了services')
+}
+
 const getDataManager = computed(() => {
-  // 优先使用props中的dataManager
-  if (props.dataManager) {
-    return props.dataManager
+  const servicesValue = services.value
+  if (!servicesValue) {
+    throw new Error('[DataManager] services未初始化，请确保应用已正确启动')
   }
-  
-  // 其次尝试从services中获取
-  if (services && services.value && services.value.dataManager) {
-    return services.value.dataManager
+
+  const manager = servicesValue.dataManager
+  if (!manager) {
+    throw new Error('[DataManager] dataManager未初始化，请确保服务已正确配置')
   }
-  
-  // 如果都没有，抛出错误
-  console.error('DataManager not available. Please provide dataManager prop or inject services.')
-  return null
+
+  return manager
 })
 
 const isExporting = ref(false)

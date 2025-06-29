@@ -86,7 +86,6 @@
                   v-model="currentSelectedTemplate"
                   :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
                   :optimization-mode="selectedOptimizationMode"
-                  :services="services"
                   @manage="openTemplateManager"
                 />
               </template>
@@ -172,6 +171,9 @@ import {
   usePromptHistory,
   useModelSelectors,
 
+  // i18n functions
+  initializeI18nWithStorage,
+
   // Types from UI package
   type OptimizationMode,
   // 从UI包导入DataManager类型
@@ -188,14 +190,23 @@ const toast = useToast()
 // 2. 初始化应用服务
 const { services, isInitializing, error } = useAppInitializer()
 
-// 3. 向子组件提供服务
+// 3. Initialize i18n with storage when services are ready
+watch(services, async (newServices) => {
+  if (newServices?.storageProvider) {
+    // 立即失败，不掩盖错误
+    await initializeI18nWithStorage(newServices.storageProvider)
+    console.log('[Web] i18n initialized with storage')
+  }
+}, { immediate: true })
+
+// 4. 向子组件提供服务
 provide('services', services)
 provide('toast', toast)
 
-// 4. 控制主UI渲染的标志
+// 5. 控制主UI渲染的标志
 const isReady = computed(() => services.value !== null && !isInitializing.value)
 
-// 5. 创建所有必要的引用
+// 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null)
 const selectedOptimizationMode = ref<OptimizationMode>('system')
 const showDataManager = ref(false)
@@ -255,8 +266,8 @@ const templateManagerState = useTemplateManager(
   services as any,
   {
     selectedOptimizeTemplate: toRef(optimizer, 'selectedOptimizeTemplate'),
-    selectedIterateTemplate: toRef(optimizer, 'selectedIterateTemplate'),
-    saveTemplateSelection: optimizer.saveTemplateSelection
+    selectedUserOptimizeTemplate: toRef(optimizer, 'selectedUserOptimizeTemplate'),
+    selectedIterateTemplate: toRef(optimizer, 'selectedIterateTemplate')
   }
 )
 
@@ -308,8 +319,9 @@ const openGithubRepo = () => {
 }
 
 // 打开模板管理器
-const openTemplateManager = () => {
-  templateManagerState.currentType = selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize'
+const openTemplateManager = (templateType?: string) => {
+  // 如果传入了模板类型，直接使用；否则根据当前优化模式判断（向后兼容）
+  templateManagerState.currentType = templateType || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
   templateManagerState.showTemplates = true
 }
 

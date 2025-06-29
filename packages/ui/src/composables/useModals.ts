@@ -39,23 +39,9 @@ export function useModals(
       state.showTemplates = true
     },
 
-    // 加载提示词模板
-    loadTemplates: async () => {
-      try {
-        if (!templateManager.value) {
-          throw new Error('模板管理器未初始化')
-        }
-        await templateManager.value.ensureInitialized()
-        await initTemplateSelection()
-      } catch (error) {
-        console.error(t('toast.error.loadTemplatesFailed'), error)
-        toast.error(t('toast.error.loadTemplatesFailed'))
-      }
-    },
-
     // 关闭提示词管理器
-    handleTemplateManagerClose: async () => {
-      await state.loadTemplates()
+    handleTemplateManagerClose: () => {
+      // 模板加载现在由 useTemplateManager 负责，这里只需要关闭弹窗
       state.showTemplates = false
     },
 

@@ -28,14 +28,12 @@ prompt-optimizer/
 - `package.json` - 项目配置
 - `.vscode/` - VSCode配置目录
 - `.cursorrules` - Cursor IDE配置
-- `.windsurfrules` - Windsurf IDE配置
 - `.gitignore` - Git忽略配置
 
 ### 1.3 工作区文件
 - `README.md` - 项目说明文档
-- `scratchpad.md` - 开发笔记和任务规划
-- `experience.md` - 项目经验总结
-- `cursor_tips.md` - AI辅助开发指南 
+- `scratchpad.md` - 开发笔记和任务规划（已迁移到docs/workspace/）
+- `experience.md` - 项目经验总结（已迁移到docs/workspace/）
 
 ### 1.4 文档目录 (docs/)
 - `README.md` - 文档索引

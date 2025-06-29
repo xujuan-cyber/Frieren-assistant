@@ -5,6 +5,7 @@ import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { useStorage } from './useStorage'
 import type { AppServices } from '../types/services'
+import { MODEL_SELECTION_KEYS } from '../constants/storage-keys'
 
 export interface ModelManagerHooks {
   showConfig: boolean
@@ -78,13 +79,13 @@ export function useModelManager(
   
         if (defaultModel) {
           // Load optimization model selection
-          const savedOptimizeModel = await storage.getItem('app:selected-optimize-model')
+          const savedOptimizeModel = await storage.getItem(MODEL_SELECTION_KEYS.OPTIMIZE_MODEL)
           state.selectedOptimizeModel = (savedOptimizeModel && enabledModels.find(m => m.key === savedOptimizeModel))
             ? savedOptimizeModel
             : defaultModel
-  
+
           // Load test model selection
-          const savedTestModel = await storage.getItem('app:selected-test-model')
+          const savedTestModel = await storage.getItem(MODEL_SELECTION_KEYS.TEST_MODEL)
           state.selectedTestModel = (savedTestModel && enabledModels.find(m => m.key === savedTestModel))
             ? savedTestModel
             : defaultModel
@@ -124,7 +125,7 @@ export function useModelManager(
     if (model) {
       try {
         await storage.setItem(
-          type === 'optimize' ? 'app:selected-optimize-model' : 'app:selected-test-model',
+          type === 'optimize' ? MODEL_SELECTION_KEYS.OPTIMIZE_MODEL : MODEL_SELECTION_KEYS.TEST_MODEL,
           model
         )
       } catch (error) {

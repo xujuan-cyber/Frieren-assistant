@@ -26,15 +26,17 @@ export interface IDataManager {
   importAllData(dataString: string): Promise<void>;
 }
 
-// 需要导出的UI配置键
+// 需要导出的UI配置键 - 与UI包的存储键保持一致
+// 注意：这些键应该与packages/ui/src/constants/storage-keys.ts保持同步
 const UI_SETTINGS_KEYS = [
   'app:settings:ui:theme-id',
   'app:settings:ui:preferred-language',
   'app:settings:ui:builtin-template-language',
   'app:selected-optimize-model',
   'app:selected-test-model',
-  'app:selected-optimize-template',
-  'app:selected-iterate-template'
+  'app:selected-optimize-template', // 系统优化模板
+  'app:selected-user-optimize-template', // 用户优化模板
+  'app:selected-iterate-template' // 迭代模板
 ] as const;
 
 /**

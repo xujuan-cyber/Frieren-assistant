@@ -53,7 +53,7 @@
       </div>
       <div class="theme-dropdown-section">
         <button
-          @click="$emit('manage')"
+          @click="$emit('manage', props.type)"
           class="theme-dropdown-config-button"
         >
           <span>📝</span>
@@ -88,24 +88,46 @@ const props = defineProps({
   },
   optimizationMode: {
     type: String as () => OptimizationMode,
-    default: 'system'
+    required: true
   },
-  services: {
-    type: Object as () => Ref<AppServices | null>,
-    default: () => inject('services', ref(null))
-  }
+  // 移除services prop，统一使用inject
 })
 
 const vClickOutside = clickOutside
-const emit = defineEmits(['update:modelValue', 'manage', 'select'])
+const emit = defineEmits<{
+  'update:modelValue': [template: Template | null]
+  'manage': [type: TemplateType]
+  'select': [template: Template, showToast?: boolean]
+}>()
 
 const isOpen = ref(false)
 const dropdownStyle = ref<Record<string, string>>({})
 const isReady = ref(false)
 
+// 通过inject获取services，要求不能为null
+const services = inject<Ref<AppServices | null>>('services')
+if (!services) {
+  throw new Error('[TemplateSelect] services未正确注入，请确保在App组件中正确provide了services')
+}
+
 // 从services中获取templateManager
 const templateManager = computed(() => {
-  return props.services?.value?.templateManager
+  const servicesValue = services.value
+  if (!servicesValue) {
+    throw new Error('[TemplateSelect] services未初始化，请确保应用已正确启动')
+  }
+
+  const manager = servicesValue.templateManager
+  if (!manager) {
+    throw new Error('[TemplateSelect] templateManager未初始化，请确保服务已正确配置')
+  }
+
+  console.debug('[TemplateSelect] templateManager computed:', {
+    hasServices: !!servicesValue,
+    hasTemplateManager: !!manager,
+    servicesKeys: Object.keys(servicesValue)
+  })
+  return manager
 })
 
 // 计算下拉菜单位置
@@ -156,20 +178,11 @@ watch(isOpen, async (newValue) => {
 
 // 确保模板管理器已准备就绪
 const ensureTemplateManagerReady = async () => {
-  if (!templateManager.value) {
-    console.warn('[TemplateSelect] 模板管理器尚未就绪')
-    return false
-  }
-  
-  try {
-    await templateManager.value.ensureInitialized()
-    isReady.value = true
-    return true
-  } catch (err) {
-    console.error('[TemplateSelect] 模板管理器初始化失败:', err)
-    isReady.value = false
-    return false
-  }
+  // templateManager的检查已经在computed中进行，这里直接使用
+  await templateManager.value.ensureInitialized()
+  isReady.value = true
+  console.debug('[TemplateSelect] 模板管理器初始化成功')
+  return true
 }
 
 const templates = computed(() => {
@@ -181,10 +194,14 @@ const templates = computed(() => {
 
 // 添加对services变化的监听
 watch(
-  () => props.services?.value?.templateManager,
+  () => services.value?.templateManager,
   async (newTemplateManager) => {
     if (newTemplateManager) {
+      console.debug('[TemplateSelect] 检测到模板管理器变化，开始初始化...')
       await ensureTemplateManagerReady()
+    } else {
+      console.debug('[TemplateSelect] 模板管理器不可用，重置状态')
+      isReady.value = false
     }
   },
   { immediate: true, deep: true }
@@ -284,7 +301,7 @@ const selectTemplate = (template: Template) => {
     isOpen.value = false
     return
   }
-  
+
   emit('update:modelValue', template)
   // 用户主动选择时显示toast（传递true参数）
   emit('select', template, true)

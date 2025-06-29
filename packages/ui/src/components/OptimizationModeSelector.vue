@@ -42,7 +42,7 @@ import type { OptimizationMode } from '@prompt-optimizer/core'
 const { t } = useI18n()
 
 interface Props {
-  modelValue?: OptimizationMode
+  modelValue: OptimizationMode
 }
 
 interface Emits {
@@ -50,9 +50,7 @@ interface Emits {
   (e: 'change', value: OptimizationMode): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  modelValue: 'system'
-})
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 /**

@@ -147,27 +147,35 @@ import {
   useAppInitializer,
   usePromptHistory,
 
-  // Other
-  installI18n,
+  // i18n functions
+  initializeI18nWithStorage,
 
   // Types from UI package
   type OptimizationMode,
 } from '@prompt-optimizer/ui'
 import type { IPromptService } from '@prompt-optimizer/core'
 
-// 1. Install i18n and setup basic composables
-installI18n()
+// 1. Setup basic composables
 const { t } = useI18n()
 const toast = useToast()
 
 // 2. Initialize all application services
 const { services, isInitializing } = useAppInitializer()
 
-// 3. Provide services to all child components
+// 3. Initialize i18n with storage when services are ready
+watch(services, async (newServices) => {
+  if (newServices?.storageProvider) {
+    // 立即失败，不掩盖错误
+    await initializeI18nWithStorage(newServices.storageProvider)
+    console.log('[Extension] i18n initialized with storage')
+  }
+}, { immediate: true })
+
+// 4. Provide services to all child components
 provide('services', services)
 provide('toast', toast)
 
-// 4. This flag controls the rendering of the main UI.
+// 5. This flag controls the rendering of the main UI.
 const isReady = ref(false)
 
 // 5. Define placeholders for all state and functions.
@@ -259,12 +267,14 @@ watch(services, (newServices) => {
   )
   showHistory = historyMgr.showHistory
 
-  const templateMgr = useTemplateManager({
-    templateManager: newServices.templateManager,
-    selectedOptimizeTemplate: optimizer.selectedOptimizeTemplate,
-    selectedIterateTemplate: optimizer.selectedIterateTemplate,
-    saveTemplateSelection: optimizer.saveTemplateSelection
-  })
+  const templateMgr = useTemplateManager(
+    services as any,
+    {
+      selectedOptimizeTemplate: optimizer.selectedOptimizeTemplate,
+      selectedUserOptimizeTemplate: optimizer.selectedUserOptimizeTemplate,
+      selectedIterateTemplate: optimizer.selectedIterateTemplate
+    }
+  )
   showTemplateManager = templateMgr.showTemplates
   currentTemplateManagerType = templateMgr.currentType
 
@@ -292,8 +302,9 @@ watch(services, (newServices) => {
 const openGithubRepo = () => {
   window.open('https://github.com/prompt-optimizer/prompt-optimizer', '_blank');
 }
-const openTemplateManager = () => {
-  currentTemplateManagerType.value = selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize'
+const openTemplateManager = (templateType?: string) => {
+  // 如果传入了模板类型，直接使用；否则根据当前优化模式判断（向后兼容）
+  currentTemplateManagerType.value = templateType || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
   showTemplateManager.value = true
 }
 const handleOptimizationModeChange = (mode: OptimizationMode) => {

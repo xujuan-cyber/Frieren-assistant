@@ -18,6 +18,7 @@ import { computed, inject, type Ref } from 'vue'
 import { i18n } from '../plugins/i18n'
 import { useStorage } from '../composables/useStorage'
 import type { AppServices } from '../types/services'
+import { UI_SETTINGS_KEYS } from '../constants/storage-keys'
 
 const services = inject('services') as Ref<AppServices | null>
 const storage = useStorage(services)
@@ -33,7 +34,7 @@ const toggleLanguage = async () => {
   i18n.global.locale.value = newLocale
   
   try {
-    await storage.setItem('preferred-language', newLocale)
+    await storage.setItem(UI_SETTINGS_KEYS.PREFERRED_LANGUAGE, newLocale)
   } catch (error) {
     console.error('保存语言设置失败:', error)
   }

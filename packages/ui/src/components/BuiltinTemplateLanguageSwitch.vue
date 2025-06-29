@@ -45,57 +45,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, inject } from 'vue'
+import { ref, onMounted, computed, inject, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/useToast'
 import type { BuiltinTemplateLanguage, ITemplateManager, TemplateLanguageService } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
 
 const { t } = useI18n()
 const toast = useToast()
 
-const props = defineProps({
-  templateManager: {
-    type: Object,
-    required: false
-  },
-  templateLanguageService: {
-    type: Object,
-    required: false
-  }
-})
+// 移除props定义，现在统一通过inject获取services
+// const props = defineProps({
+//   // templateManager和templateLanguageService现在通过inject获取
+// })
 
-// 从服务中注入，如果props中提供了则优先使用props
-const services = inject('services', { value: null })
+// 统一使用inject获取services
+const services = inject<Ref<AppServices | null>>('services')
+if (!services) {
+  throw new Error('[BuiltinTemplateLanguageSwitch] services未正确注入，请确保在App组件中正确provide了services')
+}
+
 const getTemplateManager = computed(() => {
-  // 优先使用props中的templateManager
-  if (props.templateManager) {
-    return props.templateManager
+  const servicesValue = services.value
+  if (!servicesValue) {
+    throw new Error('[BuiltinTemplateLanguageSwitch] services未初始化，请确保应用已正确启动')
   }
-  
-  // 其次尝试从services中获取
-  if (services.value && services.value.templateManager) {
-    return services.value.templateManager
+
+  const manager = servicesValue.templateManager
+  if (!manager) {
+    throw new Error('[BuiltinTemplateLanguageSwitch] templateManager未初始化，请确保服务已正确配置')
   }
-  
-  // 如果都没有，抛出错误
-  console.error('TemplateManager not available. Please provide templateManager prop or inject services.')
-  return null
+
+  return manager
 })
 
 const getTemplateLanguageService = computed(() => {
-  // 优先使用props中的templateLanguageService
-  if (props.templateLanguageService) {
-    return props.templateLanguageService
+  const servicesValue = services.value
+  if (!servicesValue) {
+    throw new Error('[BuiltinTemplateLanguageSwitch] services未初始化，请确保应用已正确启动')
   }
-  
-  // 其次尝试从services中获取
-  if (services.value && services.value.templateLanguageService) {
-    return services.value.templateLanguageService
+
+  const service = servicesValue.templateLanguageService
+  if (!service) {
+    throw new Error('[BuiltinTemplateLanguageSwitch] templateLanguageService未初始化，请确保服务已正确配置')
   }
-  
-  // 如果都没有，抛出错误
-  console.error('TemplateLanguageService not available. Please provide templateLanguageService prop or inject services.')
-  return null
+
+  return service
 })
 
 // Reactive state

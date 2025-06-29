@@ -721,9 +721,18 @@ function getCategoryFromProps() {
   }
 }
 
-// 获取当前模板类型
+// 获取当前模板类型 - 根据当前分类而不是props
 function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' {
-  return props.templateType as 'optimize' | 'userOptimize' | 'iterate'
+  switch (currentCategory.value) {
+    case 'system-optimize':
+      return 'optimize'
+    case 'user-optimize':
+      return 'userOptimize'
+    case 'iterate':
+      return 'iterate'
+    default:
+      return 'optimize'
+  }
 }
 
 // 获取当前选中的模板ID
@@ -959,7 +968,7 @@ const applyMigration = async () => {
     }
 
     await getTemplateManager.value.saveTemplate(updatedTemplate)
-    loadTemplates()
+    await loadTemplates()
 
     // 如果当前选中的模板被更新，重新选择
     const isCurrentSelected = getSelectedTemplateId() === template.id
@@ -985,7 +994,7 @@ const applyMigration = async () => {
 }
 
 // 提交表单
-const handleSubmit = () => {
+const handleSubmit = async () => {
   try {
     // 验证表单
     if (form.value.isAdvanced) {
@@ -1021,8 +1030,8 @@ const handleSubmit = () => {
       metadata
     }
 
-    getTemplateManager.value.saveTemplate(templateData)
-    loadTemplates()
+    await getTemplateManager.value.saveTemplate(templateData)
+    await loadTemplates()
 
     const isCurrentSelected = getSelectedTemplateId() === templateData.id
 
@@ -1049,7 +1058,7 @@ const handleSubmit = () => {
 const confirmDelete = async (templateId: string) => {
   if (confirm(t('template.deleteConfirm'))) {
     try {
-      getTemplateManager.value.deleteTemplate(templateId)
+      await getTemplateManager.value.deleteTemplate(templateId)
       await loadTemplates()
 
       // 获取当前分类的剩余模板
@@ -1094,10 +1103,10 @@ const handleFileImport = (event) => {
 
   try {
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        getTemplateManager.value.importTemplate(e.target.result)
-        loadTemplates()
+        await getTemplateManager.value.importTemplate(e.target.result)
+        await loadTemplates()
         toast.success(t('template.success.imported'))
         event.target.value = ''
       } catch (error) {
@@ -1190,6 +1199,11 @@ const syntaxGuideMarkdown = computed(() => {
       }
     }
   }
+
+// 监听 props.templateType 变化，更新当前分类
+watch(() => props.templateType, (newTemplateType) => {
+  currentCategory.value = getCategoryFromProps()
+}, { immediate: true })
 
 // 生命周期钩子
 onMounted(async () => {
