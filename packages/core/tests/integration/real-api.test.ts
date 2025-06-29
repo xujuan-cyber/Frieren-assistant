@@ -158,8 +158,8 @@ describe('Real API Integration Tests', () => {
         name: 'Google Gemini',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         apiKey: process.env.VITE_GEMINI_API_KEY!,
-        models: ['gemini-2.0-flash-exp'],
-        defaultModel: 'gemini-2.0-flash-exp',
+        models: ['gemini-2.0-flash'],
+        defaultModel: 'gemini-2.0-flash',
         enabled: true,
         provider: 'gemini' as const
       }

@@ -107,13 +107,9 @@ export class LLMService implements ILLMService {
    */
   private getGeminiModel(modelConfig: ModelConfig, systemInstruction?: string, isStream: boolean = false): GenerativeModel {
     const apiKey = modelConfig.apiKey || '';
-    
-    // 创建GoogleGenerativeAI实例配置
-    const genAIConfig: any = {
-      apiKey: apiKey
-    };
 
-    const genAI = new GoogleGenerativeAI(genAIConfig);
+    // 创建GoogleGenerativeAI实例 - 旧版本直接传入字符串API key
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     // 创建模型配置
     const modelOptions: any = {

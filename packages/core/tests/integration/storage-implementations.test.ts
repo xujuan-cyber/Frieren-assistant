@@ -243,9 +243,11 @@ describe('存储实现通用测试', () => {
 
       describe('HistoryManager 集成测试', () => {
         let historyManager: HistoryManager;
+        let modelManager: ModelManager;
 
         beforeEach(() => {
-          historyManager = new HistoryManager(storageProvider);
+          modelManager = createModelManager(storageProvider);
+          historyManager = new HistoryManager(storageProvider, modelManager);
         });
 
         it('应该能够添加和获取历史记录', async () => {
@@ -341,7 +343,7 @@ describe('存储实现通用测试', () => {
           };
 
           await templateManager.saveTemplate(template);
-          const retrieved = templateManager.getTemplate('test-template');
+          const retrieved = await templateManager.getTemplate('test-template');
 
           expect(retrieved.id).toBe('test-template');
           expect(retrieved.name).toBe('Test Template');
@@ -377,7 +379,7 @@ describe('存储实现通用测试', () => {
           await templateManager.saveTemplate(template1);
           await templateManager.saveTemplate(template2);
 
-          const templates = templateManager.listTemplates();
+          const templates = await templateManager.listTemplates();
           const userTemplates = templates.filter(t => !t.isBuiltin);
 
           expect(userTemplates).toHaveLength(2);

@@ -56,8 +56,8 @@ describe('PromptService Integration Tests', () => {
         provider: 'gemini',
         apiKey: process.env.VITE_GEMINI_API_KEY!,
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        defaultModel: 'gemini-2.0-flash-exp',
-        models: ['gemini-2.0-flash-exp'],
+        defaultModel: 'gemini-2.0-flash',
+        models: ['gemini-2.0-flash'],
         enabled: true,
         llmParams: {
           temperature: 0.7,
