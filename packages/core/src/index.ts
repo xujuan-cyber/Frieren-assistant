@@ -38,7 +38,8 @@ export { LocalStorageProvider } from './services/storage/localStorageProvider'
 export { MemoryStorageProvider } from './services/storage/memoryStorageProvider'
 
 // 导出提示词服务相关
-export { PromptService, createPromptService } from './services/prompt/service'
+export { PromptService } from './services/prompt/service'
+export { createPromptService } from './services/prompt/factory'
 export * from './services/prompt/types'
 export { ElectronPromptServiceProxy } from './services/prompt/electron-proxy'
 export * from './services/prompt/errors'

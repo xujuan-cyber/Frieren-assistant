@@ -132,3 +132,6 @@
 - **[✅] 延迟初始化**: Web和Extension应用中的i18n都应等待存储服务准备好后再初始化
 - **[✅] 避免main创建服务**: main.ts不应直接使用StorageFactory.createDefault()，应由App.vue统一管理
 - **[✅] 文件扩展名一致性**: Web和Extension应用都应使用main.ts而不是混用.js和.ts
+- **[✅] 模块级副作用检查**: 确保模块导入不会产生存储创建等副作用，特别是factory文件
+- **[✅] 历史数据清理**: 修复代码后需要清理浏览器中的历史IndexedDB数据
+- **[✅] 强制明确性**: 删除便利方法如createDefault()，强制开发者明确指定存储类型

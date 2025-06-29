@@ -180,6 +180,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error);
       }
+    },
+
+    // Add listTemplatesByType
+    listTemplatesByType: async (type) => {
+      const result = await ipcRenderer.invoke('template-listTemplatesByType', type);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
     }
   },
 

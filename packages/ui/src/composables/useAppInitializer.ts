@@ -32,6 +32,7 @@ export function useAppInitializer() {
   onMounted(async () => {
     try {
       console.log('[AppInitializer] 开始应用初始化...');
+
       let storageProvider: IStorageProvider;
       let modelManager: IModelManager;
       let templateManager: ITemplateManager;
@@ -42,8 +43,27 @@ export function useAppInitializer() {
 
       if (isRunningInElectron()) {
         console.log('[AppInitializer] 检测到Electron环境，初始化代理服务...');
-        // 在Electron渲染进程中，我们应该使用基于内存的存储而非Dexie，以确保状态与主进程同步
-        storageProvider = StorageFactory.create('memory');
+        // 在Electron渲染进程中，我们需要创建一个代理存储提供器
+        // 这个代理会将所有存储操作转发到主进程
+        storageProvider = {
+          async getItem(key: string): Promise<string | null> {
+            console.warn('[ElectronStorageProxy] getItem called, but storage should be handled by main process');
+            return null;
+          },
+          async setItem(key: string, value: string): Promise<void> {
+            console.warn('[ElectronStorageProxy] setItem called, but storage should be handled by main process');
+          },
+          async removeItem(key: string): Promise<void> {
+            console.warn('[ElectronStorageProxy] removeItem called, but storage should be handled by main process');
+          },
+          async clear(): Promise<void> {
+            console.warn('[ElectronStorageProxy] clear called, but storage should be handled by main process');
+          },
+          async getAllKeys(): Promise<string[]> {
+            console.warn('[ElectronStorageProxy] getAllKeys called, but storage should be handled by main process');
+            return [];
+          }
+        } as any;
 
         // 在Electron环境中，我们实例化所有轻量级的代理类
         modelManager = new ElectronModelManagerProxy();
@@ -51,24 +71,26 @@ export function useAppInitializer() {
         historyManager = new ElectronHistoryManagerProxy();
         llmService = new ElectronLLMProxy();
         promptService = new ElectronPromptServiceProxy();
-        
-        // DataManager in electron requires special handling, as it depends on other managers.
-        // We create it using the proxy instances.
-        dataManager = createDataManager(modelManager, templateManager, historyManager, storageProvider);
-        
-        // 在 Electron 环境中也提供 templateLanguageService
-        const languageService = createTemplateLanguageService(storageProvider);
-        await languageService.initialize();
+
+        // DataManager在Electron环境下也使用代理模式，不需要本地存储
+        // 创建一个空的DataManager，因为所有操作都通过代理进行
+        dataManager = {
+          exportData: async () => { throw new Error('Export not implemented in Electron proxy mode'); },
+          importData: async () => { throw new Error('Import not implemented in Electron proxy mode'); },
+          clearAllData: async () => { throw new Error('Clear not implemented in Electron proxy mode'); }
+        } as any;
+
+        // 在Electron环境中，模板语言服务由主进程管理，渲染进程不需要初始化
 
         services.value = {
-          storageProvider,
+          storageProvider, // 使用代理存储提供器
           modelManager,
           templateManager,
           historyManager,
           dataManager,
           llmService,
           promptService,
-          templateLanguageService: languageService,
+          templateLanguageService: null as any, // 由主进程管理
         };
         console.log('[AppInitializer] Electron代理服务初始化完成');
 
@@ -86,6 +108,8 @@ export function useAppInitializer() {
         await languageService.initialize();
         
         const templateManagerInstance = createTemplateManager(storageProvider, languageService);
+        templateManager = templateManagerInstance;
+        console.log('[AppInitializer] TemplateManager instance in Web:', templateManager);
         
         // Initialize managers that depend on other managers
         const historyManagerInstance = createHistoryManager(storageProvider, modelManagerInstance);

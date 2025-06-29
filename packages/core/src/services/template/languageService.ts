@@ -1,5 +1,4 @@
 import { IStorageProvider } from '../storage/types';
-import { StorageFactory } from '../storage/factory';
 
 /**
  * Supported built-in template languages
@@ -18,8 +17,8 @@ export class TemplateLanguageService {
   private storage: IStorageProvider;
   private initialized = false;
 
-  constructor(storage?: IStorageProvider) {
-    this.storage = storage || StorageFactory.createDefault();
+  constructor(storage: IStorageProvider) {
+    this.storage = storage;
   }
 
   /**
@@ -36,9 +35,15 @@ export class TemplateLanguageService {
       if (savedLanguage && this.isValidLanguage(savedLanguage)) {
         this.currentLanguage = savedLanguage as BuiltinTemplateLanguage;
       } else {
-        // Auto-detect: Chinese browsers use Chinese, others use English
-        const isChineseBrowser = navigator.language?.startsWith('zh') ?? false;
-        this.currentLanguage = isChineseBrowser ? 'zh-CN' : 'en-US';
+        let detectedLanguage: BuiltinTemplateLanguage = this.DEFAULT_LANGUAGE;
+        
+        // Auto-detect only in browser-like environments where `navigator` is available.
+        if (typeof navigator !== 'undefined' && navigator.language) {
+          const isChineseBrowser = navigator.language.startsWith('zh');
+          detectedLanguage = isChineseBrowser ? 'zh-CN' : 'en-US';
+        }
+        
+        this.currentLanguage = detectedLanguage;
         await this.storage.setItem(this.STORAGE_KEY, this.currentLanguage);
       }
       

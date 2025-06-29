@@ -41,6 +41,7 @@ interface Window {
       createTemplate: (template: any) => Promise<any>;
       updateTemplate: (id: string, updates: any) => Promise<void>;
       deleteTemplate: (id: string) => Promise<void>;
+      listTemplatesByType: (type: 'optimize' | 'userOptimize' | 'iterate') => Promise<any[]>;
     };
     history: {
       getHistory: () => Promise<any[]>;

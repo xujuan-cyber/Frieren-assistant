@@ -22,8 +22,9 @@
     "dev:parallel": "concurrently -k -p \"[{name}]\" -n \"UI,WEB\" \"pnpm run watch:ui\" \"pnpm run dev:web\"",
     "dev:web": "pnpm -F @prompt-optimizer/web dev",
     "dev:ext": "pnpm -F @prompt-optimizer/extension dev",
-    "dev:desktop": "npm-run-all dev:setup dev:desktop:parallel",
+    "dev:desktop": "npm-run-all dev:setup dev:desktop:parallel:fixed",
     "dev:desktop:parallel": "concurrently -k -p \"[{name}]\" -n \"UI,WEB,DESKTOP\" \"pnpm run watch:ui\" \"pnpm run dev:web\" \"pnpm -F @prompt-optimizer/desktop dev\"",
+    "dev:desktop:parallel:fixed": "concurrently -k -p \"[{name}]\" -n \"WEB,DESKTOP\" \"pnpm run dev:web\" \"pnpm -F @prompt-optimizer/desktop dev\"",
     "dev:desktop:fresh": "npm-run-all clean setup:install dev:desktop",
     "test:core": "pnpm -F @prompt-optimizer/core test --run --passWithNoTests",
     "test:ui": "pnpm -F @prompt-optimizer/ui test --run --passWithNoTests",
@@ -52,6 +53,7 @@
     "@intlify/unplugin-vue-i18n": "^6.0.3",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
+    "electron": "^37.1.0",
     "i18next": "^24.2.2",
     "i18next-browser-languagedetector": "^8.0.4",
     "lodash-unified": "^1.0.3",
@@ -78,5 +80,13 @@
     "memoize-one": "^6.0.0",
     "normalize-wheel-es": "^1.2.0",
     "vue-i18n": "^10.0.6"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
   }
 }

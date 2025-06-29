@@ -89,8 +89,8 @@ export class PromptService implements IPromptService {
         throw new OptimizationError('Model not found', request.targetPrompt);
       }
 
-      const template = this.templateManager.getTemplate(
-        request.templateId || this.getDefaultTemplateId(
+      const template = await this.templateManager.getTemplate(
+        request.templateId || await this.getDefaultTemplateId(
           request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
         )
       );
@@ -141,7 +141,7 @@ export class PromptService implements IPromptService {
       // 获取迭代提示词
       let template;
       try {
-        template = this.templateManager.getTemplate(templateId || DEFAULT_TEMPLATES.ITERATE);
+        template = await this.templateManager.getTemplate(templateId || DEFAULT_TEMPLATES.ITERATE);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new IterationError(`迭代失败: ${errorMessage}`, originalPrompt, iterateInput);
@@ -308,8 +308,8 @@ export class PromptService implements IPromptService {
         throw new OptimizationError('Model not found', request.targetPrompt);
       }
 
-      const template = this.templateManager.getTemplate(
-        request.templateId || this.getDefaultTemplateId(
+      const template = await this.templateManager.getTemplate(
+        request.templateId || await this.getDefaultTemplateId(
           request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
         )
       );
@@ -378,7 +378,7 @@ export class PromptService implements IPromptService {
       // 获取迭代提示词
       let template;
       try {
-        template = this.templateManager.getTemplate(templateId);
+        template = await this.templateManager.getTemplate(templateId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new IterationError(`Iteration failed: ${errorMessage}`, originalPrompt, iterateInput);
@@ -439,10 +439,10 @@ export class PromptService implements IPromptService {
   /**
    * 获取默认模板ID
    */
-  private getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'iterate'): string {
+  private async getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'iterate'): Promise<string> {
     try {
       // 尝试获取指定类型的模板列表
-      const templates = this.templateManager.listTemplatesByType(templateType);
+      const templates = await this.templateManager.listTemplatesByType(templateType);
       if (templates.length > 0) {
         // 返回列表中第一个模板的ID
         return templates[0].id;
@@ -454,7 +454,7 @@ export class PromptService implements IPromptService {
     // 如果指定类型没有模板，尝试获取相关类型的模板作为回退
     try {
       let fallbackTypes: ('optimize' | 'userOptimize' | 'iterate')[] = [];
-      
+
       if (templateType === 'optimize') {
         fallbackTypes = ['userOptimize']; // optimize类型回退到userOptimize
       } else if (templateType === 'userOptimize') {
@@ -462,17 +462,17 @@ export class PromptService implements IPromptService {
       } else if (templateType === 'iterate') {
         fallbackTypes = ['optimize', 'userOptimize']; // iterate类型回退到任意优化类型
       }
-      
+
       for (const fallbackType of fallbackTypes) {
-        const fallbackTemplates = this.templateManager.listTemplatesByType(fallbackType);
+        const fallbackTemplates = await this.templateManager.listTemplatesByType(fallbackType);
         if (fallbackTemplates.length > 0) {
           console.log(`Using fallback template type ${fallbackType} for ${templateType}`);
           return fallbackTemplates[0].id;
         }
       }
-      
+
       // 最后的回退：获取所有模板中第一个可用的内置模板
-      const allTemplates = this.templateManager.listTemplates();
+      const allTemplates = await this.templateManager.listTemplates();
       const availableTemplate = allTemplates.find(t => t.isBuiltin);
       if (availableTemplate) {
         console.warn(`Using fallback builtin template: ${availableTemplate.id} for type ${templateType}`);
@@ -499,7 +499,7 @@ export class PromptService implements IPromptService {
       version: 1,
       timestamp: Date.now(),
       modelKey: request.modelKey,
-      templateId: request.templateId || this.getDefaultTemplateId(
+      templateId: request.templateId || await this.getDefaultTemplateId(
         request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
       ),
       metadata: {
@@ -540,19 +540,4 @@ export class PromptService implements IPromptService {
   // 这种混合架构是经过权衡的设计决策
 }
 
-/**
- * 工厂函数，用于创建 PromptService 实例
- * @param modelManager 模型管理器
- * @param llmService LLM服务
- * @param templateManager 模板管理器
- * @param historyManager 历史记录管理器
- * @returns IPromptService 实例
- */
-export function createPromptService(
-  modelManager: IModelManager,
-  llmService: ILLMService,
-  templateManager: ITemplateManager,
-  historyManager: IHistoryManager
-): IPromptService {
-  return new PromptService(modelManager, llmService, templateManager, historyManager);
-} 
+

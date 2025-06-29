@@ -219,17 +219,19 @@ function setupIPC() {
   // Model Manager handlers
   ipcMain.handle('model-getModels', async (event) => {
     try {
-      const result = await modelManager.getModels();
+      const result = await modelManager.getAllModels();
       return { success: true, data: result };
     } catch (error) {
-      console.error('[Main Process] Model getModels failed:', error);
+      console.error('[Main Process] Model getAllModels failed:', error);
       return { success: false, error: error.message };
     }
   });
 
   ipcMain.handle('model-addModel', async (event, model) => {
     try {
-      await modelManager.addModel(model);
+      // model应该包含key和config，需要分离
+      const { key, ...config } = model;
+      await modelManager.addModel(key, config);
       return { success: true };
     } catch (error) {
       console.error('[Main Process] Model addModel failed:', error);
@@ -270,7 +272,7 @@ function setupIPC() {
   // Template Manager handlers
   ipcMain.handle('template-getTemplates', async (event) => {
     try {
-      const result = templateManager.listTemplates();
+      const result = await templateManager.listTemplates();
       return { success: true, data: result };
     } catch (error) {
       console.error('[Main Process] Template getTemplates failed:', error);
@@ -301,7 +303,7 @@ function setupIPC() {
   ipcMain.handle('template-updateTemplate', async (event, id, updates) => {
     try {
       // Get existing template and merge with updates
-      const existingTemplate = templateManager.getTemplate(id);
+      const existingTemplate = await templateManager.getTemplate(id);
       const updatedTemplate = { ...existingTemplate, ...updates, id };
       await templateManager.saveTemplate(updatedTemplate);
       return { success: true };
@@ -317,6 +319,16 @@ function setupIPC() {
       return { success: true };
     } catch (error) {
       console.error('[Main Process] Template deleteTemplate failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('template-listTemplatesByType', async (event, type) => {
+    try {
+      const result = await templateManager.listTemplatesByType(type);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[Main Process] Template listTemplatesByType failed:', error);
       return { success: false, error: error.message };
     }
   });

@@ -45,7 +45,7 @@ describe('Extended Metadata Fields Support', () => {
     await templateManager.saveTemplate(templateWithExtraFields);
 
     // 获取模板
-    const savedTemplate = templateManager.getTemplate('test-extended-template');
+    const savedTemplate = await templateManager.getTemplate('test-extended-template');
 
     // 验证基础字段
     expect(savedTemplate.id).toBe('test-extended-template');
@@ -92,7 +92,7 @@ describe('Extended Metadata Fields Support', () => {
     await templateManager.saveTemplate(templateWithExtraFields);
 
     // 导出模板
-    const exportedJson = templateManager.exportTemplate('test-export-import');
+    const exportedJson = await templateManager.exportTemplate('test-export-import');
     
     // 删除原模板
     await templateManager.deleteTemplate('test-export-import');
@@ -101,7 +101,7 @@ describe('Extended Metadata Fields Support', () => {
     await templateManager.importTemplate(exportedJson);
 
     // 验证导入的模板
-    const importedTemplate = templateManager.getTemplate('test-export-import');
+    const importedTemplate = await templateManager.getTemplate('test-export-import');
     
     expect(importedTemplate.metadata.customData).toEqual({
       nested: {
@@ -152,7 +152,7 @@ describe('Extended Metadata Fields Support', () => {
     };
 
     await templateManager.saveTemplate(mixedFieldsTemplate);
-    const savedTemplate = templateManager.getTemplate('mixed-fields-test');
+    const savedTemplate = await templateManager.getTemplate('mixed-fields-test');
 
     expect(savedTemplate.metadata.stringField).toBe('string value');
     expect(savedTemplate.metadata.numberField).toBe(123);

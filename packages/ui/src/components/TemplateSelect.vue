@@ -185,12 +185,19 @@ const ensureTemplateManagerReady = async () => {
   return true
 }
 
-const templates = computed(() => {
-  if (!isReady.value) return []
+// 改为响应式数据，因为需要异步加载
+const templates = ref<Template[]>([])
 
-  // 直接使用 props.type，因为它的值已经被 validator 保证是有效的
-  return templateManager.value!.listTemplatesByType(props.type)
-})
+// 异步加载模板列表
+const loadTemplatesByType = async () => {
+  if (!isReady.value || !templateManager.value) {
+    throw new Error('Template manager is not ready or not available')
+  }
+
+  // 统一使用异步方法，立即抛错不静默处理
+  const typeTemplates = await templateManager.value.listTemplatesByType(props.type)
+  templates.value = typeTemplates
+}
 
 // 添加对services变化的监听
 watch(
@@ -199,12 +206,27 @@ watch(
     if (newTemplateManager) {
       console.debug('[TemplateSelect] 检测到模板管理器变化，开始初始化...')
       await ensureTemplateManagerReady()
+      await loadTemplatesByType()
     } else {
-      console.debug('[TemplateSelect] 模板管理器不可用，重置状态')
+      // 立即抛错，不静默处理
       isReady.value = false
+      templates.value = []
+      throw new Error('[TemplateSelect] Template manager is not available')
     }
   },
   { immediate: true, deep: true }
+)
+
+// 监听props.type变化，重新加载模板
+watch(
+  () => props.type,
+  async () => {
+    if (isReady.value) {
+      await loadTemplatesByType()
+    } else {
+      throw new Error('[TemplateSelect] Cannot load templates: manager not ready')
+    }
+  }
 )
 
 // 添加对optimizationMode变化的监听

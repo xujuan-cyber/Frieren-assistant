@@ -56,34 +56,34 @@ export interface ITemplateManager {
   isInitialized(): boolean;
 
   /** 获取指定ID的模板 */
-  getTemplate(templateId: string): Template; // Stays synchronous
+  getTemplate(templateId: string): Promise<Template>;
 
   /** 保存模板 */
-  saveTemplate(template: Template): Promise<void>; // Async
+  saveTemplate(template: Template): Promise<void>;
 
   /** 删除模板 */
-  deleteTemplate(templateId: string): Promise<void>; // Async
+  deleteTemplate(templateId: string): Promise<void>;
 
   /** 列出所有模板 */
-  listTemplates(): Template[]; // Stays synchronous
+  listTemplates(): Promise<Template[]>;
 
   /** 导出模板 */
-  exportTemplate(templateId: string): string; // Stays synchronous
+  exportTemplate(templateId: string): Promise<string>;
 
   /** 导入模板 */
-  importTemplate(templateJson: string): Promise<void>; // Async
+  importTemplate(templateJson: string): Promise<void>;
 
   /** 清除缓存 */
-  clearCache(templateId?: string): void; // Synchronous
-  
+  clearCache(templateId?: string): void; // 保持同步，因为只是内存操作
+
   /** 按类型列出模板 */
-  listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Template[];
+  listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]>;
 
   /**
    * 根据类型获取模板列表（已废弃）
    * @deprecated 使用 listTemplatesByType 替代
    */
-  getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Template[];
+  getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]>;
 }
 
 /**

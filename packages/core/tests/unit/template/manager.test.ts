@@ -39,7 +39,7 @@ describe('TemplateManager with Mocked LanguageService', () => {
 
   it('should load English templates by default in a test environment', async () => {
     // ensureInitialized in beforeEach already loaded templates
-    const templates = templateManager.listTemplates();
+    const templates = await templateManager.listTemplates();
     const enTemplate = templates.find(t => t.id === 'test-en');
     const zhTemplate = templates.find(t => t.id === 'test-zh');
 
@@ -53,7 +53,7 @@ describe('TemplateManager with Mocked LanguageService', () => {
     vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('zh-CN');
     await templateManager.changeBuiltinTemplateLanguage('zh-CN');
     
-    const templates = templateManager.listTemplates();
+    const templates = await templateManager.listTemplates();
     const enTemplate = templates.find(t => t.id === 'test-en');
     const zhTemplate = templates.find(t => t.id === 'test-zh');
 
@@ -78,7 +78,7 @@ describe('TemplateManager with Mocked LanguageService', () => {
       metadata: { templateType: 'userOptimize', version: '1.0', lastModified: Date.now() }
     };
     await templateManager.saveTemplate(newUserTemplate);
-    const retrieved = templateManager.getTemplate('user-test');
+    const retrieved = await templateManager.getTemplate('user-test');
     expect(retrieved).toBeDefined();
     expect(retrieved.content).toBe('User Content');
     expect(retrieved.isBuiltin).toBe(false);
@@ -106,7 +106,7 @@ describe('TemplateManager with Mocked LanguageService', () => {
     };
     await templateManager.saveTemplate(newUserTemplate);
 
-    const allTemplates = templateManager.listTemplates();
+    const allTemplates = await templateManager.listTemplates();
     expect(allTemplates.length).toBe(2);
     expect(allTemplates.some(t => t.id === 'test-en')).toBe(true);
     expect(allTemplates.some(t => t.id === 'user-test-2')).toBe(true);
@@ -121,12 +121,12 @@ describe('TemplateManager with Mocked LanguageService', () => {
       metadata: { templateType: 'userOptimize', version: '1.0', lastModified: Date.now() }
     };
     await templateManager.saveTemplate(newUserTemplate);
-    let allTemplates = templateManager.listTemplates();
+    let allTemplates = await templateManager.listTemplates();
     expect(allTemplates.length).toBe(2);
 
     await templateManager.deleteTemplate('to-be-deleted');
     
-    allTemplates = templateManager.listTemplates();
+    allTemplates = await templateManager.listTemplates();
     expect(allTemplates.length).toBe(1);
     expect(allTemplates.some(t => t.id === 'to-be-deleted')).toBe(false);
     });

@@ -25,10 +25,8 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
     return true;
   }
 
-  getTemplate(templateId: string): Template {
-    // 注意：ITemplateManager接口要求这是同步方法，但IPC是异步的
-    // 这里需要抛出错误，因为代理模式下无法提供同步访问
-    throw new Error(`getTemplate(${templateId}) is not supported in Electron proxy mode. Use async IPC calls instead.`);
+  async getTemplate(templateId: string): Promise<Template> {
+    return this.electronAPI.template.getTemplate(templateId);
   }
 
   async saveTemplate(template: Template): Promise<void> {
@@ -42,14 +40,13 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
     await this.electronAPI.template.deleteTemplate(templateId);
   }
 
-  listTemplates(): Template[] {
-    // 同步方法在代理模式下不支持
-    throw new Error('listTemplates is not supported in Electron proxy mode. Use async IPC calls instead.');
+  async listTemplates(): Promise<Template[]> {
+    return this.electronAPI.template.getTemplates();
   }
 
-  exportTemplate(templateId: string): string {
-    // 同步方法在代理模式下不支持
-    throw new Error(`exportTemplate(${templateId}) is not supported in Electron proxy mode. Use async IPC calls instead.`);
+  async exportTemplate(templateId: string): Promise<string> {
+    const template = await this.getTemplate(templateId);
+    return JSON.stringify(template, null, 2);
   }
 
   async importTemplate(templateJson: string): Promise<void> {
@@ -61,22 +58,14 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
     // 在代理模式下，缓存由主进程管理，这里是空实现
   }
 
-  listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Template[] {
-    // 同步方法在代理模式下不支持
-    throw new Error(`listTemplatesByType(${type}) is not supported in Electron proxy mode. Use async IPC calls instead.`);
+  async listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
+    return this.electronAPI.template.listTemplatesByType(type);
   }
 
-  getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Template[] {
-    // 同步方法在代理模式下不支持
-    throw new Error(`getTemplatesByType(${type}) is not supported in Electron proxy mode. Use async IPC calls instead.`);
+  async getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
+    return this.listTemplatesByType(type);
   }
 
-  // 添加异步版本的方法供UI使用
-  async getTemplateAsync(templateId: string): Promise<Template | undefined> {
-    return this.electronAPI.template.getTemplate(templateId);
-  }
 
-  async listTemplatesAsync(): Promise<Template[]> {
-    return this.electronAPI.template.getTemplates();
-  }
-} 
+
+}

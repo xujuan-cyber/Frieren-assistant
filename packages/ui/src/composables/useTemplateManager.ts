@@ -159,7 +159,7 @@ export function useTemplateManager(
 
         if (savedTemplateId) {
           try {
-            const template = templateManager.value!.getTemplate(savedTemplateId)
+            const template = await templateManager.value!.getTemplate(savedTemplateId)
             if (template && template.metadata.templateType === 'optimize') {
               selectedOptimizeTemplate.value = template
               console.log('[loadSystemOptimizeTemplate] 成功加载已保存的模板:', template.name)
@@ -182,7 +182,7 @@ export function useTemplateManager(
         }
 
         // 回退到第一个可用的系统优化模板
-        const templates = templateManager.value!.listTemplatesByType('optimize')
+        const templates = await templateManager.value!.listTemplatesByType('optimize')
         console.log('[loadSystemOptimizeTemplate] 可用的系统优化模板数量:', templates.length)
 
         if (templates.length > 0) {
@@ -219,7 +219,7 @@ export function useTemplateManager(
 
         if (savedTemplateId) {
           try {
-            const template = templateManager.value!.getTemplate(savedTemplateId)
+            const template = await templateManager.value!.getTemplate(savedTemplateId)
             if (template && template.metadata.templateType === 'userOptimize') {
               selectedUserOptimizeTemplate.value = template
               console.log('[loadUserOptimizeTemplate] 成功加载已保存的模板:', template.name)
@@ -242,7 +242,7 @@ export function useTemplateManager(
         }
 
         // 回退到第一个可用的用户优化模板
-        const templates = templateManager.value!.listTemplatesByType('userOptimize')
+        const templates = await templateManager.value!.listTemplatesByType('userOptimize')
         console.log('[loadUserOptimizeTemplate] 可用的用户优化模板数量:', templates.length)
 
         if (templates.length > 0) {
@@ -279,7 +279,7 @@ export function useTemplateManager(
 
         if (savedTemplateId) {
           try {
-            const template = templateManager.value!.getTemplate(savedTemplateId)
+            const template = await templateManager.value!.getTemplate(savedTemplateId)
             if (template && template.metadata.templateType === 'iterate') {
               selectedIterateTemplate.value = template
               console.log('[loadIterateTemplate] 成功加载已保存的模板:', template.name)
@@ -302,7 +302,7 @@ export function useTemplateManager(
         }
 
         // 回退到第一个可用的迭代模板
-        const templates = templateManager.value!.listTemplatesByType('iterate')
+        const templates = await templateManager.value!.listTemplatesByType('iterate')
         console.log('[loadIterateTemplate] 可用的迭代模板数量:', templates.length)
 
         if (templates.length > 0) {

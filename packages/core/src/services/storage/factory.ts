@@ -10,7 +10,6 @@ export type StorageType = 'localStorage' | 'dexie' | 'memory';
  */
 export class StorageFactory {
   // 单例实例缓存
-  private static defaultInstance: IStorageProvider | null = null;
   private static instances: Map<StorageType, IStorageProvider> = new Map();
 
   /**
@@ -44,50 +43,19 @@ export class StorageFactory {
     return instance;
   }
 
-  /**
-   * 创建默认存储提供器（单例）
-   * 优先使用 Dexie，降级到 localStorage
-   */
-  static createDefault(): IStorageProvider {
-    // 返回缓存的默认实例
-    if (StorageFactory.defaultInstance) {
-      return StorageFactory.defaultInstance;
-    }
 
-    try {
-      // 检查是否支持 IndexedDB (Dexie 的基础)
-      if (typeof window !== 'undefined' && window.indexedDB) {
-        console.log('Using Dexie as default storage provider');
-        StorageFactory.defaultInstance = StorageFactory.create('dexie');
-      } else {
-        console.log('IndexedDB not available, using localStorage as default storage provider');
-        StorageFactory.defaultInstance = StorageFactory.create('localStorage');
-      }
-    } catch (error) {
-      console.warn('Dexie storage unavailable, falling back to localStorage:', error);
-      StorageFactory.defaultInstance = StorageFactory.create('localStorage');
-    }
-
-    return StorageFactory.defaultInstance;
-  }
 
   /**
    * 重置所有实例（主要用于测试）
    */
   static reset(): void {
-    StorageFactory.defaultInstance = null;
     StorageFactory.instances.clear();
-    
+
     // 重置DexieStorageProvider的迁移状态
     DexieStorageProvider.resetMigrationState();
   }
 
-  /**
-   * 获取当前默认实例（用于调试）
-   */
-  static getCurrentDefault(): IStorageProvider | null {
-    return StorageFactory.defaultInstance;
-  }
+
 
   /**
    * 获取所有支持的存储类型

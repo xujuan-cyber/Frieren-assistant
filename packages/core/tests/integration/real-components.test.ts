@@ -30,7 +30,7 @@ describe('Real Components Integration Tests', () => {
     templateManager = createTemplateManager(storage, languageService)
     await templateManager.ensureInitialized()
     
-    dataManager = new DataManager(modelManager, templateManager, historyManager)
+    dataManager = new DataManager(modelManager, templateManager, historyManager, storage)
     
     const llmService = createLLMService(modelManager)
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager)
@@ -128,13 +128,13 @@ describe('Real Components Integration Tests', () => {
       await templateManager.saveTemplate(template)
 
       // 获取模板
-      const retrieved = templateManager.getTemplate('user-test-template')
+      const retrieved = await templateManager.getTemplate('user-test-template')
       expect(retrieved).toBeDefined()
       expect(retrieved.name).toBe('User Test Template')
       expect(retrieved.content).toBe('This is a user test template: {{input}}')
 
       // 验证在模板列表中（注意：真实环境可能有内置模板）
-      const templates = templateManager.listTemplates()
+      const templates = await templateManager.listTemplates()
       const userTemplate = templates.find(t => t.id === 'user-test-template')
       expect(userTemplate).toBeDefined()
 
@@ -142,8 +142,8 @@ describe('Real Components Integration Tests', () => {
       await templateManager.deleteTemplate('user-test-template')
       
       // 验证已删除
-      expect(() => templateManager.getTemplate('user-test-template'))
-        .toThrow('Template user-test-template not found')
+      await expect(templateManager.getTemplate('user-test-template'))
+        .rejects.toThrow('Template user-test-template not found')
     })
   })
 
@@ -183,7 +183,7 @@ describe('Real Components Integration Tests', () => {
       expect(retrievedModel).toBeDefined()
       expect(retrievedModel?.name).toBe('Test Model')
 
-      const retrievedTemplate = templateManager.getTemplate('user-optimize-template')
+      const retrievedTemplate = await templateManager.getTemplate('user-optimize-template')
       expect(retrievedTemplate).toBeDefined()
       expect(retrievedTemplate.name).toBe('User Optimize Template')
       
@@ -252,7 +252,7 @@ describe('Real Components Integration Tests', () => {
 
       // 验证数据已清空
       const emptyModels = await modelManager.getAllModels()
-      const emptyTemplates = templateManager.listTemplates()
+      const emptyTemplates = await templateManager.listTemplates()
       const emptyHistory = await historyManager.getRecords()
       
       // 注意：真实环境可能有内置模型和模板，不一定为空
@@ -263,7 +263,7 @@ describe('Real Components Integration Tests', () => {
 
       // 验证数据已恢复
       const restoredModels = await modelManager.getAllModels()
-      const restoredTemplates = templateManager.listTemplates()
+      const restoredTemplates = await templateManager.listTemplates()
       const restoredHistory = await historyManager.getRecords()
       
       expect(restoredModels.length).toBeGreaterThan(0)
@@ -419,7 +419,7 @@ describe('Real Components Integration Tests', () => {
       const models = await modelManager.getAllModels()
       expect(models.length).toBeGreaterThan(0) // 应该有添加的模型
 
-      const templates = templateManager.listTemplates()
+      const templates = await templateManager.listTemplates()
       // 真实环境可能有内置模板，只验证不崩溃
       expect(Array.isArray(templates)).toBe(true)
     })

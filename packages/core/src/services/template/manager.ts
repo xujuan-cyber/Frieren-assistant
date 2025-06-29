@@ -137,7 +137,7 @@ export class TemplateManager implements ITemplateManager {
    * @param id Template ID
    * @returns Template
    */
-  getTemplate(id: string | null | undefined): Template {
+  async getTemplate(id: string | null | undefined): Promise<Template> {
     this.checkInitialized('getTemplate');
     this.validateTemplateId(id);
 
@@ -227,7 +227,7 @@ export class TemplateManager implements ITemplateManager {
   /**
    * List all templates
    */
-  listTemplates(): Template[] {
+  async listTemplates(): Promise<Template[]> {
     this.checkInitialized('listTemplates');
 
     const templates = [
@@ -256,8 +256,8 @@ export class TemplateManager implements ITemplateManager {
    * @param id Template ID
    * @returns Template as JSON string
    */
-  exportTemplate(id: string): string {
-    const template = this.getTemplate(id);
+  async exportTemplate(id: string): Promise<string> {
+    const template = await this.getTemplate(id);
     return JSON.stringify(template, null, 2);
   }
 
@@ -390,16 +390,17 @@ export class TemplateManager implements ITemplateManager {
    * Get templates by type
    * @deprecated Use listTemplatesByType instead
    */
-  getTemplatesByType(type: 'optimize' | 'iterate'): Template[] {
-    return this.listTemplatesByType(type);
+  async getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]> {
+    return await this.listTemplatesByType(type);
   }
 
   /**
    * List templates by type
    */
-  listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Template[] {
+  async listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
     try {
-      return this.listTemplates().filter(
+      const templates = await this.listTemplates();
+      return templates.filter(
         template => template.metadata.templateType === type
       );
     } catch (error) {

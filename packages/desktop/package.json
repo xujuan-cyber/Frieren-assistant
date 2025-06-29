@@ -5,16 +5,19 @@
   "main": "main.js",
   "scripts": {
     "build": "pnpm run build:web && pnpm run package",
-    "build:web": "cd ../web && cross-env ELECTRON_BUILD=true vite build --base=./ && (robocopy dist ..\\\\desktop\\\\web-dist /E /NFL /NDL /NJH /NJS /NC /NS /NP || exit 0)",
+    "build:web": "cd ../web && cross-env ELECTRON_BUILD=true vite build --base=./ && node -e \"const fs=require('fs'),path=require('path'); const src='dist',dest='../desktop/web-dist'; if(fs.existsSync(dest)) fs.rmSync(dest,{recursive:true}); fs.cpSync(src,dest,{recursive:true}); console.log('Web files copied to desktop/web-dist');\"",
+    "build:cross-platform": "node build.js",
     "package": "electron-builder",
     "dev": "cross-env NODE_ENV=development electron ."
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "^37.1.0",
-    "electron-builder": "^24.0.0",
-    "cross-env": "^7.0.3"
+    "electron-builder": "^24.0.0"
   },
   "dependencies": {
+    "@prompt-optimizer/core": "workspace:*",
+    "dotenv": "^16.0.0",
     "node-fetch": "^2.7.0"
   },
   "build": {
@@ -30,8 +33,7 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
+      "target": "nsis"
     },
     "mac": {
       "target": "dmg"

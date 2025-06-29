@@ -110,8 +110,42 @@ export const getProxyUrl = (baseURL: string | undefined, isStream: boolean = fal
 
 /**
  * 检测是否在Electron环境中运行
+ * 使用多重检测机制确保准确性
  */
 export function isRunningInElectron(): boolean {
-  return typeof window !== 'undefined' && 
-         typeof (window as any).electronAPI !== 'undefined';
-} 
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  // 检查多个Electron特征
+  const hasElectronAPI = typeof (window as any).electronAPI !== 'undefined';
+  const hasElectronProcess = typeof (window as any).process !== 'undefined' &&
+                            (window as any).process?.type === 'renderer';
+  const hasElectronRequire = typeof (window as any).require !== 'undefined';
+  const userAgent = window.navigator?.userAgent?.toLowerCase() || '';
+  const hasElectronUserAgent = userAgent.includes('electron');
+
+  console.log('[isRunningInElectron] Detection details:', {
+    hasElectronAPI,
+    hasElectronProcess,
+    hasElectronRequire,
+    hasElectronUserAgent,
+    userAgent,
+  });
+
+  // 如果有electronAPI，肯定是Electron
+  if (hasElectronAPI) {
+    console.log('[isRunningInElectron] Verdict: true (via electronAPI)');
+    return true;
+  }
+
+  // 如果有其他Electron特征，也认为是Electron（可能是preload脚本还没执行完）
+  if (hasElectronProcess || hasElectronRequire || hasElectronUserAgent) {
+    console.warn('[Environment] Detected Electron environment but electronAPI not available yet');
+    console.log(`[isRunningInElectron] Verdict: true (via fallback checks: process=${hasElectronProcess}, require=${hasElectronRequire}, userAgent=${hasElectronUserAgent})`);
+    return true;
+  }
+
+  console.log('[isRunningInElectron] Verdict: false');
+  return false;
+}
