@@ -149,3 +149,55 @@ export function isRunningInElectron(): boolean {
   console.log('[isRunningInElectron] Verdict: false');
   return false;
 }
+
+/**
+ * 检测Electron API是否完全就绪
+ * 不仅检测环境，还检测关键API的可用性
+ */
+export function isElectronApiReady(): boolean {
+  if (!isRunningInElectron()) {
+    return false;
+  }
+
+  const window_any = window as any;
+  const hasElectronAPI = typeof window_any.electronAPI !== 'undefined';
+  const hasPreferenceApi = hasElectronAPI && typeof window_any.electronAPI.preference !== 'undefined';
+  
+  console.log('[isElectronApiReady] API readiness check:', {
+    hasElectronAPI,
+    hasPreferenceApi,
+  });
+
+  // 检查electronAPI.preference是否可用
+  return hasElectronAPI && hasPreferenceApi;
+}
+
+/**
+ * 等待Electron API完全就绪
+ * @param timeout 超时时间（毫秒），默认5000ms
+ * @returns Promise<boolean> 是否在超时前API就绪
+ */
+export function waitForElectronApi(timeout: number = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    // 如果已经就绪，立即返回
+    if (isElectronApiReady()) {
+      console.log('[waitForElectronApi] API already ready');
+      resolve(true);
+      return;
+    }
+    
+    console.log('[waitForElectronApi] Waiting for Electron API...');
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      if (isElectronApiReady()) {
+        clearInterval(checkInterval);
+        console.log('[waitForElectronApi] API ready after', Date.now() - startTime, 'ms');
+        resolve(true);
+      } else if (Date.now() - startTime > timeout) {
+        clearInterval(checkInterval);
+        console.warn('[waitForElectronApi] Timeout waiting for Electron API after', timeout, 'ms');
+        resolve(false);
+      }
+    }, 50); // 每50ms检查一次
+  });
+}

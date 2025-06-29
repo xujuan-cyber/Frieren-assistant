@@ -14,10 +14,14 @@ import {
   ElectronLLMProxy,
   ElectronPromptServiceProxy,
   isRunningInElectron,
+  waitForElectronApi,
   DataManager,
+  ElectronPreferenceServiceProxy,
+  createPreferenceService,
 } from '../'; // 从UI包的index导入所有核心模块
 import type { AppServices } from '../types/services';
 import type { IStorageProvider, IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService } from '@prompt-optimizer/core';
+import type { IPreferenceService } from '../types/services';
 
 /**
  * 应用服务统一初始化器。
@@ -40,9 +44,18 @@ export function useAppInitializer() {
       let dataManager: DataManager;
       let llmService: ILLMService;
       let promptService: IPromptService;
+      let preferenceService: IPreferenceService;
 
       if (isRunningInElectron()) {
-        console.log('[AppInitializer] 检测到Electron环境，初始化代理服务...');
+        console.log('[AppInitializer] 检测到Electron环境，等待API就绪...');
+        
+        // 等待 Electron API 完全就绪
+        const apiReady = await waitForElectronApi();
+        if (!apiReady) {
+          throw new Error('Electron API 初始化超时，请检查preload脚本是否正确加载');
+        }
+        
+        console.log('[AppInitializer] Electron API 就绪，初始化代理服务...');
         // 在Electron渲染进程中，我们需要创建一个代理存储提供器
         // 这个代理会将所有存储操作转发到主进程
         storageProvider = {
@@ -56,14 +69,16 @@ export function useAppInitializer() {
           async removeItem(key: string): Promise<void> {
             console.warn('[ElectronStorageProxy] removeItem called, but storage should be handled by main process');
           },
-          async clear(): Promise<void> {
+          async clearAll(): Promise<void> {
             console.warn('[ElectronStorageProxy] clear called, but storage should be handled by main process');
           },
-          async getAllKeys(): Promise<string[]> {
-            console.warn('[ElectronStorageProxy] getAllKeys called, but storage should be handled by main process');
-            return [];
+          async updateData<T>(key: string, modifier: (currentValue: T | null) => T): Promise<void> {
+            console.warn('[ElectronStorageProxy] updateData called, but storage should be handled by main process');
+          },
+          async batchUpdate(operations: Array<{ key: string; operation: 'set' | 'remove'; value?: string }>): Promise<void> {
+            console.warn('[ElectronStorageProxy] batchUpdate called, but storage should be handled by main process');
           }
-        } as any;
+        };
 
         // 在Electron环境中，我们实例化所有轻量级的代理类
         modelManager = new ElectronModelManagerProxy();
@@ -71,6 +86,7 @@ export function useAppInitializer() {
         historyManager = new ElectronHistoryManagerProxy();
         llmService = new ElectronLLMProxy();
         promptService = new ElectronPromptServiceProxy();
+        preferenceService = new ElectronPreferenceServiceProxy();
 
         // DataManager在Electron环境下也使用代理模式，不需要本地存储
         // 创建一个空的DataManager，因为所有操作都通过代理进行
@@ -91,6 +107,7 @@ export function useAppInitializer() {
           llmService,
           promptService,
           templateLanguageService: null as any, // 由主进程管理
+          preferenceService, // 使用从core包导入的ElectronPreferenceServiceProxy
         };
         console.log('[AppInitializer] Electron代理服务初始化完成');
 
@@ -131,6 +148,9 @@ export function useAppInitializer() {
         llmService = createLLMService(modelManagerInstance);
         promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
         dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, storageProvider);
+        
+        // 创建基于存储提供器的偏好设置服务，使用core包中的createPreferenceService
+        preferenceService = createPreferenceService(storageProvider);
 
         // 将所有服务实例赋值给 services.value
       services.value = {
@@ -141,7 +161,8 @@ export function useAppInitializer() {
         dataManager,
         llmService,
         promptService,
-          templateLanguageService: languageService,
+        templateLanguageService: languageService,
+        preferenceService, // 使用从core包导入的PreferenceService
       };
       }
 

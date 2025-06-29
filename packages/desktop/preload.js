@@ -6,6 +6,14 @@ function generateStreamId() {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // IPC event listeners
+  on: (channel, callback) => {
+    ipcRenderer.on(channel, (event, ...args) => callback(...args));
+  },
+  off: (channel, callback) => {
+    ipcRenderer.removeListener(channel, callback);
+  },
+
   // High-level LLM service interface
   llm: {
     // Test connection to a provider
@@ -270,6 +278,63 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
+  // Prompt Service interface
+  prompt: {
+    optimizePrompt: async (request) => {
+      const result = await ipcRenderer.invoke('prompt-optimizePrompt', request);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    optimizePromptStream: async (request, streamId) => {
+      const result = await ipcRenderer.invoke('prompt-optimizePromptStream', request, streamId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    iteratePromptStream: async (originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, streamId) => {
+      const result = await ipcRenderer.invoke('prompt-iteratePromptStream', originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, streamId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    testPromptStream: async (systemPrompt, userPrompt, modelKey, streamId) => {
+      const result = await ipcRenderer.invoke('prompt-testPromptStream', systemPrompt, userPrompt, modelKey, streamId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    iteratePrompt: async (originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId) => {
+      const result = await ipcRenderer.invoke('prompt-iteratePrompt', originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    testPrompt: async (systemPrompt, userPrompt, modelKey) => {
+      const result = await ipcRenderer.invoke('prompt-testPrompt', systemPrompt, userPrompt, modelKey);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    getHistory: async () => {
+      const result = await ipcRenderer.invoke('prompt-getHistory');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    getIterationChain: async (recordId) => {
+      const result = await ipcRenderer.invoke('prompt-getIterationChain', recordId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+  },
+
   // 配置同步接口 - 从主进程获取统一配置
   config: {
     // 获取环境变量（主进程作为唯一源）
@@ -283,5 +348,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   
   // Add an identifier so the frontend knows it's running in Electron
-  isElectron: true
+  isElectron: true,
+
+  preference: {
+    get: (key, defaultValue) => ipcRenderer.invoke('preference-get', key, defaultValue),
+    set: (key, value) => ipcRenderer.invoke('preference-set', key, value),
+    delete: (key) => ipcRenderer.invoke('preference-delete', key),
+    keys: () => ipcRenderer.invoke('preference-keys'),
+    clear: () => ipcRenderer.invoke('preference-clear'),
+  },
 }); 

@@ -3,9 +3,9 @@ import type { Ref } from 'vue'
 import type { ModelConfig, IModelManager } from '@prompt-optimizer/core'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
-import { useStorage } from './useStorage'
-import type { AppServices } from '../types/services'
+import { usePreferences } from './usePreferenceManager'
 import { MODEL_SELECTION_KEYS } from '../constants/storage-keys'
+import type { AppServices } from '../types/services'
 
 export interface ModelManagerHooks {
   showConfig: boolean
@@ -35,7 +35,7 @@ export function useModelManager(
 ): ModelManagerHooks {
   const toast = useToast()
   const { t } = useI18n()
-  const storage = useStorage(services)
+  const { getPreference, setPreference } = usePreferences(services)
   
   const { optimizeModelSelect, testModelSelect } = options
   
@@ -77,20 +77,17 @@ export function useModelManager(
         const enabledModels = allModels.filter(m => m.enabled)
         const defaultModel = enabledModels[0]?.key
   
-        if (defaultModel) {
-          // Load optimization model selection
-          const savedOptimizeModel = await storage.getItem(MODEL_SELECTION_KEYS.OPTIMIZE_MODEL)
-          state.selectedOptimizeModel = (savedOptimizeModel && enabledModels.find(m => m.key === savedOptimizeModel))
+        if (enabledModels.length > 0) {
+          const savedOptimizeModel = await getPreference(MODEL_SELECTION_KEYS.OPTIMIZE_MODEL, defaultModel)
+          state.selectedOptimizeModel = enabledModels.some(m => m.key === savedOptimizeModel)
             ? savedOptimizeModel
             : defaultModel
 
-          // Load test model selection
-          const savedTestModel = await storage.getItem(MODEL_SELECTION_KEYS.TEST_MODEL)
-          state.selectedTestModel = (savedTestModel && enabledModels.find(m => m.key === savedTestModel))
+          const savedTestModel = await getPreference(MODEL_SELECTION_KEYS.TEST_MODEL, defaultModel)
+          state.selectedTestModel = enabledModels.some(m => m.key === savedTestModel)
             ? savedTestModel
             : defaultModel
   
-          // Save initial selection
           await saveModelSelection(state.selectedOptimizeModel, 'optimize')
           await saveModelSelection(state.selectedTestModel, 'test')
         }
@@ -124,12 +121,13 @@ export function useModelManager(
   const saveModelSelection = async (model: string, type: 'optimize' | 'test') => {
     if (model) {
       try {
-        await storage.setItem(
+        await setPreference(
           type === 'optimize' ? MODEL_SELECTION_KEYS.OPTIMIZE_MODEL : MODEL_SELECTION_KEYS.TEST_MODEL,
           model
         )
       } catch (error) {
         console.error(`保存模型选择失败 (${type}):`, error)
+        throw error;
       }
     }
   }

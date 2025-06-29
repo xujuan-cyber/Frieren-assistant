@@ -1,41 +1,46 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-
-// 加载环境变量文件（如果存在）
-try {
-  // 首先尝试加载项目根目录的 .env.local 文件（与测试配置保持一致）
-  const rootEnvPath = path.resolve(__dirname, '../../.env.local');
-  require('dotenv').config({ path: rootEnvPath });
-  console.log('[Main Process] .env.local file loaded from project root');
-  
-  // 然后尝试加载桌面应用目录的 .env 文件（作为补充）
-  const localEnvPath = path.join(__dirname, '.env');
-  require('dotenv').config({ path: localEnvPath });
-  console.log('[Main Process] .env file loaded from desktop directory');
-} catch (error) {
-  console.log('[Main Process] No .env files found or dotenv not installed, using system environment variables');
-}
-
-// Import core services
-const { 
-  createLLMService, 
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const {
+  PreferenceService,
   createModelManager,
   createTemplateManager,
   createHistoryManager,
+  createLLMService,
+  createPromptService,
   createTemplateLanguageService,
-  StorageFactory
+  StorageFactory,
 } = require('@prompt-optimizer/core');
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService;
 
-// Global service instances
-let llmService;
-let modelManager;
-let templateManager;
-let historyManager;
-let templateLanguageService;
+async function initializePreferenceService(storageProvider) {
+  console.log('[DESKTOP] Initializing PreferenceService with the provided storage provider...');
+  preferenceService = new PreferenceService(storageProvider);
+  console.log('[DESKTOP] PreferenceService initialized.');
+}
+
+function setupPreferenceHandlers() {
+  ipcMain.handle('preference-get', async (event, key, defaultValue) => {
+    try {
+      const value = await preferenceService.get(key, defaultValue);
+      return createSuccessResponse(value);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('preference-set', async (event, key, value) => {
+    try {
+      await preferenceService.set(key, value);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+}
 
 function createWindow() {
   // Create the browser window.
@@ -73,7 +78,6 @@ function createWindow() {
   });
 }
 
-// Initialize core services
 async function initializeServices() {
   try {
     console.log('[Main Process] Initializing core services...');
@@ -109,11 +113,11 @@ async function initializeServices() {
       console.warn('[Main Process] Example: VITE_OPENAI_API_KEY=your_key_here npm start');
     }
     
-    // Use memory storage for Node.js environment (Electron main process)
     console.log('[DESKTOP] Creating memory storage provider for Node.js environment');
     const storageProvider = StorageFactory.create('memory');
     
-    // Create core service instances
+    await initializePreferenceService(storageProvider);
+    
     console.log('[DESKTOP] Creating model manager...');
     modelManager = createModelManager(storageProvider);
     
@@ -126,16 +130,16 @@ async function initializeServices() {
     console.log('[DESKTOP] Creating history manager...');
     historyManager = createHistoryManager(storageProvider, modelManager);
     
-    // Initialize managers if needed
     console.log('[DESKTOP] Initializing model manager...');
     await modelManager.ensureInitialized();
     
-    // Create LLM service
     console.log('[DESKTOP] Creating LLM service...');
     llmService = createLLMService(modelManager);
+
+    console.log('[DESKTOP] Creating Prompt service...');
+    promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
     
     console.log('[Main Process] Core services initialized successfully.');
-    console.log('[Main Process] Using MemoryStorageProvider for Node.js environment.');
     
     return true;
   } catch (error) {
@@ -145,48 +149,57 @@ async function initializeServices() {
   }
 }
 
+// --- IPC Response Helpers ---
+function createSuccessResponse(data) {
+  return { success: true, data };
+}
+
+function createErrorResponse(error) {
+  console.error('[Main Process IPC Error]', error);
+  // 对于非 Error 实例，包装一下
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return { success: false, error: errorMessage };
+}
+
 // --- High-Level IPC Service Handlers ---
 function setupIPC() {
   console.log('[Main Process] Setting up high-level service IPC handlers...');
+  setupPreferenceHandlers();
   
   // LLM Service handlers
   ipcMain.handle('llm-testConnection', async (event, provider) => {
     try {
       await llmService.testConnection(provider);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] LLM testConnection failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('llm-sendMessage', async (event, messages, provider) => {
     try {
       const result = await llmService.sendMessage(messages, provider);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] LLM sendMessage failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('llm-sendMessageStructured', async (event, messages, provider) => {
     try {
       const result = await llmService.sendMessageStructured(messages, provider);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] LLM sendMessageStructured failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('llm-fetchModelList', async (event, provider, customConfig) => {
     try {
       const result = await llmService.fetchModelList(provider, customConfig);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] LLM fetchModelList failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -195,24 +208,134 @@ function setupIPC() {
     try {
       const callbacks = {
         onContent: (content) => {
-          event.sender.send(`stream-content-${streamId}`, content);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            event.sender.send(`stream-content-${streamId}`, content);
+          }
         },
         onThinking: (thinking) => {
-          event.sender.send(`stream-thinking-${streamId}`, thinking);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            event.sender.send(`stream-thinking-${streamId}`, thinking);
+          }
         },
         onFinish: () => {
-          event.sender.send(`stream-finish-${streamId}`);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            event.sender.send(`stream-finish-${streamId}`);
+          }
         },
         onError: (error) => {
-          event.sender.send(`stream-error-${streamId}`, error.message);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            event.sender.send(`stream-error-${streamId}`, error.message);
+          }
         }
       };
       
       await llmService.sendMessageStream(messages, provider, callbacks);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] LLM sendMessageStream failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
+    }
+  });
+
+  // Prompt Service handlers
+  ipcMain.handle('prompt-optimizePrompt', async (event, request) => {
+    try {
+      const result = await promptService.optimizePrompt(request);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-iteratePrompt', async (event, originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId) => {
+    try {
+      const result = await promptService.iteratePrompt(originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-testPrompt', async (event, systemPrompt, userPrompt, modelKey) => {
+    try {
+      const result = await promptService.testPrompt(systemPrompt, userPrompt, modelKey);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-getHistory', async () => {
+    try {
+      const result = await historyManager.getHistory();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-getIterationChain', async (event, recordId) => {
+    try {
+      const result = await historyManager.getIterationChain(recordId);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Helper for creating stream handlers that send data to the renderer process
+  const createIpcStreamHandlers = (window, streamId) => ({
+    onToken: (token) => {
+      if (window && !window.isDestroyed()) {
+        window.webContents.send(`stream-token-${streamId}`, token);
+      }
+    },
+    onReasoningToken: (token) => {
+      if (window && !window.isDestroyed()) {
+        window.webContents.send(`stream-reasoning-token-${streamId}`, token);
+      }
+    },
+    onComplete: () => {
+      if (window && !window.isDestroyed()) {
+        window.webContents.send(`stream-finish-${streamId}`);
+      }
+    },
+    onError: (error) => {
+      if (window && !window.isDestroyed()) {
+        window.webContents.send(`stream-error-${streamId}`, error.message);
+      }
+    },
+  });
+
+  ipcMain.handle('prompt-optimizePromptStream', async (event, request, streamId) => {
+    const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
+    try {
+      await promptService.optimizePromptStream(request, streamHandlers);
+      return createSuccessResponse(null);
+    } catch (error) {
+      streamHandlers.onError(error);
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-iteratePromptStream', async (event, originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, streamId) => {
+    const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
+    try {
+      await promptService.iteratePromptStream(originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, streamHandlers, templateId);
+      return createSuccessResponse(null);
+    } catch (error) {
+      streamHandlers.onError(error);
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-testPromptStream', async (event, systemPrompt, userPrompt, modelKey, streamId) => {
+    const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
+    try {
+      await promptService.testPromptStream(systemPrompt, userPrompt, modelKey, streamHandlers);
+      return createSuccessResponse(null);
+    } catch (error) {
+      streamHandlers.onError(error);
+      return createErrorResponse(error);
     }
   });
 
@@ -220,10 +343,9 @@ function setupIPC() {
   ipcMain.handle('model-getModels', async (event) => {
     try {
       const result = await modelManager.getAllModels();
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] Model getAllModels failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -232,40 +354,36 @@ function setupIPC() {
       // model应该包含key和config，需要分离
       const { key, ...config } = model;
       await modelManager.addModel(key, config);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] Model addModel failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('model-updateModel', async (event, id, updates) => {
     try {
       await modelManager.updateModel(id, updates);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] Model updateModel failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('model-deleteModel', async (event, id) => {
     try {
       await modelManager.deleteModel(id);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] Model deleteModel failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('model-getModelOptions', async (event) => {
     try {
       const result = await modelManager.getModelOptions();
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] Model getModelOptions failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -273,30 +391,27 @@ function setupIPC() {
   ipcMain.handle('template-getTemplates', async (event) => {
     try {
       const result = await templateManager.listTemplates();
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] Template getTemplates failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('template-getTemplate', async (event, id) => {
     try {
       const result = await templateManager.getTemplate(id);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] Template getTemplate failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('template-createTemplate', async (event, template) => {
     try {
       await templateManager.saveTemplate(template);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] Template createTemplate failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -306,30 +421,27 @@ function setupIPC() {
       const existingTemplate = await templateManager.getTemplate(id);
       const updatedTemplate = { ...existingTemplate, ...updates, id };
       await templateManager.saveTemplate(updatedTemplate);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] Template updateTemplate failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('template-deleteTemplate', async (event, id) => {
     try {
       await templateManager.deleteTemplate(id);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] Template deleteTemplate failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('template-listTemplatesByType', async (event, type) => {
     try {
       const result = await templateManager.listTemplatesByType(type);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] Template listTemplatesByType failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -337,40 +449,36 @@ function setupIPC() {
   ipcMain.handle('history-getHistory', async (event) => {
     try {
       const result = await historyManager.getRecords();
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History getHistory failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-addRecord', async (event, record) => {
     try {
       const result = await historyManager.addRecord(record);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History addRecord failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-deleteRecord', async (event, id) => {
     try {
       await historyManager.deleteRecord(id);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] History deleteRecord failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-clearHistory', async (event) => {
     try {
       await historyManager.clearHistory();
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      console.error('[Main Process] History clearHistory failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -378,50 +486,45 @@ function setupIPC() {
   ipcMain.handle('history-getIterationChain', async (event, recordId) => {
     try {
       const result = await historyManager.getIterationChain(recordId);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History getIterationChain failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-getAllChains', async (event) => {
     try {
       const result = await historyManager.getAllChains();
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History getAllChains failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-getChain', async (event, chainId) => {
     try {
       const result = await historyManager.getChain(chainId);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History getChain failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-createNewChain', async (event, record) => {
     try {
       const result = await historyManager.createNewChain(record);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History createNewChain failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
   ipcMain.handle('history-addIteration', async (event, params) => {
     try {
       const result = await historyManager.addIteration(params);
-      return { success: true, data: result };
+      return createSuccessResponse(result);
     } catch (error) {
-      console.error('[Main Process] History addIteration failed:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -440,10 +543,9 @@ function setupIPC() {
       };
       
       console.log('[Main Process] Environment variables requested by UI process');
-      return { success: true, data: envVars };
+      return createSuccessResponse(envVars);
     } catch (error) {
-      console.error('[Main Process] Failed to get environment variables:', error);
-      return { success: false, error: error.message };
+      return createErrorResponse(error);
     }
   });
 
@@ -452,17 +554,16 @@ function setupIPC() {
 
 // This method is called when Electron has finished initialization.
 app.whenReady().then(async () => {
-  // Initialize services first
-  const servicesReady = await initializeServices();
-  
-  if (servicesReady) {
-    // Set up IPC with the initialized services
+  const servicesInitialized = await initializeServices();
+  if (servicesInitialized) {
+    // 必须先设置IPC监听器，再创建窗口
+    // 以防止窗口中的代码在监听器准备好之前就发送IPC消息
     setupIPC();
-    
-    // Create the main window
     createWindow();
   } else {
     console.error('[Main Process] Failed to start application due to service initialization failure.');
+    // Optionally, show a dialog to the user
+    // dialog.showErrorBox('Application Error', 'Could not initialize critical services.');
     app.quit();
   }
 

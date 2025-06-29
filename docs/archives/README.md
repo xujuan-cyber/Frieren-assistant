@@ -23,6 +23,7 @@
 - [108-layout-system](./108-layout-system/) - 布局系统经验总结 ✅
 - [109-theme-system](./109-theme-system/) - 主题系统开发 ✅
 - [110-desktop-indexeddb-fix](./110-desktop-indexeddb-fix/) - 桌面端IndexedDB问题修复 ✅
+- [111-electron-preference-architecture](./111-electron-preference-architecture/) - Electron PreferenceService架构重构与竞态条件修复 ✅
 
 ### 进行中
 - [106-template-management](./106-template-management/) - 模板管理功能 🔄
@@ -70,6 +71,6 @@
 
 ## 🔄 维护说明
 
-- **新功能归档**：从110开始继续编号
+- **新功能归档**：从112开始继续编号
 - **文档更新**：功能完成后及时更新状态和经验总结
 - **交叉引用**：在相关功能点之间建立引用关系

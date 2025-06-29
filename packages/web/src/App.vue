@@ -84,7 +84,7 @@
               <template v-if="services && services.templateManager">
                 <TemplateSelectUI
                   v-model="currentSelectedTemplate"
-                  :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
+                  :type="templateSelectType"
                   :optimization-mode="selectedOptimizationMode"
                   @manage="openTemplateManager"
                 />
@@ -192,10 +192,9 @@ const { services, isInitializing, error } = useAppInitializer()
 
 // 3. Initialize i18n with storage when services are ready
 watch(services, async (newServices) => {
-  if (newServices?.storageProvider) {
-    // 立即失败，不掩盖错误
-    await initializeI18nWithStorage(newServices.storageProvider)
-    console.log('[Web] i18n initialized with storage')
+  if (newServices) {
+    await initializeI18nWithStorage()
+    console.log('[Web] i18n initialized')
   }
 }, { immediate: true })
 
@@ -212,6 +211,10 @@ const selectedOptimizationMode = ref<OptimizationMode>('system')
 const showDataManager = ref(false)
 const optimizeModelSelect = ref(null)
 const testPanelRef = ref(null)
+
+const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
+  return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
+});
 
 // 6. 在顶层调用所有 Composables
 // 测试面板的模型选择器引用

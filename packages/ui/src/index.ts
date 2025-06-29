@@ -52,13 +52,17 @@ export {
     createLLMService,
     createPromptService,
     createTemplateLanguageService,
+    createPreferenceService,
     ElectronModelManagerProxy,
     ElectronTemplateManagerProxy,
     ElectronHistoryManagerProxy,
     ElectronLLMProxy,
     ElectronPromptServiceProxy,
+    ElectronPreferenceServiceProxy,
     ElectronConfigManager,
     isRunningInElectron,
+    isElectronApiReady,
+    waitForElectronApi,
     // Also export the service classes/types themselves for type-checking
     DataManager,
     ModelManager,
@@ -74,5 +78,6 @@ export type {
     IHistoryManager,
     ILLMService,
     IPromptService,
+    IPreferenceService,
     Template
 } from '@prompt-optimizer/core'

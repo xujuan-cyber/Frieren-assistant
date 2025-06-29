@@ -58,14 +58,16 @@
   </div>
 </template>
   
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useStorage } from '../composables/useStorage';
+import { usePreferences } from '../composables/usePreferenceManager';
+import type { Ref } from 'vue';
+import type { AppServices } from '../types/services';
 
 const { t } = useI18n();
-const services = inject('services');
-const storage = useStorage(services);
+const services = inject<Ref<AppServices | null>>('services')!;
+const { getPreference, setPreference } = usePreferences(services);
 
 // Available themes list
 const availableThemes = computed(() => [
@@ -110,7 +112,7 @@ const toggleThemeMenu = () => {
 };
 
 // Select theme
-const selectTheme = async (themeId) => {
+const selectTheme = async (themeId: string) => {
   currentTheme.value = themeId;
   showThemeMenu.value = false;
   await updateTheme();
@@ -140,8 +142,7 @@ const updateTheme = async () => {
   document.documentElement.setAttribute('data-theme', theme.id);
   
   try {
-    // Save theme settings to storage
-    await storage.setItem('theme-id', theme.id);
+    await setPreference('theme-id', theme.id);
   } catch (error) {
     console.error('保存主题设置失败:', error);
   }
@@ -159,8 +160,9 @@ const getThemeDisplayName = computed(() => {
 });
 
 // Close dropdown menu when clicking outside
-const handleClickOutside = (event) => {
-  if (showThemeMenu.value && !event.target.closest('.relative')) {
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (showThemeMenu.value && target && !target.closest('.relative')) {
     showThemeMenu.value = false;
   }
 };
@@ -170,37 +172,21 @@ onMounted(async () => {
   // Ensure DOM is loaded before applying theme
   requestAnimationFrame(async () => {
     try {
-      // Get theme ID: prioritize theme-id, fallback to theme
-      let themeId = await storage.getItem('theme-id');
+      const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      const themeId = await getPreference('theme-id', defaultTheme);
       
-      if (!themeId) {
-        const savedTheme = await storage.getItem('theme');
-        if (savedTheme) {
-          const theme = availableThemes.value.find(t => t.cssClass === savedTheme);
-          if (theme) {
-            themeId = theme.id;
-            // Update to new format
-            await storage.setItem('theme-id', themeId);
-            // Clear old format
-            await storage.removeItem('theme');
-          }
-        }
-      }
-
       // Set current theme
-      if (themeId && availableThemes.value.find(t => t.id === themeId)) {
+      if (availableThemes.value.find(t => t.id === themeId)) {
         currentTheme.value = themeId;
-      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        currentTheme.value = 'dark';
       } else {
-        currentTheme.value = 'light';
+        currentTheme.value = defaultTheme;
       }
       
       // Apply theme
       await updateTheme();
     } catch (error) {
       console.error('初始化主题失败:', error);
-      // 降级到默认主题
+      // Fallback to default theme
       currentTheme.value = 'light';
       await updateTheme();
     }
@@ -208,10 +194,10 @@ onMounted(async () => {
   
   // Listen for system theme changes
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  const handleChange = async (e) => {
+  const handleChange = async (e: MediaQueryListEvent) => {
     // Only respond to system theme changes when no user theme is set
     try {
-      const userTheme = await storage.getItem('theme-id');
+      const userTheme = await getPreference('theme-id', null);
       if (!userTheme) {
         currentTheme.value = e.matches ? 'dark' : 'light';
         await updateTheme();

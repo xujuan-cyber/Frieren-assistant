@@ -14,16 +14,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, type Ref } from 'vue'
+import { computed, inject } from 'vue'
 import { i18n } from '../plugins/i18n'
-import { useStorage } from '../composables/useStorage'
-import type { AppServices } from '../types/services'
 import { UI_SETTINGS_KEYS } from '../constants/storage-keys'
+import { usePreferences } from '../composables/usePreferenceManager'
+import type { Ref } from 'vue'
+import type { AppServices } from '../types/services'
 
-const services = inject('services') as Ref<AppServices | null>
-const storage = useStorage(services)
+const services = inject<Ref<AppServices | null>>('services')!;
+const { setPreference } = usePreferences(services);
 
-// 当前语言
 const currentLocale = computed(() => i18n.global.locale.value)
 
 /**
@@ -34,7 +34,7 @@ const toggleLanguage = async () => {
   i18n.global.locale.value = newLocale
   
   try {
-    await storage.setItem(UI_SETTINGS_KEYS.PREFERRED_LANGUAGE, newLocale)
+    await setPreference(UI_SETTINGS_KEYS.PREFERRED_LANGUAGE, newLocale)
   } catch (error) {
     console.error('保存语言设置失败:', error)
   }

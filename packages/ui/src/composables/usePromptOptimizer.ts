@@ -1,7 +1,6 @@
 import { ref, watch, nextTick, computed, reactive } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
-import { useStorage } from './useStorage'
 import { v4 as uuidv4 } from 'uuid'
 import type { Ref } from 'vue'
 import type {
@@ -43,7 +42,6 @@ export function usePromptOptimizer(
   const testModel = selectedTestModel || ref('')
   const toast = useToast()
   const { t } = useI18n()
-  const storage = useStorage(services)
   
   // 服务引用
   const modelManager = computed(() => services.value?.modelManager)

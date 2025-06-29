@@ -24,6 +24,13 @@ export class ElectronPromptServiceProxy implements IPromptService {
     return (window as any).electronAPI.prompt;
   }
 
+  private get ipc() {
+    if (!isRunningInElectron() || !(window as any).electronAPI) {
+      throw new Error('Electron API is not available in this environment.');
+    }
+    return (window as any).electronAPI;
+  }
+
   async optimizePrompt(request: OptimizationRequest): Promise<string> {
     return this.api.optimizePrompt(request);
   }
@@ -56,31 +63,117 @@ export class ElectronPromptServiceProxy implements IPromptService {
 
   // Streaming methods are complex over IPC and are not implemented in the proxy for now.
   // They would require event-based communication rather than a simple invoke/handle.
-  async optimizePromptStream(_request: OptimizationRequest, callbacks: StreamHandlers): Promise<void> {
-    console.warn('optimizePromptStream is not implemented for Electron proxy.');
-    // Fallback or throw error
-    callbacks.onComplete();
+  async optimizePromptStream(request: OptimizationRequest, callbacks: StreamHandlers): Promise<void> {
+    const streamId = `opt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const tokenHandler = (token: string) => callbacks.onToken(token);
+    const reasoningTokenHandler = (token: string) => callbacks.onReasoningToken?.(token);
+    const finishHandler = () => {
+      cleanup();
+      callbacks.onComplete();
+    };
+    const errorHandler = (error: string) => {
+      cleanup();
+      callbacks.onError(new Error(error));
+    };
+
+    const cleanup = () => {
+      this.ipc.off(`stream-token-${streamId}`, tokenHandler);
+      this.ipc.off(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+      this.ipc.off(`stream-finish-${streamId}`, finishHandler);
+      this.ipc.off(`stream-error-${streamId}`, errorHandler);
+    };
+
+    this.ipc.on(`stream-token-${streamId}`, tokenHandler);
+    this.ipc.on(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+    this.ipc.on(`stream-finish-${streamId}`, finishHandler);
+    this.ipc.on(`stream-error-${streamId}`, errorHandler);
+
+    try {
+      await this.api.optimizePromptStream(request, streamId);
+    } catch (error) {
+      cleanup();
+      callbacks.onError(error as Error);
+    }
   }
 
   async iteratePromptStream(
-    _originalPrompt: string,
-    _lastOptimizedPrompt: string,
-    _iterateInput: string,
-    _modelKey: string,
-    handlers: StreamHandlers,
-    _templateId: string
+    originalPrompt: string,
+    lastOptimizedPrompt: string,
+    iterateInput: string,
+    modelKey: string,
+    callbacks: StreamHandlers,
+    templateId?: string
   ): Promise<void> {
-    console.warn('iteratePromptStream is not implemented for Electron proxy.');
-    handlers.onComplete();
+    const streamId = `iter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const tokenHandler = (token: string) => callbacks.onToken(token);
+    const reasoningTokenHandler = (token: string) => callbacks.onReasoningToken?.(token);
+    const finishHandler = () => {
+      cleanup();
+      callbacks.onComplete();
+    };
+    const errorHandler = (error: string) => {
+      cleanup();
+      callbacks.onError(new Error(error));
+    };
+
+    const cleanup = () => {
+      this.ipc.off(`stream-token-${streamId}`, tokenHandler);
+      this.ipc.off(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+      this.ipc.off(`stream-finish-${streamId}`, finishHandler);
+      this.ipc.off(`stream-error-${streamId}`, errorHandler);
+    };
+
+    this.ipc.on(`stream-token-${streamId}`, tokenHandler);
+    this.ipc.on(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+    this.ipc.on(`stream-finish-${streamId}`, finishHandler);
+    this.ipc.on(`stream-error-${streamId}`, errorHandler);
+
+    try {
+      await this.api.iteratePromptStream(originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, streamId);
+    } catch (error) {
+      cleanup();
+      callbacks.onError(error as Error);
+    }
   }
 
   async testPromptStream(
-    _systemPrompt: string,
-    _userPrompt: string,
-    _modelKey: string,
+    systemPrompt: string,
+    userPrompt: string,
+    modelKey: string,
     callbacks: StreamHandlers
   ): Promise<void> {
-    console.warn('testPromptStream is not implemented for Electron proxy.');
-    callbacks.onComplete();
+    const streamId = `test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const tokenHandler = (token: string) => callbacks.onToken(token);
+    const reasoningTokenHandler = (token: string) => callbacks.onReasoningToken?.(token);
+    const finishHandler = () => {
+      cleanup();
+      callbacks.onComplete();
+    };
+    const errorHandler = (error: string) => {
+      cleanup();
+      callbacks.onError(new Error(error));
+    };
+
+    const cleanup = () => {
+      this.ipc.off(`stream-token-${streamId}`, tokenHandler);
+      this.ipc.off(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+      this.ipc.off(`stream-finish-${streamId}`, finishHandler);
+      this.ipc.off(`stream-error-${streamId}`, errorHandler);
+    };
+
+    this.ipc.on(`stream-token-${streamId}`, tokenHandler);
+    this.ipc.on(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+    this.ipc.on(`stream-finish-${streamId}`, finishHandler);
+    this.ipc.on(`stream-error-${streamId}`, errorHandler);
+
+    try {
+      await this.api.testPromptStream(systemPrompt, userPrompt, modelKey, streamId);
+    } catch (error) {
+      cleanup();
+      callbacks.onError(error as Error);
+    }
   }
 } 

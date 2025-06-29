@@ -54,5 +54,10 @@ export * from './services/compare/errors'
 export { DataManager, createDataManager } from './services/data/manager'
 export type { IDataManager } from './services/data/manager'
 
+// 导出偏好设置服务相关
+export * from './services/preference/types'
+export { ElectronPreferenceServiceProxy } from './services/preference/electron-proxy'
+export { PreferenceService, createPreferenceService } from './services/preference/service'
+
 // 导出环境检测工具
-export { isRunningInElectron, checkVercelApiAvailability, resetVercelStatusCache, isBrowser, getProxyUrl } from './utils/environment'
+export { isRunningInElectron, isElectronApiReady, waitForElectronApi, checkVercelApiAvailability, resetVercelStatusCache, isBrowser, getProxyUrl } from './utils/environment'
