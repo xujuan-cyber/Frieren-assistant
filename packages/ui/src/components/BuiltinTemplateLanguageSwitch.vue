@@ -126,15 +126,15 @@ onMounted(async () => {
     if (!service) {
       throw new Error('Template language service not available')
     }
-    
+
     // Ensure template language service is initialized
     if (!service.isInitialized()) {
       await service.initialize()
     }
 
-    // Get current language and supported languages
-    currentLanguage.value = service.getCurrentLanguage()
-    supportedLanguages.value = service.getSupportedLanguages()
+    // Get current language and supported languages (now async)
+    currentLanguage.value = await service.getCurrentLanguage()
+    supportedLanguages.value = await service.getSupportedLanguages()
   } catch (error) {
     console.error('Failed to initialize builtin template language switch:', error)
     // Set fallback values
@@ -208,11 +208,13 @@ const handleLanguageToggle = async () => {
 /**
  * Refresh current language (useful for external updates)
  */
-const refresh = () => {
+const refresh = async () => {
   const service = getTemplateLanguageService.value
-  if (service) {
-    currentLanguage.value = service.getCurrentLanguage()
+  if (!service) {
+    throw new Error('Template language service not available')
   }
+
+  currentLanguage.value = await service.getCurrentLanguage()
 }
 
 // Expose methods for parent components

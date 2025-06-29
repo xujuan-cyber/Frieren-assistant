@@ -59,9 +59,9 @@ describe('TemplateManager with Mocked LanguageService', () => {
     expect(zhTemplate?.content).toBe('你好');
     });
 
-  it('should get current builtin template language from the language service', () => {
-    vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('en-US');
-    const lang = templateManager.getCurrentBuiltinTemplateLanguage();
+  it('should get current builtin template language from the language service', async () => {
+    vi.spyOn(languageService, 'getCurrentLanguage').mockResolvedValue('en-US');
+    const lang = await templateManager.getCurrentBuiltinTemplateLanguage();
     expect(lang).toBe('en-US');
     expect(languageService.getCurrentLanguage).toHaveBeenCalled();
     });

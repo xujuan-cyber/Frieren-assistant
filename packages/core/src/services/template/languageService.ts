@@ -6,9 +6,23 @@ import { IStorageProvider } from '../storage/types';
 export type BuiltinTemplateLanguage = 'zh-CN' | 'en-US';
 
 /**
+ * Template language service interface
+ */
+export interface ITemplateLanguageService {
+  initialize(): Promise<void>;
+  getCurrentLanguage(): Promise<BuiltinTemplateLanguage>;
+  setLanguage(language: BuiltinTemplateLanguage): Promise<void>;
+  toggleLanguage(): Promise<BuiltinTemplateLanguage>;
+  isValidLanguage(language: string): Promise<boolean>;
+  getSupportedLanguages(): Promise<BuiltinTemplateLanguage[]>;
+  getLanguageDisplayName(language: BuiltinTemplateLanguage): string;
+  isInitialized(): boolean;
+}
+
+/**
  * Simplified built-in template language service
  */
-export class TemplateLanguageService {
+export class TemplateLanguageService implements ITemplateLanguageService {
   private readonly STORAGE_KEY = 'builtin-template-language';
   private readonly SUPPORTED_LANGUAGES: BuiltinTemplateLanguage[] = ['zh-CN', 'en-US'];
   private readonly DEFAULT_LANGUAGE: BuiltinTemplateLanguage = 'en-US';
@@ -32,7 +46,7 @@ export class TemplateLanguageService {
     try {
       const savedLanguage = await this.storage.getItem(this.STORAGE_KEY);
       
-      if (savedLanguage && this.isValidLanguage(savedLanguage)) {
+      if (savedLanguage && await this.isValidLanguage(savedLanguage)) {
         this.currentLanguage = savedLanguage as BuiltinTemplateLanguage;
       } else {
         let detectedLanguage: BuiltinTemplateLanguage = this.DEFAULT_LANGUAGE;
@@ -58,7 +72,7 @@ export class TemplateLanguageService {
   /**
    * Get current language
    */
-  getCurrentLanguage(): BuiltinTemplateLanguage {
+  async getCurrentLanguage(): Promise<BuiltinTemplateLanguage> {
     return this.currentLanguage;
   }
 
@@ -66,7 +80,7 @@ export class TemplateLanguageService {
    * Set language
    */
   async setLanguage(language: BuiltinTemplateLanguage): Promise<void> {
-    if (!this.isValidLanguage(language)) {
+    if (!(await this.isValidLanguage(language))) {
       throw new Error(`Unsupported language: ${language}`);
     }
 
@@ -86,14 +100,14 @@ export class TemplateLanguageService {
   /**
    * Check if language is valid
    */
-  isValidLanguage(language: string): boolean {
+  async isValidLanguage(language: string): Promise<boolean> {
     return this.SUPPORTED_LANGUAGES.includes(language as BuiltinTemplateLanguage);
   }
 
   /**
    * Get supported languages list
    */
-  getSupportedLanguages(): BuiltinTemplateLanguage[] {
+  async getSupportedLanguages(): Promise<BuiltinTemplateLanguage[]> {
     return ['zh-CN', 'en-US'];
   }
 

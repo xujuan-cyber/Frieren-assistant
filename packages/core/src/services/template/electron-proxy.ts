@@ -12,8 +12,8 @@ interface ElectronAPI {
     importTemplate: (jsonString: string) => Promise<void>;
     listTemplatesByType: (type: 'optimize' | 'userOptimize' | 'iterate') => Promise<Template[]>;
     changeBuiltinTemplateLanguage: (language: BuiltinTemplateLanguage) => Promise<void>;
-    getCurrentBuiltinTemplateLanguage: () => BuiltinTemplateLanguage;
-    getSupportedBuiltinTemplateLanguages: () => BuiltinTemplateLanguage[];
+    getCurrentBuiltinTemplateLanguage: () => Promise<BuiltinTemplateLanguage>;
+    getSupportedBuiltinTemplateLanguages: () => Promise<BuiltinTemplateLanguage[]>;
   };
   // 添加其他服务的定义以避免编译错误
   [key: string]: any;
@@ -37,8 +37,6 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
     }
     this.electronAPI = window.electronAPI.template;
   }
-
-
 
   async getTemplate(id: string): Promise<Template> {
     return this.electronAPI.getTemplate(id);
@@ -68,19 +66,15 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
     return this.electronAPI.listTemplatesByType(type);
   }
 
-  async getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
-    return this.electronAPI.listTemplatesByType(type);
-  }
-
   async changeBuiltinTemplateLanguage(language: BuiltinTemplateLanguage): Promise<void> {
     return this.electronAPI.changeBuiltinTemplateLanguage(language);
   }
 
-  getCurrentBuiltinTemplateLanguage(): BuiltinTemplateLanguage {
-    return this.electronAPI.getCurrentBuiltinTemplateLanguage();
+  async getCurrentBuiltinTemplateLanguage(): Promise<BuiltinTemplateLanguage> {
+    return await this.electronAPI.getCurrentBuiltinTemplateLanguage();
   }
 
-  getSupportedBuiltinTemplateLanguages(): BuiltinTemplateLanguage[] {
-    return this.electronAPI.getSupportedBuiltinTemplateLanguages();
+  async getSupportedBuiltinTemplateLanguages(): Promise<BuiltinTemplateLanguage[]> {
+    return await this.electronAPI.getSupportedBuiltinTemplateLanguages();
   }
 }

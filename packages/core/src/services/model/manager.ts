@@ -35,7 +35,7 @@ export class ModelManager implements IModelManager {
   /**
    * 检查管理器是否已初始化
    */
-  public isInitialized(): boolean {
+  public async isInitialized(): Promise<boolean> {
     return Object.keys(this.models).length > 0;
   }
 

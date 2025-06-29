@@ -391,6 +391,15 @@ function setupIPC() {
     }
   });
 
+  ipcMain.handle('model-isInitialized', async () => {
+    try {
+      const result = await modelManager.isInitialized();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
   ipcMain.handle('model-getAllModels', async () => {
     try {
       const result = await modelManager.getAllModels();
@@ -408,15 +417,6 @@ function setupIPC() {
   });
 
   // Template Manager handlers
-  ipcMain.handle('template-ensureInitialized', async (event) => {
-    try {
-      await templateManager.ensureInitialized();
-      return createSuccessResponse(null);
-    } catch (error) {
-      return createErrorResponse(error);
-    }
-  });
-
   ipcMain.handle('template-getTemplates', async (event) => {
     try {
       const result = await templateManager.listTemplates();
@@ -505,7 +505,7 @@ function setupIPC() {
 
   ipcMain.handle('template-getCurrentBuiltinTemplateLanguage', async (event) => {
     try {
-      const result = templateManager.getCurrentBuiltinTemplateLanguage();
+      const result = await templateManager.getCurrentBuiltinTemplateLanguage();
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
@@ -514,7 +514,7 @@ function setupIPC() {
 
   ipcMain.handle('template-getSupportedBuiltinTemplateLanguages', async (event) => {
     try {
-      const result = templateManager.getSupportedBuiltinTemplateLanguages();
+      const result = await templateManager.getSupportedBuiltinTemplateLanguages();
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);

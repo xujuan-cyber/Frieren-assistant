@@ -22,7 +22,7 @@ import {
   createPreferenceService,
 } from '../'; // 从UI包的index导入所有核心模块
 import type { AppServices } from '../types/services';
-import type { IStorageProvider, IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService } from '@prompt-optimizer/core';
+import type { IStorageProvider, IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager } from '@prompt-optimizer/core';
 import type { IPreferenceService } from '../types/services';
 
 /**
@@ -43,7 +43,7 @@ export function useAppInitializer() {
       let modelManager: IModelManager;
       let templateManager: ITemplateManager;
       let historyManager: IHistoryManager;
-      let dataManager: DataManager;
+      let dataManager: IDataManager;
       let llmService: ILLMService;
       let promptService: IPromptService;
       let preferenceService: IPreferenceService;
@@ -158,7 +158,7 @@ export function useAppInitializer() {
           setLanguage: (language: any) => languageService.setLanguage(language),
           toggleLanguage: () => languageService.toggleLanguage(),
           isValidLanguage: (language: string) => languageService.isValidLanguage(language),
-          getSupportedLanguages: () => [...languageService.getSupportedLanguages()],
+          getSupportedLanguages: () => languageService.getSupportedLanguages(),
           getLanguageDisplayName: (language: any) => languageService.getLanguageDisplayName(language),
           isInitialized: () => languageService.isInitialized(),
         };
@@ -171,14 +171,14 @@ export function useAppInitializer() {
           exportTemplate: (id) => templateManagerInstance.exportTemplate(id),
           importTemplate: (json) => templateManagerInstance.importTemplate(json),
           listTemplatesByType: (type) => templateManagerInstance.listTemplatesByType(type),
-          getTemplatesByType: (type) => templateManagerInstance.getTemplatesByType(type),
           changeBuiltinTemplateLanguage: (language) => templateManagerInstance.changeBuiltinTemplateLanguage(language),
-          getCurrentBuiltinTemplateLanguage: () => templateManagerInstance.getCurrentBuiltinTemplateLanguage(),
-          getSupportedBuiltinTemplateLanguages: () => templateManagerInstance.getSupportedBuiltinTemplateLanguages(),
+          getCurrentBuiltinTemplateLanguage: async () => await templateManagerInstance.getCurrentBuiltinTemplateLanguage(),
+          getSupportedBuiltinTemplateLanguages: async () => await templateManagerInstance.getSupportedBuiltinTemplateLanguages(),
         };
 
         const historyManagerAdapter: IHistoryManager = {
           getRecords: () => historyManagerInstance.getRecords(),
+          getRecord: (id) => historyManagerInstance.getRecord(id),
           addRecord: (record) => historyManagerInstance.addRecord(record),
           deleteRecord: (id) => historyManagerInstance.deleteRecord(id),
           clearHistory: () => historyManagerInstance.clearHistory(),

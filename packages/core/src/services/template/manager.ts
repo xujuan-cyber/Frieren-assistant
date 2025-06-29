@@ -3,7 +3,7 @@ import { IStorageProvider } from '../storage/types';
 import { StaticLoader } from './static-loader';
 import { TemplateError, TemplateValidationError } from './errors';
 import { templateSchema } from './types';
-import { TemplateLanguageService, BuiltinTemplateLanguage } from './languageService';
+import { BuiltinTemplateLanguage, ITemplateLanguageService } from './languageService';
 
 
 
@@ -16,7 +16,7 @@ export class TemplateManager implements ITemplateManager {
 
   constructor(
     private storageProvider: IStorageProvider,
-    private languageService: TemplateLanguageService,
+    private languageService: ITemplateLanguageService,
     config?: TemplateManagerConfig
   ) {
     this.config = {
@@ -211,17 +211,17 @@ export class TemplateManager implements ITemplateManager {
    */
   private async getBuiltinTemplates(): Promise<Record<string, Template>> {
     // Get current language from template language service
-    const currentLanguage = this.languageService.getCurrentLanguage();
-    
+    const currentLanguage = await this.languageService.getCurrentLanguage();
+
     // Get appropriate template set based on language
     const templateSet = await this.getTemplateSet(currentLanguage);
-    
+
     // Mark all templates as built-in
     const builtinTemplates: Record<string, Template> = {};
     for (const [id, template] of Object.entries(templateSet)) {
       builtinTemplates[id] = { ...template, isBuiltin: true };
     }
-    
+
     return builtinTemplates;
   }
 
@@ -276,14 +276,6 @@ export class TemplateManager implements ITemplateManager {
   }
 
   /**
-   * Get templates by type
-   * @deprecated Use listTemplatesByType instead
-   */
-  async getTemplatesByType(type: 'optimize' | 'iterate'): Promise<Template[]> {
-    return await this.listTemplatesByType(type);
-  }
-
-  /**
    * List templates by type
    */
   async listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]> {
@@ -308,15 +300,15 @@ export class TemplateManager implements ITemplateManager {
   /**
    * Get current built-in template language
    */
-  getCurrentBuiltinTemplateLanguage(): BuiltinTemplateLanguage {
-    return this.languageService.getCurrentLanguage();
+  async getCurrentBuiltinTemplateLanguage(): Promise<BuiltinTemplateLanguage> {
+    return await this.languageService.getCurrentLanguage();
   }
 
   /**
    * Get supported built-in template languages
    */
-  getSupportedBuiltinTemplateLanguages(): BuiltinTemplateLanguage[] {
-    return this.languageService.getSupportedLanguages();
+  async getSupportedBuiltinTemplateLanguages(): Promise<BuiltinTemplateLanguage[]> {
+    return await this.languageService.getSupportedLanguages();
   }
 }
 
@@ -328,7 +320,7 @@ export class TemplateManager implements ITemplateManager {
  */
 export function createTemplateManager(
   storageProvider: IStorageProvider,
-  languageService: TemplateLanguageService
+  languageService: ITemplateLanguageService
 ): TemplateManager {
   return new TemplateManager(storageProvider, languageService);
 }

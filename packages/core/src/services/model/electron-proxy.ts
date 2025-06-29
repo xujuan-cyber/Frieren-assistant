@@ -21,9 +21,8 @@ export class ElectronModelManagerProxy implements IModelManager {
     await this.electronAPI.model.ensureInitialized();
   }
 
-  isInitialized(): boolean {
-    // 同步方法在IPC中难以实现，返回true并依赖主进程
-    return true; 
+  async isInitialized(): Promise<boolean> {
+    return this.electronAPI.model.isInitialized();
   }
 
 

@@ -3,10 +3,10 @@ import type {
   IModelManager,
   ITemplateManager,
   IHistoryManager,
-  DataManager,
+  IDataManager,
   ILLMService,
   IPromptService,
-  TemplateLanguageService
+  ITemplateLanguageService
 } from '@prompt-optimizer/core'
 
 // FIXME: Temporary workaround for build issue. Should be imported from @prompt-optimizer/core
@@ -26,9 +26,9 @@ export interface AppServices {
   modelManager: IModelManager;
   templateManager: ITemplateManager;
   historyManager: IHistoryManager;
-  dataManager: DataManager;
+  dataManager: IDataManager;
   llmService: ILLMService;
   promptService: IPromptService;
-  templateLanguageService: TemplateLanguageService;
+  templateLanguageService: ITemplateLanguageService;
   preferenceService: IPreferenceService;
-} 
+}

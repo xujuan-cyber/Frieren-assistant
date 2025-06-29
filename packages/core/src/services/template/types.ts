@@ -86,12 +86,6 @@ export interface ITemplateManager {
   listTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]>;
 
   /**
-   * Get templates by type
-   * @deprecated Use listTemplatesByType instead
-   */
-  getTemplatesByType(type: 'optimize' | 'userOptimize' | 'iterate'): Promise<Template[]>;
-
-  /**
    * Change built-in template language
    */
   changeBuiltinTemplateLanguage(language: BuiltinTemplateLanguage): Promise<void>;
@@ -99,12 +93,12 @@ export interface ITemplateManager {
   /**
    * Get current built-in template language
    */
-  getCurrentBuiltinTemplateLanguage(): BuiltinTemplateLanguage;
+  getCurrentBuiltinTemplateLanguage(): Promise<BuiltinTemplateLanguage>;
 
   /**
    * Get supported built-in template languages
    */
-  getSupportedBuiltinTemplateLanguages(): BuiltinTemplateLanguage[];
+  getSupportedBuiltinTemplateLanguages(): Promise<BuiltinTemplateLanguage[]>;
 }
 
 /**

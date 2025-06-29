@@ -107,6 +107,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) throw new Error(result.error);
     },
 
+    isInitialized: async () => {
+      const result = await ipcRenderer.invoke('model-isInitialized');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+
     // Get all models
     getAllModels: async () => {
       const result = await ipcRenderer.invoke('model-getAllModels');
@@ -160,19 +166,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Template Manager interface
   template: {
-    // Initialization methods
-    ensureInitialized: async () => {
-      const result = await ipcRenderer.invoke('template-ensureInitialized');
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-    },
-
-    isInitialized: () => {
-      // 同步方法，但在IPC中难以实现，返回true并依赖主进程状态
-      return true;
-    },
-
     // Get all templates
     getTemplates: async () => {
       const result = await ipcRenderer.invoke('template-getTemplates');

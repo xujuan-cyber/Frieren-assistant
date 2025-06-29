@@ -1,10 +1,10 @@
-import type { BuiltinTemplateLanguage } from './languageService';
+import type { BuiltinTemplateLanguage, ITemplateLanguageService } from './languageService';
 
 /**
  * Electron环境下的TemplateLanguageService代理
  * 通过template namespace的IPC调用主进程中的语言相关功能
  */
-export class ElectronTemplateLanguageServiceProxy {
+export class ElectronTemplateLanguageServiceProxy implements ITemplateLanguageService {
   private electronAPI: any;
 
   constructor() {
@@ -20,7 +20,7 @@ export class ElectronTemplateLanguageServiceProxy {
     return Promise.resolve();
   }
 
-  getCurrentLanguage(): BuiltinTemplateLanguage {
+  async getCurrentLanguage(): Promise<BuiltinTemplateLanguage> {
     return this.electronAPI.template.getCurrentBuiltinTemplateLanguage();
   }
 
@@ -29,18 +29,18 @@ export class ElectronTemplateLanguageServiceProxy {
   }
 
   async toggleLanguage(): Promise<BuiltinTemplateLanguage> {
-    const currentLanguage = this.getCurrentLanguage();
+    const currentLanguage = await this.getCurrentLanguage();
     const newLanguage = currentLanguage === 'zh-CN' ? 'en-US' : 'zh-CN';
     await this.setLanguage(newLanguage);
     return newLanguage;
   }
 
-  isValidLanguage(language: string): boolean {
-    const supportedLanguages = this.getSupportedLanguages();
+  async isValidLanguage(language: string): Promise<boolean> {
+    const supportedLanguages = await this.getSupportedLanguages();
     return supportedLanguages.includes(language as BuiltinTemplateLanguage);
   }
 
-  getSupportedLanguages(): BuiltinTemplateLanguage[] {
+  async getSupportedLanguages(): Promise<BuiltinTemplateLanguage[]> {
     return this.electronAPI.template.getSupportedBuiltinTemplateLanguages();
   }
 

@@ -30,7 +30,7 @@ export interface IModelManager {
   ensureInitialized(): Promise<void>;
 
   /** 检查管理器是否已初始化 */
-  isInitialized(): boolean;
+  isInitialized(): Promise<boolean>;
 
   /** 获取所有模型配置 */
   getAllModels(): Promise<Array<ModelConfig & { key: string }>>;
