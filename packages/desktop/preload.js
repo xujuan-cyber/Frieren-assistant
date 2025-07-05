@@ -406,6 +406,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return result.data;
     }
   },
+
+
   
   // Data Manager interface
   data: {

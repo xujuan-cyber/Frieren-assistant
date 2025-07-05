@@ -18,7 +18,7 @@
 
 ## 📖 项目简介
 
-Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更好的AI提示词，提升AI输出质量。支持Web应用和Chrome插件两种使用方式。
+Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更好的AI提示词，提升AI输出质量。支持Web应用、桌面应用和Chrome插件三种使用方式。
 
 ### 🎥 功能演示
 
@@ -34,7 +34,7 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 - ⚙️ **高级参数配置**：支持为每个模型单独配置temperature、max_tokens等LLM参数
 - 🔒 **安全架构**：纯客户端处理，数据直接与AI服务商交互，不经过中间服务器
 - 💾 **隐私保护**：本地加密存储历史记录和API密钥，支持数据导入导出
-- 📱 **多端支持**：同时提供Web应用和Chrome插件两种使用方式
+- 📱 **多端支持**：同时提供Web应用、桌面应用和Chrome插件三种使用方式
 - 🎨 **用户体验**：简洁直观的界面设计，响应式布局和流畅交互动效
 - 🌐 **跨域支持**：Vercel部署时支持使用Edge Runtime代理解决跨域问题
 - 🔐 **访问控制**：支持密码保护功能，保障部署安全
@@ -62,11 +62,22 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 更多详细的部署步骤和注意事项，请查看：
 - [Vercel部署指南](docs/vercel.md)
 
-### 3. 安装Chrome插件
+### 3. 下载桌面应用
+1. 从 [GitHub Releases](https://github.com/linshenkx/prompt-optimizer/releases) 下载最新版本
+2. **Windows**: 下载 `PromptOptimizer-*-win-x64.zip`，解压到任意目录，运行 `PromptOptimizer.exe`
+3. **macOS**: 下载 `PromptOptimizer-*-darwin-x64.zip` 或 `PromptOptimizer-*-darwin-arm64.zip`，解压到任意目录，运行 `PromptOptimizer.app`
+4. **Linux**: 下载 `PromptOptimizer-*-linux-x64.zip`，解压到任意目录，运行 `PromptOptimizer`
+
+**桌面应用特点**：
+- ✅ **便携模式**：数据存储在应用同级目录，便于备份和迁移
+- ✅ **离线使用**：无需浏览器，独立运行
+- ✅ **性能更好**：原生应用体验，响应更快
+
+### 4. 安装Chrome插件
 1. 从Chrome商店安装（由于审批较慢，可能不是最新的）：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 2. 点击图标即可打开提示词优化器
 
-### 4. Docker部署
+### 5. Docker部署
 ```bash
 # 运行容器（默认配置）
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer

@@ -33,14 +33,16 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": "portable",
-      "artifactName": "${productName}-${version}.${ext}"
+      "target": "zip",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "mac": {
-      "target": "dmg"
+      "target": "zip",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "zip",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     }
   },
   "keywords": [

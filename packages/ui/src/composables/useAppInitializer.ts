@@ -22,7 +22,7 @@ import {
   createPreferenceService,
 } from '../'; // 从UI包的index导入所有核心模块
 import type { AppServices } from '../types/services';
-import type { IStorageProvider, IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager } from '@prompt-optimizer/core';
+import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager } from '@prompt-optimizer/core';
 import type { IPreferenceService } from '../types/services';
 
 /**
@@ -39,7 +39,7 @@ export function useAppInitializer() {
     try {
       console.log('[AppInitializer] 开始应用初始化...');
 
-      let storageProvider: IStorageProvider;
+
       let modelManager: IModelManager;
       let templateManager: ITemplateManager;
       let historyManager: IHistoryManager;
@@ -58,29 +58,9 @@ export function useAppInitializer() {
         }
         
         console.log('[AppInitializer] Electron API 就绪，初始化代理服务...');
-        // 在Electron渲染进程中，我们需要创建一个代理存储提供器
-        // 这个代理会将所有存储操作转发到主进程
-        storageProvider = {
-          async getItem(key: string): Promise<string | null> {
-            console.warn('[ElectronStorageProxy] getItem called, but storage should be handled by main process');
-            return null;
-          },
-          async setItem(key: string, value: string): Promise<void> {
-            console.warn('[ElectronStorageProxy] setItem called, but storage should be handled by main process');
-          },
-          async removeItem(key: string): Promise<void> {
-            console.warn('[ElectronStorageProxy] removeItem called, but storage should be handled by main process');
-          },
-          async clearAll(): Promise<void> {
-            console.warn('[ElectronStorageProxy] clear called, but storage should be handled by main process');
-          },
-          async updateData<T>(key: string, modifier: (currentValue: T | null) => T): Promise<void> {
-            console.warn('[ElectronStorageProxy] updateData called, but storage should be handled by main process');
-          },
-          async batchUpdate(operations: Array<{ key: string; operation: 'set' | 'remove'; value?: string }>): Promise<void> {
-            console.warn('[ElectronStorageProxy] batchUpdate called, but storage should be handled by main process');
-          }
-        };
+
+        // 在Electron环境中，不需要storageProvider
+        // 所有存储操作都通过各个manager的代理完成
 
         // 在Electron环境中，我们实例化所有轻量级的代理类
         modelManager = new ElectronModelManagerProxy();
@@ -97,7 +77,6 @@ export function useAppInitializer() {
         const templateLanguageService = new ElectronTemplateLanguageServiceProxy();
 
         services.value = {
-          storageProvider, // 使用代理存储提供器
           modelManager,
           templateManager,
           historyManager,
@@ -112,7 +91,7 @@ export function useAppInitializer() {
       } else {
         console.log('[AppInitializer] 检测到Web环境，初始化完整服务...');
         // 在Web环境中，我们创建一套完整的、真实的服务
-        storageProvider = StorageFactory.create('dexie');
+        const storageProvider = StorageFactory.create('dexie');
         const languageService = createTemplateLanguageService(storageProvider);
         
         // Services with no dependencies or only storage
@@ -201,7 +180,6 @@ export function useAppInitializer() {
 
         // 将所有服务实例赋值给 services.value
       services.value = {
-        storageProvider,
           modelManager: modelManagerAdapter, // 使用适配器
           templateManager: templateManagerAdapter, // 使用适配器
           historyManager: historyManagerAdapter, // 使用适配器

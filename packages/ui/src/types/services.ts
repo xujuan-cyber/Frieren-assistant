@@ -1,5 +1,4 @@
 import type {
-  IStorageProvider,
   IModelManager,
   ITemplateManager,
   IHistoryManager,
@@ -22,7 +21,6 @@ export interface IPreferenceService {
  * 统一的应用服务接口定义
  */
 export interface AppServices {
-  storageProvider: IStorageProvider;
   modelManager: IModelManager;
   templateManager: ITemplateManager;
   historyManager: IHistoryManager;

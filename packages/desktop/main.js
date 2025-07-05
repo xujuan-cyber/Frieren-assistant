@@ -181,15 +181,15 @@ async function initializeServices() {
     // 根据环境确定数据存储路径
     let userDataPath;
     if (app.isPackaged) {
-      // 生产环境：使用可执行文件所在目录下的prompt-optimizer-data文件夹
-      const execPath = process.execPath;
-      const execDir = path.dirname(execPath);
+      // 生产环境：ZIP包解压后的portable模式
+      const exePath = app.getPath('exe');
+      const execDir = path.dirname(exePath);
       userDataPath = path.join(execDir, 'prompt-optimizer-data');
-      console.log('[DESKTOP] Production mode - Executable path:', execPath);
+      console.log('[DESKTOP] Production mode - portable storage in exe directory');
     } else {
       // 开发环境：使用项目根目录下的prompt-optimizer-data文件夹
       userDataPath = path.join(__dirname, '..', '..', 'prompt-optimizer-data');
-      console.log('[DESKTOP] Development mode - Project root data folder');
+      console.log('[DESKTOP] Development mode - project root storage');
     }
 
     console.log('[DESKTOP] Data storage path:', userDataPath);
@@ -723,6 +723,8 @@ function setupIPC() {
       return createErrorResponse(error);
     }
   });
+
+
 
   // 环境配置同步 - 主进程作为唯一配置源
   ipcMain.handle('config-getEnvironmentVariables', async (event) => {

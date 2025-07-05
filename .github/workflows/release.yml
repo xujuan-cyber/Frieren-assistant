@@ -40,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: packages/desktop/dist/*.exe
+          path: packages/desktop/dist/*.zip
           retention-days: 30
 
   # 构建 macOS 版本
@@ -72,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: packages/desktop/dist/*.dmg
+          path: packages/desktop/dist/*.zip
           retention-days: 30
 
   # 构建 Linux 版本
@@ -104,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: packages/desktop/dist/*.AppImage
+          path: packages/desktop/dist/*.zip
           retention-days: 30
 
   # 创建 GitHub Release
@@ -192,14 +192,14 @@ jobs:
           ## 🚀 Prompt Optimizer $CURRENT_TAG
 
           ### 📦 下载
-          - **Windows**: \`Prompt Optimizer Setup *.exe\`
-          - **macOS**: \`Prompt Optimizer-*.dmg\`
-          - **Linux**: \`Prompt Optimizer-*.AppImage\`
+          - **Windows**: \`PromptOptimizer-*-win-x64.zip\`
+          - **macOS**: \`PromptOptimizer-*-darwin-x64.zip\` 或 \`PromptOptimizer-*-darwin-arm64.zip\`
+          - **Linux**: \`PromptOptimizer-*-linux-x64.zip\`
 
           ### 🔧 安装说明
-          - **Windows**: 下载 \`.exe\` 文件直接安装
-          - **macOS**: 下载 \`.dmg\` 文件，拖拽到应用程序文件夹
-          - **Linux**: 下载 \`.AppImage\` 文件，添加执行权限后直接运行
+          - **Windows**: 下载 \`.zip\` 文件，解压到任意目录，运行 \`PromptOptimizer.exe\`
+          - **macOS**: 下载 \`.zip\` 文件，解压到任意目录，运行 \`PromptOptimizer.app\`
+          - **Linux**: 下载 \`.zip\` 文件，解压到任意目录，运行 \`PromptOptimizer\`
 
           ### 📝 更新内容
           $COMMITS_LIMITED

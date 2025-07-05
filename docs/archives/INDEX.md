@@ -90,12 +90,17 @@
   - 完整的数据持久化解决方案
   - 高性能文件I/O和错误恢复机制
 
+- **[116-desktop-packaging-optimization](./116-desktop-packaging-optimization/)** - 桌面应用打包优化 📦
+  - 从portable模式改为ZIP压缩包模式
+  - 解决存储路径检测问题
+  - 简化代码架构，提升用户体验
+
 ## 🔍 快速查找指南
 
 ### 按问题类型查找
 - **启动问题** → 102-web-architecture-refactor
 - **显示异常** → 112-desktop-ipc-fixes
-- **存储问题** → 110-desktop-indexeddb-fix, 114-desktop-file-storage
+- **存储问题** → 110-desktop-indexeddb-fix, 114-desktop-file-storage, 116-desktop-packaging-optimization
 - **序列化错误** → 112-desktop-ipc-fixes
 - **应用退出问题** → 114-desktop-file-storage
 - **语言设置问题** → 112-desktop-ipc-fixes
