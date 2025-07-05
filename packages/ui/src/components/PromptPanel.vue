@@ -68,6 +68,7 @@
             :modelValue="selectedIterateTemplate"
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
             :type="templateType"
+            :optimization-mode="optimizationMode"
             :services="services"
             @manage="$emit('openTemplateManager', templateType)"
           />
@@ -159,6 +160,10 @@ const props = defineProps({
   originalPrompt: {
     type: String,
     default: ''
+  },
+  optimizationMode: {
+    type: String as () => import('@prompt-optimizer/core').OptimizationMode,
+    required: true
   },
   services: {
     type: Object as () => Ref<AppServices | null>,

@@ -107,6 +107,7 @@
               v-model:selected-iterate-template="optimizer.selectedIterateTemplate"
               :versions="optimizer.currentVersions"
               :current-version-id="optimizer.currentVersionId"
+              :optimization-mode="selectedOptimizationMode"
               :services="services"
               @iterate="handleIteratePrompt"
               @openTemplateManager="openTemplateManager"
