@@ -91,9 +91,9 @@ export class StaticLoader {
       const result = { all, byLanguage, byType };
       
       console.log(`✅ 成功加载 ${Object.keys(all).length} 个模板`, {
-        总数: Object.keys(all).length,
-        中文: Object.keys(byLanguage.zh).length,
-        英文: Object.keys(byLanguage.en).length,
+        '总数': Object.keys(all).length,
+        '中文': Object.keys(byLanguage.zh).length,
+        '英文': Object.keys(byLanguage.en).length,
         optimize: Object.keys(byType.optimize.zh).length + Object.keys(byType.optimize.en).length,
         iterate: Object.keys(byType.iterate.zh).length + Object.keys(byType.iterate.en).length,
         'user-optimize': Object.keys(byType['user-optimize'].zh).length + Object.keys(byType['user-optimize'].en).length

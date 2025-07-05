@@ -159,8 +159,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     getEnabledModels: async () => {
       const result = await ipcRenderer.invoke('model-getEnabledModels');
-      console.log('[Preload] Model getEnabledModels result:', result);
-      return result;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
     },
   },
 
@@ -433,9 +435,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     get: async (key, defaultValue) => {
       const result = await ipcRenderer.invoke('preference-get', key, defaultValue);
       if (!result.success) {
-        console.error(`[Preload] Failed to get preference key "${key}":`, result.error);
-        // 在出错时返回默认值，以保持与原始服务签名一致
-        return defaultValue;
+        throw new Error(result.error);
       }
       return result.data;
     },

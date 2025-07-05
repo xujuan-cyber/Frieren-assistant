@@ -410,10 +410,12 @@ function setupIPC() {
   });
 
   ipcMain.handle('model-getEnabledModels', async (event) => {
-    console.log('[Main] IPC: model-getEnabledModels called');
-    const result = await modelManager.getEnabledModels();
-    console.log('[Main] Model getEnabledModels result:', result);
-    return result;
+    try {
+      const result = await modelManager.getEnabledModels();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
   });
 
   // Template Manager handlers
