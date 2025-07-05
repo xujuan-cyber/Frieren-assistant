@@ -35,6 +35,8 @@ export default {
     version: 'V{version}',
     optimize: 'Optimize',
     iterate: 'Iterate',
+    system: 'System',
+    user: 'User',
     copySuccess: 'Copied to clipboard',
     copyFailed: 'Copy Failed',
     appName: 'Prompt Optimizer',
@@ -498,7 +500,8 @@ export default {
     },
     info: {
       modelUpdated: 'Model updated',
-      templateSelected: 'Template selected'
+      templateSelected: 'Template selected',
+      optimizationModeAutoSwitched: 'Automatically switched to {mode} prompt optimization mode'
     }
   },
   log: {

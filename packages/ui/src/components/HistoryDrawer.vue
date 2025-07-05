@@ -39,8 +39,10 @@
                 <!-- 历史记录头部信息 -->
                 <div class="theme-history-card-header">
                   <div class="flex items-center justify-between mb-2">
-                    <div class="text-sm theme-manager-text-secondary">
-                      {{ t('common.createdAt') }} {{ formatDate(chain.rootRecord.timestamp) }}
+                    <div class="flex items-center gap-2 text-sm theme-manager-text-secondary">
+                      <span>{{ t('common.createdAt') }} {{ formatDate(chain.rootRecord.timestamp) }}</span>
+                      <span v-if="chain.rootRecord.type === 'optimize'" class="text-xs theme-manager-tag bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">{{ t('common.system') }}</span>
+                      <span v-if="chain.rootRecord.type === 'userOptimize'" class="text-xs theme-manager-tag bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">{{ t('common.user') }}</span>
                     </div>
                     <button
                       @click.stop="deleteChain(chain.chainId)"
@@ -226,7 +228,8 @@ const reuse = (record: PromptRecord, chain: PromptRecordChain) => {
   emit('reuse', {
     record,
     chainId: chain.chainId,
-    rootPrompt: chain.rootRecord.originalPrompt
+    rootPrompt: chain.rootRecord.originalPrompt,
+    chain
   })
   emit('update:show', false)
 }

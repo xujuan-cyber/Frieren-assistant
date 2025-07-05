@@ -127,7 +127,7 @@ export function usePromptOptimizer(
                 id: uuidv4(),
                 originalPrompt: state.prompt,
                 optimizedPrompt: state.optimizedPrompt,
-                type: 'optimize',
+                type: optimizationMode.value === 'system' ? 'optimize' : 'userOptimize',
                 modelKey: optimizeModel.value,
                 templateId: currentTemplate.id,
                 timestamp: Date.now(),

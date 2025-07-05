@@ -46,11 +46,13 @@ export function usePromptHistory(
       id: uuidv4(),
       originalPrompt: rootPrompt,
       optimizedPrompt: record.optimizedPrompt,
-      type: 'optimize',
+      type: record.type, // 保持原始记录的类型
       modelKey: record.modelKey,
       templateId: record.templateId,
       timestamp: Date.now(),
-      metadata: {}
+      metadata: {
+        optimizationMode: record.metadata?.optimizationMode // 保持原始记录的优化模式
+      }
     })
     
     currentChainId.value = newRecord.chainId

@@ -7,7 +7,6 @@ import { IHistoryManager } from '../history/types';
 import { OptimizationError, IterationError, TestError, ServiceDependencyError } from './errors';
 import { ERROR_MESSAGES } from '../llm/errors';
 import { TemplateProcessor, TemplateContext } from '../template/processor';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Default template IDs used by the system
@@ -108,7 +107,8 @@ export class PromptService implements IPromptService {
       const result = await this.llmService.sendMessage(messages, request.modelKey);
 
       this.validateResponse(result, request.targetPrompt);
-      await this.saveOptimizationHistory(request, result);
+      // 注意：历史记录保存由UI层的historyManager.createNewChain方法处理
+      // 移除重复的saveOptimizationHistory调用以避免重复保存
 
       return result;
     } catch (error) {
@@ -162,19 +162,8 @@ export class PromptService implements IPromptService {
       // 发送请求
       const result = await this.llmService.sendMessage(messages, modelKey);
 
-      // 保存历史记录
-      await this.historyManager.addRecord({
-        id: uuidv4(),
-        originalPrompt: iterateInput,
-        optimizedPrompt: result,
-        type: 'iterate',
-        chainId: originalPrompt,
-        version: 1,
-        previousId: originalPrompt,
-        timestamp: Date.now(),
-        modelKey,
-        templateId: templateId || DEFAULT_TEMPLATES.ITERATE
-      });
+      // 注意：迭代历史记录保存由UI层的historyManager.addIteration方法处理
+      // 移除重复的addRecord调用以避免重复保存
 
       return result;
     } catch (error) {
@@ -212,20 +201,8 @@ export class PromptService implements IPromptService {
 
       const result = await this.llmService.sendMessage(messages, modelKey);
 
-      // 保存历史记录
-      await this.historyManager.addRecord({
-        id: uuidv4(),
-        originalPrompt: systemPrompt || userPrompt,
-        optimizedPrompt: result,
-        type: 'optimize',
-        chainId: systemPrompt || userPrompt,
-        version: 1,
-        timestamp: Date.now(),
-        modelKey,
-        templateId: DEFAULT_TEMPLATES.TEST
-      });
-
-      await this.saveTestHistory(systemPrompt, userPrompt, modelKey, result);
+      // 注意：测试功能不保存历史记录，保持架构一致性
+      // 测试是临时性验证，不应与优化历史记录混合
 
       return result;
     } catch (error) {
@@ -336,11 +313,11 @@ export class PromptService implements IPromptService {
             if (response) {
               // 验证主要内容
               this.validateResponse(response.content, request.targetPrompt);
-              
-              // 保存优化历史 - 只保存主要内容
-              await this.saveOptimizationHistory(request, response.content);
+
+              // 注意：历史记录保存由UI层的historyManager.createNewChain方法处理
+              // 移除重复的saveOptimizationHistory调用以避免重复保存
             }
-            
+
             // 调用原始完成回调，传递结构化响应
             callbacks.onComplete(response);
           },
@@ -486,49 +463,12 @@ export class PromptService implements IPromptService {
     throw new Error(`No templates available for type: ${templateType}`);
   }
 
-  /**
-   * 保存优化历史记录
-   */
-  private async saveOptimizationHistory(request: OptimizationRequest, result: string) {
-    await this.historyManager.addRecord({
-      id: uuidv4(),
-      originalPrompt: request.targetPrompt,
-      optimizedPrompt: result,
-      type: 'optimize',
-      chainId: uuidv4(),
-      version: 1,
-      timestamp: Date.now(),
-      modelKey: request.modelKey,
-      templateId: request.templateId || await this.getDefaultTemplateId(
-        request.optimizationMode === 'user' ? 'userOptimize' : 'optimize'
-      ),
-      metadata: {
-        optimizationMode: request.optimizationMode
-      }
-    });
-  }
+  // saveOptimizationHistory 方法已移除
+  // 历史记录保存现在由UI层的historyManager.createNewChain方法处理
 
-  private async saveTestHistory(systemPrompt: string, userPrompt: string, modelKey: string, result: string) {
-    try {
-      await this.historyManager.addRecord({
-        id: uuidv4(),
-        originalPrompt: userPrompt,
-        optimizedPrompt: result,
-        type: 'test',
-        chainId: userPrompt,
-        version: 1,
-        previousId: undefined,
-        timestamp: Date.now(),
-        modelKey: modelKey,
-        templateId: 'test-prompt',
-        metadata: {
-          systemPrompt: systemPrompt,
-        }
-      });
-    } catch (error) {
-      console.warn('Failed to save test history:', error);
-    }
-  }
+  // saveTestHistory 方法已移除
+  // 测试功能不再保存历史记录，保持架构一致性
+  // 测试是临时性验证，不应与优化历史记录混合
 
   // 注意：迭代历史记录由UI层管理，而非核心服务层
   // 原因：

@@ -35,6 +35,8 @@ export default {
     version: 'V{version}',
     optimize: '优化',
     iterate: '迭代',
+    system: '系统',
+    user: '用户',
     copySuccess: '复制成功',
     copyFailed: '复制失败',
     appName: '提示词优化器',
@@ -498,7 +500,8 @@ export default {
     },
     info: {
       modelUpdated: '模型已更新',
-      templateSelected: '选择模板'
+      templateSelected: '选择模板',
+      optimizationModeAutoSwitched: '已自动切换到{mode}提示词优化模式'
     }
   },
   log: {

@@ -139,11 +139,11 @@
       :templateType="templateManagerState.currentType" 
       @close="() => templateManagerState.handleTemplateManagerClose(() => templateSelectRef?.refresh?.())"
     />
-    <HistoryDrawerUI 
-      v-if="isReady" 
+    <HistoryDrawerUI
+      v-if="isReady"
       v-model:show="historyManager.showHistory"
       :history="promptHistory.history"
-      @reuse="promptHistory.handleSelectHistory"
+      @reuse="handleHistoryReuse"
       @clear="promptHistory.handleClearHistory"
       @deleteChain="promptHistory.handleDeleteChain"
     />
@@ -333,6 +333,33 @@ const openTemplateManager = (templateType?: 'optimize' | 'userOptimize' | 'itera
 // 处理优化模式变更
 const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
+}
+
+// 处理历史记录使用 - 智能模式切换
+const handleHistoryReuse = async (context: { record: any, chainId: string, rootPrompt: string, chain: any }) => {
+  const { chain } = context
+
+  // 根据链条的根记录类型确定应该切换到的优化模式
+  let targetMode: OptimizationMode
+  if (chain.rootRecord.type === 'optimize') {
+    targetMode = 'system'
+  } else if (chain.rootRecord.type === 'userOptimize') {
+    targetMode = 'user'
+  } else {
+    // 兜底：从根记录的 metadata 中获取优化模式
+    targetMode = chain.rootRecord.metadata?.optimizationMode || 'system'
+  }
+
+  // 如果目标模式与当前模式不同，自动切换
+  if (targetMode !== selectedOptimizationMode.value) {
+    selectedOptimizationMode.value = targetMode
+    toast.info(t('toast.info.optimizationModeAutoSwitched', {
+      mode: targetMode === 'system' ? t('common.system') : t('common.user')
+    }))
+  }
+
+  // 调用原有的历史记录处理逻辑
+  await promptHistory.handleSelectHistory(context)
 }
 
 // 提示词输入标签

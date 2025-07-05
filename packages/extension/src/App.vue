@@ -123,7 +123,14 @@
     <!-- Modals and Drawers that are conditionally rendered -->
     <ModelManagerUI v-if="isReady" v-model:show="showConfig" />
     <TemplateManagerUI v-if="isReady" v-model:show="showTemplateManager" :type="currentTemplateManagerType" />
-    <HistoryDrawerUI v-if="isReady" v-model:show="showHistory" />
+    <HistoryDrawerUI
+      v-if="isReady"
+      v-model:show="showHistory"
+      :history="promptHistory?.history || []"
+      @reuse="handleHistoryReuse"
+      @clear="promptHistory?.handleClearHistory"
+      @deleteChain="promptHistory?.handleDeleteChain"
+    />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" />
 
     <ToastUI />
@@ -199,6 +206,7 @@ let showHistory = ref(false)
 let showDataManager = ref(false)
 let showTemplateManager = ref(false)
 let currentTemplateManagerType = ref<'optimize' | 'userOptimize' | 'iterate'>('optimize')
+let promptHistory: any = null
 
 let handleOptimizePrompt = () => {}
 let handleIteratePrompt = (payload: any) => {}
@@ -247,7 +255,7 @@ watch(services, (newServices) => {
   handleIteratePrompt = optimizer.handleIteratePrompt
   handleSwitchVersion = optimizer.handleSwitchVersion
 
-  const promptHistory = usePromptHistory(
+  promptHistory = usePromptHistory(
     newServices.historyManager,
     prompt,
     optimizedPrompt,
