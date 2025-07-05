@@ -24,12 +24,12 @@
         <ActionButtonUI
           icon="📜"
           :text="$t('nav.history')"
-          @click="showHistory = true"
+          @click="historyManager.showHistory = true"
         />
         <ActionButtonUI
           icon="⚙️"
           :text="$t('nav.modelManager')"
-          @click="showConfig = true"
+          @click="modelManager.showConfig = true"
         />
         <ActionButtonUI
           icon="💾"
@@ -52,18 +52,18 @@
       <ContentCardUI class="flex-1 min-w-0 flex flex-col">
         <div class="flex-none">
           <InputPanelUI
-            v-model="prompt"
-            v-model:selectedModel="selectedOptimizeModel"
+            v-model="optimizer.prompt"
+            v-model:selectedModel="modelManager.selectedOptimizeModel"
             :label="promptInputLabel"
             :placeholder="promptInputPlaceholder"
             :model-label="$t('promptOptimizer.optimizeModel')"
             :template-label="$t('promptOptimizer.templateLabel')"
             :button-text="$t('promptOptimizer.optimize')"
             :loading-text="$t('common.loading')"
-            :loading="isOptimizing"
-            :disabled="isOptimizing"
+            :loading="optimizer.isOptimizing"
+            :disabled="optimizer.isOptimizing"
             @submit="handleOptimizePrompt"
-            @configModel="showConfig = true"
+            @configModel="modelManager.showConfig = true"
           >
             <template #optimization-mode-selector>
               <OptimizationModeSelectorUI
@@ -74,37 +74,48 @@
             <template #model-select>
               <ModelSelectUI
                 ref="optimizeModelSelect"
-                :modelValue="selectedOptimizeModel"
-                @update:modelValue="selectedOptimizeModel = $event"
-                :disabled="isOptimizing"
-                @config="showConfig = true"
+                :modelValue="modelManager.selectedOptimizeModel"
+                @update:modelValue="modelManager.selectedOptimizeModel = $event"
+                :disabled="optimizer.isOptimizing"
+                @config="modelManager.showConfig = true"
               />
             </template>
             <template #template-select>
-              <TemplateSelectUI
-                ref="templateSelectRef"
-                v-model="currentSelectedTemplate"
-                :type="selectedOptimizationMode === 'system' ? 'optimize' : 'userOptimize'"
-                :optimization-mode="selectedOptimizationMode"
-                @manage="openTemplateManager"
-              />
+              <template v-if="services && services.templateManager">
+                <TemplateSelectUI
+                  ref="templateSelectRef"
+                  v-model="currentSelectedTemplate"
+                  :type="templateSelectType"
+                  :optimization-mode="selectedOptimizationMode"
+                  @manage="openTemplateManager"
+                />
+              </template>
+              <div v-else class="p-2 text-sm theme-placeholder">
+                {{ t('template.loading') || '加载中...' }}
+              </div>
             </template>
           </InputPanelUI>
         </div>
         <div class="flex-1 min-h-0">
-          <PromptPanelUI
-            v-model:optimized-prompt="optimizedPrompt"
-            :reasoning="optimizedReasoning"
-            :original-prompt="prompt"
-            :is-optimizing="isOptimizing"
-            :is-iterating="isIterating"
-            v-model:selected-iterate-template="selectedIterateTemplate"
-            :versions="currentVersions"
-            :current-version-id="currentVersionId"
-            @iterate="handleIteratePrompt"
-            @openTemplateManager="openTemplateManager"
-            @switchVersion="handleSwitchVersion"
-          />
+          <template v-if="services && services.templateManager">
+            <PromptPanelUI
+              v-model:optimized-prompt="optimizer.optimizedPrompt"
+              :reasoning="optimizer.optimizedReasoning"
+              :original-prompt="optimizer.prompt"
+              :is-optimizing="optimizer.isOptimizing"
+              :is-iterating="optimizer.isIterating"
+              v-model:selected-iterate-template="optimizer.selectedIterateTemplate"
+              :versions="optimizer.currentVersions"
+              :current-version-id="optimizer.currentVersionId"
+              :services="services"
+              @iterate="handleIteratePrompt"
+              @openTemplateManager="openTemplateManager"
+              @switchVersion="handleSwitchVersion"
+            />
+          </template>
+          <div v-else class="p-4 text-center theme-placeholder">
+            {{ t('prompt.loading') || '加载中...' }}
+          </div>
         </div>
       </ContentCardUI>
 
@@ -112,24 +123,29 @@
         ref="testPanelRef"
         class="flex-1 min-w-0 flex flex-col"
         :prompt-service="promptService"
-        :original-prompt="prompt"
-        :optimized-prompt="optimizedPrompt"
+        :original-prompt="optimizer.prompt"
+        :optimized-prompt="optimizer.optimizedPrompt"
         :optimization-mode="selectedOptimizationMode"
-        v-model="selectedTestModel"
-        @showConfig="showConfig = true"
+        v-model="modelManager.selectedTestModel"
+        @showConfig="modelManager.showConfig = true"
       />
     </MainLayoutUI>
 
     <!-- Modals and Drawers that are conditionally rendered -->
-    <ModelManagerUI v-if="isReady" v-model:show="showConfig" />
-    <TemplateManagerUI v-if="isReady" v-model:show="showTemplateManager" :type="currentTemplateManagerType" />
+    <ModelManagerUI v-if="isReady" v-model:show="modelManager.showConfig" />
+    <TemplateManagerUI
+      v-if="isReady"
+      v-model:show="templateManagerState.showTemplates"
+      :templateType="templateManagerState.currentType"
+      @close="() => templateManagerState.handleTemplateManagerClose(() => templateSelectRef?.refresh?.())"
+    />
     <HistoryDrawerUI
       v-if="isReady"
-      v-model:show="showHistory"
-      :history="promptHistory?.history || []"
+      v-model:show="historyManager.showHistory"
+      :history="promptHistory.history"
       @reuse="handleHistoryReuse"
-      @clear="promptHistory?.handleClearHistory"
-      @deleteChain="promptHistory?.handleDeleteChain"
+      @clear="promptHistory.handleClearHistory"
+      @deleteChain="promptHistory.handleDeleteChain"
     />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" />
 
@@ -138,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, provide, computed, shallowRef } from 'vue'
+import { ref, watch, provide, computed, shallowRef, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   // UI Components
@@ -154,175 +170,204 @@ import {
   useTemplateManager,
   useAppInitializer,
   usePromptHistory,
+  useModelSelectors,
 
   // i18n functions
   initializeI18nWithStorage,
 
   // Types from UI package
   type OptimizationMode,
+  // 从UI包导入DataManager类型
+  DataManager,
 } from '@prompt-optimizer/ui'
 import type { IPromptService } from '@prompt-optimizer/core'
+// 导入AppServices类型
+import type { AppServices } from '../node_modules/@prompt-optimizer/ui/src/types/services'
 
-// 1. Setup basic composables
+// 1. 基础 composables
 const { t } = useI18n()
 const toast = useToast()
 
-// 2. Initialize all application services
-const { services, isInitializing } = useAppInitializer()
+// 2. 初始化应用服务
+const { services, isInitializing, error } = useAppInitializer()
 
 // 3. Initialize i18n with storage when services are ready
 watch(services, async (newServices) => {
-  if (newServices?.storageProvider) {
-    // 立即失败，不掩盖错误
-    await initializeI18nWithStorage(newServices.storageProvider)
-    console.log('[Extension] i18n initialized with storage')
+  if (newServices) {
+    await initializeI18nWithStorage()
+    console.log('[Web] i18n initialized')
   }
 }, { immediate: true })
 
-// 4. Provide services to all child components
+// 4. 向子组件提供服务
 provide('services', services)
 provide('toast', toast)
 
-// 5. This flag controls the rendering of the main UI.
-const isReady = ref(false)
+// 5. 控制主UI渲染的标志
+const isReady = computed(() => services.value !== null && !isInitializing.value)
 
-// 5. Define placeholders for all state and functions.
-let promptService = shallowRef<IPromptService | null>(null)
-let prompt = ref('')
-let optimizedPrompt = ref('')
-let optimizedReasoning = ref('')
-let isOptimizing = ref(false)
-let isIterating = ref(false)
-let selectedOptimizeModel = ref('')
-let selectedTestModel = ref('')
-let selectedOptimizationMode = ref<OptimizationMode>('system')
-let selectedIterateTemplate = ref('')
-let currentVersions = ref<any[]>([])
-let currentVersionId = ref<string | null>(null)
-let currentChainId = ref<string | null>(null)
-let currentSelectedTemplate = ref('')
-let showConfig = ref(false)
-let showHistory = ref(false)
-let showDataManager = ref(false)
-let showTemplateManager = ref(false)
-let currentTemplateManagerType = ref<'optimize' | 'userOptimize' | 'iterate'>('optimize')
-let promptHistory: any = null
-
-let handleOptimizePrompt = () => {}
-let handleIteratePrompt = (payload: any) => {}
-let handleSwitchVersion = (versionId: string) => {}
-
+// 6. 创建所有必要的引用
+const promptService = shallowRef<IPromptService | null>(null)
+const selectedOptimizationMode = ref<OptimizationMode>('system')
+const showDataManager = ref(false)
 const optimizeModelSelect = ref(null)
 const testPanelRef = ref(null)
 const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 
-// 6. Watch for services to become available, then initialize all business logic
+const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
+  return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
+});
+
+// 6. 在顶层调用所有 Composables
+// 测试面板的模型选择器引用
+const testModelSelect = computed(() => (testPanelRef.value as any)?.modelSelectRef || null)
+
+// 使用类型断言解决类型不匹配问题
+// 模型选择器
+const modelSelectors = useModelSelectors(services as any)
+
+// 模型管理器
+const modelManager = useModelManager(
+  services as any,
+  {
+    optimizeModelSelect: modelSelectors.optimizeModelSelect,
+    testModelSelect
+  }
+)
+
+// 提示词优化器
+const optimizer = usePromptOptimizer(
+  services as any,
+  selectedOptimizationMode,
+  toRef(modelManager, 'selectedOptimizeModel'),
+  toRef(modelManager, 'selectedTestModel')
+)
+
+// 提示词历史
+const promptHistory = usePromptHistory(
+  services as any,
+  toRef(optimizer, 'prompt') as any,
+  toRef(optimizer, 'optimizedPrompt') as any,
+  toRef(optimizer, 'currentChainId') as any,
+  toRef(optimizer, 'currentVersions') as any,
+  toRef(optimizer, 'currentVersionId') as any
+)
+
+// 历史管理器
+const historyManager = useHistoryManager(
+  services as any,
+  optimizer.prompt as any,
+  optimizer.optimizedPrompt as any,
+  optimizer.currentChainId as any,
+  optimizer.currentVersions as any,
+  optimizer.currentVersionId as any,
+  promptHistory.handleSelectHistory,
+  promptHistory.handleClearHistory,
+  promptHistory.handleDeleteChain as any
+)
+
+// 模板管理器
+const templateManagerState = useTemplateManager(
+  services as any,
+  {
+    selectedOptimizeTemplate: toRef(optimizer, 'selectedOptimizeTemplate'),
+    selectedUserOptimizeTemplate: toRef(optimizer, 'selectedUserOptimizeTemplate'),
+    selectedIterateTemplate: toRef(optimizer, 'selectedIterateTemplate')
+  }
+)
+
+// 7. 监听服务初始化
 watch(services, (newServices) => {
   if (!newServices) return
 
-  promptService.value = newServices.promptService;
+  // 设置服务引用
+  promptService.value = newServices.promptService
 
-  const testModelSelect = computed(() => (testPanelRef.value as any)?.modelSelectRef || null)
-
-  const modelMgr = useModelManager({
-    modelManager: newServices.modelManager,
-    optimizeModelSelect: optimizeModelSelect,
-    testModelSelect: testModelSelect
-  });
-  showConfig = modelMgr.showConfig
-  selectedOptimizeModel = modelMgr.selectedOptimizeModel
-  selectedTestModel = modelMgr.selectedTestModel
-
-  const optimizer = usePromptOptimizer(
-    newServices.modelManager,
-    newServices.templateManager,
-    newServices.historyManager,
-    newServices.promptService,
-    selectedOptimizationMode,
-    selectedOptimizeModel,
-    selectedTestModel,
-  );
-  prompt = optimizer.prompt
-  optimizedPrompt = optimizer.optimizedPrompt
-  optimizedReasoning = optimizer.optimizedReasoning
-  isOptimizing = optimizer.isOptimizing
-  isIterating = optimizer.isIterating
-  selectedIterateTemplate = optimizer.selectedIterateTemplate
-  currentVersions = optimizer.currentVersions
-  currentVersionId = optimizer.currentVersionId
-  currentChainId = optimizer.currentChainId
-  handleOptimizePrompt = optimizer.handleOptimizePrompt
-  handleIteratePrompt = optimizer.handleIteratePrompt
-  handleSwitchVersion = optimizer.handleSwitchVersion
-
-  promptHistory = usePromptHistory(
-    newServices.historyManager,
-    prompt,
-    optimizedPrompt,
-    currentChainId,
-    currentVersions,
-    currentVersionId
-  )
-
-  const historyMgr = useHistoryManager(
-    newServices.historyManager,
-    prompt,
-    optimizedPrompt,
-    currentChainId,
-    currentVersions,
-    currentVersionId,
-    promptHistory.handleSelectHistory,
-    promptHistory.handleClearHistory,
-    promptHistory.handleDeleteChain
-  )
-  showHistory = historyMgr.showHistory
-
-  const templateMgr = useTemplateManager(
-    services as any,
-    {
-      selectedOptimizeTemplate: optimizer.selectedOptimizeTemplate,
-      selectedUserOptimizeTemplate: optimizer.selectedUserOptimizeTemplate,
-      selectedIterateTemplate: optimizer.selectedIterateTemplate
-    }
-  )
-  showTemplateManager = templateMgr.showTemplates
-  currentTemplateManagerType = templateMgr.currentType
-
-  currentSelectedTemplate = computed({
-    get() {
-      return selectedOptimizationMode.value === 'system'
-        ? optimizer.selectedOptimizeTemplate.value
-        : optimizer.selectedUserOptimizeTemplate.value
-    },
-    set(newValue) {
-      if (!newValue) return;
-      if (selectedOptimizationMode.value === 'system') {
-        optimizer.selectedOptimizeTemplate.value = newValue
-      } else {
-        optimizer.selectedUserOptimizeTemplate.value = newValue
-      }
-    }
-  })
-
-  isReady.value = true
   console.log('All services and composables initialized.')
 })
 
-// Helper functions for template
+// 8. 计算属性和方法
+const currentSelectedTemplate = computed({
+  get() {
+    return selectedOptimizationMode.value === 'system'
+      ? optimizer.selectedOptimizeTemplate
+      : optimizer.selectedUserOptimizeTemplate
+  },
+  set(newValue) {
+    if (!newValue) return
+    if (selectedOptimizationMode.value === 'system') {
+      optimizer.selectedOptimizeTemplate = newValue
+    } else {
+      optimizer.selectedUserOptimizeTemplate = newValue
+    }
+  }
+})
+
+// 处理优化提示词
+const handleOptimizePrompt = () => {
+  optimizer.handleOptimizePrompt()
+}
+
+// 处理迭代提示词
+const handleIteratePrompt = (payload: any) => {
+  optimizer.handleIteratePrompt(payload)
+}
+
+// 处理切换版本
+const handleSwitchVersion = (versionId: any) => {
+  optimizer.handleSwitchVersion(versionId)
+}
+
+// 打开GitHub仓库
 const openGithubRepo = () => {
-  window.open('https://github.com/prompt-optimizer/prompt-optimizer', '_blank');
+  window.open('https://github.com/prompt-optimizer/prompt-optimizer', '_blank')
 }
-const openTemplateManager = (templateType?: string) => {
+
+// 打开模板管理器
+const openTemplateManager = (templateType?: 'optimize' | 'userOptimize' | 'iterate') => {
   // 如果传入了模板类型，直接使用；否则根据当前优化模式判断（向后兼容）
-  currentTemplateManagerType.value = templateType || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
-  showTemplateManager.value = true
+  templateManagerState.currentType = templateType || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
+  templateManagerState.showTemplates = true
 }
+
+// 处理优化模式变更
 const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
 }
+
+// 处理历史记录使用 - 智能模式切换
+const handleHistoryReuse = async (context: { record: any, chainId: string, rootPrompt: string, chain: any }) => {
+  const { chain } = context
+
+  // 根据链条的根记录类型确定应该切换到的优化模式
+  let targetMode: OptimizationMode
+  if (chain.rootRecord.type === 'optimize') {
+    targetMode = 'system'
+  } else if (chain.rootRecord.type === 'userOptimize') {
+    targetMode = 'user'
+  } else {
+    // 兜底：从根记录的 metadata 中获取优化模式
+    targetMode = chain.rootRecord.metadata?.optimizationMode || 'system'
+  }
+
+  // 如果目标模式与当前模式不同，自动切换
+  if (targetMode !== selectedOptimizationMode.value) {
+    selectedOptimizationMode.value = targetMode
+    toast.info(t('toast.info.optimizationModeAutoSwitched', {
+      mode: targetMode === 'system' ? t('common.system') : t('common.user')
+    }))
+  }
+
+  // 调用原有的历史记录处理逻辑
+  await promptHistory.handleSelectHistory(context)
+}
+
+// 提示词输入标签
 const promptInputLabel = computed(() => {
-  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPrompt') : t('promptOptimizer.userPrompt')
+  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPrompt') : t('promptOptimizer.userPromptInput')
 })
+
+// 提示词输入占位符
 const promptInputPlaceholder = computed(() => {
   return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPromptPlaceholder') : t('promptOptimizer.userPromptPlaceholder')
 })

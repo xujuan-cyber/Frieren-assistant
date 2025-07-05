@@ -80,6 +80,16 @@ describe('PromptService Integration Tests', () => {
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
 
+      // 模拟UI层保存历史记录
+      await historyManager.createNewChain({
+        id: `test_${Date.now()}`,
+        originalPrompt: request.targetPrompt,
+        optimizedPrompt: result,
+        type: 'optimize',
+        modelKey: request.modelKey,
+        timestamp: Date.now()
+      });
+
       // 验证历史记录
       const records = await historyManager.getRecords();
       expect(records.length).toBe(1);
@@ -150,10 +160,29 @@ describe('PromptService Integration Tests', () => {
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
 
+      // 模拟UI层保存历史记录 - 对于迭代，需要先创建一个链，然后添加迭代
+      const chain = await historyManager.createNewChain({
+        id: `test_${Date.now()}`,
+        originalPrompt: 'Write a simple greeting',
+        optimizedPrompt: 'Hello world',
+        type: 'optimize',
+        modelKey: 'test-gemini',
+        timestamp: Date.now()
+      });
+
+      await historyManager.addIteration({
+        chainId: chain.chainId,
+        originalPrompt: 'Write a simple greeting',
+        optimizedPrompt: result,
+        modelKey: 'test-gemini',
+        templateId: 'iterate',
+        iterationNote: 'Make it more formal'
+      });
+
       // 验证历史记录
       const records = await historyManager.getRecords();
-      expect(records.length).toBe(1);
-      expect(records[0].type).toBe('iterate');
+      expect(records.length).toBe(2); // 一个初始记录 + 一个迭代记录
+      expect(records.find(r => r.type === 'iterate')).toBeDefined();
     }, 30000);
 
     it.runIf(hasGeminiKey)('should work with message-based iterate templates', async () => {

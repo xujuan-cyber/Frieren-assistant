@@ -67,7 +67,7 @@ describe('PromptService Enhanced Features', () => {
 
       expect(result).toBe('optimized result')
       expect(mockLLMService.sendMessage).toHaveBeenCalled()
-      expect(mockHistoryManager.addRecord).toHaveBeenCalled()
+      // 注意：历史记录保存由UI层处理，Service层不保存历史记录
     })
 
     it('should optimize user prompt successfully', async () => {
@@ -202,7 +202,7 @@ describe('PromptService Enhanced Features', () => {
       expect(callbacks.onToken).toHaveBeenCalledWith('test')
       expect(callbacks.onToken).toHaveBeenCalledWith(' result')
       expect(callbacks.onComplete).toHaveBeenCalled()
-      expect(mockHistoryManager.addRecord).toHaveBeenCalled()
+      // 注意：历史记录保存由UI层处理，Service层不保存历史记录
     })
 
     it('should handle missing model key', async () => {

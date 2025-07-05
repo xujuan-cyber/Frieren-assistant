@@ -177,6 +177,16 @@ describe('Real API Integration Tests', () => {
       expect(typeof result).toBe('string')
       expect(result.length).toBeGreaterThan(0)
 
+      // 模拟UI层保存历史记录
+      await historyManager.createNewChain({
+        id: `test_${Date.now()}`,
+        originalPrompt: request.targetPrompt,
+        optimizedPrompt: result,
+        type: 'optimize',
+        modelKey: request.modelKey,
+        timestamp: Date.now()
+      })
+
       // 验证历史记录已保存
       const records = await historyManager.getRecords()
       expect(records.length).toBe(1)
@@ -215,6 +225,16 @@ describe('Real API Integration Tests', () => {
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
       expect(result.length).toBeGreaterThan(0)
+
+      // 模拟UI层保存历史记录
+      await historyManager.createNewChain({
+        id: `test_${Date.now()}`,
+        originalPrompt: request.targetPrompt,
+        optimizedPrompt: result,
+        type: 'optimize',
+        modelKey: request.modelKey,
+        timestamp: Date.now()
+      })
 
       // 验证历史记录已保存
       const records = await historyManager.getRecords()
@@ -258,6 +278,16 @@ describe('Real API Integration Tests', () => {
 
       expect(typeof optimizeResult).toBe('string')
       expect(optimizeResult.length).toBeGreaterThan(0)
+
+      // 模拟UI层保存历史记录
+      await historyManager.createNewChain({
+        id: `test_${Date.now()}`,
+        originalPrompt: request.targetPrompt,
+        optimizedPrompt: optimizeResult,
+        type: 'optimize',
+        modelKey: request.modelKey,
+        timestamp: Date.now()
+      })
 
       // 验证历史记录已保存
       const records = await historyManager.getRecords()

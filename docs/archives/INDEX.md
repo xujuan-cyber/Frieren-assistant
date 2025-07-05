@@ -84,6 +84,11 @@
   - 依赖注入优化
   - 服务接口标准化
 
+- **[114-desktop-file-storage](./114-desktop-file-storage/)** - 桌面版文件存储实现 💾
+  - 实现FileStorageProvider替代内存存储
+  - 完整的数据持久化解决方案
+  - 高性能文件I/O和错误恢复机制
+
 ## 🔍 快速查找指南
 
 ### 按问题类型查找
@@ -94,6 +99,7 @@
 - **主题问题** → 109-theme-system
 - **模板问题** → 106-template-management
 - **组件问题** → 107-component-standardization
+- **存储问题** → 114-desktop-file-storage
 
 ### 按技术栈查找
 - **Electron相关** → 103, 110, 111, 112

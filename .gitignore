@@ -176,3 +176,5 @@ storybook-static
 .prettierrc.js.bak
 *.backup
 *.bak
+
+prompt-optimizer-datas

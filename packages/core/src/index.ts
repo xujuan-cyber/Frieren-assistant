@@ -37,6 +37,7 @@ export { StorageFactory } from './services/storage/factory'
 export { DexieStorageProvider } from './services/storage/dexieStorageProvider'
 export { LocalStorageProvider } from './services/storage/localStorageProvider'
 export { MemoryStorageProvider } from './services/storage/memoryStorageProvider'
+export { FileStorageProvider } from './services/storage/fileStorageProvider'
 
 // 导出提示词服务相关
 export { PromptService } from './services/prompt/service'

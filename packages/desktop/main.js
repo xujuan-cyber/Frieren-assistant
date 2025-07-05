@@ -11,11 +11,12 @@ const {
   createPromptService,
   createTemplateLanguageService,
   createDataManager,
-  StorageFactory,
+  FileStorageProvider,
 } = require('@prompt-optimizer/core');
 
 let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager;
+let storageProvider; // 全局存储提供器引用，用于退出时保存数据
 
 async function initializePreferenceService(storageProvider) {
   console.log('[DESKTOP] Initializing PreferenceService with the provided storage provider...');
@@ -72,6 +73,23 @@ function createWindow() {
     }
   }
 
+  // 窗口关闭前保存数据
+  mainWindow.on('close', async (event) => {
+    if (storageProvider && typeof storageProvider.flush === 'function') {
+      event.preventDefault(); // 阻止立即关闭
+
+      try {
+        console.log('[DESKTOP] Saving data before window close...');
+        await storageProvider.flush();
+        console.log('[DESKTOP] Data saved successfully');
+        mainWindow.destroy(); // 手动关闭窗口
+      } catch (error) {
+        console.error('[DESKTOP] Failed to save data before close:', error);
+        mainWindow.destroy(); // 即使保存失败也要关闭
+      }
+    }
+  });
+
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
     // Dereference the window object
@@ -114,8 +132,24 @@ async function initializeServices() {
       console.warn('[Main Process] Example: VITE_OPENAI_API_KEY=your_key_here npm start');
     }
     
-    console.log('[DESKTOP] Creating memory storage provider for Node.js environment');
-    const storageProvider = StorageFactory.create('memory');
+    console.log('[DESKTOP] Creating file storage provider for desktop environment');
+
+    // 根据环境确定数据存储路径
+    let userDataPath;
+    if (app.isPackaged) {
+      // 生产环境：使用可执行文件所在目录下的prompt-optimizer-data文件夹
+      const execPath = process.execPath;
+      const execDir = path.dirname(execPath);
+      userDataPath = path.join(execDir, 'prompt-optimizer-data');
+      console.log('[DESKTOP] Production mode - Executable path:', execPath);
+    } else {
+      // 开发环境：使用项目根目录下的prompt-optimizer-data文件夹
+      userDataPath = path.join(__dirname, '..', '..', 'prompt-optimizer-data');
+      console.log('[DESKTOP] Development mode - Project root data folder');
+    }
+
+    console.log('[DESKTOP] Data storage path:', userDataPath);
+    storageProvider = new FileStorageProvider(userDataPath);
     
     await initializePreferenceService(storageProvider);
     
@@ -691,9 +725,26 @@ app.whenReady().then(async () => {
   });
 });
 
+// 应用退出前保存数据
+app.on('before-quit', async (event) => {
+  if (storageProvider && typeof storageProvider.flush === 'function') {
+    event.preventDefault(); // 阻止立即退出
+
+    try {
+      console.log('[DESKTOP] Saving data before quit...');
+      await storageProvider.flush();
+      console.log('[DESKTOP] Data saved successfully');
+    } catch (error) {
+      console.error('[DESKTOP] Failed to save data before quit:', error);
+    }
+
+    app.quit(); // 手动退出
+  }
+});
+
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {
     app.quit();
   }
-}); 
+});
