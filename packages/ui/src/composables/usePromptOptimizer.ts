@@ -245,21 +245,7 @@ export function usePromptOptimizer(
     await nextTick()
   }
   
-  // 注意：模板初始化现在由 useTemplateManager 负责
-
-
-
-  // 保存提示词选择 - 现在由 useTemplateManager 负责
-  state.saveTemplateSelection = async (template: Template, type: 'system-optimize' | 'user-optimize' | 'iterate') => {
-    // 这个方法现在只是一个占位符，实际保存由 useTemplateManager 处理
-    console.log('[saveTemplateSelection] 模板选择保存现在由 useTemplateManager 负责:', {
-      templateName: template.name,
-      templateId: template.id,
-      type: type
-    })
-  }
-  
-  // 注意：模板变化监听和持久化现在由 useTemplateManager 负责
+  // 注意：模板初始化、选择保存和变化监听现在都由 useTemplateManager 负责
 
   // 返回 reactive 对象，而不是包含多个 ref 的对象
   return state
