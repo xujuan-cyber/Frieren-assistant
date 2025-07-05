@@ -959,7 +959,10 @@ const saveEdit = async () => {
         ? editingModel.value.originalApiKey
         : editingModel.value.apiKey,
       defaultModel: editingModel.value.defaultModel,
-      models: [editingModel.value.defaultModel], // 可以根据需要扩展
+      // 确保models数组包含defaultModel，避免验证错误
+      models: modelOptions.value.length > 0
+        ? modelOptions.value.map(opt => opt.value)
+        : [editingModel.value.defaultModel],
       useVercelProxy: editingModel.value.useVercelProxy,
       provider: editingModel.value.provider || 'custom',
       enabled: editingModel.value.enabled !== undefined
@@ -996,7 +999,10 @@ const addCustomModel = async () => {
     const config = {
       name: newModel.value.name,
       baseURL: newModel.value.baseURL,
-      models: [newModel.value.defaultModel],
+      // 确保models数组包含defaultModel，避免验证错误
+      models: modelOptions.value.length > 0
+        ? modelOptions.value.map(opt => opt.value)
+        : [newModel.value.defaultModel],
       defaultModel: newModel.value.defaultModel,
       apiKey: newModel.value.apiKey,
       enabled: true,

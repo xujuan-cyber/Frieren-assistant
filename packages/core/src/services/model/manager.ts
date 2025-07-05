@@ -178,17 +178,25 @@ export class ModelManager implements IModelManager {
   async addModel(key: string, config: ModelConfig): Promise<void> {
     await this.ensureInitialized();
     this.validateConfig(config);
-    
+
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        const models = currentModels || {};
+        // 关键修复：使用内存中的完整模型列表作为基础
+        const models = { ...this.models };
+
+        // 如果存储中有数据，合并到内存状态中
+        if (currentModels) {
+          Object.assign(models, currentModels);
+        }
+
         if (models[key]) {
           throw new ModelConfigError(`Model ${key} already exists`);
         }
+
         return {
           ...models,
-          [key]: { 
+          [key]: {
             ...config,
             // Deep copy llmParams to avoid reference sharing
             ...(config.llmParams && { llmParams: { ...config.llmParams } })
@@ -196,9 +204,9 @@ export class ModelManager implements IModelManager {
         };
       }
     );
-    
+
     // 更新内存状态
-    this.models[key] = { 
+    this.models[key] = {
       ...config,
       // Deep copy llmParams to avoid reference sharing
       ...(config.llmParams && { llmParams: { ...config.llmParams } })
@@ -211,25 +219,40 @@ export class ModelManager implements IModelManager {
   async updateModel(key: string, config: Partial<ModelConfig>): Promise<void> {
     await this.ensureInitialized();
     let updatedConfig: ModelConfig | undefined;
-    
+
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        const models = currentModels || {};
-        
+        // 关键修复：确保始终基于完整的模型数据进行更新
+        // 如果存储数据不完整，使用内存中的完整数据作为基础
+        let models = currentModels;
+        if (!models || Object.keys(models).length === 0) {
+          console.warn('[ModelManager] Storage data is empty, using memory data as base');
+          models = { ...this.models };
+        } else {
+          // 确保存储数据包含所有默认模型
+          const defaults = this.getDefaultModels();
+          for (const [defaultKey, defaultConfig] of Object.entries(defaults)) {
+            if (!models[defaultKey]) {
+              console.log(`[ModelManager] Adding missing default model to storage: ${defaultKey}`);
+              models[defaultKey] = defaultConfig;
+            }
+          }
+        }
+
         // 如果模型不存在，检查是否是内置模型
         if (!models[key]) {
           if (!defaultModels[key]) {
             throw new ModelConfigError(`Model ${key} does not exist`);
           }
           // 如果是内置模型但尚未配置，创建初始配置
-          models[key] = { 
+          models[key] = {
             ...defaultModels[key],
             // Deep copy llmParams to avoid reference sharing
             ...(defaultModels[key].llmParams && { llmParams: { ...defaultModels[key].llmParams } })
           };
         }
-        
+
         // 合并配置时保留原有 enabled 状态
         updatedConfig = {
           ...models[key],
@@ -253,13 +276,14 @@ export class ModelManager implements IModelManager {
           this.validateConfig(updatedConfig);
         }
 
+        // 返回完整的模型数据，确保所有模型都被保留
         return {
           ...models,
           [key]: updatedConfig
         };
       }
     );
-    
+
     // 只更新特定模型的内存状态，不重新加载全部数据
     if (updatedConfig) {
       this.models[key] = updatedConfig;
@@ -274,7 +298,14 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        const models = currentModels || {};
+        // 关键修复：使用内存中的完整模型列表作为基础
+        const models = { ...this.models };
+
+        // 如果存储中有数据，合并到内存状态中
+        if (currentModels) {
+          Object.assign(models, currentModels);
+        }
+
         if (!models[key]) {
           throw new ModelConfigError(`Model ${key} does not exist`);
         }
@@ -295,7 +326,14 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        const models = currentModels || {};
+        // 关键修复：使用内存中的完整模型列表作为基础
+        const models = { ...this.models };
+
+        // 如果存储中有数据，合并到内存状态中
+        if (currentModels) {
+          Object.assign(models, currentModels);
+        }
+
         if (!models[key]) {
           throw new ModelConfigError(`Unknown model: ${key}`);
         }
@@ -312,7 +350,7 @@ export class ModelManager implements IModelManager {
         };
       }
     );
-    
+
     // 更新内存状态 - 确保模型存在
     if (this.models[key]) {
       this.models[key].enabled = true;
@@ -327,7 +365,14 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        const models = currentModels || {};
+        // 关键修复：使用内存中的完整模型列表作为基础
+        const models = { ...this.models };
+
+        // 如果存储中有数据，合并到内存状态中
+        if (currentModels) {
+          Object.assign(models, currentModels);
+        }
+
         if (!models[key]) {
           throw new ModelConfigError(`Unknown model: ${key}`);
         }

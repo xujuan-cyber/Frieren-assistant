@@ -195,3 +195,181 @@ app.on('before-quit', async (event) => {
 - 建立完整的异常处理和状态重置机制
 
 这些补充修复确保了FileStorageProvider在各种异常情况下都能正常工作，并且应用能够可靠地退出。
+
+## 🛡️ 数据安全性增强 (2025-07-06)
+
+### 问题发现：备份恢复安全隐患
+
+在审查恢复逻辑时发现了一个严重的数据安全问题：
+
+**问题场景**：
+- 主文件 `storage.json` 损坏
+- 备份文件 `storage.json.backup` 完好
+- 系统进入恢复流程
+
+**危险流程**：
+```
+从备份恢复 → saveToFile() → createBackup() → 将损坏的主文件覆盖完好的备份！
+```
+
+如果后续的原子写入也失败，将导致数据永久丢失。
+
+### 解决方案：智能恢复机制
+
+#### 1. 新增安全保存方法
+```typescript
+/**
+ * 专门用于恢复的保存方法，避免覆盖完好的备份
+ */
+private async saveToFileWithoutBackup(): Promise<void> {
+  const data = Object.fromEntries(this.data);
+  const jsonString = JSON.stringify(data, null, 2);
+
+  // 验证数据完整性
+  if (!this.validateJSON(jsonString)) {
+    throw new StorageError('Generated JSON is invalid', 'write');
+  }
+
+  // 直接原子写入，不创建备份
+  await this.atomicWrite(jsonString);
+}
+```
+
+#### 2. 改进的恢复流程
+```typescript
+private async loadFromFileWithRecovery(): Promise<void> {
+  // 1. 尝试从主文件加载
+  const mainResult = await this.tryLoadFromFile(this.filePath, 'main');
+  if (mainResult.success) {
+    this.data = mainResult.data!;
+    await this.createBackup();
+    return;
+  }
+
+  // 2. 尝试从备份文件加载
+  const backupResult = await this.tryLoadFromFile(this.backupPath, 'backup');
+  if (backupResult.success) {
+    this.data = backupResult.data!;
+
+    // 关键：使用专门的方法避免覆盖备份
+    await this.saveToFileWithoutBackup();
+
+    // 主文件恢复成功后，重新创建备份
+    await this.createBackup();
+    return;
+  }
+
+  // 3. 区分首次运行和数据损坏
+  if (!await this.fileExists(this.filePath) && !await this.fileExists(this.backupPath)) {
+    // 首次运行
+    this.data = new Map();
+    await this.saveToFile();
+  } else {
+    // 严重错误：文件存在但都损坏
+    throw new StorageError('Storage corruption detected', 'read');
+  }
+}
+```
+
+#### 3. 原子性updateData增强
+
+为防止并发操作导致的数据不一致，增强了updateData的原子性：
+
+```typescript
+/**
+ * 原子性数据更新 - 增强版
+ */
+async updateData<T>(key: string, modifier: (currentValue: T | null) => T): Promise<void> {
+  await this.ensureInitialized();
+
+  // 使用更新锁确保原子性
+  const currentLock = this.updateLock;
+  let resolveLock: () => void;
+
+  this.updateLock = new Promise<void>((resolve) => {
+    resolveLock = resolve;
+  });
+
+  try {
+    await currentLock;
+    await this.performAtomicUpdate(key, modifier);
+  } finally {
+    resolveLock!();
+  }
+}
+
+/**
+ * 执行原子更新操作
+ */
+private async performAtomicUpdate<T>(key: string, modifier: (currentValue: T | null) => T): Promise<void> {
+  // 重新从存储读取最新数据，确保数据一致性
+  const latestData = await this.getLatestData<T>(key);
+
+  // 应用修改
+  const newValue = modifier(latestData);
+
+  // 验证新值
+  this.validateValue(newValue);
+
+  // 写入新值
+  this.data.set(key, JSON.stringify(newValue));
+  this.scheduleWrite();
+}
+```
+
+### 安全保障机制
+
+#### 1. 数据完整性保障
+- **备份保护**：恢复时不会覆盖完好的备份文件
+- **智能恢复**：区分首次运行和数据损坏情况
+- **多层恢复**：主文件→备份文件→错误处理
+
+#### 2. 原子性保障
+- **更新锁机制**：防止并发操作导致的数据不一致
+- **原子写入**：使用临时文件+重命名确保写入原子性
+- **事务性操作**：读-修改-写操作的完整性
+
+#### 3. 错误处理增强
+- **错误分类**：区分不同类型的错误（首次运行、数据损坏、读写失败）
+- **优雅降级**：各种异常情况下的合理处理
+- **状态重置**：异常情况下的状态恢复机制
+
+### 测试验证
+
+#### 备份保护测试
+```typescript
+it('should not overwrite good backup during recovery', async () => {
+  // 模拟损坏的主文件和完好的备份
+  mockFs.readFile
+    .mockResolvedValueOnce('{ invalid json') // 损坏的主文件
+    .mockResolvedValueOnce(JSON.stringify(goodData)); // 完好的备份
+
+  await provider.getItem('test');
+
+  // 验证没有覆盖备份
+  const dangerousCopyCall = mockFs.copyFile.mock.calls.find(call =>
+    call[0] === mainPath && call[1] === backupPath
+  );
+  expect(dangerousCopyCall).toBeUndefined();
+});
+```
+
+#### 并发安全测试
+```typescript
+it('should handle concurrent updates safely', async () => {
+  const promises = [
+    provider.updateData('key1', () => 'value1'),
+    provider.updateData('key2', () => 'value2'),
+    provider.updateData('key3', () => 'value3')
+  ];
+
+  await Promise.all(promises);
+
+  // 验证所有更新都成功
+  expect(await provider.getItem('key1')).toBe('value1');
+  expect(await provider.getItem('key2')).toBe('value2');
+  expect(await provider.getItem('key3')).toBe('value3');
+});
+```
+
+这些增强确保了FileStorageProvider在各种复杂场景下的数据安全性和操作原子性。

@@ -77,6 +77,13 @@
   - 跨环境异步接口统一
   - preload.js架构规范化
 
+- **[115-ipc-serialization-fixes](./115-ipc-serialization-fixes/)** - IPC序列化修复与数据一致性 🔄
+  - Vue响应式对象IPC序列化统一处理
+  - safeSerialize函数实现
+  - 业务逻辑层数据一致性修复
+  - 模型数据丢失问题解决
+  - 双重保护机制建立
+
 ## ⚙️ 服务重构系列
 
 ### 全面重构
@@ -89,6 +96,7 @@
   - 实现FileStorageProvider替代内存存储
   - 完整的数据持久化解决方案
   - 高性能文件I/O和错误恢复机制
+  - 数据安全性增强：智能恢复机制、备份保护、原子性操作
 
 - **[116-desktop-packaging-optimization](./116-desktop-packaging-optimization/)** - 桌面应用打包优化 📦
   - 从portable模式改为ZIP压缩包模式
@@ -101,7 +109,8 @@
 - **启动问题** → 102-web-architecture-refactor
 - **显示异常** → 112-desktop-ipc-fixes
 - **存储问题** → 110-desktop-indexeddb-fix, 114-desktop-file-storage, 116-desktop-packaging-optimization
-- **序列化错误** → 112-desktop-ipc-fixes
+- **数据一致性问题** → 114-desktop-file-storage, 115-ipc-serialization-fixes
+- **序列化错误** → 112-desktop-ipc-fixes, 115-ipc-serialization-fixes
 - **应用退出问题** → 114-desktop-file-storage
 - **语言设置问题** → 112-desktop-ipc-fixes
 - **布局问题** → 108-layout-system

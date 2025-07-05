@@ -14,6 +14,32 @@ const {
   FileStorageProvider,
 } = require('@prompt-optimizer/core');
 
+/**
+ * 安全序列化函数，用于清理Vue响应式对象
+ * 确保所有通过IPC传递的对象都是纯净的JavaScript对象
+ *
+ * 这个函数解决的是IPC序列化问题，与存储层的数据一致性问题是不同的：
+ * - IPC问题：Vue响应式对象无法被Electron序列化传递
+ * - 存储问题：FileStorageProvider的数据一致性和恢复机制
+ */
+function safeSerialize(obj) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // 对于基本类型，直接返回
+  if (typeof obj !== 'object') {
+    return obj;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch (error) {
+    console.error('[IPC Serialization] Failed to serialize object:', error);
+    throw new Error(`Failed to serialize object for IPC: ${error.message}`);
+  }
+}
+
 let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager;
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
@@ -436,8 +462,10 @@ function setupIPC() {
 
   ipcMain.handle('model-addModel', async (event, model) => {
     try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeModel = safeSerialize(model);
       // model应该包含key和config，需要分离
-      const { key, ...config } = model;
+      const { key, ...config } = safeModel;
       await modelManager.addModel(key, config);
       return createSuccessResponse(null);
     } catch (error) {
@@ -447,7 +475,9 @@ function setupIPC() {
 
   ipcMain.handle('model-updateModel', async (event, id, updates) => {
     try {
-      await modelManager.updateModel(id, updates);
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeUpdates = safeSerialize(updates);
+      await modelManager.updateModel(id, safeUpdates);
       return createSuccessResponse(null);
     } catch (error) {
       return createErrorResponse(error);
@@ -520,7 +550,9 @@ function setupIPC() {
 
   ipcMain.handle('template-createTemplate', async (event, template) => {
     try {
-      await templateManager.saveTemplate(template);
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeTemplate = safeSerialize(template);
+      await templateManager.saveTemplate(safeTemplate);
       return createSuccessResponse(null);
     } catch (error) {
       return createErrorResponse(error);
@@ -531,7 +563,9 @@ function setupIPC() {
     try {
       // Get existing template and merge with updates
       const existingTemplate = await templateManager.getTemplate(id);
-      const updatedTemplate = { ...existingTemplate, ...updates, id };
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeUpdates = safeSerialize(updates);
+      const updatedTemplate = { ...existingTemplate, ...safeUpdates, id };
       await templateManager.saveTemplate(updatedTemplate);
       return createSuccessResponse(null);
     } catch (error) {
@@ -625,7 +659,9 @@ function setupIPC() {
 
   ipcMain.handle('history-addRecord', async (event, record) => {
     try {
-      const result = await historyManager.addRecord(record);
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeRecord = safeSerialize(record);
+      const result = await historyManager.addRecord(safeRecord);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
@@ -680,7 +716,9 @@ function setupIPC() {
 
   ipcMain.handle('history-createNewChain', async (event, record) => {
     try {
-      const result = await historyManager.createNewChain(record);
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeRecord = safeSerialize(record);
+      const result = await historyManager.createNewChain(safeRecord);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
@@ -689,7 +727,9 @@ function setupIPC() {
 
   ipcMain.handle('history-addIteration', async (event, params) => {
     try {
-      const result = await historyManager.addIteration(params);
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeParams = safeSerialize(params);
+      const result = await historyManager.addIteration(safeParams);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
