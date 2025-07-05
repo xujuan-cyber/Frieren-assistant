@@ -788,7 +788,7 @@ const processedPreview = computed(() => {
     const tempTemplate: Template = {
       id: 'preview',
       name: 'Preview',
-      content: form.value.messages,
+      content: JSON.parse(JSON.stringify(form.value.messages)),
       metadata: { version: '1.0', lastModified: Date.now(), templateType: currentType.value }
     }
     return TemplateProcessor.processTemplate(tempTemplate, sampleContext)
@@ -982,6 +982,7 @@ const applyMigration = async () => {
       }
     }
 
+    // ElectronProxy会自动处理序列化，这里不需要手动处理
     await getTemplateManager.value.saveTemplate(updatedTemplate)
     await loadTemplates()
 
@@ -1041,10 +1042,11 @@ const handleSubmit = async () => {
     const templateData: Template = {
       id: editingTemplate.value?.id || generateUniqueTemplateId('user-template'),
       name: form.value.name,
-      content: form.value.isAdvanced ? form.value.messages : form.value.content,
+      content: form.value.isAdvanced ? JSON.parse(JSON.stringify(form.value.messages)) : form.value.content,
       metadata
     }
 
+    // IPC层会自动处理序列化，这里不需要手动处理
     await getTemplateManager.value.saveTemplate(templateData)
     await loadTemplates()
 

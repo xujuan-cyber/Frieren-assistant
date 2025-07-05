@@ -1,6 +1,7 @@
 import { ref, watch, computed, reactive, type Ref } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
+
 import { v4 as uuidv4 } from 'uuid'
 import type { IHistoryManager, PromptRecordChain, PromptRecord } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
@@ -38,11 +39,12 @@ export function usePromptHistory(
     
     handleSelectHistory: async (context: { record: any, chainId: string, rootPrompt: string }) => {
     const { record, rootPrompt } = context
-    
+
     prompt.value = rootPrompt
     optimizedPrompt.value = record.optimizedPrompt
-    
-    const newRecord = await historyManager.value!.createNewChain({
+
+    // ElectronProxy会自动处理序列化
+    const newRecordData = {
       id: uuidv4(),
       originalPrompt: rootPrompt,
       optimizedPrompt: record.optimizedPrompt,
@@ -53,7 +55,9 @@ export function usePromptHistory(
       metadata: {
         optimizationMode: record.metadata?.optimizationMode // 保持原始记录的优化模式
       }
-    })
+    }
+
+    const newRecord = await historyManager.value!.createNewChain(newRecordData)
     
     currentChainId.value = newRecord.chainId
     currentVersions.value = newRecord.versions

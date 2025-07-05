@@ -1,6 +1,7 @@
 import { ref, watch, nextTick, computed, reactive } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
+
 import { v4 as uuidv4 } from 'uuid'
 import type { Ref } from 'vue'
 import type {
@@ -122,8 +123,8 @@ export function usePromptOptimizer(
             if (!currentTemplate) return
 
             try {
-              // Create new record chain with enhanced metadata
-              const newRecord = await historyManager.value!.createNewChain({
+              // Create new record chain with enhanced metadata，ElectronProxy会自动处理序列化
+              const recordData = {
                 id: uuidv4(),
                 originalPrompt: state.prompt,
                 optimizedPrompt: state.optimizedPrompt,
@@ -134,7 +135,9 @@ export function usePromptOptimizer(
                 metadata: {
                   optimizationMode: optimizationMode.value
                 }
-              });
+              };
+
+              const newRecord = await historyManager.value!.createNewChain(recordData);
 
               state.currentChainId = newRecord.chainId;
               state.currentVersions = newRecord.versions;
@@ -199,15 +202,17 @@ export function usePromptOptimizer(
             }
             
             try {
-              // 使用正确的addIteration方法来保存迭代历史
-              const updatedChain = await historyManager.value!.addIteration({
+              // 使用正确的addIteration方法来保存迭代历史，ElectronProxy会自动处理序列化
+              const iterationData = {
                 chainId: state.currentChainId,
                 originalPrompt: originalPrompt,
                 optimizedPrompt: state.optimizedPrompt,
                 iterationNote: iterateInput,
                 modelKey: optimizeModel.value,
                 templateId: state.selectedIterateTemplate.id
-              });
+              };
+
+              const updatedChain = await historyManager.value!.addIteration(iterationData);
               
               state.currentVersions = updatedChain.versions
               state.currentVersionId = updatedChain.currentRecord.id

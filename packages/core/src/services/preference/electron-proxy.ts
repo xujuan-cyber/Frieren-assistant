@@ -1,4 +1,5 @@
 import type { IPreferenceService } from './types';
+import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 declare const window: {
   electronAPI: {
@@ -21,7 +22,9 @@ export class ElectronPreferenceServiceProxy implements IPreferenceService {
 
   async set<T>(key: string, value: T): Promise<void> {
     this.ensureApiAvailable();
-    return window.electronAPI.preference.set(key, value);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeValue = safeSerializeForIPC(value);
+    return window.electronAPI.preference.set(key, safeValue);
   }
 
   async delete(key: string): Promise<void> {

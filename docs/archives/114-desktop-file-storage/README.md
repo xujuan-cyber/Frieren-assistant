@@ -81,3 +81,117 @@ const storage = new FileStorageProvider(userDataPath)  // 新方式
 - **集成测试**: 正确模拟UI层历史记录保存行为
 
 修复后测试结果：291个测试通过，9个跳过 ✅
+
+## 🔧 后续修复补充
+
+### 应用退出无限循环问题修复
+
+**问题发现**: 在使用FileStorageProvider后，发现应用退出时出现无限循环保存数据的问题。
+
+**问题表现**:
+```
+[DESKTOP] Saving data before quit...
+[DESKTOP] Data saved successfully
+[DESKTOP] Saving data before quit...
+[DESKTOP] Data saved successfully
+```
+
+**根本原因**:
+1. 数据保存失败时`isDirty`标志未重置
+2. 退出事件处理器形成循环：`window.close` → `before-quit` → `app.quit()` → `before-quit`
+
+**解决方案**:
+
+#### 1. FileStorageProvider防护机制
+```javascript
+async flush(): Promise<void> {
+  // 检查重试次数限制
+  if (this.flushAttempts >= this.MAX_FLUSH_ATTEMPTS) {
+    console.error('Max flush attempts reached, forcing isDirty to false');
+    this.isDirty = false;
+    this.flushAttempts = 0;
+    throw new Error('Max flush attempts exceeded');
+  }
+
+  try {
+    await Promise.race([
+      this.saveToFile(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Flush timeout')), this.MAX_FLUSH_TIME)
+      )
+    ]);
+    this.isDirty = false;
+    this.flushAttempts = 0;
+  } catch (error) {
+    // 强制重置状态避免无限重试
+    if (this.flushAttempts >= this.MAX_FLUSH_ATTEMPTS) {
+      this.isDirty = false;
+      this.flushAttempts = 0;
+    }
+    throw error;
+  }
+}
+```
+
+#### 2. 多层应用退出保护机制
+```javascript
+let isQuitting = false;
+const MAX_SAVE_TIME = 5000;
+
+// 应急退出：10秒后强制终止
+function setupEmergencyExit() {
+  const emergencyExitTimer = setTimeout(() => {
+    console.error('[DESKTOP] EMERGENCY EXIT: Force terminating process');
+    process.exit(1);
+  }, 10000);
+  return emergencyExitTimer;
+}
+
+app.on('before-quit', async (event) => {
+  if (!isQuitting && storageProvider) {
+    event.preventDefault();
+    isQuitting = true;
+
+    const emergencyTimer = setupEmergencyExit();
+
+    try {
+      await Promise.race([
+        storageProvider.flush(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Save timeout')), MAX_SAVE_TIME - 1000)
+        )
+      ]);
+    } catch (error) {
+      console.error('Save failed:', error);
+    } finally {
+      clearTimeout(emergencyTimer);
+      setImmediate(() => {
+        isQuitting = false;
+        app.quit();
+      });
+    }
+  }
+});
+```
+
+#### 3. 防护机制层级
+- **逻辑保护**: `isQuitting`标志防止重复执行
+- **超时保护**: 5秒强制关闭窗口/退出应用
+- **应急保护**: 10秒强制终止进程
+- **系统保护**: 响应SIGINT/SIGTERM信号
+
+### 经验总结
+
+#### 文件存储退出处理原则
+1. **多层保护**: 实现多个层级的保护机制
+2. **超时控制**: 避免无限等待数据保存
+3. **状态重置**: 异常情况下强制重置状态
+4. **优雅降级**: 保存失败也要确保应用能退出
+
+#### 最佳实践
+- 在FileStorageProvider中实现重试限制和超时保护
+- 在应用层实现多层退出保护机制
+- 使用Promise.race实现超时控制
+- 建立完整的异常处理和状态重置机制
+
+这些补充修复确保了FileStorageProvider在各种异常情况下都能正常工作，并且应用能够可靠地退出。

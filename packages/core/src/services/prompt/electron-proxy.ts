@@ -4,6 +4,7 @@ import {
   StreamHandlers,
 } from './types';
 import { PromptRecord } from '../history/types';
+import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 // Helper function to check if running in Electron renderer process
 function isRunningInElectron(): boolean {
@@ -32,7 +33,9 @@ export class ElectronPromptServiceProxy implements IPromptService {
   }
 
   async optimizePrompt(request: OptimizationRequest): Promise<string> {
-    return this.api.optimizePrompt(request);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeRequest = safeSerializeForIPC(request);
+    return this.api.optimizePrompt(safeRequest);
   }
 
   async iteratePrompt(

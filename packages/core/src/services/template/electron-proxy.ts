@@ -1,5 +1,6 @@
 import type { Template, ITemplateManager } from './types';
 import type { BuiltinTemplateLanguage } from './languageService';
+import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 // 为window.electronAPI提供完整的类型定义，以确保类型安全
 interface ElectronAPI {
@@ -43,7 +44,9 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
   }
 
   async saveTemplate(template: Template): Promise<void> {
-    return this.electronAPI.createTemplate(template);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeTemplate = safeSerializeForIPC(template);
+    return this.electronAPI.createTemplate(safeTemplate);
   }
 
   async deleteTemplate(id: string): Promise<void> {
@@ -59,6 +62,7 @@ export class ElectronTemplateManagerProxy implements ITemplateManager {
   }
 
   async importTemplate(jsonString: string): Promise<void> {
+    // jsonString是基本类型，不需要序列化，但为了一致性保留注释
     return this.electronAPI.importTemplate(jsonString);
   }
 

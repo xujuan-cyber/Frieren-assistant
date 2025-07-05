@@ -1,4 +1,5 @@
 import type { IHistoryManager, PromptRecord, PromptRecordChain } from './types';
+import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 /**
  * Electron环境下的历史记录管理器代理
@@ -13,7 +14,9 @@ export class ElectronHistoryManagerProxy implements IHistoryManager {
   }
 
   async addRecord(record: PromptRecord): Promise<void> {
-    return this.electronAPI.history.addRecord(record);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeRecord = safeSerializeForIPC(record);
+    return this.electronAPI.history.addRecord(safeRecord);
   }
 
   async getRecords(): Promise<PromptRecord[]> {
@@ -50,7 +53,9 @@ export class ElectronHistoryManagerProxy implements IHistoryManager {
   }
 
   async createNewChain(record: Omit<PromptRecord, 'chainId' | 'version' | 'previousId'>): Promise<PromptRecordChain> {
-    return this.electronAPI.history.createNewChain(record);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeRecord = safeSerializeForIPC(record);
+    return this.electronAPI.history.createNewChain(safeRecord);
   }
 
   async addIteration(params: {
@@ -61,7 +66,9 @@ export class ElectronHistoryManagerProxy implements IHistoryManager {
     modelKey: string;
     templateId: string;
   }): Promise<PromptRecordChain> {
-    return this.electronAPI.history.addIteration(params);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeParams = safeSerializeForIPC(params);
+    return this.electronAPI.history.addIteration(safeParams);
   }
 
   async deleteChain(chainId: string): Promise<void> {

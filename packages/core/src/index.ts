@@ -64,3 +64,6 @@ export { PreferenceService, createPreferenceService } from './services/preferenc
 
 // 导出环境检测工具
 export { isRunningInElectron, isElectronApiReady, waitForElectronApi, checkVercelApiAvailability, resetVercelStatusCache, isBrowser, getProxyUrl } from './utils/environment'
+
+// 导出IPC序列化工具
+export { safeSerializeForIPC, debugIPCSerializability, safeSerializeArgs } from './utils/ipc-serialization'

@@ -1,4 +1,5 @@
 import { ILLMService, Message, StreamHandlers, LLMResponse, ModelOption } from './types';
+import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 /**
  * Electron环境下的LLM服务代理
@@ -20,11 +21,15 @@ export class ElectronLLMProxy implements ILLMService {
   }
 
   async sendMessage(messages: Message[], provider: string): Promise<string> {
-    return this.electronAPI.llm.sendMessage(messages, provider);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeMessages = safeSerializeForIPC(messages);
+    return this.electronAPI.llm.sendMessage(safeMessages, provider);
   }
 
   async sendMessageStructured(messages: Message[], provider: string): Promise<LLMResponse> {
-    return this.electronAPI.llm.sendMessageStructured(messages, provider);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeMessages = safeSerializeForIPC(messages);
+    return this.electronAPI.llm.sendMessageStructured(safeMessages, provider);
   }
 
   async sendMessageStream(
@@ -32,6 +37,9 @@ export class ElectronLLMProxy implements ILLMService {
     provider: string,
     callbacks: StreamHandlers
   ): Promise<void> {
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeMessages = safeSerializeForIPC(messages);
+
     // 适配回调接口：StreamHandlers 使用 onToken，而 preload 期望的是 onContent
     const adaptedCallbacks = {
       onContent: callbacks.onToken,  // 映射 onToken -> onContent
@@ -39,15 +47,17 @@ export class ElectronLLMProxy implements ILLMService {
       onFinish: () => callbacks.onComplete(),  // 映射完成回调
       onError: callbacks.onError
     };
-    
-    await this.electronAPI.llm.sendMessageStream(messages, provider, adaptedCallbacks);
+
+    await this.electronAPI.llm.sendMessageStream(safeMessages, provider, adaptedCallbacks);
   }
 
   async fetchModelList(
     provider: string,
     customConfig?: Partial<any>
   ): Promise<ModelOption[]> {
-    const modelNames = await this.electronAPI.llm.fetchModelList(provider, customConfig);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeCustomConfig = customConfig ? safeSerializeForIPC(customConfig) : customConfig;
+    const modelNames = await this.electronAPI.llm.fetchModelList(provider, safeCustomConfig);
     // Convert string array to ModelOption array
     return modelNames.map(name => ({ value: name, label: name }));
   }

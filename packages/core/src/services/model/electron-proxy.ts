@@ -1,4 +1,5 @@
 import { IModelManager, ModelConfig } from './types';
+import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 /**
  * Electron环境下的ModelManager代理
@@ -37,11 +38,15 @@ export class ElectronModelManagerProxy implements IModelManager {
   }
 
   async addModel(key: string, config: ModelConfig): Promise<void> {
-    await this.electronAPI.model.addModel({ ...config, key });
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeConfig = safeSerializeForIPC({ ...config, key });
+    await this.electronAPI.model.addModel(safeConfig);
   }
 
   async updateModel(key: string, config: Partial<ModelConfig>): Promise<void> {
-    await this.electronAPI.model.updateModel(key, config);
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeConfig = safeSerializeForIPC(config);
+    await this.electronAPI.model.updateModel(key, safeConfig);
   }
 
   async deleteModel(key: string): Promise<void> {

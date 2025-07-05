@@ -17,6 +17,23 @@ const {
 let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager;
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
+let isQuitting = false; // 防止重复保存数据的标志
+let forceQuitTimer = null; // 强制退出定时器
+const MAX_SAVE_TIME = 5000; // 最大保存时间：5秒
+let emergencyExitTimer = null; // 应急退出定时器
+const EMERGENCY_EXIT_TIME = 10000; // 应急退出时间：10秒
+
+// 应急退出机制：无论如何都要在10秒内退出
+function setupEmergencyExit() {
+  if (emergencyExitTimer) {
+    clearTimeout(emergencyExitTimer);
+  }
+
+  emergencyExitTimer = setTimeout(() => {
+    console.error('[DESKTOP] EMERGENCY EXIT: Force terminating process after 10 seconds');
+    process.exit(1); // 强制终止进程
+  }, EMERGENCY_EXIT_TIME);
+}
 
 async function initializePreferenceService(storageProvider) {
   console.log('[DESKTOP] Initializing PreferenceService with the provided storage provider...');
@@ -75,17 +92,44 @@ function createWindow() {
 
   // 窗口关闭前保存数据
   mainWindow.on('close', async (event) => {
-    if (storageProvider && typeof storageProvider.flush === 'function') {
+    if (!isQuitting && storageProvider && typeof storageProvider.flush === 'function') {
       event.preventDefault(); // 阻止立即关闭
+      isQuitting = true; // 设置退出标志
+
+      // 启动应急退出机制
+      setupEmergencyExit();
+
+      // 设置强制退出定时器，确保程序不会卡住
+      forceQuitTimer = setTimeout(() => {
+        console.warn('[DESKTOP] Force closing window due to timeout');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.destroy();
+        }
+      }, MAX_SAVE_TIME);
 
       try {
         console.log('[DESKTOP] Saving data before window close...');
-        await storageProvider.flush();
+        await Promise.race([
+          storageProvider.flush(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Save timeout')), MAX_SAVE_TIME - 1000)
+          )
+        ]);
         console.log('[DESKTOP] Data saved successfully');
-        mainWindow.destroy(); // 手动关闭窗口
       } catch (error) {
         console.error('[DESKTOP] Failed to save data before close:', error);
-        mainWindow.destroy(); // 即使保存失败也要关闭
+      } finally {
+        if (forceQuitTimer) {
+          clearTimeout(forceQuitTimer);
+          forceQuitTimer = null;
+        }
+        if (emergencyExitTimer) {
+          clearTimeout(emergencyExitTimer);
+          emergencyExitTimer = null;
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.destroy();
+        }
       }
     }
   });
@@ -158,7 +202,10 @@ async function initializeServices() {
     
     console.log('[DESKTOP] Creating template language service...');
     templateLanguageService = createTemplateLanguageService(storageProvider);
-    
+
+    console.log('[DESKTOP] Initializing template language service...');
+    await templateLanguageService.initialize();
+
     console.log('[DESKTOP] Creating template manager...');
     templateManager = createTemplateManager(storageProvider, templateLanguageService);
     
@@ -725,20 +772,66 @@ app.whenReady().then(async () => {
   });
 });
 
+// 进程信号处理器 - 最后的保障
+process.on('SIGINT', () => {
+  console.log('[DESKTOP] Received SIGINT, forcing exit...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('[DESKTOP] Received SIGTERM, forcing exit...');
+  process.exit(0);
+});
+
+// 捕获未处理的异常，防止程序卡死
+process.on('uncaughtException', (error) => {
+  console.error('[DESKTOP] Uncaught exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[DESKTOP] Unhandled rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // 应用退出前保存数据
 app.on('before-quit', async (event) => {
-  if (storageProvider && typeof storageProvider.flush === 'function') {
+  if (!isQuitting && storageProvider && typeof storageProvider.flush === 'function') {
     event.preventDefault(); // 阻止立即退出
+    isQuitting = true; // 设置退出标志
+
+    // 启动应急退出机制
+    setupEmergencyExit();
+
+    // 设置强制退出定时器，确保应用不会卡住
+    const forceAppQuitTimer = setTimeout(() => {
+      console.warn('[DESKTOP] Force quitting app due to timeout');
+      process.exit(0); // 强制退出进程
+    }, MAX_SAVE_TIME);
 
     try {
       console.log('[DESKTOP] Saving data before quit...');
-      await storageProvider.flush();
+      await Promise.race([
+        storageProvider.flush(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Save timeout')), MAX_SAVE_TIME - 1000)
+        )
+      ]);
       console.log('[DESKTOP] Data saved successfully');
     } catch (error) {
       console.error('[DESKTOP] Failed to save data before quit:', error);
+    } finally {
+      clearTimeout(forceAppQuitTimer);
+      if (emergencyExitTimer) {
+        clearTimeout(emergencyExitTimer);
+        emergencyExitTimer = null;
+      }
+      // 使用setImmediate确保在下一个事件循环中退出
+      setImmediate(() => {
+        isQuitting = false; // 重置标志以允许正常退出
+        app.quit(); // 手动退出
+      });
     }
-
-    app.quit(); // 手动退出
   }
 });
 

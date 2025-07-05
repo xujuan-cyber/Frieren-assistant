@@ -500,6 +500,7 @@ import {
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
 
+
 const { t } = useI18n()
 const toast = useToast();
 const emit = defineEmits(['modelsUpdated', 'close', 'select', 'update:show']);
@@ -949,20 +950,20 @@ const saveEdit = async () => {
     
     const originalKey = editingModel.value.originalKey;
     
-    // 创建更新配置对象
+    // 创建更新配置对象，ElectronProxy会自动处理序列化
     const config = {
       name: editingModel.value.name,
       baseURL: editingModel.value.baseURL,
       // 如果是掩码密钥，使用原始密钥；否则使用新输入的密钥
-      apiKey: editingModel.value.displayMaskedKey 
-        ? editingModel.value.originalApiKey 
+      apiKey: editingModel.value.displayMaskedKey
+        ? editingModel.value.originalApiKey
         : editingModel.value.apiKey,
       defaultModel: editingModel.value.defaultModel,
       models: [editingModel.value.defaultModel], // 可以根据需要扩展
       useVercelProxy: editingModel.value.useVercelProxy,
       provider: editingModel.value.provider || 'custom',
-      enabled: editingModel.value.enabled !== undefined 
-        ? editingModel.value.enabled 
+      enabled: editingModel.value.enabled !== undefined
+        ? editingModel.value.enabled
         : true,
       llmParams: editingModel.value.llmParams || {}
     };
@@ -991,6 +992,7 @@ const saveEdit = async () => {
 // 添加自定义模型
 const addCustomModel = async () => {
   try {
+    // ElectronProxy会自动处理序列化
     const config = {
       name: newModel.value.name,
       baseURL: newModel.value.baseURL,
