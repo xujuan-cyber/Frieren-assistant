@@ -15,6 +15,12 @@
   "github": {
     "silent": true
   },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "master": true
+    }
+  },
   "env": {
     "VITE_VERCEL_DEPLOYMENT": "true"
   },

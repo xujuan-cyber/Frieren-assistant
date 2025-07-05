@@ -12,6 +12,11 @@ const versionFiles = [
     path: 'packages/extension/public/manifest.json',
     field: 'version',
     description: '浏览器扩展清单文件'
+  },
+  {
+    path: 'packages/desktop/package.json',
+    field: 'version',
+    description: 'Desktop应用包文件'
   }
   // 未来可以添加更多需要同步的文件
 ];
