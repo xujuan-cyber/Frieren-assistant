@@ -26,7 +26,7 @@ interface Window {
         }
       ) => Promise<void>;
       testConnection: (provider: string) => Promise<void>;
-      fetchModelList: (provider: string, customConfig?: any) => Promise<string[]>;
+      fetchModelList: (provider: string, customConfig?: any) => Promise<Array<{value: string, label: string}>>;
     };
     model: {
       getModels: () => Promise<any[]>;

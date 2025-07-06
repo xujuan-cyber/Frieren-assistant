@@ -146,3 +146,56 @@ await modelManager.addModel(key, config) // 自动序列化
 - ❌ 忽视开发体验
 
 这次架构演进是一个很好的例子，展示了如何通过合理的架构设计来解决技术问题，同时提升开发体验。
+
+## 🔄 第三阶段：代理层职责边界优化 (2025-07)
+
+### 问题发现
+在解决Vue组件类型错误时，发现了一个重要的架构问题：ElectronProxy层承担了过多的数据格式转换职责。
+
+**现象**：
+- Web版运行正常，桌面版出现`[object Object]`错误
+- InputWithSelect组件期望String类型，但接收到Object类型
+- 同样的代码在不同环境下表现不同
+
+### 根本原因分析
+1. **类型定义不一致**：`global.d.ts`中定义`fetchModelList`返回`string[]`，但实际返回`ModelOption[]`
+2. **职责边界模糊**：ElectronProxy既负责IPC通信，又处理复杂的数据格式转换
+3. **异步性放大问题**：桌面版的IPC异步性暴露了Web版中被掩盖的竞态条件
+
+**Web版 vs 桌面版的关键差异**：
+- **Web版**：同步数据流，事件循环掩盖了竞态条件
+- **桌面版**：IPC异步通信创造了race condition，使潜在问题显现
+
+### 解决方案
+1. **修复类型定义**：
+   ```typescript
+   // 修复前
+   fetchModelList: (provider: string, customConfig?: any) => Promise<string[]>;
+
+   // 修复后
+   fetchModelList: (provider: string, customConfig?: any) => Promise<Array<{value: string, label: string}>>;
+   ```
+
+2. **简化代理层**：
+   ```typescript
+   // ElectronProxy只负责IPC通信，不做数据转换
+   async fetchModelList(provider: string, customConfig?: Partial<any>): Promise<ModelOption[]> {
+     const safeCustomConfig = customConfig ? safeSerializeForIPC(customConfig) : customConfig;
+     return this.electronAPI.llm.fetchModelList(provider, safeCustomConfig);
+   }
+   ```
+
+3. **移除冗余事件**：删除不必要的`@select`事件处理，简化数据流
+
+### 架构原则确立
+- **单一职责**：每层只负责自己的核心功能，代理层专注IPC通信
+- **类型安全**：TypeScript类型定义必须与实际实现保持严格一致
+- **数据流简洁**：避免不必要的中间转换层，减少出错可能性
+
+### 经验总结
+1. **异步性是双刃剑**：它会放大架构设计中的潜在问题
+2. **类型安全的重要性**：类型定义不仅是文档，更是架构约束
+3. **职责边界要清晰**：特别是在跨进程通信的场景下
+4. **环境差异要重视**：同样的代码在不同环境下可能表现不同
+
+这次经验强化了我们对IPC架构设计的理解，为未来的跨进程功能开发提供了重要指导。

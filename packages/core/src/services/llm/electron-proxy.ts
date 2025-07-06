@@ -57,8 +57,6 @@ export class ElectronLLMProxy implements ILLMService {
   ): Promise<ModelOption[]> {
     // 自动序列化，防止Vue响应式对象IPC传递错误
     const safeCustomConfig = customConfig ? safeSerializeForIPC(customConfig) : customConfig;
-    const modelNames = await this.electronAPI.llm.fetchModelList(provider, safeCustomConfig);
-    // Convert string array to ModelOption array
-    return modelNames.map(name => ({ value: name, label: name }));
+    return this.electronAPI.llm.fetchModelList(provider, safeCustomConfig);
   }
 } 

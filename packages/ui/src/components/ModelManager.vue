@@ -145,7 +145,6 @@
                       :hint-text="t('modelManager.clickToFetchModels')"
                       required
                       :placeholder="t('modelManager.defaultModelPlaceholder')"
-                      @select="handleModelSelect"
                       @fetch-options="handleFetchEditingModels"
                     />
                   </div>
@@ -339,7 +338,6 @@
                       :hint-text="t('modelManager.clickToFetchModels')"
                       required
                       :placeholder="t('modelManager.defaultModelPlaceholder')"
-                      @select="handleModelSelect"
                       @fetch-options="handleFetchNewModels"
                     />
                   </div>
@@ -715,7 +713,7 @@ const editModel = async (key) => {
       originalKey: key, // 保存原始key
       name: model.name,
       baseURL: model.baseURL,
-      defaultModel: model.defaultModel,
+      defaultModel: typeof model.defaultModel === 'string' ? model.defaultModel : (model.defaultModel?.value || model.defaultModel?.id || ''),
       apiKey: maskedApiKey,
       displayMaskedKey: true,
       originalApiKey: model.apiKey,
@@ -808,10 +806,7 @@ const addDefaultModelOptions = (providerKey) => {
     modelOptions.value = [];
   }
 };
-const handleModelSelect = (option) => {
-  // This can be expanded if additional logic is needed when model is selected
-  console.log('Selected model:', option);
-};
+
 const handleFetchEditingModels = async () => {
   if (!editingModel.value) {
     return;
@@ -858,7 +853,7 @@ const handleFetchEditingModels = async () => {
     if (models.length > 0) {
       modelOptions.value = models;
       toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
-      
+
       // 如果当前选择的模型不在列表中，默认选择第一个
       if (!models.some(m => m.value === editingModel.value.defaultModel)) {
         editingModel.value.defaultModel = models[0].value;
@@ -916,7 +911,7 @@ const handleFetchNewModels = async () => {
     if (models.length > 0) {
       modelOptions.value = models;
       toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
-      
+
       // 默认选择第一个模型
       newModel.value.defaultModel = models[0].value;
     } else {
