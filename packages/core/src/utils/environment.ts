@@ -38,6 +38,13 @@ export async function checkVercelApiAvailability(): Promise<boolean> {
     return false;
   }
 
+  // 如果在Electron环境中，不需要检测Vercel API
+  if (isRunningInElectron()) {
+    console.log('[Environment Detection] Skipping Vercel API detection in Electron environment');
+    vercelStatusCache = { available: false, checked: true };
+    return false;
+  }
+
   // 检查localStorage中是否有持久化的结果（页面刷新后依然有效）
   const cachedStatus = JSON.parse(localStorage.getItem(PROXY_URL_KEY) || 'null');
   if (cachedStatus && cachedStatus.checked) {

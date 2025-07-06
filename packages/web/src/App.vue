@@ -327,8 +327,22 @@ const handleSwitchVersion = (versionId: any) => {
 }
 
 // 打开GitHub仓库
-const openGithubRepo = () => {
-  window.open('https://github.com/prompt-optimizer/prompt-optimizer', '_blank')
+const openGithubRepo = async () => {
+  const url = 'https://github.com/linshenkx/prompt-optimizer'
+
+  // 检查是否在Electron环境中
+  if (typeof window !== 'undefined' && (window as any).electronAPI) {
+    try {
+      await (window as any).electronAPI.shell.openExternal(url)
+    } catch (error) {
+      console.error('Failed to open external URL in Electron:', error)
+      // 如果Electron API失败，回退到window.open
+      window.open(url, '_blank')
+    }
+  } else {
+    // Web环境中使用window.open
+    window.open(url, '_blank')
+  }
 }
 
 // 打开模板管理器

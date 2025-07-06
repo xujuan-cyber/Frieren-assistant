@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -783,6 +783,18 @@ function setupIPC() {
       console.log('[Main Process] Environment variables requested by UI process');
       return createSuccessResponse(envVars);
     } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // 外部链接处理器
+  ipcMain.handle('shell-openExternal', async (event, url) => {
+    try {
+      console.log('[Main Process] Opening external URL:', url);
+      await shell.openExternal(url);
+      return createSuccessResponse(true);
+    } catch (error) {
+      console.error('[Main Process] Failed to open external URL:', error);
       return createErrorResponse(error);
     }
   });

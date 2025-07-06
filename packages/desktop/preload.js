@@ -467,4 +467,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
-}); 
+
+  // Shell operations
+  shell: {
+    openExternal: async (url) => {
+      const result = await ipcRenderer.invoke('shell-openExternal', url);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+  },
+});
