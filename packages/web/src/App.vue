@@ -99,6 +99,7 @@
         <div class="flex-1 min-h-0">
           <template v-if="services && services.templateManager">
             <PromptPanelUI
+              ref="promptPanelRef"
               v-model:optimized-prompt="optimizer.optimizedPrompt"
               :reasoning="optimizer.optimizedReasoning"
               :original-prompt="optimizer.prompt"
@@ -134,11 +135,12 @@
 
     <!-- Modals and Drawers that are conditionally rendered -->
     <ModelManagerUI v-if="isReady" v-model:show="modelManager.showConfig" />
-    <TemplateManagerUI 
-      v-if="isReady" 
-      v-model:show="templateManagerState.showTemplates" 
-      :templateType="templateManagerState.currentType" 
+    <TemplateManagerUI
+      v-if="isReady"
+      v-model:show="templateManagerState.showTemplates"
+      :templateType="templateManagerState.currentType"
       @close="() => templateManagerState.handleTemplateManagerClose(() => templateSelectRef?.refresh?.())"
+      @languageChanged="handleTemplateLanguageChanged"
     />
     <HistoryDrawerUI
       v-if="isReady"
@@ -218,6 +220,7 @@ const showDataManager = ref(false)
 const optimizeModelSelect = ref(null)
 const testPanelRef = ref(null)
 const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
+const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
 
 const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
   return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
@@ -338,6 +341,21 @@ const openTemplateManager = (templateType?: 'optimize' | 'userOptimize' | 'itera
 // 处理优化模式变更
 const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
+}
+
+// 处理模板语言变化
+const handleTemplateLanguageChanged = (newLanguage: string) => {
+  console.log('[App] 模板语言已切换:', newLanguage)
+
+  // 刷新主界面的模板选择组件
+  if (templateSelectRef.value?.refresh) {
+    templateSelectRef.value.refresh()
+  }
+
+  // 刷新迭代页面的模板选择组件
+  if (promptPanelRef.value?.refreshIterateTemplateSelect) {
+    promptPanelRef.value.refreshIterateTemplateSelect()
+  }
 }
 
 // 处理历史记录使用 - 智能模式切换

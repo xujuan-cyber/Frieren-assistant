@@ -180,7 +180,87 @@
 - [ ] 测试UI组件与服务层的交互
 - [ ] 测试Electron环境下的IPC通信
 
-### 9. 监控和调试
+### 9. 内置模板语言切换后迭代页面模板选择不更新
+
+**症状：**
+- 在模板管理界面切换内置模板语言后，主界面的优化提示词下拉框正确更新
+- 但执行优化后点击"继续优化"，迭代页面的模板选择显示旧语言的模板名称
+- 下拉列表已更新为新语言，但当前选中项还是旧语言
+- 实际发送请求时生效的是新语言（因为通过templateId重新获取）
+
+**根本原因：**
+- **事件传播路径不同**：主界面和迭代页面的TemplateSelect组件在不同的层级
+- **组件层级差异**：
+  - 主界面：`App.vue → TemplateSelectUI`（直接引用）
+  - 迭代页面：`App.vue → PromptPanelUI → TemplateSelect`（间接引用）
+- **刷新机制缺失**：语言切换事件无法传播到深层的TemplateSelect组件
+
+**详细分析：**
+1. **主界面正常的原因**：
+   - 在TemplateManager关闭时会自动调用 `templateSelectRef?.refresh?.()`
+   - 组件层级简单，事件传播路径短
+   - 有直接的引用和刷新机制
+
+2. **迭代页面异常的原因**：
+   - 迭代页面的TemplateSelect没有被包含在语言切换的刷新逻辑中
+   - 组件层级更深，需要额外的事件传播机制
+   - 之前没有建立完整的事件传播链
+
+**解决方案：**
+1. **建立事件传播链**：
+   ```javascript
+   // TemplateManager.vue - 发出语言变化事件
+   const handleLanguageChanged = async (newLanguage: string) => {
+     // ... 现有逻辑 ...
+
+     // 发出语言变化事件，通知父组件
+     emit('languageChanged', newLanguage)
+   }
+   ```
+
+2. **App.vue处理事件并传播**：
+   ```javascript
+   // 处理模板语言变化
+   const handleTemplateLanguageChanged = (newLanguage: string) => {
+     // 刷新主界面的模板选择组件
+     if (templateSelectRef.value?.refresh) {
+       templateSelectRef.value.refresh()
+     }
+
+     // 刷新迭代页面的模板选择组件
+     if (promptPanelRef.value?.refreshIterateTemplateSelect) {
+       promptPanelRef.value.refreshIterateTemplateSelect()
+     }
+   }
+   ```
+
+3. **PromptPanel暴露刷新方法**：
+   ```javascript
+   // PromptPanel.vue - 暴露刷新迭代模板的方法
+   const refreshIterateTemplateSelect = () => {
+     if (iterateTemplateSelectRef.value?.refresh) {
+       iterateTemplateSelectRef.value.refresh()
+     }
+   }
+
+   defineExpose({
+     refreshIterateTemplateSelect
+   })
+   ```
+
+**修复验证：**
+- [x] 语言切换事件正确传播到所有TemplateSelect组件
+- [x] 迭代页面的下拉列表正确更新为新语言
+- [x] 用户可以在迭代页面选择正确语言的模板
+- [x] 主界面和迭代页面行为一致
+
+**经验总结：**
+1. **组件层级影响事件传播**：深层组件需要额外的事件传播机制
+2. **统一刷新机制**：所有相关组件都应该有统一的刷新接口
+3. **完整的事件链**：确保事件能够传播到所有需要响应的组件
+4. **架构一致性**：相同功能的组件应该有相同的响应机制
+
+### 10. 监控和调试
 
 **日志记录：**
 - [ ] 记录模板操作的开始和结束

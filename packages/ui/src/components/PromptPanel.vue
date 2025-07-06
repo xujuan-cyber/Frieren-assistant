@@ -65,6 +65,7 @@
         <div>
           <h4 class="theme-label mb-2">{{ templateSelectText }}</h4>
           <TemplateSelect
+            ref="iterateTemplateSelectRef"
             :modelValue="selectedIterateTemplate"
             @update:modelValue="$emit('update:selectedIterateTemplate', $event)"
             :type="templateType"
@@ -185,6 +186,7 @@ const iterateInput = ref('')
 const templateType = ref<'optimize' | 'iterate'>('iterate')
 
 const outputDisplayRef = ref<InstanceType<typeof OutputDisplay> | null>(null);
+const iterateTemplateSelectRef = ref<{ refresh?: () => void } | null>(null);
 
 // 计算标题文本
 const templateTitleText = computed(() => {
@@ -278,6 +280,17 @@ watch([() => props.isOptimizing, () => props.isIterating], ([newOptimizing, newI
     }
   }
 }, { immediate: false })
+
+// 暴露刷新迭代模板选择的方法
+const refreshIterateTemplateSelect = () => {
+  if (iterateTemplateSelectRef.value?.refresh) {
+    iterateTemplateSelectRef.value.refresh()
+  }
+}
+
+defineExpose({
+  refreshIterateTemplateSelect
+})
 
 </script>
 

@@ -9,7 +9,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" class="fixed inset-0 z-30 overflow-y-auto" @click="handleBackdropClick">
+      <div v-show="modelValue" class="fixed inset-0 z-30 overflow-y-auto" @click="handleBackdropClick">
         <div class="flex min-h-full items-center justify-center p-4">
           <!-- 背景遮罩 -->
           <div class="fixed inset-0 theme-mask"></div>

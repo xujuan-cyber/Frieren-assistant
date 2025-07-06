@@ -84,6 +84,87 @@ defineOptions({
 </script>
 ```
 
+#### 深层组件事件传播机制
+**问题**：当全局状态变化需要通知多层级嵌套的组件时，事件传播可能中断，导致深层组件无法及时更新。
+
+**典型场景**：
+- 语言切换后，主界面组件更新正常，但Modal内部的组件显示旧状态
+- 组件层级差异：`App.vue → ComponentA`（直接引用）vs `App.vue → ComponentB → ComponentC`（间接引用）
+
+**核心原因**：
+1. **v-if条件渲染**：组件被销毁后ref失效，无法调用组件方法
+2. **事件传播断点**：事件只传播到直接子组件，不会自动向下传播到深层组件
+3. **组件生命周期差异**：不同层级的组件可能处于不同的生命周期阶段
+
+**解决方案**：
+1. **使用v-show替代v-if**：确保组件实例始终存在，ref保持有效
+   ```vue
+   <!-- ❌ 问题方案：组件会被销毁 -->
+   <Modal v-if="showModal">
+     <TemplateSelect ref="templateRef" />
+   </Modal>
+   
+   <!-- ✅ 推荐方案：组件始终渲染 -->
+   <Modal v-show="showModal">
+     <TemplateSelect ref="templateRef" />
+   </Modal>
+   ```
+
+2. **建立完整事件传播链**：从事件源到所有消费组件
+   ```javascript
+   // 父组件：建立事件传播
+   const handleGlobalStateChange = (newState) => {
+     // 刷新直接子组件
+     if (directChildRef.value?.refresh) {
+       directChildRef.value.refresh()
+     }
+     
+     // 刷新深层组件（通过中间组件的暴露方法）
+     if (intermediateRef.value?.refreshDeepChild) {
+       intermediateRef.value.refreshDeepChild()
+     }
+   }
+   
+   // 中间组件：暴露深层组件的刷新方法
+   const deepChildRef = ref()
+   
+   const refreshDeepChild = () => {
+     if (deepChildRef.value?.refresh) {
+       deepChildRef.value.refresh()
+     }
+   }
+   
+   defineExpose({
+     refreshDeepChild
+   })
+   ```
+
+3. **统一刷新接口**：所有相关组件都暴露相同的刷新方法
+   ```javascript
+   // 每个需要响应全局状态变化的组件都实现refresh方法
+   const refresh = () => {
+     // 重新加载数据或更新状态
+   }
+   
+   defineExpose({
+     refresh
+   })
+   ```
+
+**最佳实践**：
+- **架构设计**：在设计阶段考虑事件传播的完整路径
+- **接口一致性**：定义标准的组件刷新接口（如`refresh()`方法）
+- **文档记录**：为复杂的事件传播链建立清晰的架构图
+- **测试验证**：确保在所有使用场景下事件都能正确传播
+
+**适用场景**：
+- 全局主题切换
+- 语言切换
+- 用户权限变更
+- 模板/配置更新
+
+> **详细案例**：参见 [106-template-management/event-propagation-fix.md](../archives/106-template-management/event-propagation-fix.md)
+
 ## ⚡ 快速问题排查
 
 ### 布局问题
@@ -95,6 +176,22 @@ defineOptions({
 1. 检查是否有中间层错误的 `overflow` 属性
 2. 确认高度约束是否从顶层正确传递
 3. 验证滚动容器是否有正确的 `overflow-y: auto`
+
+### 组件状态同步问题
+1. **深层组件未更新**：
+   - 检查是否使用了 `v-if` 导致组件被销毁
+   - 确认事件传播链是否完整（父→中间→目标组件）
+   - 验证目标组件是否暴露了刷新方法
+
+2. **Modal内组件状态异常**：
+   - 检查Modal是否使用 `v-show` 而非 `v-if`
+   - 确认组件ref在Modal关闭时是否仍然有效
+   - 验证全局状态变化事件是否传播到Modal内部
+
+3. **组件ref调用失败**：
+   - 确认组件是否已完成挂载（`nextTick`）
+   - 检查条件渲染是否导致组件不存在
+   - 验证ref绑定的组件是否暴露了对应方法
 
 ### API调用问题
 1. 检查环境变量是否正确设置（`VITE_` 前缀）

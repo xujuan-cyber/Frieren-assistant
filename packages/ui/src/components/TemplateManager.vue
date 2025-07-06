@@ -671,7 +671,7 @@ const props = defineProps<{
   show: boolean
 }>()
 
-const emit = defineEmits(['close', 'select', 'update:show'])
+const emit = defineEmits(['close', 'select', 'update:show', 'languageChanged'])
 const toast = useToast()
 
 const templates = ref<Template[]>([])
@@ -1225,6 +1225,9 @@ const syntaxGuideMarkdown = computed(() => {
         }
       }
     }
+
+    // 发出语言变化事件，通知父组件
+    emit('languageChanged', newLanguage)
   }
 
 // 监听 props.templateType 变化，更新当前分类
