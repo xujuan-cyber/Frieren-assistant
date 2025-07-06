@@ -534,7 +534,7 @@ export default {
       button: '导入数据',
       success: '数据导入成功',
       failed: '数据导入失败',
-      successWithRefresh: '数据导入成功，页面将刷新以更新数据'
+      successWithRefresh: '数据导入成功，页面将刷新以应用所有更改'
     },
     warning: '导入数据将覆盖现有的历史记录、模型配置、自定义提示词和所有用户设置（包括主题、语言偏好等），请确保已备份重要数据。'
   },

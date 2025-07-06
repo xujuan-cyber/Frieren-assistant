@@ -150,7 +150,7 @@
       @clear="promptHistory.handleClearHistory"
       @deleteChain="promptHistory.handleDeleteChain"
     />
-    <DataManagerUI v-if="isReady" v-model:show="showDataManager" />
+    <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
 
     <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
   </template>
@@ -293,6 +293,19 @@ watch(services, (newServices) => {
 
   console.log('All services and composables initialized.')
 })
+
+// 8. 处理数据导入成功后的刷新
+const handleDataImported = () => {
+  console.log('[Extension] 数据导入成功，即将刷新页面以应用所有更改...')
+
+  // 显示成功提示，然后刷新页面
+  toast.success(t('dataManager.import.successWithRefresh'))
+
+  // 延迟一点时间让用户看到成功提示，然后刷新页面
+  setTimeout(() => {
+    window.location.reload()
+  }, 1500)
+}
 
 // 8. 计算属性和方法
 const currentSelectedTemplate = computed({

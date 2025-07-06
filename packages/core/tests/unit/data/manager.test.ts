@@ -159,5 +159,36 @@ describe('DataManager', () => {
       expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:theme-id', 'dark');
       expect(mockStorageProvider.setItem).not.toHaveBeenCalledWith('app:settings:ui:malicious-key', expect.anything());
     });
+
+    it('should handle legacy UI setting keys with backward compatibility', async () => {
+      const legacyTestPayload = {
+        version: 1,
+        data: {
+          userSettings: {
+            // 旧版本的简短键名
+            'theme-id': 'dark',
+            'preferred-language': 'en',
+            'builtin-template-language': 'zh',
+            // 新版本的完整键名
+            'app:selected-optimize-model': 'gemini',
+            // 无效的键名
+            'invalid-key': 'should-be-ignored'
+          },
+        },
+      };
+
+      await dataManager.importAllData(JSON.stringify(legacyTestPayload));
+
+      // 验证旧版本键名被正确转换并导入
+      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:theme-id', 'dark');
+      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:preferred-language', 'en');
+      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:builtin-template-language', 'zh');
+
+      // 验证新版本键名正常导入
+      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:selected-optimize-model', 'gemini');
+
+      // 验证无效键名被忽略
+      expect(mockStorageProvider.setItem).not.toHaveBeenCalledWith('invalid-key', expect.anything());
+    });
   });
 });

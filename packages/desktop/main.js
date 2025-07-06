@@ -89,9 +89,19 @@ function setupPreferenceHandlers() {
 
 function createWindow() {
   // Create the browser window.
+  const iconPath = path.join(__dirname, 'icons', 'app-icon.ico');
+
+  // 检查图标文件是否存在
+  if (require('fs').existsSync(iconPath)) {
+    console.log('[Main Process] Using icon:', iconPath);
+  } else {
+    console.warn('[Main Process] Icon file not found:', iconPath);
+  }
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: iconPath, // 设置窗口图标
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

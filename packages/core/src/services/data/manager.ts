@@ -39,14 +39,34 @@ const UI_SETTINGS_KEYS = [
   'app:selected-iterate-template' // 迭代模板
 ] as const;
 
+// 旧版本键名映射表 - 用于兼容性处理
+const LEGACY_KEY_MAPPING: Record<string, string> = {
+  // 旧版本的简短键名 -> 新版本的完整键名
+  'theme-id': 'app:settings:ui:theme-id',
+  'preferred-language': 'app:settings:ui:preferred-language',
+  'builtin-template-language': 'app:settings:ui:builtin-template-language',
+  // 其他键名保持不变，因为它们已经有正确的前缀
+};
+
+/**
+ * 将旧版本键名转换为新版本键名
+ * @param key 原始键名
+ * @returns 标准化后的键名
+ */
+const normalizeSettingKey = (key: string): string => {
+  return LEGACY_KEY_MAPPING[key] || key;
+};
+
 /**
  * 验证UI配置键是否安全
  */
 const isValidSettingKey = (key: string): boolean => {
-  return UI_SETTINGS_KEYS.includes(key as any) && 
-         key.length <= 50 && 
-         key.length > 0 &&
-         !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(key); // 排除危险字符和控制字符
+  // 先标准化键名，再验证
+  const normalizedKey = normalizeSettingKey(key);
+  return UI_SETTINGS_KEYS.includes(normalizedKey as any) &&
+         normalizedKey.length <= 50 &&
+         normalizedKey.length > 0 &&
+         !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(normalizedKey); // 排除危险字符和控制字符
 };
 
 /**
@@ -321,15 +341,24 @@ export class DataManager implements IDataManager {
             console.warn(`Skipping invalid UI configuration key: ${key}`);
             continue;
           }
-          
+
           // 验证值是否安全
           if (!isValidSettingValue(value)) {
             console.warn(`Skipping invalid UI configuration value ${key}: type=${typeof value}`);
             continue;
           }
-          
-          await this.storage.setItem(key, value);
-          console.log(`Imported UI configuration: ${key} = ${value}`);
+
+          // 标准化键名（处理旧版本兼容性）
+          const normalizedKey = normalizeSettingKey(key);
+
+          await this.storage.setItem(normalizedKey, value);
+
+          // 如果键名被转换了，显示转换信息
+          if (normalizedKey !== key) {
+            console.log(`Imported UI configuration (legacy key converted): ${key} -> ${normalizedKey} = ${value}`);
+          } else {
+            console.log(`Imported UI configuration: ${normalizedKey} = ${value}`);
+          }
         } catch (error) {
           console.warn(`Failed to import UI setting ${key}:`, error);
           failedSettings.push({ key, error: error as Error });

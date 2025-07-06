@@ -34,15 +34,18 @@
     ],
     "win": {
       "target": "zip",
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "icon": "icons/app-icon.ico"
     },
     "mac": {
       "target": "zip",
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "icon": "icons/app-icon.ico"
     },
     "linux": {
       "target": "zip",
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "icon": "icons/app-icon.ico"
     }
   },
   "keywords": [
@@ -50,6 +53,6 @@
     "prompt",
     "optimizer"
   ],
-  "author": "Prompt Optimizer Team",
+  "author": "https://github.com/linshenkx",
   "license": "MIT"
 }
