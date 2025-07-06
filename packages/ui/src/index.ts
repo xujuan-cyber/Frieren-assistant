@@ -6,7 +6,7 @@ import './styles/common.css'
 import './styles/theme.css'
 
 // 导出插件
-export { installI18n, installI18nOnly, initializeI18nWithStorage, i18n } from './plugins/i18n'
+export { installI18n, installI18nOnly, initializeI18nWithStorage, setI18nServices, i18n } from './plugins/i18n'
 
 /**
  * 组件导出

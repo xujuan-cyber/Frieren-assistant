@@ -634,9 +634,9 @@ const testConnection = async (key) => {
     console.error('连接测试失败:', error);
     const model = await modelManager.getModel(key);
     const modelName = model?.name || key;
-    toast.error(t('modelManager.testFailed', { 
-      provider: modelName, 
-      error: error.message || 'Unknown error' 
+    toast.error(t('modelManager.testFailed', {
+      provider: modelName,
+      error: error.message || 'Unknown error'
     }));
   } finally {
     delete testingConnections.value[key];

@@ -150,7 +150,7 @@
     />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" />
 
-    <ToastUI />
+    <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
   </template>
 </template>
 
@@ -175,6 +175,7 @@ import {
 
   // i18n functions
   initializeI18nWithStorage,
+  setI18nServices,
 
   // Types from UI package
   type OptimizationMode,
@@ -195,6 +196,9 @@ const { services, isInitializing, error } = useAppInitializer()
 // 3. Initialize i18n with storage when services are ready
 watch(services, async (newServices) => {
   if (newServices) {
+    // 首先设置服务引用
+    setI18nServices(newServices)
+    // 然后初始化语言设置
     await initializeI18nWithStorage()
     console.log('[Web] i18n initialized')
   }

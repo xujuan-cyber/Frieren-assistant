@@ -12,7 +12,7 @@ export function useToast() {
   const add = (message: string, type: Toast['type'] = 'info', duration: number = 3000) => {
     const id = Date.now()
     toasts.value.push({ id, message, type })
-    
+
     setTimeout(() => {
       remove(id)
     }, duration)
