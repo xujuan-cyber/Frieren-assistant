@@ -5,7 +5,8 @@ import type {
   IDataManager,
   ILLMService,
   IPromptService,
-  ITemplateLanguageService
+  ITemplateLanguageService,
+  ICompareService
 } from '@prompt-optimizer/core'
 
 // FIXME: Temporary workaround for build issue. Should be imported from @prompt-optimizer/core
@@ -29,4 +30,5 @@ export interface AppServices {
   promptService: IPromptService;
   templateLanguageService: ITemplateLanguageService;
   preferenceService: IPreferenceService;
+  compareService: ICompareService;
 }

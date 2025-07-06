@@ -8,6 +8,7 @@ import {
   createLLMService,
   createPromptService,
   createTemplateLanguageService,
+  createCompareService,
   ElectronModelManagerProxy,
   ElectronTemplateManagerProxy,
   ElectronHistoryManagerProxy,
@@ -76,6 +77,9 @@ export function useAppInitializer() {
         // 使用真正的 Electron 模板语言服务代理
         const templateLanguageService = new ElectronTemplateLanguageServiceProxy();
 
+        // 创建 CompareService（直接使用，无需代理）
+        const compareService = createCompareService();
+
         services.value = {
           modelManager,
           templateManager,
@@ -85,6 +89,7 @@ export function useAppInitializer() {
           promptService,
           templateLanguageService, // 使用代理而不是null
           preferenceService, // 使用从core包导入的ElectronPreferenceServiceProxy
+          compareService, // 直接使用，无需代理
         };
         console.log('[AppInitializer] Electron代理服务初始化完成');
 
@@ -178,6 +183,9 @@ export function useAppInitializer() {
         // 创建基于存储提供器的偏好设置服务，使用core包中的createPreferenceService
         preferenceService = createPreferenceService(storageProvider);
 
+        // 创建 CompareService（直接使用）
+        const compareService = createCompareService();
+
         // 将所有服务实例赋值给 services.value
       services.value = {
           modelManager: modelManagerAdapter, // 使用适配器
@@ -188,6 +196,7 @@ export function useAppInitializer() {
         promptService,
         templateLanguageService: languageService,
         preferenceService, // 使用从core包导入的PreferenceService
+        compareService, // 直接使用
       };
       }
 

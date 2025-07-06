@@ -66,12 +66,13 @@ export {
     ElectronPromptServiceProxy,
     createPreferenceService,
     ElectronPreferenceServiceProxy,
+    createCompareService,
     isRunningInElectron,
     waitForElectronApi,
 } from '@prompt-optimizer/core'
 
 // 导出类型
-export type { 
+export type {
     OptimizationMode,
     IModelManager,
     ITemplateManager,
@@ -79,5 +80,6 @@ export type {
     ILLMService,
     IPromptService,
     IPreferenceService,
+    ICompareService,
     Template
 } from '@prompt-optimizer/core'

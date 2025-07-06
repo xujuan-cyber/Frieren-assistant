@@ -12,6 +12,7 @@
     :placeholder="placeholder"
     :loading="loading"
     :streaming="streaming"
+    :compareService="compareService"
     @update:content="emit('update:content', $event)"
     @update:reasoning="emit('update:reasoning', $event)"
     @copy="handleCopy"
@@ -40,9 +41,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, inject } from 'vue';
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import OutputDisplayFullscreen from './OutputDisplayFullscreen.vue';
+import type { AppServices } from '../types/services';
+import type { Ref } from 'vue';
 
 defineOptions({
   inheritAttrs: false,
@@ -89,6 +92,26 @@ const emit = defineEmits<{
 }>()
 
 const isShowingFullscreen = ref(false);
+
+// 注入服务并获取 CompareService
+const services = inject<Ref<AppServices | null>>('services');
+if (!services) {
+  throw new Error('[OutputDisplay] services未正确注入，请确保在App组件中正确provide了services');
+}
+
+const compareService = computed(() => {
+  const servicesValue = services.value;
+  if (!servicesValue) {
+    throw new Error('[OutputDisplay] services未初始化，请确保应用已正确启动');
+  }
+
+  const service = servicesValue.compareService;
+  if (!service) {
+    throw new Error('[OutputDisplay] compareService未初始化，请确保服务已正确配置');
+  }
+
+  return service;
+});
 
 const enabledActions = computed(() => {
     const actions: ActionName[] = ['reasoning'];

@@ -12,6 +12,7 @@
         :placeholder="placeholder"
         :loading="loading"
         :streaming="streaming"
+        :compareService="compareService"
         @update:content="handleContentUpdate"
         @copy="handleCopy"
     />
@@ -19,10 +20,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FullscreenDialog from './FullscreenDialog.vue'
 import OutputDisplayCore from './OutputDisplayCore.vue'
+import type { AppServices } from '../types/services';
+import type { Ref } from 'vue';
 
 const { t } = useI18n()
 
@@ -58,6 +61,26 @@ const emit = defineEmits<{
   'copy': [content: string, type: 'content' | 'reasoning' | 'all']
 }>()
 
+
+// 注入服务并获取 CompareService
+const services = inject<Ref<AppServices | null>>('services');
+if (!services) {
+  throw new Error('[OutputDisplayFullscreen] services未正确注入，请确保在App组件中正确provide了services');
+}
+
+const compareService = computed(() => {
+  const servicesValue = services.value;
+  if (!servicesValue) {
+    throw new Error('[OutputDisplayFullscreen] services未初始化，请确保应用已正确启动');
+  }
+
+  const service = servicesValue.compareService;
+  if (!service) {
+    throw new Error('[OutputDisplayFullscreen] compareService未初始化，请确保服务已正确配置');
+  }
+
+  return service;
+});
 
 // Internal state
 const coreDisplayRef = ref<InstanceType<typeof OutputDisplayCore> | null>(null)
