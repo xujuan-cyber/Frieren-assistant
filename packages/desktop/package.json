@@ -40,7 +40,7 @@
     "mac": {
       "target": "zip",
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "icon": "icons/app-icon.ico"
+      "icon": "icons/app-icon.jpg"
     },
     "linux": {
       "target": "zip",
