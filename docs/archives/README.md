@@ -39,6 +39,12 @@
 ### 服务重构系列
 - [113-full-service-refactoring](./113-full-service-refactoring/) - 全面服务重构 🔄
 
+### 数据架构系列 (已完成)
+- [114-desktop-file-storage](./114-desktop-file-storage/) - 桌面端文件存储实现 ✅
+- [115-ipc-serialization-fixes](./115-ipc-serialization-fixes/) - IPC序列化问题修复 ✅
+- [116-desktop-packaging-optimization](./116-desktop-packaging-optimization/) - 桌面端打包优化 ✅
+- [117-import-export-architecture-refactor](./117-import-export-architecture-refactor/) - 导入导出架构重构 ✅
+
 ## 📋 文档结构
 
 每个功能点目录包含：
@@ -102,3 +108,11 @@
 ├── experience.md (经验总结，必需)
 └── troubleshooting.md (排查清单，可选)
 ```
+
+## 📊 统计信息
+
+- **总归档数**: 17
+- **已完成**: 12
+- **进行中**: 3
+- **计划中**: 2
+- **下一个编号**: 118

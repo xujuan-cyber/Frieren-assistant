@@ -19,21 +19,26 @@
 - **03-template-management.md** - 模板管理功能（创建、编辑、删除等）
 
 ### 核心功能测试
-- **04-prompt-optimization.md** - 提示词优化功能（已验证✅）
+- **04-prompt-optimization.md** - 系统提示词优化功能（已更新 - 包含结果展示功能测试）✅
+- **04b-user-prompt-optimization.md** - 用户提示词优化功能（已更新 - 包含结果展示功能测试）✅
 - **05-history-management.md** - 历史记录管理功能
 - **06-data-management.md** - 数据管理功能（导入导出等）
+
+### UI交互功能测试
+- **07-ui-interaction-features.md** - UI交互功能独立测试（新增）⭐
 
 ## 🤖 执行说明
 
 ### 执行顺序
 建议按照编号顺序执行测试，因为后续测试可能依赖前面的配置：
 
-1. 基础设置 → 2. 模型管理 → 3. 模板管理 → 4. 提示词优化 → 5. 历史管理 → 6. 数据管理
+1. 基础设置 → 2. 模型管理 → 3. 模板管理 → 4. 系统提示词优化 → 4b. 用户提示词优化 → 5. 历史管理 → 6. 数据管理 → 7. UI交互功能
 
 ### 执行频率
-- **每日回归** - 执行核心功能测试（04-prompt-optimization.md）
+- **每日回归** - 执行核心功能测试（04-prompt-optimization.md + 04b-user-prompt-optimization.md，现已包含结果展示功能）
 - **版本发布前** - 执行全部正常流程测试
 - **功能修改后** - 执行相关功能的测试
+- **UI修改后** - 执行UI交互功能测试（07-ui-interaction-features.md）
 
 ### 成功标准
 - 所有操作步骤能够成功执行
