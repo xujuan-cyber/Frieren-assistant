@@ -54,10 +54,12 @@ export interface PromptRecordChain {
   versions: PromptRecord[];
 }
 
+import { IImportExportable } from '../../interfaces/import-export';
+
 /**
  * 历史记录管理器接口
  */
-export interface IHistoryManager {
+export interface IHistoryManager extends IImportExportable {
   /** 添加记录 */
   addRecord(record: PromptRecord): Promise<void>;
   /** 获取所有记录 */

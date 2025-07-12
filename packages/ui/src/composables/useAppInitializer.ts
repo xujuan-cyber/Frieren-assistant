@@ -97,7 +97,11 @@ export function useAppInitializer() {
         console.log('[AppInitializer] 检测到Web环境，初始化完整服务...');
         // 在Web环境中，我们创建一套完整的、真实的服务
         const storageProvider = StorageFactory.create('dexie');
-        const languageService = createTemplateLanguageService(storageProvider);
+
+        // 创建基于存储提供器的偏好设置服务，使用core包中的createPreferenceService
+        preferenceService = createPreferenceService(storageProvider);
+
+        const languageService = createTemplateLanguageService(preferenceService);
         
         // Services with no dependencies or only storage
         const modelManagerInstance = createModelManager(storageProvider);
@@ -178,10 +182,8 @@ export function useAppInitializer() {
         console.log('[AppInitializer] 创建依赖其他管理器的服务...');
         llmService = createLLMService(modelManagerInstance);
         promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
-        dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, storageProvider);
-        
-        // 创建基于存储提供器的偏好设置服务，使用core包中的createPreferenceService
-        preferenceService = createPreferenceService(storageProvider);
+
+        dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, preferenceService);
 
         // 创建 CompareService（直接使用）
         const compareService = createCompareService();

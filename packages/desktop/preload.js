@@ -164,6 +164,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     },
+
+    // Export all model data
+    exportData: async () => {
+      const result = await ipcRenderer.invoke('model-exportData');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Import model data
+    importData: async (data) => {
+      const result = await ipcRenderer.invoke('model-importData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+
+    // Get data type identifier
+    getDataType: async () => {
+      const result = await ipcRenderer.invoke('model-getDataType');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Validate data format
+    validateData: async (data) => {
+      const result = await ipcRenderer.invoke('model-validateData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
   },
 
   // Template Manager interface
@@ -229,6 +264,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importTemplate: async (jsonString) => {
       const result = await ipcRenderer.invoke('template-importTemplate', jsonString);
       if (!result.success) throw new Error(result.error);
+    },
+
+    // Export all user templates data
+    exportData: async () => {
+      const result = await ipcRenderer.invoke('template-exportData');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Import user templates data
+    importData: async (data) => {
+      const result = await ipcRenderer.invoke('template-importData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+
+    // Get data type identifier
+    getDataType: async () => {
+      const result = await ipcRenderer.invoke('template-getDataType');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Validate data format
+    validateData: async (data) => {
+      const result = await ipcRenderer.invoke('template-validateData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
     },
 
     // Template language methods
@@ -335,6 +405,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error);
       }
+    },
+
+    // Export all history data
+    exportData: async () => {
+      const result = await ipcRenderer.invoke('history-exportData');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Import history data
+    importData: async (data) => {
+      const result = await ipcRenderer.invoke('history-importData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+
+    // Get data type identifier
+    getDataType: async () => {
+      const result = await ipcRenderer.invoke('history-getDataType');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Validate data format
+    validateData: async (data) => {
+      const result = await ipcRenderer.invoke('history-validateData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
     }
   },
 
@@ -465,6 +570,49 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error);
       }
+    },
+
+    getAll: async () => {
+      const result = await ipcRenderer.invoke('preference-getAll');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Export all preference data
+    exportData: async () => {
+      const result = await ipcRenderer.invoke('preference-exportData');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Import preference data
+    importData: async (data) => {
+      const result = await ipcRenderer.invoke('preference-importData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+
+    // Get data type identifier
+    getDataType: async () => {
+      const result = await ipcRenderer.invoke('preference-getDataType');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+
+    // Validate data format
+    validateData: async (data) => {
+      const result = await ipcRenderer.invoke('preference-validateData', data);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
     },
   },
 

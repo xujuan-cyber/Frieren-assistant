@@ -1,3 +1,5 @@
+import { IImportExportable } from '../../interfaces/import-export';
+
 /**
  * 模型配置接口
  */
@@ -25,7 +27,7 @@ export interface ModelConfig {
 /**
  * 模型管理器接口
  */
-export interface IModelManager {
+export interface IModelManager extends IImportExportable {
   /** 确保管理器已初始化 */
   ensureInitialized(): Promise<void>;
 

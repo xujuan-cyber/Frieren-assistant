@@ -5,18 +5,18 @@ import { defaultModels } from './defaults';
 import { ModelConfigError } from '../llm/errors';
 import { validateLLMParams } from './validation';
 import { ElectronConfigManager, isElectronRenderer } from './electron-config';
+import { CORE_SERVICE_KEYS } from '../../constants/storage-keys';
+import { ImportExportError } from '../../interfaces/import-export';
 
 /**
  * 模型管理器实现
  */
 export class ModelManager implements IModelManager {
-  private models: Record<string, ModelConfig>;
-  private readonly storageKey = 'models';
+  private readonly storageKey = CORE_SERVICE_KEYS.MODELS;
   private readonly storage: IStorageProvider;
   private initPromise: Promise<void>;
 
   constructor(storageProvider: IStorageProvider) {
-    this.models = { ...defaultModels };
     // 使用适配器确保所有存储提供者都支持高级方法
     this.storage = new StorageAdapter(storageProvider);
     this.initPromise = this.init().catch(err => {
@@ -36,7 +36,8 @@ export class ModelManager implements IModelManager {
    * 检查管理器是否已初始化
    */
   public async isInitialized(): Promise<boolean> {
-    return Object.keys(this.models).length > 0;
+    const storedData = await this.storage.getItem(this.storageKey);
+    return !!storedData;
   }
 
   /**
@@ -45,7 +46,7 @@ export class ModelManager implements IModelManager {
   private async init(): Promise<void> {
     try {
       console.log('[ModelManager] Initializing...');
-      
+
       // 在Electron渲染进程中，先同步环境变量
       if (isElectronRenderer()) {
         console.log('[ModelManager] Electron environment detected, syncing config from main process...');
@@ -53,65 +54,70 @@ export class ModelManager implements IModelManager {
         await configManager.syncFromMainProcess();
         console.log('[ModelManager] Environment variables synced from main process');
       }
-      
+
       // 从存储中加载现有配置
       const storedData = await this.storage.getItem(this.storageKey);
-      
+
       if (storedData) {
         try {
-          this.models = JSON.parse(storedData);
+          const storedModels = JSON.parse(storedData);
           console.log('[ModelManager] Loaded existing models from storage');
+
+          // 确保所有默认模型都存在，但保留用户的自定义配置
+          const defaults = this.getDefaultModels();
+          let hasUpdates = false;
+          const updatedModels = { ...storedModels };
+
+          for (const [key, defaultConfig] of Object.entries(defaults)) {
+            if (!updatedModels[key]) {
+              // 添加缺失的默认模型
+              updatedModels[key] = defaultConfig;
+              hasUpdates = true;
+              console.log(`[ModelManager] Added missing default model: ${key}`);
+            } else {
+              // 更新现有模型的默认字段（保留用户的 apiKey 和 enabled 状态）
+              const existingModel = updatedModels[key];
+              const updatedModel = {
+                ...defaultConfig,
+                // 保留用户配置的关键字段
+                apiKey: existingModel.apiKey || defaultConfig.apiKey,
+                enabled: existingModel.enabled !== undefined ? existingModel.enabled : defaultConfig.enabled,
+                // 保留用户的自定义 llmParams
+                llmParams: existingModel.llmParams || defaultConfig.llmParams
+              };
+
+              // 检查是否有变化
+              if (JSON.stringify(updatedModels[key]) !== JSON.stringify(updatedModel)) {
+                updatedModels[key] = updatedModel;
+                hasUpdates = true;
+                console.log(`[ModelManager] Updated default model: ${key}`);
+              }
+            }
+          }
+
+          // 如果有更新，保存到存储
+          if (hasUpdates) {
+            await this.storage.setItem(this.storageKey, JSON.stringify(updatedModels));
+            console.log('[ModelManager] Saved updated models to storage');
+          }
         } catch (error) {
-          console.error('[ModelManager] Failed to parse stored models, using defaults:', error);
-          this.models = this.getDefaultModels();
+          console.error('[ModelManager] Failed to parse stored models, initializing with defaults:', error);
+          await this.storage.setItem(this.storageKey, JSON.stringify(this.getDefaultModels()));
         }
       } else {
-        console.log('[ModelManager] No existing models found, using defaults');
-        this.models = this.getDefaultModels();
-      }
-
-      // 确保所有默认模型都存在，但保留用户的自定义配置
-      const defaults = this.getDefaultModels();
-      let hasUpdates = false;
-
-      for (const [key, defaultConfig] of Object.entries(defaults)) {
-        if (!this.models[key]) {
-          // 添加缺失的默认模型
-          this.models[key] = defaultConfig;
-          hasUpdates = true;
-          console.log(`[ModelManager] Added missing default model: ${key}`);
-        } else {
-          // 更新现有模型的默认字段（保留用户的 apiKey 和 enabled 状态）
-          const existingModel = this.models[key];
-          const updatedModel = {
-            ...defaultConfig,
-            // 保留用户配置的关键字段
-            apiKey: existingModel.apiKey || defaultConfig.apiKey,
-            enabled: existingModel.enabled !== undefined ? existingModel.enabled : defaultConfig.enabled,
-            // 保留用户的自定义 llmParams
-            llmParams: existingModel.llmParams || defaultConfig.llmParams
-          };
-
-          // 检查是否有变化
-          if (JSON.stringify(this.models[key]) !== JSON.stringify(updatedModel)) {
-            this.models[key] = updatedModel;
-            hasUpdates = true;
-            console.log(`[ModelManager] Updated default model: ${key}`);
-          }
-        }
-      }
-
-      // 如果有更新，保存到存储
-      if (hasUpdates) {
-        await this.saveToStorage();
-        console.log('[ModelManager] Saved updated models to storage');
+        console.log('[ModelManager] No existing models found, initializing with defaults');
+        await this.storage.setItem(this.storageKey, JSON.stringify(this.getDefaultModels()));
       }
 
       console.log('[ModelManager] Initialization completed');
     } catch (error) {
       console.error('[ModelManager] Initialization failed:', error);
-      // 如果初始化失败，至少使用默认配置
-      this.models = this.getDefaultModels();
+      // 如果初始化失败，至少保存默认配置到存储
+      try {
+        await this.storage.setItem(this.storageKey, JSON.stringify(this.getDefaultModels()));
+      } catch (saveError) {
+        console.error('[ModelManager] Failed to save default models:', saveError);
+      }
     }
   }
 
@@ -128,9 +134,24 @@ export class ModelManager implements IModelManager {
         console.warn('[ModelManager] ElectronConfigManager not initialized, using fallback defaults');
       }
     }
-    
+
     // 否则使用原有的默认配置
     return defaultModels;
+  }
+
+  /**
+   * 从存储获取模型配置，如果不存在则返回默认配置
+   */
+  private async getModelsFromStorage(): Promise<Record<string, ModelConfig>> {
+    const storedData = await this.storage.getItem(this.storageKey);
+    if (storedData) {
+      try {
+        return JSON.parse(storedData);
+      } catch (error) {
+        console.error('[ModelManager] Failed to parse stored models, using defaults:', error);
+      }
+    }
+    return this.getDefaultModels();
   }
 
   /**
@@ -138,21 +159,11 @@ export class ModelManager implements IModelManager {
    */
   async getAllModels(): Promise<Array<ModelConfig & { key: string }>> {
     await this.ensureInitialized();
-    // 每次获取都从存储重新加载最新数据
-    const storedData = await this.storage.getItem(this.storageKey);
-    if (storedData) {
-      try {
-        this.models = JSON.parse(storedData);
-      } catch (error) {
-        console.error('Failed to parse model configuration:', error);
-      }
-    }
-
-    const returnValue = Object.entries(this.models).map(([key, config]) => ({
-      ...config,
-      key
+    const models = await this.getModelsFromStorage();
+    return Object.entries(models).map(([key, config]) => ({
+      key,
+      ...config
     }));
-    return returnValue;
   }
 
   /**
@@ -160,16 +171,8 @@ export class ModelManager implements IModelManager {
    */
   async getModel(key: string): Promise<ModelConfig | undefined> {
     await this.ensureInitialized();
-    const storedData = await this.storage.getItem(this.storageKey);
-    if (storedData) {
-      try {
-        this.models = JSON.parse(storedData);
-      } catch (error) {
-        console.error('Failed to parse model configuration:', error);
-        return undefined;
-      }
-    }
-    return this.models[key];
+    const models = await this.getModelsFromStorage();
+    return models[key];
   }
 
   /**
@@ -182,13 +185,8 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        // 关键修复：使用内存中的完整模型列表作为基础
-        const models = { ...this.models };
-
-        // 如果存储中有数据，合并到内存状态中
-        if (currentModels) {
-          Object.assign(models, currentModels);
-        }
+        // 使用存储中的数据，如果不存在则使用默认配置
+        const models = currentModels || this.getDefaultModels();
 
         if (models[key]) {
           throw new ModelConfigError(`Model ${key} already exists`);
@@ -204,13 +202,6 @@ export class ModelManager implements IModelManager {
         };
       }
     );
-
-    // 更新内存状态
-    this.models[key] = {
-      ...config,
-      // Deep copy llmParams to avoid reference sharing
-      ...(config.llmParams && { llmParams: { ...config.llmParams } })
-    };
   }
 
   /**
@@ -218,43 +209,29 @@ export class ModelManager implements IModelManager {
    */
   async updateModel(key: string, config: Partial<ModelConfig>): Promise<void> {
     await this.ensureInitialized();
-    let updatedConfig: ModelConfig | undefined;
 
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        // 关键修复：确保始终基于完整的模型数据进行更新
-        // 如果存储数据不完整，使用内存中的完整数据作为基础
-        let models = currentModels;
-        if (!models || Object.keys(models).length === 0) {
-          console.warn('[ModelManager] Storage data is empty, using memory data as base');
-          models = { ...this.models };
-        } else {
-          // 确保存储数据包含所有默认模型
-          const defaults = this.getDefaultModels();
-          for (const [defaultKey, defaultConfig] of Object.entries(defaults)) {
-            if (!models[defaultKey]) {
-              console.log(`[ModelManager] Adding missing default model to storage: ${defaultKey}`);
-              models[defaultKey] = defaultConfig;
-            }
-          }
-        }
+        // 使用存储中的数据，如果不存在则使用默认配置
+        const models = currentModels || this.getDefaultModels();
 
         // 如果模型不存在，检查是否是内置模型
         if (!models[key]) {
-          if (!defaultModels[key]) {
+          const defaults = this.getDefaultModels();
+          if (!defaults[key]) {
             throw new ModelConfigError(`Model ${key} does not exist`);
           }
           // 如果是内置模型但尚未配置，创建初始配置
           models[key] = {
-            ...defaultModels[key],
+            ...defaults[key],
             // Deep copy llmParams to avoid reference sharing
-            ...(defaultModels[key].llmParams && { llmParams: { ...defaultModels[key].llmParams } })
+            ...(defaults[key].llmParams && { llmParams: { ...defaults[key].llmParams } })
           };
         }
 
         // 合并配置时保留原有 enabled 状态
-        updatedConfig = {
+        const updatedConfig = {
           ...models[key],
           ...config,
           // 确保 enabled 属性存在
@@ -270,7 +247,7 @@ export class ModelManager implements IModelManager {
           config.models !== undefined ||
           config.defaultModel !== undefined ||
           config.apiKey !== undefined ||
-          config.llmParams !== undefined || // Added llmParams as a trigger
+          config.llmParams !== undefined ||
           config.enabled
         ) {
           this.validateConfig(updatedConfig);
@@ -283,11 +260,6 @@ export class ModelManager implements IModelManager {
         };
       }
     );
-
-    // 只更新特定模型的内存状态，不重新加载全部数据
-    if (updatedConfig) {
-      this.models[key] = updatedConfig;
-    }
   }
 
   /**
@@ -298,13 +270,8 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        // 关键修复：使用内存中的完整模型列表作为基础
-        const models = { ...this.models };
-
-        // 如果存储中有数据，合并到内存状态中
-        if (currentModels) {
-          Object.assign(models, currentModels);
-        }
+        // 使用存储中的数据，如果不存在则使用默认配置
+        const models = currentModels || this.getDefaultModels();
 
         if (!models[key]) {
           throw new ModelConfigError(`Model ${key} does not exist`);
@@ -313,9 +280,6 @@ export class ModelManager implements IModelManager {
         return remaining;
       }
     );
-    
-    // 更新内存状态
-    delete this.models[key];
   }
 
   /**
@@ -326,13 +290,8 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        // 关键修复：使用内存中的完整模型列表作为基础
-        const models = { ...this.models };
-
-        // 如果存储中有数据，合并到内存状态中
-        if (currentModels) {
-          Object.assign(models, currentModels);
-        }
+        // 使用存储中的数据，如果不存在则使用默认配置
+        const models = currentModels || this.getDefaultModels();
 
         if (!models[key]) {
           throw new ModelConfigError(`Unknown model: ${key}`);
@@ -350,11 +309,6 @@ export class ModelManager implements IModelManager {
         };
       }
     );
-
-    // 更新内存状态 - 确保模型存在
-    if (this.models[key]) {
-      this.models[key].enabled = true;
-    }
   }
 
   /**
@@ -365,13 +319,8 @@ export class ModelManager implements IModelManager {
     await this.storage.updateData<Record<string, ModelConfig>>(
       this.storageKey,
       (currentModels) => {
-        // 关键修复：使用内存中的完整模型列表作为基础
-        const models = { ...this.models };
-
-        // 如果存储中有数据，合并到内存状态中
-        if (currentModels) {
-          Object.assign(models, currentModels);
-        }
+        // 使用存储中的数据，如果不存在则使用默认配置
+        const models = currentModels || this.getDefaultModels();
 
         if (!models[key]) {
           throw new ModelConfigError(`Unknown model: ${key}`);
@@ -386,11 +335,6 @@ export class ModelManager implements IModelManager {
         };
       }
     );
-    
-    // 更新内存状态 - 确保模型存在
-    if (this.models[key]) {
-      this.models[key].enabled = false;
-    }
   }
 
   /**
@@ -447,13 +391,7 @@ export class ModelManager implements IModelManager {
     }
   }
 
-  /**
-   * 保存配置到本地存储
-   */
-  private async saveToStorage(): Promise<void> {
-    const dataToSave = JSON.stringify(this.models, null, 2);
-    await this.storage.setItem(this.storageKey, dataToSave);
-  }
+
 
   /**
    * 获取所有已启用的模型配置
@@ -462,6 +400,124 @@ export class ModelManager implements IModelManager {
     await this.ensureInitialized();
     const allModels = await this.getAllModels();
     return allModels.filter(model => model.enabled);
+  }
+
+  // 实现 IImportExportable 接口
+
+  /**
+   * 导出所有模型配置
+   */
+  async exportData(): Promise<ModelConfig[]> {
+    try {
+      return await this.getAllModels();
+    } catch (error) {
+      throw new ImportExportError(
+        'Failed to export model data',
+        await this.getDataType(),
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * 导入模型配置
+   */
+  async importData(data: any): Promise<void> {
+    // 基本格式验证：必须是数组
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid model data format: data must be an array of model configurations');
+    }
+
+    const models = data as (ModelConfig & { key: string })[];
+    const failedModels: { model: ModelConfig & { key: string }; error: Error }[] = [];
+
+    // Import each model individually, capturing failures
+    for (const model of models) {
+      try {
+        // 使用 validateData 验证单个模型
+        if (!this.validateSingleModel(model)) {
+          console.warn(`Skipping invalid model configuration:`, model);
+          failedModels.push({ model, error: new Error('Invalid model configuration') });
+          continue;
+        }
+
+        // 检查模型是否已存在（包括内置模型）
+        const existingModel = await this.getModel(model.key);
+
+        if (existingModel) {
+          // 内置模型和自定义模型都允许更新配置，使用导入文件中的启用状态
+          const mergedConfig: ModelConfig = {
+            name: model.name,
+            baseURL: model.baseURL || existingModel.baseURL,
+            models: model.models || existingModel.models,
+            defaultModel: model.defaultModel || existingModel.defaultModel,
+            provider: model.provider || existingModel.provider,
+            enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled, // 优先使用导入的启用状态
+            ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
+            ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
+            ...(model.llmParams !== undefined && { llmParams: model.llmParams })
+          };
+          await this.updateModel(model.key, mergedConfig);
+          console.log(`Model ${model.key} already exists, configuration updated (using imported enabled status: ${mergedConfig.enabled})`);
+        } else {
+          // 如果模型不存在，添加新的自定义模型，使用导入文件中的启用状态
+          const newModelConfig: ModelConfig = {
+            name: model.name,
+            baseURL: model.baseURL || 'https://api.example.com/v1', // 提供默认值
+            models: model.models || [],
+            defaultModel: model.defaultModel || (model.models && model.models[0]) || 'default-model',
+            provider: model.provider || 'custom',
+            enabled: model.enabled !== undefined ? model.enabled : false, // 使用导入的启用状态，默认为false
+            ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
+            ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
+            ...(model.llmParams !== undefined && { llmParams: model.llmParams })
+          };
+          await this.addModel(model.key, newModelConfig);
+          console.log(`Imported new model ${model.key} (enabled: ${newModelConfig.enabled})`);
+        }
+      } catch (error) {
+        console.warn(`Error importing model ${model.key}:`, error);
+        failedModels.push({ model, error: error as Error });
+      }
+    }
+
+    if (failedModels.length > 0) {
+      console.warn(`Failed to import ${failedModels.length} models`);
+      // 不抛出错误，允许部分成功的导入
+    }
+  }
+
+  /**
+   * 获取数据类型标识
+   */
+  async getDataType(): Promise<string> {
+    return 'models';
+  }
+
+  /**
+   * 验证模型数据格式
+   */
+  async validateData(data: any): Promise<boolean> {
+    if (!Array.isArray(data)) {
+      return false;
+    }
+
+    return data.every(item => this.validateSingleModel(item));
+  }
+
+  /**
+   * 验证单个模型配置
+   */
+  private validateSingleModel(item: any): boolean {
+    return typeof item === 'object' &&
+      item !== null &&
+      typeof item.key === 'string' && // 导入数据必须包含key
+      typeof item.name === 'string' &&
+      typeof item.baseURL === 'string' &&
+      Array.isArray(item.models) &&
+      typeof item.defaultModel === 'string' &&
+      typeof item.enabled === 'boolean' &&
+      typeof item.provider === 'string';
   }
 }
 

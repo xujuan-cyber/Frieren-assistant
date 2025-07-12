@@ -64,4 +64,38 @@ export class ElectronModelManagerProxy implements IModelManager {
   async getEnabledModels(): Promise<Array<ModelConfig & { key: string }>> {
     return this.electronAPI.model.getEnabledModels();
   }
-} 
+
+  // 实现 IImportExportable 接口
+
+  /**
+   * 导出所有模型配置
+   */
+  async exportData(): Promise<ModelConfig[]> {
+    return (this.electronAPI as any).model.exportData();
+  }
+
+  /**
+   * 导入模型配置
+   */
+  async importData(data: any): Promise<void> {
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeData = safeSerializeForIPC(data);
+    return (this.electronAPI as any).model.importData(safeData);
+  }
+
+  /**
+   * 获取数据类型标识
+   */
+  async getDataType(): Promise<string> {
+    return (this.electronAPI as any).model.getDataType();
+  }
+
+  /**
+   * 验证模型数据格式
+   */
+  async validateData(data: any): Promise<boolean> {
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeData = safeSerializeForIPC(data);
+    return (this.electronAPI as any).model.validateData(safeData);
+  }
+}

@@ -1,36 +1,19 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
+import { ref } from 'vue'
 import OutputDisplay from '../../src/components/OutputDisplay.vue'
+import type { AppServices } from '../../src/types/services'
+import type { ICompareService } from '@prompt-optimizer/core'
+// 导入真实的翻译文件
+import zhCN from '../../src/i18n/locales/zh-CN'
 
-// 创建 i18n 实例
+// 创建 i18n 实例 - 使用真实翻译文件但简化配置
 const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
   messages: {
-    'zh-CN': {
-      common: {
-        copy: '复制',
-        content: '内容',
-        noContent: '暂无内容',
-        clickToEdit: '点击编辑',
-        generating: '生成中...',
-        generatingReasoning: '推理中...',
-        copyContent: '复制内容',
-        copyAll: '复制全部',
-        cancel: '取消',
-        confirm: '确认',
-        edit: '编辑',
-        expand: '展开',
-        loading: '加载中...',
-        copySuccess: '复制成功',
-        copyFailed: '复制失败',
-        render: '渲染',
-        source: '原文',
-        reasoning: '思考过程',
-        compare: '对比'
-      }
-    }
+    'zh-CN': zhCN  // 使用真实翻译文件
   }
 })
 
@@ -46,11 +29,38 @@ Object.assign(document, {
   execCommand: vi.fn().mockReturnValue(true)
 })
 
+// 创建 mock CompareService
+const mockCompareService: ICompareService = {
+  compareTexts: vi.fn().mockReturnValue({
+    fragments: [],
+    summary: { additions: 0, deletions: 0, unchanged: 0 }
+  })
+}
+
+// 创建 mock AppServices
+const mockServices: AppServices = {
+  modelManager: {} as any,
+  templateManager: {} as any,
+  historyManager: {} as any,
+  dataManager: {} as any,
+  llmService: {} as any,
+  promptService: {} as any,
+  templateLanguageService: {} as any,
+  preferenceService: {} as any,
+  compareService: mockCompareService
+}
+
+// 创建响应式的 services ref
+const servicesRef = ref<AppServices | null>(mockServices)
+
 describe('OutputDisplay 组件', () => {
   it('应该能正确渲染内容', () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '这是测试内容',
@@ -64,7 +74,10 @@ describe('OutputDisplay 组件', () => {
   it('应该能显示推理内容', async () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '主要内容',
@@ -74,7 +87,7 @@ describe('OutputDisplay 组件', () => {
     })
 
     expect(wrapper.text()).toContain('思考过程')
-    
+
     // 点击推理头部展开推理内容
     const reasoningHeader = wrapper.find('.reasoning-header')
     if (reasoningHeader.exists()) {
@@ -86,7 +99,10 @@ describe('OutputDisplay 组件', () => {
   it('应该能处理编辑模式', async () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '可编辑内容',
@@ -98,7 +114,7 @@ describe('OutputDisplay 组件', () => {
     // V2版本中，检查工具栏是否存在
     const toolbar = wrapper.find('[data-testid="output-display-toolbar"]')
     expect(toolbar.exists()).toBe(true)
-    
+
     // 检查视图控制按钮
     expect(wrapper.text()).toContain('渲染')
     expect(wrapper.text()).toContain('原文')
@@ -107,7 +123,10 @@ describe('OutputDisplay 组件', () => {
   it('应该能发出复制事件', async () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '测试内容',
@@ -127,7 +146,10 @@ describe('OutputDisplay 组件', () => {
   it('应该能处理流式状态', () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '',
@@ -148,7 +170,10 @@ describe('OutputDisplay 组件', () => {
   it('应该能处理加载状态', () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '',
@@ -168,7 +193,10 @@ describe('OutputDisplay 组件', () => {
   it('应该能正确处理推理内容的展开/折叠', async () => {
     const wrapper = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '主要内容',
@@ -182,7 +210,7 @@ describe('OutputDisplay 组件', () => {
     if (reasoningHeader.exists()) {
       // 点击推理头部折叠
       await reasoningHeader.trigger('click')
-      
+
       // 应该发出 reasoning-toggle 事件
       expect(wrapper.emitted('reasoning-toggle')).toBeTruthy()
     }
@@ -192,7 +220,10 @@ describe('OutputDisplay 组件', () => {
     // 测试 hide 模式
     const wrapperHide = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '内容',
@@ -207,7 +238,10 @@ describe('OutputDisplay 组件', () => {
     // 测试 show 模式
     const wrapperShow = mount(OutputDisplay, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n],
+        provide: {
+          services: servicesRef
+        }
       },
       props: {
         content: '内容',
@@ -227,7 +261,10 @@ describe('OutputDisplay 组件', () => {
     it('应该能正确处理只读模式下的长文本滚动', () => {
       const wrapper = mount(OutputDisplay, {
         global: {
-          plugins: [i18n]
+          plugins: [i18n],
+          provide: {
+            services: servicesRef
+          }
         },
         props: {
           content: longContent,
@@ -237,7 +274,7 @@ describe('OutputDisplay 组件', () => {
 
       // 验证长文本内容存在
       expect(wrapper.text()).toContain('这是一段很长的测试内容')
-      
+
       // 验证主内容区域存在
       const contentArea = wrapper.find('.output-display__content')
       expect(contentArea.exists()).toBe(true)
@@ -246,7 +283,10 @@ describe('OutputDisplay 组件', () => {
     it('应该能正确处理编辑模式下的长文本滚动', async () => {
       const wrapper = mount(OutputDisplay, {
         global: {
-          plugins: [i18n]
+          plugins: [i18n],
+          provide: {
+            services: servicesRef
+          }
         },
         props: {
           content: longContent,
@@ -261,14 +301,17 @@ describe('OutputDisplay 组件', () => {
       if (sourceButton) {
         await sourceButton.trigger('click')
       }
-      
+
       expect(wrapper.find('textarea').exists()).toBe(true)
     })
 
     it('应该能同时处理长推理内容和长文本内容', () => {
       const wrapper = mount(OutputDisplay, {
         global: {
-          plugins: [i18n]
+          plugins: [i18n],
+          provide: {
+            services: servicesRef
+          }
         },
         props: {
           content: longContent,
@@ -280,7 +323,7 @@ describe('OutputDisplay 组件', () => {
       // 验证推理区域存在
       const reasoningHeader = wrapper.find('.reasoning-header')
       expect(reasoningHeader.exists()).toBe(true)
-      
+
       // 验证主内容区域存在
       const contentArea = wrapper.find('.output-display__content')
       expect(contentArea.exists()).toBe(true)
@@ -289,7 +332,10 @@ describe('OutputDisplay 组件', () => {
     it('应该能在全屏模式下处理长文本', async () => {
       const wrapper = mount(OutputDisplay, {
         global: {
-          plugins: [i18n]
+          plugins: [i18n],
+          provide: {
+            services: servicesRef
+          }
         },
         props: {
           content: longContent,

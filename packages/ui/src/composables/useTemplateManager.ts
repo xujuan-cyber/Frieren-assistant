@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { usePreferences } from './usePreferenceManager'
 import type { Template, ITemplateManager } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
-import { TEMPLATE_SELECTION_KEYS } from '../constants/storage-keys'
+import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
 
 interface TemplateSelector extends Element {
   __vueParentComponent?: {

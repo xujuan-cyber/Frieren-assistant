@@ -63,23 +63,15 @@ describe('FileStorageProvider - Real File System Integration', () => {
       expect(value).toBe('existing-value');
     });
 
-    it('should handle corrupted file gracefully', async () => {
+    it('should throw error when file is corrupted and no backup exists', async () => {
       // 创建损坏的JSON文件
       await fs.writeFile(storageFile, 'invalid json content', 'utf8');
-      
+
       // 创建新的provider实例
       const newProvider = new FileStorageProvider(testDir);
-      
-      // 应该能够处理损坏的文件并创建新的存储
-      await newProvider.setItem('recovery-key', 'recovery-value');
-      
-      // 等待写入完成
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      // 验证文件被重新创建且内容正确
-      const content = await fs.readFile(storageFile, 'utf8');
-      const data = JSON.parse(content);
-      expect(data['recovery-key']).toBe('recovery-value');
+
+      // 应该抛出StorageError而不是创建新存储
+      await expect(newProvider.setItem('recovery-key', 'recovery-value')).rejects.toThrow('Storage corruption detected');
     });
 
     it('should persist data across provider instances', async () => {

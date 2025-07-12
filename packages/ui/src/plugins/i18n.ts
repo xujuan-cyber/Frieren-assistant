@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import zhCN from '../i18n/locales/zh-CN'
 import enUS from '../i18n/locales/en-US'
 import { getPreference, setPreference } from '../composables/usePreferenceManager'
-import { UI_SETTINGS_KEYS } from '../constants/storage-keys'
+import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 // 定义支持的语言类型

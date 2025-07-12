@@ -5,19 +5,22 @@ import { MemoryStorageProvider } from '../../../src/services/storage/memoryStora
 import { createTemplateLanguageService, TemplateLanguageService } from '../../../src/services/template/languageService';
 import { StaticLoader } from '../../../src/services/template/static-loader';
 import { Template } from '../../../src/services/template/types';
+import { PreferenceService } from '../../../src/services/preference/service';
 
 describe('TemplateManager with Mocked LanguageService', () => {
   let storageProvider: IStorageProvider;
   let languageService: TemplateLanguageService;
   let templateManager: TemplateManager;
   let staticLoader: StaticLoader;
+  let preferenceService: PreferenceService;
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
     staticLoader = new StaticLoader();
+    preferenceService = new PreferenceService(storageProvider);
 
     // Create a real language service instance and spy on its methods
-    languageService = createTemplateLanguageService(storageProvider);
+    languageService = createTemplateLanguageService(preferenceService);
     
     vi.spyOn(languageService, 'initialize').mockResolvedValue(undefined);
     vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('en-US');

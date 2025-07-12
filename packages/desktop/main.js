@@ -85,6 +85,56 @@ function setupPreferenceHandlers() {
       return createErrorResponse(error);
     }
   });
+
+  ipcMain.handle('preference-getAll', async (event) => {
+    try {
+      const result = await preferenceService.getAll();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Preference Import/Export Data handlers (for bulk operations)
+  ipcMain.handle('preference-exportData', async (event) => {
+    try {
+      const result = await preferenceService.exportData();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('preference-importData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      await preferenceService.importData(safeData);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('preference-getDataType', async (event) => {
+    try {
+      const result = preferenceService.getDataType();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('preference-validateData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      const result = await preferenceService.validateData(safeData);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
 }
 
 function createWindow() {
@@ -237,7 +287,7 @@ async function initializeServices() {
     modelManager = createModelManager(storageProvider);
     
     console.log('[DESKTOP] Creating template language service...');
-    templateLanguageService = createTemplateLanguageService(storageProvider);
+    templateLanguageService = createTemplateLanguageService(preferenceService);
 
     console.log('[DESKTOP] Initializing template language service...');
     await templateLanguageService.initialize();
@@ -258,7 +308,7 @@ async function initializeServices() {
     promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
     
     console.log('[DESKTOP] Creating Data manager...');
-    dataManager = createDataManager(modelManager, templateManager, historyManager, storageProvider);
+    dataManager = createDataManager(modelManager, templateManager, historyManager, preferenceService);
     
     console.log('[Main Process] Core services initialized successfully.');
     
@@ -539,6 +589,47 @@ function setupIPC() {
     }
   });
 
+  // Model Import/Export Data handlers (for bulk operations)
+  ipcMain.handle('model-exportData', async (event) => {
+    try {
+      const result = await modelManager.exportData();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('model-importData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      await modelManager.importData(safeData);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('model-getDataType', async (event) => {
+    try {
+      const result = modelManager.getDataType();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('model-validateData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      const result = await modelManager.validateData(safeData);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
   // Template Manager handlers
   ipcMain.handle('template-getTemplates', async (event) => {
     try {
@@ -615,6 +706,47 @@ function setupIPC() {
     try {
       await templateManager.importTemplate(jsonString);
       return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Template Import/Export Data handlers (for bulk operations)
+  ipcMain.handle('template-exportData', async (event) => {
+    try {
+      const result = await templateManager.exportData();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-importData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      await templateManager.importData(safeData);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-getDataType', async (event) => {
+    try {
+      const result = templateManager.getDataType();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('template-validateData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      const result = templateManager.validateData(safeData);
+      return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
     }
@@ -750,6 +882,47 @@ function setupIPC() {
     try {
       await historyManager.deleteChain(chainId);
       return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // History Import/Export Data handlers (for bulk operations)
+  ipcMain.handle('history-exportData', async (event) => {
+    try {
+      const result = await historyManager.exportData();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('history-importData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      await historyManager.importData(safeData);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('history-getDataType', async (event) => {
+    try {
+      const result = historyManager.getDataType();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('history-validateData', async (event, data) => {
+    try {
+      // 清理Vue响应式对象，防止IPC序列化错误
+      const safeData = safeSerialize(data);
+      const result = await historyManager.validateData(safeData);
+      return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
     }

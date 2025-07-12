@@ -41,4 +41,47 @@ export class ElectronPreferenceServiceProxy implements IPreferenceService {
     this.ensureApiAvailable();
     return window.electronAPI.preference.clear();
   }
-} 
+
+  async getAll(): Promise<Record<string, string>> {
+    this.ensureApiAvailable();
+    return (window.electronAPI as any).preference.getAll();
+  }
+
+  // 实现 IImportExportable 接口
+
+  /**
+   * 导出所有偏好设置
+   */
+  async exportData(): Promise<Record<string, string>> {
+    this.ensureApiAvailable();
+    return (window.electronAPI as any).preference.exportData();
+  }
+
+  /**
+   * 导入偏好设置
+   */
+  async importData(data: any): Promise<void> {
+    this.ensureApiAvailable();
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeData = safeSerializeForIPC(data);
+    return (window.electronAPI as any).preference.importData(safeData);
+  }
+
+  /**
+   * 获取数据类型标识
+   */
+  async getDataType(): Promise<string> {
+    this.ensureApiAvailable();
+    return (window.electronAPI as any).preference.getDataType();
+  }
+
+  /**
+   * 验证偏好设置数据格式
+   */
+  async validateData(data: any): Promise<boolean> {
+    this.ensureApiAvailable();
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeData = safeSerializeForIPC(data);
+    return (window.electronAPI as any).preference.validateData(safeData);
+  }
+}

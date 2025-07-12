@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 import { i18n } from '../plugins/i18n'
-import { UI_SETTINGS_KEYS } from '../constants/storage-keys'
+import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 import { usePreferences } from '../composables/usePreferenceManager'
 import type { Ref } from 'vue'
 import type { AppServices } from '../types/services'

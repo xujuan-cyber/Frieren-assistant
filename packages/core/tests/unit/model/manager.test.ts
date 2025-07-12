@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ModelManager, createModelManager } from '../../../src/services/model/manager';
 import { IStorageProvider } from '../../../src/services/storage/types';
 import { ModelConfig } from '../../../src/services/model/types';
@@ -26,10 +26,17 @@ describe('ModelManager', () => {
   beforeEach(async () => {
     // 为每个测试创建一个新的、干净的内存存储实例
     storageProvider = new MemoryStorageProvider();
+    // 清理存储状态
+    await storageProvider.clearAll();
     // 使用工厂函数创建 ModelManager 实例
     modelManager = createModelManager(storageProvider);
     // 确保在每个测试运行前，ModelManager 都已完全初始化
     await modelManager.ensureInitialized();
+  });
+
+  afterEach(async () => {
+    // 清理存储状态
+    await storageProvider.clearAll();
   });
 
   describe('addModel', () => {

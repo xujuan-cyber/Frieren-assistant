@@ -1,4 +1,6 @@
-import { IStorageProvider } from '../storage/types';
+
+import { IPreferenceService } from '../preference/types';
+import { UI_SETTINGS_KEYS } from '../../constants/storage-keys';
 
 /**
  * Supported built-in template languages
@@ -23,16 +25,15 @@ export interface ITemplateLanguageService {
  * Simplified built-in template language service
  */
 export class TemplateLanguageService implements ITemplateLanguageService {
-  private readonly STORAGE_KEY = 'builtin-template-language';
   private readonly SUPPORTED_LANGUAGES: BuiltinTemplateLanguage[] = ['zh-CN', 'en-US'];
   private readonly DEFAULT_LANGUAGE: BuiltinTemplateLanguage = 'en-US';
 
   private currentLanguage: BuiltinTemplateLanguage = this.DEFAULT_LANGUAGE;
-  private storage: IStorageProvider;
+  private preferenceService: IPreferenceService;
   private initialized = false;
 
-  constructor(storage: IStorageProvider) {
-    this.storage = storage;
+  constructor(preferenceService: IPreferenceService) {
+    this.preferenceService = preferenceService;
   }
 
   /**
@@ -44,21 +45,21 @@ export class TemplateLanguageService implements ITemplateLanguageService {
     }
 
     try {
-      const savedLanguage = await this.storage.getItem(this.STORAGE_KEY);
-      
+      const savedLanguage = await this.preferenceService.get(UI_SETTINGS_KEYS.BUILTIN_TEMPLATE_LANGUAGE, null);
+
       if (savedLanguage && await this.isValidLanguage(savedLanguage)) {
         this.currentLanguage = savedLanguage as BuiltinTemplateLanguage;
       } else {
         let detectedLanguage: BuiltinTemplateLanguage = this.DEFAULT_LANGUAGE;
-        
+
         // Auto-detect only in browser-like environments where `navigator` is available.
         if (typeof navigator !== 'undefined' && navigator.language) {
           const isChineseBrowser = navigator.language.startsWith('zh');
           detectedLanguage = isChineseBrowser ? 'zh-CN' : 'en-US';
         }
-        
+
         this.currentLanguage = detectedLanguage;
-        await this.storage.setItem(this.STORAGE_KEY, this.currentLanguage);
+        await this.preferenceService.set(UI_SETTINGS_KEYS.BUILTIN_TEMPLATE_LANGUAGE, this.currentLanguage);
       }
       
       this.initialized = true;
@@ -85,7 +86,7 @@ export class TemplateLanguageService implements ITemplateLanguageService {
     }
 
     this.currentLanguage = language;
-    await this.storage.setItem(this.STORAGE_KEY, language);
+    await this.preferenceService.set(UI_SETTINGS_KEYS.BUILTIN_TEMPLATE_LANGUAGE, language);
   }
 
   /**
@@ -135,9 +136,11 @@ export class TemplateLanguageService implements ITemplateLanguageService {
 
 /**
  * 创建模板语言服务实例的工厂函数
- * @param storageProvider 存储提供器实例
+ * @param preferenceService 偏好设置服务实例
  * @returns 模板语言服务实例
  */
-export function createTemplateLanguageService(storageProvider: IStorageProvider): TemplateLanguageService {
-  return new TemplateLanguageService(storageProvider);
+export function createTemplateLanguageService(
+  preferenceService: IPreferenceService
+): TemplateLanguageService {
+  return new TemplateLanguageService(preferenceService);
 }

@@ -1,9 +1,11 @@
-import { ITemplateManager, Template, TemplateManagerConfig } from './types';
+import { ITemplateManager, Template } from './types';
 import { IStorageProvider } from '../storage/types';
 import { StaticLoader } from './static-loader';
 import { TemplateError, TemplateValidationError } from './errors';
 import { templateSchema } from './types';
 import { BuiltinTemplateLanguage, ITemplateLanguageService } from './languageService';
+import { CORE_SERVICE_KEYS } from '../../constants/storage-keys';
+import { ImportExportError } from '../../interfaces/import-export';
 
 
 
@@ -11,18 +13,12 @@ import { BuiltinTemplateLanguage, ITemplateLanguageService } from './languageSer
  * 提示词管理器实现
  */
 export class TemplateManager implements ITemplateManager {
-  private readonly config: Required<TemplateManagerConfig>;
   private readonly staticLoader: StaticLoader;
 
   constructor(
     private storageProvider: IStorageProvider,
-    private languageService: ITemplateLanguageService,
-    config?: TemplateManagerConfig
+    private languageService: ITemplateLanguageService
   ) {
-    this.config = {
-      storageKey: config?.storageKey || 'user-templates',
-      cacheTimeout: config?.cacheTimeout || 5 * 60 * 1000,
-    };
     this.staticLoader = new StaticLoader();
   }
 
@@ -230,9 +226,9 @@ export class TemplateManager implements ITemplateManager {
    */
   private async getUserTemplates(): Promise<Template[]> {
     try {
-      const data = await this.storageProvider.getItem(this.config.storageKey);
+      const data = await this.storageProvider.getItem(CORE_SERVICE_KEYS.USER_TEMPLATES);
       if (!data) return [];
-      
+
       const templates = JSON.parse(data) as Template[];
       
       // Ensure isBuiltin is set to false for loaded templates
@@ -251,7 +247,7 @@ export class TemplateManager implements ITemplateManager {
   private async persistUserTemplates(templates: Template[]): Promise<void> {
     try {
       await this.storageProvider.setItem(
-        this.config.storageKey,
+        CORE_SERVICE_KEYS.USER_TEMPLATES,
         JSON.stringify(templates)
       );
     } catch (error) {
@@ -309,6 +305,139 @@ export class TemplateManager implements ITemplateManager {
    */
   async getSupportedBuiltinTemplateLanguages(): Promise<BuiltinTemplateLanguage[]> {
     return await this.languageService.getSupportedLanguages();
+  }
+
+  // 实现 IImportExportable 接口
+
+  /**
+   * 导出所有用户模板
+   */
+  async exportData(): Promise<Template[]> {
+    try {
+      const allTemplates = await this.listTemplates();
+      // 只导出用户模板，不导出内置模板
+      return allTemplates.filter(template => !template.isBuiltin);
+    } catch (error) {
+      throw new ImportExportError(
+        'Failed to export template data',
+        await this.getDataType(),
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * 导入用户模板
+   */
+  async importData(data: any): Promise<void> {
+    // 基本格式验证：必须是数组
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid template data format: data must be an array of template objects');
+    }
+
+    const templates = data as Template[];
+
+    // Get existing user templates to clean up (替换模式)
+    const existingTemplates = await this.listTemplates();
+    const userTemplateIds = existingTemplates
+      .filter(template => !template.isBuiltin)
+      .map(template => template.id);
+
+    // Delete all existing user templates
+    for (const id of userTemplateIds) {
+      try {
+        await this.deleteTemplate(id);
+      } catch (error) {
+        console.warn(`Failed to delete template ${id}:`, error);
+      }
+    }
+
+    const failedTemplates: { template: Template; error: Error }[] = [];
+
+    // Import each template individually, capturing failures
+    for (const template of templates) {
+      try {
+        // 使用 validateData 验证单个模板
+        if (!this.validateSingleTemplate(template)) {
+          console.warn(`Skipping invalid template configuration:`, template);
+          failedTemplates.push({ template, error: new Error('Invalid template configuration') });
+          continue;
+        }
+
+        // 检查是否与内置模板ID冲突
+        const builtinTemplate = existingTemplates.find(t => t.id === template.id && t.isBuiltin);
+        let finalTemplateId = template.id;
+        let finalTemplateName = template.name;
+
+        if (builtinTemplate) {
+          // 为冲突的模板生成新的ID和名称
+          const timestamp = Date.now();
+          const random = Math.random().toString(36).substr(2, 6);
+          finalTemplateId = `user-${template.id}-${timestamp}-${random}`;
+          finalTemplateName = `${template.name} (导入副本)`;
+          console.warn(`Detected conflict with built-in template ID: ${template.id}, renamed to: ${finalTemplateId}`);
+        }
+
+        // 确保导入的模板标记为用户模板，并为缺失字段提供默认值
+        const userTemplate: Template = {
+          ...template,
+          id: finalTemplateId,
+          name: finalTemplateName,
+          isBuiltin: false,
+          metadata: {
+            version: template.metadata?.version || '1.0.0',
+            lastModified: Date.now(), // 更新为当前时间
+            templateType: template.metadata?.templateType || 'optimize', // 为旧版本数据提供默认类型
+            author: template.metadata?.author || 'User', // 导入的模板标记为用户创建
+            ...(template.metadata?.description && { description: template.metadata.description }),
+            ...(template.metadata?.language && { language: template.metadata.language }) // 只在原本有language字段时才保留
+          }
+        };
+
+        await this.saveTemplate(userTemplate);
+        console.log(`Imported template: ${finalTemplateId} (${finalTemplateName})`);
+      } catch (error) {
+        console.warn('Failed to import template:', error);
+        failedTemplates.push({ template, error: error as Error });
+      }
+    }
+
+    if (failedTemplates.length > 0) {
+      console.warn(`Failed to import ${failedTemplates.length} templates`);
+      // 不抛出错误，允许部分成功的导入
+    }
+  }
+
+  /**
+   * 获取数据类型标识
+   */
+  async getDataType(): Promise<string> {
+    return 'userTemplates';
+  }
+
+  /**
+   * 验证模板数据格式
+   */
+  async validateData(data: any): Promise<boolean> {
+    if (!Array.isArray(data)) {
+      return false;
+    }
+
+    return data.every(item => this.validateSingleTemplate(item));
+  }
+
+  /**
+   * 验证单个模板配置
+   */
+  private validateSingleTemplate(item: any): boolean {
+    return typeof item === 'object' &&
+      item !== null &&
+      typeof item.id === 'string' &&
+      typeof item.name === 'string' &&
+      typeof item.content === 'string' &&
+      typeof item.isBuiltin === 'boolean' &&
+      typeof item.metadata === 'object' &&
+      item.metadata !== null;
   }
 }
 

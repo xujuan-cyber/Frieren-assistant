@@ -3,7 +3,7 @@ import { DataManager } from '../../../src/services/data/manager';
 import { IHistoryManager } from '../../../src/services/history/types';
 import { IModelManager } from '../../../src/services/model/types';
 import { ITemplateManager, Template } from '../../../src/services/template/types';
-import { IStorageProvider } from '../../../src/services/storage/types';
+import { IPreferenceService } from '../../../src/services/preference/types';
 import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
 
 describe('DataManager', () => {
@@ -11,14 +11,28 @@ describe('DataManager', () => {
   let mockModelManager: IModelManager;
   let mockTemplateManager: ITemplateManager;
   let mockHistoryManager: IHistoryManager;
-  let mockStorageProvider: IStorageProvider;
+  let mockPreferenceService: IPreferenceService;
+  let mockStorageProvider: MemoryStorageProvider;
 
   beforeEach(() => {
-    // 1. 为每个测试创建一个全新的存储提供程序
+    // 1. 创建存储提供者的mock
     mockStorageProvider = new MemoryStorageProvider();
-    vi.spyOn(mockStorageProvider, 'setItem'); // 监视 setItem 以进行设置测试
 
-    // 2. 为每个管理器创建全面的模拟对象
+    // 2. 创建PreferenceService的mock
+    mockPreferenceService = {
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      keys: vi.fn().mockResolvedValue([]),
+      clear: vi.fn().mockResolvedValue(undefined),
+      getAll: vi.fn().mockResolvedValue({}),
+      exportData: vi.fn().mockResolvedValue({}),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockReturnValue('userSettings'),
+      validateData: vi.fn().mockReturnValue(true),
+    };
+
+    // 3. 为每个管理器创建全面的模拟对象
     mockModelManager = {
       getAllModels: vi.fn().mockResolvedValue([]),
       addModel: vi.fn().mockResolvedValue(undefined),
@@ -28,6 +42,13 @@ describe('DataManager', () => {
       disableModel: vi.fn().mockResolvedValue(undefined),
       getModel: vi.fn().mockResolvedValue(null),
       getEnabledModels: vi.fn().mockResolvedValue([]),
+      getDefaultModel: vi.fn().mockResolvedValue(null),
+      ensureInitialized: vi.fn().mockResolvedValue(undefined),
+      isInitialized: vi.fn().mockResolvedValue(true),
+      exportData: vi.fn(),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockResolvedValue('models'),
+      validateData: vi.fn().mockReturnValue(true),
     };
 
     mockTemplateManager = {
@@ -42,6 +63,11 @@ describe('DataManager', () => {
       getSupportedBuiltinTemplateLanguages: vi.fn().mockReturnValue(['en-US', 'zh-CN']),
       reloadBuiltinTemplates: vi.fn().mockResolvedValue(undefined),
       listTemplatesByType: vi.fn().mockReturnValue([]),
+      addTemplate: vi.fn().mockResolvedValue(undefined),
+      exportData: vi.fn(),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockResolvedValue('userTemplates'),
+      validateData: vi.fn().mockReturnValue(true),
     };
 
     mockHistoryManager = {
@@ -54,14 +80,21 @@ describe('DataManager', () => {
       getChain: vi.fn().mockResolvedValue(null),
       getAllChains: vi.fn().mockResolvedValue([]),
       deleteChain: vi.fn().mockResolvedValue(undefined),
+      getIterationChain: vi.fn().mockResolvedValue([]),
+      createNewChain: vi.fn().mockResolvedValue({}),
+      addIteration: vi.fn().mockResolvedValue({}),
+      exportData: vi.fn(),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockReturnValue('history'),
+      validateData: vi.fn().mockReturnValue(true),
     };
 
-    // 3. 使用正确的参数顺序实例化 DataManager
+    // 4. 使用正确的参数顺序实例化 DataManager
     dataManager = new DataManager(
       mockModelManager,
       mockTemplateManager,
       mockHistoryManager,
-      mockStorageProvider
+      mockPreferenceService
     );
   });
 
@@ -73,11 +106,22 @@ describe('DataManager', () => {
     it('should fetch data from all managers and return a JSON string', async () => {
       const models = [{ id: 'model1', name: 'Test Model' }];
       const templates: Template[] = [{ id: 'tpl1', name: 'Test Template', content: 'c', isBuiltin: false, metadata: { templateType: 'optimize', version: '1.0', lastModified: 0 } }];
-      const history = [{ id: 'hist1', prompt: 'Test Prompt' }];
+      const history = [{
+        id: 'hist1',
+        originalPrompt: 'Test Prompt',
+        optimizedPrompt: 'Test Response',
+        type: 'optimize',
+        chainId: 'chain-hist1',
+        version: 1,
+        timestamp: Date.now(),
+        modelKey: 'test-model',
+        templateId: 'test-template'
+      }];
       
-      (mockModelManager.getAllModels as vi.Mock).mockResolvedValue(models);
-      (mockTemplateManager.listTemplates as vi.Mock).mockReturnValue(templates);
-      (mockHistoryManager.getRecords as vi.Mock).mockResolvedValue(history as any);
+      (mockModelManager.exportData as vi.Mock).mockResolvedValue(models);
+      (mockTemplateManager.exportData as vi.Mock).mockResolvedValue(templates.filter(t => !t.isBuiltin));
+      (mockHistoryManager.exportData as vi.Mock).mockResolvedValue(history as any);
+      (mockPreferenceService.exportData as vi.Mock).mockResolvedValue({});
 
       const jsonString = await dataManager.exportAllData();
       const data = JSON.parse(jsonString);
@@ -95,7 +139,17 @@ describe('DataManager', () => {
       data: {
         models: [{ key: 'imp-model1', id: 'imp-model1', name: 'Imported Model' }],
         userTemplates: [{ id: 'imp-tpl1', name: 'Imported Template', content: 'test content', isBuiltin: false, metadata: { templateType: 'optimize', version: '1.0', lastModified: 0 } }],
-        history: [{ id: 'imp-hist1', prompt: 'Imported Prompt' }],
+        history: [{
+          id: 'imp-hist1',
+          originalPrompt: 'Imported Prompt',
+          optimizedPrompt: 'Optimized Response',
+          type: 'optimize',
+          chainId: 'chain-imp-hist1',
+          version: 1,
+          timestamp: Date.now(),
+          modelKey: 'test-model',
+          templateId: 'test-template'
+        }],
         userSettings: { 'app:settings:ui:theme-id': 'dark' },
       },
     };
@@ -103,16 +157,10 @@ describe('DataManager', () => {
     it('should clear existing data and import new data', async () => {
       await dataManager.importAllData(JSON.stringify(importData));
 
-      expect(mockHistoryManager.clearHistory).toHaveBeenCalled();
-      expect(mockModelManager.addModel).toHaveBeenCalledWith('imp-model1', expect.objectContaining({
-        name: 'Imported Model'
-      }));
-      expect(mockTemplateManager.saveTemplate).toHaveBeenCalledWith(expect.objectContaining({
-        id: 'imp-tpl1',
-        name: 'Imported Template'
-      }));
-      expect(mockHistoryManager.addRecord).toHaveBeenCalledWith(importData.data.history[0]);
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:theme-id', 'dark');
+      expect(mockModelManager.importData).toHaveBeenCalledWith(importData.data.models);
+      expect(mockTemplateManager.importData).toHaveBeenCalledWith(importData.data.userTemplates);
+      expect(mockHistoryManager.importData).toHaveBeenCalledWith(importData.data.history);
+      expect(mockPreferenceService.importData).toHaveBeenCalledWith(importData.data.userSettings);
     });
 
     it('should throw an error for invalid JSON string', async () => {
@@ -125,24 +173,34 @@ describe('DataManager', () => {
 
     it('should support old format for backward compatibility', async () => {
       const oldFormatData = {
-        history: [{ id: 'old-hist1', prompt: 'Old Format Prompt' }],
+        history: [{
+          id: 'old-hist1',
+          originalPrompt: 'Old Format Prompt',
+          optimizedPrompt: 'Old Format Response',
+          type: 'optimize',
+          chainId: 'chain-old-hist1',
+          version: 1,
+          timestamp: Date.now(),
+          modelKey: 'old-model',
+          templateId: 'old-template'
+        }],
         models: [{ key: 'old-model1', name: 'Old Format Model' }],
         userTemplates: [{ id: 'old-tpl1', name: 'Old Format Template', content: 'old content', isBuiltin: false, metadata: { templateType: 'optimize', version: '1.0', lastModified: 0 } }],
         userSettings: { 'app:settings:ui:theme-id': 'light' },
       };
       
       await expect(dataManager.importAllData(JSON.stringify(oldFormatData))).resolves.not.toThrow();
-      expect(mockModelManager.addModel).toHaveBeenCalled();
-      expect(mockTemplateManager.saveTemplate).toHaveBeenCalled();
-      expect(mockHistoryManager.addRecord).toHaveBeenCalled();
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:theme-id', 'light');
+      expect(mockModelManager.importData).toHaveBeenCalled();
+      expect(mockTemplateManager.importData).toHaveBeenCalled();
+      expect(mockHistoryManager.importData).toHaveBeenCalled();
+      expect(mockPreferenceService.importData).toHaveBeenCalled();
     });
     
     it('should not throw error if parts of data are missing', async () => {
         const partialData = { version: 1, data: { models: [{ key: 'm1', name: 'Model 1' }] } };
         await expect(dataManager.importAllData(JSON.stringify(partialData))).resolves.not.toThrow();
-        expect(mockModelManager.addModel).toHaveBeenCalled();
-        expect(mockTemplateManager.saveTemplate).not.toHaveBeenCalled();
+        expect(mockModelManager.importData).toHaveBeenCalled();
+        expect(mockTemplateManager.importData).not.toHaveBeenCalled();
     });
 
     it('should only import whitelisted UI settings', async () => {
@@ -156,8 +214,7 @@ describe('DataManager', () => {
         },
       };
       await dataManager.importAllData(JSON.stringify(securityTestPayload));
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:theme-id', 'dark');
-      expect(mockStorageProvider.setItem).not.toHaveBeenCalledWith('app:settings:ui:malicious-key', expect.anything());
+      expect(mockPreferenceService.importData).toHaveBeenCalledWith(securityTestPayload.data.userSettings);
     });
 
     it('should handle legacy UI setting keys with backward compatibility', async () => {
@@ -179,16 +236,8 @@ describe('DataManager', () => {
 
       await dataManager.importAllData(JSON.stringify(legacyTestPayload));
 
-      // 验证旧版本键名被正确转换并导入
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:theme-id', 'dark');
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:preferred-language', 'en');
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:settings:ui:builtin-template-language', 'zh');
-
-      // 验证新版本键名正常导入
-      expect(mockStorageProvider.setItem).toHaveBeenCalledWith('app:selected-optimize-model', 'gemini');
-
-      // 验证无效键名被忽略
-      expect(mockStorageProvider.setItem).not.toHaveBeenCalledWith('invalid-key', expect.anything());
+      // 验证 PreferenceService 的 importData 被调用
+      expect(mockPreferenceService.importData).toHaveBeenCalledWith(legacyTestPayload.data.userSettings);
     });
   });
 });

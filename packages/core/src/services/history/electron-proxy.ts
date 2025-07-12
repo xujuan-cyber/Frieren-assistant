@@ -74,4 +74,38 @@ export class ElectronHistoryManagerProxy implements IHistoryManager {
   async deleteChain(chainId: string): Promise<void> {
     return this.electronAPI.history.deleteChain(chainId);
   }
-} 
+
+  // 实现 IImportExportable 接口
+
+  /**
+   * 导出所有历史记录
+   */
+  async exportData(): Promise<PromptRecord[]> {
+    return (this.electronAPI as any).history.exportData();
+  }
+
+  /**
+   * 导入历史记录
+   */
+  async importData(data: any): Promise<void> {
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeData = safeSerializeForIPC(data);
+    return (this.electronAPI as any).history.importData(safeData);
+  }
+
+  /**
+   * 获取数据类型标识
+   */
+  async getDataType(): Promise<string> {
+    return (this.electronAPI as any).history.getDataType();
+  }
+
+  /**
+   * 验证历史记录数据格式
+   */
+  async validateData(data: any): Promise<boolean> {
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeData = safeSerializeForIPC(data);
+    return (this.electronAPI as any).history.validateData(safeData);
+  }
+}

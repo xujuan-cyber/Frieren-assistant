@@ -67,3 +67,20 @@ export { isRunningInElectron, isElectronApiReady, waitForElectronApi, checkVerce
 
 // 导出IPC序列化工具
 export { safeSerializeForIPC, debugIPCSerializability, safeSerializeArgs } from './utils/ipc-serialization'
+
+// 导出存储键常量
+export {
+  CORE_SERVICE_KEYS,
+  UI_SETTINGS_KEYS,
+  MODEL_SELECTION_KEYS,
+  TEMPLATE_SELECTION_KEYS,
+  ALL_STORAGE_KEYS,
+  ALL_STORAGE_KEYS_ARRAY
+} from './constants/storage-keys'
+export type {
+  CoreServiceKey,
+  UISettingsKey,
+  ModelSelectionKey,
+  TemplateSelectionKey,
+  StorageKey
+} from './constants/storage-keys'

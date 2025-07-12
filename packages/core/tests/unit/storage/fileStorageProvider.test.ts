@@ -72,17 +72,18 @@ describe('FileStorageProvider', () => {
       expect(mockFs.readFile).toHaveBeenCalledWith(mockFilePath, 'utf8');
     });
 
-    it('should handle corrupted file by creating new storage', async () => {
-      mockFs.access.mockResolvedValue(undefined);
-      mockFs.readFile.mockResolvedValue('invalid json');
-      mockFs.mkdir.mockResolvedValue(undefined);
-      mockFs.writeFile.mockResolvedValue(undefined);
-      mockFs.rename.mockResolvedValue(undefined);
+    it('should throw error when both main and backup files are corrupted', async () => {
+      // Mock both main and backup files exist but are corrupted
+      mockFs.access
+        .mockResolvedValueOnce(undefined) // main file exists
+        .mockResolvedValueOnce(undefined); // backup file exists
 
-      const result = await provider.getItem('test-key');
-      
-      expect(result).toBeNull();
-      expect(mockFs.writeFile).toHaveBeenCalled();
+      mockFs.readFile
+        .mockResolvedValueOnce('invalid json') // corrupted main file
+        .mockResolvedValueOnce('invalid json'); // corrupted backup file
+
+      await expect(provider.getItem('test-key')).rejects.toThrow(StorageError);
+      await expect(provider.getItem('test-key')).rejects.toThrow('Storage corruption detected');
     });
   });
 

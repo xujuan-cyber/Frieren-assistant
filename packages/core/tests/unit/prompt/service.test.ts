@@ -35,7 +35,10 @@ describe('PromptService', () => {
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
-    
+
+    // 清理存储状态
+    await storageProvider.clearAll();
+
     // Create all required services
     languageService = createTemplateLanguageService(storageProvider);
     templateManager = createTemplateManager(storageProvider, languageService);

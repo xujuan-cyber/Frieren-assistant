@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IImportExportable } from '../../interfaces/import-export';
 import type { BuiltinTemplateLanguage } from './languageService';
 
 /**
@@ -38,18 +39,12 @@ export interface Template {
  */
 export type TemplateSourceType = 'builtin' | 'localStorage';
 
-/**
- * 提示词管理器配置
- */
-export interface TemplateManagerConfig {
-  storageKey?: string;     // localStorage存储键名
-  cacheTimeout?: number;   // 缓存超时时间
-}
+// TemplateManagerConfig 已删除 - 配置参数从未被使用
 
 /**
  * 提示词管理器接口
  */
-export interface ITemplateManager {
+export interface ITemplateManager extends IImportExportable {
   /**
    * Get a template by ID
    */

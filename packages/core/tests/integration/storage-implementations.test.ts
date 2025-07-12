@@ -11,6 +11,7 @@ import { createModelManager } from '../../src/services/model/manager';
 import { IStorageProvider } from '../../src/services/storage/types';
 import { PromptRecord } from '../../src/services/history/types';
 import { v4 as uuidv4 } from 'uuid';
+import {createPreferenceService} from "../../src";
 
 // Mock uuid
 vi.mock('uuid', () => ({
@@ -323,7 +324,8 @@ describe('存储实现通用测试', () => {
         let templateManager: TemplateManager;
 
         beforeEach(async () => {
-          const languageService = createTemplateLanguageService(storageProvider);
+          const preferenceService = createPreferenceService(storageProvider)
+          const languageService = createTemplateLanguageService(preferenceService);
           templateManager = createTemplateManager(storageProvider, languageService);
     
         });

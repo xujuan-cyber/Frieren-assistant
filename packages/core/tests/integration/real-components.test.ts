@@ -6,6 +6,7 @@ import { createTemplateManager } from '../../src/services/template/manager'
 import { createTemplateLanguageService } from '../../src/services/template/languageService'
 import { createModelManager } from '../../src/services/model/manager'
 import { createHistoryManager } from '../../src/services/history/manager'
+import { createPreferenceService } from '../../src/services/preference/service'
 import { Template } from '../../src/services/template/types'
 
 /**
@@ -21,22 +22,19 @@ describe('Real Components Integration Tests', () => {
   let promptService: PromptService
 
   beforeEach(async () => {
-    // 使用真实的LocalStorageProvider
+    // 清理存储，确保测试隔离
     storage = new LocalStorageProvider()
     modelManager = createModelManager(storage)
     historyManager = createHistoryManager(storage, modelManager)
-    
-    const languageService = createTemplateLanguageService(storage)
+    const preferenceService = createPreferenceService(storage)
+
+    const languageService = createTemplateLanguageService(storage, preferenceService)
     templateManager = createTemplateManager(storage, languageService)
 
-    
-    dataManager = new DataManager(modelManager, templateManager, historyManager, storage)
-    
+    dataManager = new DataManager(modelManager, templateManager, historyManager, preferenceService)
+
     const llmService = createLLMService(modelManager)
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager)
-
-    // 清理存储，确保测试隔离
-    await storage.clearAll()
   })
 
   afterEach(async () => {

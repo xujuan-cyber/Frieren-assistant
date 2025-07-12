@@ -1,4 +1,4 @@
-import { IDataManager } from './manager';
+import { IDataManager } from './types';
 
 /**
  * Electron环境下的DataManager代理

@@ -62,6 +62,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePreferences } from '../composables/usePreferenceManager';
+import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core';
 import type { Ref } from 'vue';
 import type { AppServices } from '../types/services';
 
@@ -142,7 +143,7 @@ const updateTheme = async () => {
   document.documentElement.setAttribute('data-theme', theme.id);
   
   try {
-    await setPreference('theme-id', theme.id);
+    await setPreference(UI_SETTINGS_KEYS.THEME_ID, theme.id);
   } catch (error) {
     console.error('保存主题设置失败:', error);
   }
@@ -173,7 +174,7 @@ onMounted(async () => {
   requestAnimationFrame(async () => {
     try {
       const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      const themeId = await getPreference('theme-id', defaultTheme);
+      const themeId = await getPreference(UI_SETTINGS_KEYS.THEME_ID, defaultTheme);
       
       // Set current theme
       if (availableThemes.value.find(t => t.id === themeId)) {
@@ -197,7 +198,7 @@ onMounted(async () => {
   const handleChange = async (e: MediaQueryListEvent) => {
     // Only respond to system theme changes when no user theme is set
     try {
-      const userTheme = await getPreference('theme-id', null);
+      const userTheme = await getPreference(UI_SETTINGS_KEYS.THEME_ID, null);
       if (!userTheme) {
         currentTheme.value = e.matches ? 'dark' : 'light';
         await updateTheme();

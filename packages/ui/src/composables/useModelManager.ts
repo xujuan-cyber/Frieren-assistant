@@ -4,7 +4,7 @@ import type { ModelConfig, IModelManager } from '@prompt-optimizer/core'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { usePreferences } from './usePreferenceManager'
-import { MODEL_SELECTION_KEYS } from '../constants/storage-keys'
+import { MODEL_SELECTION_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 export interface ModelManagerHooks {

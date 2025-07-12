@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createTemplateManager } from '../../../src/services/template/manager';
 import { createTemplateLanguageService } from '../../../src/services/template/languageService';
 import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
+import { PreferenceService } from '../../../src/services/preference/service';
 
 describe('Extended Metadata Fields Support', () => {
   let templateManager: any;
@@ -10,7 +11,8 @@ describe('Extended Metadata Fields Support', () => {
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
-    languageService = createTemplateLanguageService(storageProvider);
+    const preferenceService = new PreferenceService(storageProvider);
+    languageService = createTemplateLanguageService(preferenceService);
     templateManager = createTemplateManager(storageProvider, languageService);
 
   });

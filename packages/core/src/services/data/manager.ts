@@ -1,14 +1,18 @@
-import { IHistoryManager, PromptRecord } from '../history/types';
-import { IModelManager, ModelConfig } from '../model/types';
-import { ITemplateManager, Template } from '../template/types';
-import { IStorageProvider } from '../storage/types';
+import { IHistoryManager } from '../history/types';
+import { IModelManager } from '../model/types';
+import { ITemplateManager } from '../template/types';
+import { IPreferenceService } from '../preference/types';
 
-interface AllData {
-  history?: PromptRecord[];
-  models?: Array<ModelConfig & { key: string }>; // Matching ModelManager.getAllModels() return type
-  userTemplates?: Template[];
-  userSettings?: Record<string, string>; // UI配置数据
-}
+/**
+ * 数据导入导出管理器
+ *
+ * 采用协调者模式：
+ * - DataManager只负责协调各个服务的导入导出
+ * - 具体的导入导出实现由各个服务自己负责
+ * - 通过IImportExportable接口统一各服务的导入导出行为
+ */
+
+// 旧版本兼容性处理现在由各个服务自己负责
 
 /**
  * 数据管理器接口
@@ -16,6 +20,7 @@ interface AllData {
 export interface IDataManager {
   /**
    * 导出所有数据
+   * @returns JSON格式的数据字符串
    */
   exportAllData(): Promise<string>;
 
@@ -26,348 +31,102 @@ export interface IDataManager {
   importAllData(dataString: string): Promise<void>;
 }
 
-// 需要导出的UI配置键 - 与UI包的存储键保持一致
-// 注意：这些键应该与packages/ui/src/constants/storage-keys.ts保持同步
-const UI_SETTINGS_KEYS = [
-  'app:settings:ui:theme-id',
-  'app:settings:ui:preferred-language',
-  'app:settings:ui:builtin-template-language',
-  'app:selected-optimize-model',
-  'app:selected-test-model',
-  'app:selected-optimize-template', // 系统优化模板
-  'app:selected-user-optimize-template', // 用户优化模板
-  'app:selected-iterate-template' // 迭代模板
-] as const;
-
-// 旧版本键名映射表 - 用于兼容性处理
-const LEGACY_KEY_MAPPING: Record<string, string> = {
-  // 旧版本的简短键名 -> 新版本的完整键名
-  'theme-id': 'app:settings:ui:theme-id',
-  'preferred-language': 'app:settings:ui:preferred-language',
-  'builtin-template-language': 'app:settings:ui:builtin-template-language',
-  // 其他键名保持不变，因为它们已经有正确的前缀
-};
-
-/**
- * 将旧版本键名转换为新版本键名
- * @param key 原始键名
- * @returns 标准化后的键名
- */
-const normalizeSettingKey = (key: string): string => {
-  return LEGACY_KEY_MAPPING[key] || key;
-};
-
-/**
- * 验证UI配置键是否安全
- */
-const isValidSettingKey = (key: string): boolean => {
-  // 先标准化键名，再验证
-  const normalizedKey = normalizeSettingKey(key);
-  return UI_SETTINGS_KEYS.includes(normalizedKey as any) &&
-         normalizedKey.length <= 50 &&
-         normalizedKey.length > 0 &&
-         !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(normalizedKey); // 排除危险字符和控制字符
-};
-
-/**
- * 验证UI配置值是否安全
- */
-const isValidSettingValue = (value: any): value is string => {
-  return typeof value === 'string' && 
-         value.length <= 1000 && // 限制值的长度
-         !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/.test(value); // 排除控制字符
-};
-
 export class DataManager implements IDataManager {
-  private storage: IStorageProvider;
   private modelManager: IModelManager;
   private templateManager: ITemplateManager;
   private historyManager: IHistoryManager;
+  private preferenceService: IPreferenceService;
 
   constructor(
     modelManager: IModelManager,
     templateManager: ITemplateManager,
     historyManager: IHistoryManager,
-    storage: IStorageProvider
+    preferenceService: IPreferenceService
   ) {
     this.modelManager = modelManager;
     this.templateManager = templateManager;
     this.historyManager = historyManager;
-    this.storage = storage;
+    this.preferenceService = preferenceService;
   }
 
   async exportAllData(): Promise<string> {
-    const historyRecords = await this.historyManager.getRecords();
-    const modelConfigs = await this.modelManager.getAllModels();
-    const allTemplates = await this.templateManager.listTemplates();
-    
-    // Only export user templates (isBuiltin = false)
-    const userTemplates = allTemplates.filter(template => !template.isBuiltin);
-    
-    // Export UI settings
-    const userSettings: Record<string, string> = {};
-    for (const key of UI_SETTINGS_KEYS) {
-      try {
-        const value = await this.storage.getItem(key);
-        if (value !== null) {
-          userSettings[key] = value;
-        }
-      } catch (error) {
-        console.warn(`导出UI配置失败 (${key}):`, error);
-      }
+    const data: Record<string, any> = {};
+
+    try {
+      // 使用各服务的exportData接口，使用固定的键名保持兼容性
+      data['history'] = await this.historyManager.exportData();
+      data['models'] = await this.modelManager.exportData();
+      data['userTemplates'] = await this.templateManager.exportData();
+      data['userSettings'] = await this.preferenceService.exportData();
+    } catch (error) {
+      console.error('导出数据失败:', error);
+      throw error;
     }
-    
-    const data: AllData = {
-      history: historyRecords,
-      models: modelConfigs,
-      userTemplates,
-      userSettings
-    };
-    
+
     const exportFormat = {
       version: 1,
       data
     };
-    
+
     return JSON.stringify(exportFormat, null, 2); // 格式化输出，便于调试
   }
 
   async importAllData(dataString: string): Promise<void> {
-    let data: unknown;
-    
+    let exportData: any;
+
     try {
-      data = JSON.parse(dataString);
+      exportData = JSON.parse(dataString);
     } catch (error) {
       throw new Error('Invalid data format: failed to parse JSON');
     }
-    
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+
+    if (!exportData || typeof exportData !== 'object' || Array.isArray(exportData)) {
       throw new Error('Invalid data format: data must be an object');
     }
-    
+
     // Support both old and new format for backward compatibility
-    let typedData: AllData;
-    const parsedData = data as any;
-    
+    let dataToImport: Record<string, any>;
+
     // New format: { version: 1, data: { ... } }
-    if (parsedData.version) {
-      if (!parsedData.data || typeof parsedData.data !== 'object' || Array.isArray(parsedData.data)) {
+    if (exportData.version) {
+      if (!exportData.data || typeof exportData.data !== 'object' || Array.isArray(exportData.data)) {
         throw new Error('Invalid data format: "data" property is missing or not an object');
       }
-      typedData = parsedData.data as AllData;
+      dataToImport = exportData.data;
     }
     // Old format: direct data object { history: [...], models: [...], ... }
-    else if (parsedData.history || parsedData.models || parsedData.userTemplates || parsedData.userSettings) {
-      typedData = parsedData as AllData;
+    else if (exportData.history || exportData.models || exportData.userTemplates || exportData.userSettings) {
+      dataToImport = exportData;
     }
     else {
       throw new Error('Invalid data format: unrecognized data structure');
     }
-    
-    // Import history records
-    if (typedData.history !== undefined) {
-      if (!Array.isArray(typedData.history)) {
-        throw new Error('Invalid history format: must be an array');
-      }
-      
-      await this.historyManager.clearHistory();
-      
-      const failedRecords: { record: PromptRecord; error: Error }[] = [];
-      
-      // Import each record individually, capturing failures
-      for (const record of typedData.history) {
+
+    const errors: string[] = [];
+
+    // 使用各服务的importData接口
+    const serviceMap = [
+      { service: this.historyManager, dataKey: 'history' },
+      { service: this.modelManager, dataKey: 'models' },
+      { service: this.templateManager, dataKey: 'userTemplates' },
+      { service: this.preferenceService, dataKey: 'userSettings' }
+    ];
+
+    for (const { service, dataKey } of serviceMap) {
+      if (dataToImport[dataKey] !== undefined) {
         try {
-          await this.historyManager.addRecord(record);
+          await service.importData(dataToImport[dataKey]);
+          console.log(`Successfully imported ${dataKey}`);
         } catch (error) {
-          console.warn('Failed to import history record:', error);
-          failedRecords.push({ record, error: error as Error });
+          const errorMessage = `Failed to import ${dataKey}: ${error instanceof Error ? error.message : String(error)}`;
+          errors.push(errorMessage);
+          console.error(errorMessage, error);
         }
-      }
-      
-      if (failedRecords.length > 0) {
-        console.warn(`Failed to import ${failedRecords.length} history records`);
       }
     }
-    
-    // Import model configs
-    if (typedData.models !== undefined) {
-      if (!Array.isArray(typedData.models)) {
-        throw new Error('Invalid models format: must be an array');
-      }
-      
-      const failedModels: { model: ModelConfig & { key: string }; error: Error }[] = [];
-      
-      // Import each model individually, capturing failures
-      for (const model of typedData.models) {
-        try {
-          // 验证模型配置的基本字段，对于旧版本数据要宽松一些
-          if (!model.key || !model.name) {
-            console.warn(`Skipping invalid model configuration: missing required fields (key: ${model.key}, name: ${model.name})`);
-            continue;
-          }
-          
-          // 检查模型是否已存在（包括内置模型）
-          const existingModel = await this.modelManager.getModel(model.key);
-          
-          if (existingModel) {
-            // 内置模型和自定义模型都允许更新配置，使用导入文件中的启用状态
-            const mergedConfig: ModelConfig = { 
-              name: model.name,
-              baseURL: model.baseURL || existingModel.baseURL,
-              models: model.models || existingModel.models,
-              defaultModel: model.defaultModel || existingModel.defaultModel,
-              provider: model.provider || existingModel.provider,
-              enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled, // 优先使用导入的启用状态
-              ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
-              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
-              ...(model.llmParams !== undefined && { llmParams: model.llmParams })
-            };
-            await this.modelManager.updateModel(model.key, mergedConfig);
-            console.log(`Model ${model.key} already exists, configuration updated (using imported enabled status: ${mergedConfig.enabled})`);
-          } else {
-            // 如果模型不存在，添加新的自定义模型，使用导入文件中的启用状态
-            const newModelConfig: ModelConfig = {
-              name: model.name,
-              baseURL: model.baseURL || 'https://api.example.com/v1', // 提供默认值
-              models: model.models || [],
-              defaultModel: model.defaultModel || (model.models && model.models[0]) || 'default-model',
-              provider: model.provider || 'custom',
-              enabled: model.enabled !== undefined ? model.enabled : false, // 使用导入的启用状态，默认为false
-              ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
-              ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
-              ...(model.llmParams !== undefined && { llmParams: model.llmParams })
-            };
-            await this.modelManager.addModel(model.key, newModelConfig);
-            console.log(`Imported new model ${model.key} (enabled: ${newModelConfig.enabled})`);
-          }
-        } catch (error) {
-                      console.warn(`Error importing model ${model.key}:`, error);
-          failedModels.push({ model, error: error as Error });
-        }
-      }
-      
-      if (failedModels.length > 0) {
-        console.warn(`Failed to import ${failedModels.length} models`);
-      }
-    }
-    
-    // Import user templates
-    if (typedData.userTemplates !== undefined) {
-      if (!Array.isArray(typedData.userTemplates)) {
-        throw new Error('Invalid user templates format: must be an array');
-      }
-      
-      // Get existing user templates to clean up
-      const existingTemplates = await this.templateManager.listTemplates();
-      const userTemplateIds = existingTemplates
-        .filter(template => !template.isBuiltin)
-        .map(template => template.id);
-      
-      // Delete all existing user templates
-      for (const id of userTemplateIds) {
-        try {
-          await this.templateManager.deleteTemplate(id);
-        } catch (error) {
-          console.warn(`Failed to delete template ${id}:`, error);
-        }
-      }
-      
-      const failedTemplates: { template: Template; error: Error }[] = [];
-      
-      // Import each template individually, capturing failures
-      for (const template of typedData.userTemplates) {
-        try {
-          // 验证模板的基本字段，对于旧版本数据要宽松一些
-          if (!template.id || !template.name || !template.content) {
-            console.warn(`Skipping invalid template configuration: missing required fields (id: ${template.id}, name: ${template.name})`);
-            continue;
-          }
-          
-          // 检查是否与内置模板ID冲突
-          const builtinTemplate = existingTemplates.find(t => t.id === template.id && t.isBuiltin);
-          let finalTemplateId = template.id;
-          let finalTemplateName = template.name;
-          
-          if (builtinTemplate) {
-            // 为冲突的模板生成新的ID和名称
-            const timestamp = Date.now();
-            const random = Math.random().toString(36).substr(2, 6);
-            finalTemplateId = `user-${template.id}-${timestamp}-${random}`;
-            finalTemplateName = `${template.name} (导入副本)`;
-            console.warn(`Detected conflict with built-in template ID: ${template.id}, renamed to: ${finalTemplateId}`);
-          }
-          
-          // 确保导入的模板标记为用户模板，并为缺失字段提供默认值
-          const userTemplate: Template = {
-            ...template,
-            id: finalTemplateId,
-            name: finalTemplateName,
-            isBuiltin: false,
-            metadata: {
-              version: template.metadata?.version || '1.0.0',
-              lastModified: Date.now(), // 更新为当前时间
-              templateType: template.metadata?.templateType || 'optimize', // 为旧版本数据提供默认类型
-              author: template.metadata?.author || 'User', // 导入的模板标记为用户创建
-              ...(template.metadata?.description && { description: template.metadata.description }),
-              ...(template.metadata?.language && { language: template.metadata.language }) // 只在原本有language字段时才保留
-            }
-          };
-          
-          await this.templateManager.saveTemplate(userTemplate);
-          console.log(`Imported template: ${finalTemplateId} (${finalTemplateName})`);
-        } catch (error) {
-          console.warn('Failed to import template:', error);
-          failedTemplates.push({ template, error: error as Error });
-        }
-      }
-      
-      if (failedTemplates.length > 0) {
-        console.warn(`Failed to import ${failedTemplates.length} templates`);
-      }
-    }
-    
-    // Import UI settings
-    if (typedData.userSettings !== undefined) {
-      if (typeof typedData.userSettings !== 'object' || Array.isArray(typedData.userSettings)) {
-        throw new Error('Invalid user settings format: must be an object');
-      }
-      
-      const failedSettings: { key: string; error: Error }[] = [];
-      
-      for (const [key, value] of Object.entries(typedData.userSettings)) {
-        try {
-          // 验证键名是否安全且在白名单中
-          if (!isValidSettingKey(key)) {
-            console.warn(`Skipping invalid UI configuration key: ${key}`);
-            continue;
-          }
 
-          // 验证值是否安全
-          if (!isValidSettingValue(value)) {
-            console.warn(`Skipping invalid UI configuration value ${key}: type=${typeof value}`);
-            continue;
-          }
-
-          // 标准化键名（处理旧版本兼容性）
-          const normalizedKey = normalizeSettingKey(key);
-
-          await this.storage.setItem(normalizedKey, value);
-
-          // 如果键名被转换了，显示转换信息
-          if (normalizedKey !== key) {
-            console.log(`Imported UI configuration (legacy key converted): ${key} -> ${normalizedKey} = ${value}`);
-          } else {
-            console.log(`Imported UI configuration: ${normalizedKey} = ${value}`);
-          }
-        } catch (error) {
-          console.warn(`Failed to import UI setting ${key}:`, error);
-          failedSettings.push({ key, error: error as Error });
-        }
-      }
-      
-      if (failedSettings.length > 0) {
-        console.warn(`Failed to import ${failedSettings.length} UI settings`);
-      }
+    if (errors.length > 0) {
+      throw new Error(`Import completed with ${errors.length} errors: ${errors.join('; ')}`);
     }
   }
 }
@@ -377,14 +136,14 @@ export class DataManager implements IDataManager {
  * @param modelManager 模型管理器实例
  * @param templateManager 模板管理器实例
  * @param historyManager 历史记录管理器实例
- * @param storage 存储提供器实例
+ * @param preferenceService 偏好设置服务实例
  * @returns 数据管理器实例
  */
 export function createDataManager(
   modelManager: IModelManager,
   templateManager: ITemplateManager,
   historyManager: IHistoryManager,
-  storage: IStorageProvider
+  preferenceService: IPreferenceService
 ): DataManager {
-  return new DataManager(modelManager, templateManager, historyManager, storage);
+  return new DataManager(modelManager, templateManager, historyManager, preferenceService);
 }
