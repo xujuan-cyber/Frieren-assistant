@@ -9,6 +9,7 @@ const IPC_EVENTS = {
 
   // 主进程发送给渲染进程的事件
   UPDATE_AVAILABLE_INFO: 'update-available-info',
+  UPDATE_NOT_AVAILABLE: 'update-not-available',
   UPDATE_DOWNLOAD_PROGRESS: 'update-download-progress',
   UPDATE_DOWNLOADED: 'update-downloaded',
   UPDATE_ERROR: 'update-error'
@@ -18,9 +19,14 @@ const IPC_EVENTS = {
 const withTimeout = (promise, timeoutMs = 30000) => {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
-    )
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        const timeoutError = new Error(`Operation timed out after ${timeoutMs}ms`);
+        timeoutError.code = 'TIMEOUT';
+        timeoutError.detailedMessage = `[${new Date().toISOString()}] Timeout Error:\n\nOperation timed out after ${timeoutMs}ms\nThis usually indicates network connectivity issues or server problems.`;
+        reject(timeoutError);
+      }, timeoutMs);
+    })
   ]);
 };
 
@@ -673,7 +679,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         30000 // 30秒超时，检查更新可能需要网络请求
       );
       if (!result.success) {
-        throw new Error(result.error);
+        console.error('[DEBUG] Preload received error result:', result);
+        // 保留完整的错误信息，不要创建新的 Error 对象
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        console.error('[DEBUG] Preload throwing enhanced error:', error);
+        throw error;
       }
       return result.data;
     },
@@ -683,7 +695,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         10000 // 10秒超时，启动下载应该很快
       );
       if (!result.success) {
-        throw new Error(result.error);
+        // 保留完整的错误信息
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        throw error;
       }
       return result.data;
     },
@@ -693,17 +709,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
         10000 // 10秒超时，安装启动应该很快
       );
       if (!result.success) {
-        throw new Error(result.error);
+        // 保留完整的错误信息
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        throw error;
       }
       return result.data;
     },
-    ignoreVersion: async (version) => {
+    ignoreVersion: async (version, versionType) => {
       const result = await withTimeout(
-        ipcRenderer.invoke(IPC_EVENTS.UPDATE_IGNORE_VERSION, version),
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_IGNORE_VERSION, version, versionType),
         5000 // 5秒超时，设置偏好应该很快
       );
       if (!result.success) {
-        throw new Error(result.error);
+        // 保留完整的错误信息
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        throw error;
       }
       return result.data;
     },

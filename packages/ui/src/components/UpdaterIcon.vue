@@ -2,7 +2,7 @@
   <!-- 仅在Electron环境中显示 -->
   <div v-if="isElectronEnvironment" class="relative">
     <button
-      @click="togglePanel"
+      @click="toggleModal"
       :title="t('updater.checkForUpdates')"
       class="theme-icon-button relative"
       :class="{ 'has-update': state.hasUpdate }"
@@ -52,89 +52,32 @@
       />
     </button>
 
-    <!-- 更新面板 -->
-    <UpdaterPanel
-      v-if="showPanel"
-      :state="state"
-      @close="showPanel = false"
-      @check-update="handleCheckUpdate"
-      @start-download="handleStartDownload"
-      @install-update="handleInstallUpdate"
-      @ignore-update="handleIgnoreUpdate"
-      @toggle-prerelease="handleTogglePrerelease"
-      @open-release-url="handleOpenReleaseUrl"
-    />
+    <!-- 更新模态框 -->
+    <UpdaterModal v-model="showModal" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { useUpdater } from '../composables/useUpdater'
-import UpdaterPanel from './UpdaterPanel.vue'
+import UpdaterModal from './UpdaterModal.vue'
 
 const { t } = useI18n()
 
 // 环境检测
 const isElectronEnvironment = isRunningInElectron()
 
-// 更新器状态和方法
-const {
-  state,
-  checkUpdate,
-  startDownload,
-  installUpdate,
-  ignoreUpdate,
-  togglePrerelease,
-  openReleaseUrl
-} = useUpdater()
+// 只获取状态用于图标显示，不调用任何方法
+const { state } = useUpdater()
 
-// 面板显示状态
-const showPanel = ref(false)
+// 模态框显示状态
+const showModal = ref(false)
 
-// 切换面板显示
-const togglePanel = () => {
-  showPanel.value = !showPanel.value
-}
-
-// 事件处理器
-const handleCheckUpdate = async () => {
-  await checkUpdate()
-}
-
-const handleStartDownload = async () => {
-  await startDownload()
-}
-
-const handleInstallUpdate = async () => {
-  await installUpdate()
-}
-
-const handleIgnoreUpdate = async (version?: string) => {
-  await ignoreUpdate(version)
-  showPanel.value = false // 忽略后关闭面板
-}
-
-const handleTogglePrerelease = async () => {
-  await togglePrerelease()
-}
-
-const handleOpenReleaseUrl = async () => {
-  await openReleaseUrl()
-}
-
-// 点击外部关闭面板
-const handleClickOutside = (event: Event) => {
-  const target = event.target as Element
-  if (!target.closest('.updater-panel') && !target.closest('.theme-icon-button')) {
-    showPanel.value = false
-  }
-}
-
-// 监听点击外部事件
-if (isElectronEnvironment) {
-  document.addEventListener('click', handleClickOutside)
+// 切换模态框显示
+const toggleModal = () => {
+  showModal.value = !showModal.value
 }
 </script>
 

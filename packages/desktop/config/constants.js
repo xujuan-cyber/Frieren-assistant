@@ -13,6 +13,7 @@ const IPC_EVENTS = {
 
   // 主进程发送给渲染进程的事件
   UPDATE_AVAILABLE_INFO: 'update-available-info',
+  UPDATE_NOT_AVAILABLE: 'update-not-available',
   UPDATE_DOWNLOAD_PROGRESS: 'update-download-progress',
   UPDATE_DOWNLOADED: 'update-downloaded',
   UPDATE_ERROR: 'update-error'
@@ -21,7 +22,8 @@ const IPC_EVENTS = {
 // 偏好设置键名常量
 const PREFERENCE_KEYS = {
   ALLOW_PRERELEASE: 'updater.allowPrerelease',
-  IGNORED_VERSION: 'updater.ignoredVersion'
+  IGNORED_VERSION: 'updater.ignoredVersion', // 保留用于向后兼容
+  IGNORED_VERSIONS: 'updater.ignoredVersions' // 新的多版本忽略存储
 };
 
 // 默认配置

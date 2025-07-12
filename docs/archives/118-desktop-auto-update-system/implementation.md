@@ -63,7 +63,7 @@
 - **涉及文件**:
   - `packages/ui/src/composables/useUpdater.ts`
   - `packages/ui/src/components/UpdaterIcon.vue`
-  - `packages/ui/src/components/UpdaterPanel.vue`
+  - `packages/ui/src/components/UpdaterModal.vue`
 
 #### 4.1. `useUpdater` Composable
 
@@ -75,9 +75,9 @@
 
 1.  **条件渲染**: 仅在 Electron 环境中显示，使用 `isRunningInElectron()` 进行环境检测。
 2.  **状态指示**: 根据 `hasUpdate` 状态显示更新提示（如小红点）。
-3.  **点击交互**: 点击图标弹出 `UpdaterPanel` 组件。
+3.  **点击交互**: 点击图标弹出 `UpdaterModal` 组件。
 
-#### 4.3. `UpdaterPanel` 组件
+#### 4.3. `UpdaterModal` 组件
 
 1.  **多状态视图**:
     -   **默认状态**: 显示当前版本，提供"检查更新"按钮。
@@ -214,8 +214,163 @@ const { buildReleaseUrl, validateVersion } = require('./config/update-config');
 
 本技术方案实现了一个完整、安全、用户友好的桌面应用自动更新系统。通过多形态产品兼容性设计，确保了更新功能仅在需要的环境中可见。通过完善的错误处理和状态管理，保证了系统的稳定性和可靠性。
 
+## 12. 深度重构技术实现
+
+### 12.1. 错误处理机制重构
+
+#### 详细错误响应函数
+```javascript
+function createDetailedErrorResponse(error) {
+  const timestamp = new Date().toISOString();
+  let detailedMessage = `[${timestamp}] Error Details:\n\n`;
+
+  if (error instanceof Error) {
+    detailedMessage += `Message: ${error.message}\n`;
+    if (error.code) detailedMessage += `Code: ${error.code}\n`;
+    if (error.statusCode) detailedMessage += `HTTP Status: ${error.statusCode}\n`;
+    if (error.url) detailedMessage += `URL: ${error.url}\n`;
+    if (error.stack) detailedMessage += `\nStack Trace:\n${error.stack}\n`;
+
+    // 捕获其他属性和JSON兜底机制
+    const jsonError = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+    if (jsonError && jsonError !== '{}') {
+      detailedMessage += `\nComplete Object Dump:\n${jsonError}`;
+    }
+  }
+
+  return { success: false, error: detailedMessage };
+}
+```
+
+#### preload.js 错误信息保留
+```javascript
+// 修复前：丢失详细信息
+if (!result.success) {
+  throw new Error(result.error);
+}
+
+// 修复后：保留完整信息
+if (!result.success) {
+  const error = new Error(result.error);
+  error.originalError = result.error;
+  error.detailedMessage = result.error;
+  throw error;
+}
+```
+
+### 12.2. 组件架构重构
+
+#### 智能组件设计
+```vue
+<!-- UpdaterModal.vue - 智能组件 -->
+<script setup lang="ts">
+// 内部管理所有更新逻辑
+const {
+  state,
+  checkUpdate,
+  startDownload,
+  installUpdate,
+  ignoreUpdate,
+  togglePrerelease,
+  openReleaseUrl
+} = useUpdater()
+
+// 简化的接口
+interface Props {
+  modelValue: boolean
+}
+
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
+}>()
+</script>
+```
+
+#### 简化组件设计
+```vue
+<!-- UpdaterIcon.vue - 简化组件 -->
+<script setup lang="ts">
+// 只获取状态用于图标显示
+const { state } = useUpdater()
+
+// 只管理模态框显示
+const showModal = ref(false)
+</script>
+
+<template>
+  <!-- 极简调用 -->
+  <UpdaterModal v-model="showModal" />
+</template>
+```
+
+### 12.3. 开发环境智能处理
+
+#### 环境检测逻辑
+```javascript
+// 开发模式下的更新检查配置
+if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+  const fs = require('fs');
+  const devConfigPath = path.join(__dirname, 'dev-app-update.yml');
+  if (fs.existsSync(devConfigPath)) {
+    autoUpdater.forceDevUpdateConfig = true;
+  } else {
+    // 返回友好的开发环境提示
+    responseData.message = 'Development environment: Update checking is disabled';
+    return createSuccessResponse(responseData);
+  }
+}
+```
+
+### 12.4. 状态管理系统
+
+#### 状态类型定义
+```typescript
+interface UpdaterState {
+  lastCheckResult: 'none' | 'available' | 'not-available' | 'error' | 'dev-disabled'
+  // ... 其他状态
+}
+```
+
+#### 状态转换逻辑
+```javascript
+if (checkData.hasUpdate && checkData.checkResult?.updateInfo) {
+  state.lastCheckResult = 'available'
+} else if (checkData.remoteVersion && !checkData.hasUpdate) {
+  state.lastCheckResult = 'not-available'
+} else if (checkData.message?.includes('Development environment')) {
+  state.lastCheckResult = 'dev-disabled'
+} else {
+  state.lastCheckResult = 'error'
+}
+```
+
+### 12.5. 动态UI实现
+
+#### 根据状态显示不同按钮
+```vue
+<template #footer>
+  <!-- 开发环境：只显示关闭按钮 -->
+  <div v-if="state.lastCheckResult === 'dev-disabled'">
+    <button @click="$emit('update:modelValue', false)">关闭</button>
+  </div>
+
+  <!-- 默认状态：关闭 + 立即检查 -->
+  <div v-else-if="!state.hasUpdate && !state.isCheckingUpdate">
+    <button @click="$emit('update:modelValue', false)">关闭</button>
+    <button @click="handleCheckUpdate">立即检查</button>
+  </div>
+
+  <!-- 有更新：多个操作按钮 -->
+  <div v-else-if="state.hasUpdate">
+    <button @click="handleStartDownload">下载更新</button>
+  </div>
+</template>
+```
+
 关键特性：
 - **用户控制**: 用户完全控制更新时机和选择
 - **环境适配**: 多形态产品的优雅兼容
 - **安全可靠**: 完整的安全验证和错误处理
 - **易于维护**: 配置化设计和完善的文档
+- **架构健壮**: 组件职责清晰，错误处理完善
+- **开发友好**: 智能环境检测，详细错误诊断

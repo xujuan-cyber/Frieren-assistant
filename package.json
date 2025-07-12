@@ -73,6 +73,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "electron"
-    ]
+    ],
+    "overrides": {
+      "builder-util-runtime": "9.2.4"
+    }
   }
 }

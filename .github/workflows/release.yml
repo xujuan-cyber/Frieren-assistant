@@ -30,10 +30,77 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: 动态配置 package.json
+        shell: pwsh
+        run: |
+          $pkgPath = "packages/desktop/package.json"
+          $pkgJson = Get-Content $pkgPath -Raw | ConvertFrom-Json
+
+          # 1. 从 Git 标签提取版本号 (移除 'v' 前缀)
+          $tagVersion = "${{ github.ref }}".replace("refs/tags/v", "")
+          $pkgJson.version = $tagVersion
+          Write-Host "✅ Set version to: $tagVersion"
+
+          # 2. 设置仓库地址 (自动感知当前仓库)
+          $repoUrl = "https://github.com/${{ github.repository }}.git"
+          $pkgJson.repository.url = $repoUrl
+          Write-Host "✅ Set repository URL to: $repoUrl"
+
+          # 3. 判断版本类型并设置发布配置
+          $isPrivate = $False
+          $isPrerelease = $False
+          $versionType = "release"
+
+          # 检查是否为私有仓库 (通过 Token 是否存在判断)
+          if ("${{ secrets.GH_TOKEN_FOR_UPDATER }}" -ne "") {
+            $isPrivate = $True
+            Write-Host "🔒 Detected private repository"
+          } else {
+            Write-Host "🌍 Detected public repository"
+          }
+
+          # 检查版本类型
+          if ($tagVersion -match "-(alpha|beta|rc)") {
+            $isPrerelease = $True
+            $versionType = "prerelease"
+            Write-Host "🧪 Detected prerelease version"
+          } elseif ($tagVersion -match "-(hotfix|patch)") {
+            $isPrerelease = $False
+            $versionType = "hotfix"
+            Write-Host "🔧 Detected hotfix version"
+          } else {
+            $isPrerelease = $False
+            $versionType = "release"
+            Write-Host "🚀 Detected stable release version"
+          }
+
+          # 4. 设置 publish 配置
+          $publishConfig = @{ 
+            provider = "github"
+            private = $isPrivate
+          }
+          $pkgJson.build.publish = $publishConfig
+          Write-Host "✅ Set publish config (private: $isPrivate)"
+
+          # 5. 将修改写回文件
+          $pkgJson | ConvertTo-Json -Depth 10 | Set-Content $pkgPath -Encoding UTF8
+          Write-Host "✅ package.json updated successfully"
+
+          # 6. 输出配置摘要
+          Write-Host ""
+          Write-Host "📋 Configuration Summary:"
+          Write-Host "   Version: $tagVersion"
+          Write-Host "   Type: $versionType"
+          Write-Host "   Repository: $repoUrl"
+          Write-Host "   Private: $isPrivate"
+          Write-Host "   Prerelease: $isPrerelease"
+
       - name: 安装依赖
         run: pnpm install
 
       - name: 构建 Desktop 应用
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATER }}
         run: pnpm build:desktop
 
       - name: 验证构建产物
@@ -86,10 +153,73 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: 动态配置 package.json
+        run: |
+          PKG_PATH="packages/desktop/package.json"
+          
+          # 1. 从 Git 标签提取版本号 (移除 'v' 前缀)
+          TAG_VERSION="${{ github.ref }}"
+          TAG_VERSION="${TAG_VERSION#refs/tags/v}"
+          echo "✅ Set version to: $TAG_VERSION"
+          
+          # 2. 设置仓库地址 (自动感知当前仓库)
+          REPO_URL="https://github.com/${{ github.repository }}.git"
+          echo "✅ Set repository URL to: $REPO_URL"
+          
+          # 3. 判断版本类型并设置发布配置
+          IS_PRIVATE=false
+          IS_PRERELEASE=false
+          VERSION_TYPE="release"
+          
+          # 检查是否为私有仓库 (通过 Token 是否存在判断)
+          if [ -n "${{ secrets.GH_TOKEN_FOR_UPDATER }}" ]; then
+            IS_PRIVATE=true
+            echo "🔒 Detected private repository"
+          else
+            echo "🌍 Detected public repository"
+          fi
+          
+          # 检查版本类型
+          if [[ $TAG_VERSION =~ -(alpha|beta|rc) ]]; then
+            IS_PRERELEASE=true
+            VERSION_TYPE="prerelease"
+            echo "🧪 Detected prerelease version"
+          elif [[ $TAG_VERSION =~ -(hotfix|patch) ]]; then
+            IS_PRERELEASE=false
+            VERSION_TYPE="hotfix"
+            echo "🔧 Detected hotfix version"
+          else
+            IS_PRERELEASE=false
+            VERSION_TYPE="release"
+            echo "🚀 Detected stable release version"
+          fi
+          
+          # 4. 使用 jq 更新 package.json
+          jq --arg version "$TAG_VERSION" \
+             --arg repo_url "$REPO_URL" \
+             --argjson is_private $IS_PRIVATE \
+             '.version = $version | 
+              .repository.url = $repo_url | 
+              .build.publish = {provider: "github", private: $is_private}' \
+             "$PKG_PATH" > "${PKG_PATH}.tmp" && mv "${PKG_PATH}.tmp" "$PKG_PATH"
+          
+          echo "✅ package.json updated successfully"
+          
+          # 5. 输出配置摘要
+          echo ""
+          echo "📋 Configuration Summary:"
+          echo "   Version: $TAG_VERSION"
+          echo "   Type: $VERSION_TYPE"
+          echo "   Repository: $REPO_URL"
+          echo "   Private: $IS_PRIVATE"
+          echo "   Prerelease: $IS_PRERELEASE"
+
       - name: 安装依赖
         run: pnpm install
 
       - name: 构建 Desktop 应用
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATER }}
         run: pnpm build:desktop
 
       - name: 验证构建产物
@@ -141,10 +271,73 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: 动态配置 package.json
+        run: |
+          PKG_PATH="packages/desktop/package.json"
+          
+          # 1. 从 Git 标签提取版本号 (移除 'v' 前缀)
+          TAG_VERSION="${{ github.ref }}"
+          TAG_VERSION="${TAG_VERSION#refs/tags/v}"
+          echo "✅ Set version to: $TAG_VERSION"
+          
+          # 2. 设置仓库地址 (自动感知当前仓库)
+          REPO_URL="https://github.com/${{ github.repository }}.git"
+          echo "✅ Set repository URL to: $REPO_URL"
+          
+          # 3. 判断版本类型并设置发布配置
+          IS_PRIVATE=false
+          IS_PRERELEASE=false
+          VERSION_TYPE="release"
+          
+          # 检查是否为私有仓库 (通过 Token 是否存在判断)
+          if [ -n "${{ secrets.GH_TOKEN_FOR_UPDATER }}" ]; then
+            IS_PRIVATE=true
+            echo "🔒 Detected private repository"
+          else
+            echo "🌍 Detected public repository"
+          fi
+          
+          # 检查版本类型
+          if [[ $TAG_VERSION =~ -(alpha|beta|rc) ]]; then
+            IS_PRERELEASE=true
+            VERSION_TYPE="prerelease"
+            echo "🧪 Detected prerelease version"
+          elif [[ $TAG_VERSION =~ -(hotfix|patch) ]]; then
+            IS_PRERELEASE=false
+            VERSION_TYPE="hotfix"
+            echo "🔧 Detected hotfix version"
+          else
+            IS_PRERELEASE=false
+            VERSION_TYPE="release"
+            echo "🚀 Detected stable release version"
+          fi
+          
+          # 4. 使用 jq 更新 package.json
+          jq --arg version "$TAG_VERSION" \
+             --arg repo_url "$REPO_URL" \
+             --argjson is_private $IS_PRIVATE \
+             '.version = $version | 
+              .repository.url = $repo_url | 
+              .build.publish = {provider: "github", private: $is_private}' \
+             "$PKG_PATH" > "${PKG_PATH}.tmp" && mv "${PKG_PATH}.tmp" "$PKG_PATH"
+          
+          echo "✅ package.json updated successfully"
+          
+          # 5. 输出配置摘要
+          echo ""
+          echo "📋 Configuration Summary:"
+          echo "   Version: $TAG_VERSION"
+          echo "   Type: $VERSION_TYPE"
+          echo "   Repository: $REPO_URL"
+          echo "   Private: $IS_PRIVATE"
+          echo "   Prerelease: $IS_PRERELEASE"
+
       - name: 安装依赖
         run: pnpm install
 
       - name: 构建 Desktop 应用
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATER }}
         run: pnpm build:desktop
 
       - name: 验证构建产物
@@ -194,14 +387,31 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-          # 判断是否为预览版本
-          if [[ $VERSION == *"-"* ]]; then
-            echo "is_prerelease=true" >> $GITHUB_OUTPUT
-            echo "This is a prerelease version"
+          # 详细的版本类型判断
+          IS_PRERELEASE=false
+          VERSION_TYPE="release"
+          RELEASE_NAME_PREFIX=""
+
+          if [[ $VERSION =~ -(alpha|beta|rc) ]]; then
+            IS_PRERELEASE=true
+            VERSION_TYPE="prerelease"
+            RELEASE_NAME_PREFIX="Preview "
+            echo "🧪 Detected prerelease version"
+          elif [[ $VERSION =~ -(hotfix|patch) ]]; then
+            IS_PRERELEASE=false
+            VERSION_TYPE="hotfix"
+            RELEASE_NAME_PREFIX="Hotfix "
+            echo "🔧 Detected hotfix version"
           else
-            echo "is_prerelease=false" >> $GITHUB_OUTPUT
-            echo "This is a stable release"
+            IS_PRERELEASE=false
+            VERSION_TYPE="release"
+            RELEASE_NAME_PREFIX="Release "
+            echo "🚀 Detected stable release version"
           fi
+
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "version_type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+          echo "release_name_prefix=$RELEASE_NAME_PREFIX" >> $GITHUB_OUTPUT
 
       - name: 下载所有构建产物
         uses: actions/download-artifact@v4
@@ -264,9 +474,30 @@ jobs:
           ... 以及其他 $((COMMITS_COUNT - 20)) 个提交"
           fi
 
+          # 根据版本类型设置不同的图标和描述
+          VERSION_ICON="🚀"
+          VERSION_DESC="稳定版本"
+          STABILITY_NOTE=""
+
+          if [[ $CURRENT_TAG =~ -(alpha|beta|rc) ]]; then
+            VERSION_ICON="🧪"
+            VERSION_DESC="预览版本"
+            STABILITY_NOTE="
+
+          > ⚠️ **注意**: 这是一个预览版本，可能包含实验性功能。建议在非生产环境中使用。"
+          elif [[ $CURRENT_TAG =~ -(hotfix|patch) ]]; then
+            VERSION_ICON="🔧"
+            VERSION_DESC="紧急修复版本"
+            STABILITY_NOTE="
+
+          > 🔧 **修复版本**: 此版本主要包含重要问题的修复，建议尽快更新。"
+          fi
+
           # 创建release notes
           cat > release_notes.md << EOF
-          ## 🚀 Prompt Optimizer $CURRENT_TAG
+          ## $VERSION_ICON Prompt Optimizer $CURRENT_TAG
+
+          **版本类型**: $VERSION_DESC$STABILITY_NOTE
 
           ### 📦 下载
           - **Windows**: \`PromptOptimizer-*-win-x64.exe\` (安装程序) 或 \`PromptOptimizer-*-win-x64.zip\` (便携版)
@@ -303,7 +534,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.is_prerelease == 'true' && format('Preview {0}', steps.version.outputs.version) || format('Release {0}', steps.version.outputs.version) }}
+          name: ${{ steps.version.outputs.release_name_prefix }}${{ steps.version.outputs.version }}
           body_path: release_notes.md
           files: |
             ./artifacts/windows-build/*

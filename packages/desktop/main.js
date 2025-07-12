@@ -349,6 +349,72 @@ function createErrorResponse(error) {
   return { success: false, error: errorMessage };
 }
 
+// 创建详细的错误响应，确保100%信息保真
+function createDetailedErrorResponse(error) {
+  const timestamp = new Date().toISOString();
+  let detailedMessage = `[${timestamp}] Error Details:\n\n`;
+
+  // 详细序列化错误信息
+  if (error instanceof Error) {
+    detailedMessage += `Message: ${error.message}\n`;
+
+    if (error.name && error.name !== 'Error') {
+      detailedMessage += `Type: ${error.name}\n`;
+    }
+
+    if (error.code) {
+      detailedMessage += `Code: ${error.code}\n`;
+    }
+
+    if (error.statusCode) {
+      detailedMessage += `HTTP Status: ${error.statusCode}\n`;
+    }
+
+    if (error.url) {
+      detailedMessage += `URL: ${error.url}\n`;
+    }
+
+    if (error.stack) {
+      detailedMessage += `\nStack Trace:\n${error.stack}\n`;
+    }
+
+    // 捕获其他可能的属性
+    const otherProps = {};
+    for (const key in error) {
+      if (!['message', 'name', 'code', 'statusCode', 'url', 'stack'].includes(key)) {
+        try {
+          otherProps[key] = error[key];
+        } catch (e) {
+          otherProps[key] = `[Cannot serialize: ${e.message}]`;
+        }
+      }
+    }
+
+    if (Object.keys(otherProps).length > 0) {
+      detailedMessage += `\nAdditional Properties:\n${JSON.stringify(otherProps, null, 2)}\n`;
+    }
+  } else {
+    // 非 Error 对象的处理
+    detailedMessage += `Value: ${String(error)}\n`;
+    detailedMessage += `Type: ${typeof error}\n`;
+  }
+
+  // 兜底：完整的 JSON 序列化
+  try {
+    const jsonError = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+    if (jsonError && jsonError !== '{}' && jsonError !== 'null') {
+      detailedMessage += `\nComplete Object Dump:\n${jsonError}`;
+    }
+  } catch (jsonError) {
+    detailedMessage += `\nJSON Serialization Failed: ${jsonError.message}`;
+  }
+
+  // 同时在控制台输出详细信息
+  console.error('[Detailed Error Info]', detailedMessage);
+
+  return { success: false, error: detailedMessage };
+}
+
 // --- High-Level IPC Service Handlers ---
 function setupIPC() {
   console.log('[Main Process] Setting up high-level service IPC handlers...');
@@ -1126,6 +1192,48 @@ app.on('window-all-closed', function () {
   }
 });
 
+// 忽略版本管理辅助函数（全局作用域）
+const getIgnoredVersions = async () => {
+  try {
+    // 首先尝试读取新格式的忽略版本数据
+    const ignoredVersions = await preferenceService.get(PREFERENCE_KEYS.IGNORED_VERSIONS, null);
+    if (ignoredVersions && typeof ignoredVersions === 'object') {
+      return ignoredVersions;
+    }
+
+    // 向后兼容：读取旧格式数据并迁移
+    const oldIgnoredVersion = await preferenceService.get(PREFERENCE_KEYS.IGNORED_VERSION, '');
+    if (oldIgnoredVersion) {
+      console.log('[Updater] Migrating old ignored version format:', oldIgnoredVersion);
+      const newFormat = { stable: oldIgnoredVersion, prerelease: null };
+      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSIONS, newFormat);
+      // 清理旧数据
+      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSION, '');
+      return newFormat;
+    }
+
+    return { stable: null, prerelease: null };
+  } catch (error) {
+    console.warn('[Updater] Failed to read ignored versions, using defaults:', error);
+    return { stable: null, prerelease: null };
+  }
+};
+
+const isVersionIgnored = async (version) => {
+  const ignoredVersions = await getIgnoredVersions();
+  const versionType = version.includes('-') ? 'prerelease' : 'stable';
+
+  // 检查对应类型的忽略版本
+  if (versionType === 'stable' && ignoredVersions.stable === version) {
+    return true;
+  }
+  if (versionType === 'prerelease' && ignoredVersions.prerelease === version) {
+    return true;
+  }
+
+  return false;
+};
+
 // 自动更新处理器设置
 async function setupUpdateHandlers() {
   console.log('[Main Process] Setting up auto-update handlers...');
@@ -1138,6 +1246,20 @@ async function setupUpdateHandlers() {
   // 配置更新器基本设置
   autoUpdater.autoDownload = DEFAULT_CONFIG.autoDownload;
 
+  // 开发模式下的更新检查配置
+  if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+    console.log('[Updater] Development mode detected');
+    // 只有在存在 dev-app-update.yml 时才强制启用更新检查
+    const fs = require('fs');
+    const devConfigPath = path.join(__dirname, 'dev-app-update.yml');
+    if (fs.existsSync(devConfigPath)) {
+      console.log('[Updater] Found dev-app-update.yml, enabling update checks');
+      autoUpdater.forceDevUpdateConfig = true;
+    } else {
+      console.log('[Updater] No dev-app-update.yml found, update checks will be skipped in development');
+    }
+  }
+
   // 设置更新事件处理 - 仅在应用启动时设置一次
   autoUpdater.on('update-available', async (info) => {
     console.log('[Updater] Update available:', info);
@@ -1149,19 +1271,16 @@ async function setupUpdateHandlers() {
         return;
       }
 
-      // 读取忽略版本设置，使用错误边界处理
-      let ignoredVersion = '';
+      // 检查版本是否被忽略
       try {
-        ignoredVersion = await preferenceService.get(PREFERENCE_KEYS.IGNORED_VERSION, '');
+        const isIgnored = await isVersionIgnored(info.version);
+        if (isIgnored) {
+          console.log('[Updater] Ignoring version:', info.version);
+          return;
+        }
       } catch (prefError) {
-        console.warn('[Updater] Failed to read ignored version preference, continuing with update check:', prefError);
+        console.warn('[Updater] Failed to check ignored versions, continuing with update check:', prefError);
         // 继续执行，不阻断更新流程
-      }
-
-      // 智能忽略检查
-      if (ignoredVersion && info.version === ignoredVersion) {
-        console.log('[Updater] Ignoring version:', info.version);
-        return;
       }
 
       // 构建安全的GitHub Release页面链接
@@ -1200,6 +1319,9 @@ async function setupUpdateHandlers() {
 
   autoUpdater.on('update-not-available', (info) => {
     console.log('[Updater] No update available:', info);
+    // 注意：现在这个事件监听器主要用于日志记录
+    // 实际的UI更新逻辑已经移到前端的请求-响应模式中
+    // 这样避免了竞争条件和全局状态的问题
   });
 
   autoUpdater.on('error', (error) => {
@@ -1210,10 +1332,13 @@ async function setupUpdateHandlers() {
     isDownloadingUpdate = false;
     isInstallingUpdate = false;
 
-    // 发送错误事件到UI，让用户知道出现了问题
+    // 创建详细的错误信息
+    const detailedErrorResponse = createDetailedErrorResponse(error);
+
+    // 发送详细错误事件到UI
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC_EVENTS.UPDATE_ERROR, {
-        message: error.message || 'Unknown update error',
+        message: detailedErrorResponse.error,
         code: error.code || 'UNKNOWN_ERROR',
         timestamp: new Date().toISOString()
       });
@@ -1236,7 +1361,7 @@ async function setupUpdateHandlers() {
     }
   });
 
-  // 检查更新 - 仅负责触发检查，不管理监听器
+  // 检查更新 - 直接返回完整结果，避免全局状态
   ipcMain.handle(IPC_EVENTS.UPDATE_CHECK, async () => {
     // 检查是否已有更新检查在进行中
     if (isCheckingForUpdate) {
@@ -1275,11 +1400,85 @@ async function setupUpdateHandlers() {
       autoUpdater.allowPrerelease = allowPrerelease;
 
       // 执行更新检查
+      console.log('[Updater] Starting update check...');
       const result = await autoUpdater.checkForUpdates();
-      return createSuccessResponse(result);
+
+      console.log('[DEBUG] ===== BACKEND UPDATE CHECK RESULT =====');
+      console.log('[DEBUG] autoUpdater.checkForUpdates() returned:', result);
+      console.log('[DEBUG] Result type:', typeof result);
+      console.log('[DEBUG] Result is null:', result === null);
+      console.log('[DEBUG] Result is undefined:', result === undefined);
+      if (result) {
+        console.log('[DEBUG] Result.updateInfo:', result.updateInfo);
+        console.log('[DEBUG] Result.updateInfo type:', typeof result.updateInfo);
+      }
+      console.log('[DEBUG] ==========================================');
+
+      // 构建完整的响应数据，包含所有必要信息
+      const currentVersion = require('./package.json').version;
+      let responseData = {
+        checkResult: result,
+        currentVersion: currentVersion,
+        hasUpdate: false,
+        remoteVersion: null,
+        remoteReleaseUrl: null,
+        message: 'Update check completed'
+      };
+
+      if (result && result.updateInfo) {
+        const updateInfo = result.updateInfo;
+        responseData.remoteVersion = updateInfo.version;
+        responseData.hasUpdate = updateInfo.version !== currentVersion;
+
+        // 构建发布页面URL
+        try {
+          responseData.remoteReleaseUrl = buildReleaseUrl(updateInfo.version);
+        } catch (urlError) {
+          console.warn('[Updater] Failed to build release URL:', urlError);
+        }
+
+        if (responseData.hasUpdate) {
+          responseData.message = `New version ${updateInfo.version} is available`;
+        } else {
+          responseData.message = `You are already using the latest version (${updateInfo.version})`;
+        }
+
+        console.log('[Updater] Successfully retrieved update info:', {
+          remoteVersion: updateInfo.version,
+          hasUpdate: responseData.hasUpdate,
+          releaseUrl: responseData.remoteReleaseUrl
+        });
+      } else {
+        // 没有获取到远程版本信息，检查是否是开发环境
+        if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+          const fs = require('fs');
+          const devConfigPath = path.join(__dirname, 'dev-app-update.yml');
+          if (!fs.existsSync(devConfigPath)) {
+            console.log('[Updater] Development environment: Update checking disabled (no dev-app-update.yml)');
+            responseData.message = 'Development environment: Update checking is disabled';
+            responseData.checkResult = null;
+            return createSuccessResponse(responseData);
+          }
+        }
+
+        // 生产环境或配置了开发环境但仍然没有获取到信息
+        console.warn('[Updater] No update info received - this may indicate a configuration or network issue');
+        console.warn('[Updater] Possible causes:');
+        console.warn('  - app-update.yml missing or misconfigured');
+        console.warn('  - Network connectivity issues');
+        console.warn('  - GitHub repository access issues');
+        console.warn('  - Invalid repository configuration');
+
+        responseData.message = 'Unable to check for updates - configuration or network issue';
+        responseData.checkResult = null;
+      }
+
+      return createSuccessResponse(responseData);
     } catch (error) {
       console.error('[Updater] Check update failed:', error);
-      return createErrorResponse(error);
+      const detailedResponse = createDetailedErrorResponse(error);
+      console.error('[DEBUG] Detailed error response being sent:', detailedResponse);
+      return detailedResponse;
     } finally {
       // 无论成功还是失败，都要释放锁
       isCheckingForUpdate = false;
@@ -1308,7 +1507,7 @@ async function setupUpdateHandlers() {
     } catch (error) {
       console.error('[Updater] Download failed:', error);
       isDownloadingUpdate = false; // 失败时重置状态
-      return createErrorResponse(error);
+      return createDetailedErrorResponse(error);
     }
   });
 
@@ -1333,7 +1532,7 @@ async function setupUpdateHandlers() {
       return createSuccessResponse(null);
     } catch (error) {
       console.error('[Updater] Install failed:', error);
-      return createErrorResponse(error);
+      return createDetailedErrorResponse(error);
     } finally {
       // 确保锁总是被释放（虽然quitAndInstall成功时不会执行到这里）
       isInstallingUpdate = false;
@@ -1341,19 +1540,33 @@ async function setupUpdateHandlers() {
   });
 
   // 忽略版本
-  ipcMain.handle(IPC_EVENTS.UPDATE_IGNORE_VERSION, async (event, version) => {
+  ipcMain.handle(IPC_EVENTS.UPDATE_IGNORE_VERSION, async (event, version, versionType) => {
     try {
       // 验证版本号格式
       if (!validateVersion(version)) {
         throw new Error(`Invalid version format: ${version}`);
       }
 
-      console.log('[Updater] Ignoring version:', version);
-      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSION, version);
+      // 如果没有指定类型，根据版本号自动判断
+      if (!versionType) {
+        versionType = version.includes('-') ? 'prerelease' : 'stable';
+      }
+
+      console.log('[Updater] Ignoring version:', version, 'type:', versionType);
+
+      // 获取当前忽略版本数据
+      const ignoredVersions = await getIgnoredVersions();
+
+      // 更新对应类型的忽略版本
+      ignoredVersions[versionType] = version;
+
+      // 保存更新后的数据
+      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSIONS, ignoredVersions);
+
       return createSuccessResponse(null);
     } catch (error) {
       console.error('[Updater] Failed to ignore version:', error);
-      return createErrorResponse(error);
+      return createDetailedErrorResponse(error);
     }
   });
 
