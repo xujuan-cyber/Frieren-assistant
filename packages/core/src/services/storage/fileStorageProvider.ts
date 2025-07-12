@@ -39,8 +39,8 @@ export class FileStorageProvider implements IStorageProvider {
       throw new StorageError('FileStorageProvider requires userDataPath parameter', 'read');
     }
 
-    this.filePath = path.join(userDataPath, 'storage.json');
-    this.backupPath = path.join(userDataPath, 'storage.json' + this.BACKUP_FILE_SUFFIX);
+    this.filePath = path.join(userDataPath, 'prompt-optimizer-data.json');
+    this.backupPath = path.join(userDataPath, 'prompt-optimizer-data.json' + this.BACKUP_FILE_SUFFIX);
   }
   
   /**

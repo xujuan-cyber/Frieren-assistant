@@ -307,7 +307,7 @@ describe('TemplateManager Import/Export', () => {
   });
 
   describe('validateData', () => {
-    it('should validate correct template data', () => {
+    it('should validate correct template data', async () => {
       const validData: Template[] = [
         {
           id: 'test-template',
@@ -326,7 +326,7 @@ describe('TemplateManager Import/Export', () => {
       expect(await templateManager.validateData(validData)).toBe(true);
     });
 
-    it('should reject invalid data formats', () => {
+    it('should reject invalid data formats', async () => {
       // 非数组
       expect(await templateManager.validateData({})).toBe(false);
       expect(await templateManager.validateData('string')).toBe(false);
@@ -357,8 +357,8 @@ describe('TemplateManager Import/Export', () => {
   });
 
   describe('getDataType', () => {
-    it('should return correct data type', () => {
-      expect(templateManager.getDataType()).toBe('userTemplates');
+    it('should return correct data type', async () => {
+      expect(await templateManager.getDataType()).toBe('userTemplates');
     });
   });
 });

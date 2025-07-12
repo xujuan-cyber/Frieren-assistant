@@ -48,7 +48,7 @@ const storage = new FileStorageProvider(userDataPath)  // 新方式
 
 ### 实际验证
 - ✅ 桌面版本成功启动
-- ✅ 自动创建 `prompt-optimizer-data/storage.json` 文件
+- ✅ 自动创建 `prompt-optimizer-data/prompt-optimizer-data.json` 文件
 - ✅ 数据持久化正常工作
 - ✅ 应用重启后配置和历史记录保持
 

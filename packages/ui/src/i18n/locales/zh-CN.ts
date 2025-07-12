@@ -582,5 +582,24 @@ export default {
     "tokens": {
       "unit": "令牌"
     }
+  },
+  updater: {
+    title: '应用更新',
+    checkForUpdates: '检查更新',
+    currentVersion: '当前版本',
+    allowPrerelease: '接收预览版更新',
+    noUpdatesAvailable: '当前已是最新版本',
+    checkNow: '立即检查',
+    checkingForUpdates: '正在检查更新...',
+    newVersionAvailable: '发现新版本',
+    viewDetails: '查看详情',
+    downloadUpdate: '下载更新',
+    ignoreVersion: '忽略此版本',
+    downloading: '正在下载更新...',
+    downloadComplete: '下载完成',
+    installAndRestart: '安装并重启',
+    updateError: '更新失败',
+    downloadError: '下载失败',
+    installError: '安装失败'
   }
-}; 
+};

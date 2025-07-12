@@ -274,7 +274,7 @@ describe('HistoryManager Import/Export', () => {
   });
 
   describe('validateData', () => {
-    it('should validate correct history data', () => {
+    it('should validate correct history data', async () => {
       const validData: PromptRecord[] = [
         {
           id: 'test-record',
@@ -289,10 +289,10 @@ describe('HistoryManager Import/Export', () => {
         }
       ];
 
-      expect(historyManager.validateData(validData)).toBe(true);
+      expect(await historyManager.validateData(validData)).toBe(true);
     });
 
-    it('should validate records with optional fields', () => {
+    it('should validate records with optional fields', async () => {
       const validData: PromptRecord[] = [
         {
           id: 'test-record',
@@ -308,17 +308,17 @@ describe('HistoryManager Import/Export', () => {
         }
       ];
 
-      expect(historyManager.validateData(validData)).toBe(true);
+      expect(await historyManager.validateData(validData)).toBe(true);
     });
 
-    it('should reject invalid data formats', () => {
+    it('should reject invalid data formats', async () => {
       // 非数组
-      expect(historyManager.validateData({})).toBe(false);
-      expect(historyManager.validateData('string')).toBe(false);
-      expect(historyManager.validateData(null)).toBe(false);
+      expect(await historyManager.validateData({})).toBe(false);
+      expect(await historyManager.validateData('string')).toBe(false);
+      expect(await historyManager.validateData(null)).toBe(false);
 
       // 缺少必需字段
-      expect(historyManager.validateData([
+      expect(await historyManager.validateData([
         {
           originalPrompt: 'Test prompt',
           // 缺少id
@@ -328,7 +328,7 @@ describe('HistoryManager Import/Export', () => {
       ])).toBe(false);
 
       // 字段类型错误
-      expect(historyManager.validateData([
+      expect(await historyManager.validateData([
         {
           id: 'test-record',
           originalPrompt: 123, // 应该是字符串
@@ -338,7 +338,7 @@ describe('HistoryManager Import/Export', () => {
       ])).toBe(false);
 
       // timestamp类型错误
-      expect(historyManager.validateData([
+      expect(await historyManager.validateData([
         {
           id: 'test-record',
           originalPrompt: 'Test prompt',
@@ -350,8 +350,8 @@ describe('HistoryManager Import/Export', () => {
   });
 
   describe('getDataType', () => {
-    it('should return correct data type', () => {
-      expect(historyManager.getDataType()).toBe('history');
+    it('should return correct data type', async () => {
+      expect(await historyManager.getDataType()).toBe('history');
     });
   });
 

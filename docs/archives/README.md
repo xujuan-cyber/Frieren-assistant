@@ -45,6 +45,9 @@
 - [116-desktop-packaging-optimization](./116-desktop-packaging-optimization/) - 桌面端打包优化 ✅
 - [117-import-export-architecture-refactor](./117-import-export-architecture-refactor/) - 导入导出架构重构 ✅
 
+### 系统集成系列 (已完成)
+- [118-desktop-auto-update-system](./118-desktop-auto-update-system/) - 桌面端应用发布与智能更新系统 ✅
+
 ## 📋 文档结构
 
 每个功能点目录包含：

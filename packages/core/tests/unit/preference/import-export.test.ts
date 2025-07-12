@@ -158,40 +158,40 @@ describe('PreferenceService Import/Export', () => {
   });
 
   describe('validateData', () => {
-    it('should validate correct preference data', () => {
+    it('should validate correct preference data', async () => {
       const validData = {
         'app:settings:ui:theme-id': 'dark',
         'app:settings:ui:preferred-language': 'zh-CN',
         'app:selected-optimize-model': 'openai'
       };
 
-      expect(preferenceService.validateData(validData)).toBe(true);
+      expect(await preferenceService.validateData(validData)).toBe(true);
     });
 
-    it('should accept numeric and boolean values (converted to string)', () => {
+    it('should accept numeric and boolean values (converted to string)', async () => {
       const validData = {
         'app:settings:ui:theme-id': 'dark',
         'app:settings:ui:preferred-language': 123,
         'app:selected-optimize-model': true
       };
 
-      expect(preferenceService.validateData(validData)).toBe(true);
+      expect(await preferenceService.validateData(validData)).toBe(true);
     });
 
-    it('should reject invalid data formats', () => {
+    it('should reject invalid data formats', async () => {
       // 非对象
-      expect(preferenceService.validateData([])).toBe(false);
-      expect(preferenceService.validateData('string')).toBe(false);
-      expect(preferenceService.validateData(null)).toBe(false);
+      expect(await preferenceService.validateData([])).toBe(false);
+      expect(await preferenceService.validateData('string')).toBe(false);
+      expect(await preferenceService.validateData(null)).toBe(false);
 
       // 数组
-      expect(preferenceService.validateData(['item1', 'item2'])).toBe(false);
+      expect(await preferenceService.validateData(['item1', 'item2'])).toBe(false);
     });
   });
 
   describe('getDataType', () => {
-    it('should return correct data type', () => {
-      expect(preferenceService.getDataType()).toBe('userSettings');
+    it('should return correct data type', async () => {
+      expect(await preferenceService.getDataType()).toBe('userSettings');
     });
   });
 

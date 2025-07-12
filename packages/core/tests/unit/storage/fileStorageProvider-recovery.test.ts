@@ -15,8 +15,8 @@ describe('FileStorageProvider Recovery Safety', () => {
 
   beforeEach(() => {
     tempDir = '/tmp/test-storage';
-    storagePath = path.join(tempDir, 'storage.json');
-    backupPath = path.join(tempDir, 'storage.json.backup');
+    storagePath = path.join(tempDir, 'prompt-optimizer-data.json');
+    backupPath = path.join(tempDir, 'prompt-optimizer-data.json.backup');
     provider = new FileStorageProvider(tempDir);
 
     // Reset all mocks

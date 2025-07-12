@@ -35,6 +35,7 @@ export { default as DataManagerUI } from './components/DataManager.vue'
 export { default as OptimizationModeSelectorUI } from './components/OptimizationModeSelector.vue'
 export { default as TextDiffUI } from './components/TextDiff.vue'
 export { default as OutputDisplayFullscreen } from './components/OutputDisplayFullscreen.vue'
+export { default as UpdaterIcon } from './components/UpdaterIcon.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'

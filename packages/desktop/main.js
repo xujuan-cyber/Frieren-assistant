@@ -1,4 +1,19 @@
+// 在所有其他模块之前初始化日志系统
+const ConsoleLogger = require('./config/console-logger');
+const consoleLogger = new ConsoleLogger();
+
+// 立即设置全局错误处理器，确保任何异常都能被记录
+consoleLogger.setupGlobalErrorHandlers();
+
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
+const {
+  buildReleaseUrl,
+  validateVersion,
+  IPC_EVENTS,
+  PREFERENCE_KEYS,
+  DEFAULT_CONFIG
+} = require('./config/update-config');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -139,7 +154,21 @@ function setupPreferenceHandlers() {
 
 function createWindow() {
   // Create the browser window.
-  const iconPath = path.join(__dirname, 'icons', 'app-icon.ico');
+  // 根据平台选择合适的图标文件
+  let iconPath;
+  if (process.platform === 'win32') {
+    iconPath = path.join(__dirname, 'icons', 'app-icon.ico');
+  } else if (process.platform === 'darwin') {
+    iconPath = path.join(__dirname, 'icons', 'app-icon.icns');
+  } else {
+    // Linux 和其他平台，优先使用高分辨率 PNG
+    const linuxIcons = [
+      path.join(__dirname, 'icons', '512x512.png'),
+      path.join(__dirname, 'icons', '256x256.png'),
+      path.join(__dirname, 'icons', 'app-icon.png')
+    ];
+    iconPath = linuxIcons.find(icon => require('fs').existsSync(icon)) || linuxIcons[2];
+  }
 
   // 检查图标文件是否存在
   if (require('fs').existsSync(iconPath)) {
@@ -264,21 +293,9 @@ async function initializeServices() {
     
     console.log('[DESKTOP] Creating file storage provider for desktop environment');
 
-    // 根据环境确定数据存储路径
-    let userDataPath;
-    if (app.isPackaged) {
-      // 生产环境：ZIP包解压后的portable模式
-      const exePath = app.getPath('exe');
-      const execDir = path.dirname(exePath);
-      userDataPath = path.join(execDir, 'prompt-optimizer-data');
-      console.log('[DESKTOP] Production mode - portable storage in exe directory');
-    } else {
-      // 开发环境：使用项目根目录下的prompt-optimizer-data文件夹
-      userDataPath = path.join(__dirname, '..', '..', 'prompt-optimizer-data');
-      console.log('[DESKTOP] Development mode - project root storage');
-    }
-
-    console.log('[DESKTOP] Data storage path:', userDataPath);
+    // 使用标准用户数据目录，支持自动更新
+    const userDataPath = app.getPath('userData');
+    console.log('[DESKTOP] Using standard user data directory for auto-update compatibility:', userDataPath);
     storageProvider = new FileStorageProvider(userDataPath);
     
     await initializePreferenceService(storageProvider);
@@ -974,6 +991,11 @@ function setupIPC() {
   ipcMain.handle('shell-openExternal', async (event, url) => {
     try {
       console.log('[Main Process] Opening external URL:', url);
+      // 安全性检查：仅允许 http/https 协议
+      const urlObj = new URL(url);
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        throw new Error(`Unsupported protocol: ${urlObj.protocol}`);
+      }
       await shell.openExternal(url);
       return createSuccessResponse(true);
     } catch (error) {
@@ -981,6 +1003,40 @@ function setupIPC() {
       return createErrorResponse(error);
     }
   });
+
+  // 应用信息处理器
+  ipcMain.handle('app-get-version', () => {
+    try {
+      const packageJson = require('./package.json');
+      return createSuccessResponse(packageJson.version);
+    } catch (error) {
+      console.error('[Main Process] Failed to get app version:', error);
+      return createErrorResponse(error);
+    }
+  });
+
+  // 日志相关处理器
+  ipcMain.handle('logs-get-paths', () => {
+    try {
+      const paths = consoleLogger.getLogPaths();
+      return createSuccessResponse(paths);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('logs-open-directory', async () => {
+    try {
+      const { logDir } = consoleLogger.getLogPaths();
+      await shell.openPath(logDir);
+      return createSuccessResponse(true);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // 自动更新相关处理器
+  setupUpdateHandlers();
 
   console.log('[Main Process] High-level service IPC handlers ready.');
 }
@@ -1020,16 +1076,7 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// 捕获未处理的异常，防止程序卡死
-process.on('uncaughtException', (error) => {
-  console.error('[DESKTOP] Uncaught exception:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[DESKTOP] Unhandled rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
+// 全局异常处理已在 console-logger 中设置
 
 // 应用退出前保存数据
 app.on('before-quit', async (event) => {
@@ -1078,3 +1125,237 @@ app.on('window-all-closed', function () {
     app.quit();
   }
 });
+
+// 自动更新处理器设置
+async function setupUpdateHandlers() {
+  console.log('[Main Process] Setting up auto-update handlers...');
+
+  // 更新操作状态锁，防止并发调用
+  let isCheckingForUpdate = false;
+  let isDownloadingUpdate = false;
+  let isInstallingUpdate = false;
+
+  // 配置更新器基本设置
+  autoUpdater.autoDownload = DEFAULT_CONFIG.autoDownload;
+
+  // 设置更新事件处理 - 仅在应用启动时设置一次
+  autoUpdater.on('update-available', async (info) => {
+    console.log('[Updater] Update available:', info);
+
+    try {
+      // 验证版本号格式
+      if (!validateVersion(info.version)) {
+        console.error('[Updater] Invalid version format:', info.version);
+        return;
+      }
+
+      // 读取忽略版本设置，使用错误边界处理
+      let ignoredVersion = '';
+      try {
+        ignoredVersion = await preferenceService.get(PREFERENCE_KEYS.IGNORED_VERSION, '');
+      } catch (prefError) {
+        console.warn('[Updater] Failed to read ignored version preference, continuing with update check:', prefError);
+        // 继续执行，不阻断更新流程
+      }
+
+      // 智能忽略检查
+      if (ignoredVersion && info.version === ignoredVersion) {
+        console.log('[Updater] Ignoring version:', info.version);
+        return;
+      }
+
+      // 构建安全的GitHub Release页面链接
+      let releaseUrl;
+      try {
+        releaseUrl = buildReleaseUrl(info.version);
+      } catch (urlError) {
+        console.error('[Updater] Failed to build release URL:', urlError);
+        // 使用fallback URL或跳过URL
+        releaseUrl = null;
+      }
+
+      // 发送更新可用通知到UI
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC_EVENTS.UPDATE_AVAILABLE_INFO, {
+          version: info.version,
+          releaseDate: info.releaseDate,
+          releaseNotes: info.releaseNotes,
+          releaseUrl: releaseUrl
+        });
+      }
+    } catch (error) {
+      console.error('[Updater] Critical error in update-available handler:', error);
+      // 即使出错也要通知用户有更新可用，但不包含详细信息
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC_EVENTS.UPDATE_AVAILABLE_INFO, {
+          version: info.version || 'Unknown',
+          releaseDate: info.releaseDate || null,
+          releaseNotes: null,
+          releaseUrl: null,
+          error: 'Failed to process update information'
+        });
+      }
+    }
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('[Updater] No update available:', info);
+  });
+
+  autoUpdater.on('error', (error) => {
+    console.error('[Updater] Update error:', error);
+
+    // 重置所有状态锁，允许用户重试
+    isCheckingForUpdate = false;
+    isDownloadingUpdate = false;
+    isInstallingUpdate = false;
+
+    // 发送错误事件到UI，让用户知道出现了问题
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC_EVENTS.UPDATE_ERROR, {
+        message: error.message || 'Unknown update error',
+        code: error.code || 'UNKNOWN_ERROR',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    console.log('[Updater] Download progress:', progress);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC_EVENTS.UPDATE_DOWNLOAD_PROGRESS, progress);
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('[Updater] Update downloaded:', info);
+    // 下载完成，重置下载状态
+    isDownloadingUpdate = false;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC_EVENTS.UPDATE_DOWNLOADED, info);
+    }
+  });
+
+  // 检查更新 - 仅负责触发检查，不管理监听器
+  ipcMain.handle(IPC_EVENTS.UPDATE_CHECK, async () => {
+    // 检查是否已有更新检查在进行中
+    if (isCheckingForUpdate) {
+      console.log('[Updater] Update check already in progress, ignoring request');
+      return createSuccessResponse({
+        message: 'Update check already in progress',
+        inProgress: true
+      });
+    }
+
+    // 设置检查状态锁
+    isCheckingForUpdate = true;
+
+    try {
+      // 读取用户偏好设置，使用错误边界处理和明确的备用方案
+      let allowPrerelease = DEFAULT_CONFIG.allowPrerelease;
+      try {
+        allowPrerelease = await preferenceService.get(PREFERENCE_KEYS.ALLOW_PRERELEASE, DEFAULT_CONFIG.allowPrerelease);
+        console.log('[Updater] Successfully read prerelease preference:', allowPrerelease);
+      } catch (prefError) {
+        console.warn('[Updater] PreferenceService unavailable, using safe default (stable releases only):', prefError);
+        allowPrerelease = false; // 明确的安全默认值
+
+        // 可选：通知用户偏好设置不可用
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('preference-service-warning', {
+            message: 'Settings temporarily unavailable, using default configuration',
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      console.log('[Updater] Checking for updates with settings:', { allowPrerelease });
+
+      // 配置更新器
+      autoUpdater.allowPrerelease = allowPrerelease;
+
+      // 执行更新检查
+      const result = await autoUpdater.checkForUpdates();
+      return createSuccessResponse(result);
+    } catch (error) {
+      console.error('[Updater] Check update failed:', error);
+      return createErrorResponse(error);
+    } finally {
+      // 无论成功还是失败，都要释放锁
+      isCheckingForUpdate = false;
+      console.log('[Updater] Update check completed, lock released');
+    }
+  });
+
+  // 开始下载更新
+  ipcMain.handle(IPC_EVENTS.UPDATE_START_DOWNLOAD, async () => {
+    // 检查是否已有下载在进行中
+    if (isDownloadingUpdate) {
+      console.log('[Updater] Download already in progress, ignoring request');
+      return createSuccessResponse({
+        message: 'Download already in progress',
+        inProgress: true
+      });
+    }
+
+    // 设置下载状态锁
+    isDownloadingUpdate = true;
+
+    try {
+      console.log('[Updater] Starting update download...');
+      await autoUpdater.downloadUpdate();
+      return createSuccessResponse(null);
+    } catch (error) {
+      console.error('[Updater] Download failed:', error);
+      isDownloadingUpdate = false; // 失败时重置状态
+      return createErrorResponse(error);
+    }
+  });
+
+  // 安装更新
+  ipcMain.handle(IPC_EVENTS.UPDATE_INSTALL, async () => {
+    // 检查是否已有安装在进行中
+    if (isInstallingUpdate) {
+      console.log('[Updater] Install already in progress, ignoring request');
+      return createSuccessResponse({
+        message: 'Install already in progress',
+        inProgress: true
+      });
+    }
+
+    // 设置安装状态锁
+    isInstallingUpdate = true;
+
+    try {
+      console.log('[Updater] Installing update and restarting...');
+      // 注意：quitAndInstall会立即退出应用，所以不会执行到finally
+      autoUpdater.quitAndInstall();
+      return createSuccessResponse(null);
+    } catch (error) {
+      console.error('[Updater] Install failed:', error);
+      return createErrorResponse(error);
+    } finally {
+      // 确保锁总是被释放（虽然quitAndInstall成功时不会执行到这里）
+      isInstallingUpdate = false;
+    }
+  });
+
+  // 忽略版本
+  ipcMain.handle(IPC_EVENTS.UPDATE_IGNORE_VERSION, async (event, version) => {
+    try {
+      // 验证版本号格式
+      if (!validateVersion(version)) {
+        throw new Error(`Invalid version format: ${version}`);
+      }
+
+      console.log('[Updater] Ignoring version:', version);
+      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSION, version);
+      return createSuccessResponse(null);
+    } catch (error) {
+      console.error('[Updater] Failed to ignore version:', error);
+      return createErrorResponse(error);
+    }
+  });
+
+  console.log('[Main Process] Auto-update handlers ready.');
+}

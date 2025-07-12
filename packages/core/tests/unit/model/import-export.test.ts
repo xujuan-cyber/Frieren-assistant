@@ -209,7 +209,7 @@ describe('ModelManager Import/Export', () => {
   });
 
   describe('validateData', () => {
-    it('should validate correct model data', () => {
+    it('should validate correct model data', async () => {
       const validData = [
         {
           key: 'test-model',
@@ -225,7 +225,7 @@ describe('ModelManager Import/Export', () => {
       expect(await modelManager.validateData(validData)).toBe(true);
     });
 
-    it('should reject invalid data formats', () => {
+    it('should reject invalid data formats', async () => {
       // 非数组
       expect(await modelManager.validateData({})).toBe(false);
       expect(await modelManager.validateData('string')).toBe(false);

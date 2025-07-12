@@ -36,11 +36,35 @@ jobs:
       - name: 构建 Desktop 应用
         run: pnpm build:desktop
 
+      - name: 验证构建产物
+        shell: bash
+        run: |
+          echo "Checking build artifacts..."
+          ls -la packages/desktop/dist/ || echo "No dist directory found"
+          
+          # 检查是否有构建产物
+          exe_files=$(find packages/desktop/dist -name "*.exe" 2>/dev/null | wc -l)
+          zip_files=$(find packages/desktop/dist -name "*.zip" 2>/dev/null | wc -l)
+          
+          echo "Found $exe_files .exe files and $zip_files .zip files"
+          
+          if [ "$exe_files" -eq 0 ] && [ "$zip_files" -eq 0 ]; then
+            echo "Error: No build artifacts (.exe or .zip) found in packages/desktop/dist/"
+            echo "Directory contents:"
+            find packages/desktop/dist -type f 2>/dev/null || echo "Directory not found or empty"
+            exit 1
+          fi
+          
+          echo "Build artifacts verification passed"
+
       - name: 上传 Windows 构建产物
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: packages/desktop/dist/*.zip
+          path: |
+            packages/desktop/dist/PromptOptimizer-*.exe
+            packages/desktop/dist/PromptOptimizer-*.zip
+            packages/desktop/dist/latest*.yml
           retention-days: 30
 
   # 构建 macOS 版本
@@ -68,11 +92,34 @@ jobs:
       - name: 构建 Desktop 应用
         run: pnpm build:desktop
 
+      - name: 验证构建产物
+        run: |
+          echo "Checking build artifacts..."
+          ls -la packages/desktop/dist/ || echo "No dist directory found"
+          
+          # 检查是否有构建产物
+          dmg_files=$(find packages/desktop/dist -name "*.dmg" 2>/dev/null | wc -l)
+          zip_files=$(find packages/desktop/dist -name "*.zip" 2>/dev/null | wc -l)
+          
+          echo "Found $dmg_files .dmg files and $zip_files .zip files"
+          
+          if [ "$dmg_files" -eq 0 ] && [ "$zip_files" -eq 0 ]; then
+            echo "Error: No build artifacts (.dmg or .zip) found in packages/desktop/dist/"
+            echo "Directory contents:"
+            find packages/desktop/dist -type f 2>/dev/null || echo "Directory not found or empty"
+            exit 1
+          fi
+          
+          echo "Build artifacts verification passed"
+
       - name: 上传 macOS 构建产物
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: packages/desktop/dist/*.zip
+          path: |
+            packages/desktop/dist/*.dmg
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/*.yml
           retention-days: 30
 
   # 构建 Linux 版本
@@ -100,11 +147,34 @@ jobs:
       - name: 构建 Desktop 应用
         run: pnpm build:desktop
 
+      - name: 验证构建产物
+        run: |
+          echo "Checking build artifacts..."
+          ls -la packages/desktop/dist/ || echo "No dist directory found"
+          
+          # 检查是否有构建产物
+          appimage_files=$(find packages/desktop/dist -name "*.AppImage" 2>/dev/null | wc -l)
+          zip_files=$(find packages/desktop/dist -name "*.zip" 2>/dev/null | wc -l)
+          
+          echo "Found $appimage_files .AppImage files and $zip_files .zip files"
+          
+          if [ "$appimage_files" -eq 0 ] && [ "$zip_files" -eq 0 ]; then
+            echo "Error: No build artifacts (.AppImage or .zip) found in packages/desktop/dist/"
+            echo "Directory contents:"
+            find packages/desktop/dist -type f 2>/dev/null || echo "Directory not found or empty"
+            exit 1
+          fi
+          
+          echo "Build artifacts verification passed"
+
       - name: 上传 Linux 构建产物
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: packages/desktop/dist/*.zip
+          path: |
+            packages/desktop/dist/*.AppImage
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/*.yml
           retention-days: 30
 
   # 创建 GitHub Release
@@ -142,6 +212,13 @@ jobs:
         run: |
           echo "构建产物列表:"
           find ./artifacts -type f -name "*" | sort
+
+      - name: 移除调试文件
+        run: |
+          echo "Removing debug files..."
+          find ./artifacts -type f -name "builder-debug.yml" -delete
+          echo "Final artifact list after cleaning:"
+          find ./artifacts -type f | sort
 
       - name: 生成 Release Notes
         id: release_notes
@@ -192,20 +269,28 @@ jobs:
           ## 🚀 Prompt Optimizer $CURRENT_TAG
 
           ### 📦 下载
-          - **Windows**: \`PromptOptimizer-*-win-x64.zip\`
-          - **macOS**: \`PromptOptimizer-*-darwin-x64.zip\` 或 \`PromptOptimizer-*-darwin-arm64.zip\`
-          - **Linux**: \`PromptOptimizer-*-linux-x64.zip\`
+          - **Windows**: \`PromptOptimizer-*-win-x64.exe\` (安装程序) 或 \`PromptOptimizer-*-win-x64.zip\` (便携版)
+          - **macOS**: \`PromptOptimizer-*-darwin-x64.dmg\` (安装程序) 或 \`PromptOptimizer-*-darwin-x64.zip\` (便携版)
+          - **Linux**: \`PromptOptimizer-*-linux-x86_64.AppImage\` (便携版) 或 \`PromptOptimizer-*-linux-x64.zip\` (便携版)
 
           ### 🔧 安装说明
-          - **Windows**: 下载 \`.zip\` 文件，解压到任意目录，运行 \`PromptOptimizer.exe\`
-          - **macOS**: 下载 \`.zip\` 文件，解压到任意目录，运行 \`PromptOptimizer.app\`
-          - **Linux**: 下载 \`.zip\` 文件，解压到任意目录，运行 \`PromptOptimizer\`
+          - **Windows**: 
+            - **安装程序**: 下载 \`.exe\` 文件，双击运行安装向导
+            - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer.exe\`
+          - **macOS**: 
+            - **安装程序**: 下载 \`.dmg\` 文件，双击挂载后拖拽到应用程序文件夹
+            - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer.app\`
+          - **Linux**: 
+            - **AppImage**: 下载 \`.AppImage\` 文件，添加执行权限后直接运行
+            - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer\`
 
           ### 📝 更新内容
           $COMMITS_LIMITED
 
-          ### 🔗 完整更新日志
-          请查看 [CHANGELOG.md](./CHANGELOG.md) 了解详细更新内容。
+          ### 🔗 更多信息
+          - **项目主页**: [GitHub Repository](https://github.com/${{ github.repository }})
+          - **问题反馈**: [Issues](https://github.com/${{ github.repository }}/issues)
+          - **讨论交流**: [Discussions](https://github.com/${{ github.repository }}/discussions)
 
           ---
           **提示**: 如果需要查看完整的提交历史，请访问 [GitHub Commits](https://github.com/\${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG)

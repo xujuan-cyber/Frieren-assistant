@@ -36,6 +36,8 @@
           :text="$t('nav.dataManager')"
           @click="showDataManager = true"
         />
+        <!-- 自动更新组件 - 仅在Electron环境中显示 -->
+        <UpdaterIcon />
         <button
           @click="openGithubRepo"
           class="theme-icon-button"
@@ -163,7 +165,7 @@ import {
   // UI Components
   MainLayoutUI, ThemeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
   LanguageSwitchUI, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
-  ModelSelectUI, TemplateSelectUI, ContentCardUI, ToastUI, TestPanelUI,
+  ModelSelectUI, TemplateSelectUI, ContentCardUI, ToastUI, TestPanelUI, UpdaterIcon,
 
   // Composables
   usePromptOptimizer,

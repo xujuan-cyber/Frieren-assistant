@@ -1,5 +1,29 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// IPC事件名称常量 - 直接内联避免沙箱环境的模块加载问题
+const IPC_EVENTS = {
+  UPDATE_CHECK: 'updater-check-update',
+  UPDATE_START_DOWNLOAD: 'updater-start-download',
+  UPDATE_INSTALL: 'updater-install-update',
+  UPDATE_IGNORE_VERSION: 'updater-ignore-version',
+
+  // 主进程发送给渲染进程的事件
+  UPDATE_AVAILABLE_INFO: 'update-available-info',
+  UPDATE_DOWNLOAD_PROGRESS: 'update-download-progress',
+  UPDATE_DOWNLOADED: 'update-downloaded',
+  UPDATE_ERROR: 'update-error'
+};
+
+// 简单的超时包装器，避免过度设计
+const withTimeout = (promise, timeoutMs = 30000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
+
 // 生成唯一的流式请求ID
 function generateStreamId() {
   return `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -620,6 +644,64 @@ contextBridge.exposeInMainWorld('electronAPI', {
   shell: {
     openExternal: async (url) => {
       const result = await ipcRenderer.invoke('shell-openExternal', url);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+  },
+
+  // App information
+  app: {
+    getVersion: async () => {
+      const result = await withTimeout(
+        ipcRenderer.invoke('app-get-version'),
+        5000 // 5秒超时，获取版本应该很快
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+  },
+
+  // Auto-updater interface with timeout protection
+  updater: {
+    checkUpdate: async () => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_CHECK),
+        30000 // 30秒超时，检查更新可能需要网络请求
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    startDownload: async () => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_START_DOWNLOAD),
+        10000 // 10秒超时，启动下载应该很快
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    installUpdate: async () => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_INSTALL),
+        10000 // 10秒超时，安装启动应该很快
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    ignoreVersion: async (version) => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_IGNORE_VERSION, version),
+        5000 // 5秒超时，设置偏好应该很快
+      );
       if (!result.success) {
         throw new Error(result.error);
       }

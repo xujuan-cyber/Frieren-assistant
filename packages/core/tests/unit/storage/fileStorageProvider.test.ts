@@ -21,7 +21,7 @@ describe('FileStorageProvider', () => {
     vi.clearAllMocks();
     
     mockUserDataPath = '/mock/user/data';
-    mockFilePath = '/mock/user/data/storage.json';
+    mockFilePath = '/mock/user/data/prompt-optimizer-data.json';
     
     // Setup path mocks
     mockPath.join.mockReturnValue(mockFilePath);
@@ -36,7 +36,7 @@ describe('FileStorageProvider', () => {
 
   describe('constructor', () => {
     it('should create instance with provided user data path', () => {
-      expect(mockPath.join).toHaveBeenCalledWith(mockUserDataPath, 'storage.json');
+      expect(mockPath.join).toHaveBeenCalledWith(mockUserDataPath, 'prompt-optimizer-data.json');
     });
 
     it('should throw error when no path provided', () => {

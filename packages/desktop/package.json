@@ -3,12 +3,18 @@
   "version": "1.2.0",
   "description": "Desktop application for Prompt Optimizer",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/linshenkx/prompt-optimizer.git"
+  },
   "scripts": {
     "build": "pnpm run build:web && pnpm run package",
     "build:web": "cd ../web && cross-env ELECTRON_BUILD=true vite build --base=./ && node -e \"const fs=require('fs'),path=require('path'); const src='dist',dest='../desktop/web-dist'; if(fs.existsSync(dest)) fs.rmSync(dest,{recursive:true}); fs.cpSync(src,dest,{recursive:true}); console.log('Web files copied to desktop/web-dist');\"",
     "build:cross-platform": "node build.js",
     "package": "electron-builder",
-    "dev": "cross-env NODE_ENV=development electron ."
+    "dev": "cross-env NODE_ENV=development electron .",
+    "logs:view": "node -e \"const path=require('path');const os=require('os');const {execSync}=require('child_process');const logDir=path.join(os.homedir(),'AppData','Roaming','PromptOptimizer','logs');console.log('日志目录:',logDir);try{execSync('explorer '+logDir);}catch(e){console.log('请手动打开:',logDir);}\"",
+    "logs:clean": "node -e \"const fs=require('fs');const path=require('path');const os=require('os');const logDir=path.join(os.homedir(),'AppData','Roaming','PromptOptimizer','logs');if(fs.existsSync(logDir)){fs.rmSync(logDir,{recursive:true});console.log('日志已清理');}else{console.log('日志目录不存在');}\""
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -18,6 +24,8 @@
   "dependencies": {
     "@prompt-optimizer/core": "workspace:*",
     "dotenv": "^16.0.0",
+    "electron-log": "^5.4.1",
+    "electron-updater": "^6.3.9",
     "node-fetch": "^2.7.0"
   },
   "build": {
@@ -29,23 +37,38 @@
     "files": [
       "main.js",
       "preload.js",
+      "config/**/*",
       "web-dist/**/*",
       "node_modules/**/*"
     ],
+    "publish": null,
     "win": {
-      "target": "zip",
+      "target": [
+        "nsis",
+        "zip"
+      ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
       "icon": "icons/app-icon.ico"
     },
     "mac": {
-      "target": "zip",
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "icon": "icons/app-icon.jpg"
+      "icon": "icons/app-icon.icns"
     },
     "linux": {
-      "target": "zip",
+      "target": [
+        "AppImage",
+        "zip"
+      ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "icon": "icons/app-icon.ico"
+      "icon": "icons/"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   },
   "keywords": [

@@ -582,5 +582,24 @@ export default {
     "tokens": {
       "unit": "tokens"
     }
+  },
+  updater: {
+    title: 'App Updates',
+    checkForUpdates: 'Check for updates',
+    currentVersion: 'Current Version',
+    allowPrerelease: 'Receive prerelease updates',
+    noUpdatesAvailable: 'You are using the latest version',
+    checkNow: 'Check Now',
+    checkingForUpdates: 'Checking for updates...',
+    newVersionAvailable: 'New version available',
+    viewDetails: 'View Details',
+    downloadUpdate: 'Download Update',
+    ignoreVersion: 'Ignore This Version',
+    downloading: 'Downloading update...',
+    downloadComplete: 'Download Complete',
+    installAndRestart: 'Install and Restart',
+    updateError: 'Update failed',
+    downloadError: 'Download failed',
+    installError: 'Installation failed'
   }
-}; 
+};

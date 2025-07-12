@@ -12,7 +12,7 @@ describe('FileStorageProvider - Real File System Integration', () => {
   beforeEach(async () => {
     // 在项目的tests目录下创建临时测试目录
     testDir = path.join(__dirname, '..', '..', 'temp-test-storage');
-    storageFile = path.join(testDir, 'storage.json');
+    storageFile = path.join(testDir, 'prompt-optimizer-data.json');
     
     // 确保测试目录存在
     await fs.mkdir(testDir, { recursive: true });
