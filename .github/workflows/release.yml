@@ -46,20 +46,17 @@ jobs:
           $pkgJson.repository.url = $repoUrl
           Write-Host "✅ Set repository URL to: $repoUrl"
 
-          # 3. 判断版本类型并设置发布配置
-          $isPrivate = $False
+          # 3. 从当前仓库信息提取 owner 和 repo
+          $repoInfo = "${{ github.repository }}".split("/")
+          $repoOwner = $repoInfo[0]
+          $repoName = $repoInfo[1]
+          Write-Host "✅ Set repository owner to: $repoOwner"
+          Write-Host "✅ Set repository name to: $repoName"
+
+          # 4. 判断版本类型
           $isPrerelease = $False
           $versionType = "release"
 
-          # 检查是否为私有仓库 (通过 Token 是否存在判断)
-          if ("${{ secrets.GH_TOKEN_FOR_UPDATER }}" -ne "") {
-            $isPrivate = $True
-            Write-Host "🔒 Detected private repository"
-          } else {
-            Write-Host "🌍 Detected public repository"
-          }
-
-          # 检查版本类型
           if ($tagVersion -match "-(alpha|beta|rc)") {
             $isPrerelease = $True
             $versionType = "prerelease"
@@ -74,25 +71,29 @@ jobs:
             Write-Host "🚀 Detected stable release version"
           }
 
-          # 4. 设置 publish 配置
+          # 5. 设置 publish 配置 (固定为公开仓库)
           $publishConfig = @{ 
             provider = "github"
-            private = $isPrivate
+            owner = $repoOwner
+            repo = $repoName
+            private = $False
           }
           $pkgJson.build.publish = $publishConfig
-          Write-Host "✅ Set publish config (private: $isPrivate)"
+          Write-Host "✅ Set publish config (owner: $repoOwner, repo: $repoName, private: false)"
 
-          # 5. 将修改写回文件
+          # 6. 将修改写回文件
           $pkgJson | ConvertTo-Json -Depth 10 | Set-Content $pkgPath -Encoding UTF8
           Write-Host "✅ package.json updated successfully"
 
-          # 6. 输出配置摘要
+          # 7. 输出配置摘要
           Write-Host ""
           Write-Host "📋 Configuration Summary:"
           Write-Host "   Version: $tagVersion"
           Write-Host "   Type: $versionType"
           Write-Host "   Repository: $repoUrl"
-          Write-Host "   Private: $isPrivate"
+          Write-Host "   Owner: $repoOwner"
+          Write-Host "   Repo: $repoName"
+          Write-Host "   Private: false (fixed)"
           Write-Host "   Prerelease: $isPrerelease"
 
       - name: 安装依赖
@@ -166,20 +167,15 @@ jobs:
           REPO_URL="https://github.com/${{ github.repository }}.git"
           echo "✅ Set repository URL to: $REPO_URL"
           
-          # 3. 判断版本类型并设置发布配置
-          IS_PRIVATE=false
+          # 3. 从当前仓库信息提取 owner 和 repo
+          IFS='/' read -r REPO_OWNER REPO_NAME <<< "${{ github.repository }}"
+          echo "✅ Set repository owner to: $REPO_OWNER"
+          echo "✅ Set repository name to: $REPO_NAME"
+          
+          # 4. 判断版本类型
           IS_PRERELEASE=false
           VERSION_TYPE="release"
           
-          # 检查是否为私有仓库 (通过 Token 是否存在判断)
-          if [ -n "${{ secrets.GH_TOKEN_FOR_UPDATER }}" ]; then
-            IS_PRIVATE=true
-            echo "🔒 Detected private repository"
-          else
-            echo "🌍 Detected public repository"
-          fi
-          
-          # 检查版本类型
           if [[ $TAG_VERSION =~ -(alpha|beta|rc) ]]; then
             IS_PRERELEASE=true
             VERSION_TYPE="prerelease"
@@ -194,24 +190,27 @@ jobs:
             echo "🚀 Detected stable release version"
           fi
           
-          # 4. 使用 jq 更新 package.json
+          # 5. 使用 jq 更新 package.json
           jq --arg version "$TAG_VERSION" \
              --arg repo_url "$REPO_URL" \
-             --argjson is_private $IS_PRIVATE \
+             --arg repo_owner "$REPO_OWNER" \
+             --arg repo_name "$REPO_NAME" \
              '.version = $version | 
               .repository.url = $repo_url | 
-              .build.publish = {provider: "github", private: $is_private}' \
+              .build.publish = {provider: "github", owner: $repo_owner, repo: $repo_name, private: false}' \
              "$PKG_PATH" > "${PKG_PATH}.tmp" && mv "${PKG_PATH}.tmp" "$PKG_PATH"
           
           echo "✅ package.json updated successfully"
           
-          # 5. 输出配置摘要
+          # 6. 输出配置摘要
           echo ""
           echo "📋 Configuration Summary:"
           echo "   Version: $TAG_VERSION"
           echo "   Type: $VERSION_TYPE"
           echo "   Repository: $REPO_URL"
-          echo "   Private: $IS_PRIVATE"
+          echo "   Owner: $REPO_OWNER"
+          echo "   Repo: $REPO_NAME"
+          echo "   Private: false (fixed)"
           echo "   Prerelease: $IS_PRERELEASE"
 
       - name: 安装依赖
@@ -284,20 +283,15 @@ jobs:
           REPO_URL="https://github.com/${{ github.repository }}.git"
           echo "✅ Set repository URL to: $REPO_URL"
           
-          # 3. 判断版本类型并设置发布配置
-          IS_PRIVATE=false
+          # 3. 从当前仓库信息提取 owner 和 repo
+          IFS='/' read -r REPO_OWNER REPO_NAME <<< "${{ github.repository }}"
+          echo "✅ Set repository owner to: $REPO_OWNER"
+          echo "✅ Set repository name to: $REPO_NAME"
+          
+          # 4. 判断版本类型
           IS_PRERELEASE=false
           VERSION_TYPE="release"
           
-          # 检查是否为私有仓库 (通过 Token 是否存在判断)
-          if [ -n "${{ secrets.GH_TOKEN_FOR_UPDATER }}" ]; then
-            IS_PRIVATE=true
-            echo "🔒 Detected private repository"
-          else
-            echo "🌍 Detected public repository"
-          fi
-          
-          # 检查版本类型
           if [[ $TAG_VERSION =~ -(alpha|beta|rc) ]]; then
             IS_PRERELEASE=true
             VERSION_TYPE="prerelease"
@@ -312,24 +306,27 @@ jobs:
             echo "🚀 Detected stable release version"
           fi
           
-          # 4. 使用 jq 更新 package.json
+          # 5. 使用 jq 更新 package.json
           jq --arg version "$TAG_VERSION" \
              --arg repo_url "$REPO_URL" \
-             --argjson is_private $IS_PRIVATE \
+             --arg repo_owner "$REPO_OWNER" \
+             --arg repo_name "$REPO_NAME" \
              '.version = $version | 
               .repository.url = $repo_url | 
-              .build.publish = {provider: "github", private: $is_private}' \
+              .build.publish = {provider: "github", owner: $repo_owner, repo: $repo_name, private: false}' \
              "$PKG_PATH" > "${PKG_PATH}.tmp" && mv "${PKG_PATH}.tmp" "$PKG_PATH"
           
           echo "✅ package.json updated successfully"
           
-          # 5. 输出配置摘要
+          # 6. 输出配置摘要
           echo ""
           echo "📋 Configuration Summary:"
           echo "   Version: $TAG_VERSION"
           echo "   Type: $VERSION_TYPE"
           echo "   Repository: $REPO_URL"
-          echo "   Private: $IS_PRIVATE"
+          echo "   Owner: $REPO_OWNER"
+          echo "   Repo: $REPO_NAME"
+          echo "   Private: false (fixed)"
           echo "   Prerelease: $IS_PRERELEASE"
 
       - name: 安装依赖

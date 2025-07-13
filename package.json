@@ -75,7 +75,7 @@
       "electron"
     ],
     "overrides": {
-      "builder-util-runtime": "9.2.4"
+      "builder-util-runtime": "9.2.10"
     }
   }
 }

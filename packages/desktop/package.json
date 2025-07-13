@@ -10,7 +10,6 @@
   "scripts": {
     "build": "pnpm run build:web && pnpm run package",
     "build:web": "cd ../web && cross-env ELECTRON_BUILD=true vite build --base=./ && node -e \"const fs=require('fs'),path=require('path'); const src='dist',dest='../desktop/web-dist'; if(fs.existsSync(dest)) fs.rmSync(dest,{recursive:true}); fs.cpSync(src,dest,{recursive:true}); console.log('Web files copied to desktop/web-dist');\"",
-    "build:cross-platform": "node build.js",
     "package": "electron-builder",
     "dev": "cross-env NODE_ENV=development electron .",
     "logs:view": "node -e \"const path=require('path');const os=require('os');const {execSync}=require('child_process');const logDir=path.join(os.homedir(),'AppData','Roaming','PromptOptimizer','logs');console.log('日志目录:',logDir);try{execSync('explorer '+logDir);}catch(e){console.log('请手动打开:',logDir);}\"",
@@ -41,7 +40,12 @@
       "web-dist/**/*",
       "node_modules/**/*"
     ],
-    "publish": null,
+    "publish": {
+      "provider": "github",
+      "owner": "linshenkx",
+      "repo": "prompt-optimizer",
+      "private": false
+    },
     "win": {
       "target": [
         "nsis",

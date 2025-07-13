@@ -7,6 +7,7 @@ const IPC_EVENTS = {
   UPDATE_INSTALL: 'updater-install-update',
   UPDATE_IGNORE_VERSION: 'updater-ignore-version',
   UPDATE_DOWNLOAD_SPECIFIC_VERSION: 'updater-download-specific-version',
+  UPDATE_CHECK_ALL_VERSIONS: 'updater-check-all-versions', // 新增常量
 
   // 主进程发送给渲染进程的事件
   UPDATE_AVAILABLE_INFO: 'update-available-info',
@@ -691,6 +692,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     },
+    
+    checkAllVersions: async () => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_CHECK_ALL_VERSIONS),
+        60000 // 60秒超时，需要检查两个版本
+      );
+      if (!result.success) {
+        console.error('[DEBUG] Preload received error result for checkAllVersions:', result);
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        console.error('[DEBUG] Preload throwing enhanced error for checkAllVersions:', error);
+        throw error;
+      }
+      return result.data;
+    },
+    
     startDownload: async () => {
       const result = await withTimeout(
         ipcRenderer.invoke(IPC_EVENTS.UPDATE_START_DOWNLOAD),

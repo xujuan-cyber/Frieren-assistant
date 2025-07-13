@@ -25,8 +25,12 @@
       <!-- 正式版信息 -->
       <div v-if="state.stableVersion" class="relative p-3 bg-green-50 dark:bg-green-900/20 rounded-lg mb-3">
         <!-- 更新标识 -->
-        <div v-if="state.hasStableUpdate" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-red-500 text-white">
+        <div v-if="state.hasStableUpdate && !state.isStableVersionIgnored" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-red-500 text-white">
           {{ t('updater.hasUpdate') }}
+        </div>
+        <!-- 忽略标识 -->
+        <div v-if="state.isStableVersionIgnored" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-gray-500 text-white">
+          {{ t('updater.ignored') }}
         </div>
 
         <div class="flex items-center justify-between">
@@ -52,13 +56,14 @@
               {{ t('updater.details') }}
             </button>
             <button
-              v-if="state.hasStableUpdate"
+              v-if="state.hasStableUpdate && !state.isStableVersionIgnored"
               @click="handleIgnoreStableUpdate"
               class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               {{ t('updater.ignore') }}
             </button>
             <button
+              v-if="state.hasStableUpdate"
               @click="handleDownloadStable"
               :disabled="state.isDownloadingStable || state.isDownloading || state.isCheckingUpdate"
               :class="[
@@ -84,8 +89,12 @@
       <!-- 预览版信息 -->
       <div v-if="state.prereleaseVersion" class="relative p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg mb-3">
         <!-- 更新标识 -->
-        <div v-if="state.hasPrereleaseUpdate" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-red-500 text-white">
+        <div v-if="state.hasPrereleaseUpdate && !state.isPrereleaseVersionIgnored" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-red-500 text-white">
           {{ t('updater.hasUpdate') }}
+        </div>
+        <!-- 忽略标识 -->
+        <div v-if="state.isPrereleaseVersionIgnored" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-gray-500 text-white">
+          {{ t('updater.ignored') }}
         </div>
 
         <div class="flex items-center justify-between">
@@ -111,13 +120,14 @@
               {{ t('updater.details') }}
             </button>
             <button
-              v-if="state.hasPrereleaseUpdate"
+              v-if="state.hasPrereleaseUpdate && !state.isPrereleaseVersionIgnored"
               @click="handleIgnorePrereleaseUpdate"
               class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               {{ t('updater.ignore') }}
             </button>
             <button
+              v-if="state.hasPrereleaseUpdate"
               @click="handleDownloadPrerelease"
               :disabled="state.isDownloadingPrerelease || state.isDownloading || state.isCheckingUpdate"
               :class="[
@@ -147,6 +157,26 @@
     <div v-if="state.lastCheckResult === 'dev-disabled'" class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-3">
       <div class="text-blue-600 dark:text-blue-400 font-medium">
         {{ t('updater.devEnvironment') }}
+      </div>
+    </div>
+
+    <!-- 检测错误信息 -->
+    <div v-if="state.lastCheckMessage && state.lastCheckResult === 'error'"
+         class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg mb-3">
+      <div class="flex items-start gap-2">
+        <!-- 错误图标 -->
+        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm text-red-600 dark:text-red-400">
+            {{ t('updater.checkFailed') }}
+          </div>
+          <div class="text-sm mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-red-600 dark:text-red-400">
+            {{ state.lastCheckMessage }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -186,7 +216,7 @@
                t('updater.info') }}
           </div>
           <div :class="[
-                 'text-sm mt-1 break-words',
+                 'text-sm mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words',
                  state.downloadMessage.type === 'error' ? 'text-red-600 dark:text-red-400' :
                  state.downloadMessage.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
                  'text-blue-600 dark:text-blue-400'
@@ -221,22 +251,7 @@
       </div>
     </div>
 
-    <!-- 更新可用视图 -->
-    <div v-if="state.hasUpdate && !state.isDownloading && !state.isDownloaded" class="space-y-4">
-      <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-        <div class="text-sm text-blue-600 dark:text-blue-400 mb-1">
-          {{ t('updater.newVersionAvailable') }}
-        </div>
-        <div class="font-medium text-blue-900 dark:text-blue-100">
-          v{{ state.updateInfo?.version }}
-        </div>
-        <div v-if="state.updateInfo?.releaseDate" class="text-xs text-blue-600 dark:text-blue-400 mt-1">
-          {{ formatDate(state.updateInfo.releaseDate) }}
-        </div>
-      </div>
 
-      <!-- 更新可用时的按钮移到页脚处理 -->
-    </div>
 
     <!-- 下载中视图 -->
     <div v-if="state.isDownloading" class="space-y-4">
@@ -265,8 +280,16 @@
         <div class="text-green-600 dark:text-green-400 font-medium">
           {{ t('updater.downloadComplete') }}
         </div>
+        <div class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          {{ t('updater.clickInstallToRestart') }}
+        </div>
       </div>
-      <!-- 下载完成时的按钮移到页脚处理 -->
+      <button
+        @click="handleInstallUpdate"
+        class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+      >
+        {{ t('updater.installAndRestart') }}
+      </button>
     </div>
 
     <template #footer>
@@ -315,7 +338,6 @@ const {
   startDownload,
   installUpdate,
   ignoreUpdate,
-  togglePrerelease,
   openReleaseUrl,
   downloadStableVersion,
   downloadPrereleaseVersion

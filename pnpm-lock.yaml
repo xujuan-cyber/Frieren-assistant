@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  builder-util-runtime: 9.2.4
+  builder-util-runtime: 9.2.10
 
 importers:
 
@@ -1420,8 +1420,8 @@ packages:
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
 
-  builder-util-runtime@9.2.4:
-    resolution: {integrity: sha512-upp+biKpN/XZMLim7aguUyW8s0FUpDvOtK6sbanMFDAMBzpHDqdhgVYm6zc9HJ6nWo7u2Lxk60i2M6Jd3aiNrA==}
+  builder-util-runtime@9.2.10:
+    resolution: {integrity: sha512-6p/gfG1RJSQeIbz8TK5aPNkoztgY1q5TgmGFMAXcY8itsGW6Y2ld1ALsZ5UJn8rog7hKF3zHx5iQbNQ8uLcRlw==}
     engines: {node: '>=12.0.0'}
 
   builder-util@24.13.1:
@@ -4904,7 +4904,7 @@ snapshots:
       async-exit-hook: 2.0.1
       bluebird-lst: 1.0.9
       builder-util: 24.13.1
-      builder-util-runtime: 9.2.4
+      builder-util-runtime: 9.2.10
       chromium-pickle-js: 0.2.0
       debug: 4.4.1
       dmg-builder: 24.13.3(electron-builder-squirrel-windows@24.13.3)
@@ -5074,7 +5074,7 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  builder-util-runtime@9.2.4:
+  builder-util-runtime@9.2.10:
     dependencies:
       debug: 4.4.1
       sax: 1.4.1
@@ -5087,7 +5087,7 @@ snapshots:
       '@types/debug': 4.1.12
       app-builder-bin: 4.0.0
       bluebird-lst: 1.0.9
-      builder-util-runtime: 9.2.4
+      builder-util-runtime: 9.2.10
       chalk: 4.1.2
       cross-spawn: 7.0.6
       debug: 4.4.1
@@ -5395,7 +5395,7 @@ snapshots:
     dependencies:
       app-builder-lib: 24.13.3(dmg-builder@24.13.3)(electron-builder-squirrel-windows@24.13.3)
       builder-util: 24.13.1
-      builder-util-runtime: 9.2.4
+      builder-util-runtime: 9.2.10
       fs-extra: 10.1.0
       iconv-lite: 0.6.3
       js-yaml: 4.1.0
@@ -5460,7 +5460,7 @@ snapshots:
     dependencies:
       app-builder-lib: 24.13.3(dmg-builder@24.13.3)(electron-builder-squirrel-windows@24.13.3)
       builder-util: 24.13.1
-      builder-util-runtime: 9.2.4
+      builder-util-runtime: 9.2.10
       chalk: 4.1.2
       dmg-builder: 24.13.3(electron-builder-squirrel-windows@24.13.3)
       fs-extra: 10.1.0
@@ -5479,7 +5479,7 @@ snapshots:
     dependencies:
       '@types/fs-extra': 9.0.13
       builder-util: 24.13.1
-      builder-util-runtime: 9.2.4
+      builder-util-runtime: 9.2.10
       chalk: 4.1.2
       fs-extra: 10.1.0
       lazy-val: 1.0.5
@@ -5491,7 +5491,7 @@ snapshots:
 
   electron-updater@6.3.9:
     dependencies:
-      builder-util-runtime: 9.2.4
+      builder-util-runtime: 9.2.10
       fs-extra: 10.1.0
       js-yaml: 4.1.0
       lazy-val: 1.0.5

@@ -1,56 +1,175 @@
-# 私有仓库环境变量配置说明
+# 桌面应用环境变量配置指南
 
-## 问题描述
-当你的GitHub仓库是私有的时候，`electron-updater`需要GitHub Personal Access Token来访问更新文件。
+## 概述
+本文档说明如何通过环境变量配置桌面应用的构建和运行时行为。
 
-## 解决方案
+## 🔧 构建时配置（electron-builder）
 
-### 1. 获取GitHub Personal Access Token
-1. 访问 [GitHub Settings > Personal Access Tokens](https://github.com/settings/tokens)
-2. 点击 "Generate new token" -> "Generate new token (classic)"
-3. 设置以下权限：
-   - **repo** (必需) - 完整的仓库访问权限
-4. 复制生成的token（格式类似：`ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`）
+### 自动更新仓库配置
 
-### 2. 配置环境变量
+#### 生产环境构建
+- 默认使用 `package.json` 中的配置：`linshenkx/prompt-optimizer`
+- GitHub 工作流会自动检测当前仓库并更新配置
+- 支持 fork 仓库的自动构建（无需额外配置）
+- 使用 `GH_TOKEN_FOR_UPDATER` 发布到 GitHub Releases
 
-#### 方法一：在exe安装目录创建.env.local文件（推荐）
-1. 安装 `PromptOptimizer-1.2.0-win-x64.exe`
-2. 找到安装目录，通常是：
+#### 开发环境测试
+对于本地开发时测试自动更新功能：
+
+1. **修改 `dev-app-update.yml`**：
+   ```yaml
+   provider: github
+   owner: your-username
+   repo: your-repo-name
+   private: false  # 或 true（如果是私有仓库）
    ```
-   C:\Users\你的用户名\AppData\Local\Programs\PromptOptimizer\
-   ```
-3. 在该目录下创建一个名为 `.env.local` 的文件
-4. 文件内容为：
-   ```
-   GH_TOKEN=你的GitHub_Personal_Access_Token
-   ```
-5. 保存文件并重启应用
 
-#### 方法二：设置Windows系统环境变量
-1. 右键"此电脑" -> "属性" -> "高级系统设置" -> "环境变量"
-2. 在"系统变量"中点击"新建"
-3. 变量名：`GH_TOKEN`
-4. 变量值：你的GitHub Personal Access Token
-5. 确定并重启应用
+2. **设置环境变量**（如果需要访问私有仓库的 Release）：
+   ```bash
+   export GITHUB_TOKEN=your_github_token
+   ```
 
-## 验证配置
-启动应用后，在控制台日志中应该能看到：
+3. **启动开发模式**：
+   ```bash
+   pnpm run dev
+   ```
+
+### 配置说明
+- `package.json`: 生产环境构建配置
+- `dev-app-update.yml`: 开发环境测试配置
+- `main.js` 中已配置 `autoUpdater.forceDevUpdateConfig = true`
+
+### GitHub Token 说明
+- **生产环境**：使用 `GH_TOKEN_FOR_UPDATER`（需要在 GitHub Secrets 中配置）
+- **用途**：仅用于发布到 GitHub Releases，只支持公开仓库
+
+## ⚡ 运行时配置（应用启动）
+
+### API 密钥配置
+应用启动时需要设置以下环境变量：
+
+```bash
+# OpenAI
+export VITE_OPENAI_API_KEY=your_openai_key
+
+# 其他 AI 服务
+export VITE_GEMINI_API_KEY=your_gemini_key
+export VITE_DEEPSEEK_API_KEY=your_deepseek_key
+export VITE_SILICONFLOW_API_KEY=your_siliconflow_key
+export VITE_ZHIPU_API_KEY=your_zhipu_key
+
+# 自定义 API
+export VITE_CUSTOM_API_KEY=your_custom_key
+export VITE_CUSTOM_API_BASE_URL=https://api.example.com
+export VITE_CUSTOM_API_MODEL=custom-model-name
 ```
-[Main Process] ===== DOTENV LOADING DEBUG =====
-[Main Process] App is packaged: true
-[Main Process] .env.local exists: true
-[Main Process] GH_TOKEN loaded from dotenv: true
+
+### 动态更新源配置
+应用支持运行时动态切换更新源：
+
+```bash
+# GitHub 仓库配置
+export GITHUB_REPOSITORY=owner/repo
+# 或者分别设置
+export DEV_REPO_OWNER=owner
+export DEV_REPO_NAME=repo
+
+# GitHub Token（私有仓库需要）
+export GH_TOKEN=your_github_token
+export GITHUB_TOKEN=your_github_token  # 备用
 ```
 
-## 注意事项
-- 请妥善保管你的GitHub token，不要分享给他人
-- 如果token过期，需要重新生成并更新配置
-- 推荐使用方法一（.env.local文件），因为更容易管理和更新
+## 🎯 实际使用示例
 
-## 故障排除
-如果仍然遇到403错误：
-1. 确认token有 `repo` 权限
-2. 确认token未过期
-3. 确认.env.local文件位置正确
-4. 重启应用并查看控制台日志 
+### 场景1：开发者 Fork 项目
+```bash
+# 1. 设置构建时配置
+export REPO_OWNER=myusername
+export REPO_NAME=my-prompt-optimizer
+export REPO_PRIVATE=false
+
+# 2. 构建应用
+pnpm run build
+
+# 3. 设置运行时配置
+export GITHUB_REPOSITORY=myusername/my-prompt-optimizer
+export VITE_OPENAI_API_KEY=sk-...
+
+# 4. 运行应用
+./dist/PromptOptimizer-1.2.0-win-x64.exe
+```
+
+### 场景2：自定义公开仓库部署
+```bash
+# 1. 设置构建时配置
+export REPO_OWNER=company
+export REPO_NAME=public-prompt-optimizer
+
+# 2. 构建应用
+pnpm run build
+
+# 3. 设置运行时配置
+export GITHUB_REPOSITORY=company/public-prompt-optimizer
+export VITE_OPENAI_API_KEY=sk-...
+
+# 4. 运行应用
+./dist/PromptOptimizer-1.2.0-win-x64.exe
+```
+
+## 🔍 配置验证
+
+### 构建时验证
+构建完成后，检查生成的 `app-update.yml` 文件：
+```yaml
+# 应该包含正确的仓库信息
+provider: github
+owner: your-username
+repo: your-repo-name
+private: false
+```
+
+### 运行时验证
+启动应用后，查看控制台日志：
+```
+[Updater] Using custom repository configuration: {
+  owner: 'your-username',
+  repo: 'your-repo-name',
+  private: false,
+  source: 'environment variables'
+}
+```
+
+## ⚠️ 注意事项
+
+1. **构建时 vs 运行时**：
+   - `REPO_*` 变量影响构建时的 `app-update.yml` 生成
+   - `GITHUB_*` 变量影响运行时的动态配置
+
+2. **优先级**：
+   - 运行时配置优先于构建时配置
+   - 环境变量优先于默认值
+
+3. **仓库要求**：
+   - 只支持公开仓库
+   - 不支持私有仓库
+
+4. **兼容性**：
+   - 如果不设置环境变量，使用默认的 `linshenkx/prompt-optimizer`
+   - 向后兼容现有的构建流程
+
+## 🐛 故障排除
+
+### 构建时问题
+- 确保环境变量在构建前已设置
+- 检查 `app-update.yml` 文件内容
+- 验证仓库名称格式正确
+
+### 运行时问题
+- 检查应用启动日志
+- 确认仓库存在且为公开仓库
+- 验证仓库名称格式正确
+
+---
+
+**更新时间**: 2025-01-12  
+**版本**: v1.2.0+ 

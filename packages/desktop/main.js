@@ -33,16 +33,7 @@ const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envLocalPath });
 require('dotenv').config({ path: envPath });
 
-// 调试：检查 dotenv 加载后的环境变量
-console.log('[Main Process] ===== DOTENV LOADING DEBUG =====');
-console.log('[Main Process] App is packaged:', app.isPackaged);
-console.log('[Main Process] Checked .env.local path:', envLocalPath);
-console.log('[Main Process] Checked .env path:', envPath);
-console.log('[Main Process] .env.local exists:', require('fs').existsSync(envLocalPath));
-console.log('[Main Process] .env exists:', require('fs').existsSync(envPath));
-console.log('[Main Process] GH_TOKEN loaded from dotenv:', !!process.env.GH_TOKEN);
-console.log('[Main Process] GITHUB_TOKEN loaded from dotenv:', !!process.env.GITHUB_TOKEN);
-console.log('[Main Process] =====================================');
+
 const {
   PreferenceService,
   createModelManager,
@@ -85,6 +76,7 @@ let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager;
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
 let isQuitting = false; // 防止重复保存数据的标志
+let isUpdaterQuitting = false; // 标识是否为更新安装退出，跳过数据保存
 let forceQuitTimer = null; // 强制退出定时器
 const MAX_SAVE_TIME = 5000; // 最大保存时间：5秒
 let emergencyExitTimer = null; // 应急退出定时器
@@ -233,6 +225,12 @@ function createWindow() {
 
   // 窗口关闭前保存数据
   mainWindow.on('close', async (event) => {
+    // 如果是更新安装退出，直接关闭窗口，不保存数据
+    if (isUpdaterQuitting) {
+      console.log('[DESKTOP] Updater quit detected, skipping data save');
+      return;
+    }
+
     if (!isQuitting && storageProvider && typeof storageProvider.flush === 'function') {
       event.preventDefault(); // 阻止立即关闭
       isQuitting = true; // 设置退出标志
@@ -1172,6 +1170,12 @@ process.on('SIGTERM', () => {
 
 // 应用退出前保存数据
 app.on('before-quit', async (event) => {
+  // 如果是更新安装退出，直接退出，不保存数据
+  if (isUpdaterQuitting) {
+    console.log('[DESKTOP] Updater quit detected, allowing immediate quit');
+    return;
+  }
+
   if (!isQuitting && storageProvider && typeof storageProvider.flush === 'function') {
     event.preventDefault(); // 阻止立即退出
     isQuitting = true; // 设置退出标志
@@ -1221,23 +1225,10 @@ app.on('window-all-closed', function () {
 // 忽略版本管理辅助函数（全局作用域）
 const getIgnoredVersions = async () => {
   try {
-    // 首先尝试读取新格式的忽略版本数据
     const ignoredVersions = await preferenceService.get(PREFERENCE_KEYS.IGNORED_VERSIONS, null);
     if (ignoredVersions && typeof ignoredVersions === 'object') {
       return ignoredVersions;
     }
-
-    // 向后兼容：读取旧格式数据并迁移
-    const oldIgnoredVersion = await preferenceService.get(PREFERENCE_KEYS.IGNORED_VERSION, '');
-    if (oldIgnoredVersion) {
-      console.log('[Updater] Migrating old ignored version format:', oldIgnoredVersion);
-      const newFormat = { stable: oldIgnoredVersion, prerelease: null };
-      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSIONS, newFormat);
-      // 清理旧数据
-      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSION, '');
-      return newFormat;
-    }
-
     return { stable: null, prerelease: null };
   } catch (error) {
     console.warn('[Updater] Failed to read ignored versions, using defaults:', error);
@@ -1264,21 +1255,7 @@ const isVersionIgnored = async (version) => {
 async function setupUpdateHandlers() {
   console.log('[Main Process] Setting up auto-update handlers...');
 
-  // 环境变量调试信息
-  console.log('[Updater Debug] ===== ENVIRONMENT VARIABLES CHECK =====');
-  console.log('[Updater Debug] NODE_ENV:', process.env.NODE_ENV);
-  console.log('[Updater Debug] GH_TOKEN exists:', !!process.env.GH_TOKEN);
-  console.log('[Updater Debug] GH_TOKEN length:', process.env.GH_TOKEN ? process.env.GH_TOKEN.length : 'N/A');
-  console.log('[Updater Debug] GH_TOKEN prefix:', process.env.GH_TOKEN ? process.env.GH_TOKEN.substring(0, 4) + '...' : 'N/A');
-  console.log('[Updater Debug] GITHUB_TOKEN exists:', !!process.env.GITHUB_TOKEN);
-  console.log('[Updater Debug] GITHUB_TOKEN length:', process.env.GITHUB_TOKEN ? process.env.GITHUB_TOKEN.length : 'N/A');
-  console.log('[Updater Debug] All environment variables starting with GH:', Object.keys(process.env).filter(key => key.startsWith('GH')));
-  console.log('[Updater Debug] All environment variables starting with GITHUB:', Object.keys(process.env).filter(key => key.startsWith('GITHUB')));
-  console.log('[Updater Debug] App is packaged:', app.isPackaged);
-  console.log('[Updater Debug] App version:', app.getVersion());
-  console.log('[Updater Debug] Current working directory:', process.cwd());
-  console.log('[Updater Debug] __dirname:', __dirname);
-  console.log('[Updater Debug] ============================================');
+
 
   // 更新操作状态锁，防止并发调用
   let isCheckingForUpdate = false;
@@ -1290,18 +1267,70 @@ async function setupUpdateHandlers() {
   autoUpdater.allowPrerelease = DEFAULT_CONFIG.allowPrerelease;
   autoUpdater.allowDowngrade = false; // 默认不允许降级，只在渠道切换时临时启用
 
+  // 环境变量动态配置支持（仅支持公开仓库）
+  const defaultRepo = 'linshenkx/prompt-optimizer';
+  let currentRepo = null;
+
+  // 检测环境变量中的仓库信息
+  if (process.env.GITHUB_REPOSITORY) {
+    currentRepo = process.env.GITHUB_REPOSITORY;
+  } else if (process.env.DEV_REPO_OWNER && process.env.DEV_REPO_NAME) {
+    currentRepo = `${process.env.DEV_REPO_OWNER}/${process.env.DEV_REPO_NAME}`;
+  }
+
+  // 如果环境变量中的仓库与默认仓库不同，使用setFeedURL动态配置
+  if (currentRepo && currentRepo !== defaultRepo) {
+    try {
+      const [owner, repo] = currentRepo.split('/');
+
+      const feedConfig = {
+        provider: 'github',
+        owner,
+        repo,
+        private: false // 只支持公开仓库
+      };
+
+      console.log('[Updater] Using custom repository configuration:', {
+        owner,
+        repo,
+        private: false,
+        source: 'environment variables'
+      });
+
+      autoUpdater.setFeedURL(feedConfig);
+    } catch (configError) {
+      console.error('[Updater] Failed to configure custom repository:', configError);
+      console.log('[Updater] Falling back to default configuration');
+    }
+  } else {
+    console.log('[Updater] Using default repository configuration:', defaultRepo);
+  }
+
   // 开发模式下的更新检查配置
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
     console.log('[Updater] Development mode detected');
-    // 只有在存在 dev-app-update.yml 时才强制启用更新检查
-    const fs = require('fs');
-    const devConfigPath = path.join(__dirname, 'dev-app-update.yml');
-    if (fs.existsSync(devConfigPath)) {
-      console.log('[Updater] Found dev-app-update.yml, enabling update checks');
-      autoUpdater.forceDevUpdateConfig = true;
-    } else {
-      console.log('[Updater] No dev-app-update.yml found, update checks will be skipped in development');
-    }
+    
+    // 设置开发环境专用的日志器（官方推荐）
+    const log = require('electron-log');
+    autoUpdater.logger = log;
+    autoUpdater.logger.transports.file.level = 'debug';
+    autoUpdater.logger.transports.console.level = 'debug';
+    
+    // 为更新器创建专门的日志文件
+    const userDataPath = app.getPath('userData');
+    autoUpdater.logger.transports.file.resolvePathFn = () => 
+      path.join(userDataPath, 'logs', 'auto-updater.log');
+    
+    // 强制启用开发模式更新检查
+    autoUpdater.forceDevUpdateConfig = true;
+    
+    console.log('[Updater] Development mode configuration:');
+    console.log('[Updater] - forceDevUpdateConfig: true');
+    console.log('[Updater] - Looking for dev-app-update.yml in:', path.join(__dirname, 'dev-app-update.yml'));
+    console.log('[Updater] - dev-app-update.yml exists:', require('fs').existsSync(path.join(__dirname, 'dev-app-update.yml')));
+    
+    console.log('[Updater] Development mode update testing enabled');
+    console.log('[Updater] Auto-updater logs will be saved to:', path.join(userDataPath, 'logs', 'auto-updater.log'));
   }
 
   // 设置更新事件处理 - 仅在应用启动时设置一次
@@ -1371,12 +1400,17 @@ async function setupUpdateHandlers() {
   autoUpdater.on('error', (error) => {
     console.error('[Updater] Update error:', error);
 
-    // 如果是 403 错误，提供额外的调试信息
+    // 如果是 403 错误，提供基本的调试信息
     if (error.code === 'HTTP_ERROR_403' || (error.message && error.message.includes('403'))) {
       console.log('[Updater Debug] ===== 403 ERROR DEBUGGING =====');
-      console.log('[Updater Debug] This is a 403 Forbidden error, likely authentication issue');
-      console.log('[Updater Debug] GH_TOKEN exists at error time:', !!process.env.GH_TOKEN);
-      console.log('[Updater Debug] GITHUB_TOKEN exists at error time:', !!process.env.GITHUB_TOKEN);
+      console.log('[Updater Debug] This is a 403 Forbidden error, likely repository access issue');
+
+      console.log('[Updater Debug] Common 403 causes:');
+      console.log('[Updater Debug] 1. Repository is private (not supported)');
+      console.log('[Updater Debug] 2. Repository does not exist');
+      console.log('[Updater Debug] 3. Network/firewall blocking GitHub API');
+      console.log('[Updater Debug] 4. GitHub API rate limiting');
+
       console.log('[Updater Debug] Error details:', {
         code: error.code,
         message: error.message,
@@ -1412,10 +1446,25 @@ async function setupUpdateHandlers() {
 
   autoUpdater.on('update-downloaded', (info) => {
     console.log('[Updater] Update downloaded:', info);
+    console.log('[Updater] ===== UPDATE READY FOR INSTALLATION =====');
+    console.log('[Updater] Downloaded version:', info.version);
+    console.log('[Updater] Release date:', info.releaseDate);
+    console.log('[Updater] Next step: User needs to click "Install and Restart" to complete the update');
+    console.log('[Updater] The application will automatically restart after installation');
+    console.log('[Updater] =============================================');
+    
     // 下载完成，重置下载状态
     isDownloadingUpdate = false;
+    
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC_EVENTS.UPDATE_DOWNLOADED, info);
+      // 发送更详细的信息给前端，包含安装提示
+      mainWindow.webContents.send(IPC_EVENTS.UPDATE_DOWNLOADED, {
+        ...info,
+        message: 'Update downloaded successfully. Click "Install and Restart" to complete the installation.',
+        needsRestart: true,
+        canInstallNow: true,
+        installAction: 'Click the install button to restart and apply the update'
+      });
     }
   });
 
@@ -1460,10 +1509,8 @@ async function setupUpdateHandlers() {
       // 执行更新检查
       console.log('[Updater] Starting update check...');
       
-      // 在实际调用 checkForUpdates 前再次检查环境变量
-      console.log('[Updater Debug] ===== PRE-CHECK ENVIRONMENT VARIABLES =====');
-      console.log('[Updater Debug] GH_TOKEN still exists:', !!process.env.GH_TOKEN);
-      console.log('[Updater Debug] GITHUB_TOKEN still exists:', !!process.env.GITHUB_TOKEN);
+      // 在实际调用 checkForUpdates 前检查配置
+      console.log('[Updater Debug] ===== PRE-CHECK CONFIGURATION =====');
       console.log('[Updater Debug] autoUpdater.allowPrerelease:', autoUpdater.allowPrerelease);
       console.log('[Updater Debug] autoUpdater.autoDownload:', autoUpdater.autoDownload);
       console.log('[Updater Debug] ===============================================');
@@ -1516,17 +1563,8 @@ async function setupUpdateHandlers() {
           releaseUrl: responseData.remoteReleaseUrl
         });
       } else {
-        // 没有获取到远程版本信息，检查是否是开发环境
-        if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
-          const fs = require('fs');
-          const devConfigPath = path.join(__dirname, 'dev-app-update.yml');
-          if (!fs.existsSync(devConfigPath)) {
-            console.log('[Updater] Development environment: Update checking disabled (no dev-app-update.yml)');
-            responseData.message = 'Development environment: Update checking is disabled';
-            responseData.checkResult = null;
-            return createSuccessResponse(responseData);
-          }
-        }
+        // 没有获取到远程版本信息，这可能是配置或网络问题
+        console.log('[Updater] No update info received - checking possible causes...');
 
         // 生产环境或配置了开发环境但仍然没有获取到信息
         console.warn('[Updater] No update info received - this may indicate a configuration or network issue');
@@ -1550,6 +1588,152 @@ async function setupUpdateHandlers() {
       // 无论成功还是失败，都要释放锁
       isCheckingForUpdate = false;
       console.log('[Updater] Update check completed, lock released');
+    }
+  });
+
+  // 统一检查所有版本（解决并发冲突问题）
+  ipcMain.handle(IPC_EVENTS.UPDATE_CHECK_ALL_VERSIONS, async () => {
+    console.log('[Updater] Starting unified version check for all versions');
+    
+    // 检查是否已有更新检查在进行中
+    if (isCheckingForUpdate) {
+      console.log('[Updater] Update check already in progress, ignoring request');
+      return createSuccessResponse({
+        message: 'Update check already in progress',
+        inProgress: true
+      });
+    }
+
+    // 设置检查状态锁
+    isCheckingForUpdate = true;
+
+    try {
+      // 获取当前版本
+      const currentVersion = require('./package.json').version;
+      const results = {
+        currentVersion,
+        stable: null,
+        prerelease: null
+      };
+
+      // 辅助函数：处理单个版本检查结果
+      const processResult = (result, versionType) => {
+        if (!result || !result.updateInfo) {
+          console.log(`[Updater] No ${versionType} update available`);
+          return {
+            hasUpdate: false,
+            remoteVersion: null,
+            remoteReleaseUrl: null,
+            message: `No ${versionType} update available`,
+            versionType,
+            noVersionFound: true
+          };
+        }
+
+        const updateInfo = result.updateInfo;
+        // 简单但有效的版本比较：让前端处理复杂的语义化版本比较
+        // 这里只需要确保返回远程版本信息，前端会进行准确的版本比较
+        const hasUpdate = updateInfo.version !== currentVersion;
+
+        console.log(`[Updater] Version check for ${versionType}:`, {
+          currentVersion,
+          remoteVersion: updateInfo.version,
+          hasUpdate: hasUpdate ? 'possible (will be verified by frontend)' : 'no'
+        });
+        let remoteReleaseUrl = null;
+
+        // 构建发布页面URL
+        try {
+          remoteReleaseUrl = buildReleaseUrl(updateInfo.version);
+        } catch (urlError) {
+          console.warn(`[Updater] Failed to build ${versionType} release URL:`, urlError);
+        }
+
+        console.log(`[Updater] ${versionType} version check result:`, {
+          remoteVersion: updateInfo.version,
+          hasUpdate,
+          releaseUrl: remoteReleaseUrl
+        });
+
+        return {
+          hasUpdate,
+          remoteVersion: updateInfo.version,
+          remoteReleaseUrl,
+          message: hasUpdate ? 
+            `New ${versionType} version ${updateInfo.version} is available` : 
+            `You are already using the latest ${versionType} version`,
+          versionType,
+          releaseDate: updateInfo.releaseDate,
+          releaseNotes: updateInfo.releaseNotes
+        };
+      };
+
+      // 1. 检查正式版
+      console.log('[Updater] Checking stable version...');
+      autoUpdater.allowPrerelease = false;
+      
+      try {
+        const stableResult = await autoUpdater.checkForUpdates();
+        results.stable = processResult(stableResult, 'stable');
+      } catch (error) {
+        console.error('[Updater] Stable version check failed:', error);
+        results.stable = {
+          hasUpdate: false,
+          remoteVersion: null,
+          remoteReleaseUrl: null,
+          message: `Stable version check failed: ${error.message}`,
+          versionType: 'stable',
+          error: error.message
+        };
+      }
+
+      // 2. 延迟后检查预览版（避免状态冲突）
+      console.log('[Updater] Waiting before checking prerelease version...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      console.log('[Updater] Checking prerelease version...');
+      autoUpdater.allowPrerelease = true;
+      
+      try {
+        const prereleaseResult = await autoUpdater.checkForUpdates();
+        results.prerelease = processResult(prereleaseResult, 'prerelease');
+      } catch (error) {
+        console.error('[Updater] Prerelease version check failed:', error);
+        results.prerelease = {
+          hasUpdate: false,
+          remoteVersion: null,
+          remoteReleaseUrl: null,
+          message: `Prerelease version check failed: ${error.message}`,
+          versionType: 'prerelease',
+          error: error.message
+        };
+      }
+
+      // 3. 恢复用户偏好设置
+      try {
+        const userPreference = await preferenceService.get(PREFERENCE_KEYS.ALLOW_PRERELEASE, DEFAULT_CONFIG.allowPrerelease);
+        autoUpdater.allowPrerelease = userPreference;
+        autoUpdater.allowDowngrade = false; // 总是恢复为 false
+        console.log('[Updater] Restored user preference:', { allowPrerelease: userPreference, allowDowngrade: false });
+      } catch (prefError) {
+        console.warn('[Updater] Failed to restore user preference, using default:', prefError);
+        autoUpdater.allowPrerelease = DEFAULT_CONFIG.allowPrerelease;
+        autoUpdater.allowDowngrade = false; // 确保在错误情况下也恢复
+      }
+
+      console.log('[Updater] Unified version check completed:', {
+        stable: results.stable?.hasUpdate ? results.stable.remoteVersion : 'no update',
+        prerelease: results.prerelease?.hasUpdate ? results.prerelease.remoteVersion : 'no update'
+      });
+
+      return createSuccessResponse(results);
+    } catch (error) {
+      console.error('[Updater] Unified version check failed:', error);
+      return createDetailedErrorResponse(error);
+    } finally {
+      // 无论成功还是失败，都要释放锁
+      isCheckingForUpdate = false;
+      console.log('[Updater] Unified version check completed, lock released');
     }
   });
 
@@ -1593,12 +1777,39 @@ async function setupUpdateHandlers() {
     isInstallingUpdate = true;
 
     try {
-      console.log('[Updater] Installing update and restarting...');
+      console.log('[Updater] ===== STARTING UPDATE INSTALLATION =====');
+      console.log('[Updater] User clicked "Install and Restart"');
+      console.log('[Updater] The application will now close and restart with the new version');
+      console.log('[Updater] If the application does not restart automatically, please launch it manually');
+      console.log('[Updater] ==========================================');
+      
+      // 设置更新安装退出标志，跳过数据保存逻辑
+      isUpdaterQuitting = true;
+      console.log('[Updater] Set updater quit flag to skip data save');
+      
       // 注意：quitAndInstall会立即退出应用，所以不会执行到finally
+      // 这个方法会：
+      // 1. 关闭当前应用
+      // 2. 安装新版本
+      // 3. 启动新版本的应用
       autoUpdater.quitAndInstall();
-      return createSuccessResponse(null);
+      
+      // 这行代码通常不会执行到，因为 quitAndInstall() 会立即退出应用
+      return createSuccessResponse({
+        message: 'Installation started, application will restart'
+      });
     } catch (error) {
       console.error('[Updater] Install failed:', error);
+      console.error('[Updater] ===== INSTALLATION ERROR =====');
+      console.error('[Updater] Error details:', error.message);
+      console.error('[Updater] This may indicate:');
+      console.error('[Updater] 1. Update file was corrupted during download');
+      console.error('[Updater] 2. Insufficient permissions to install');
+      console.error('[Updater] 3. Antivirus software blocked the installation');
+      console.error('[Updater] 4. The update file was not properly downloaded');
+      console.error('[Updater] Please try downloading the update again');
+      console.error('[Updater] ===============================');
+      
       return createDetailedErrorResponse(error);
     } finally {
       // 确保锁总是被释放（虽然quitAndInstall成功时不会执行到这里）
