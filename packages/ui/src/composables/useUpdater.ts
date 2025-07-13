@@ -1,9 +1,9 @@
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { usePreferences } from './usePreferenceManager'
 import { inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getElectronAPI, isElectronAPIAvailable } from './useElectronAPI'
+// 移除过度抽象的 Hook，直接使用 window.electronAPI
 import type { DownloadProgress, UpdateInfo, VersionCheckResult, DownloadResult } from '@/types/electron'
 
 // 类型定义现在从 @/types/electron 导入，保持统一
@@ -33,7 +33,15 @@ export interface UpdaterState {
   isPrereleaseVersionIgnored: boolean
 }
 
+// 全局单例状态，确保所有组件共享同一个状态
+let globalUpdaterInstance: any = null
+
 export function useUpdater() {
+  // 如果已有实例，直接返回
+  if (globalUpdaterInstance) {
+    return globalUpdaterInstance
+  }
+
   // 环境检测 - 仅在Electron环境中启用功能
   const isElectronEnvironment = isRunningInElectron()
   
@@ -79,6 +87,8 @@ export function useUpdater() {
   const { getPreference, setPreference } = usePreferences(services)
   const { t } = useI18n()
 
+  // 直接使用 window.electronAPI，简单直接
+
   const state = reactive<UpdaterState>({
     hasUpdate: false,
     updateInfo: null,
@@ -103,6 +113,8 @@ export function useUpdater() {
     isPrereleaseVersionIgnored: false
   })
 
+
+
   // IPC事件监听器引用，用于清理
   let updateAvailableListener: ((info: UpdateInfo) => void) | null = null
   let updateNotAvailableListener: ((info: any) => void) | null = null
@@ -119,15 +131,7 @@ export function useUpdater() {
 
       // 使用新的统一检查API，避免并发冲突
       console.log('[useUpdater] Checking all versions using unified API...')
-      const electronAPI = getElectronAPI()
-      if (!electronAPI?.updater) {
-        throw new Error('Electron updater API not available')
-      }
-      const response = await electronAPI.updater.checkAllVersions()
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to check versions')
-      }
-      const results = response.data
+      const results = await window.electronAPI!.updater.checkAllVersions()
 
       console.log('[useUpdater] Processing unified check results...', results)
 
@@ -227,14 +231,19 @@ export function useUpdater() {
     } finally {
       // 无论成功还是失败，都保存检测状态
       state.isCheckingUpdate = false
-      state.hasUpdate = calculateHasUpdate()
+
+      // 同步后端的忽略状态
+      await syncIgnoredStates()
+
       await saveUpdateState()
 
       console.log('[useUpdater] Both versions checked. Final state:', {
         hasStableUpdate: state.hasStableUpdate,
         hasPrereleaseUpdate: state.hasPrereleaseUpdate,
         hasUpdate: state.hasUpdate,
-        lastCheckResult: state.lastCheckResult
+        lastCheckResult: state.lastCheckResult,
+        isStableVersionIgnored: state.isStableVersionIgnored,
+        isPrereleaseVersionIgnored: state.isPrereleaseVersionIgnored
       })
     }
   }
@@ -353,7 +362,7 @@ export function useUpdater() {
     return result
   }
 
-  // 保存检测状态到持久化存储
+  // 保存检测状态到持久化存储（不包括忽略状态，忽略状态由后端管理）
   const saveUpdateState = async () => {
     try {
       await setPreference('updater.lastCheckTime', Date.now())
@@ -364,51 +373,28 @@ export function useUpdater() {
       await setPreference('updater.stableReleaseUrl', state.stableReleaseUrl)
       await setPreference('updater.prereleaseReleaseUrl', state.prereleaseReleaseUrl)
       await setPreference('updater.lastCheckResult', state.lastCheckResult)
-      await setPreference('updater.isStableVersionIgnored', state.isStableVersionIgnored)
-      await setPreference('updater.isPrereleaseVersionIgnored', state.isPrereleaseVersionIgnored)
-      console.log('[useUpdater] Update state saved to preferences')
+      // 注意：忽略状态不再保存到前端偏好设置，完全由后端管理
+      console.log('[useUpdater] Update state saved to preferences (excluding ignore states)')
     } catch (error) {
       console.warn('[useUpdater] Failed to save update state:', error)
     }
   }
 
-  // 从持久化存储恢复检测状态
-  const restoreUpdateState = async () => {
+  // 清理旧的检测状态缓存（简化逻辑，每次启动都重新检测）
+  const clearUpdateStateCache = async () => {
     try {
-      const lastCheckTime = await getPreference('updater.lastCheckTime', 0)
-      const now = Date.now()
-      const timeSinceLastCheck = now - lastCheckTime
-
-      // 如果上次检测时间超过24小时，不恢复状态，而是重新检测
-      if (timeSinceLastCheck > 24 * 60 * 60 * 1000) {
-        console.log('[useUpdater] Last check was more than 24 hours ago, will perform new check')
-        return false
-      }
-
-      state.hasStableUpdate = await getPreference('updater.hasStableUpdate', false)
-      state.hasPrereleaseUpdate = await getPreference('updater.hasPrereleaseUpdate', false)
-      state.stableVersion = await getPreference('updater.stableVersion', null)
-      state.prereleaseVersion = await getPreference('updater.prereleaseVersion', null)
-      state.stableReleaseUrl = await getPreference('updater.stableReleaseUrl', null)
-      state.prereleaseReleaseUrl = await getPreference('updater.prereleaseReleaseUrl', null)
-      state.lastCheckResult = await getPreference('updater.lastCheckResult', 'none')
-      state.isStableVersionIgnored = await getPreference('updater.isStableVersionIgnored', false)
-      state.isPrereleaseVersionIgnored = await getPreference('updater.isPrereleaseVersionIgnored', false)
-
-      // 重新计算 hasUpdate 状态
-      state.hasUpdate = calculateHasUpdate()
-
-      console.log('[useUpdater] Update state restored from preferences:', {
-        hasStableUpdate: state.hasStableUpdate,
-        hasPrereleaseUpdate: state.hasPrereleaseUpdate,
-        hasUpdate: state.hasUpdate,
-        timeSinceLastCheck: Math.round(timeSinceLastCheck / 1000 / 60) + ' minutes'
-      })
-
-      return true
+      // 清理可能过时的缓存数据
+      await setPreference('updater.lastCheckTime', 0)
+      await setPreference('updater.hasStableUpdate', false)
+      await setPreference('updater.hasPrereleaseUpdate', false)
+      await setPreference('updater.stableVersion', null)
+      await setPreference('updater.prereleaseVersion', null)
+      await setPreference('updater.stableReleaseUrl', null)
+      await setPreference('updater.prereleaseReleaseUrl', null)
+      await setPreference('updater.lastCheckResult', 'none')
+      console.log('[useUpdater] Update state cache cleared')
     } catch (error) {
-      console.warn('[useUpdater] Failed to restore update state:', error)
-      return false
+      console.warn('[useUpdater] Failed to clear update state cache:', error)
     }
   }
 
@@ -511,27 +497,54 @@ export function useUpdater() {
 
   // 安装更新
   const installUpdate = async () => {
-    const electronAPI = getElectronAPI()
-    if (!electronAPI?.updater) {
+    if (!window.electronAPI?.updater) {
       console.warn('[useUpdater] Electron updater API not available')
       return
     }
 
     try {
-      const response = await electronAPI.updater.installUpdate()
-      if (!response.success) {
-        throw new Error(response.error || 'Install failed')
-      }
+      await window.electronAPI.updater.installUpdate()
       console.log('[useUpdater] Update installation initiated successfully')
     } catch (error) {
       console.error('[useUpdater] Install update error:', error)
     }
   }
 
+  // 从后端同步忽略状态
+  const syncIgnoredStates = async () => {
+    if (!window.electronAPI?.updater?.getIgnoredVersions) {
+      console.warn('[useUpdater] getIgnoredVersions API not available')
+      return
+    }
+
+    try {
+      const ignoredVersions = await window.electronAPI.updater.getIgnoredVersions()
+      console.log('[useUpdater] Retrieved ignored versions from backend:', ignoredVersions)
+
+      // 根据当前版本和后端忽略状态计算前端忽略状态
+      state.isStableVersionIgnored = !!(ignoredVersions.stable && state.stableVersion && ignoredVersions.stable === state.stableVersion)
+      state.isPrereleaseVersionIgnored = !!(ignoredVersions.prerelease && state.prereleaseVersion && ignoredVersions.prerelease === state.prereleaseVersion)
+
+      console.log('[useUpdater] Synced ignore states:', {
+        stableVersion: state.stableVersion,
+        ignoredStableVersion: ignoredVersions.stable,
+        isStableVersionIgnored: state.isStableVersionIgnored,
+        prereleaseVersion: state.prereleaseVersion,
+        ignoredPrereleaseVersion: ignoredVersions.prerelease,
+        isPrereleaseVersionIgnored: state.isPrereleaseVersionIgnored
+      })
+
+      // 重新计算总体更新状态
+      state.hasUpdate = calculateHasUpdate()
+      console.log('[useUpdater] hasUpdate after sync:', state.hasUpdate)
+    } catch (error) {
+      console.error('[useUpdater] Failed to sync ignored states:', error)
+    }
+  }
+
   // 忽略版本
   const ignoreUpdate = async (version?: string, versionType?: 'stable' | 'prerelease') => {
-    const electronAPI = getElectronAPI()
-    if (!electronAPI?.updater) {
+    if (!window.electronAPI?.updater) {
       console.warn('[useUpdater] Electron updater API not available')
       return
     }
@@ -543,25 +556,24 @@ export function useUpdater() {
       // 如果没有指定类型，根据版本号自动判断
       const actualVersionType = versionType || (versionToIgnore.includes('-') ? 'prerelease' : 'stable')
 
-      // ignoreVersion 成功时返回 null (data)，失败时抛出异常
-      await electronAPI.updater.ignoreVersion(versionToIgnore, actualVersionType)
-
-      // 执行到这里说明忽略成功，更新状态
       console.log('[useUpdater] Before ignore - hasUpdate:', state.hasUpdate, 'isStableVersionIgnored:', state.isStableVersionIgnored, 'isPrereleaseVersionIgnored:', state.isPrereleaseVersionIgnored)
 
-      // 根据版本类型标记为忽略状态，但保留版本信息显示
+      // ignoreVersion 成功时返回 null (data)，失败时抛出异常
+      await window.electronAPI.updater.ignoreVersion(versionToIgnore, actualVersionType)
+
+      // 立即更新前端状态，确保UI立即响应
       if (actualVersionType === 'stable') {
         state.isStableVersionIgnored = true
-        console.log('[useUpdater] Marked stable version as ignored')
+        console.log('[useUpdater] Immediately set isStableVersionIgnored = true')
       } else if (actualVersionType === 'prerelease') {
         state.isPrereleaseVersionIgnored = true
-        console.log('[useUpdater] Marked prerelease version as ignored')
+        console.log('[useUpdater] Immediately set isPrereleaseVersionIgnored = true')
       }
 
-      // 重新计算总体更新状态
+      // 立即重新计算hasUpdate状态
       const oldHasUpdate = state.hasUpdate
       state.hasUpdate = calculateHasUpdate()
-      console.log('[useUpdater] hasUpdate changed from', oldHasUpdate, 'to', state.hasUpdate)
+      console.log('[useUpdater] Immediately updated hasUpdate from', oldHasUpdate, 'to', state.hasUpdate)
 
       // 如果忽略的是当前的updateInfo，清理它
       if (state.updateInfo?.version === versionToIgnore) {
@@ -569,15 +581,58 @@ export function useUpdater() {
         console.log('[useUpdater] Cleared updateInfo for ignored version')
       }
 
-      // 保存更新后的状态到持久化存储
-      await saveUpdateState()
-
-      // 强制触发响应式更新，确保UI立即刷新
+      // 等待下一个tick确保状态更新完成
       await nextTick()
+
+      // 异步同步后端状态（用于验证一致性）
+      syncIgnoredStates().catch(error => {
+        console.error('[useUpdater] Failed to sync ignored states after ignore:', error)
+      })
 
       console.log('[useUpdater] Version ignored successfully:', versionToIgnore, 'type:', actualVersionType, 'final hasUpdate:', state.hasUpdate)
     } catch (error) {
       console.error('[useUpdater] Ignore version error:', error)
+    }
+  }
+
+  // 取消忽略版本
+  const unignoreUpdate = async (versionType: 'stable' | 'prerelease') => {
+    if (!window.electronAPI?.updater?.unignoreVersion) {
+      console.warn('[useUpdater] unignoreVersion API not available')
+      return
+    }
+
+    try {
+      console.log('[useUpdater] Before unignore - hasUpdate:', state.hasUpdate, 'isStableVersionIgnored:', state.isStableVersionIgnored, 'isPrereleaseVersionIgnored:', state.isPrereleaseVersionIgnored)
+
+      // 调用后端API取消忽略
+      await window.electronAPI.updater.unignoreVersion(versionType)
+
+      // 立即更新前端状态，确保UI立即响应
+      if (versionType === 'stable') {
+        state.isStableVersionIgnored = false
+        console.log('[useUpdater] Immediately set isStableVersionIgnored = false')
+      } else if (versionType === 'prerelease') {
+        state.isPrereleaseVersionIgnored = false
+        console.log('[useUpdater] Immediately set isPrereleaseVersionIgnored = false')
+      }
+
+      // 立即重新计算hasUpdate状态
+      const oldHasUpdate = state.hasUpdate
+      state.hasUpdate = calculateHasUpdate()
+      console.log('[useUpdater] Immediately updated hasUpdate from', oldHasUpdate, 'to', state.hasUpdate)
+
+      // 等待下一个tick确保状态更新完成
+      await nextTick()
+
+      // 异步同步后端状态（用于验证一致性）
+      syncIgnoredStates().catch(error => {
+        console.error('[useUpdater] Failed to sync ignored states after unignore:', error)
+      })
+
+      console.log('[useUpdater] Version unignored successfully:', versionType, 'final hasUpdate:', state.hasUpdate)
+    } catch (error) {
+      console.error('[useUpdater] Unignore version error:', error)
     }
   }
 
@@ -605,15 +660,10 @@ export function useUpdater() {
       state.lastDownloadAttempt = 'stable'
 
       // 使用新的原子操作API
-      const electronAPI = getElectronAPI()
-      if (!electronAPI?.updater?.downloadSpecificVersion) {
+      if (!window.electronAPI?.updater?.downloadSpecificVersion) {
         throw new Error('electronAPI not available')
       }
-      const response = await electronAPI.updater.downloadSpecificVersion('stable')
-      if (!response.success) {
-        throw new Error(response.error || 'Download failed')
-      }
-      const result = response.data
+      const result = await window.electronAPI.updater.downloadSpecificVersion('stable')
 
       if (!result) {
         throw new Error('No result data returned from download request')
@@ -685,15 +735,10 @@ export function useUpdater() {
       state.lastDownloadAttempt = 'prerelease'
 
       // 使用新的原子操作API
-      const electronAPI = getElectronAPI()
-      if (!electronAPI?.updater?.downloadSpecificVersion) {
+      if (!window.electronAPI?.updater?.downloadSpecificVersion) {
         throw new Error('electronAPI not available')
       }
-      const response = await electronAPI.updater.downloadSpecificVersion('prerelease')
-      if (!response.success) {
-        throw new Error(response.error || 'Download failed')
-      }
-      const result = response.data
+      const result = await window.electronAPI.updater.downloadSpecificVersion('prerelease')
 
       if (!result) {
         throw new Error('No result data returned from download request')
@@ -745,19 +790,14 @@ export function useUpdater() {
 
   // 打开发布页面
   const openReleaseUrl = async () => {
-    const electronAPI = getElectronAPI()
-    if (!state.updateInfo?.releaseUrl || !electronAPI?.shell) {
+    if (!state.updateInfo?.releaseUrl || !window.electronAPI?.shell) {
       console.warn('[useUpdater] Release URL or shell API not available')
       return
     }
 
     try {
-      const response = await electronAPI.shell.openExternal(state.updateInfo.releaseUrl)
-      if (!response.success) {
-        console.error('[useUpdater] Failed to open release URL:', response.error)
-      } else {
-        console.log('[useUpdater] Release URL opened successfully')
-      }
+      await window.electronAPI.shell.openExternal(state.updateInfo.releaseUrl)
+      console.log('[useUpdater] Release URL opened successfully')
     } catch (error) {
       console.error('[useUpdater] Open release URL error:', error)
     }
@@ -765,8 +805,7 @@ export function useUpdater() {
 
   // 设置IPC事件监听器 - 现在主要用于下载相关事件
   const setupEventListeners = () => {
-    const electronAPI = getElectronAPI()
-    if (!electronAPI?.on) {
+    if (!window.electronAPI?.on) {
       console.warn('[useUpdater] Event API not available')
       return
     }
@@ -781,21 +820,21 @@ export function useUpdater() {
       state.hasUpdate = calculateHasUpdate()
       console.log('[useUpdater] Update available event processed, hasUpdate:', state.hasUpdate)
     }
-    electronAPI.on('update-available-info', updateAvailableListener)
+    window.electronAPI.on('update-available-info', updateAvailableListener)
 
     // 无更新可用 - 现在主要用于日志，实际逻辑在请求-响应中处理
     updateNotAvailableListener = (info: any) => {
       console.log('[useUpdater] No update available (from auto-check):', info)
       // 注意：不再在这里更新UI状态，避免与请求-响应模式冲突
     }
-    electronAPI.on('update-not-available', updateNotAvailableListener)
+    window.electronAPI.on('update-not-available', updateNotAvailableListener)
 
     // 下载进度
     downloadProgressListener = (progress: DownloadProgress) => {
       console.log('[useUpdater] Download progress:', progress)
       state.downloadProgress = progress
     }
-    electronAPI.on('update-download-progress', downloadProgressListener)
+    window.electronAPI.on('update-download-progress', downloadProgressListener)
 
     // 下载完成
     updateDownloadedListener = (info: UpdateInfo) => {
@@ -808,7 +847,7 @@ export function useUpdater() {
       // 清除下载消息
       state.downloadMessage = null
     }
-    electronAPI.on('update-downloaded', updateDownloadedListener)
+    window.electronAPI.on('update-downloaded', updateDownloadedListener)
 
     // 更新错误（包括下载错误）
     updateErrorListener = (error: any) => {
@@ -837,7 +876,7 @@ export function useUpdater() {
       state.lastCheckMessage = errorMessage
       // 保持 hasUpdate 和 updateInfo，让用户可以重新下载
     }
-    electronAPI.on('update-error', updateErrorListener)
+    window.electronAPI.on('update-error', updateErrorListener)
 
     // 下载开始事件 - 立即同步UI状态
     downloadStartedListener = (info: any) => {
@@ -854,31 +893,30 @@ export function useUpdater() {
       // 清除之前的消息
       state.downloadMessage = null
     }
-    electronAPI.on('updater-download-started', downloadStartedListener)
+    window.electronAPI.on('updater-download-started', downloadStartedListener)
   }
 
   // 清理事件监听器
   const cleanupEventListeners = () => {
-    const electronAPI = getElectronAPI()
-    if (!electronAPI?.off) return
+    if (!window.electronAPI?.off) return
 
     if (updateAvailableListener) {
-      electronAPI.off('update-available-info', updateAvailableListener)
+      window.electronAPI.off('update-available-info', updateAvailableListener)
     }
     if (updateNotAvailableListener) {
-      electronAPI.off('update-not-available', updateNotAvailableListener)
+      window.electronAPI.off('update-not-available', updateNotAvailableListener)
     }
     if (downloadProgressListener) {
-      electronAPI.off('update-download-progress', downloadProgressListener)
+      window.electronAPI.off('update-download-progress', downloadProgressListener)
     }
     if (updateDownloadedListener) {
-      electronAPI.off('update-downloaded', updateDownloadedListener)
+      window.electronAPI.off('update-downloaded', updateDownloadedListener)
     }
     if (updateErrorListener) {
-      electronAPI.off('update-error', updateErrorListener)
+      window.electronAPI.off('update-error', updateErrorListener)
     }
     if (downloadStartedListener) {
-      electronAPI.off('updater-download-started', downloadStartedListener)
+      window.electronAPI.off('updater-download-started', downloadStartedListener)
     }
   }
 
@@ -892,21 +930,20 @@ export function useUpdater() {
       // 设置事件监听器
       setupEventListeners()
 
-      // 尝试恢复之前的检测状态
-      const stateRestored = await restoreUpdateState()
+      // 清理旧的缓存数据
+      await clearUpdateStateCache()
 
-      // 仅在没有近期的有效检查结果时，才在启动时自动检查更新
-      if (!stateRestored) {
-        console.log('[useUpdater] Performing automatic update check on startup')
-        // 延迟3秒后自动检测，避免影响应用启动速度
-        setTimeout(() => {
-          checkUpdate().catch(error => {
-            console.warn('[useUpdater] Automatic update check failed:', error)
-          })
-        }, 3000)
-      } else {
-        console.log('[useUpdater] Update state restored from previous check')
-      }
+      // 同步后端的忽略状态，确保前后端一致
+      await syncIgnoredStates()
+
+      // 每次启动都自动检查更新，确保状态最新
+      console.log('[useUpdater] Performing automatic update check on startup')
+      // 延迟3秒后自动检测，避免影响应用启动速度
+      setTimeout(() => {
+        checkUpdate().catch(error => {
+          console.warn('[useUpdater] Automatic update check failed:', error)
+        })
+      }, 3000)
 
       console.log('[useUpdater] Updater initialized')
     } catch (error) {
@@ -919,14 +956,19 @@ export function useUpdater() {
     cleanupEventListeners()
   })
 
-  return {
+  const instance = {
     state,
     checkUpdate,
     startDownload,
     installUpdate,
     ignoreUpdate,
+    unignoreUpdate,
     openReleaseUrl,
     downloadStableVersion,
     downloadPrereleaseVersion
   }
+
+  // 缓存实例，确保单例
+  globalUpdaterInstance = instance
+  return instance
 }

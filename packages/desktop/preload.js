@@ -6,6 +6,8 @@ const IPC_EVENTS = {
   UPDATE_START_DOWNLOAD: 'updater-start-download',
   UPDATE_INSTALL: 'updater-install-update',
   UPDATE_IGNORE_VERSION: 'updater-ignore-version',
+  UPDATE_UNIGNORE_VERSION: 'updater-unignore-version',
+  UPDATE_GET_IGNORED_VERSIONS: 'updater-get-ignored-versions',
   UPDATE_DOWNLOAD_SPECIFIC_VERSION: 'updater-download-specific-version',
   UPDATE_CHECK_ALL_VERSIONS: 'updater-check-all-versions', // 新增常量
 
@@ -699,12 +701,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         60000 // 60秒超时，需要检查两个版本
       );
       if (!result.success) {
-        console.error('[DEBUG] Preload received error result for checkAllVersions:', result);
-        const error = new Error(result.error);
-        error.originalError = result.error;
-        error.detailedMessage = result.error;
-        console.error('[DEBUG] Preload throwing enhanced error for checkAllVersions:', error);
-        throw error;
+        throw new Error(result.error);
       }
       return result.data;
     },
@@ -744,6 +741,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
       );
       if (!result.success) {
         // 保留完整的错误信息
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        throw error;
+      }
+      return result.data;
+    },
+
+    getIgnoredVersions: async () => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_GET_IGNORED_VERSIONS),
+        5000 // 5秒超时，读取偏好应该很快
+      );
+      if (!result.success) {
+        const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        throw error;
+      }
+      return result.data;
+    },
+
+    unignoreVersion: async (versionType) => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_UNIGNORE_VERSION, versionType),
+        5000 // 5秒超时，设置偏好应该很快
+      );
+      if (!result.success) {
         const error = new Error(result.error);
         error.originalError = result.error;
         error.detailedMessage = result.error;

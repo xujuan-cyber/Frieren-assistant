@@ -19,37 +19,53 @@ interface AppAPI {
   quit(): Promise<void>
 }
 
-// 更新器相关API
+// 更新器相关API - 简单直接的类型定义
 interface UpdaterAPI {
-  checkUpdate(): Promise<ElectronResponse>
-  checkAllVersions(): Promise<ElectronResponse<{
+  checkUpdate(): Promise<any>
+  checkAllVersions(): Promise<{
+    currentVersion: string
     stable?: {
       remoteVersion?: string
       remoteReleaseUrl?: string
       error?: string
       noVersionFound?: boolean
+      hasUpdate?: boolean
+      message?: string
+      versionType?: string
+      releaseDate?: string
+      releaseNotes?: string
     }
     prerelease?: {
       remoteVersion?: string
       remoteReleaseUrl?: string
       error?: string
       noVersionFound?: boolean
+      hasUpdate?: boolean
+      message?: string
+      versionType?: string
+      releaseDate?: string
+      releaseNotes?: string
     }
-  }>>
-  downloadSpecificVersion(versionType: 'stable' | 'prerelease'): Promise<ElectronResponse<{
+  }>
+  downloadSpecificVersion(versionType: 'stable' | 'prerelease'): Promise<{
     hasUpdate: boolean
     message: string
     version?: string
     reason?: 'ignored' | 'latest' | 'error'
-  }>>
-  installUpdate(): Promise<ElectronResponse>
-  ignoreVersion(version: string, versionType?: 'stable' | 'prerelease'): Promise<any>
+  }>
+  installUpdate(): Promise<void>
+  ignoreVersion(version: string, versionType?: 'stable' | 'prerelease'): Promise<void>
+  unignoreVersion(versionType: 'stable' | 'prerelease'): Promise<void>
+  getIgnoredVersions(): Promise<{
+    stable: string | null
+    prerelease: string | null
+  }>
 }
 
-// Shell相关API
+// Shell相关API - 简化类型
 interface ShellAPI {
-  openExternal(url: string): Promise<ElectronResponse>
-  showItemInFolder(path: string): Promise<ElectronResponse>
+  openExternal(url: string): Promise<void>
+  showItemInFolder(path: string): Promise<void>
 }
 
 // 事件监听API

@@ -11,6 +11,7 @@
 - **主题系统经验** → [109-theme-system/experience.md](../archives/109-theme-system/experience.md)
 - **Composable架构经验** → [102-web-architecture-refactor/experience.md](../archives/102-web-architecture-refactor/experience.md)
 - **大型架构重构经验** → [117-import-export-architecture-refactor/experience.md](../archives/117-import-export-architecture-refactor/experience.md)
+- **版本更新系统经验** → [118-desktop-auto-update-system/experience.md](../archives/118-desktop-auto-update-system/experience.md)
 
 ## 🔧 通用开发规范
 
@@ -269,6 +270,47 @@ for (const [key, value] of Object.entries(importData)) {
 ---
 
 **记住**：好的经验文档应该能让团队成员快速找到解决方案，而不是重新踩坑。
+
+## 🎯 Vue Composables 设计经验
+
+### 单例模式的重要性
+**问题场景**：多个组件使用同一个composable时，如果每次调用都创建新实例，会导致状态不同步。
+
+**错误实现**：
+```typescript
+export function useUpdater() {
+  const state = reactive({...})  // 每次调用都创建新实例
+  return { state, ... }
+}
+```
+
+**正确实现**：
+```typescript
+let globalUpdaterInstance: any = null
+
+export function useUpdater() {
+  if (globalUpdaterInstance) {
+    return globalUpdaterInstance  // 返回已有实例
+  }
+
+  const state = reactive({...})
+  const instance = { state, ... }
+  globalUpdaterInstance = instance  // 缓存实例
+  return instance
+}
+```
+
+**判断标准**：如果多个组件需要访问同一份状态，就应该使用单例模式。
+
+**常见需要单例的场景**：
+- 全局状态管理（如更新状态、用户设置）
+- 模态框状态
+- 通知系统
+
+### 调试策略
+- **日志驱动调试**: 通过详细日志确认每个环节的状态
+- **分层验证**: 先验证数据层，再验证UI层
+- **避免过度工程**: 不要为了解决问题而添加复杂的补丁
 
 ## 🏗️ 架构重构通用经验
 

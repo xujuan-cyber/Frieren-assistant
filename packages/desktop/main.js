@@ -1631,13 +1631,31 @@ async function setupUpdateHandlers() {
         }
 
         const updateInfo = result.updateInfo;
+        const remoteVersion = updateInfo.version;
+
+        // 预览版检查时，过滤掉正式版
+        if (versionType === 'prerelease') {
+          const isPrerelease = remoteVersion.includes('-');
+          if (!isPrerelease) {
+            return {
+              hasUpdate: false,
+              remoteVersion: null,
+              remoteReleaseUrl: null,
+              message: 'No newer prerelease available (latest release is stable)',
+              versionType,
+              noVersionFound: true,
+              latestStableVersion: remoteVersion
+            };
+          }
+        }
+
         // 简单但有效的版本比较：让前端处理复杂的语义化版本比较
         // 这里只需要确保返回远程版本信息，前端会进行准确的版本比较
-        const hasUpdate = updateInfo.version !== currentVersion;
+        const hasUpdate = remoteVersion !== currentVersion;
 
         console.log(`[Updater] Version check for ${versionType}:`, {
           currentVersion,
-          remoteVersion: updateInfo.version,
+          remoteVersion,
           hasUpdate: hasUpdate ? 'possible (will be verified by frontend)' : 'no'
         });
         let remoteReleaseUrl = null;
@@ -1650,17 +1668,17 @@ async function setupUpdateHandlers() {
         }
 
         console.log(`[Updater] ${versionType} version check result:`, {
-          remoteVersion: updateInfo.version,
+          remoteVersion,
           hasUpdate,
           releaseUrl: remoteReleaseUrl
         });
 
         return {
           hasUpdate,
-          remoteVersion: updateInfo.version,
+          remoteVersion,
           remoteReleaseUrl,
-          message: hasUpdate ? 
-            `New ${versionType} version ${updateInfo.version} is available` : 
+          message: hasUpdate ?
+            `New ${versionType} version ${remoteVersion} is available` :
             `You are already using the latest ${versionType} version`,
           versionType,
           releaseDate: updateInfo.releaseDate,
@@ -1817,6 +1835,18 @@ async function setupUpdateHandlers() {
     }
   });
 
+  // 获取忽略版本状态
+  ipcMain.handle(IPC_EVENTS.UPDATE_GET_IGNORED_VERSIONS, async () => {
+    try {
+      const ignoredVersions = await getIgnoredVersions();
+      console.log('[Updater] Retrieved ignored versions:', ignoredVersions);
+      return createSuccessResponse(ignoredVersions);
+    } catch (error) {
+      console.error('[Updater] Failed to get ignored versions:', error);
+      return createDetailedErrorResponse(error);
+    }
+  });
+
   // 忽略版本
   ipcMain.handle(IPC_EVENTS.UPDATE_IGNORE_VERSION, async (event, version, versionType) => {
     try {
@@ -1844,6 +1874,32 @@ async function setupUpdateHandlers() {
       return createSuccessResponse(null);
     } catch (error) {
       console.error('[Updater] Failed to ignore version:', error);
+      return createDetailedErrorResponse(error);
+    }
+  });
+
+  // 取消忽略版本
+  ipcMain.handle(IPC_EVENTS.UPDATE_UNIGNORE_VERSION, async (event, versionType) => {
+    try {
+      // 验证版本类型
+      if (!['stable', 'prerelease'].includes(versionType)) {
+        throw new Error(`Invalid version type: ${versionType}`);
+      }
+
+      console.log('[Updater] Unignoring version type:', versionType);
+
+      // 获取当前忽略版本数据
+      const ignoredVersions = await getIgnoredVersions();
+
+      // 清除对应类型的忽略版本
+      ignoredVersions[versionType] = null;
+
+      // 保存更新后的数据
+      await preferenceService.set(PREFERENCE_KEYS.IGNORED_VERSIONS, ignoredVersions);
+
+      return createSuccessResponse(null);
+    } catch (error) {
+      console.error('[Updater] Failed to unignore version:', error);
       return createDetailedErrorResponse(error);
     }
   });

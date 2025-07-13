@@ -63,6 +63,13 @@
               {{ t('updater.ignore') }}
             </button>
             <button
+              v-if="state.isStableVersionIgnored"
+              @click="handleUnignoreStableUpdate"
+              class="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-700 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors"
+            >
+              {{ t('updater.unignore') }}
+            </button>
+            <button
               v-if="state.hasStableUpdate"
               @click="handleDownloadStable"
               :disabled="state.isDownloadingStable || state.isDownloading || state.isCheckingUpdate"
@@ -86,7 +93,7 @@
         </div>
       </div>
 
-      <!-- 预览版信息 -->
+      <!-- 预览版信息 - 有预览版时显示 -->
       <div v-if="state.prereleaseVersion" class="relative p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg mb-3">
         <!-- 更新标识 -->
         <div v-if="state.hasPrereleaseUpdate && !state.isPrereleaseVersionIgnored" class="absolute -top-2 -right-2 px-2 py-1 text-xs rounded-full bg-red-500 text-white">
@@ -127,6 +134,13 @@
               {{ t('updater.ignore') }}
             </button>
             <button
+              v-if="state.isPrereleaseVersionIgnored"
+              @click="handleUnignorePrereleaseUpdate"
+              class="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-700 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors"
+            >
+              {{ t('updater.unignore') }}
+            </button>
+            <button
               v-if="state.hasPrereleaseUpdate"
               @click="handleDownloadPrerelease"
               :disabled="state.isDownloadingPrerelease || state.isDownloading || state.isCheckingUpdate"
@@ -146,6 +160,28 @@
               </span>
               <span v-else>{{ t('updater.download') }}</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 无预览版时的显示 - 仅在不是检查中且有正式版时显示 -->
+      <div v-else-if="!state.isCheckingUpdate && state.stableVersion" class="relative p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                {{ t('updater.latestPrereleaseVersion') }}
+              </span>
+              <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300">
+                {{ t('updater.prerelease') }}
+              </span>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+              {{ t('updater.noPrereleaseAvailable') }}
+            </div>
+          </div>
+          <div class="text-sm text-gray-500 dark:text-gray-400">
+            {{ t('updater.latestIsStable') }}
           </div>
         </div>
       </div>
@@ -338,6 +374,7 @@ const {
   startDownload,
   installUpdate,
   ignoreUpdate,
+  unignoreUpdate,
   openReleaseUrl,
   downloadStableVersion,
   downloadPrereleaseVersion
@@ -415,6 +452,14 @@ const handleIgnorePrereleaseUpdate = async () => {
   if (state.prereleaseVersion) {
     await ignoreUpdate(state.prereleaseVersion, 'prerelease')
   }
+}
+
+const handleUnignoreStableUpdate = async () => {
+  await unignoreUpdate('stable')
+}
+
+const handleUnignorePrereleaseUpdate = async () => {
+  await unignoreUpdate('prerelease')
 }
 
 // 打开远程发布页面

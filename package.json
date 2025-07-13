@@ -12,7 +12,7 @@
     "build": "npm-run-all build:core build:ui build:parallel",
     "build:core": "pnpm -F @prompt-optimizer/core build",
     "build:ui": "pnpm -F @prompt-optimizer/ui build",
-    "build:parallel": "npm-run-all --parallel build:web build:ext build:desktop-only",
+    "build:parallel": "npm-run-all --parallel build:web build:ext",
     "build:web": "pnpm -F @prompt-optimizer/web build",
     "build:ext": "pnpm -F @prompt-optimizer/extension build",
     "build:desktop-only": "pnpm -F @prompt-optimizer/desktop build",

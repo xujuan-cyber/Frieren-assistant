@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+          fetch-tags: true  # 确保获取所有tags
 
       - name: 安装 pnpm
         uses: pnpm/action-setup@v2
@@ -141,6 +144,9 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+          fetch-tags: true  # 确保获取所有tags
 
       - name: 安装 pnpm
         uses: pnpm/action-setup@v2
@@ -257,6 +263,9 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+          fetch-tags: true  # 确保获取所有tags
 
       - name: 安装 pnpm
         uses: pnpm/action-setup@v2
@@ -376,6 +385,9 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+          fetch-tags: true  # 确保获取所有tags
 
       - name: 获取版本号和类型
         id: version
@@ -430,35 +442,63 @@ jobs:
       - name: 生成 Release Notes
         id: release_notes
         run: |
-          # 获取上一个tag
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+          # 获取当前tag
           CURRENT_TAG=${{ steps.version.outputs.version }}
-
-          echo "Previous tag: $PREVIOUS_TAG"
           echo "Current tag: $CURRENT_TAG"
 
+          # 获取所有tags并调试输出
+          echo "All tags (sorted):"
+          git tag --sort=-version:refname | head -10
+
+          # 改进的上一个tag获取逻辑
+          # 1. 先尝试获取所有正式版本tag (不包含预览版)
+          STABLE_TAGS=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$')
+          echo "Stable tags found: $STABLE_TAGS"
+
+          # 2. 获取所有tag (包含预览版)
+          ALL_TAGS=$(git tag --sort=-version:refname)
+
+          # 3. 根据当前tag类型选择合适的比较策略
+          PREVIOUS_TAG=""
+          if [[ $CURRENT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            # 当前是正式版，找上一个正式版
+            PREVIOUS_TAG=$(echo "$STABLE_TAGS" | grep -v "^$CURRENT_TAG$" | head -1)
+            echo "Current is stable release, previous stable tag: $PREVIOUS_TAG"
+          else
+            # 当前是预览版，找上一个任意版本
+            PREVIOUS_TAG=$(echo "$ALL_TAGS" | grep -v "^$CURRENT_TAG$" | head -1)
+            echo "Current is prerelease, previous tag: $PREVIOUS_TAG"
+          fi
+
           # 生成commit历史（处理多行和长commit）
-          if [ -n "$PREVIOUS_TAG" ]; then
+          COMMITS=""
+          if [ -n "$PREVIOUS_TAG" ] && git rev-parse "$PREVIOUS_TAG" >/dev/null 2>&1 && git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+            echo "Generating commits from $PREVIOUS_TAG to $CURRENT_TAG"
             COMMITS=$(git log --pretty=format:"%s|%h" $PREVIOUS_TAG..$CURRENT_TAG | while IFS='|' read -r subject hash; do
               # 截断过长的commit message（保留前80个字符）
               if [ ${#subject} -gt 80 ]; then
                 subject="${subject:0:77}..."
               fi
-              echo "- $subject (\`$hash\`)"
+              echo "- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash}))"
             done)
-          else
-            COMMITS=$(git log --pretty=format:"%s|%h" $CURRENT_TAG | while IFS='|' read -r subject hash; do
+          elif git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+            echo "No previous tag found or invalid, showing commits for current tag"
+            COMMITS=$(git log --pretty=format:"%s|%h" --max-count=10 | while IFS='|' read -r subject hash; do
               # 截断过长的commit message（保留前80个字符）
               if [ ${#subject} -gt 80 ]; then
                 subject="${subject:0:77}..."
               fi
-              echo "- $subject (\`$hash\`)"
+              echo "- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash}))"
             done)
           fi
 
           # 检查是否有commits
           if [ -z "$COMMITS" ]; then
+            echo "No commits found, using fallback message"
             COMMITS="- 首次发布"
+          else
+            echo "Generated commits:"
+            echo "$COMMITS"
           fi
 
           # 限制commits数量（最多显示20个）
@@ -521,7 +561,7 @@ jobs:
           - **讨论交流**: [Discussions](https://github.com/${{ github.repository }}/discussions)
 
           ---
-          **提示**: 如果需要查看完整的提交历史，请访问 [GitHub Commits](https://github.com/\${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG)
+          **提示**: 如果需要查看完整的提交历史，请访问项目的 [GitHub Commits](https://github.com/${{ github.repository }}/commits)
           EOF
 
           echo "Generated release notes:"

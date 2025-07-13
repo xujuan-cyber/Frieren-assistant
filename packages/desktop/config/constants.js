@@ -11,6 +11,8 @@ const IPC_EVENTS = {
   UPDATE_START_DOWNLOAD: 'updater-start-download',
   UPDATE_INSTALL: 'updater-install-update',
   UPDATE_IGNORE_VERSION: 'updater-ignore-version',
+  UPDATE_UNIGNORE_VERSION: 'updater-unignore-version',
+  UPDATE_GET_IGNORED_VERSIONS: 'updater-get-ignored-versions',
   UPDATE_DOWNLOAD_SPECIFIC_VERSION: 'updater-download-specific-version',
   UPDATE_DOWNLOAD_STARTED: 'updater-download-started',
 
