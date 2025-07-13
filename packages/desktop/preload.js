@@ -6,13 +6,15 @@ const IPC_EVENTS = {
   UPDATE_START_DOWNLOAD: 'updater-start-download',
   UPDATE_INSTALL: 'updater-install-update',
   UPDATE_IGNORE_VERSION: 'updater-ignore-version',
+  UPDATE_DOWNLOAD_SPECIFIC_VERSION: 'updater-download-specific-version',
 
   // 主进程发送给渲染进程的事件
   UPDATE_AVAILABLE_INFO: 'update-available-info',
   UPDATE_NOT_AVAILABLE: 'update-not-available',
   UPDATE_DOWNLOAD_PROGRESS: 'update-download-progress',
   UPDATE_DOWNLOADED: 'update-downloaded',
-  UPDATE_ERROR: 'update-error'
+  UPDATE_ERROR: 'update-error',
+  UPDATE_DOWNLOAD_STARTED: 'updater-download-started'
 };
 
 // 简单的超时包装器，避免过度设计
@@ -725,6 +727,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         // 保留完整的错误信息
         const error = new Error(result.error);
+        error.originalError = result.error;
+        error.detailedMessage = result.error;
+        throw error;
+      }
+      return result.data;
+    },
+
+    downloadSpecificVersion: async (versionType) => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_DOWNLOAD_SPECIFIC_VERSION, versionType),
+        30000 // 30秒超时，现在只等待下载启动，不等待完成，所以30秒足够
+      );
+      if (!result.success) {
+        const error = new Error(result.error || 'Failed to download specific version');
         error.originalError = result.error;
         error.detailedMessage = result.error;
         throw error;

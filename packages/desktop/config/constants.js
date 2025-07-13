@@ -10,6 +10,8 @@ const IPC_EVENTS = {
   UPDATE_START_DOWNLOAD: 'updater-start-download',
   UPDATE_INSTALL: 'updater-install-update',
   UPDATE_IGNORE_VERSION: 'updater-ignore-version',
+  UPDATE_DOWNLOAD_SPECIFIC_VERSION: 'updater-download-specific-version',
+  UPDATE_DOWNLOAD_STARTED: 'updater-download-started',
 
   // 主进程发送给渲染进程的事件
   UPDATE_AVAILABLE_INFO: 'update-available-info',

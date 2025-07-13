@@ -2,6 +2,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { usePreferences } from './usePreferenceManager'
 import { inject } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 export interface UpdateInfo {
   version: string
@@ -36,6 +37,8 @@ export interface UpdaterState {
   currentVersion: string | null
   isDownloadingStable: boolean
   isDownloadingPrerelease: boolean
+  downloadMessage: { type: 'error' | 'warning' | 'info', content: string } | null
+  lastDownloadAttempt: 'stable' | 'prerelease' | null
 }
 
 export function useUpdater() {
@@ -63,7 +66,9 @@ export function useUpdater() {
         hasPrereleaseUpdate: false,
         currentVersion: null,
         isDownloadingStable: false,
-        isDownloadingPrerelease: false
+        isDownloadingPrerelease: false,
+        downloadMessage: null,
+        lastDownloadAttempt: null
       } as UpdaterState),
       checkUpdate: () => Promise.resolve(),
       startDownload: () => Promise.resolve(),
@@ -79,6 +84,7 @@ export function useUpdater() {
   // Electron环境的实际实现
   const services = inject('services')
   const { getPreference, setPreference } = usePreferences(services)
+  const { t } = useI18n()
 
   const state = reactive<UpdaterState>({
     hasUpdate: false,
@@ -98,7 +104,9 @@ export function useUpdater() {
     hasPrereleaseUpdate: false,
     currentVersion: null,
     isDownloadingStable: false,
-    isDownloadingPrerelease: false
+    isDownloadingPrerelease: false,
+    downloadMessage: null,
+    lastDownloadAttempt: null
   })
 
   // IPC事件监听器引用，用于清理
@@ -107,6 +115,7 @@ export function useUpdater() {
   let downloadProgressListener: ((event: any, progress: DownloadProgress) => void) | null = null
   let updateDownloadedListener: ((event: any, info: UpdateInfo) => void) | null = null
   let updateErrorListener: ((event: any, error: any) => void) | null = null
+  let downloadStartedListener: ((event: any, info: any) => void) | null = null
 
   // 检查两种版本的内部函数
   const checkBothVersions = async () => {
@@ -200,11 +209,12 @@ export function useUpdater() {
   }
 
   // 检查特定类型版本的内部函数
-  const checkSpecificVersion = async (allowPrerelease: boolean) => {
-    // 临时设置预览版偏好
-    const originalPreference = state.allowPrerelease
+  const checkSpecificVersion = async (allowPrerelease: boolean, skipRestore = false) => {
+    // 只有在不跳过恢复时才保存和恢复设置
+    const originalPreference = skipRestore ? null : state.allowPrerelease
 
     try {
+      // 总是设置偏好，因为主进程需要知道要检查哪个通道
       await setPreference('updater.allowPrerelease', allowPrerelease)
 
       // 执行检查
@@ -249,11 +259,13 @@ export function useUpdater() {
 
       return null
     } finally {
-      // 确保在任何情况下都恢复原始偏好设置
-      try {
-        await setPreference('updater.allowPrerelease', originalPreference)
-      } catch (restoreError) {
-        console.error('[useUpdater] Failed to restore preference setting:', restoreError)
+      // 只有在不跳过恢复时才恢复原始偏好设置
+      if (!skipRestore && originalPreference !== null) {
+        try {
+          await setPreference('updater.allowPrerelease', originalPreference)
+        } catch (restoreError) {
+          console.error('[useUpdater] Failed to restore preference setting:', restoreError)
+        }
       }
     }
   }
@@ -361,6 +373,8 @@ export function useUpdater() {
 
     try {
       state.isCheckingUpdate = true
+      // 清除之前的下载消息，因为这是一个新的检查操作
+      state.downloadMessage = null
 
       // 智能状态重置：只在没有下载进行时才重置下载相关状态
       if (!state.isDownloading) {
@@ -422,25 +436,17 @@ export function useUpdater() {
     }
   }
 
-  // 开始下载
+  // 开始下载 - 已弃用，请使用 downloadStableVersion 或 downloadPrereleaseVersion
   const startDownload = async () => {
-    if (!window.electronAPI?.updater) return
+    console.warn('[useUpdater] startDownload is deprecated, use downloadStableVersion or downloadPrereleaseVersion instead')
 
-    try {
-      state.isDownloading = true
-      state.downloadProgress = null // 重置进度
-
-      const result = await window.electronAPI.updater.startDownload()
-
-      if (!result.success) {
-        console.error('[useUpdater] Start download failed:', result.error)
-        state.isDownloading = false
-        state.downloadProgress = null
-      }
-    } catch (error) {
-      console.error('[useUpdater] Start download error:', error)
-      state.isDownloading = false
-      state.downloadProgress = null
+    // 为了向后兼容，如果有可用更新，尝试下载对应类型的版本
+    if (state.stableVersion && state.stableVersion.hasUpdate) {
+      await downloadStableVersion()
+    } else if (state.prereleaseVersion && state.prereleaseVersion.hasUpdate) {
+      await downloadPrereleaseVersion()
+    } else {
+      console.warn('[useUpdater] No update available for download')
     }
   }
 
@@ -525,55 +531,74 @@ export function useUpdater() {
     }
   }
 
-  // 下载正式版
+  // 下载正式版（使用原子操作）
   const downloadStableVersion = async () => {
     if (!state.stableVersion) {
       console.warn('[useUpdater] No stable version available for download')
+      state.downloadMessage = { type: 'warning', content: t('updater.noStableVersionAvailable') }
+      state.lastDownloadAttempt = 'stable'
       return
     }
 
-    // 防止重复点击
-    if (state.isDownloadingStable || state.isDownloading) {
-      console.log('[useUpdater] Stable download already in progress')
+    // 防止重复点击 - 检查所有下载状态
+    if (state.isDownloadingStable || state.isDownloadingPrerelease || state.isDownloading) {
+      console.log('[useUpdater] Download already in progress')
       return
     }
 
     try {
-      console.log('[useUpdater] Starting stable version download...')
+      console.log('[useUpdater] Starting atomic stable version download...')
       state.isDownloadingStable = true
+      state.downloadMessage = null
+      state.lastDownloadAttempt = 'stable'
 
-      // 步骤1：切换到正式版通道
-      const originalPreference = state.allowPrerelease
-      await setPreference('updater.allowPrerelease', false)
-      state.allowPrerelease = false
-
-      // 步骤2：在新通道上检查更新，让主进程知道要下载什么
-      console.log('[useUpdater] Checking for stable version updates before download...')
-      const checkResult = await checkSpecificVersion(false)
-
-      if (!checkResult || checkResult.isDevelopmentEnvironment || checkResult.noVersionFound) {
-        console.error('[useUpdater] Failed to get stable version info for download')
-        // 恢复原始设置
-        await setPreference('updater.allowPrerelease', originalPreference)
-        state.allowPrerelease = originalPreference
-        return
+      // 使用新的原子操作API
+      if (!window.electronAPI?.updater?.downloadSpecificVersion) {
+        throw new Error('electronAPI not available')
       }
+      const result = await window.electronAPI.updater.downloadSpecificVersion('stable')
 
-      // 验证检查结果是否包含有效的更新信息
-      if (!checkResult.success || !checkResult.data || !checkResult.data.updateInfo) {
-        console.error('[useUpdater] Check result does not contain valid update info:', checkResult)
-        // 恢复原始设置
-        await setPreference('updater.allowPrerelease', originalPreference)
-        state.allowPrerelease = originalPreference
-        return
+      if (result.hasUpdate) {
+        console.log('[useUpdater] Stable download started:', result.message)
+        // 立即设置下载状态，确保UI正确显示
+        state.isDownloading = true
+        state.downloadProgress = null
+      } else {
+        console.log('[useUpdater] No stable update available:', result.message)
+        // 根据不同的原因显示不同的消息
+        let content: string
+        if (result.reason === 'ignored' && result.version) {
+          content = t('updater.versionIgnored', { version: result.version })
+        } else if (result.version) {
+          content = t('updater.alreadyLatestStable', { version: result.version })
+        } else {
+          content = t('updater.noStableVersionAvailable')
+        }
+
+        state.downloadMessage = {
+          type: 'info',
+          content
+        }
       }
-
-      // 步骤3：现在主进程知道要下载什么了，开始下载
-      console.log('[useUpdater] Starting download for stable version:', checkResult.data.updateInfo.version)
-      await startDownload()
 
     } catch (error) {
-      console.error('[useUpdater] Download stable version error:', error)
+      console.error('[useUpdater] Atomic stable download error:', error)
+
+      // 提取简洁的错误信息
+      let errorMessage = t('updater.unknownError')
+      if (error instanceof Error) {
+        // 只取错误消息的第一行，避免显示完整堆栈
+        errorMessage = error.message.split('\n')[0]
+        // 限制错误消息长度
+        if (errorMessage.length > 100) {
+          errorMessage = errorMessage.substring(0, 97) + '...'
+        }
+      }
+
+      state.downloadMessage = {
+        type: 'error',
+        content: t('updater.stableDownloadFailed', { error: errorMessage })
+      }
       // 确保下载状态被重置
       state.isDownloading = false
       state.downloadProgress = null
@@ -582,55 +607,74 @@ export function useUpdater() {
     }
   }
 
-  // 下载预览版
+  // 下载预览版（使用原子操作）
   const downloadPrereleaseVersion = async () => {
     if (!state.prereleaseVersion) {
       console.warn('[useUpdater] No prerelease version available for download')
+      state.downloadMessage = { type: 'warning', content: t('updater.noPrereleaseVersionAvailable') }
+      state.lastDownloadAttempt = 'prerelease'
       return
     }
 
-    // 防止重复点击
-    if (state.isDownloadingPrerelease || state.isDownloading) {
-      console.log('[useUpdater] Prerelease download already in progress')
+    // 防止重复点击 - 检查所有下载状态
+    if (state.isDownloadingStable || state.isDownloadingPrerelease || state.isDownloading) {
+      console.log('[useUpdater] Download already in progress')
       return
     }
 
     try {
-      console.log('[useUpdater] Starting prerelease version download...')
+      console.log('[useUpdater] Starting atomic prerelease version download...')
       state.isDownloadingPrerelease = true
+      state.downloadMessage = null
+      state.lastDownloadAttempt = 'prerelease'
 
-      // 步骤1：切换到预览版通道
-      const originalPreference = state.allowPrerelease
-      await setPreference('updater.allowPrerelease', true)
-      state.allowPrerelease = true
-
-      // 步骤2：在新通道上检查更新，让主进程知道要下载什么
-      console.log('[useUpdater] Checking for prerelease version updates before download...')
-      const checkResult = await checkSpecificVersion(true)
-
-      if (!checkResult || checkResult.isDevelopmentEnvironment || checkResult.noVersionFound) {
-        console.error('[useUpdater] Failed to get prerelease version info for download')
-        // 恢复原始设置
-        await setPreference('updater.allowPrerelease', originalPreference)
-        state.allowPrerelease = originalPreference
-        return
+      // 使用新的原子操作API
+      if (!window.electronAPI?.updater?.downloadSpecificVersion) {
+        throw new Error('electronAPI not available')
       }
+      const result = await window.electronAPI.updater.downloadSpecificVersion('prerelease')
 
-      // 验证检查结果是否包含有效的更新信息
-      if (!checkResult.success || !checkResult.data || !checkResult.data.updateInfo) {
-        console.error('[useUpdater] Check result does not contain valid update info:', checkResult)
-        // 恢复原始设置
-        await setPreference('updater.allowPrerelease', originalPreference)
-        state.allowPrerelease = originalPreference
-        return
+      if (result.hasUpdate) {
+        console.log('[useUpdater] Prerelease download started:', result.message)
+        // 立即设置下载状态，确保UI正确显示
+        state.isDownloading = true
+        state.downloadProgress = null
+      } else {
+        console.log('[useUpdater] No prerelease update available:', result.message)
+        // 根据不同的原因显示不同的消息
+        let content: string
+        if (result.reason === 'ignored' && result.version) {
+          content = t('updater.versionIgnored', { version: result.version })
+        } else if (result.version) {
+          content = t('updater.alreadyLatestPrerelease', { version: result.version })
+        } else {
+          content = t('updater.noPrereleaseVersionAvailable')
+        }
+
+        state.downloadMessage = {
+          type: 'info',
+          content
+        }
       }
-
-      // 步骤3：现在主进程知道要下载什么了，开始下载
-      console.log('[useUpdater] Starting download for prerelease version:', checkResult.data.updateInfo.version)
-      await startDownload()
 
     } catch (error) {
-      console.error('[useUpdater] Download prerelease version error:', error)
+      console.error('[useUpdater] Atomic prerelease download error:', error)
+
+      // 提取简洁的错误信息
+      let errorMessage = t('updater.unknownError')
+      if (error instanceof Error) {
+        // 只取错误消息的第一行，避免显示完整堆栈
+        errorMessage = error.message.split('\n')[0]
+        // 限制错误消息长度
+        if (errorMessage.length > 100) {
+          errorMessage = errorMessage.substring(0, 97) + '...'
+        }
+      }
+
+      state.downloadMessage = {
+        type: 'error',
+        content: t('updater.prereleaseDownloadFailed', { error: errorMessage })
+      }
       // 确保下载状态被重置
       state.isDownloading = false
       state.downloadProgress = null
@@ -698,6 +742,8 @@ export function useUpdater() {
       // 重置特定下载状态
       state.isDownloadingStable = false
       state.isDownloadingPrerelease = false
+      // 清除下载消息
+      state.downloadMessage = null
     }
     window.electronAPI.on('update-downloaded', updateDownloadedListener)
 
@@ -712,11 +758,46 @@ export function useUpdater() {
       // 重置特定下载状态
       state.isDownloadingStable = false
       state.isDownloadingPrerelease = false
+
+      // 设置用户可见的下载错误信息
+      let errorMessage = error.message || error.error || 'Update check failed'
+      // 只取错误消息的第一行，避免显示完整堆栈
+      errorMessage = errorMessage.split('\n')[0]
+      // 限制错误消息长度
+      if (errorMessage.length > 100) {
+        errorMessage = errorMessage.substring(0, 97) + '...'
+      }
+
+      if (state.lastDownloadAttempt) {
+        const versionType = state.lastDownloadAttempt === 'stable' ? t('updater.stable') : t('updater.prerelease')
+        state.downloadMessage = {
+          type: 'error',
+          content: t('updater.downloadFailedGeneric', { type: versionType, error: errorMessage })
+        }
+      }
+
       // 使用详细的错误信息，优先使用 message 字段（包含详细信息）
-      state.lastCheckMessage = error.message || error.error || 'Update check failed'
+      state.lastCheckMessage = errorMessage
       // 保持 hasUpdate 和 updateInfo，让用户可以重新下载
     }
     window.electronAPI.on('update-error', updateErrorListener)
+
+    // 下载开始事件 - 立即同步UI状态
+    downloadStartedListener = (info: any) => {
+      console.log('[useUpdater] Download started:', info)
+      // 立即设置下载状态，确保UI响应
+      state.isDownloading = true
+      state.downloadProgress = null
+      // 根据版本类型设置对应的下载状态
+      if (info.versionType === 'stable') {
+        state.isDownloadingStable = true
+      } else if (info.versionType === 'prerelease') {
+        state.isDownloadingPrerelease = true
+      }
+      // 清除之前的消息
+      state.downloadMessage = null
+    }
+    window.electronAPI.on('updater-download-started', downloadStartedListener)
   }
 
   // 清理事件监听器
@@ -737,6 +818,9 @@ export function useUpdater() {
     }
     if (updateErrorListener) {
       window.electronAPI.off('update-error', updateErrorListener)
+    }
+    if (downloadStartedListener) {
+      window.electronAPI.off('updater-download-started', downloadStartedListener)
     }
   }
 

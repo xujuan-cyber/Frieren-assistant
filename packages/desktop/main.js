@@ -15,8 +15,34 @@ const {
   DEFAULT_CONFIG
 } = require('./config/update-config');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// 确定正确的配置文件路径
+// 在生产环境中，优先从exe所在目录查找.env.local文件
+let envLocalPath;
+if (app.isPackaged) {
+  // 生产环境：exe所在目录
+  envLocalPath = path.join(process.resourcesPath, '..', '.env.local');
+} else {
+  // 开发环境：项目根目录
+  envLocalPath = path.resolve(__dirname, '../../.env.local');
+}
+
+const envPath = path.join(__dirname, '.env');
+
+// 加载环境变量
+require('dotenv').config({ path: envLocalPath });
+require('dotenv').config({ path: envPath });
+
+// 调试：检查 dotenv 加载后的环境变量
+console.log('[Main Process] ===== DOTENV LOADING DEBUG =====');
+console.log('[Main Process] App is packaged:', app.isPackaged);
+console.log('[Main Process] Checked .env.local path:', envLocalPath);
+console.log('[Main Process] Checked .env path:', envPath);
+console.log('[Main Process] .env.local exists:', require('fs').existsSync(envLocalPath));
+console.log('[Main Process] .env exists:', require('fs').existsSync(envPath));
+console.log('[Main Process] GH_TOKEN loaded from dotenv:', !!process.env.GH_TOKEN);
+console.log('[Main Process] GITHUB_TOKEN loaded from dotenv:', !!process.env.GITHUB_TOKEN);
+console.log('[Main Process] =====================================');
 const {
   PreferenceService,
   createModelManager,
@@ -1238,6 +1264,22 @@ const isVersionIgnored = async (version) => {
 async function setupUpdateHandlers() {
   console.log('[Main Process] Setting up auto-update handlers...');
 
+  // 环境变量调试信息
+  console.log('[Updater Debug] ===== ENVIRONMENT VARIABLES CHECK =====');
+  console.log('[Updater Debug] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[Updater Debug] GH_TOKEN exists:', !!process.env.GH_TOKEN);
+  console.log('[Updater Debug] GH_TOKEN length:', process.env.GH_TOKEN ? process.env.GH_TOKEN.length : 'N/A');
+  console.log('[Updater Debug] GH_TOKEN prefix:', process.env.GH_TOKEN ? process.env.GH_TOKEN.substring(0, 4) + '...' : 'N/A');
+  console.log('[Updater Debug] GITHUB_TOKEN exists:', !!process.env.GITHUB_TOKEN);
+  console.log('[Updater Debug] GITHUB_TOKEN length:', process.env.GITHUB_TOKEN ? process.env.GITHUB_TOKEN.length : 'N/A');
+  console.log('[Updater Debug] All environment variables starting with GH:', Object.keys(process.env).filter(key => key.startsWith('GH')));
+  console.log('[Updater Debug] All environment variables starting with GITHUB:', Object.keys(process.env).filter(key => key.startsWith('GITHUB')));
+  console.log('[Updater Debug] App is packaged:', app.isPackaged);
+  console.log('[Updater Debug] App version:', app.getVersion());
+  console.log('[Updater Debug] Current working directory:', process.cwd());
+  console.log('[Updater Debug] __dirname:', __dirname);
+  console.log('[Updater Debug] ============================================');
+
   // 更新操作状态锁，防止并发调用
   let isCheckingForUpdate = false;
   let isDownloadingUpdate = false;
@@ -1245,6 +1287,8 @@ async function setupUpdateHandlers() {
 
   // 配置更新器基本设置
   autoUpdater.autoDownload = DEFAULT_CONFIG.autoDownload;
+  autoUpdater.allowPrerelease = DEFAULT_CONFIG.allowPrerelease;
+  autoUpdater.allowDowngrade = false; // 默认不允许降级，只在渠道切换时临时启用
 
   // 开发模式下的更新检查配置
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
@@ -1327,6 +1371,20 @@ async function setupUpdateHandlers() {
   autoUpdater.on('error', (error) => {
     console.error('[Updater] Update error:', error);
 
+    // 如果是 403 错误，提供额外的调试信息
+    if (error.code === 'HTTP_ERROR_403' || (error.message && error.message.includes('403'))) {
+      console.log('[Updater Debug] ===== 403 ERROR DEBUGGING =====');
+      console.log('[Updater Debug] This is a 403 Forbidden error, likely authentication issue');
+      console.log('[Updater Debug] GH_TOKEN exists at error time:', !!process.env.GH_TOKEN);
+      console.log('[Updater Debug] GITHUB_TOKEN exists at error time:', !!process.env.GITHUB_TOKEN);
+      console.log('[Updater Debug] Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      console.log('[Updater Debug] =====================================');
+    }
+
     // 重置所有状态锁，允许用户重试
     isCheckingForUpdate = false;
     isDownloadingUpdate = false;
@@ -1401,6 +1459,15 @@ async function setupUpdateHandlers() {
 
       // 执行更新检查
       console.log('[Updater] Starting update check...');
+      
+      // 在实际调用 checkForUpdates 前再次检查环境变量
+      console.log('[Updater Debug] ===== PRE-CHECK ENVIRONMENT VARIABLES =====');
+      console.log('[Updater Debug] GH_TOKEN still exists:', !!process.env.GH_TOKEN);
+      console.log('[Updater Debug] GITHUB_TOKEN still exists:', !!process.env.GITHUB_TOKEN);
+      console.log('[Updater Debug] autoUpdater.allowPrerelease:', autoUpdater.allowPrerelease);
+      console.log('[Updater Debug] autoUpdater.autoDownload:', autoUpdater.autoDownload);
+      console.log('[Updater Debug] ===============================================');
+      
       const result = await autoUpdater.checkForUpdates();
 
       console.log('[DEBUG] ===== BACKEND UPDATE CHECK RESULT =====');
@@ -1566,6 +1633,149 @@ async function setupUpdateHandlers() {
       return createSuccessResponse(null);
     } catch (error) {
       console.error('[Updater] Failed to ignore version:', error);
+      return createDetailedErrorResponse(error);
+    }
+  });
+
+  // 下载特定版本（原子操作）
+  ipcMain.handle(IPC_EVENTS.UPDATE_DOWNLOAD_SPECIFIC_VERSION, async (event, versionType) => {
+    try {
+      console.log('[Updater] Starting atomic download for version type:', versionType);
+
+      // 验证版本类型
+      if (!['stable', 'prerelease'].includes(versionType)) {
+        throw new Error(`Invalid version type: ${versionType}`);
+      }
+
+      // 防止并发下载 - 立即设置状态锁
+      if (isDownloadingUpdate) {
+        console.log('[Updater] Download already in progress');
+        return createErrorResponse('Download already in progress');
+      }
+
+      // 立即设置下载状态，防止竞态条件
+      isDownloadingUpdate = true;
+
+      // 1. 保存当前配置（包括偏好设置和autoUpdater实例配置）
+      const originalPreference = await preferenceService.get(PREFERENCE_KEYS.ALLOW_PRERELEASE, false);
+      const originalAutoUpdaterConfig = {
+        allowPrerelease: autoUpdater.allowPrerelease,
+        allowDowngrade: autoUpdater.allowDowngrade
+      };
+      console.log('[Updater] Original preference:', originalPreference);
+      console.log('[Updater] Original autoUpdater config:', originalAutoUpdaterConfig);
+
+      try {
+        // 2. 设置目标通道（同时修改偏好设置和autoUpdater实例）
+        const targetPreference = versionType === 'prerelease';
+        await preferenceService.set(PREFERENCE_KEYS.ALLOW_PRERELEASE, targetPreference);
+
+        // 直接配置autoUpdater实例，确保本次操作使用正确配置
+        autoUpdater.allowPrerelease = targetPreference;
+        autoUpdater.allowDowngrade = true; // 允许降级，支持从预览版切换到正式版
+
+        console.log('[Updater] Set preference to:', targetPreference);
+        console.log('[Updater] Set autoUpdater config:', {
+          allowPrerelease: autoUpdater.allowPrerelease,
+          allowDowngrade: autoUpdater.allowDowngrade
+        });
+
+        // 3. 检查更新
+        console.log('[Updater] Checking for updates...');
+        const checkResult = await autoUpdater.checkForUpdates();
+
+        if (!checkResult || !checkResult.updateInfo) {
+          console.log('[Updater] No update available for', versionType);
+          isDownloadingUpdate = false; // 重置状态
+          return createSuccessResponse({
+            hasUpdate: false,
+            message: `No ${versionType} update available`,
+            versionType,
+            version: null,
+            reason: 'no-update'
+          });
+        }
+
+        // 检查版本是否被忽略
+        const isIgnored = await isVersionIgnored(checkResult.updateInfo.version);
+        if (isIgnored) {
+          console.log('[Updater] Version is ignored:', checkResult.updateInfo.version);
+          isDownloadingUpdate = false; // 重置状态
+          return createSuccessResponse({
+            hasUpdate: false,
+            message: `Version ${checkResult.updateInfo.version} is ignored`,
+            versionType,
+            version: checkResult.updateInfo.version,
+            reason: 'ignored'
+          });
+        }
+
+        // 4. 立即开始下载
+        console.log('[Updater] Starting download for version:', checkResult.updateInfo.version);
+        // 注意：isDownloadingUpdate 已在函数开始时设置
+
+        // 由于 autoDownload = false，必须手动调用 downloadUpdate()
+        // 注意：不要 await downloadUpdate()，因为它会等到下载完成
+        // 我们只需要启动下载，然后立即返回，避免超时问题
+        try {
+          // 启动下载（不等待完成）
+          autoUpdater.downloadUpdate().catch(downloadError => {
+            console.error('[Updater] Download failed:', downloadError);
+            isDownloadingUpdate = false;
+            // 发送错误事件到前端
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send(IPC_EVENTS.UPDATE_ERROR, {
+                message: downloadError.message || 'Download failed',
+                error: downloadError,
+                timestamp: new Date().toISOString()
+              });
+            }
+          });
+          console.log('[Updater] Download started successfully');
+
+          // 立即发送下载开始事件到前端，确保UI状态同步
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send(IPC_EVENTS.UPDATE_DOWNLOAD_STARTED, {
+              versionType,
+              version: checkResult.updateInfo.version,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (downloadError) {
+          console.error('[Updater] Failed to start download:', downloadError);
+          isDownloadingUpdate = false;
+          throw downloadError;
+        }
+
+        return createSuccessResponse({
+          hasUpdate: true,
+          updateInfo: checkResult.updateInfo,
+          versionType,
+          message: `Started downloading ${versionType} version ${checkResult.updateInfo.version}`
+        });
+
+      } finally {
+        // 5. 确保恢复原始配置（偏好设置和autoUpdater实例）
+        try {
+          // 恢复偏好设置
+          await preferenceService.set(PREFERENCE_KEYS.ALLOW_PRERELEASE, originalPreference);
+          console.log('[Updater] Restored preference to:', originalPreference);
+
+          // 恢复autoUpdater实例配置
+          autoUpdater.allowPrerelease = originalAutoUpdaterConfig.allowPrerelease;
+          autoUpdater.allowDowngrade = originalAutoUpdaterConfig.allowDowngrade;
+          console.log('[Updater] Restored autoUpdater config to:', originalAutoUpdaterConfig);
+        } catch (restoreError) {
+          console.error('[Updater] Failed to restore configuration:', restoreError);
+        }
+      }
+
+    } catch (error) {
+      console.error('[Updater] Atomic download failed:', error);
+      // 确保下载状态被重置
+      if (isDownloadingUpdate) {
+        isDownloadingUpdate = false;
+      }
       return createDetailedErrorResponse(error);
     }
   });

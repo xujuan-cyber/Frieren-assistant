@@ -150,6 +150,64 @@
       </div>
     </div>
 
+    <!-- 下载消息提示 -->
+    <div v-if="state.downloadMessage"
+         :class="[
+           'p-3 rounded-lg mb-3',
+           state.downloadMessage.type === 'error' ? 'bg-red-50 dark:bg-red-900/20' :
+           state.downloadMessage.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20' :
+           'bg-blue-50 dark:bg-blue-900/20'
+         ]">
+      <div class="flex items-start gap-2">
+        <!-- 错误图标 -->
+        <svg v-if="state.downloadMessage.type === 'error'"
+             class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <!-- 警告图标 -->
+        <svg v-else-if="state.downloadMessage.type === 'warning'"
+             class="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        <!-- 信息图标 -->
+        <svg v-else
+             class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="flex-1 min-w-0">
+          <div :class="[
+                 'font-medium',
+                 state.downloadMessage.type === 'error' ? 'text-red-600 dark:text-red-400' :
+                 state.downloadMessage.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
+                 'text-blue-600 dark:text-blue-400'
+               ]">
+            {{ state.downloadMessage.type === 'error' ? t('updater.downloadFailed') :
+               state.downloadMessage.type === 'warning' ? t('updater.warning') :
+               t('updater.info') }}
+          </div>
+          <div :class="[
+                 'text-sm mt-1 break-words',
+                 state.downloadMessage.type === 'error' ? 'text-red-600 dark:text-red-400' :
+                 state.downloadMessage.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
+                 'text-blue-600 dark:text-blue-400'
+               ]">
+            {{ state.downloadMessage.content }}
+          </div>
+          <button
+            @click="state.downloadMessage = null"
+            :class="[
+              'mt-2 text-xs hover:underline',
+              state.downloadMessage.type === 'error' ? 'text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300' :
+              state.downloadMessage.type === 'warning' ? 'text-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300' :
+              'text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+            ]"
+          >
+            {{ t('updater.dismiss') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 检查更新中 -->
     <div v-if="state.isCheckingUpdate" class="text-center py-4">
       <div class="flex items-center justify-center mb-2">
