@@ -452,7 +452,7 @@ jobs:
 
           # 改进的上一个tag获取逻辑
           # 1. 先尝试获取所有正式版本tag (不包含预览版)
-          STABLE_TAGS=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$')
+          STABLE_TAGS=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
           echo "Stable tags found: $STABLE_TAGS"
 
           # 2. 获取所有tag (包含预览版)
@@ -462,11 +462,11 @@ jobs:
           PREVIOUS_TAG=""
           if [[ $CURRENT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             # 当前是正式版，找上一个正式版
-            PREVIOUS_TAG=$(echo "$STABLE_TAGS" | grep -v "^$CURRENT_TAG$" | head -1)
+            PREVIOUS_TAG=$(echo "$STABLE_TAGS" | grep -v "^$CURRENT_TAG$" | head -1 || true)
             echo "Current is stable release, previous stable tag: $PREVIOUS_TAG"
           else
             # 当前是预览版，找上一个任意版本
-            PREVIOUS_TAG=$(echo "$ALL_TAGS" | grep -v "^$CURRENT_TAG$" | head -1)
+            PREVIOUS_TAG=$(echo "$ALL_TAGS" | grep -v "^$CURRENT_TAG$" | head -1 || true)
             echo "Current is prerelease, previous tag: $PREVIOUS_TAG"
           fi
 
