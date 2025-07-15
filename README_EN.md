@@ -18,12 +18,22 @@
 
 ## 📖 Project Introduction
 
-Prompt Optimizer is a powerful AI prompt optimization tool that helps you write better AI prompts and improve the quality of AI outputs. It supports both web application and Chrome extension usage.
+Prompt Optimizer is a powerful AI prompt optimization tool that helps you write better AI prompts and improve the quality of AI outputs. It supports four usage methods: web application, desktop application, Chrome extension, and Docker deployment.
 
 ### 🎥 Feature Demonstration
 
 <div align="center">
-  <img src="images/contrast.png" alt="Feature Demonstration" width="90%">
+  <p><b>1. Role-playing Dialogue: Unleashing the Potential of Small Models</b></p>
+  <p>In cost-effective production scenarios or privacy-focused local deployments, structured prompts enable small models to consistently enter character roles, providing immersive and highly consistent role-playing experiences that effectively unleash their potential.</p>
+  <img src="images/demo/cat-maid-roleplay.png" alt="Cat Maid Role-playing Demo" width="85%">
+  <br>
+  <p><b>2. Knowledge Graph Extraction: Ensuring Production Environment Stability</b></p>
+  <p>In production environments requiring programmatic processing, high-quality prompts can significantly reduce requirements for model intelligence, enabling more economical small models to stably output reliable specified formats. This tool aims to assist developers in quickly achieving this goal, thereby accelerating development, ensuring stability, and achieving cost reduction and efficiency improvement.</p>
+  <img src="images/demo/knowledge-graph-extractor.png" alt="Knowledge Graph Extraction Demo" width="85%">
+  <br>
+  <p><b>3. Poetry Writing: Assisting Creative Exploration and Requirement Customization</b></p>
+  <p>When facing a powerful AI, our goal is not just to get a "good" answer, but to get a "desired" unique answer. This tool can help users refine vague inspiration (like "write a poem") into specific requirements (about what theme, what imagery, what emotions), assisting you in exploring, discovering, and precisely expressing your creativity to co-create unique works with AI.</p>
+  <img src="images/demo/poetry-writing.png" alt="Poetry Writing Demo" width="85%">
 </div>
 
 ## ✨ Core Features
@@ -34,7 +44,7 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - ⚙️ **Advanced Parameter Configuration**: Support for individual LLM parameter configuration (temperature, max_tokens, etc.) for each model
 - 🔒 **Secure Architecture**: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
 - 💾 **Privacy Protection**: Local encrypted storage of history records and API keys with data import/export support
-- 📱 **Multi-platform Support**: Available as both a web application and Chrome extension
+- 📱 **Multi-platform Support**: Available as web application, desktop application, Chrome extension, and Docker deployment
 - 🎨 **User Experience**: Clean and intuitive interface design with responsive layout and smooth interaction effects
 - 🌐 **Cross-domain Support**: Edge Runtime proxy for cross-domain issues when deployed on Vercel
 - 🔐 **Access Control**: Password protection feature for secure deployment
@@ -60,13 +70,26 @@ Method 2: Fork the project and import to Vercel (Recommended):
   - `VITE_OPENAI_API_KEY` etc.: Configure API keys for various AI service providers
   
 For more detailed deployment steps and important notes, please check:
-- [Vercel Deployment Guide](docs/vercel_en.md)
+- [Vercel Deployment Guide](docs/user/deployment/vercel_en.md)
 
-### 3. Install Chrome Extension
+### 3. Download Desktop Application
+Download the latest version from [GitHub Releases](https://github.com/linshenkx/prompt-optimizer/releases). We provide both **installer** and **archive** formats for each platform.
+
+- **Installer (Recommended)**: Such as `*.exe`, `*.dmg`, `*.AppImage`, etc. **Strongly recommended as it supports automatic updates**.
+- **Archive**: Such as `*.zip`. Extract and use, but cannot auto-update.
+
+**Core Advantages of Desktop Application**:
+- ✅ **No CORS Limitations**: As a native desktop application, it completely eliminates browser Cross-Origin Resource Sharing (CORS) issues. This means you can directly connect to any AI service provider's API, including locally deployed Ollama or commercial APIs with strict security policies, for the most complete and stable functional experience.
+- ✅ **Automatic Updates**: Versions installed through installers (like `.exe`, `.dmg`) can automatically check and update to the latest version.
+- ✅ **Independent Operation**: No browser dependency, providing faster response and better performance.
+
+### 4. Install Chrome Extension
 1. Install from Chrome Web Store (may not be the latest version due to approval delays): [Chrome Web Store](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 2. Click the icon to open the Prompt Optimizer
 
-### 4. Docker Deployment
+### 5. Docker Deployment
+<details>
+<summary>Click to view Docker deployment commands</summary>
 ```bash
 # Run container (default configuration)
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
@@ -75,13 +98,19 @@ docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/
 docker run -d -p 80:80 \
   -e VITE_OPENAI_API_KEY=your_key \
   -e ACCESS_USERNAME=your_username \  # Optional, defaults to "admin"
-  -e ACCESS_PASSWORD=your_password \  # Required for password protection
+  -e ACCESS_PASSWORD=your_password \  # Set access password
   --restart unless-stopped \
   --name prompt-optimizer \
   linshen/prompt-optimizer
-```
 
-### 5. Docker Compose Deployment
+```
+</details>
+
+> **China Mirror**: If Docker Hub access is slow, you can replace `linshen/prompt-optimizer` in the above commands with `registry.cn-guangzhou.aliyuncs.com/prompt-optimizer/prompt-optimizer`
+
+### 6. Docker Compose Deployment
+<details>
+<summary>Click to view Docker Compose deployment steps</summary>
 ```bash
 # 1. Clone the repository
 git clone https://github.com/linshenkx/prompt-optimizer.git
@@ -96,9 +125,9 @@ VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
 VITE_ZHIPU_API_KEY=your_zhipu_api_key
 VITE_SILICONFLOW_API_KEY=your_siliconflow_api_key
 
-# Basic Authentication
+# Basic Authentication (Password Protection)
 ACCESS_USERNAME=your_username  # Optional, defaults to "admin"
-ACCESS_PASSWORD=your_password  # Required for authentication
+ACCESS_PASSWORD=your_password  # Set access password
 EOF
 
 # 3. Start the service
@@ -107,19 +136,27 @@ docker compose up -d
 # 4. View logs
 docker compose logs -f
 ```
+</details>
 
-You can also edit the docker-compose.yml file directly to customize your configuration:
+You can also directly edit the docker-compose.yml file to customize your configuration:
+<details>
+<summary>Click to view docker-compose.yml example</summary>
+
 ```yaml
 services:
   prompt-optimizer:
+    # Use Docker Hub image
     image: linshen/prompt-optimizer:latest
+    # Or use Alibaba Cloud image (recommended for China users)
+    # image: registry.cn-guangzhou.aliyuncs.com/prompt-optimizer/prompt-optimizer:latest
     container_name: prompt-optimizer
     restart: unless-stopped
     ports:
-      - "8081:80"  # Change port mapping
+      - "8081:80"  # Modify port mapping
     environment:
       - VITE_OPENAI_API_KEY=your_key_here  # Set API key directly in config
 ```
+</details>
 
 ## ⚙️ API Key Configuration
 
@@ -145,10 +182,13 @@ In addition to API keys, you can configure advanced LLM parameters for each mode
 - **Gemini**: `{"temperature": 0.8, "maxOutputTokens": 2048, "topP": 0.95}`
 - **DeepSeek**: `{"temperature": 0.5, "top_p": 0.9, "frequency_penalty": 0.1}`
 
-For more detailed information about `llmParams` configuration, please refer to the [LLM Parameters Configuration Guide](docs/llm-params-guide.md).
+For more detailed information about `llmParams` configuration, please refer to the [LLM Parameters Configuration Guide](docs/developer/llm-params-guide.md).
 
 ### Method 2: Via Environment Variables
 Configure environment variables through the `-e` parameter when deploying with Docker:
+<details>
+<summary>Click to view available environment variables list</summary>
+
 ```bash
 -e VITE_OPENAI_API_KEY=your_key
 -e VITE_GEMINI_API_KEY=your_key
@@ -159,9 +199,13 @@ Configure environment variables through the `-e` parameter when deploying with D
 -e VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
 -e VITE_CUSTOM_API_MODEL=your_custom_model_name
 ```
+</details>
 
 ## Local Development
 For detailed documentation, see [Development Documentation](dev.md)
+
+<details>
+<summary>Click to view local development commands</summary>
 
 ```bash
 # 1. Clone the project
@@ -176,6 +220,7 @@ pnpm dev               # Main development command: build core/ui and run web app
 pnpm dev:web          # Run web app only
 pnpm dev:fresh        # Complete reset and restart development environment
 ```
+</details>
 
 ## 🗺️ Roadmap
 
@@ -191,12 +236,12 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 ## 📖 Related Documentation
 
 - [Documentation Index](docs/README.md) - Index of all documentation
-- [Technical Development Guide](docs/technical-development-guide.md) - Technology stack and development specifications
-- [LLM Parameters Configuration Guide](docs/llm-params-guide.md) - Detailed guide for advanced LLM parameter configuration
-- [Project Structure](docs/project-structure.md) - Detailed project structure description
-- [Project Status](docs/project-status.md) - Current progress and plans
-- [Product Requirements](docs/prd.md) - Product requirements document
-- [Vercel Deployment Guide](docs/vercel_en.md) - Detailed instructions for Vercel deployment
+- [Technical Development Guide](docs/developer/technical-development-guide.md) - Technology stack and development specifications
+- [LLM Parameters Configuration Guide](docs/developer/llm-params-guide.md) - Detailed guide for advanced LLM parameter configuration
+- [Project Structure](docs/developer/project-structure.md) - Detailed project structure description
+- [Project Status](docs/project/project-status.md) - Current progress and plans
+- [Product Requirements](docs/project/prd.md) - Product requirements document
+- [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) - Detailed instructions for Vercel deployment
 
 ## Star History
 
@@ -228,7 +273,7 @@ For detailed project status, see [Project Status Document](docs/project-status.m
    - Or deploy to your own Vercel platform
    - Check "Use Vercel Proxy" option in model settings
    - Request flow: Browser → Vercel → Model service provider
-   - For detailed steps, please refer to the [Vercel Deployment Guide](docs/vercel_en.md)
+   - For detailed steps, please refer to the [Vercel Deployment Guide](docs/user/deployment/vercel_en.md)
 
 2. **Use self-deployed API proxy service** (Reliable solution)
    - Deploy open-source API aggregation/proxy tools like OneAPI
@@ -237,6 +282,15 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 
 #### Q4: What are the drawbacks or risks of using Vercel proxy?
 **A**: Using Vercel proxy may trigger risk control mechanisms of some model service providers. Some vendors may identify requests from Vercel as proxy behavior, thereby limiting or denying service. If you encounter this issue, we recommend using a self-deployed proxy service.
+
+#### Q5: I have correctly configured CORS policies for my local model (like Ollama), why can't I still connect using the online version?
+**A**: This is caused by the browser's **Mixed Content security policy**. For security reasons, browsers block secure HTTPS pages (like the online version) from sending requests to insecure HTTP addresses (like your local Ollama service).
+
+**Solutions**:
+To bypass this limitation, you need to have the application and API under the same protocol (e.g., both HTTP). We recommend the following approaches:
+1. **Use the desktop version**: Desktop applications have no browser restrictions and are the most stable and reliable way to connect to local models.
+2. **Docker deployment**: Docker deployment also uses HTTP
+3. **Use Chrome extension**: Extensions can bypass some security restrictions in certain situations.
 
 ## 🤝 Contributing
 

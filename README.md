@@ -18,12 +18,22 @@
 
 ## 📖 项目简介
 
-Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更好的AI提示词，提升AI输出质量。支持Web应用、桌面应用和Chrome插件三种使用方式。
+Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更好的AI提示词，提升AI输出质量。支持Web应用、桌面应用、Chrome插件和Docker部署四种使用方式。
 
 ### 🎥 功能演示
 
 <div align="center">
-  <img src="images/contrast.png" alt="功能演示" width="90%">
+  <p><b>1. 角色扮演对话：激发小模型潜力</b></p>
+  <p>在追求成本效益的生产或注重隐私的本地化场景中，结构化的提示词能让小模型稳定地进入角色，提供沉浸式、高一致性的角色扮演体验，有效激发其潜力。</p>
+  <img src="images/demo/cat-maid-roleplay.png" alt="猫女仆角色扮演演示" width="85%">
+  <br>
+  <p><b>2. 知识图谱提取：保障生产环境的稳定性</b></p>
+  <p>在需要程序化处理的生产环境中，高质量的提示词能显著降低对模型智能程度的要求，使得更经济的小模型也能稳定输出可靠的指定格式。本工具旨在辅助开发者快速达到此目的，从而加速开发、保障稳定，实现降本增效。</p>
+  <img src="images/demo/knowledge-graph-extractor.png" alt="知识图谱提取演示" width="85%">
+  <br>
+  <p><b>3. 诗歌写作：辅助创意探索与需求定制</b></p>
+  <p>当面对一个强大的AI，我们的目标不只是得到一个“好”答案，而是得到一个“我们想要的”独特答案。本工具能帮助用户将一个模糊的灵感（如“写首诗”）细化为具体的需求（关于什么主题、何种意象、何种情感），辅助您探索、发掘并精确表达自己的创意，与AI共创独一无二的作品。</p>
+  <img src="images/demo/poetry-writing.png" alt="诗歌创作演示" width="85%">
 </div>
 
 ## ✨ 核心特性
@@ -34,7 +44,7 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 - ⚙️ **高级参数配置**：支持为每个模型单独配置temperature、max_tokens等LLM参数
 - 🔒 **安全架构**：纯客户端处理，数据直接与AI服务商交互，不经过中间服务器
 - 💾 **隐私保护**：本地加密存储历史记录和API密钥，支持数据导入导出
-- 📱 **多端支持**：同时提供Web应用、桌面应用和Chrome插件三种使用方式
+- 📱 **多端支持**：同时提供Web应用、桌面应用、Chrome插件和Docker部署四种使用方式
 - 🎨 **用户体验**：简洁直观的界面设计，响应式布局和流畅交互动效
 - 🌐 **跨域支持**：Vercel部署时支持使用Edge Runtime代理解决跨域问题
 - 🔐 **访问控制**：支持密码保护功能，保障部署安全
@@ -48,10 +58,10 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 项目是纯前端项目，所有数据只存储在浏览器本地，不会上传至任何服务器，因此直接使用在线版本也是安全可靠的
 
 ### 2. Vercel部署
-方式1：一键部署到自己的Vercel：
+方式1：一键部署到自己的Vercel(方便，但后续无法自动更新)：
    [![部署到 Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-方式2: Fork项目后在Vercel中导入（推荐）：
+方式2: Fork项目后在Vercel中导入（推荐，但需参考部署文档进行手动设置）：
    - 先Fork项目到自己的GitHub
    - 然后在Vercel中导入该项目
    - 可跟踪源项目更新，便于同步最新功能和修复
@@ -60,24 +70,27 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
   - `VITE_OPENAI_API_KEY`等：配置各AI服务商的API密钥
 
 更多详细的部署步骤和注意事项，请查看：
-- [Vercel部署指南](docs/vercel.md)
+- [Vercel部署指南](docs/user/deployment/vercel.md)
 
 ### 3. 下载桌面应用
-1. 从 [GitHub Releases](https://github.com/linshenkx/prompt-optimizer/releases) 下载最新版本
-2. **Windows**: 下载 `PromptOptimizer-*-win-x64.zip`，解压到任意目录，运行 `PromptOptimizer.exe`
-3. **macOS**: 下载 `PromptOptimizer-*-darwin-x64.zip` 或 `PromptOptimizer-*-darwin-arm64.zip`，解压到任意目录，运行 `PromptOptimizer.app`
-4. **Linux**: 下载 `PromptOptimizer-*-linux-x64.zip`，解压到任意目录，运行 `PromptOptimizer`
+从 [GitHub Releases](https://github.com/linshenkx/prompt-optimizer/releases) 下载最新版本。我们为各平台提供**安装程序**和**压缩包**两种格式。
 
-**桌面应用特点**：
-- ✅ **便携模式**：数据存储在应用同级目录，便于备份和迁移
-- ✅ **离线使用**：无需浏览器，独立运行
-- ✅ **性能更好**：原生应用体验，响应更快
+- **安装程序 (推荐)**: 如 `*.exe`, `*.dmg`, `*.AppImage` 等。**强烈推荐使用此方式，因为它支持自动更新**。
+- **压缩包**: 如 `*.zip`。解压即用，但无法自动更新。
+
+**桌面应用核心优势**:
+- ✅ **无跨域限制**：作为原生桌面应用，它能彻底摆脱浏览器跨域（CORS）问题的困扰。这意味着您可以直接连接任何AI服务提供商的API，包括本地部署的Ollama或有严格安全策略的商业API，获得最完整、最稳定的功能体验。
+- ✅ **自动更新**：通过安装程序（如 `.exe`, `.dmg`）安装的版本，能够自动检查并更新到最新版。
+- ✅ **独立运行**：无需依赖浏览器，提供更快的响应和更佳的性能。
 
 ### 4. 安装Chrome插件
 1. 从Chrome商店安装（由于审批较慢，可能不是最新的）：[Chrome商店地址](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 2. 点击图标即可打开提示词优化器
 
 ### 5. Docker部署
+<details>
+<summary>点击查看 Docker 部署命令</summary>
+
 ```bash
 # 运行容器（默认配置）
 docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
@@ -92,10 +105,14 @@ docker run -d -p 80:80 \
   linshen/prompt-optimizer
 
 ```
+</details>
 
 > **国内镜像**: 如果Docker Hub访问较慢，可以将上述命令中的 `linshen/prompt-optimizer` 替换为 `registry.cn-guangzhou.aliyuncs.com/prompt-optimizer/prompt-optimizer`
 
 ### 6. Docker Compose部署
+<details>
+<summary>点击查看 Docker Compose 部署步骤</summary>
+
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/linshenkx/prompt-optimizer.git
@@ -121,8 +138,12 @@ docker compose up -d
 # 4. 查看日志
 docker compose logs -f
 ```
+</details>
 
 你还可以直接编辑docker-compose.yml文件，自定义配置：
+<details>
+<summary>点击查看 docker-compose.yml 示例</summary>
+
 ```yaml
 services:
   prompt-optimizer:
@@ -137,6 +158,7 @@ services:
     environment:
       - VITE_OPENAI_API_KEY=your_key_here  # 直接在配置中设置密钥
 ```
+</details>
 
 ## ⚙️ API密钥配置
 
@@ -162,10 +184,13 @@ services:
 - **Gemini**: `{"temperature": 0.8, "maxOutputTokens": 2048, "topP": 0.95}`
 - **DeepSeek**: `{"temperature": 0.5, "top_p": 0.9, "frequency_penalty": 0.1}`
 
-有关 `llmParams` 的更详细说明和配置指南，请参阅 [LLM参数配置指南](docs/llm-params-guide.md)。
+有关 `llmParams` 的更详细说明和配置指南，请参阅 [LLM参数配置指南](docs/developer/llm-params-guide.md)。
 
 ### 方式二：通过环境变量配置
 Docker部署时通过 `-e` 参数配置环境变量：
+<details>
+<summary>点击查看可用环境变量列表</summary>
+
 ```bash
 -e VITE_OPENAI_API_KEY=your_key
 -e VITE_GEMINI_API_KEY=your_key
@@ -176,9 +201,13 @@ Docker部署时通过 `-e` 参数配置环境变量：
 -e VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
 -e VITE_CUSTOM_API_MODEL=your_custom_model_name
 ```
+</details>
 
 ## 本地开发
 详细文档可查看 [开发文档](dev.md)
+
+<details>
+<summary>点击查看本地开发命令</summary>
 
 ```bash
 # 1. 克隆项目
@@ -193,6 +222,7 @@ pnpm dev               # 主开发命令：构建core/ui并运行web应用
 pnpm dev:web          # 仅运行web应用
 pnpm dev:fresh        # 完整重置并重新启动开发环境
 ```
+</details>
 
 ## 🗺️ 开发路线
 
@@ -208,12 +238,12 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 ## 📖 相关文档
 
 - [文档索引](docs/README.md) - 所有文档的索引
-- [技术开发指南](docs/technical-development-guide.md) - 技术栈和开发规范
-- [LLM参数配置指南](docs/llm-params-guide.md) - 高级LLM参数配置详细说明
-- [项目结构](docs/project-structure.md) - 详细的项目结构说明
-- [项目状态](docs/project-status.md) - 当前进度和计划
-- [产品需求](docs/prd.md) - 产品需求文档
-- [Vercel部署指南](docs/vercel.md) - Vercel部署详细说明
+- [技术开发指南](docs/developer/technical-development-guide.md) - 技术栈和开发规范
+- [LLM参数配置指南](docs/developer/llm-params-guide.md) - 高级LLM参数配置详细说明
+- [项目结构](docs/developer/project-structure.md) - 详细的项目结构说明
+- [项目状态](docs/project/project-status.md) - 当前进度和计划
+- [产品需求](docs/project/prd.md) - 产品需求文档
+- [Vercel部署指南](docs/user/deployment/vercel.md) - Vercel部署详细说明
 
 
 ## Star History
@@ -255,6 +285,15 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 
 #### Q4: Vercel代理有什么缺点或风险？
 **A**: 使用Vercel代理可能会触发某些模型服务提供商的风控机制。部分厂商可能会将来自Vercel的请求判定为代理行为，从而限制或拒绝服务。如遇此问题，建议使用自部署的中转服务。
+
+#### Q5: 我已正确配置本地模型（如Ollama）的跨域策略，为什么使用在线版依然无法连接？
+**A**: 这是由浏览器的**混合内容（Mixed Content）安全策略**导致的。出于安全考虑，浏览器会阻止安全的HTTPS页面（如在线版）向不安全的HTTP地址（如您的本地Ollama服务）发送请求。
+
+**解决方案**：
+为了绕过此限制，您需要让应用和API处于同一种协议下（例如，都是HTTP）。推荐以下几种方式：
+1. **使用桌面版**：桌面应用没有浏览器限制，是连接本地模型最稳定可靠的方式。
+2. **docker部署**：docker部署也是http
+3. **使用Chrome插件**：插件在某些情况下也可以绕过部分安全限制。
 
 
 ## 🤝 参与贡献
