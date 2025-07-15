@@ -90,10 +90,12 @@ docker run -d -p 80:80 \
   --restart unless-stopped \
   --name prompt-optimizer \
   linshen/prompt-optimizer
-  
+
 ```
 
-### 5. Docker Compose部署
+> **国内镜像**: 如果Docker Hub访问较慢，可以将上述命令中的 `linshen/prompt-optimizer` 替换为 `registry.cn-guangzhou.aliyuncs.com/prompt-optimizer/prompt-optimizer`
+
+### 6. Docker Compose部署
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/linshenkx/prompt-optimizer.git
@@ -124,7 +126,10 @@ docker compose logs -f
 ```yaml
 services:
   prompt-optimizer:
+    # 使用Docker Hub镜像
     image: linshen/prompt-optimizer:latest
+    # 或使用阿里云镜像（国内用户推荐）
+    # image: registry.cn-guangzhou.aliyuncs.com/prompt-optimizer/prompt-optimizer:latest
     container_name: prompt-optimizer
     restart: unless-stopped
     ports:
