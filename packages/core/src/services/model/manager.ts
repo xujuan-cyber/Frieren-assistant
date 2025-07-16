@@ -350,15 +350,8 @@ export class ModelManager implements IModelManager {
     if (!config.baseURL) {
       errors.push('Missing base URL (baseURL)');
     }
-    if (!Array.isArray(config.models)) {
-      errors.push('Model list (models) must be an array');
-    } else if (config.models.length === 0) {
-      errors.push('Model list (models) cannot be empty');
-    }
     if (!config.defaultModel) {
       errors.push('Missing default model (defaultModel)');
-    } else if (!config.models?.includes(config.defaultModel)) {
-      errors.push('Default model must be in the model list');
     }
 
     // Validate llmParams structure
@@ -515,7 +508,6 @@ export class ModelManager implements IModelManager {
       typeof item.key === 'string' && // 导入数据必须包含key
       typeof item.name === 'string' &&
       typeof item.baseURL === 'string' &&
-      Array.isArray(item.models) &&
       typeof item.defaultModel === 'string' &&
       typeof item.enabled === 'boolean' &&
       typeof item.provider === 'string';

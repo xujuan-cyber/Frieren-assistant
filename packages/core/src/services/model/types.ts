@@ -10,8 +10,8 @@ export interface ModelConfig {
   baseURL: string;
   /** API密钥 */
   apiKey?: string;
-  /** 支持的模型列表 */
-  models: string[];
+  /** 支持的模型列表 (可选，不直接使用) */
+  models?: string[];
   /** 默认模型 */
   defaultModel: string;
   /** 是否启用 */
