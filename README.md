@@ -12,7 +12,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/vercel.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [开发文档](dev.md) | [Vercel部署指南](docs/user/deployment/vercel.md) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 </div>
 
@@ -39,14 +39,11 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 ## ✨ 核心特性
 
 - 🎯 **智能优化**：一键优化提示词，支持多轮迭代改进，提升AI回复准确度
+- 📝 **双模式优化**：支持系统提示词优化和用户提示词优化，满足不同使用场景
 - 🔄 **对比测试**：支持原始提示词和优化后提示词的实时对比，直观展示优化效果
 - 🤖 **多模型集成**：支持OpenAI、Gemini、DeepSeek、智谱AI、SiliconFlow等主流AI模型
-- ⚙️ **高级参数配置**：支持为每个模型单独配置temperature、max_tokens等LLM参数
 - 🔒 **安全架构**：纯客户端处理，数据直接与AI服务商交互，不经过中间服务器
-- 💾 **隐私保护**：本地加密存储历史记录和API密钥，支持数据导入导出
 - 📱 **多端支持**：同时提供Web应用、桌面应用、Chrome插件和Docker部署四种使用方式
-- 🎨 **用户体验**：简洁直观的界面设计，响应式布局和流畅交互动效
-- 🌐 **跨域支持**：Vercel部署时支持使用Edge Runtime代理解决跨域问题
 - 🔐 **访问控制**：支持密码保护功能，保障部署安全
 
 ## 快速开始
@@ -162,6 +159,9 @@ services:
 
 ## ⚙️ API密钥配置
 
+<details>
+<summary>点击查看API密钥配置方法</summary>
+
 ### 方式一：通过界面配置（推荐）
 1. 点击界面右上角的"⚙️设置"按钮
 2. 选择"模型管理"选项卡
@@ -169,13 +169,7 @@ services:
 4. 在弹出的配置框中输入对应的API密钥
 5. 点击"保存"即可
 
-支持的模型：
-- OpenAI (gpt-3.5-turbo, gpt-4, gpt-4o)
-- Gemini (gemini-1.5-pro, gemini-2.0-flash)
-- DeepSeek (deepseek-chat, deepseek-coder)
-- Zhipu智谱 (glm-4-flash, glm-4, glm-3-turbo)
-- SiliconFlow (Pro/deepseek-ai/DeepSeek-V3)
-- 自定义API（OpenAI兼容接口）
+支持的模型：OpenAI、Gemini、DeepSeek、Zhipu智谱、SiliconFlow、自定义API（OpenAI兼容接口）
 
 除了API密钥，您还可以在模型配置界面为每个模型单独设置高级LLM参数。这些参数通过一个名为 `llmParams` 的字段进行配置，它允许您以键值对的形式指定LLM SDK支持的任何参数，从而更精细地控制模型行为。
 
@@ -188,8 +182,6 @@ services:
 
 ### 方式二：通过环境变量配置
 Docker部署时通过 `-e` 参数配置环境变量：
-<details>
-<summary>点击查看可用环境变量列表</summary>
 
 ```bash
 -e VITE_OPENAI_API_KEY=your_key
@@ -201,6 +193,7 @@ Docker部署时通过 `-e` 参数配置环境变量：
 -e VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
 -e VITE_CUSTOM_API_MODEL=your_custom_model_name
 ```
+
 </details>
 
 ## 本地开发
@@ -229,9 +222,10 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [x] 基础功能开发
 - [x] Web应用发布
 - [x] Chrome插件发布
-- [x] 自定义模型支持
-- [x] 多模型支持优化
 - [x] 国际化支持
+- [x] 支持系统提示词优化和用户提示词优化
+- [x] 桌面应用发布
+- [ ] mcp服务发布
 
 详细的项目状态可查看 [项目状态文档](docs/project-status.md)
 
@@ -258,6 +252,9 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 
 ## 常见问题
 
+<details>
+<summary>点击查看常见问题解答</summary>
+
 ### API连接问题
 
 #### Q1: 为什么配置好API密钥后仍然无法连接到模型服务？
@@ -276,7 +273,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
    - 或自行部署到Vercel平台
    - 在模型设置中勾选"使用Vercel代理"选项
    - 请求流向：浏览器→Vercel→模型服务提供商
-   - 详细步骤请参考 [Vercel部署指南](docs/vercel.md)
+   - 详细步骤请参考 [Vercel部署指南](docs/user/deployment/vercel.md)
 
 2. **使用自部署的API中转服务**（可靠方案）
    - 部署如OneAPI等开源API聚合/代理工具
@@ -295,8 +292,13 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 2. **docker部署**：docker部署也是http
 3. **使用Chrome插件**：插件在某些情况下也可以绕过部分安全限制。
 
+</details>
+
 
 ## 🤝 参与贡献
+
+<details>
+<summary>点击查看贡献指南</summary>
 
 1. Fork 本仓库
 2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
@@ -312,6 +314,8 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
    - 测试覆盖情况
    - 文档完善程度
 3. 根据审查结果进行优化后再提交
+
+</details>
 
 ## 👏 贡献者名单
 
