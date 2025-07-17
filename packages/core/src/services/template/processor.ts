@@ -1,6 +1,7 @@
 import { Template } from './types';
 import { Message } from '../llm/types';
 import { Handlebars } from './minimal';
+import { CSPSafeTemplateProcessor } from './csp-safe-processor';
 import type { OptimizationMode } from '../prompt/types';
 
 /**
@@ -84,10 +85,24 @@ export class TemplateProcessor {
 
     // Advanced template: use template technology for variable substitution
     if (Array.isArray(template.content)) {
-      return template.content.map(msg => ({
-        role: msg.role,
-        content: Handlebars.compile(msg.content, { noEscape: true })(context)
-      }));
+      // Check if we're in a browser extension environment with CSP restrictions
+      if (CSPSafeTemplateProcessor.isExtensionEnvironment()) {
+        return template.content.map(msg => {
+          // Validate template content for CSP-safe processing
+          CSPSafeTemplateProcessor.validateTemplate(msg.content);
+
+          return {
+            role: msg.role,
+            content: CSPSafeTemplateProcessor.processContent(msg.content, context)
+          };
+        });
+      } else {
+        // Use full Handlebars functionality in non-CSP environments
+        return template.content.map(msg => ({
+          role: msg.role,
+          content: Handlebars.compile(msg.content, { noEscape: true })(context)
+        }));
+      }
     }
 
     throw new Error(`Invalid template content format for template: ${template.id}`);
