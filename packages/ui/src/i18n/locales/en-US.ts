@@ -161,7 +161,7 @@ export default {
     // Placeholders
     modelKeyPlaceholder: 'Enter model key',
     displayNamePlaceholder: 'Enter display name',
-    apiUrlPlaceholder: 'Enter API URL',
+    apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: 'Type or select a model name',
     apiKeyPlaceholder: 'Enter API key',
 

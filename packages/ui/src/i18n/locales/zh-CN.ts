@@ -161,7 +161,7 @@ export default {
     // 占位符
     modelKeyPlaceholder: '请输入模型标识',
     displayNamePlaceholder: '请输入显示名称',
-    apiUrlPlaceholder: '请输入API地址',
+    apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: '输入或选择模型名称',
     apiKeyPlaceholder: '请输入API密钥',
 
