@@ -38,33 +38,29 @@ export function usePromptHistory(
     showHistory: false,
     
     handleSelectHistory: async (context: { record: any, chainId: string, rootPrompt: string }) => {
-    const { record, rootPrompt } = context
+      try {
+        const { record, chainId, rootPrompt } = context
 
-    prompt.value = rootPrompt
-    optimizedPrompt.value = record.optimizedPrompt
+        // 设置工作区内容
+        prompt.value = rootPrompt
+        optimizedPrompt.value = record.optimizedPrompt
 
-    // ElectronProxy会自动处理序列化
-    const newRecordData = {
-      id: uuidv4(),
-      originalPrompt: rootPrompt,
-      optimizedPrompt: record.optimizedPrompt,
-      type: record.type, // 保持原始记录的类型
-      modelKey: record.modelKey,
-      templateId: record.templateId,
-      timestamp: Date.now(),
-      metadata: {
-        optimizationMode: record.metadata?.optimizationMode // 保持原始记录的优化模式
+        // 加载现有链（而不是创建新链）- 这是修复迭代断层问题的关键
+        const existingChain = await historyManager.value!.getChain(chainId)
+
+        // 恢复完整的链状态，保持版本历史连贯性
+        currentChainId.value = existingChain.chainId
+        currentVersions.value = existingChain.versions
+        currentVersionId.value = record.id
+
+        await refreshHistory()
+        state.showHistory = false
+
+        toast.success(t('toast.success.historyLoaded'))
+      } catch (error) {
+        console.error('[History] 加载历史记录失败:', error)
+        toast.error(t('toast.error.loadHistoryFailed'))
       }
-    }
-
-    const newRecord = await historyManager.value!.createNewChain(newRecordData)
-    
-    currentChainId.value = newRecord.chainId
-    currentVersions.value = newRecord.versions
-    currentVersionId.value = newRecord.currentRecord.id
-    
-    await refreshHistory()
-      state.showHistory = false
     },
 
     handleClearHistory: async () => {

@@ -492,6 +492,7 @@ export default {
       templateSelected: '{type} template selected: {name}',
       historyClear: 'History cleared',
       historyChainDeleted: 'History record deleted',
+      historyLoaded: 'History loaded successfully',
       exitCompare: 'Exited compare mode',
       compareEnabled: 'Compare mode enabled'
     },

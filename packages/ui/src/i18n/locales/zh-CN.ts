@@ -492,6 +492,7 @@ export default {
       templateSelected: '已选择{type}提示词: {name}',
       historyClear: '历史记录已清空',
       historyChainDeleted: '历史记录已删除',
+      historyLoaded: '历史记录已加载',
       exitCompare: '已退出对比模式',
       compareEnabled: '对比模式已启用'
     },

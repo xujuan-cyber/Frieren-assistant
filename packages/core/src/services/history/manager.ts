@@ -92,8 +92,8 @@ export class HistoryManager implements IHistoryManager {
       
       const records: PromptRecord[] = JSON.parse(data);
       
-      // Sort records by timestamp (newest first)
-      return records.sort((a, b) => b.timestamp - a.timestamp);
+      // 直接返回记录，排序逻辑由调用者根据需求处理
+      return records;
     } catch (err) {
       throw new StorageError('Failed to get history records', 'read');
     }

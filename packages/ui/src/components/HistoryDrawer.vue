@@ -192,8 +192,9 @@ onUnmounted(() => {
 })
 
 // 修改排序后的历史记录计算属性，使用props.history而不是直接调用historyManager.getAllChains()
+// 按照最后修改时间排序，与getAllChains()保持一致
 const sortedHistory = computed(() => {
-  return props.history.sort((a, b) => b.rootRecord.timestamp - a.rootRecord.timestamp)
+  return props.history.sort((a, b) => b.currentRecord.timestamp - a.currentRecord.timestamp)
 })
 
 // 切换版本展开/收起状态
