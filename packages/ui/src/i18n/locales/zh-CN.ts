@@ -163,7 +163,7 @@ export default {
     displayNamePlaceholder: '请输入显示名称',
     apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: '输入或选择模型名称',
-    apiKeyPlaceholder: '请输入API密钥',
+    apiKeyPlaceholder: '请输入API密钥（可选）',
 
     // 确认信息
     deleteConfirm: '确定要删除此模型吗？此操作不可恢复。',
@@ -187,6 +187,7 @@ export default {
     selectModel: '选择一个模型',
     fetchModelsFailed: '获取模型列表失败：{error}',
     needApiKeyAndBaseUrl: '请先填写API地址和密钥',
+    needBaseUrl: '请先填写API地址',
 
     // 状态文本
     disabled: '已禁用',

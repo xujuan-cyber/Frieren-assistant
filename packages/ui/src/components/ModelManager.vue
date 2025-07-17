@@ -343,7 +343,7 @@
                   </div>
                   <div>
                     <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
-                    <input v-model="newModel.apiKey" type="password" required
+                    <input v-model="newModel.apiKey" type="password"
                           class="theme-manager-input"
                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
@@ -827,9 +827,9 @@ const handleFetchEditingModels = async () => {
       }
     }
     
-    // 检查必要的参数
-    if (!apiKey || !baseURL) {
-      toast.error(t('modelManager.needApiKeyAndBaseUrl'));
+    // 检查必要的参数 - API key允许为空
+    if (!baseURL) {
+      toast.error(t('modelManager.needBaseUrl'));
       return;
     }
     
@@ -885,9 +885,9 @@ const handleFetchNewModels = async () => {
   const baseURL = newModel.value.baseURL;
   const provider = newModel.value.key || 'custom';
   
-  // 检查必要的参数
-  if (!apiKey || !baseURL) {
-    toast.error(t('modelManager.needApiKeyAndBaseUrl'));
+  // 检查必要的参数 - API key允许为空
+  if (!baseURL) {
+    toast.error(t('modelManager.needBaseUrl'));
     return;
   }
   

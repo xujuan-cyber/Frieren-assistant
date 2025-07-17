@@ -1,7 +1,7 @@
 import { ILLMService, Message, StreamHandlers, LLMResponse, ModelInfo, ModelOption } from './types';
 import { ModelConfig } from '../model/types';
 import { ModelManager } from '../model/manager';
-import { APIError, RequestConfigError, ERROR_MESSAGES } from './errors';
+import { APIError, RequestConfigError } from './errors';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { isVercel, getProxyUrl, isRunningInElectron } from '../../utils/environment';
@@ -46,9 +46,7 @@ export class LLMService implements ILLMService {
     if (!modelConfig.provider) {
       throw new RequestConfigError('模型提供商不能为空');
     }
-    if (!modelConfig.apiKey) {
-      throw new RequestConfigError(ERROR_MESSAGES.API_KEY_REQUIRED);
-    }
+    // API key允许为空字符串，某些服务（如Ollama）不需要API key
     if (!modelConfig.defaultModel) {
       throw new RequestConfigError('默认模型不能为空');
     }
@@ -704,13 +702,11 @@ export class LLMService implements ILLMService {
         modelConfig = customConfig as ModelConfig;
       }
 
-      // 验证必要的配置（仅验证API URL和密钥）
+      // 验证必要的配置（仅验证API URL）
       if (!modelConfig.baseURL) {
         throw new RequestConfigError('API URL不能为空');
       }
-      if (!modelConfig.apiKey) {
-        throw new RequestConfigError(ERROR_MESSAGES.API_KEY_REQUIRED);
-      }
+      // API key允许为空字符串，某些服务（如Ollama）不需要API key
 
       let models: ModelInfo[] = [];
 

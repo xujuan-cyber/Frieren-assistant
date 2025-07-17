@@ -41,10 +41,10 @@ describe('LLMService', () => {
         .toThrow('模型未启用');
     });
 
-    it('should throw error when apiKey is missing', () => {
-      const invalidConfig = { ...mockModelConfig, apiKey: '' };
-      expect(() => service['validateModelConfig'](invalidConfig))
-        .toThrow('API密钥不能为空');
+    it('should allow empty apiKey for services like Ollama', () => {
+      const configWithEmptyApiKey = { ...mockModelConfig, apiKey: '' };
+      expect(() => service['validateModelConfig'](configWithEmptyApiKey))
+        .not.toThrow();
     });
 
     it('should throw error when provider is missing', () => {

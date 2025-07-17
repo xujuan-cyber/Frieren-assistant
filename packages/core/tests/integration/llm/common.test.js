@@ -1,9 +1,7 @@
 import { 
   createLLMService,
   ModelManager,
-  APIError,
   RequestConfigError,
-  ERROR_MESSAGES
 } from '../../../src/index.js';
 import { expect, describe, it, beforeEach, beforeAll, vi } from 'vitest';
 import dotenv from 'dotenv';

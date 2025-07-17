@@ -163,7 +163,7 @@ export default {
     displayNamePlaceholder: 'Enter display name',
     apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: 'Type or select a model name',
-    apiKeyPlaceholder: 'Enter API key',
+    apiKeyPlaceholder: 'Enter API key (optional)',
 
     // Confirmation
     deleteConfirm: 'Are you sure you want to delete this model? This action cannot be undone.',
@@ -187,6 +187,7 @@ export default {
     selectModel: 'Select a model',
     fetchModelsFailed: 'Failed to fetch models: {error}',
     needApiKeyAndBaseUrl: 'Please fill API key and base URL first',
+    needBaseUrl: 'Please fill in API URL first',
 
     // Status Text
     disabled: 'Disabled',

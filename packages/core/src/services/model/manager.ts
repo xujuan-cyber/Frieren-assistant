@@ -379,10 +379,7 @@ export class ModelManager implements IModelManager {
 
   private validateEnableConfig(config: ModelConfig): void {
     this.validateConfig(config);
-
-    if (!config.apiKey) {
-      throw new ModelConfigError('API key is required to enable model');
-    }
+    // API key允许为空字符串，某些服务（如Ollama）不需要API key
   }
 
 
