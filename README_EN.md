@@ -45,6 +45,7 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 🔒 **Secure Architecture**: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
 - 📱 **Multi-platform Support**: Available as web application, desktop application, Chrome extension, and Docker deployment
 - 🔐 **Access Control**: Password protection feature for secure deployment
+- 🧩 **MCP Protocol Support**: Supports Model Context Protocol (MCP), enabling integration with MCP-compatible AI applications like Claude Desktop
 
 ## Quick Start
 
@@ -89,17 +90,16 @@ Download the latest version from [GitHub Releases](https://github.com/linshenkx/
 <summary>Click to view Docker deployment commands</summary>
 ```bash
 # Run container (default configuration)
-docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
+docker run -d -p 8081:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
 
 # Run container (with API key configuration and password protection)
-docker run -d -p 80:80 \
+docker run -d -p 8081:80 \
   -e VITE_OPENAI_API_KEY=your_key \
   -e ACCESS_USERNAME=your_username \  # Optional, defaults to "admin"
   -e ACCESS_PASSWORD=your_password \  # Set access password
   --restart unless-stopped \
   --name prompt-optimizer \
   linshen/prompt-optimizer
-
 ```
 </details>
 
@@ -130,6 +130,10 @@ docker compose up -d
 
 # 4. View logs
 docker compose logs -f
+
+# 5. Access the service
+Web Interface: http://localhost:8081
+MCP Server: http://localhost:8081/mcp
 ```
 </details>
 
@@ -145,10 +149,82 @@ services:
     container_name: prompt-optimizer
     restart: unless-stopped
     ports:
-      - "8081:80"  # Modify port mapping
+      - "8081:80"  # Web application port (MCP server accessible via /mcp path)
     environment:
-      - VITE_OPENAI_API_KEY=your_key_here  # Set API key directly in config
+      - VITE_OPENAI_API_KEY=your_openai_key
+      - VITE_GEMINI_API_KEY=your_gemini_key
+      # Access Control (Optional)
+      - ACCESS_USERNAME=admin
+      - ACCESS_PASSWORD=your_password
 ```
+</details>
+
+### 7. MCP Server Usage Instructions
+<details>
+<summary>Click to view MCP Server usage instructions</summary>
+
+Prompt Optimizer now supports the Model Context Protocol (MCP), enabling integration with AI applications that support MCP such as Claude Desktop.
+
+When running via Docker, the MCP Server automatically starts and can be accessed via `http://ip:port/mcp`.
+
+#### Environment Variable Configuration
+
+MCP Server requires API key configuration to function properly. Main MCP-specific configurations:
+
+```bash
+# MCP Server Configuration
+MCP_DEFAULT_MODEL_PROVIDER=openai  # Options: openai, gemini, deepseek, siliconflow, zhipu, custom
+MCP_LOG_LEVEL=info                 # Log level
+```
+
+For API key configuration, please refer to the project's general configuration instructions. For complete MCP configuration documentation, see [MCP Server Documentation](packages/mcp-server/README.md).
+
+#### Using MCP in Docker Environment
+
+In a Docker environment, the MCP Server runs alongside the web application. You can access the MCP service through the same port as the web application at the `/mcp` path.
+
+For example, if you map the container's port 80 to port 8081 on the host:
+```bash
+docker run -d -p 8081:80 \
+  -e VITE_OPENAI_API_KEY=your-openai-key \
+  -e MCP_DEFAULT_MODEL_PROVIDER=openai \
+  --name prompt-optimizer \
+  linshen/prompt-optimizer
+```
+
+The MCP Server will then be accessible at `http://localhost:8081/mcp`.
+
+#### Claude Desktop Integration Example
+
+To use Prompt Optimizer in Claude Desktop, you need to add the service configuration to Claude Desktop's configuration file.
+
+1. Find Claude Desktop's configuration directory:
+   - Windows: `%APPDATA%\Claude\services`
+   - macOS: `~/Library/Application Support/Claude/services`
+   - Linux: `~/.config/Claude/services`
+
+2. Edit or create the `services.json` file, adding the following content:
+
+```json
+{
+  "services": [
+    {
+      "name": "Prompt Optimizer",
+      "url": "http://localhost:8081/mcp"
+    }
+  ]
+}
+```
+
+Make sure to replace `localhost:8081` with the actual address and port where you've deployed Prompt Optimizer.
+
+#### Available Tools
+
+- **optimize-user-prompt**: Optimize user prompts to improve LLM performance
+- **optimize-system-prompt**: Optimize system prompts to improve LLM performance
+- **iterate-prompt**: Iteratively improve mature prompts based on specific requirements
+
+For more detailed information, please refer to the [MCP Server User Guide](docs/user/mcp-server_en.md).
 </details>
 
 ## ⚙️ API Key Configuration
@@ -219,7 +295,7 @@ pnpm dev:fresh        # Complete reset and restart development environment
 - [x] Chrome extension release
 - [x] Support for system prompt optimization and user prompt optimization
 - [x] Desktop application release
-- [ ] MCP service release
+- [x] MCP service release
 
 For detailed project status, see [Project Status Document](docs/project-status.md)
 

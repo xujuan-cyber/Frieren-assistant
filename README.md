@@ -45,6 +45,7 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 - 🔒 **安全架构**：纯客户端处理，数据直接与AI服务商交互，不经过中间服务器
 - 📱 **多端支持**：同时提供Web应用、桌面应用、Chrome插件和Docker部署四种使用方式
 - 🔐 **访问控制**：支持密码保护功能，保障部署安全
+- 🧩 **MCP协议支持**：支持Model Context Protocol (MCP) 协议，可与Claude Desktop等MCP兼容应用集成
 
 ## 快速开始
 
@@ -90,17 +91,16 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 
 ```bash
 # 运行容器（默认配置）
-docker run -d -p 80:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
+docker run -d -p 8081:80 --restart unless-stopped --name prompt-optimizer linshen/prompt-optimizer
 
 # 运行容器（配置API密钥和访问密码）
-docker run -d -p 80:80 \
+docker run -d -p 8081:80 \
   -e VITE_OPENAI_API_KEY=your_key \
   -e ACCESS_USERNAME=your_username \  # 可选，默认为"admin"
   -e ACCESS_PASSWORD=your_password \  # 设置访问密码
   --restart unless-stopped \
   --name prompt-optimizer \
   linshen/prompt-optimizer
-
 ```
 </details>
 
@@ -116,24 +116,18 @@ git clone https://github.com/linshenkx/prompt-optimizer.git
 cd prompt-optimizer
 
 # 2. 可选：创建.env文件配置API密钥和访问认证
-cat > .env << EOF
-# API密钥配置
-VITE_OPENAI_API_KEY=your_openai_api_key
-VITE_GEMINI_API_KEY=your_gemini_api_key
-VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
-VITE_ZHIPU_API_KEY=your_zhipu_api_key
-VITE_SILICONFLOW_API_KEY=your_siliconflow_api_key
-
-# Basic认证配置（密码保护）
-ACCESS_USERNAME=your_username  # 可选，默认为"admin"
-ACCESS_PASSWORD=your_password  # 设置访问密码
-EOF
+cp env.local.example .env
+# 编辑 .env 文件，填入实际的 API 密钥和配置
 
 # 3. 启动服务
 docker compose up -d
 
 # 4. 查看日志
 docker compose logs -f
+
+# 5. 访问服务
+Web 界面：http://localhost:8081
+MCP 服务器：http://localhost:8081/mcp
 ```
 </details>
 
@@ -151,10 +145,83 @@ services:
     container_name: prompt-optimizer
     restart: unless-stopped
     ports:
-      - "8081:80"  # 修改端口映射
+      - "8081:80"  # Web应用端口（包含MCP服务器，通过/mcp路径访问）
     environment:
-      - VITE_OPENAI_API_KEY=your_key_here  # 直接在配置中设置密钥
+      # API密钥配置
+      - VITE_OPENAI_API_KEY=your_openai_key
+      - VITE_GEMINI_API_KEY=your_gemini_key
+      # 访问控制（可选）
+      - ACCESS_USERNAME=admin
+      - ACCESS_PASSWORD=your_password
 ```
+</details>
+
+### 7. MCP Server 使用说明
+<details>
+<summary>点击查看 MCP Server 使用说明</summary>
+
+Prompt Optimizer 现在支持 Model Context Protocol (MCP) 协议，可以与 Claude Desktop 等支持 MCP 的 AI 应用集成。
+
+当通过 Docker 运行时，MCP Server 会自动启动，并可通过 `http://ip:port/mcp` 访问。
+
+#### 环境变量配置
+
+MCP Server 需要配置 API 密钥才能正常工作。主要的 MCP 专属配置：
+
+```bash
+# MCP 服务器配置
+MCP_DEFAULT_MODEL_PROVIDER=openai  # 可选值：openai, gemini, deepseek, siliconflow, zhipu, custom
+MCP_LOG_LEVEL=info                 # 日志级别
+```
+
+API 密钥配置请参考项目的通用配置说明。完整的 MCP 配置文档请查看 [MCP Server 详细文档](packages/mcp-server/README.md)。
+
+#### Docker 环境下使用 MCP
+
+在 Docker 环境中，MCP Server 会与 Web 应用一起运行，您可以通过 Web 应用的相同端口访问 MCP 服务，路径为 `/mcp`。
+
+例如，如果您将容器的 80 端口映射到主机的 8081 端口：
+```bash
+docker run -d -p 8081:80 \
+  -e VITE_OPENAI_API_KEY=your-openai-key \
+  -e MCP_DEFAULT_MODEL_PROVIDER=openai \
+  --name prompt-optimizer \
+  linshen/prompt-optimizer
+```
+
+那么 MCP Server 将可以通过 `http://localhost:8081/mcp` 访问。
+
+#### Claude Desktop 集成示例
+
+要在 Claude Desktop 中使用 Prompt Optimizer，您需要在 Claude Desktop 的配置文件中添加服务配置。
+
+1. 找到 Claude Desktop 的配置目录：
+   - Windows: `%APPDATA%\Claude\services`
+   - macOS: `~/Library/Application Support/Claude/services`
+   - Linux: `~/.config/Claude/services`
+
+2. 编辑或创建 `services.json` 文件，添加以下内容：
+
+```json
+{
+  "services": [
+    {
+      "name": "Prompt Optimizer",
+      "url": "http://localhost:8081/mcp"
+    }
+  ]
+}
+```
+
+请确保将 `localhost:8081` 替换为您实际部署 Prompt Optimizer 的地址和端口。
+
+#### 可用工具
+
+- **optimize-user-prompt**: 优化用户提示词以提高 LLM 性能
+- **optimize-system-prompt**: 优化系统提示词以提高 LLM 性能
+- **iterate-prompt**: 对已经成熟/完善的提示词进行定向迭代优化
+
+更多详细信息，请查看 [MCP 服务器用户指南](docs/user/mcp-server.md)。
 </details>
 
 ## ⚙️ API密钥配置
@@ -225,7 +292,7 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [x] 国际化支持
 - [x] 支持系统提示词优化和用户提示词优化
 - [x] 桌面应用发布
-- [ ] mcp服务发布
+- [x] mcp服务发布
 
 详细的项目状态可查看 [项目状态文档](docs/project-status.md)
 

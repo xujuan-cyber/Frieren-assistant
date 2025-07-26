@@ -100,7 +100,7 @@ export const template: Template = {
     version: '1.3.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '适用于带格式要求的大多数场景',
+    description: '适合需要规范输出格式的场景，在通用优化基础上增加详细的输出格式控制和约束',
     templateType: 'optimize',
     language: 'zh'
   },

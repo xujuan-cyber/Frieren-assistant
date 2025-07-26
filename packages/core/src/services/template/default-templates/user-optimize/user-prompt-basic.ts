@@ -79,7 +79,7 @@ export const user_prompt_basic: Template = {
     version: '2.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '快速改善表达，适合日常优化需求，保持灵活性',
+    description: '适合简单快速的日常优化，消除模糊表达、补充关键信息，让提示词更清晰明确',
     templateType: 'userOptimize',
     language: 'zh'
   },

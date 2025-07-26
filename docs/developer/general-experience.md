@@ -12,6 +12,7 @@
 - **Composable架构经验** → [102-web-architecture-refactor/experience.md](../archives/102-web-architecture-refactor/experience.md)
 - **大型架构重构经验** → [117-import-export-architecture-refactor/experience.md](../archives/117-import-export-architecture-refactor/experience.md)
 - **版本更新系统经验** → [118-desktop-auto-update-system/experience.md](../archives/118-desktop-auto-update-system/experience.md)
+- **MCP Server 模块开发经验** → [120-mcp-server-module/experience.md](../archives/120-mcp-server-module/experience.md)
 
 ## 🔧 通用开发规范
 
@@ -72,7 +73,7 @@ describe("功能测试", () => {
 2. 在模板中，将 `v-bind="$attrs"` 手动绑定到你希望接收这些属性的**特定**根节点上
 
 **示例**:
-```html
+```
 <template>
   <!-- $attrs 会将 class, id 等属性应用到此组件 -->
   <OutputDisplayCore v-bind="$attrs" ... />
@@ -239,7 +240,7 @@ const requestConfig = {
 ```
 
 ### 数据导入安全验证
-```typescript
+```
 // 白名单验证 + 类型检查
 for (const [key, value] of Object.entries(importData)) {
   if (!ALLOWED_KEYS.includes(key)) {
@@ -285,7 +286,7 @@ export function useUpdater() {
 ```
 
 **正确实现**：
-```typescript
+```
 let globalUpdaterInstance: any = null
 
 export function useUpdater() {
@@ -343,3 +344,87 @@ export function useUpdater() {
 - 提高测试覆盖率和可靠性
 
 > 详细经验参考：[117-import-export-architecture-refactor](../archives/117-import-export-architecture-refactor/)
+
+## Node.js 应用开发经验
+
+### 环境变量管理
+- **加载时机至关重要**: 环境变量必须在任何模块导入之前加载到 `process.env`
+- **Node.js 的 `-r` 参数**: 是在模块系统初始化前预加载脚本的最可靠方法
+- **路径解析**: 考虑不同的工作目录和部署场景，支持多路径查找
+
+### 构建工具使用
+- **入口文件分离**: 入口文件只导出，不执行任何有副作用的代码
+- **启动文件独立**: 使用单独的启动文件负责执行主逻辑
+- **避免构建副作用**: 确保构建过程不执行任何有副作用的代码
+
+### Windows 兼容性
+- **避免复杂进程管理**: 不使用复杂的进程管理工具如 concurrently
+- **分离构建和启动**: 采用分离的构建和启动流程
+- **简单npm脚本**: 使用简单的 npm scripts 替代复杂的命令组合
+
+## 架构设计经验
+
+### 适配器模式
+- **解耦**: 通过适配器模式实现不同系统间的解耦
+- **可扩展性**: 适配器模式便于添加新的适配器支持更多功能
+- **可维护性**: 每个适配器职责单一，便于维护
+
+### 无状态设计
+- **简化部署**: 无状态设计简化了部署流程
+- **提高可靠性**: 避免了状态不一致的问题
+- **便于测试**: 每次测试都是全新的环境
+
+相关归档:
+- [120-mcp-server-module](../archives/120-mcp-server-module/) - MCP Server 模块开发
+
+## 🖥️ Node.js 环境开发经验
+
+### 环境变量加载时机
+**问题**：Node.js 环境变量必须在模块导入前加载，否则模块初始化时读取不到
+```bash
+# ✅ 正确：使用 -r 参数预加载
+node -r ./preload-env.js dist/index.js
+
+# ❌ 错误：模块导入后加载环境变量
+node dist/index.js  # 此时环境变量可能未加载
+```
+
+**解决方案**：
+1. 创建预加载脚本支持多路径查找
+2. 在启动脚本中统一处理环境变量加载
+3. 支持静默加载，避免找不到配置文件时的错误
+
+### 构建时副作用控制
+**问题**：构建工具（如 tsup）执行模块级代码时会导致服务器意外启动
+```typescript
+// ❌ 错误：入口文件直接执行
+import { startServer } from './server'
+startServer() // 构建时会执行
+
+// ✅ 正确：分离导出和执行
+export { startServer } from './server'
+// 使用单独的启动文件执行主逻辑
+```
+
+### Windows 进程管理
+**问题**：Windows 下 concurrently 等进程管理工具信号处理有问题
+```json
+// ❌ 避免：复杂的进程管理
+"scripts": {
+  "dev": "concurrently \"npm run build:watch\" \"npm run start\""
+}
+
+// ✅ 推荐：简单的分离脚本
+"scripts": {
+  "build": "tsup",
+  "start": "node dist/index.js",
+  "dev": "npm run build && npm run start"
+}
+```
+
+## 📝 使用说明
+
+1. **查找经验**：先查看已归档的专项经验，再查看通用规范
+2. **应用实践**：根据具体场景选择合适的解决方案
+3. **持续更新**：发现新的通用经验及时补充到本文档
+4. **避免重复**：功能特定的经验应归档到对应的archives目录

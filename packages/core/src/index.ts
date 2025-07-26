@@ -4,7 +4,7 @@
 export { TemplateManager, createTemplateManager } from './services/template/manager'
 export { TemplateProcessor } from './services/template/processor'
 export { TemplateLanguageService, createTemplateLanguageService } from './services/template/languageService'
-export type { BuiltinTemplateLanguage } from './services/template/languageService'
+export type { BuiltinTemplateLanguage, ITemplateLanguageService } from './services/template/languageService'
 export * from './services/template/types'
 export { StaticLoader } from './services/template/static-loader'
 export * from './services/template/errors'

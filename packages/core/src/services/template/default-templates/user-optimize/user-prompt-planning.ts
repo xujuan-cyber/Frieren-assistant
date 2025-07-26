@@ -93,7 +93,7 @@ export const user_prompt_planning: Template = {
     version: '2.2.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '将用户需求转换为清晰的执行步骤序列，提供可操作的任务规划方案',
+    description: '适合复杂任务场景，将模糊需求分解为具体执行步骤，让AI按步骤完成复杂工作',
     templateType: 'userOptimize',
     language: 'zh'
   },

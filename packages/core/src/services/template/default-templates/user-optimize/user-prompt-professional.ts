@@ -72,7 +72,7 @@ export const user_prompt_professional: Template = {
     version: '2.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '专业级优化，提供量化标准和具体要求，适用性广',
+    description: '适合需要精准描述的场景，将泛泛而谈转为具体要求，添加量化标准和明确参数',
     templateType: 'userOptimize',
     language: 'zh'
   },

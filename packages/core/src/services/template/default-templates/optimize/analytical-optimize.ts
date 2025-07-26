@@ -131,7 +131,7 @@ export const template: Template = {
     version: '2.1.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '深度分析式优化，适合重要业务和复杂应用场景',
+    description: '适合复杂业务场景，深度分析原提示词问题，提供详细改进建议和完整优化方案',
     templateType: 'optimize',
     language: 'zh'
   },

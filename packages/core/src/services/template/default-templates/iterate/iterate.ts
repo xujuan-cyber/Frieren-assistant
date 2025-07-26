@@ -67,7 +67,7 @@ export const template: Template = {
     version: '2.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '支持变量替换的迭代优化模板，使用消息数组格式提供更灵活的控制',
+    description: '适合改进现有提示词，基于具体问题和需求对已有提示词进行针对性调整和完善',
     templateType: 'iterate',
     language: 'zh'
   },

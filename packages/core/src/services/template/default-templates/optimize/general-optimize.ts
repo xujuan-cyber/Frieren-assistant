@@ -68,7 +68,7 @@ export const template: Template = {
     version: '1.3.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '通用优化提示词，适用于大多数场景',
+    description: '适合大多数系统提示词优化，按标准结构重组角色定义、技能和规则，提升专业性',
     templateType: 'optimize',
     language: 'zh'
   },
