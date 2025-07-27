@@ -12,9 +12,9 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[Live Demo](https://prompt.always200.com) | [Quick Start](#quick-start) | [FAQ](#faq) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+<a href="https://prompt.always200.com" target="_blank">Live Demo</a> | [Quick Start](#quick-start) | [FAQ](#faq) | <a href="https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna" target="_blank">Chrome Extension</a>
 
-[Development Docs](dev.md) | [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) | [MCP Deployment Guide](docs/user/mcp-server_en.md) | [DeepWiki Docs](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead Docs](https://zread.ai/linshenkx/prompt-optimizer)
+<a href="https://github.com/linshenkx/prompt-optimizer/blob/master/dev.md" target="_blank">Development Docs</a> | <a href="https://github.com/linshenkx/prompt-optimizer/blob/master/docs/user/deployment/vercel_en.md" target="_blank">Vercel Deployment Guide</a> | <a href="https://github.com/linshenkx/prompt-optimizer/blob/master/docs/user/mcp-server_en.md" target="_blank">MCP Deployment Guide</a> | <a href="https://deepwiki.com/linshenkx/prompt-optimizer" target="_blank">DeepWiki Docs</a> | <a href="https://zread.ai/linshenkx/prompt-optimizer" target="_blank">ZRead Docs</a>
 
 </div>
 
