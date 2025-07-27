@@ -75,12 +75,13 @@ export class ModelManager implements IModelManager {
               hasUpdates = true;
               console.log(`[ModelManager] Added missing default model: ${key}`);
             } else {
-              // 更新现有模型的默认字段（保留用户的 apiKey、enabled 状态和自定义 name）
+              // 更新现有模型的默认字段（保留用户的关键自定义配置）
               const existingModel = updatedModels[key];
               const updatedModel = {
                 ...defaultConfig,
                 // 保留用户配置的关键字段
-                name: existingModel.name || defaultConfig.name,
+                name: existingModel.name !== undefined ? existingModel.name : defaultConfig.name,
+                defaultModel: existingModel.defaultModel !== undefined ? existingModel.defaultModel : defaultConfig.defaultModel,
                 apiKey: existingModel.apiKey || defaultConfig.apiKey,
                 enabled: existingModel.enabled !== undefined ? existingModel.enabled : defaultConfig.enabled,
                 // 保留用户的自定义 llmParams
