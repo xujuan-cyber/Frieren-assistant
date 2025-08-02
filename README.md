@@ -258,10 +258,14 @@ Docker部署时通过 `-e` 参数配置环境变量：
 -e VITE_DEEPSEEK_API_KEY=your_key
 -e VITE_ZHIPU_API_KEY=your_key
 -e VITE_SILICONFLOW_API_KEY=your_key
--e VITE_CUSTOM_API_KEY=your_custom_api_key
--e VITE_CUSTOM_API_BASE_URL=your_custom_api_base_url
--e VITE_CUSTOM_API_MODEL=your_custom_model_name
+
+# 多自定义模型配置（支持无限数量）
+-e VITE_CUSTOM_API_KEY_ollama=dummy_key
+-e VITE_CUSTOM_API_BASE_URL_ollama=http://localhost:11434/v1
+-e VITE_CUSTOM_API_MODEL_ollama=qwen2.5:7b
 ```
+
+> 📖 **详细配置指南**: 查看 [多自定义模型配置文档](./docs/user/multi-custom-models.md) 了解完整的配置方法和高级用法
 
 </details>
 

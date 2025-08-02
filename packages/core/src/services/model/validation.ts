@@ -8,7 +8,7 @@ const DANGEROUS_PARAMS = [
   '__proto__', 'constructor', 'prototype', 'require', 'import'
 ];
 
-export interface ValidationResult {
+export interface LLMValidationResult {
   isValid: boolean;
   errors: ValidationError[];
   warnings: ValidationWarning[];
@@ -45,8 +45,8 @@ function isDangerousParameter(paramName: string): boolean {
 export function validateLLMParams(
   llmParams: Record<string, any> | undefined,
   provider: string
-): ValidationResult {
-  const result: ValidationResult = {
+): LLMValidationResult {
+  const result: LLMValidationResult = {
     isValid: true,
     errors: [],
     warnings: []

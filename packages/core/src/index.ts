@@ -63,7 +63,24 @@ export { ElectronPreferenceServiceProxy } from './services/preference/electron-p
 export { PreferenceService, createPreferenceService } from './services/preference/service'
 
 // 导出环境检测工具
-export { isRunningInElectron, isElectronApiReady, waitForElectronApi, checkVercelApiAvailability, resetVercelStatusCache, isBrowser, getProxyUrl } from './utils/environment'
+export {
+  isRunningInElectron,
+  isElectronApiReady,
+  waitForElectronApi,
+  checkVercelApiAvailability,
+  resetVercelStatusCache,
+  isBrowser,
+  getProxyUrl,
+  getEnvVar,
+  scanCustomModelEnvVars,
+  clearCustomModelEnvCache,
+  CUSTOM_API_PATTERN,
+  SUFFIX_PATTERN,
+  MAX_SUFFIX_LENGTH
+} from './utils/environment'
+export type { CustomModelEnvConfig, ValidatedCustomModelEnvConfig, ValidationResult } from './utils/environment'
+export type { LLMValidationResult, ValidationError, ValidationWarning } from './services/model/validation'
+export { validateCustomModelConfig } from './utils/environment'
 
 // 导出IPC序列化工具
 export { safeSerializeForIPC, debugIPCSerializability, safeSerializeArgs } from './utils/ipc-serialization'

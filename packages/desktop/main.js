@@ -44,6 +44,10 @@ const {
   createTemplateLanguageService,
   createDataManager,
   FileStorageProvider,
+  // 导入共享的环境变量扫描常量
+  CUSTOM_API_PATTERN,
+  SUFFIX_PATTERN,
+  MAX_SUFFIX_LENGTH,
 } = require('@prompt-optimizer/core');
 
 /**
@@ -287,9 +291,11 @@ async function initializeServices() {
     // 设置环境变量，确保主进程能访问API密钥
     // 这些环境变量应该在启动桌面应用之前设置
     console.log('[Main Process] Checking environment variables...');
-    const envVars = [
+
+    // 静态环境变量
+    const staticEnvVars = [
       'VITE_OPENAI_API_KEY',
-      'VITE_GEMINI_API_KEY', 
+      'VITE_GEMINI_API_KEY',
       'VITE_DEEPSEEK_API_KEY',
       'VITE_SILICONFLOW_API_KEY',
       'VITE_ZHIPU_API_KEY',
@@ -297,22 +303,42 @@ async function initializeServices() {
       'VITE_CUSTOM_API_BASE_URL',
       'VITE_CUSTOM_API_MODEL'
     ];
-    
+
+    // 扫描动态自定义模型环境变量
+    // 使用统一的正则表达式模式和验证规则
+
+    const dynamicEnvVars = Object.keys(process.env).filter(key => {
+      const match = key.match(CUSTOM_API_PATTERN);
+      if (!match) return false;
+
+      const [, , suffix] = match;
+      return suffix && suffix.length <= MAX_SUFFIX_LENGTH && SUFFIX_PATTERN.test(suffix);
+    });
+
+    const allEnvVars = [...staticEnvVars, ...dynamicEnvVars];
+
     let hasApiKeys = false;
-    envVars.forEach(envVar => {
+    allEnvVars.forEach(envVar => {
       const value = process.env[envVar];
       if (value) {
-        console.log(`[Main Process] Found ${envVar}: ${value.substring(0, 10)}...`);
+        console.log(`[Main Process] Found ${envVar}: [CONFIGURED]`);
         hasApiKeys = true;
       } else {
         console.log(`[Main Process] Missing ${envVar}`);
       }
     });
+
+    if (dynamicEnvVars.length > 0) {
+      console.log(`[Main Process] Found ${dynamicEnvVars.length} dynamic custom model environment variables`);
+    }
     
     if (!hasApiKeys) {
       console.warn('[Main Process] No API keys found in environment variables.');
       console.warn('[Main Process] Please set environment variables before starting the desktop app.');
-      console.warn('[Main Process] Example: VITE_OPENAI_API_KEY=your_key_here npm start');
+      console.warn('[Main Process] Examples:');
+      console.warn('[Main Process]   VITE_OPENAI_API_KEY=your_key_here npm start');
+      console.warn('[Main Process]   VITE_CUSTOM_API_KEY_qwen3=your_qwen_key npm start');
+      console.warn('[Main Process]   VITE_CUSTOM_API_KEY_claude=your_claude_key npm start');
     }
     
     console.log('[DESKTOP] Creating file storage provider for desktop environment');
@@ -1059,7 +1085,8 @@ function setupIPC() {
   // 环境配置同步 - 主进程作为唯一配置源
   ipcMain.handle('config-getEnvironmentVariables', async (event) => {
     try {
-      const envVars = {
+      // 静态环境变量
+      const staticEnvVars = {
         VITE_OPENAI_API_KEY: process.env.VITE_OPENAI_API_KEY || '',
         VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY || '',
         VITE_DEEPSEEK_API_KEY: process.env.VITE_DEEPSEEK_API_KEY || '',
@@ -1069,9 +1096,31 @@ function setupIPC() {
         VITE_CUSTOM_API_BASE_URL: process.env.VITE_CUSTOM_API_BASE_URL || '',
         VITE_CUSTOM_API_MODEL: process.env.VITE_CUSTOM_API_MODEL || ''
       };
-      
+
+      // 扫描动态自定义模型环境变量
+      // 使用统一的正则表达式模式和验证规则
+
+      const dynamicEnvVars = {};
+      Object.keys(process.env).forEach(key => {
+        const match = key.match(CUSTOM_API_PATTERN);
+        if (match) {
+          const [, , suffix] = match;
+          if (suffix && suffix.length <= MAX_SUFFIX_LENGTH && SUFFIX_PATTERN.test(suffix)) {
+            dynamicEnvVars[key] = process.env[key] || '';
+          }
+        }
+      });
+
+      // 合并所有环境变量
+      const allEnvVars = {
+        ...staticEnvVars,
+        ...dynamicEnvVars
+      };
+
       console.log('[Main Process] Environment variables requested by UI process');
-      return createSuccessResponse(envVars);
+      console.log(`[Main Process] Returning ${Object.keys(staticEnvVars).length} static + ${Object.keys(dynamicEnvVars).length} dynamic environment variables`);
+
+      return createSuccessResponse(allEnvVars);
     } catch (error) {
       return createErrorResponse(error);
     }

@@ -10,6 +10,10 @@
 ### Web版
 - Web用户指南（待创建） - Web版使用说明
 
+### 模型配置
+- [多自定义模型配置指南](./multi-custom-models.md) - 配置无限数量自定义模型的完整指南
+- [Multiple Custom Models Guide (English)](./multi-custom-models_en.md) - Complete guide for configuring unlimited custom models
+
 ### MCP 服务器
 - [MCP 服务器用户指南](./mcp-server.md) - MCP 服务器部署和使用完整指南
 - [MCP Server User Guide (English)](./mcp-server_en.md) - Complete MCP server deployment and usage guide

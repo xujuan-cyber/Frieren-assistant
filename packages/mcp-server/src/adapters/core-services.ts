@@ -146,7 +146,7 @@ export class CoreServicesManager {
   private showEnvironmentHint(): void {
     try {
       // 检查当前环境变量状态
-      const envVars = [
+      const staticEnvVars = [
         'VITE_OPENAI_API_KEY',
         'VITE_GEMINI_API_KEY',
         'VITE_DEEPSEEK_API_KEY',
@@ -155,7 +155,22 @@ export class CoreServicesManager {
         'VITE_CUSTOM_API_KEY'
       ];
 
-      const setVars = envVars.filter(key => {
+      // 扫描动态自定义模型环境变量（使用统一的验证逻辑）
+      const CUSTOM_API_KEY_PATTERN = /^VITE_CUSTOM_API_KEY_(.+)$/;
+      const SUFFIX_PATTERN = /^[a-zA-Z0-9_-]+$/;
+      const MAX_SUFFIX_LENGTH = 50;
+
+      const dynamicEnvVars = Object.keys(process.env).filter(key => {
+        const match = key.match(CUSTOM_API_KEY_PATTERN);
+        if (!match) return false;
+
+        const [, suffix] = match;
+        return suffix && suffix.length <= MAX_SUFFIX_LENGTH && SUFFIX_PATTERN.test(suffix);
+      });
+
+      const allEnvVars = [...staticEnvVars, ...dynamicEnvVars];
+
+      const setVars = allEnvVars.filter(key => {
         const value = process.env[key];
         return value && value.trim().length > 0;
       });
@@ -169,12 +184,15 @@ export class CoreServicesManager {
         console.error('   VITE_ZHIPU_API_KEY=your-zhipu-key');
         console.error('   VITE_SILICONFLOW_API_KEY=your-siliconflow-key');
         console.error('   VITE_CUSTOM_API_KEY=your-custom-key');
+        console.error('   Or dynamic custom models:');
+        console.error('   VITE_CUSTOM_API_KEY_qwen3=your-qwen-key');
+        console.error('   VITE_CUSTOM_API_KEY_claude=your-claude-key');
       } else {
         // 有设置但可能无效
         console.error('💡 Found API keys but no models are enabled:');
         setVars.forEach(key => {
           const value = process.env[key];
-          const masked = value ? `${value.substring(0, 8)}...` : 'empty';
+          const masked = value ? '[CONFIGURED]' : 'empty';
           console.error(`   ${key}=${masked}`);
         });
         console.error('   Please check if your API keys are valid.');
