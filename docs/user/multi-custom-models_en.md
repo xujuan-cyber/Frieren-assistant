@@ -124,6 +124,9 @@ VITE_OPENAI_API_KEY=your-openai-key
 VITE_CUSTOM_API_KEY_ollama=dummy-key
 VITE_CUSTOM_API_BASE_URL_ollama=http://host.docker.internal:11434/v1
 VITE_CUSTOM_API_MODEL_ollama=qwen2.5:7b
+VITE_CUSTOM_API_KEY_qwen3=your-qwen3-key
+VITE_CUSTOM_API_BASE_URL_qwen3=http://host.docker.internal:11434/v1
+VITE_CUSTOM_API_MODEL_qwen3=qwen3:8b
 ```
 
 Run with environment file:
@@ -134,6 +137,23 @@ docker run -d -p 8081:80 --env-file .env \
   --name prompt-optimizer \
   linshen/prompt-optimizer
 ```
+
+#### Method 3: Docker Compose
+
+Modify `docker-compose.yml` to add `env_file` configuration:
+
+```yaml
+services:
+  prompt-optimizer:
+    image: linshen/prompt-optimizer:latest
+    env_file:
+      - .env  # Read environment variables from .env file
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+```
+
+Then configure variables in `.env` file (same as Method 2).
 
 ### Desktop Application
 

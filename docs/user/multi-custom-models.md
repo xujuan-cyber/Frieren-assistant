@@ -127,26 +127,61 @@ npm run desktop
 
 ### Docker 部署
 
-在 `docker-compose.yml` 中添加环境变量：
-
-```yaml
-environment:
-  # 原有配置
-  - VITE_CUSTOM_API_KEY=${VITE_CUSTOM_API_KEY:-}
-  
-  # 新的多自定义模型配置
-  - VITE_CUSTOM_API_KEY_qwen3=${VITE_CUSTOM_API_KEY_qwen3:-}
-  - VITE_CUSTOM_API_BASE_URL_qwen3=${VITE_CUSTOM_API_BASE_URL_qwen3:-}
-  - VITE_CUSTOM_API_MODEL_qwen3=${VITE_CUSTOM_API_MODEL_qwen3:-}
-```
-
-然后在 `.env` 文件中设置实际值：
+#### 方式1：环境变量参数
 
 ```bash
-VITE_CUSTOM_API_KEY_qwen3=your-qwen-key
-VITE_CUSTOM_API_BASE_URL_qwen3=http://localhost:11434/v1
-VITE_CUSTOM_API_MODEL_qwen3=qwen2.5:7b
+docker run -d -p 8081:80 \
+  -e VITE_OPENAI_API_KEY=your-openai-key \
+  -e VITE_CUSTOM_API_KEY_ollama=dummy-key \
+  -e VITE_CUSTOM_API_BASE_URL_ollama=http://host.docker.internal:11434/v1 \
+  -e VITE_CUSTOM_API_MODEL_ollama=qwen2.5:7b \
+  -e VITE_CUSTOM_API_KEY_qwen3=your-qwen3-key \
+  -e VITE_CUSTOM_API_BASE_URL_qwen3=http://host.docker.internal:11434/v1 \
+  -e VITE_CUSTOM_API_MODEL_qwen3=qwen3:8b \
+  --restart unless-stopped \
+  --name prompt-optimizer \
+  linshen/prompt-optimizer
 ```
+
+#### 方式2：环境变量文件
+
+创建 `.env` 文件：
+
+```bash
+VITE_OPENAI_API_KEY=your-openai-key
+VITE_CUSTOM_API_KEY_ollama=dummy-key
+VITE_CUSTOM_API_BASE_URL_ollama=http://host.docker.internal:11434/v1
+VITE_CUSTOM_API_MODEL_ollama=qwen2.5:7b
+VITE_CUSTOM_API_KEY_qwen3=your-qwen3-key
+VITE_CUSTOM_API_BASE_URL_qwen3=http://host.docker.internal:11434/v1
+VITE_CUSTOM_API_MODEL_qwen3=qwen3:8b
+```
+
+使用环境变量文件运行：
+
+```bash
+docker run -d -p 8081:80 --env-file .env \
+  --restart unless-stopped \
+  --name prompt-optimizer \
+  linshen/prompt-optimizer
+```
+
+#### 方式3：Docker Compose
+
+修改 `docker-compose.yml` 添加 `env_file` 配置：
+
+```yaml
+services:
+  prompt-optimizer:
+    image: linshen/prompt-optimizer:latest
+    env_file:
+      - .env  # 从 .env 文件读取环境变量
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+```
+
+然后在 `.env` 文件中配置变量（同方式2）。
 
 ### MCP 服务器
 
