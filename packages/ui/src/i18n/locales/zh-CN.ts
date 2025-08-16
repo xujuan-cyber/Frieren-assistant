@@ -130,6 +130,8 @@ export default {
     apiKey: 'API密钥',
     useVercelProxy: '使用Vercel代理',
     useVercelProxyHint: '使用Vercel代理可以解决跨域问题，但可能触发某些提供商的风控，请谨慎使用',
+    useDockerProxy: '使用Docker代理',
+    useDockerProxyHint: '使用Docker代理可以解决跨域问题，适用于Docker部署环境',
     addModel: '添加',
 
     // 高级参数
@@ -203,6 +205,7 @@ export default {
     defaultModelAriaLabel: '默认模型名称',
     apiKeyAriaLabel: 'API密钥',
     useVercelProxyAriaLabel: '是否使用Vercel代理',
+    useDockerProxyAriaLabel: '是否使用Docker代理',
     cancelEditAriaLabel: '取消编辑模型',
     saveEditAriaLabel: '保存模型修改',
     cancelAddAriaLabel: '取消添加模型',

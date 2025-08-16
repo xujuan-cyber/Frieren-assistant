@@ -202,6 +202,80 @@ export const resetVercelStatusCache = (): void => {
   localStorage.removeItem(PROXY_URL_KEY);
 };
 
+// Docker环境检测相关
+interface DockerStatus {
+  checked: boolean;
+  available: boolean;
+}
+
+let dockerStatusCache: DockerStatus = {
+  checked: false,
+  available: false,
+};
+
+const DOCKER_PROXY_URL_KEY = 'docker_proxy_status';
+
+/**
+ * 检查Docker API是否可用（简化版）
+ */
+export async function checkDockerApiAvailability(): Promise<boolean> {
+  // 如果内存缓存中已检查过，直接返回结果
+  if (dockerStatusCache.checked) {
+    return dockerStatusCache.available;
+  }
+
+  if (typeof window === 'undefined' || isRunningInElectron()) {
+    dockerStatusCache = { available: false, checked: true };
+    return false;
+  }
+
+  // 检查localStorage中是否有持久化的结果
+  const cachedStatus = JSON.parse(localStorage.getItem(DOCKER_PROXY_URL_KEY) || 'null');
+  if (cachedStatus && cachedStatus.checked) {
+    dockerStatusCache = cachedStatus;
+    return dockerStatusCache.available;
+  }
+
+  try {
+    const response = await fetch('/api/docker-status');
+    if (response.ok) {
+      const data = await response.json();
+      const isAvailable = data.status === 'available';
+
+      // 更新缓存并持久化
+      dockerStatusCache = { available: isAvailable, checked: true };
+      localStorage.setItem(DOCKER_PROXY_URL_KEY, JSON.stringify(dockerStatusCache));
+
+      return isAvailable;
+    }
+  } catch (error) {
+    console.log('[Environment Detection] Docker API detection failed', error);
+  }
+
+  // 检查失败或出错，标记为已检查并缓存失败状态
+  dockerStatusCache = { available: false, checked: true };
+  localStorage.setItem(DOCKER_PROXY_URL_KEY, JSON.stringify(dockerStatusCache));
+  return false;
+}
+
+/**
+ * 检查是否在Docker环境中（同步版本，使用缓存结果）
+ */
+export const isDocker = (): boolean => {
+  return dockerStatusCache.checked && dockerStatusCache.available;
+};
+
+/**
+ * 重置Docker状态缓存，主要用于测试
+ */
+export const resetDockerStatusCache = (): void => {
+  dockerStatusCache = {
+    checked: false,
+    available: false,
+  };
+  localStorage.removeItem(DOCKER_PROXY_URL_KEY);
+};
+
 /**
  * 获取API代理URL
  * @param baseURL 原始基础URL

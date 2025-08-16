@@ -4,7 +4,7 @@ import { ModelManager } from '../model/manager';
 import { APIError, RequestConfigError } from './errors';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
-import { isVercel, getProxyUrl, isRunningInElectron } from '../../utils/environment';
+import { isVercel, isDocker, getProxyUrl, isRunningInElectron } from '../../utils/environment';
 import { ElectronLLMProxy } from './electron-proxy';
 
 /**
@@ -68,11 +68,16 @@ export class LLMService implements ILLMService {
       processedBaseURL = processedBaseURL.slice(0, -'/chat/completions'.length);
     }
 
-    // 使用代理处理跨域问题（仅在 Vercel 环境）
+    // 使用代理处理跨域问题
     let finalBaseURL = processedBaseURL;
-    if (modelConfig.useVercelProxy === true && isVercel() && processedBaseURL) {
-      finalBaseURL = getProxyUrl(processedBaseURL, isStream);
-      console.log(`使用${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+    if (processedBaseURL) {
+      if (modelConfig.useVercelProxy === true && isVercel()) {
+        finalBaseURL = getProxyUrl(processedBaseURL, isStream);
+        console.log(`使用Vercel${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+      } else if (modelConfig.useDockerProxy === true && isDocker()) {
+        finalBaseURL = getProxyUrl(processedBaseURL, isStream);
+        console.log(`使用Docker${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+      }
     }
 
     // 创建OpenAI实例配置
@@ -124,11 +129,16 @@ export class LLMService implements ILLMService {
     if (processedBaseURL?.endsWith('/v1beta')) {
       processedBaseURL = processedBaseURL.slice(0, -'/v1beta'.length);
     }
-    // 使用代理处理跨域问题（仅在 Vercel 环境）
+    // 使用代理处理跨域问题
     let finalBaseURL = processedBaseURL;
-    if (modelConfig.useVercelProxy === true && isVercel() && processedBaseURL) {
-      finalBaseURL = getProxyUrl(processedBaseURL, isStream);
-      console.log(`使用${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+    if (processedBaseURL) {
+      if (modelConfig.useVercelProxy === true && isVercel()) {
+        finalBaseURL = getProxyUrl(processedBaseURL, isStream);
+        console.log(`使用Vercel${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+      } else if (modelConfig.useDockerProxy === true && isDocker()) {
+        finalBaseURL = getProxyUrl(processedBaseURL, isStream);
+        console.log(`使用Docker${isStream ? '流式' : ''}API代理:`, finalBaseURL);
+      }
     }
     return genAI.getGenerativeModel(modelOptions, { "baseUrl": finalBaseURL });
   }

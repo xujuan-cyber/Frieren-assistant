@@ -130,6 +130,8 @@ export default {
     apiKey: 'API Key',
     useVercelProxy: 'Use Vercel Proxy',
     useVercelProxyHint: 'Using Vercel proxy can solve CORS issues, but may trigger risk control from some providers. Please use with caution',
+    useDockerProxy: 'Use Docker Proxy',
+    useDockerProxyHint: 'Using Docker proxy can solve CORS issues, suitable for Docker deployment environments',
     addModel: 'Add',
 
     // Advanced Parameters
@@ -203,6 +205,7 @@ export default {
     defaultModelAriaLabel: 'Default model name',
     apiKeyAriaLabel: 'API key',
     useVercelProxyAriaLabel: 'Use Vercel proxy',
+    useDockerProxyAriaLabel: 'Use Docker proxy',
     cancelEditAriaLabel: 'Cancel editing model',
     saveEditAriaLabel: 'Save model changes',
     cancelAddAriaLabel: 'Cancel adding model',

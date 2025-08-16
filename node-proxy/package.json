@@ -1,0 +1,17 @@
+{
+  "name": "node-proxy",
+  "version": "1.0.0",
+  "description": "Simple Node.js proxy service for Docker deployment",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["proxy", "cors", "docker"],
+  "author": "Prompt Optimizer",
+  "license": "MIT"
+}

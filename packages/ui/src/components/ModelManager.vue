@@ -155,15 +155,27 @@
                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
-                    <input 
-                      :id="`vercel-proxy-${editingModel.key}`" 
-                      v-model="editingModel.useVercelProxy" 
+                    <input
+                      :id="`vercel-proxy-${editingModel.key}`"
+                      v-model="editingModel.useVercelProxy"
                       type="checkbox"
                       class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
                     <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
                       {{ t('modelManager.useVercelProxy') }}
                       <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
+                    </label>
+                  </div>
+                  <div v-if="dockerProxyAvailable" class="flex items-center space-x-2">
+                    <input
+                      :id="`docker-proxy-${editingModel.key}`"
+                      v-model="editingModel.useDockerProxy"
+                      type="checkbox"
+                      class="w-4 h-4 text-blue-600 bg-black/20 border-blue-600/50 rounded focus:ring-blue-500/50"
+                    />
+                    <label :for="`docker-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
+                      {{ t('modelManager.useDockerProxy') }}
+                      <span class="cursor-help ml-1" :title="t('modelManager.useDockerProxyHint')">?</span>
                     </label>
                   </div>
 
@@ -348,15 +360,27 @@
                           :placeholder="t('modelManager.apiKeyPlaceholder')" />
                   </div>
                   <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
-                    <input 
-                      id="new-model-vercel-proxy" 
-                      v-model="newModel.useVercelProxy" 
+                    <input
+                      id="new-model-vercel-proxy"
+                      v-model="newModel.useVercelProxy"
                       type="checkbox"
                       class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
                     />
                     <label for="new-model-vercel-proxy" class="text-sm font-medium theme-manager-text">
                       {{ t('modelManager.useVercelProxy') }}
                       <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
+                    </label>
+                  </div>
+                  <div v-if="dockerProxyAvailable" class="flex items-center space-x-2">
+                    <input
+                      id="new-model-docker-proxy"
+                      v-model="newModel.useDockerProxy"
+                      type="checkbox"
+                      class="w-4 h-4 text-blue-600 bg-black/20 border-blue-600/50 rounded focus:ring-blue-500/50"
+                    />
+                    <label for="new-model-docker-proxy" class="text-sm font-medium theme-manager-text">
+                      {{ t('modelManager.useDockerProxy') }}
+                      <span class="cursor-help ml-1" :title="t('modelManager.useDockerProxyHint')">?</span>
                     </label>
                   </div>
                    <!-- Advanced Parameters Section FOR ADD MODEL -->
@@ -489,11 +513,13 @@
 <script setup>
 import { ref, onMounted, watch, computed, inject } from 'vue'; // Added computed and inject
 import { useI18n } from 'vue-i18n';
-import { 
+import {
   createLLMService,
   advancedParameterDefinitions,
   checkVercelApiAvailability,
-  resetVercelStatusCache
+  resetVercelStatusCache,
+  checkDockerApiAvailability,
+  resetDockerStatusCache
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
@@ -540,6 +566,8 @@ const isLoadingModels = ref(false);
 const testingConnections = ref({});
 // 是否支持Vercel代理
 const vercelProxyAvailable = ref(false);
+// 是否支持Docker代理
+const dockerProxyAvailable = ref(false);
 // For Advanced Parameters UI
 const selectedNewLLMParamId = ref(''); // Stores ID of param selected from dropdown
 const customLLMParam = ref({ key: '', value: '' });
@@ -557,6 +585,7 @@ const newModel = ref({
   defaultModel: '',
   apiKey: '',
   useVercelProxy: false,
+  useDockerProxy: false,
   provider: 'custom',
   llmParams: {}
 });
@@ -574,6 +603,21 @@ const checkVercelProxy = async () => {
   } catch (error) {
     console.log('Vercel代理不可用:', error);
     vercelProxyAvailable.value = false;
+  }
+};
+
+// 检测Docker代理是否可用
+const checkDockerProxy = async () => {
+  try {
+    // 先重置缓存，确保每次都重新检测
+    resetDockerStatusCache();
+    // 使用core中的检测函数
+    const available = await checkDockerApiAvailability();
+    dockerProxyAvailable.value = available;
+    console.log('Docker代理检测结果:', dockerProxyAvailable.value);
+  } catch (error) {
+    console.log('Docker代理不可用:', error);
+    dockerProxyAvailable.value = false;
   }
 };
 
@@ -718,6 +762,7 @@ const editModel = async (key) => {
       displayMaskedKey: true,
       originalApiKey: model.apiKey,
       useVercelProxy: model.useVercelProxy === undefined ? false : model.useVercelProxy, // Ensure default
+      useDockerProxy: model.useDockerProxy === undefined ? false : model.useDockerProxy, // Ensure default
       provider: model.provider || 'custom', // Ensure provider is set
       enabled: model.enabled,
       llmParams: model.llmParams ? JSON.parse(JSON.stringify(model.llmParams)) : {} // Deep copy llmParams
@@ -959,6 +1004,7 @@ const saveEdit = async () => {
         ? modelOptions.value.map(opt => opt.value)
         : [editingModel.value.defaultModel],
       useVercelProxy: editingModel.value.useVercelProxy,
+      useDockerProxy: editingModel.value.useDockerProxy,
       provider: editingModel.value.provider || 'custom',
       enabled: editingModel.value.enabled !== undefined
         ? editingModel.value.enabled
@@ -1003,6 +1049,7 @@ const addCustomModel = async () => {
       enabled: true,
       provider: currentProviderType.value || 'custom',
       useVercelProxy: newModel.value.useVercelProxy,
+      useDockerProxy: newModel.value.useDockerProxy,
       llmParams: newModel.value.llmParams || {}
     }
 
@@ -1018,6 +1065,7 @@ const addCustomModel = async () => {
       defaultModel: '',
       apiKey: '',
       useVercelProxy: false,
+      useDockerProxy: false,
       provider: 'custom',
       llmParams: {}
     }
@@ -1246,6 +1294,7 @@ watch(() => newModel.value.key, (newKey) => {
 onMounted(() => {
   loadModels();
   checkVercelProxy();
+  checkDockerProxy();
 });
 </script>
 
