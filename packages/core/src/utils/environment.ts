@@ -285,14 +285,22 @@ export const getProxyUrl = (baseURL: string | undefined, isStream: boolean = fal
   if (!baseURL) {
     return '';
   }
-  
+
   // 获取当前域名作为基础URL
-  const origin = isBrowser() ? window.location.origin : '';
+  let origin = '';
+  if (isBrowser()) {
+    origin = window.location.origin;
+  } else {
+    // 在Node.js环境中（如Electron主进程），使用空字符串作为基础URL
+    // 避免硬编码特定端口，因为不同环境可能使用不同端口
+    origin = '';
+  }
+
   const proxyEndpoint = isStream ? 'stream' : 'proxy';
-  
+
   // 返回完整的绝对URL
   return `${origin}/api/${proxyEndpoint}?targetUrl=${encodeURIComponent(baseURL)}`;
-}; 
+};
 
 /**
  * 检测是否在Electron环境中运行

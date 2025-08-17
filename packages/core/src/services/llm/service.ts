@@ -752,33 +752,82 @@ export class LLMService implements ILLMService {
    * 获取OpenAI兼容API的模型信息
    */
   private async fetchOpenAICompatibleModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
+    // 先检查baseURL是否以/v1结尾
+    if (modelConfig.baseURL && !modelConfig.baseURL.includes('/v1')) {
+      throw new APIError(`MISSING_V1_SUFFIX: baseURL should include "/v1" for OpenAI-compatible APIs. Current: ${modelConfig.baseURL}`);
+    }
+
     const openai = this.getOpenAIInstance(modelConfig);
 
     try {
-      // 尝试标准 OpenAI 格式的模型列表请求
       const response = await openai.models.list();
       console.log('API返回的原始模型列表:', response);
 
-      // 只处理标准 OpenAI 格式
+      // 检查返回格式
       if (response && response.data && Array.isArray(response.data)) {
-        return response.data
+        const models = response.data
           .map(model => ({
             id: model.id,
             name: model.id
           }))
           .sort((a, b) => a.id.localeCompare(b.id));
+
+        if (models.length === 0) {
+          throw new APIError('EMPTY_MODEL_LIST: API returned empty model list');
+        }
+
+        return models;
       }
 
-      // 如果格式不匹配标准格式，记录并返回空数组
-      console.warn('API返回格式与预期不符:', response);
-      return [];
+      // 返回格式不对，抛出标准化错误信息
+      throw new APIError(`INVALID_RESPONSE_FORMAT: ${JSON.stringify(response)}`);
 
     } catch (error: any) {
-      console.error('获取模型列表失败:', error);
-      console.log('错误详情:', error.response?.data || error.message);
+      console.error('Failed to fetch model list:', error);
 
-      // 发生错误时返回空数组
-      return [];
+      // Core层只负责技术判断，抛出标准化的英文错误信息
+      if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('Connection error'))) {
+        // 检查是否是真正的跨域错误
+        // 跨域错误的特征：不同origin + 没有明显的DNS/连接错误
+        const errorString = error.toString();
+        let isCrossOriginError = false;
+
+        if (modelConfig.baseURL && typeof window !== 'undefined') {
+          try {
+            const apiUrl = new URL(modelConfig.baseURL);
+            const currentUrl = new URL(window.location.href);
+
+
+
+            // 只有在不同origin且没有明显的DNS/连接错误时才认为是跨域
+            const isDifferentOrigin = apiUrl.origin !== currentUrl.origin;
+            const hasNetworkError = errorString.includes('ERR_NAME_NOT_RESOLVED') ||
+                                   errorString.includes('ERR_CONNECTION_REFUSED') ||
+                                   errorString.includes('ERR_NETWORK_CHANGED') ||
+                                   errorString.includes('ERR_INTERNET_DISCONNECTED') ||
+                                   errorString.includes('ERR_EMPTY_RESPONSE');
+
+            isCrossOriginError = isDifferentOrigin && !hasNetworkError;
+          } catch (urlError) {
+            // URL解析失败，当作普通连接错误处理
+          }
+        }
+
+        // 根据检测结果抛出相应错误
+        if (isCrossOriginError) {
+          throw new APIError(`CROSS_ORIGIN_CONNECTION_FAILED: ${error.message}`);
+        } else {
+          throw new APIError(`CONNECTION_FAILED: ${error.message}`);
+        }
+      }
+
+      // API返回的错误信息
+      if (error.response?.data) {
+        throw new APIError(`API_ERROR: ${JSON.stringify(error.response.data)}`);
+      }
+
+      // 其他错误，保持原始信息
+      throw new APIError(`UNKNOWN_ERROR: ${error.message || 'Unknown error'}`);
     }
   }
   /**

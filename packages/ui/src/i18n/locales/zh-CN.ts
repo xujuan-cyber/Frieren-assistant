@@ -125,6 +125,7 @@ export default {
     displayName: '显示名称',
     modelKey: '模型标识',
     apiUrl: 'API地址',
+    apiUrlHint: '示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾',
     defaultModel: '默认模型',
     clickToFetchModels: '点击箭头获取模型列表',
     apiKey: 'API密钥',
@@ -190,6 +191,17 @@ export default {
     fetchModelsFailed: '获取模型列表失败：{error}',
     needApiKeyAndBaseUrl: '请先填写API地址和密钥',
     needBaseUrl: '请先填写API地址',
+
+    // 模型获取错误处理
+    errors: {
+      crossOriginConnectionFailed: '跨域连接失败，请检查网络连接',
+      connectionFailed: '连接失败，请检查API地址和网络连接',
+      missingV1Suffix: 'API地址格式错误，OpenAI兼容API需要包含"/v1"后缀',
+      invalidResponseFormat: 'API返回格式不兼容，请检查API服务是否为OpenAI兼容格式',
+      emptyModelList: 'API返回空的模型列表，该服务可能没有可用模型',
+      apiError: 'API错误：{error}',
+      proxyHint: '，或尝试启用{proxies}'
+    },
 
     // 状态文本
     disabled: '已禁用',

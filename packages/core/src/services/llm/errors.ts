@@ -15,7 +15,7 @@ export class BaseError extends Error {
  */
 export class APIError extends BaseError {
   constructor(message: string) {
-    super(`API错误: ${message}`);
+    super(`API error: ${message}`);
   }
 }
 
