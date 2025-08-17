@@ -10,6 +10,8 @@ services:
     restart: unless-stopped
     ports:
       - "8082:${NGINX_PORT:-80}"      # Web应用端口（包含MCP服务器，通过/mcp路径访问）
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许容器访问宿主机
     env_file:
       - .env.local     # 读取本地环境变量文件
     healthcheck:

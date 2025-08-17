@@ -886,7 +886,8 @@ const handleFetchEditingModels = async () => {
       baseURL: baseURL,
       apiKey: apiKey,
       provider: editingModel.value.provider || 'custom',
-      useVercelProxy: editingModel.value.useVercelProxy
+      useVercelProxy: editingModel.value.useVercelProxy,
+      useDockerProxy: editingModel.value.useDockerProxy
     };
     
     // 确定要使用的 provider key（使用原始key或临时key）
@@ -947,7 +948,8 @@ const handleFetchNewModels = async () => {
       baseURL: baseURL,
       apiKey: apiKey,
       provider: currentProviderType.value || 'custom',
-      useVercelProxy: newModel.value.useVercelProxy
+      useVercelProxy: newModel.value.useVercelProxy,
+      useDockerProxy: newModel.value.useDockerProxy
     };
     
     // 获取模型列表

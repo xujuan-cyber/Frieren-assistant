@@ -28,6 +28,9 @@ COPY --from=build /app/packages/mcp-server/dist /app/mcp-server/dist
 COPY --from=build /app/packages/mcp-server/package.json /app/mcp-server/
 COPY --from=build /app/packages/mcp-server/preload-env.js /app/mcp-server/
 COPY --from=build /app/packages/mcp-server/preload-env.cjs /app/mcp-server/
+
+# 复制Node Proxy服务
+COPY --from=build /app/node-proxy /app/node-proxy
 # 复制构建后的包到正确位置
 COPY --from=build /app/packages /app/packages
 # 复制必要的node_modules

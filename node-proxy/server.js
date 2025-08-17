@@ -41,16 +41,24 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '', 'http://localhost');
     const isStream = url.pathname === '/api/stream';
-    const targetUrl = url.searchParams.get('targetUrl');
+    let targetUrl = url.searchParams.get('targetUrl');
     
     // 验证targetUrl参数
     if (!targetUrl) {
       return json(res, 400, { error: 'Missing targetUrl parameter' });
     }
 
-    // 验证targetUrl是否为有效URL
+    // 自动将本地主机地址替换为 host.docker.internal 以便在 Docker 容器内访问宿主机
+    // 同时验证 URL 的有效性
     try {
-      new URL(targetUrl);
+      const targetUrlObject = new URL(targetUrl);
+      const localhostNames = ['localhost', '127.0.0.1', '[::1]'];
+      if (localhostNames.includes(targetUrlObject.hostname)) {
+        const originalHostname = targetUrlObject.hostname;
+        targetUrlObject.hostname = 'host.docker.internal';
+        targetUrl = targetUrlObject.toString();
+        console.log(`[${new Date().toISOString()}] [${requestId}] Remapped localhost URL from ${originalHostname} to host.docker.internal. New target: ${targetUrl}`);
+      }
     } catch {
       return json(res, 400, { error: 'Invalid targetUrl parameter' });
     }

@@ -138,17 +138,38 @@ export async function checkDockerApiAvailability(): Promise<boolean> {
 
 #### 2.3 代理URL生成扩展
 ```typescript
-/** 获取API代理URL（支持Vercel和Docker环境） */
+/**
+ * 获取API代理URL（支持Vercel和Docker环境）
+ */
 export const getProxyUrl = (baseURL: string | undefined, isStream: boolean = false): string => {
-  if (!baseURL) return '';
+  if (!baseURL) {
+    return '';
+  }
+
   const origin = isBrowser() ? window.location.origin : '';
   const proxyEndpoint = isStream ? 'stream' : 'proxy';
+
+  // 返回完整的绝对URL
   return `${origin}/api/${proxyEndpoint}?targetUrl=${encodeURIComponent(baseURL)}`;
 };
 
-/** 当前实现由 core 包提供：isVercel()/isDocker()/isProxyAvailable() */
-```
+/**
+ * 检查当前环境是否支持代理
+ */
+export const isProxyAvailable = (): boolean => {
+  // 可以是Vercel环境或Docker环境
+  return isVercel() || isDocker();
+};
 
+/**
+ * 检查是否在Docker环境中（简化版）
+ */
+export const isDocker = (): boolean => {
+  // 简化实现：可以通过检测特定的环境标识
+  // 或者与checkDockerApiAvailability结合使用
+  return false; // 具体实现根据需要调整
+};
+```
 
 ### 3. 前端UI集成
 

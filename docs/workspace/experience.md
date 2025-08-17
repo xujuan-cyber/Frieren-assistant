@@ -105,25 +105,4 @@
 1. **及时记录** - 遇到重要经验立即记录
 2. **分类整理** - 按照上述分类组织内容
 3. **定期回顾** - 每周回顾一次，提取可复用经验
-4. **整合整理** - 任务完成时将相关经验合并到本文件
-
-
-## 🧷 合并后的简版任务记录（来自原 scratchpad 与 todo）
-
-- 阶段1 基础代理功能：Nginx 本地转发到 Node Proxy；新增 /api/docker-status；Node Proxy 支持普通/流式、超时与 HEAD 处理；统一 JSON 错误与简洁日志
-- 阶段2 流式与前端集成：关闭缓冲并添加 X-Accel-Buffering；UI 增加“使用 Docker 代理”选项；i18n 文案；配置保存/加载与构建验证
-- 阶段3 错误与体验优化：基础错误分类（400/504/500）；LLM 服务对接 Docker 代理（OpenAI/Gemini）；端到端基础验证
-
-## 🚀 快速使用与验证
-
-- 前端：在模型配置中勾选“使用 Docker 代理”（仅在 Docker 环境检测通过时显示）
-- 代理路径：/api/proxy 与 /api/stream → Nginx 本地转发 → Node Proxy(127.0.0.1:3001)
-- 验证建议：
-  - 普通请求：浏览器或 curl 访问 /api/proxy?targetUrl=https://httpbin.org/get
-  - 流式请求：访问 /api/stream 并观察打字机/逐段输出（需目标 API 支持流式）
-
-## 🔭 可选后续（保持简化，可不做）
-
-- 将“连接失败/解析失败”归类为 502（当前为 500）
-- 如需请求追踪：生成简单的 requestId 并写入日志
-- 如需 Nginx JSON 错误：为 /api/* 增加 error_page 502/504 → JSON
+4. **归档整理** - 任务完成时将相关经验归档到archives
