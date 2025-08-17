@@ -783,42 +783,46 @@ const editModel = async (key) => {
 };
 
 
-const addDefaultModelOptions = (providerKey) => {
-  if (providerKey === 'openai') {
-    modelOptions.value = [
-      { label: 'gpt-4o', value: 'gpt-4o' },
-      { label: 'gpt-4-turbo', value: 'gpt-4-turbo' },
-      { label: 'gpt-4', value: 'gpt-4' },
-      { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' }
-    ];
-  } else if (providerKey === 'anthropic') {
-    modelOptions.value = [
-      { label: 'claude-3-opus-20240229', value: 'claude-3-opus-20240229' },
-      { label: 'claude-3-sonnet-20240229', value: 'claude-3-sonnet-20240229' },
-      { label: 'claude-3-haiku-20240307', value: 'claude-3-haiku-20240307' },
-      { label: 'claude-2.1', value: 'claude-2.1' }
-    ];
-  } else if (providerKey === 'gemini') {
-    modelOptions.value = [
-      { label: 'gemini-pro', value: 'gemini-pro' },
-      { label: 'gemini-1.5-pro', value: 'gemini-1.5-pro' }
-    ];
-  } else if (providerKey === 'deepseek') {
-    modelOptions.value = [
-      { label: 'deepseek-chat', value: 'deepseek-chat' },
-      { label: 'deepseek-coder', value: 'deepseek-coder' }
-    ];
-  } else if (providerKey === 'zhipu') {
-    modelOptions.value = [
-      { label: 'GLM-4-Flash', value: 'glm-4-flash' },
-      { label: 'GLM-4', value: 'glm-4' },
-      { label: 'GLM-3-Turbo', value: 'glm-3-turbo' },
-      { label: 'GLM-3', value: 'glm-3' }
-    ];
+// 公共错误处理函数
+const handleModelFetchError = (error) => {
+  console.error('获取模型列表失败:', error);
+
+  // 获取错误信息
+  const errorMessage = error && error.message ? error.message : '未知错误';
+
+  // 根据标准化的错误类型进行国际化处理
+  let userMessage = '';
+
+  if (errorMessage.includes('CROSS_ORIGIN_CONNECTION_FAILED:')) {
+    userMessage = t('modelManager.errors.crossOriginConnectionFailed');
+    // 只在有可用代理时才建议使用代理
+    const availableProxies = [];
+    if (vercelProxyAvailable.value) availableProxies.push('Vercel代理');
+    if (dockerProxyAvailable.value) availableProxies.push('Docker代理');
+
+    if (availableProxies.length > 0) {
+      userMessage += t('modelManager.errors.proxyHint', { proxies: availableProxies.join('或') });
+    }
+  } else if (errorMessage.includes('CONNECTION_FAILED:')) {
+    userMessage = t('modelManager.errors.connectionFailed');
+  } else if (errorMessage.includes('MISSING_V1_SUFFIX:')) {
+    userMessage = t('modelManager.errors.missingV1Suffix');
+  } else if (errorMessage.includes('INVALID_RESPONSE_FORMAT:')) {
+    userMessage = t('modelManager.errors.invalidResponseFormat');
+  } else if (errorMessage.includes('EMPTY_MODEL_LIST:')) {
+    userMessage = t('modelManager.errors.emptyModelList');
+  } else if (errorMessage.includes('API_ERROR:')) {
+    // 提取API_ERROR:后面的内容
+    const apiErrorStart = errorMessage.indexOf('API_ERROR:') + 10;
+    userMessage = t('modelManager.errors.apiError', { error: errorMessage.substring(apiErrorStart) });
   } else {
-    // For custom models, provide empty list
-    modelOptions.value = [];
+    userMessage = errorMessage; // 其他错误直接显示
   }
+
+  toast.error(userMessage);
+
+  // 清空模型选项，让用户知道获取失败
+  modelOptions.value = [];
 };
 
 const handleFetchEditingModels = async () => {
@@ -874,48 +878,8 @@ const handleFetchEditingModels = async () => {
       editingModel.value.defaultModel = models[0].value;
     }
   } catch (error) {
-    console.error('获取模型列表失败:', error);
-
-    // 获取错误信息
-    const errorMessage = error && error.message ? error.message : '未知错误';
-
-    // 根据标准化的错误类型进行国际化处理
-    let userMessage = '';
-
-    if (errorMessage.includes('CROSS_ORIGIN_CONNECTION_FAILED:')) {
-      userMessage = t('modelManager.errors.crossOriginConnectionFailed');
-      // 只在有可用代理时才建议使用代理
-      const availableProxies = [];
-      if (vercelProxyAvailable.value) availableProxies.push('Vercel代理');
-      if (dockerProxyAvailable.value) availableProxies.push('Docker代理');
-
-      if (availableProxies.length > 0) {
-        userMessage += t('modelManager.errors.proxyHint', { proxies: availableProxies.join('或') });
-      }
-    } else if (errorMessage.includes('CONNECTION_FAILED:')) {
-      userMessage = t('modelManager.errors.connectionFailed');
-    } else if (errorMessage.includes('MISSING_V1_SUFFIX:')) {
-      userMessage = t('modelManager.errors.missingV1Suffix');
-    } else if (errorMessage.includes('INVALID_RESPONSE_FORMAT:')) {
-      userMessage = t('modelManager.errors.invalidResponseFormat');
-    } else if (errorMessage.includes('EMPTY_MODEL_LIST:')) {
-      userMessage = t('modelManager.errors.emptyModelList');
-    } else if (errorMessage.includes('API_ERROR:')) {
-      // 提取API_ERROR:后面的内容
-      const apiErrorStart = errorMessage.indexOf('API_ERROR:') + 10;
-      userMessage = t('modelManager.errors.apiError', { error: errorMessage.substring(apiErrorStart) });
-    } else {
-      userMessage = errorMessage; // 其他错误直接显示
-    }
-
-    toast.error(userMessage);
-
-    // 使用提供商特定的默认选项
-    if (editingModel.value.originalKey) {
-      addDefaultModelOptions(editingModel.value.originalKey);
-    } else {
-      addDefaultModelOptions('custom');
-    }
+    // 使用公共错误处理函数
+    handleModelFetchError(error);
   } finally {
     isLoadingModels.value = false;
   }
@@ -962,44 +926,8 @@ const handleFetchNewModels = async () => {
       newModel.value.defaultModel = models[0].value;
     }
   } catch (error) {
-    console.error('获取模型列表失败:', error);
-
-    // 获取错误信息
-    const errorMessage = error && error.message ? error.message : '未知错误';
-
-    // 根据标准化的错误类型进行国际化处理
-    let userMessage = '';
-
-    if (errorMessage.includes('CROSS_ORIGIN_CONNECTION_FAILED:')) {
-      userMessage = t('modelManager.errors.crossOriginConnectionFailed');
-      // 只在有可用代理时才建议使用代理
-      const availableProxies = [];
-      if (vercelProxyAvailable.value) availableProxies.push('Vercel代理');
-      if (dockerProxyAvailable.value) availableProxies.push('Docker代理');
-
-      if (availableProxies.length > 0) {
-        userMessage += t('modelManager.errors.proxyHint', { proxies: availableProxies.join('或') });
-      }
-    } else if (errorMessage.includes('CONNECTION_FAILED:')) {
-      userMessage = t('modelManager.errors.connectionFailed');
-    } else if (errorMessage.includes('MISSING_V1_SUFFIX:')) {
-      userMessage = t('modelManager.errors.missingV1Suffix');
-    } else if (errorMessage.includes('INVALID_RESPONSE_FORMAT:')) {
-      userMessage = t('modelManager.errors.invalidResponseFormat');
-    } else if (errorMessage.includes('EMPTY_MODEL_LIST:')) {
-      userMessage = t('modelManager.errors.emptyModelList');
-    } else if (errorMessage.includes('API_ERROR:')) {
-      // 提取API_ERROR:后面的内容
-      const apiErrorStart = errorMessage.indexOf('API_ERROR:') + 10;
-      userMessage = t('modelManager.errors.apiError', { error: errorMessage.substring(apiErrorStart) });
-    } else {
-      userMessage = errorMessage; // 其他错误直接显示
-    }
-
-    toast.error(userMessage);
-
-    // 添加默认选项
-    addDefaultModelOptions('custom');
+    // 使用公共错误处理函数
+    handleModelFetchError(error);
   } finally {
     isLoadingModels.value = false;
   }

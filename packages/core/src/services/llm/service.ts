@@ -753,8 +753,8 @@ export class LLMService implements ILLMService {
    */
   private async fetchOpenAICompatibleModelsInfo(modelConfig: ModelConfig): Promise<ModelInfo[]> {
     // 先检查baseURL是否以/v1结尾
-    if (modelConfig.baseURL && !modelConfig.baseURL.includes('/v1')) {
-      throw new APIError(`MISSING_V1_SUFFIX: baseURL should include "/v1" for OpenAI-compatible APIs. Current: ${modelConfig.baseURL}`);
+    if (modelConfig.baseURL && !/\/v1$/.test(modelConfig.baseURL)) {
+      throw new APIError(`MISSING_V1_SUFFIX: baseURL should end with "/v1" for OpenAI-compatible APIs. Current: ${modelConfig.baseURL}`);
     }
 
     const openai = this.getOpenAIInstance(modelConfig);
