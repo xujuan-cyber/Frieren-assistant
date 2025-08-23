@@ -15,6 +15,26 @@
 
       <!-- Actions Slot -->
       <template #actions>
+        <!-- 变量管理按钮 - 仅在高级模式下显示 -->
+        <ActionButtonUI
+          v-if="advancedModeEnabled"
+          icon="📊"
+          :text="$t('nav.variableManager')"
+          @click="openVariableManager"
+        />
+        <!-- 高级模式导航按钮 - 始终显示 -->
+        <ActionButtonUI
+          icon="🚀"
+          :text="$t('nav.advancedMode')"
+          @click="toggleAdvancedMode"
+          :class="{ 'active-button': advancedModeEnabled }"
+        />
+        <!-- 保留原有的AdvancedModeToggleUI以实现向后兼容，但默认隐藏 -->
+        <AdvancedModeToggleUI 
+          v-if="false"
+          :enabled="advancedModeEnabled"
+          @change="handleAdvancedModeChange"
+        />
         <ThemeToggleUI />
         <ActionButtonUI
           icon="📝"
@@ -97,6 +117,25 @@
               </div>
             </template>
           </InputPanelUI>
+          
+          <!-- 优化阶段上下文编辑器 - 仅在高级模式下显示 -->
+          <div v-if="advancedModeEnabled" class="mt-4">
+            <ConversationManager
+              v-model:messages="optimizationContext"
+              :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
+              :scan-variables="(content) => variableManager?.variableManager.value?.scanVariablesInContent(content) || []"
+              :is-predefined-variable="(name) => variableManager?.variableManager.value?.isPredefinedVariable(name) || false"
+              :replace-variables="(content, vars) => variableManager?.variableManager.value?.replaceVariables(content, vars) || content"
+              :show-sync-to-test="true"
+              :optimization-mode="selectedOptimizationMode"
+              @sync-to-test="handleSyncOptimizationContextToTest"
+              @create-variable="handleCreateVariable"
+              @open-variable-manager="handleOpenVariableManager"
+              :compact-mode="true"
+              :collapsible="true"
+              :max-height="300"
+            />
+          </div>
         </div>
         <div class="flex-1 min-h-0">
           <template v-if="services && services.templateManager">
@@ -112,6 +151,7 @@
               :current-version-id="optimizer.currentVersionId"
               :optimization-mode="selectedOptimizationMode"
               :services="services"
+              :advanced-mode-enabled="advancedModeEnabled"
               @iterate="handleIteratePrompt"
               @openTemplateManager="openTemplateManager"
               @switchVersion="handleSwitchVersion"
@@ -123,14 +163,33 @@
         </div>
       </ContentCardUI>
 
+      <!-- 基础模式：使用原来的TestPanelUI -->
       <TestPanelUI
+        v-if="!advancedModeEnabled"
         ref="testPanelRef"
         class="flex-1 min-w-0 flex flex-col"
-        :prompt-service="promptService"
+        :prompt-service="services?.promptService"
         :original-prompt="optimizer.prompt"
         :optimized-prompt="optimizer.optimizedPrompt"
         :optimization-mode="selectedOptimizationMode"
         v-model="modelManager.selectedTestModel"
+        @showConfig="modelManager.showConfig = true"
+      />
+      
+      <!-- 高级模式：使用AdvancedTestPanel -->
+      <AdvancedTestPanel
+        v-else
+        ref="testPanelRef"
+        class="flex-1 min-w-0 flex flex-col"
+        :services="services"
+        :original-prompt="optimizer.prompt"
+        :optimized-prompt="optimizer.optimizedPrompt"
+        :optimization-mode="selectedOptimizationMode"
+        :selected-model="modelManager.selectedTestModel"
+        :advanced-mode-enabled="advancedModeEnabled"
+        :variable-manager="variableManager"
+        :open-variable-manager="openVariableManager"
+        @update:selected-model="modelManager.selectedTestModel = $event"
         @showConfig="modelManager.showConfig = true"
       />
     </MainLayoutUI>
@@ -153,19 +212,28 @@
       @deleteChain="promptHistory.handleDeleteChain"
     />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
+    
+    <!-- 变量管理弹窗 -->
+    <VariableManagerModal
+      v-if="isReady"
+      v-model:visible="showVariableManager"
+      :variable-manager="variableManager"
+      :focus-variable="focusVariableName"
+    />
 
     <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
   </template>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, provide, computed, shallowRef, toRef } from 'vue'
+import { ref, watch, provide, computed, shallowRef, toRef, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   // UI Components
-  MainLayoutUI, ThemeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
+  MainLayoutUI, ThemeToggleUI, AdvancedModeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
   LanguageSwitchUI, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
-  ModelSelectUI, TemplateSelectUI, ContentCardUI, ToastUI, TestPanelUI, UpdaterIcon,
+  ModelSelectUI, TemplateSelectUI, ContentCardUI, TestPanelUI, AdvancedTestPanel, UpdaterIcon, VariableManagerModal,
+  ConversationManager,
 
   // Composables
   usePromptOptimizer,
@@ -176,6 +244,7 @@ import {
   useAppInitializer,
   usePromptHistory,
   useModelSelectors,
+  useVariableManager,
 
   // i18n functions
   initializeI18nWithStorage,
@@ -183,19 +252,16 @@ import {
 
   // Types from UI package
   type OptimizationMode,
-  // 从UI包导入DataManager类型
-  DataManager,
+  type ConversationMessage,
 } from '@prompt-optimizer/ui'
 import type { IPromptService } from '@prompt-optimizer/core'
-// 导入AppServices类型
-import type { AppServices } from '../node_modules/@prompt-optimizer/ui/src/types/services'
 
 // 1. 基础 composables
 const { t } = useI18n()
 const toast = useToast()
 
 // 2. 初始化应用服务
-const { services, isInitializing, error } = useAppInitializer()
+const { services, isInitializing } = useAppInitializer()
 
 // 3. Initialize i18n with storage when services are ready
 watch(services, async (newServices) => {
@@ -205,6 +271,9 @@ watch(services, async (newServices) => {
     // 然后初始化语言设置
     await initializeI18nWithStorage()
     console.log('[Web] i18n initialized')
+    
+    // 加载高级模式设置
+    await loadAdvancedModeSetting()
   }
 }, { immediate: true })
 
@@ -224,9 +293,65 @@ const testPanelRef = ref(null)
 const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
 
+// 高级模式状态
+const advancedModeEnabled = ref(false)
+
+// 加载高级模式设置
+const loadAdvancedModeSetting = async () => {
+  if (services.value?.preferenceService) {
+    try {
+      const saved = await services.value.preferenceService.get('advancedModeEnabled', false)
+      advancedModeEnabled.value = saved
+      console.log(`[App] Loaded advanced mode setting: ${saved}`)
+    } catch (error) {
+      console.error('[App] Failed to load advanced mode setting:', error)
+    }
+  }
+}
+
+// 保存高级模式设置
+const saveAdvancedModeSetting = async (enabled: boolean) => {
+  if (services.value?.preferenceService) {
+    try {
+      await services.value.preferenceService.set('advancedModeEnabled', enabled)
+      console.log(`[App] Saved advanced mode setting: ${enabled}`)
+    } catch (error) {
+      console.error('[App] Failed to save advanced mode setting:', error)
+    }
+  }
+}
+
+// 变量管理状态
+const showVariableManager = ref(false)
+const focusVariableName = ref<string | undefined>(undefined)
+
+// 优化阶段上下文状态
+const optimizationContext = ref<ConversationMessage[]>([])
+
+// 变量管理器实例
+const variableManager = useVariableManager(services as any)
+
 const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
   return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
 });
+
+// 变量管理处理函数
+const handleCreateVariable = (name: string, defaultValue?: string) => {
+  // 创建新变量并打开变量管理器
+  if (variableManager?.variableManager.value) {
+    variableManager.variableManager.value.createVariable(name, defaultValue || '')
+  }
+  focusVariableName.value = name
+  showVariableManager.value = true
+}
+
+const handleOpenVariableManager = (variableName?: string) => {
+  // 打开变量管理器并聚焦到指定变量
+  if (variableName) {
+    focusVariableName.value = variableName
+  }
+  showVariableManager.value = true
+}
 
 // 6. 在顶层调用所有 Composables
 // 测试面板的模型选择器引用
@@ -328,7 +453,22 @@ const currentSelectedTemplate = computed({
 
 // 处理优化提示词
 const handleOptimizePrompt = () => {
-  optimizer.handleOptimizePrompt()
+  // 检查是否需要传递高级上下文
+  if (advancedModeEnabled.value) {
+    // 构建高级上下文
+    const advancedContext = {
+      variables: variableManager?.variableManager.value?.resolveAllVariables() || {},
+      messages: optimizationContext.value.length > 0 ? optimizationContext.value : undefined
+    }
+    
+    console.log('[App] Optimizing with advanced context:', advancedContext)
+    
+    // 使用带上下文的优化
+    optimizer.handleOptimizePromptWithContext(advancedContext)
+  } else {
+    // 使用基础优化
+    optimizer.handleOptimizePrompt()
+  }
 }
 
 // 处理迭代提示词
@@ -340,6 +480,67 @@ const handleIteratePrompt = (payload: any) => {
 const handleSwitchVersion = (versionId: any) => {
   optimizer.handleSwitchVersion(versionId)
 }
+
+// 处理高级模式变化
+const handleAdvancedModeChange = (enabled: boolean) => {
+  advancedModeEnabled.value = enabled
+  console.log(`[App] Advanced mode ${enabled ? 'enabled' : 'disabled'}`)
+}
+
+// 切换高级模式（导航菜单使用）
+const toggleAdvancedMode = async () => {
+  advancedModeEnabled.value = !advancedModeEnabled.value
+  console.log(`[App] Advanced mode ${advancedModeEnabled.value ? 'enabled' : 'disabled'} (toggled from navigation)`)
+  
+  // 保存设置
+  await saveAdvancedModeSetting(advancedModeEnabled.value)
+}
+
+// 打开变量管理器
+const openVariableManager = (variableName?: string) => {
+  // 强制刷新变量管理器数据
+  if (variableManager?.refresh) {
+    variableManager.refresh()
+  }
+  // 设置要聚焦的变量名
+  focusVariableName.value = variableName
+  showVariableManager.value = true
+}
+
+// 监听变量管理器关闭，清理聚焦变量
+watch(showVariableManager, (newValue) => {
+  if (!newValue) {
+    focusVariableName.value = undefined
+  }
+})
+
+// 监听高级模式和优化模式变化，自动加载默认对话模板
+watch(
+  [advancedModeEnabled, selectedOptimizationMode],
+  ([newAdvancedMode, newOptimizationMode]) => {
+    // 当启用高级模式时，根据优化模式自动加载默认对话模板
+    if (newAdvancedMode) {
+      // 如果当前没有优化上下文或者是空的，则设置默认模板
+      if (!optimizationContext.value || optimizationContext.value.length === 0) {
+        if (newOptimizationMode === 'system') {
+          // 系统提示词优化模式：系统消息 + 用户消息
+          optimizationContext.value = [
+            { role: 'system', content: '{{currentPrompt}}' },
+            { role: 'user', content: '{{userQuestion}}' }
+          ]
+          console.log('[App] Auto-loaded default conversation template for system prompt optimization')
+        } else if (newOptimizationMode === 'user') {
+          // 用户提示词优化模式：用户消息（可以添加系统上下文）
+          optimizationContext.value = [
+            { role: 'user', content: '{{currentPrompt}}' }
+          ]
+          console.log('[App] Auto-loaded default conversation template for user prompt optimization')
+        }
+      }
+    }
+  },
+  { immediate: false } // 不立即执行，只在变化时执行
+)
 
 // 打开GitHub仓库
 const openGithubRepo = async () => {
@@ -387,6 +588,22 @@ const handleTemplateLanguageChanged = (newLanguage: string) => {
   }
 }
 
+// 处理优化上下文同步到测试
+const handleSyncOptimizationContextToTest = (messages: ConversationMessage[]) => {
+  console.log('[App] Syncing optimization context to test:', messages)
+  
+  // 获取高级测试面板的引用
+  const advancedTestPanel = testPanelRef.value as any
+  if (advancedTestPanel && advancedTestPanel.setConversationMessages) {
+    // 将优化上下文同步到测试面板的会话管理器
+    advancedTestPanel.setConversationMessages([...messages])
+    toast.success(t('conversation.syncToTest.success', '优化上下文已同步到测试区域'))
+  } else {
+    // 降级处理：如果测试面板不支持同步，显示提示
+    toast.warning(t('conversation.syncToTest.notSupported', '当前测试面板不支持会话同步'))
+  }
+}
+
 // 处理历史记录使用 - 智能模式切换
 const handleHistoryReuse = async (context: { record: any, chainId: string, rootPrompt: string, chain: any }) => {
   const { chain } = context
@@ -426,6 +643,18 @@ const promptInputPlaceholder = computed(() => {
 </script>
 
 <style scoped>
+/* 高级模式按钮激活状态 */
+.active-button {
+  background-color: var(--primary-color, #3b82f6) !important;
+  color: white !important;
+  border-color: var(--primary-color, #3b82f6) !important;
+}
+
+.active-button:hover {
+  background-color: var(--primary-hover-color, #2563eb) !important;
+  border-color: var(--primary-hover-color, #2563eb) !important;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;

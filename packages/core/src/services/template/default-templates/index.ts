@@ -11,6 +11,7 @@ import { template as output_format_optimize } from './optimize/output-format-opt
 import { template as output_format_optimize_en } from './optimize/output-format-optimize_en';
 import { template as analytical_optimize } from './optimize/analytical-optimize';
 import { template as analytical_optimize_en } from './optimize/analytical-optimize_en';
+import { template as context_aware_optimize } from './optimize/context-aware-optimize';
 
 import { template as iterate } from './iterate/iterate';
 import { template as iterate_en } from './iterate/iterate_en';
@@ -30,6 +31,7 @@ export const ALL_TEMPLATES = {
   output_format_optimize_en,
   analytical_optimize,
   analytical_optimize_en,
+  context_aware_optimize,
   user_prompt_professional,
   user_prompt_professional_en,
   iterate,

@@ -2,6 +2,7 @@ import {
   IPromptService,
   OptimizationRequest,
   StreamHandlers,
+  CustomConversationRequest,
 } from './types';
 import { PromptRecord } from '../history/types';
 import { safeSerializeForIPC } from '../../utils/ipc-serialization';
@@ -174,6 +175,45 @@ export class ElectronPromptServiceProxy implements IPromptService {
 
     try {
       await this.api.testPromptStream(systemPrompt, userPrompt, modelKey, streamId);
+    } catch (error) {
+      cleanup();
+      callbacks.onError(error as Error);
+    }
+  }
+
+  async testCustomConversationStream(
+    request: CustomConversationRequest,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    const streamId = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const tokenHandler = (token: string) => callbacks.onToken(token);
+    const reasoningTokenHandler = (token: string) => callbacks.onReasoningToken?.(token);
+    const finishHandler = () => {
+      cleanup();
+      callbacks.onComplete();
+    };
+    const errorHandler = (error: string) => {
+      cleanup();
+      callbacks.onError(new Error(error));
+    };
+
+    const cleanup = () => {
+      this.ipc.off(`stream-token-${streamId}`, tokenHandler);
+      this.ipc.off(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+      this.ipc.off(`stream-finish-${streamId}`, finishHandler);
+      this.ipc.off(`stream-error-${streamId}`, errorHandler);
+    };
+
+    this.ipc.on(`stream-token-${streamId}`, tokenHandler);
+    this.ipc.on(`stream-reasoning-token-${streamId}`, reasoningTokenHandler);
+    this.ipc.on(`stream-finish-${streamId}`, finishHandler);
+    this.ipc.on(`stream-error-${streamId}`, errorHandler);
+
+    try {
+      // 自动序列化，防止Vue响应式对象IPC传递错误
+      const safeRequest = safeSerializeForIPC(request);
+      await this.api.testCustomConversationStream(safeRequest, streamId);
     } catch (error) {
       cleanup();
       callbacks.onError(error as Error);

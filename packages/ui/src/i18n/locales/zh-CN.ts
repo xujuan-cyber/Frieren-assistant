@@ -30,9 +30,11 @@ export default {
     use: '使用',
     expand: '展开',
     collapse: '收起',
+    hide: '隐藏',
     clear: '清空',
     createdAt: '创建于',
     version: 'V{version}',
+    actions: '操作',
     optimize: '优化',
     iterate: '迭代',
     system: '系统',
@@ -84,6 +86,8 @@ export default {
     history: '历史记录',
     templates: '功能提示词',
     dataManager: '数据管理',
+    advancedMode: '高级模式',
+    variableManager: '变量管理',
   },
   promptOptimizer: {
     title: '提示词优化器',
@@ -107,10 +111,222 @@ export default {
     systemPromptPlaceholder: '请输入需要优化的系统提示词...',
     userPromptPlaceholder: '请输入需要优化的用户提示词...',
     systemPromptHelp: '系统提示词优化模式：优化用于定义AI助手角色、行为和回应风格的系统提示词',
-    userPromptHelp: '用户提示词优化模式：优化用户与AI交互时使用的提示词，提高交互效果和准确性'
+    userPromptHelp: '用户提示词优化模式：优化用户与AI交互时使用的提示词，提高交互效果和准确性',
+    contextManagement: '上下文管理',
+    optimizationContext: '优化上下文',
+    conversationContext: '会话上下文',
+    contextHelp: '在高级模式下，您可以添加会话上下文来帮助AI更好地理解优化需求',
+    contextTitle: '优化上下文',
+    contextDescription: '为优化提供会话背景，帮助AI更好地理解优化目标'
+  },
+  variables: {
+    title: '变量管理',
+    total: '共 {count} 个变量',
+    predefined: '预定义变量',
+    custom: '自定义变量',
+    predefinedBadge: '内置',
+    customBadge: '自定义',
+    readonly: '只读',
+    emptyValue: '(空)',
+    noCustomVariables: '暂无自定义变量',
+    addFirstVariable: '在下方添加您的第一个自定义变量',
+    addNew: '添加新变量',
+    name: '变量名',
+    value: '变量值',
+    namePlaceholder: '例如：userName, productType',
+    valuePlaceholder: '请输入变量值',
+    add: '添加',
+    edit: '编辑',
+    delete: '删除',
+    export: '导出',
+    import: '导入',
+    exportTitle: '导出变量',
+    importTitle: '导入变量',
+    copyData: '复制数据',
+    importPlaceholder: '请粘贴JSON格式的变量数据',
+    errors: {
+      invalidName: '变量名必须以字母开头，只能包含字母、数字和下划线',
+      predefinedName: '不能使用预定义变量名',
+      duplicateName: '变量名已存在',
+      valueTooLong: '变量值过长（最大10,000字符）',
+      importFailed: '导入变量失败'
+    },
+    management: {
+      title: '变量管理',
+      addVariable: '添加变量',
+      import: '导入',
+      export: '导出',
+      variableName: '变量名',
+      value: '值',
+      sourceLabel: '来源',
+      preview: '预览',
+      deleteConfirm: '确定要删除变量 "{name}" 吗？',
+      totalCount: '共 {count} 个变量',
+      noVariables: '暂无变量',
+      source: {
+        predefined: '预定义',
+        custom: '自定义'
+      }
+    },
+    editor: {
+      addTitle: '添加变量',
+      editTitle: '编辑变量',
+      variableName: '变量名',
+      variableNamePlaceholder: '例如：userName',
+      variableNameHelp: '只能包含字母、数字和下划线，且必须以字母或下划线开头',
+      variableValue: '变量值',
+      variableValuePlaceholder: '输入变量的值...',
+      variableValueHelp: '支持多行文本，最多5000个字符',
+      preview: '预览',
+      usage: '使用方式',
+      resolvedValue: '解析后的值',
+      errors: {
+        nameRequired: '变量名不能为空',
+        nameInvalid: '变量名格式不正确',
+        namePredefined: '不能与预定义变量重名',
+        nameExists: '变量名已存在',
+        valueRequired: '变量值不能为空',
+        valueTooLong: '变量值不能超过5000个字符'
+      }
+    },
+    preview: {
+      title: '变量预览',
+      variableName: '变量名',
+      source: '来源',
+      valueLength: '长度',
+      characters: '字符',
+      value: '变量值',
+      copyValue: '复制值',
+      copy: '复制',
+      copied: '已复制',
+      usageExamples: '使用示例',
+      inTemplate: '在模板中',
+      inMessage: '在消息中'
+    },
+    importer: {
+      title: '导入变量',
+      fromFile: '从文件导入',
+      fromText: '从文本导入',
+      dropFile: '拖拽文件到此处',
+      orClickToSelect: '或点击选择文件',
+      fileRequirements: '文件要求',
+      jsonFormat: 'JSON格式文件',
+      maxSize: '文件大小不超过1MB',
+      structureExample: '结构示例：{"变量名": "变量值"}',
+      jsonText: 'JSON文本',
+      jsonTextPlaceholder: '粘贴JSON格式的变量数据...',
+      jsonTextHelp: '支持导出的JSON格式或简单的键值对格式',
+      previewTitle: '预览（{count}个变量）',
+      conflict: '冲突',
+      conflictWarning: '{count}个变量与预定义变量重名，将被跳过',
+      import: '导入',
+      errors: {
+        invalidFormat: '无效的JSON格式',
+        invalidFileType: '请选择JSON文件',
+        fileTooLarge: '文件过大，请选择小于1MB的文件',
+        fileReadError: '文件读取失败',
+        parseError: 'JSON解析失败',
+        invalidVariableFormat: '变量"{key}"格式不正确',
+        invalidVariableName: '变量名"{name}"格式不正确'
+      }
+    }
+  },
+  conversation: {
+    title: '会话管理',
+    messageCount: '共 {count} 条消息',
+    quickTemplates: '快速模板',
+    clearAll: '清空全部',
+    noMessages: '暂无会话消息',
+    addFirstMessage: '在下方添加您的第一条消息',
+    addMessage: '添加消息',
+    export: '导出',
+    import: '导入',
+    exportTitle: '导出会话',
+    importTitle: '导入会话',
+    copyData: '复制数据',
+    importPlaceholder: '请粘贴JSON格式的会话数据',
+    importError: '导入会话失败',
+    confirmClear: '确定要清空所有消息吗？',
+    addTemplate: '添加模板',
+    
+    roles: {
+      system: '系统',
+      user: '用户',
+      assistant: '助手'
+    },
+    templates: {
+      simple: '简单对话',
+      basic: '基础对话',
+      roleplay: '角色扮演',
+      analysis: '分析讨论',
+      creative: '创意写作',
+      systemPromptTest: '测试系统提示词',
+      systemPromptComparison: '对比系统提示词效果',
+      userPromptTest: '测试用户提示词',
+      userPromptComparison: '对比用户提示词效果',
+      testSystemPrompt: '请测试这个系统提示词的效果',
+      compareSystemPrompt: '请展示这个系统提示词的能力',
+      systemPromptOptimizeDefault: '系统提示词优化默认上下文',
+      systemPromptOptimizeDefaultDesc: '默认的系统提示词优化会话模板，包含原始提示词和用户问题',
+      // 系统提示词优化模式专用模板
+      systemDefault: '默认测试',
+      systemRoleTest: '角色能力展示',
+      systemCapabilityDemo: '功能演示',
+      systemConsistencyCheck: '一致性检查',
+      systemEdgeCaseTest: '边界情况测试',
+      systemMultiTurnTest: '多轮对话测试',
+      // 用户提示词优化模式专用模板
+      userSimpleTest: '简单测试',
+      userWithContext: '带上下文测试',
+      userExpertMode: '专家模式',
+      userStepByStep: '分步解答',
+      userCreativeMode: '创意模式',
+      userComparison: '对比分析',
+      userDialogue: '互动对话'
+    },
+    
+    placeholders: {
+      system: '请输入系统消息（定义AI行为和上下文）...',
+      user: '请输入用户消息（您的输入或问题）...',
+      assistant: '请输入助手消息（AI回应）...',
+      default: '请输入消息内容...'
+    },
+    
+    variableCount: '{count} 个变量',
+    missingVariables: '缺失 {count} 个',
+    detectedVariables: '检测到变量',
+    missingVariablesTitle: '缺失的变量',
+    usedVariables: '使用的变量',
+    preview: '预览',
+    missingVariablesList: '缺失变量',
+    totalVariables: '变量总数',
+    allVariablesSet: '变量已全部配置',
+    createVariable: '创建',
+    
+    showPreview: '显示预览',
+    hidePreview: '隐藏预览',
+    previewNote: '预览显示变量替换后的效果',
+    moveUp: '上移',
+    moveDown: '下移',
+    deleteMessage: '删除消息',
+    fullscreenEdit: '全屏编辑',
+    editMessage: '编辑消息',
+    variablesDetected: '检测到变量',
+    edit: '编辑',
+    editingInFullscreen: '正在全屏编辑...',
+    missingVars: '缺失变量',
+    clickToCreateVariable: '点击创建变量并打开变量管理器',
+    clickToCopyVariable: '点击复制变量名到剪贴板',
+    syncToTest: {
+      success: '优化上下文已同步到测试区域',
+      notSupported: '当前测试面板不支持会话同步'
+    }
   },
   settings: {
     title: '设置',
+    advancedMode: '启用高级功能',
+    advancedModeTooltip: '启用自定义变量和高级会话管理功能',
+    advancedModeActive: '高级功能已启用',
     language: '语言设置',
     theme: '主题设置',
     apiSettings: 'API设置',
@@ -352,8 +568,18 @@ export default {
     purple: '暗紫模式'
   },
   test: {
+    title: '测试',
     content: '测试内容',
     placeholder: '请输入要测试的内容...',
+    modes: {
+      simple: '简单模式',
+      conversation: '会话模式'
+    },
+    simpleMode: {
+      label: '测试内容',
+      placeholder: '输入要测试的内容...',
+      help: '在此输入文本内容进行AI模型测试'
+    },
     model: '模型',
     startTest: '开始测试 →',
     startCompare: '开始对比 →',
@@ -366,6 +592,13 @@ export default {
     optimizedResult: '优化后提示词结果',
     testResult: '测试结果',
     userPromptTest: '用户提示词测试',
+    advanced: {
+      startTest: '开始测试',
+      result: '测试结果',
+      messageCount: '{count} 条消息',
+      missingVariables: '缺少 {count} 个变量',
+      title: '高级测试'
+    },
     error: {
       failed: '测试失败',
       noModel: '请先选择测试模型',
@@ -428,6 +661,8 @@ export default {
     optimizing: '优化中...',
     continueOptimize: '继续优化',
     copy: '复制',
+    applyToTest: '应用到测试',
+    appliedToTest: '已应用到高级测试，会话模板已自动配置',
     optimizedPlaceholder: '优化后的提示词将显示在这里...',
     iterateDirection: '请输入需要优化的方向：',
     iteratePlaceholder: '例如：使提示词更简洁、增加特定功能描述等...',
@@ -455,6 +690,10 @@ export default {
     error: {
       copyFailed: '复制失败'
     }
+  },
+  optimization: {
+    contextTitle: '优化上下文',
+    contextDescription: '为优化提供会话背景，帮助AI更好地理解优化目标'
   },
   model: {
     select: {

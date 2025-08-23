@@ -2,7 +2,7 @@ import { Template } from './types';
 import { Message } from '../llm/types';
 import { Handlebars } from './minimal';
 import { CSPSafeTemplateProcessor } from './csp-safe-processor';
-import type { OptimizationMode } from '../prompt/types';
+import type { OptimizationMode, ConversationMessage } from '../prompt/types';
 
 /**
  * 模板变量上下文
@@ -12,9 +12,12 @@ export interface TemplateContext {
   iterateInput?: string;
   lastOptimizedPrompt?: string;
   optimizationMode?: OptimizationMode;  // 优化模式
+  // 高级模式上下文（可选）
+  customVariables?: Record<string, string>;        // 自定义变量
+  conversationMessages?: ConversationMessage[];    // 会话消息
   // Allow additional string properties for template flexibility
   // but with stricter typing than the previous implementation
-  [key: string]: string | undefined;
+  [key: string]: string | undefined | Record<string, string> | ConversationMessage[];
 }
 
 /**
@@ -113,5 +116,78 @@ export class TemplateProcessor {
    */
   static isSimpleTemplate(template: Template): boolean {
     return typeof template.content === 'string';
+  }
+
+  /**
+   * 创建扩展的模板上下文
+   * 合并基础上下文和高级上下文（自定义变量）
+   */
+  static createExtendedContext(
+    baseContext: TemplateContext,
+    customVariables?: Record<string, string>,
+    conversationMessages?: ConversationMessage[]
+  ): TemplateContext {
+    // 合并所有变量到上下文中
+    const extendedContext: TemplateContext = {
+      ...baseContext,
+      customVariables,
+      conversationMessages
+    };
+
+    // 将自定义变量直接添加到上下文中，以便模板可以直接访问
+    if (customVariables) {
+      Object.entries(customVariables).forEach(([key, value]) => {
+        // 只有当基础上下文中没有该key时才添加（预定义变量优先）
+        if (extendedContext[key] === undefined) {
+          extendedContext[key] = value;
+        }
+      });
+    }
+
+    return extendedContext;
+  }
+
+  /**
+   * 处理会话消息：将消息数组转换为文本
+   * 用于优化阶段将会话上下文注入到模板中
+   */
+  static formatConversationAsText(messages: ConversationMessage[]): string {
+    if (!messages || messages.length === 0) {
+      return '';
+    }
+
+    return messages
+      .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
+      .join('\n\n');
+  }
+
+  /**
+   * 替换会话消息中的变量
+   * 用于测试阶段实际替换变量
+   */
+  static processConversationMessages(
+    messages: ConversationMessage[],
+    variables: Record<string, string>
+  ): Message[] {
+    if (!messages || messages.length === 0) {
+      return [];
+    }
+
+    return messages.map(msg => {
+      // 使用CSP安全处理器替换变量
+      let processedContent = msg.content;
+      
+      // 替换变量
+      processedContent = processedContent.replace(/\{\{([^}]+)\}\}/g, (match, variableName) => {
+        const trimmedName = variableName.trim();
+        const value = variables[trimmedName];
+        return value !== undefined ? String(value) : match; // 保留未找到的变量
+      });
+
+      return {
+        role: msg.role,
+        content: processedContent
+      };
+    });
   }
 } 

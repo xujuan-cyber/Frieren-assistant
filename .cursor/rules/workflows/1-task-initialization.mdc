@@ -55,7 +55,7 @@ await mcp_feedback_enhanced({
 
 ### 3. workspace初始化
 **操作内容**：
-- 确认workspace状态干净（只有3个模板文件）
+- 确认docs/workspace状态干净（只有3个模板文件）
 - 如不干净，先清理或归档
 
 **检查清单**：

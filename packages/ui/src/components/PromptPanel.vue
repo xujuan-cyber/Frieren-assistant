@@ -22,7 +22,8 @@
           </button>
         </div>
       </div>
-      <div class="flex items-center space-x-4 flex-shrink-0">
+      <div class="flex items-center space-x-2 flex-shrink-0">
+        
         <button
           v-if="optimizedPrompt"
           @click="handleIterate"
@@ -169,6 +170,10 @@ const props = defineProps({
   services: {
     type: Object as () => Ref<AppServices | null>,
     required: true
+  },
+  advancedModeEnabled: {
+    type: Boolean,
+    default: false
   }
 })
 

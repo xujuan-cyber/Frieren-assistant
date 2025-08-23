@@ -30,9 +30,11 @@ export default {
     use: 'Use',
     expand: 'Expand',
     collapse: 'Collapse',
+    hide: 'Hide',
     clear: 'Clear',
     createdAt: 'Created at',
     version: 'V{version}',
+    actions: 'Actions',
     optimize: 'Optimize',
     iterate: 'Iterate',
     system: 'System',
@@ -84,6 +86,8 @@ export default {
     history: 'History',
     templates: 'Templates',
     dataManager: 'Data Manager',
+    advancedMode: 'Advanced Mode',
+    variableManager: 'Variable Manager',
   },
   promptOptimizer: {
     title: 'Prompt Optimizer',
@@ -107,10 +111,220 @@ export default {
     systemPromptPlaceholder: 'Enter the system prompt to optimize...',
     userPromptPlaceholder: 'Enter the user prompt to optimize...',
     systemPromptHelp: 'System Prompt Optimization Mode: Optimize system prompts that define AI assistant role, behavior and response style',
-    userPromptHelp: 'User Prompt Optimization Mode: Optimize user prompts to improve AI interaction effectiveness and accuracy'
+    userPromptHelp: 'User Prompt Optimization Mode: Optimize user prompts to improve AI interaction effectiveness and accuracy',
+    contextManagement: 'Context Management',
+    optimizationContext: 'Optimization Context',
+    conversationContext: 'Conversation Context',
+    contextHelp: 'In advanced mode, you can add conversation context to help AI better understand optimization requirements',
+    contextTitle: 'Optimization Context',
+    contextDescription: 'Provide conversation background for optimization to help AI better understand optimization goals'
+  },
+  variables: {
+    title: 'Variable Manager',
+    total: '{count} variables total',
+    predefined: 'Predefined Variables',
+    custom: 'Custom Variables',
+    predefinedBadge: 'Built-in',
+    customBadge: 'Custom',
+    readonly: 'Read-only',
+    emptyValue: '(empty)',
+    noCustomVariables: 'No custom variables yet',
+    addFirstVariable: 'Add your first custom variable below',
+    addNew: 'Add New Variable',
+    name: 'Variable Name',
+    value: 'Variable Value',
+    namePlaceholder: 'e.g., userName, productType',
+    valuePlaceholder: 'Enter variable value',
+    add: 'Add',
+    edit: 'Edit',
+    delete: 'Delete',
+    export: 'Export',
+    import: 'Import',
+    exportTitle: 'Export Variables',
+    importTitle: 'Import Variables',
+    copyData: 'Copy Data',
+    importPlaceholder: 'Paste variable data in JSON format',
+    errors: {
+      invalidName: 'Variable name must start with letter and contain only letters, numbers, and underscores',
+      predefinedName: 'Cannot use predefined variable name',
+      duplicateName: 'Variable name already exists',
+      valueTooLong: 'Variable value is too long (max 10,000 characters)',
+      importFailed: 'Failed to import variables'
+    },
+    management: {
+      title: 'Variable Management',
+      addVariable: 'Add Variable',
+      import: 'Import',
+      export: 'Export',
+      variableName: 'Variable Name',
+      value: 'Value',
+      sourceLabel: 'Source',
+      preview: 'Preview',
+      deleteConfirm: 'Are you sure you want to delete variable "{name}"?',
+      totalCount: '{count} variables total',
+      noVariables: 'No variables',
+      source: {
+        predefined: 'Predefined',
+        custom: 'Custom'
+      }
+    },
+    editor: {
+      addTitle: 'Add Variable',
+      editTitle: 'Edit Variable',
+      variableName: 'Variable Name',
+      variableNamePlaceholder: 'e.g., userName',
+      variableNameHelp: 'Can only contain letters, numbers, and underscores, must start with letter or underscore',
+      variableValue: 'Variable Value',
+      variableValuePlaceholder: 'Enter variable value...',
+      variableValueHelp: 'Supports multi-line text, up to 5000 characters',
+      preview: 'Preview',
+      usage: 'Usage',
+      resolvedValue: 'Resolved Value',
+      errors: {
+        nameRequired: 'Variable name is required',
+        nameInvalid: 'Invalid variable name format',
+        namePredefined: 'Cannot use predefined variable name',
+        nameExists: 'Variable name already exists',
+        valueRequired: 'Variable value is required',
+        valueTooLong: 'Variable value cannot exceed 5000 characters'
+      }
+    },
+    preview: {
+      title: 'Variable Preview',
+      variableName: 'Variable Name',
+      source: 'Source',
+      valueLength: 'Length',
+      characters: 'characters',
+      value: 'Variable Value',
+      copyValue: 'Copy Value',
+      copy: 'Copy',
+      copied: 'Copied',
+      usageExamples: 'Usage Examples',
+      inTemplate: 'In Template',
+      inMessage: 'In Message'
+    },
+    importer: {
+      title: 'Import Variables',
+      fromFile: 'From File',
+      fromText: 'From Text',
+      dropFile: 'Drop file here',
+      orClickToSelect: 'or click to select file',
+      fileRequirements: 'File Requirements',
+      jsonFormat: 'JSON format file',
+      maxSize: 'File size no more than 1MB',
+      structureExample: 'Structure example: {"variableName": "variableValue"}',
+      jsonText: 'JSON Text',
+      jsonTextPlaceholder: 'Paste JSON format variable data...',
+      jsonTextHelp: 'Supports exported JSON format or simple key-value format',
+      previewTitle: 'Preview ({count} variables)',
+      conflict: 'Conflict',
+      conflictWarning: '{count} variables conflict with predefined variables and will be skipped',
+      import: 'Import',
+      errors: {
+        invalidFormat: 'Invalid JSON format',
+        invalidFileType: 'Please select a JSON file',
+        fileTooLarge: 'File too large, please select a file smaller than 1MB',
+        fileReadError: 'File read failed',
+        parseError: 'JSON parse failed',
+        invalidVariableFormat: 'Variable "{key}" format is invalid',
+        invalidVariableName: 'Variable name "{name}" format is invalid'
+      }
+    }
+  },
+  conversation: {
+    title: 'Conversation Manager',
+    messageCount: '{count} messages',
+    quickTemplates: 'Quick Templates',
+    clearAll: 'Clear All',
+    noMessages: 'No conversation messages yet',
+    addFirstMessage: 'Add your first message below',
+    addMessage: 'Add Message',
+    export: 'Export',
+    import: 'Import',
+    exportTitle: 'Export Conversation',
+    importTitle: 'Import Conversation',
+    copyData: 'Copy Data',
+    importPlaceholder: 'Paste conversation data in JSON format',
+    importError: 'Failed to import conversation',
+    confirmClear: 'Are you sure you want to clear all messages?',
+    
+    roles: {
+      system: 'System',
+      user: 'User',
+      assistant: 'Assistant'
+    },
+    templates: {
+      simple: 'Simple Chat',
+      roleplay: 'Role Play',
+      analysis: 'Analysis Discussion',
+      creative: 'Creative Writing',
+      systemPromptTest: 'Test System Prompt',
+      systemPromptComparison: 'Compare System Prompt Effects',
+      userPromptTest: 'Test User Prompt',
+      userPromptComparison: 'Compare User Prompt Effects',
+      testSystemPrompt: 'Please test the effectiveness of this system prompt',
+      compareSystemPrompt: 'Please demonstrate the capabilities of this system prompt',
+      systemPromptOptimizeDefault: 'System Prompt Optimization Default Context',
+      systemPromptOptimizeDefaultDesc: 'Default conversation template for system prompt optimization, including original prompt and user question',
+      // System prompt optimization mode templates
+      systemDefault: 'Default Test',
+      systemRoleTest: 'Role Capability Demo',
+      systemCapabilityDemo: 'Feature Demonstration',
+      systemConsistencyCheck: 'Consistency Check',
+      systemEdgeCaseTest: 'Edge Case Test',
+      systemMultiTurnTest: 'Multi-turn Conversation Test',
+      // User prompt optimization mode templates
+      userSimpleTest: 'Simple Test',
+      userWithContext: 'Test with Context',
+      userExpertMode: 'Expert Mode',
+      userStepByStep: 'Step-by-step Response',
+      userCreativeMode: 'Creative Mode',
+      userComparison: 'Comparative Analysis',
+      userDialogue: 'Interactive Dialogue'
+    },
+    
+    placeholders: {
+      system: 'Enter system message (defines AI behavior and context)...',
+      user: 'Enter user message (your input or question)...',
+      assistant: 'Enter assistant message (AI response)...',
+      default: 'Enter message content...'
+    },
+    
+    variableCount: '{count} variables',
+    missingVariables: '{count} missing',
+    detectedVariables: 'Variables found',
+    missingVariablesTitle: 'Missing Variables',
+    usedVariables: 'Used Variables',
+    preview: 'Preview',
+    missingVariablesList: 'Missing variables',
+    totalVariables: 'Total Variables',
+    allVariablesSet: 'All Variables Set',
+    createVariable: 'Create',
+    
+    showPreview: 'Show Preview',
+    hidePreview: 'Hide Preview',
+    previewNote: 'Preview shows how variables will be replaced',
+    moveUp: 'Move Up',
+    moveDown: 'Move Down',
+    deleteMessage: 'Delete Message',
+    fullscreenEdit: 'Fullscreen Edit',
+    editMessage: 'Edit Message',
+    variablesDetected: 'Variables Detected',
+    edit: 'Edit',
+    editingInFullscreen: 'Editing in fullscreen...',
+    missingVars: 'Missing Variables',
+    clickToCreateVariable: 'Click to create variable and open Variable Manager',
+    clickToCopyVariable: 'Click to copy variable name to clipboard',
+    syncToTest: {
+      success: 'Optimization context synced to test area',
+      notSupported: 'Current test panel does not support conversation sync'
+    }
   },
   settings: {
     title: 'Settings',
+    advancedMode: 'Enable Advanced Features',
+    advancedModeTooltip: 'Enable custom variables and advanced conversation management',
+    advancedModeActive: 'Advanced features are enabled',
     language: 'Language Settings',
     theme: 'Theme Settings',
     apiSettings: 'API Settings',
@@ -352,8 +566,18 @@ export default {
     purple: 'Purple Mode'
   },
   test: {
+    title: 'Test',
     content: 'Test Content',
     placeholder: 'Enter content to test...',
+    modes: {
+      simple: 'Simple Mode',
+      conversation: 'Conversation Mode'
+    },
+    simpleMode: {
+      label: 'Test Content',
+      placeholder: 'Enter content to test...',
+      help: 'Enter text content here for AI model testing'
+    },
     model: 'Model',
     startTest: 'Start Test →',
     startCompare: 'Start Compare Test →',
@@ -366,6 +590,12 @@ export default {
     optimizedResult: 'Optimized Prompt Result',
     testResult: 'Test Result',
     userPromptTest: 'User Prompt Test',
+    advanced: {
+      startTest: 'Start Test',
+      result: 'Test Result',
+      messageCount: '{count} messages',
+      missingVariables: '{count} missing variables'
+    },
     error: {
       failed: 'Test Failed',
       noModel: 'Please select a test model first',
@@ -428,6 +658,8 @@ export default {
     optimizing: 'Optimizing...',
     continueOptimize: 'Continue Optimize',
     copy: 'Copy',
+    applyToTest: 'Apply to Test',
+    appliedToTest: 'Applied to advanced testing with conversation template auto-configured',
     optimizedPlaceholder: 'Optimized prompt will be shown here...',
     iterateDirection: 'Please enter optimization direction:',
     iteratePlaceholder: 'e.g., Make the prompt more concise, add specific functionality description, etc...',
@@ -455,6 +687,10 @@ export default {
     error: {
       copyFailed: 'Copy failed'
     }
+  },
+  optimization: {
+    contextTitle: 'Optimization Context',
+    contextDescription: 'Provide conversation background for optimization to help AI better understand optimization goals'
   },
   model: {
     select: {

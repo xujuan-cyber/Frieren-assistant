@@ -65,6 +65,7 @@ import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { clickOutside } from '../directives/clickOutside'
 import type { AppServices } from '../types/services'
+import type { ModelConfig } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
@@ -107,8 +108,8 @@ const getModelManager = computed(() => {
 })
 
 // 响应式数据存储
-const allModels = ref([])
-const enabledModels = ref([])
+const allModels = ref<Array<ModelConfig & { key: string }>>([])
+const enabledModels = ref<Array<ModelConfig & { key: string }>>([])
 
 // 加载模型数据
 const loadModels = async () => {
@@ -118,8 +119,18 @@ const loadModels = async () => {
       throw new Error('ModelManager not available')
     }
     
+    // 确保在获取模型前初始化管理器
+    await manager.ensureInitialized()
     allModels.value = await manager.getAllModels()
     enabledModels.value = await manager.getEnabledModels()
+    
+    // 如果当前选中的模型不在启用列表中，尝试设置一个默认模型
+    if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
+      const defaultModel = enabledModels.value.find(m => (m as any).isDefault) || enabledModels.value[0]
+      if (defaultModel) {
+        emit('update:modelValue', defaultModel.key)
+      }
+    }
   } catch (error) {
     console.error('Failed to load models:', error)
     allModels.value = []
@@ -134,9 +145,9 @@ const getSelectedModel = computed(() => {
 })
 
 // 判断是否为默认模型
-const isDefaultModel = (key) => {
+const isDefaultModel = (key: string) => {
   const model = allModels.value.find(m => m.key === key)
-  return model?.isDefault ?? false
+  return (model as any)?.isDefault ?? false
 }
 
 // 切换下拉框
@@ -150,7 +161,7 @@ const toggleDropdown = async () => {
 }
 
 // 选择模型
-const selectModel = (model) => {
+const selectModel = (model: ModelConfig & { key: string }) => {
   emit('update:modelValue', model.key)
   isOpen.value = false
   refreshTrigger.value++

@@ -1,4 +1,4 @@
-import { IPromptService, OptimizationRequest } from './types';
+import { IPromptService, OptimizationRequest, CustomConversationRequest } from './types';
 import { Message, StreamHandlers, ILLMService } from '../llm/types';
 import { PromptRecord } from '../history/types';
 import { IModelManager } from '../model/types';
@@ -295,10 +295,24 @@ export class PromptService implements IPromptService {
         throw new OptimizationError('Template not found or invalid', request.targetPrompt);
       }
 
-      const context: TemplateContext = {
+      // 创建基础上下文
+      const baseContext: TemplateContext = {
         originalPrompt: request.targetPrompt,
         optimizationMode: request.optimizationMode
       };
+
+      // 扩展上下文以支持高级功能
+      const context = TemplateProcessor.createExtendedContext(
+        baseContext,
+        request.advancedContext?.variables,
+        request.advancedContext?.messages
+      );
+
+      // 如果有会话消息，将其格式化为文本并添加到上下文
+      if (request.advancedContext?.messages && request.advancedContext.messages.length > 0) {
+        const conversationText = TemplateProcessor.formatConversationAsText(request.advancedContext.messages);
+        context.conversationContext = conversationText;
+      }
 
       const messages = TemplateProcessor.processTemplate(template, context);
 
@@ -478,6 +492,71 @@ export class PromptService implements IPromptService {
   // 
   // 相比之下，优化操作会创建新的链，所以可以在核心层处理
   // 这种混合架构是经过权衡的设计决策
+
+  /**
+   * 自定义会话测试（流式）- 高级模式功能
+   */
+  async testCustomConversationStream(
+    request: CustomConversationRequest,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    try {
+      // 验证请求
+      if (!request.modelKey?.trim()) {
+        throw new TestError('Model key is required', '', '');
+      }
+      if (!request.messages || request.messages.length === 0) {
+        throw new TestError('At least one message is required', '', '');
+      }
+
+      // 验证模型存在
+      const modelConfig = await this.modelManager.getModel(request.modelKey);
+      if (!modelConfig) {
+        throw new TestError('Model not found', '', '');
+      }
+
+      // 处理会话消息：替换变量
+      const processedMessages = TemplateProcessor.processConversationMessages(
+        request.messages,
+        request.variables
+      );
+
+      if (processedMessages.length === 0) {
+        throw new TestError('No valid messages after processing', '', '');
+      }
+
+      // 使用流式发送
+      await this.llmService.sendMessageStream(
+        processedMessages,
+        request.modelKey,
+        {
+          onToken: callbacks.onToken,
+          onReasoningToken: callbacks.onReasoningToken,
+          onComplete: async (response) => {
+            if (response) {
+              // 自定义会话测试成功，不需要特殊验证
+              console.log('[PromptService] Custom conversation test completed successfully');
+              callbacks.onComplete?.(response);
+            }
+          },
+          onError: (error) => {
+            console.error('[PromptService] Custom conversation test failed:', error);
+            callbacks.onError?.(error);
+          }
+        }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[PromptService] Custom conversation test error:', errorMessage);
+      
+      // 通过回调传递错误
+      if (callbacks.onError) {
+        callbacks.onError(new Error(`Custom conversation test failed: ${errorMessage}`));
+      } else {
+        throw new TestError(`Custom conversation test failed: ${errorMessage}`, '', '');
+      }
+    }
+  }
 }
 
 

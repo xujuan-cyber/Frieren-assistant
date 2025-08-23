@@ -29,6 +29,14 @@ export { default as ContentCardUI } from './components/ContentCard.vue'
 export { default as ActionButtonUI } from './components/ActionButton.vue'
 export { default as ThemeToggleUI } from './components/ThemeToggleUI.vue'
 export { default as TestPanelUI } from './components/TestPanel.vue'
+
+export { default as BasicTestMode } from './components/BasicTestMode.vue'
+export { default as VariableManagerModal } from './components/VariableManagerModal.vue'
+export { default as VariableEditor } from './components/VariableEditor.vue'
+export { default as VariableImporter } from './components/VariableImporter.vue'
+export { default as ConversationManager } from './components/ConversationManager.vue'
+export { default as AdvancedTestPanel } from './components/AdvancedTestPanel.vue'
+export { default as AdvancedModeToggleUI } from './components/AdvancedModeToggle.vue'
 export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
 export { default as BuiltinTemplateLanguageSwitchUi } from './components/BuiltinTemplateLanguageSwitch.vue'
 export { default as DataManagerUI } from './components/DataManager.vue'
@@ -75,6 +83,9 @@ export {
 // 导出类型
 export type {
     OptimizationMode,
+    OptimizationRequest,
+    ConversationMessage,
+    CustomConversationRequest,
     IModelManager,
     ITemplateManager,
     IHistoryManager,
