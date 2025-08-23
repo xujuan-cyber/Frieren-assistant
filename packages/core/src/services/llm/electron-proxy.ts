@@ -1,4 +1,4 @@
-import { ILLMService, Message, StreamHandlers, LLMResponse, ModelOption } from './types';
+import { ILLMService, Message, StreamHandlers, LLMResponse, ModelOption, ToolDefinition } from './types';
 import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 /**
@@ -48,6 +48,31 @@ export class ElectronLLMProxy implements ILLMService {
       onError: callbacks.onError
     };
 
+    await this.electronAPI.llm.sendMessageStream(safeMessages, provider, adaptedCallbacks);
+  }
+
+  async sendMessageStreamWithTools(
+    messages: Message[],
+    provider: string,
+    _tools: ToolDefinition[], // 使用下划线前缀表示暂时未使用
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    // 自动序列化，防止Vue响应式对象IPC传递错误
+    const safeMessages = safeSerializeForIPC(messages);
+    // const safeTools = safeSerializeForIPC(tools); // 暂时不使用，等实现时再启用
+
+    // 适配回调接口：StreamHandlers 使用 onToken/onToolCall，而 preload 期望相应的回调
+    const adaptedCallbacks = {
+      onContent: callbacks.onToken,  // 映射 onToken -> onContent
+      onThinking: callbacks.onReasoningToken || (() => {}),  // 映射推理流
+      onToolCall: callbacks.onToolCall || (() => {}),  // 🆕 映射工具调用回调
+      onFinish: () => callbacks.onComplete(),  // 映射完成回调
+      onError: callbacks.onError
+    };
+
+    // TODO: 需要在主进程和preload中实现 sendMessageStreamWithTools 方法
+    // 暂时回退到普通流式方法
+    console.warn('[ElectronLLMProxy] sendMessageStreamWithTools not yet implemented in main process, falling back to regular stream');
     await this.electronAPI.llm.sendMessageStream(safeMessages, provider, adaptedCallbacks);
   }
 

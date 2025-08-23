@@ -9,7 +9,7 @@
         <span class="text-xs theme-manager-text-secondary px-2 py-0.5 theme-manager-tag rounded">
           {{ t('conversation.messageCount', { count: messages.length }) }}
         </span>
-        <!-- 变量统计紧凑显示 -->
+        <!-- 变量和工具统计紧凑显示 -->
         <div v-if="messages.length > 0" class="flex items-center gap-2 text-xs theme-manager-text-secondary">
           <span 
             class="flex items-center gap-1 cursor-help"
@@ -25,6 +25,17 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.996-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
             缺失: {{ allMissingVariables.length }}
+          </span>
+          <!-- 🆕 工具数量统计 -->
+          <span 
+            class="flex items-center gap-1 cursor-help"
+            :title="currentTools.length > 0 ? `使用的工具: ${currentTools.map(t => t.function.name).join(', ')}` : '暂无使用工具'"
+          >
+            <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            工具: {{ currentTools.length }}
           </span>
         </div>
       </div>
@@ -65,6 +76,19 @@
             </div>
           </div>
         </div>
+        
+        <!-- 编辑按钮 -->
+        <button
+          v-if="messages.length > 0"
+          @click="openContextEditor"
+          class="px-2 py-1 text-xs theme-manager-button-primary"
+          title="在全屏编辑器中编辑上下文和提取变量"
+        >
+          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          编辑
+        </button>
         
         <!-- 导入按钮 -->
         <button
@@ -220,12 +244,57 @@
 
     <!-- 导入对话框 -->
     <div v-if="showImportDialog" class="modal-overlay" @click="showImportDialog = false">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content" @click.stop style="width: 600px; max-width: 90vw;">
         <h3 class="text-lg font-semibold mb-4">{{ t('conversation.importTitle') }}</h3>
+        
+        <!-- 格式选择 -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2">导入格式：</label>
+          <div class="flex gap-2 mb-2">
+            <button
+              v-for="format in importFormats"
+              :key="format.id"
+              @click="selectedImportFormat = format.id"
+              class="px-3 py-1 text-sm rounded border"
+              :class="selectedImportFormat === format.id 
+                ? 'theme-manager-button-primary' 
+                : 'theme-manager-button-secondary'"
+            >
+              {{ format.name }}
+            </button>
+          </div>
+          <p class="text-xs theme-manager-text-secondary">
+            {{ importFormats.find(f => f.id === selectedImportFormat)?.description }}
+          </p>
+        </div>
+
+        <!-- 文件上传或文本输入 -->
+        <div class="mb-4">
+          <div class="flex gap-2 mb-2">
+            <input
+              type="file"
+              ref="fileInput"
+              accept=".json,.txt"
+              @change="handleFileUpload"
+              class="hidden"
+            >
+            <button
+              @click="$refs.fileInput?.click()"
+              class="px-3 py-1 text-sm theme-manager-button-secondary"
+            >
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              选择文件
+            </button>
+            <span class="text-sm theme-manager-text-secondary">或在下方粘贴文本</span>
+          </div>
+        </div>
+
         <textarea
           v-model="importData"
           class="w-full h-64 p-3 border rounded-md theme-input font-mono text-sm"
-          :placeholder="t('conversation.importPlaceholder')"
+          :placeholder="getImportPlaceholder()"
         ></textarea>
         <div v-if="importError" class="text-sm text-red-500 mt-2">
           {{ importError }}
@@ -245,6 +314,26 @@
         </div>
       </div>
     </div>
+    
+    <!-- 全屏上下文编辑器 -->
+    <div v-if="showContextEditor" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center" @click="handleContextEditorClose()">
+      <div class="w-full h-full" @click.stop>
+        <ContextEditor
+          :initial-data="{
+            messages: props.messages,
+            tools: currentTools,
+            metadata: {
+              source: 'conversation_manager',
+              timestamp: new Date().toISOString()
+            }
+          }"
+          :available-vars="props.availableVariables"
+          @close="handleContextEditorClose"
+          @save="handleContextEditorClose"
+          @create-variable="handleCreateVariable"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -252,12 +341,16 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useClipboard } from '../composables/useClipboard'
+import { useContextEditor } from '../composables/useContextEditor'
 import ConversationMessageEditor from './ConversationMessageEditor.vue'
+import ContextEditor from './ContextEditor.vue'
 import type { ConversationMessage } from '../types/variable'
+import type { ToolDefinition } from '../types/standard-prompt'
 import { quickTemplateManager } from '../data/quickTemplates'
 
 const { t, locale } = useI18n()
 const { copyText } = useClipboard()
+const contextEditor = useContextEditor()
 
 interface Props {
   messages: ConversationMessage[]
@@ -270,6 +363,7 @@ interface Props {
   optimizationMode?: 'system' | 'user' // 优化模式，用于区分模板
   collapsible?: boolean // 是否可折叠
   maxHeight?: number // 最大高度（像素）
+  tools?: ToolDefinition[] // 🆕 工具定义支持（向后兼容）
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -288,18 +382,48 @@ const emit = defineEmits<{
   'update:messages': [messages: ConversationMessage[]]
   'create-variable': [name: string, defaultValue?: string]
   'open-variable-manager': [variableName: string]
-  'sync-to-test': [messages: ConversationMessage[]]
+  'sync-to-test': [syncData: { messages: ConversationMessage[], tools: ToolDefinition[] }]  // 🆕 更新为包含工具的结构化数据
+  'update:tools': [tools: ToolDefinition[]]  // 🆕 工具更新事件（向后兼容）
 }>()
 
 // 状态
 const newMessageRole = ref<'system' | 'user' | 'assistant'>('user')
 const showExportDialog = ref(false)
 const showImportDialog = ref(false)
+const showContextEditor = ref(false)
 const importData = ref('')
 const importError = ref('')
 const showTemplateDropdown = ref(false)
+
+// 🆕 工具管理状态（向后兼容）
+const currentTools = ref<ToolDefinition[]>(props.tools || [])
 const templateDropdownRef = ref<HTMLElement | null>(null)
 const isCollapsed = ref(false) // 折叠状态
+const selectedImportFormat = ref('conversation')
+
+// 导入格式选项
+const importFormats = [
+  {
+    id: 'conversation',
+    name: '会话格式',
+    description: '标准的会话消息格式，包含 role 和 content 字段'
+  },
+  {
+    id: 'langfuse',
+    name: 'LangFuse',
+    description: 'LangFuse 追踪数据格式，自动提取消息和变量'
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    description: 'OpenAI API 请求格式，支持工具调用'
+  },
+  {
+    id: 'smart',
+    name: '智能识别',
+    description: '自动检测格式并转换'
+  }
+]
 
 // 动态快速模板 - 根据优化模式和语言获取
 const quickTemplates = computed(() => {
@@ -392,7 +516,12 @@ const applyTemplate = (template: any) => {
 }
 
 const handleSyncToTest = () => {
-  emit('sync-to-test', [...props.messages])
+  // 🆕 同步消息和工具到测试阶段
+  const syncData = {
+    messages: [...props.messages],
+    tools: [...currentTools.value]
+  }
+  emit('sync-to-test', syncData)
 }
 
 const clearAllMessages = () => {
@@ -435,23 +564,76 @@ const copyExportData = async () => {
 
 const importMessages = () => {
   try {
-    const data = JSON.parse(importData.value)
+    let data: any
     
-    if (!Array.isArray(data.messages)) {
-      throw new Error('Invalid format: messages must be an array')
+    // 根据选择的格式处理数据
+    switch (selectedImportFormat.value) {
+      case 'smart':
+        // 使用智能导入
+        const result = contextEditor.smartImport(JSON.parse(importData.value))
+        if (result.success && result.data) {
+          // 转换为会话格式
+          const messages = result.data.messages.map(msg => ({
+            role: msg.role as 'system' | 'user' | 'assistant',
+            content: msg.content
+          }))
+          emit('update:messages', messages)
+        } else {
+          throw new Error(result.error || '智能导入失败')
+        }
+        break
+        
+      case 'langfuse':
+        // LangFuse 格式导入
+        const langfuseResult = contextEditor.convertFromLangFuse(JSON.parse(importData.value))
+        if (langfuseResult.success && langfuseResult.data) {
+          const messages = langfuseResult.data.messages.map(msg => ({
+            role: msg.role as 'system' | 'user' | 'assistant',
+            content: msg.content
+          }))
+          emit('update:messages', messages)
+        } else {
+          throw new Error(langfuseResult.error || 'LangFuse 导入失败')
+        }
+        break
+        
+      case 'openai':
+        // OpenAI 格式导入
+        const openaiResult = contextEditor.convertFromOpenAI(JSON.parse(importData.value))
+        if (openaiResult.success && openaiResult.data) {
+          const messages = openaiResult.data.messages.map(msg => ({
+            role: msg.role as 'system' | 'user' | 'assistant',
+            content: msg.content
+          }))
+          emit('update:messages', messages)
+        } else {
+          throw new Error(openaiResult.error || 'OpenAI 导入失败')
+        }
+        break
+        
+      case 'conversation':
+      default:
+        // 标准会话格式
+        data = JSON.parse(importData.value)
+        
+        if (!Array.isArray(data.messages)) {
+          throw new Error('Invalid format: messages must be an array')
+        }
+        
+        // 验证消息格式
+        for (const message of data.messages) {
+          if (!message.role || !['system', 'user', 'assistant'].includes(message.role)) {
+            throw new Error(`Invalid message role: ${message.role}`)
+          }
+          if (typeof message.content !== 'string') {
+            throw new Error('Invalid message content: must be string')
+          }
+        }
+        
+        emit('update:messages', data.messages)
+        break
     }
     
-    // 验证消息格式
-    for (const message of data.messages) {
-      if (!message.role || !['system', 'user', 'assistant'].includes(message.role)) {
-        throw new Error(`Invalid message role: ${message.role}`)
-      }
-      if (typeof message.content !== 'string') {
-        throw new Error('Invalid message content: must be string')
-      }
-    }
-    
-    emit('update:messages', data.messages)
     importData.value = ''
     importError.value = ''
     showImportDialog.value = false
@@ -463,10 +645,93 @@ const importMessages = () => {
   }
 }
 
+// 文件上传处理
+const handleFileUpload = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    importData.value = e.target?.result as string
+  }
+  reader.readAsText(file)
+}
+
+// 获取导入占位符
+const getImportPlaceholder = () => {
+  switch (selectedImportFormat.value) {
+    case 'langfuse':
+      return 'LangFuse 追踪数据，例如：\n{\n  "input": {\n    "messages": [...]\n  },\n  "output": {...}\n}'
+    case 'openai':
+      return 'OpenAI API 请求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4",\n  "tools": [...]\n}'
+    case 'smart':
+      return '粘贴任意支持格式的 JSON 数据，系统将自动识别'
+    default:
+      return '标准会话格式，例如：\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}'
+  }
+}
+
+// 打开上下文编辑器
+const openContextEditor = () => {
+  // 转换当前消息为标准格式
+  const standardData = {
+    messages: props.messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    })),
+    metadata: {
+      source: 'conversation_manager',
+      variables: props.availableVariables || {}
+    }
+  }
+  
+  contextEditor.setData(standardData)
+  showContextEditor.value = true
+}
+
+// 关闭上下文编辑器并处理结果
+const handleContextEditorClose = (updatedData?: any) => {
+  showContextEditor.value = false
+  
+  if (updatedData && updatedData.messages) {
+    // 转换回会话消息格式
+    const messages = updatedData.messages.map((msg: any) => ({
+      role: msg.role as 'system' | 'user' | 'assistant',
+      content: msg.content
+    }))
+    emit('update:messages', messages)
+    
+    // 🆕 处理工具数据更新（向后兼容）
+    if (updatedData.tools) {
+      currentTools.value = [...updatedData.tools]
+      emit('update:tools', currentTools.value)
+    }
+    
+    // 如果有新变量，发出创建变量事件
+    if (updatedData.metadata?.variables) {
+      const existingVars = new Set(Object.keys(props.availableVariables || {}))
+      const newVars = Object.keys(updatedData.metadata.variables).filter(
+        name => !existingVars.has(name)
+      )
+      
+      newVars.forEach(name => {
+        emit('create-variable', name, updatedData.metadata.variables[name])
+      })
+    }
+  }
+}
+
 // 监听消息变化，重置导入错误
 watch(() => props.messages, () => {
   importError.value = ''
 }, { deep: true })
+
+// 🆕 监听工具数据变化（向后兼容）
+watch(() => props.tools, (newTools) => {
+  if (newTools) {
+    currentTools.value = [...newTools]
+  }
+}, { deep: true, immediate: true })
 
 // 处理点击外部关闭下拉菜单
 const handleClickOutside = (event: MouseEvent) => {

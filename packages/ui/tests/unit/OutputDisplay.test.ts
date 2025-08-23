@@ -17,18 +17,6 @@ const i18n = createI18n({
   }
 })
 
-// Mock clipboard functionality
-Object.assign(navigator, {
-  clipboard: {
-    writeText: vi.fn().mockResolvedValue(undefined)
-  }
-})
-
-// Mock document.execCommand for fallback clipboard functionality
-Object.assign(document, {
-  execCommand: vi.fn().mockReturnValue(true)
-})
-
 // 创建 mock CompareService
 const mockCompareService: ICompareService = {
   compareTexts: vi.fn().mockReturnValue({

@@ -9,6 +9,8 @@ export default defineConfig({
     testTimeout: 5000,
     // 环境设置
     environment: 'jsdom',
+    // 全局设置文件
+    setupFiles: ['./tests/setup.ts'],
     // 包含的文件模式
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     // 排除的文件模式

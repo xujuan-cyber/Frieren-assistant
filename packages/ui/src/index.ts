@@ -35,6 +35,7 @@ export { default as VariableManagerModal } from './components/VariableManagerMod
 export { default as VariableEditor } from './components/VariableEditor.vue'
 export { default as VariableImporter } from './components/VariableImporter.vue'
 export { default as ConversationManager } from './components/ConversationManager.vue'
+export { default as ContextEditor } from './components/ContextEditor.vue'
 export { default as AdvancedTestPanel } from './components/AdvancedTestPanel.vue'
 export { default as AdvancedModeToggleUI } from './components/AdvancedModeToggle.vue'
 export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
@@ -95,3 +96,7 @@ export type {
     ICompareService,
     Template
 } from '@prompt-optimizer/core'
+
+// 导出新增的类型和服务
+export * from './types'
+export * from './services'

@@ -589,14 +589,27 @@ const handleTemplateLanguageChanged = (newLanguage: string) => {
 }
 
 // 处理优化上下文同步到测试
-const handleSyncOptimizationContextToTest = (messages: ConversationMessage[]) => {
-  console.log('[App] Syncing optimization context to test:', messages)
+const handleSyncOptimizationContextToTest = (syncData: { messages: ConversationMessage[], tools: ToolDefinition[] }) => {
+  console.log('[App] Syncing optimization context to test:', syncData)
   
   // 获取高级测试面板的引用
   const advancedTestPanel = testPanelRef.value as any
   if (advancedTestPanel && advancedTestPanel.setConversationMessages) {
-    // 将优化上下文同步到测试面板的会话管理器
-    advancedTestPanel.setConversationMessages([...messages])
+    // 🆕 将优化上下文（消息和工具）同步到测试面板
+    advancedTestPanel.setConversationMessages([...syncData.messages])
+    
+    // 🆕 同步工具信息到测试面板
+    if (syncData.tools && syncData.tools.length > 0) {
+      console.log('[App] Syncing tools to test panel:', syncData.tools)
+      // 通过引用传递工具信息到测试面板
+      if (advancedTestPanel.setTools) {
+        advancedTestPanel.setTools([...syncData.tools])
+      } else {
+        // 临时方案：通过组件属性更新工具
+        console.log('[App] Test panel does not support setTools, using prop update')
+      }
+    }
+    
     toast.success(t('conversation.syncToTest.success', '优化上下文已同步到测试区域'))
   } else {
     // 降级处理：如果测试面板不支持同步，显示提示

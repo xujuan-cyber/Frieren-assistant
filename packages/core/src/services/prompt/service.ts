@@ -100,8 +100,24 @@ export class PromptService implements IPromptService {
 
       const context: TemplateContext = {
         originalPrompt: request.targetPrompt,
-        optimizationMode: request.optimizationMode
+        optimizationMode: request.optimizationMode,
+        // 🆕 传递高级上下文信息到模板
+        customVariables: request.advancedContext?.variables,
+        conversationMessages: request.advancedContext?.messages,
+        tools: request.advancedContext?.tools  // 🆕 工具信息
       };
+
+      // 🆕 如果有会话消息，将其格式化为文本并添加到上下文
+      if (request.advancedContext?.messages && request.advancedContext.messages.length > 0) {
+        const conversationText = TemplateProcessor.formatConversationAsText(request.advancedContext.messages);
+        context.conversationContext = conversationText;
+      }
+
+      // 🆕 如果有工具信息，将其格式化为文本并添加到上下文
+      if (request.advancedContext?.tools && request.advancedContext.tools.length > 0) {
+        const toolsText = TemplateProcessor.formatToolsAsText(request.advancedContext.tools);
+        context.toolsContext = toolsText;
+      }
 
       const messages = TemplateProcessor.processTemplate(template, context);
       const result = await this.llmService.sendMessage(messages, request.modelKey);
@@ -312,6 +328,12 @@ export class PromptService implements IPromptService {
       if (request.advancedContext?.messages && request.advancedContext.messages.length > 0) {
         const conversationText = TemplateProcessor.formatConversationAsText(request.advancedContext.messages);
         context.conversationContext = conversationText;
+      }
+
+      // 🆕 如果有工具信息，将其格式化为文本并添加到上下文
+      if (request.advancedContext?.tools && request.advancedContext.tools.length > 0) {
+        const toolsText = TemplateProcessor.formatToolsAsText(request.advancedContext.tools);
+        context.toolsContext = toolsText;
       }
 
       const messages = TemplateProcessor.processTemplate(template, context);
@@ -525,26 +547,50 @@ export class PromptService implements IPromptService {
         throw new TestError('No valid messages after processing', '', '');
       }
 
-      // 使用流式发送
-      await this.llmService.sendMessageStream(
-        processedMessages,
-        request.modelKey,
-        {
-          onToken: callbacks.onToken,
-          onReasoningToken: callbacks.onReasoningToken,
-          onComplete: async (response) => {
-            if (response) {
-              // 自定义会话测试成功，不需要特殊验证
-              console.log('[PromptService] Custom conversation test completed successfully');
-              callbacks.onComplete?.(response);
+      // 使用流式发送，根据是否有工具选择不同的方法
+      if (request.tools && request.tools.length > 0) {
+        // 🆕 使用支持工具的流式发送
+        await this.llmService.sendMessageStreamWithTools(
+          processedMessages,
+          request.modelKey,
+          request.tools,
+          {
+            onToken: callbacks.onToken,
+            onReasoningToken: callbacks.onReasoningToken,
+            onToolCall: callbacks.onToolCall,  // 🆕 传递工具调用回调
+            onComplete: async (response) => {
+              if (response) {
+                console.log('[PromptService] Custom conversation test with tools completed successfully');
+                callbacks.onComplete?.(response);
+              }
+            },
+            onError: (error) => {
+              console.error('[PromptService] Custom conversation test with tools failed:', error);
+              callbacks.onError?.(error);
             }
-          },
-          onError: (error) => {
-            console.error('[PromptService] Custom conversation test failed:', error);
-            callbacks.onError?.(error);
           }
-        }
-      );
+        );
+      } else {
+        // 传统的流式发送（无工具）
+        await this.llmService.sendMessageStream(
+          processedMessages,
+          request.modelKey,
+          {
+            onToken: callbacks.onToken,
+            onReasoningToken: callbacks.onReasoningToken,
+            onComplete: async (response) => {
+              if (response) {
+                console.log('[PromptService] Custom conversation test completed successfully');
+                callbacks.onComplete?.(response);
+              }
+            },
+            onError: (error) => {
+              console.error('[PromptService] Custom conversation test failed:', error);
+              callbacks.onError?.(error);
+            }
+          }
+        );
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[PromptService] Custom conversation test error:', errorMessage);

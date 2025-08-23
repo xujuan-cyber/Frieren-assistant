@@ -64,7 +64,9 @@
           :is-predefined-variable="isPredefinedVariable"
           :replace-variables="replaceVariables"
           :optimization-mode="optimizationMode"
+          :tools="currentTools"
           @update:messages="updateConversationMessages"
+          @update:tools="handleToolsUpdate"
           @create-variable="handleCreateVariable"
           @open-variable-manager="handleOpenVariableManager"
           :collapsible="true"
@@ -105,6 +107,27 @@
             mode="readonly"
             class="flex-1 min-h-0"
           />
+          
+          <!-- 🆕 工具调用显示（向后兼容） -->
+          <div v-if="originalToolCalls.length > 0" class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              工具调用 ({{ originalToolCalls.length }})
+            </h4>
+            <div class="space-y-2 max-h-32 overflow-y-auto">
+              <div 
+                v-for="(toolCall, index) in originalToolCalls" 
+                :key="index"
+                class="p-2 bg-white dark:bg-gray-800 rounded border text-xs"
+              >
+                <div class="font-medium text-blue-600 dark:text-blue-400">{{ toolCall.function?.name || 'Unknown Tool' }}</div>
+                <div class="text-gray-600 dark:text-gray-400 mt-1 break-all">{{ toolCall.function?.arguments || JSON.stringify(toolCall) }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Optimized Prompt Test Result -->
@@ -129,6 +152,27 @@
             mode="readonly"
             class="flex-1 min-h-0"
           />
+          
+          <!-- 🆕 优化结果的工具调用显示（向后兼容） -->
+          <div v-if="optimizedToolCalls.length > 0" class="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h4 class="text-sm font-medium text-green-700 dark:text-green-300 mb-2 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              工具调用 ({{ optimizedToolCalls.length }})
+            </h4>
+            <div class="space-y-2 max-h-32 overflow-y-auto">
+              <div 
+                v-for="(toolCall, index) in optimizedToolCalls" 
+                :key="index"
+                class="p-2 bg-white dark:bg-gray-800 rounded border text-xs"
+              >
+                <div class="font-medium text-green-600 dark:text-green-400">{{ toolCall.function?.name || 'Unknown Tool' }}</div>
+                <div class="text-gray-600 dark:text-gray-400 mt-1 break-all">{{ toolCall.function?.arguments || JSON.stringify(toolCall) }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -138,7 +182,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { OptimizationMode, ConversationMessage, CustomConversationRequest } from '@prompt-optimizer/core'
+import type { OptimizationMode, ConversationMessage, CustomConversationRequest, ToolDefinition } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { VariableManagerHooks } from '../composables/useVariableManager'
 
@@ -159,6 +203,7 @@ interface Props {
   advancedModeEnabled: boolean
   variableManager?: VariableManagerHooks | null
   openVariableManager?: (variableName?: string) => void
+  tools?: ToolDefinition[]  // 🆕 可选的工具定义支持（向后兼容）
 }
 
 const props = defineProps<Props>()
@@ -179,16 +224,21 @@ const conversationMessages = ref<ConversationMessage[]>([
   { role: 'user', content: '' }
 ])
 
+// 🆕 内部工具状态管理（向后兼容）
+const currentTools = ref<ToolDefinition[]>(props.tools || [])
+
 // 测试状态
 const originalTestResult = ref('')
 const originalTestError = ref('')
 const isTestingOriginal = ref(false)
 const originalTestReasoning = ref('')
+const originalToolCalls = ref<any[]>([])  // 🆕 原始提示词的工具调用
 
 const optimizedTestResult = ref('')
 const optimizedTestError = ref('')
 const isTestingOptimized = ref(false)
 const optimizedTestReasoning = ref('')
+const optimizedToolCalls = ref<any[]>([])  // 🆕 优化提示词的工具调用
 
 const isTesting = computed(() => isTestingOriginal.value || isTestingOptimized.value)
 const isTestRunning = computed(() => isTesting.value)
@@ -312,6 +362,12 @@ const handleOpenVariableManager = (variableName: string) => {
   }
 }
 
+// 🆕 处理工具更新（向后兼容）
+const handleToolsUpdate = (tools: ToolDefinition[]) => {
+  currentTools.value = [...tools]
+  console.log(`[AdvancedTestPanel] Tools updated, count: ${tools.length}`)
+}
+
 // 事件处理
 
 const updateConversationMessages = (messages: ConversationMessage[]) => {
@@ -322,6 +378,12 @@ const updateConversationMessages = (messages: ConversationMessage[]) => {
 const setConversationMessages = (messages: ConversationMessage[]) => {
   conversationMessages.value = [...messages]
   console.log('[AdvancedTestPanel] Conversation messages synced:', messages)
+}
+
+// 🆕 公开方法：设置工具（用于同步优化阶段的工具到测试阶段）
+const setTools = (tools: ToolDefinition[]) => {
+  currentTools.value = [...tools]
+  console.log('[AdvancedTestPanel] Tools synced from optimization phase:', tools)
 }
 
 // 方法
@@ -475,6 +537,10 @@ const testCustomConversationWithMode = async (mode: 'original' | 'optimized') =>
   resultRef.value = ''
   errorRef.value = ''
   reasoningRef.value = ''
+  
+  // 🆕 清除工具调用数据（向后兼容）
+  const toolCallsRef = isOriginalTest ? originalToolCalls : optimizedToolCalls
+  toolCallsRef.value = []
 
   try {
     // 根据测试模式构建变量上下文
@@ -503,7 +569,8 @@ const testCustomConversationWithMode = async (mode: 'original' | 'optimized') =>
     const request: CustomConversationRequest = {
       modelKey: selectedTestModel.value,
       messages: conversationMessages.value,
-      variables: contextVariables
+      variables: contextVariables,
+      ...(currentTools.value && currentTools.value.length > 0 && { tools: currentTools.value })  // 🆕 使用当前工具状态（支持从多个来源更新）
     }
 
     await props.services.promptService.testCustomConversationStream(
@@ -514,6 +581,11 @@ const testCustomConversationWithMode = async (mode: 'original' | 'optimized') =>
         },
         onReasoningToken: (reasoningToken: string) => {
           reasoningRef.value += reasoningToken
+        },
+        onToolCall: (toolCall: any) => {  // 🆕 工具调用处理（向后兼容）
+          const toolCallsRef = isOriginalTest ? originalToolCalls : optimizedToolCalls
+          toolCallsRef.value.push(toolCall)
+          console.log(`[AdvancedTestPanel] ${mode} tool call received:`, toolCall)
         },
         onError: (error: Error) => {
           console.error(`[AdvancedTestPanel] ${mode} conversation test error:`, error)
@@ -560,6 +632,14 @@ watch(() => props.selectedModel, (newVal) => {
     selectedTestModel.value = newVal
   }
 })
+
+// 🆕 监听工具数据变化（向后兼容）
+watch(() => props.tools, (newTools) => {
+  if (newTools) {
+    currentTools.value = [...newTools]
+    console.log(`[AdvancedTestPanel] Props tools updated, count: ${newTools.length}`)
+  }
+}, { deep: true, immediate: true })
 
 // 应用优化提示词到测试环境
 const applyOptimizedPromptToTest = (optimizationData: {
@@ -611,7 +691,8 @@ const applyOptimizedPromptToTest = (optimizationData: {
 
 // 暴露方法供父组件调用
 defineExpose({
-  setConversationMessages
+  setConversationMessages,
+  setTools  // 🆕 暴露工具设置方法
 })
 </script>
 

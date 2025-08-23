@@ -1,0 +1,63 @@
+{
+  "model": "gpt-4-1106-preview",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a professional database schema analyst. Your task is to analyze the following database schema and generate optimized SQL queries based on user requests. The database contains information about customers, orders, and products. Please provide detailed explanations for your queries and suggest performance optimizations when necessary. Use the provided schema structure to ensure accuracy."
+    },
+    {
+      "role": "user", 
+      "content": "Please analyze this database schema and help me write a query to find the top 10 customers by total order value in the last 6 months."
+    },
+    {
+      "role": "assistant",
+      "content": "I'll help you create a query to find the top 10 customers by total order value in the last 6 months. Let me break this down:\n\n```sql\nSELECT \n    c.customer_id,\n    c.customer_name,\n    SUM(o.total_amount) as total_order_value\nFROM customers c\nJOIN orders o ON c.customer_id = o.customer_id\nWHERE o.order_date >= DATE_SUB(CURRENT_DATE, INTERVAL 6 MONTH)\nGROUP BY c.customer_id, c.customer_name\nORDER BY total_order_value DESC\nLIMIT 10;\n```\n\nThis query:\n1. Joins customers and orders tables\n2. Filters for orders in the last 6 months\n3. Groups by customer to sum their order values\n4. Orders by total value descending\n5. Limits to top 10 results"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "execute_sql",
+        "description": "Execute SQL queries against the database",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The SQL query to execute"
+            },
+            "database": {
+              "type": "string", 
+              "description": "The target database name"
+            }
+          },
+          "required": ["query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_schema_info",
+        "description": "Retrieve database schema information",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "table_name": {
+              "type": "string",
+              "description": "Specific table name to get schema for, or 'all' for entire schema"
+            }
+          },
+          "required": ["table_name"]
+        }
+      }
+    }
+  ],
+  "temperature": 0.1,
+  "max_tokens": 2000,
+  "top_p": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "stream": false
+}

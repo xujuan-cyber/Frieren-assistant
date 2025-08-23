@@ -2,7 +2,7 @@ import { Template } from './types';
 import { Message } from '../llm/types';
 import { Handlebars } from './minimal';
 import { CSPSafeTemplateProcessor } from './csp-safe-processor';
-import type { OptimizationMode, ConversationMessage } from '../prompt/types';
+import type { OptimizationMode, ConversationMessage, ToolDefinition } from '../prompt/types';
 
 /**
  * 模板变量上下文
@@ -15,9 +15,13 @@ export interface TemplateContext {
   // 高级模式上下文（可选）
   customVariables?: Record<string, string>;        // 自定义变量
   conversationMessages?: ConversationMessage[];    // 会话消息
+  tools?: ToolDefinition[];                        // 🆕 工具定义信息
+  // 格式化的上下文文本（用于模板注入）
+  conversationContext?: string;                    // 格式化的会话上下文
+  toolsContext?: string;                           // 🆕 格式化的工具上下文
   // Allow additional string properties for template flexibility
   // but with stricter typing than the previous implementation
-  [key: string]: string | undefined | Record<string, string> | ConversationMessage[];
+  [key: string]: string | undefined | Record<string, string> | ConversationMessage[] | ToolDefinition[];
 }
 
 /**
@@ -189,5 +193,30 @@ export class TemplateProcessor {
         content: processedContent
       };
     });
+  }
+
+  /**
+   * 格式化工具信息为文本
+   * 用于优化阶段将工具上下文注入到模板中，帮助LLM理解可用工具
+   */
+  static formatToolsAsText(tools: ToolDefinition[]): string {
+    if (!tools || tools.length === 0) {
+      return '';
+    }
+
+    return tools.map(tool => {
+      const func = tool.function;
+      let toolText = `工具名称: ${func.name}`;
+      
+      if (func.description) {
+        toolText += `\n描述: ${func.description}`;
+      }
+      
+      if (func.parameters) {
+        toolText += `\n参数结构: ${JSON.stringify(func.parameters, null, 2)}`;
+      }
+      
+      return toolText;
+    }).join('\n\n');
   }
 } 

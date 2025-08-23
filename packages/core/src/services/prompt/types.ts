@@ -2,6 +2,29 @@ import { PromptRecord } from '../history/types';
 import { StreamHandlers } from '../llm/types';
 
 /**
+ * 工具调用相关类型
+ */
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface FunctionDefinition {
+  name: string;
+  description?: string;
+  parameters?: object;
+}
+
+export interface ToolDefinition {
+  type: 'function';
+  function: FunctionDefinition;
+}
+
+/**
  * 统一的消息结构
  */
 export interface ConversationMessage {
@@ -27,6 +50,7 @@ export interface OptimizationRequest {
   advancedContext?: {
     variables?: Record<string, string>;          // 自定义变量
     messages?: ConversationMessage[];            // 自定义会话消息
+    tools?: ToolDefinition[];                    // 🆕 工具定义支持
   };
 }
 
@@ -37,6 +61,7 @@ export interface CustomConversationRequest {
   modelKey: string;
   messages: ConversationMessage[];               // 使用相同的消息结构
   variables: Record<string, string>;            // 包含预定义+自定义变量
+  tools?: ToolDefinition[];                     // 🆕 工具定义支持
 }
 
 /**

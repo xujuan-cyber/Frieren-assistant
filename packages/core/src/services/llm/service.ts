@@ -1,4 +1,4 @@
-import { ILLMService, Message, StreamHandlers, LLMResponse, ModelInfo, ModelOption } from './types';
+import { ILLMService, Message, StreamHandlers, LLMResponse, ModelInfo, ModelOption, ToolDefinition, ToolCall } from './types';
 import { ModelConfig } from '../model/types';
 import { ModelManager } from '../model/manager';
 import { APIError, RequestConfigError } from './errors';
@@ -381,10 +381,54 @@ export class LLMService implements ILLMService {
     }
   }
 
+  /**
+   * 发送消息（流式，支持工具调用）
+   * 🆕 支持工具调用的流式消息发送
+   */
+  async sendMessageStreamWithTools(
+    messages: Message[],
+    provider: string,
+    tools: ToolDefinition[],
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    try {
+      console.log('开始带工具的流式请求:', { 
+        provider, 
+        messagesCount: messages.length,
+        toolsCount: tools.length 
+      });
+      
+      this.validateMessages(messages);
 
+      const modelConfig = await this.modelManager.getModel(provider);
+      if (!modelConfig) {
+        throw new RequestConfigError(`模型 ${provider} 不存在`);
+      }
+
+      this.validateModelConfig(modelConfig);
+
+      console.log('获取到模型实例（带工具）:', {
+        provider: modelConfig.provider,
+        model: modelConfig.defaultModel,
+        tools: tools.map(t => t.function.name)
+      });
+
+      if (modelConfig.provider === 'gemini') {
+        // Gemini工具调用支持
+        await this.streamGeminiMessageWithTools(messages, modelConfig, tools, callbacks);
+      } else {
+        // OpenAI兼容格式的API工具调用
+        await this.streamOpenAIMessageWithTools(messages, modelConfig, tools, callbacks);
+      }
+    } catch (error) {
+      console.error('带工具的流式请求失败:', error);
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
 
   /**
-   * 处理流式内容中的think标签（用于流式场景）
+   * 处理流式内容中的think标签(用于流式场景)
    */
   private processStreamContentWithThinkTags(
     content: string, 
@@ -567,6 +611,125 @@ export class LLMService implements ILLMService {
   }
 
   /**
+   * 流式发送OpenAI消息（支持工具调用）
+   * 🆕 基于streamOpenAIMessage扩展工具调用支持
+   */
+  private async streamOpenAIMessageWithTools(
+    messages: Message[],
+    modelConfig: ModelConfig,
+    tools: ToolDefinition[],
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    try {
+      // 获取流式OpenAI实例
+      const openai = this.getOpenAIInstance(modelConfig, true);
+
+      const formattedMessages = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      console.log('开始创建带工具的流式请求...');
+      const {
+        timeout,
+        model: llmParamsModel,
+        messages: llmParamsMessages,
+        stream: llmParamsStream,
+        tools: llmParamsTools,
+        ...restLlmParams
+      } = modelConfig.llmParams || {};
+
+      const completionConfig: any = {
+        model: modelConfig.defaultModel,
+        messages: formattedMessages,
+        tools: tools,
+        tool_choice: 'auto',
+        stream: true,
+        ...restLlmParams
+      };
+      
+      const stream = await openai.chat.completions.create(completionConfig);
+      console.log('成功获取到带工具的流式响应');
+
+      let accumulatedReasoning = '';
+      let accumulatedContent = '';
+      const toolCalls: any[] = [];
+      const thinkState = { isInThinkMode: false, buffer: '' };
+
+      for await (const chunk of stream as any) {
+        // 处理推理内容
+        const reasoningContent = chunk.choices[0]?.delta?.reasoning_content || '';
+        if (reasoningContent) {
+          accumulatedReasoning += reasoningContent;
+          if (callbacks.onReasoningToken) {
+            callbacks.onReasoningToken(reasoningContent);
+          }
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        // 🆕 处理工具调用
+        const toolCallDeltas = chunk.choices[0]?.delta?.tool_calls;
+        if (toolCallDeltas) {
+          for (const toolCallDelta of toolCallDeltas) {
+            if (toolCallDelta.index !== undefined) {
+              while (toolCalls.length <= toolCallDelta.index) {
+                toolCalls.push({ id: '', type: 'function' as const, function: { name: '', arguments: '' } });
+              }
+              
+              const currentToolCall = toolCalls[toolCallDelta.index];
+              
+              if (toolCallDelta.id) currentToolCall.id = toolCallDelta.id;
+              if (toolCallDelta.type) currentToolCall.type = toolCallDelta.type;
+              if (toolCallDelta.function) {
+                if (toolCallDelta.function.name) {
+                  currentToolCall.function.name += toolCallDelta.function.name;
+                }
+                if (toolCallDelta.function.arguments) {
+                  currentToolCall.function.arguments += toolCallDelta.function.arguments;
+                }
+                
+                // 当工具调用完整时，通知回调
+                if (currentToolCall.id && currentToolCall.function.name && 
+                    toolCallDelta.function.arguments && callbacks.onToolCall) {
+                  try {
+                    JSON.parse(currentToolCall.function.arguments);
+                    callbacks.onToolCall(currentToolCall);
+                  } catch {
+                    // JSON 还不完整
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 处理主要内容
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          accumulatedContent += content;
+          this.processStreamContentWithThinkTags(content, callbacks, thinkState);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+
+      console.log('带工具的流式响应完成, 工具调用数量:', toolCalls.length);
+      
+      const response: LLMResponse = {
+        content: accumulatedContent,
+        reasoning: accumulatedReasoning || undefined,
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        metadata: { model: modelConfig.defaultModel }
+      };
+
+      callbacks.onComplete(response);
+    } catch (error) {
+      console.error('带工具的流式处理过程中出错:', error);
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
+  /**
    * 流式发送Gemini消息
    */
   private async streamGeminiMessage(
@@ -650,6 +813,138 @@ export class LLMService implements ILLMService {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
+  }
+
+  /**
+   * 流式发送Gemini消息（支持工具调用）
+   * 🆕 基于streamGeminiMessage扩展工具调用支持
+   */
+  private async streamGeminiMessageWithTools(
+    messages: Message[],
+    modelConfig: ModelConfig,
+    tools: ToolDefinition[],
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    // 提取系统消息
+    const systemMessages = messages.filter(msg => msg.role === 'system');
+    const systemInstruction = systemMessages.length > 0
+      ? systemMessages.map(msg => msg.content).join('\n')
+      : '';
+
+    // 获取带有系统指令的模型实例
+    const model = this.getGeminiModel(modelConfig, systemInstruction, true);
+
+    // 过滤出用户和助手消息
+    const conversationMessages = messages.filter(msg => msg.role !== 'system');
+
+    // 转换工具定义为Gemini格式
+    const geminiTools = this.convertToGeminiTools(tools);
+
+    // 创建聊天会话
+    const generationConfig = this.buildGeminiGenerationConfig(modelConfig.llmParams);
+
+    const chatOptions: any = {
+      history: this.formatGeminiHistory(conversationMessages),
+      tools: geminiTools
+    };
+    if (Object.keys(generationConfig).length > 0) {
+      chatOptions.generationConfig = generationConfig;
+    }
+    const chat = model.startChat(chatOptions);
+
+    // 获取最后一条用户消息
+    const lastUserMessage = conversationMessages.length > 0 &&
+      conversationMessages[conversationMessages.length - 1].role === 'user'
+      ? conversationMessages[conversationMessages.length - 1].content
+      : '';
+
+    // 如果没有用户消息，发送空响应
+    if (!lastUserMessage) {
+      const response: LLMResponse = {
+        content: '',
+        metadata: {
+          model: modelConfig.defaultModel
+        }
+      };
+      
+      callbacks.onComplete(response);
+      return;
+    }
+
+    try {
+      console.log('开始创建Gemini带工具的流式请求...', {
+        toolsCount: tools.length,
+        geminiTools: geminiTools
+      });
+      const result = await chat.sendMessageStream(lastUserMessage);
+
+      console.log('成功获取到Gemini带工具的流式响应');
+      
+      let accumulatedContent = '';
+      const toolCalls: any[] = [];
+
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          accumulatedContent += text;
+          callbacks.onToken(text);
+          // 添加小延迟，让UI有时间更新
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        // 处理工具调用
+        const functionCalls = chunk.functionCalls();
+        if (functionCalls && functionCalls.length > 0) {
+          for (const functionCall of functionCalls) {
+            const toolCall: ToolCall = {
+              id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              type: 'function' as const,
+              function: {
+                name: functionCall.name,
+                arguments: JSON.stringify(functionCall.args)
+              }
+            };
+            
+            toolCalls.push(toolCall);
+            
+            console.log('[Gemini] Tool call received:', toolCall);
+            if (callbacks.onToolCall) {
+              callbacks.onToolCall(toolCall);
+            }
+          }
+        }
+      }
+
+      console.log('Gemini带工具的流式响应完成, 工具调用数量:', toolCalls.length);
+      
+      // 构建完整响应
+      const response: LLMResponse = {
+        content: accumulatedContent,
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        metadata: {
+          model: modelConfig.defaultModel
+        }
+      };
+
+      callbacks.onComplete(response);
+    } catch (error) {
+      console.error('Gemini带工具的流式处理过程中出错:', error);
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
+  /**
+   * 转换工具定义为Gemini格式
+   */
+  private convertToGeminiTools(tools: ToolDefinition[]): any[] {
+    return [{
+      functionDeclarations: tools.map(tool => ({
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: tool.function.parameters
+      }))
+    }];
   }
 
   /**

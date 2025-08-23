@@ -1,4 +1,27 @@
 import { ModelConfig } from '../model/types';
+
+/**
+ * 工具调用相关类型
+ */
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface FunctionDefinition {
+  name: string;
+  description?: string;
+  parameters?: object;
+}
+
+export interface ToolDefinition {
+  type: 'function';
+  function: FunctionDefinition;
+}
 /**
  * 消息角色类型
  */
@@ -18,6 +41,7 @@ export interface Message {
 export interface LLMResponse {
   content: string;
   reasoning?: string;
+  toolCalls?: ToolCall[];  // 🆕 工具调用信息
   metadata?: {
     model?: string;
     tokens?: number;
@@ -35,6 +59,9 @@ export interface StreamHandlers {
   
   // 推理内容流（可选，新增功能）
   onReasoningToken?: (token: string) => void;
+  
+  // 工具调用处理（🆕 新增功能）
+  onToolCall?: (toolCall: ToolCall) => void;
   
   // 完成回调（现在传递完整响应，向后兼容通过可选参数）
   onComplete: (response?: LLMResponse) => void;
@@ -88,6 +115,18 @@ export interface ILLMService {
   sendMessageStream(
     messages: Message[],
     provider: string,
+    callbacks: StreamHandlers
+  ): Promise<void>;
+
+  /**
+   * 发送支持工具调用的流式消息（🆕 新增功能）
+   * @throws {RequestConfigError} 当参数无效时
+   * @throws {APIError} 当请求失败时
+   */
+  sendMessageStreamWithTools(
+    messages: Message[],
+    provider: string,
+    tools: ToolDefinition[],
     callbacks: StreamHandlers
   ): Promise<void>;
 
