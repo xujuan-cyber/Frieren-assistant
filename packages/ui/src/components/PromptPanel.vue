@@ -1,58 +1,74 @@
 <template>
-  <div class="flex flex-col h-full">
-    <!-- 标题和按钮区域 -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 flex-none">
-      <div class="flex items-center gap-3 flex-wrap">
-        <h3 class="text-lg font-semibold theme-text">{{ t('prompt.optimized') }}</h3>
-        <div v-if="versions && versions.length > 0" 
-             class="flex items-center gap-1 version-container"
-             style="position: relative;">
-          <button
-            v-for="version in versions.slice().reverse()"
-            :key="version.id"
-            @click="switchVersion(version)"
-            class="px-2 py-1 text-xs rounded transition-colors flex-shrink-0"
-            :class="[
-              currentVersionId === version.id
-                ? 'font-medium theme-prompt-version-selected'
-                : 'theme-prompt-version-unselected'
-            ]"
-          >
-            V{{ version.version }}
-          </button>
-        </div>
-      </div>
-      <div class="flex items-center space-x-2 flex-shrink-0">
-        
-        <button
-          v-if="optimizedPrompt"
-          @click="handleIterate"
-          class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
-          :disabled="isIterating"
-        >
-          <span>{{ isIterating ? t('prompt.optimizing') : t('prompt.continueOptimize') }}</span>
-        </button>
-      </div>
-    </div>
+  <NFlex
+    vertical
+    :style="{
+      height: '100%',
+      maxHeight: '100%',
+      overflow: 'hidden'
+    }"
+  >
+  <!-- 标题和按钮区域 -->
+    <NCard size="small" class="mb-3 flex-none" :style="{ maxHeight: '120px', overflow: 'visible' }">
+        <NFlex justify="space-between" align="flex-start" :wrap="false">
+          <!-- 左侧：标题和版本 -->
+          <NSpace vertical :size="8" class="flex-1 min-w-0">
+            <NSpace align="center" :size="12">
+              <NText class="text-lg font-semibold">{{ t('prompt.optimized') }}</NText>
+              <NSpace v-if="versions && versions.length > 0" :size="4" class="version-tags">
+                <NTag
+                  v-for="version in versions.slice().reverse()"
+                  :key="version.id"
+                  :type="currentVersionId === version.id ? 'success' : 'default'"
+                  size="small"
+                  @click="switchVersion(version)"
+                  :cursor="'pointer'"
+                  :bordered="currentVersionId !== version.id"
+                >
+                  V{{ version.version }}
+                </NTag>
+              </NSpace>
+            </NSpace>
+          </NSpace>
+
+          <!-- 右侧：操作按钮 -->
+          <NSpace align="center" :size="8" class="flex-shrink-0">
+            <NButton
+              v-if="optimizedPrompt"
+              @click="handleIterate"
+              :disabled="isIterating"
+              :loading="isIterating"
+              type="primary"
+              size="small"
+              class="min-w-[100px]"
+            >
+              <template #icon>
+                <svg v-if="!isIterating" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+              </template>
+              {{ isIterating ? t('prompt.optimizing') : t('prompt.continueOptimize') }}
+            </NButton>
+          </NSpace>
+        </NFlex>
+    </NCard>
     
     <!-- 内容区域：使用 OutputDisplay 组件 -->
-    <div class="flex-1 min-h-0">
-      <OutputDisplay
-        ref="outputDisplayRef"
-        :content="optimizedPrompt"
-        :original-content="previousVersionText"
-        :reasoning="reasoning"
-        mode="editable"
-        :streaming="isOptimizing || isIterating"
-        :enable-diff="true"
-        :enable-copy="true"
-        :enable-fullscreen="true"
-        :enable-edit="true"
-        :placeholder="t('prompt.optimizedPlaceholder')"
-        @update:content="$emit('update:optimizedPrompt', $event)"
-      />
-    </div>
-
+    <OutputDisplay
+      ref="outputDisplayRef"
+      :content="optimizedPrompt"
+      :original-content="previousVersionText"
+      :reasoning="reasoning"
+      mode="editable"
+      :streaming="isOptimizing || isIterating"
+      :enable-diff="true"
+      :enable-copy="true"
+      :enable-fullscreen="true"
+      :enable-edit="true"
+      :placeholder="t('prompt.optimizedPlaceholder')"
+      :style="{ height: '100%', maxHeight: '100%', flex: 1, minHeight: 0, overflow: 'hidden' }"
+      @update:content="$emit('update:optimizedPrompt', $event)"
+    />
+    </NFlex>
     <!-- 迭代优化弹窗 -->
     <Modal
       v-model="showIterateInput"
@@ -64,7 +80,7 @@
       
       <div class="space-y-4">
         <div>
-          <h4 class="theme-label mb-2">{{ templateSelectText }}</h4>
+          <NText class="text-sm font-medium mb-2">{{ templateSelectText }}</NText>
           <TemplateSelect
             ref="iterateTemplateSelectRef"
             :modelValue="selectedIterateTemplate"
@@ -77,40 +93,43 @@
         </div>
         
         <div>
-          <h4 class="theme-label mb-2">{{ t('prompt.iterateDirection') }}</h4>
-          <textarea
-            v-model="iterateInput"
-            class="w-full theme-input resize-none"
+          <NText class="text-sm font-medium mb-2">{{ t('prompt.iterateDirection') }}</NText>
+          <NInput
+            v-model:value="iterateInput"
+            type="textarea"
             :placeholder="t('prompt.iteratePlaceholder')"
-            rows="3"
-          ></textarea>
+            :rows="3"
+            :autosize="{ minRows: 3, maxRows: 6 }"
+          />
         </div>
       </div>
       
       <template #footer>
-        <button
+        <NButton
           @click="cancelIterate"
-          class="theme-button-secondary"
+          type="default"
+          size="medium"
         >
           {{ t('common.cancel') }}
-        </button>
-        <button
+        </NButton>
+        <NButton
           @click="submitIterate"
-          class="theme-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="!iterateInput.trim() || isIterating"
+          :loading="isIterating"
+          type="primary"
+          size="medium"
         >
           {{ isIterating ? t('prompt.optimizing') : t('prompt.confirmOptimize') }}
-        </button>
+        </NButton>
       </template>
     </Modal>
 
-    <!-- 全屏弹窗(已废弃，由OutputDisplay处理) -->
-  </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ref, computed, nextTick, watch, type Ref } from 'vue'
+import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag } from 'naive-ui'
 import { useToast } from '../composables/useToast'
 import TemplateSelect from './TemplateSelect.vue'
 import Modal from './Modal.vue'
@@ -208,9 +227,9 @@ const previousVersionText = computed(() => {
   if (!props.versions || props.versions.length === 0) {
     return props.originalPrompt || ''
   }
-  
+
   const currentIndex = props.versions.findIndex(v => v.id === props.currentVersionId)
-  
+
   if (currentIndex > 0) {
     // 当前版本有上一版本
     return props.versions[currentIndex - 1].optimizedPrompt
@@ -222,6 +241,13 @@ const previousVersionText = computed(() => {
     return props.originalPrompt || ''
   }
 })
+
+// 获取当前版本号
+const getCurrentVersionNumber = () => {
+  if (!props.versions || props.versions.length === 0) return 0
+  const currentVersion = props.versions.find(v => v.id === props.currentVersionId)
+  return currentVersion ? currentVersion.version : 1
+}
 
 const handleIterate = () => {
   if (!props.selectedIterateTemplate) {

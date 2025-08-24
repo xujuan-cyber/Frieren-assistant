@@ -4,6 +4,7 @@
  */
 
 import { ref } from 'vue'
+import type { Ref } from 'vue'
 
 export interface ClipboardHooks {
   isSupported: boolean

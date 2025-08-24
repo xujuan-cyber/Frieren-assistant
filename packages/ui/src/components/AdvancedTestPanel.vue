@@ -4,30 +4,31 @@
     <div class="flex-none">
       <!-- Test Content Input (for userQuestion variable) -->
       <div v-if="optimizationMode === 'system'" class="mb-4">
-        <div class="p-4 theme-manager-container border theme-manager-border rounded-lg">
-          <label class="block text-sm font-medium theme-manager-text mb-2">
+        <NCard size="medium">
+          <div class="block text-sm font-medium mb-2">
             {{ t('test.content') }}
-          </label>
-          <textarea
-            v-model="testContent"
+          </div>
+          <NInput
+            v-model:value="testContent"
+            type="textarea"
             :placeholder="t('test.placeholder')"
             :disabled="isTestRunning"
-            class="w-full p-3 border theme-manager-border rounded-lg theme-manager-input min-h-[80px] resize-y"
-            rows="3"
+            :autosize="{ minRows: 3, maxRows: 6 }"
+            size="medium"
           />
-          <p class="text-xs theme-manager-text-secondary mt-1">
+          <div class="text-xs text-gray-500 mt-1">
             {{ t('test.simpleMode.help') }}
-          </p>
-        </div>
+          </div>
+        </NCard>
       </div>
       
       <!-- Model Selection and Controls -->
-      <div class="p-4 theme-manager-container border theme-manager-border rounded-lg">
+      <NCard size="medium">
         <div class="flex items-center gap-4">
           <div class="flex-1">
-            <label class="block text-sm font-medium theme-manager-text mb-2">
+            <div class="block text-sm font-medium mb-2">
               {{ t('test.model') }}
-            </label>
+            </div>
             <ModelSelectUI
               ref="testModelSelect"
               :modelValue="selectedTestModel"
@@ -37,23 +38,26 @@
             />
           </div>
           <div class="flex items-center gap-2">
-            <button
+            <NButton
               @click="toggleCompareMode"
-              class="h-10 text-sm whitespace-nowrap"
-              :class="isCompareMode ? 'theme-manager-button-primary' : 'theme-manager-button-secondary'"
+              :type="isCompareMode ? 'primary' : 'default'"
+              size="medium"
+              class="whitespace-nowrap"
             >
               {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
-            </button>
-            <button
+            </NButton>
+            <NButton
               @click="handleTest"
               :disabled="isTestRunning || !canStartTest"
-              class="h-10 px-4 text-sm font-medium theme-manager-button-primary"
+              :loading="isTestRunning"
+              type="primary"
+              size="medium"
             >
               {{ isTestRunning ? t('test.testing') : (isCompareMode ? t('test.startCompare') : t('test.startTest')) }}
-            </button>
+            </NButton>
           </div>
         </div>
-      </div>
+      </NCard>
       
       <!-- 高级模式 - 多轮对话管理 -->
       <div class="mt-4">
@@ -96,7 +100,7 @@
             'hidden': !isCompareMode
           }"
         >
-          <h3 class="text-lg font-semibold theme-manager-text truncate mb-3 flex-none">
+          <h3 class="text-lg font-semibold truncate mb-3 flex-none">
             {{ t('test.originalResult') }}
           </h3>
           <OutputDisplay
@@ -141,7 +145,7 @@
             'md:absolute md:inset-0 md:h-full md:w-full md:left-0': !isCompareMode
           }"
         >
-          <h3 class="text-lg font-semibold theme-manager-text truncate mb-3 flex-none">
+          <h3 class="text-lg font-semibold truncate mb-3 flex-none">
             {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
           </h3>
           <OutputDisplay
@@ -188,6 +192,7 @@ import type { VariableManagerHooks } from '../composables/useVariableManager'
 
 import { useVariableManager } from '../composables/useVariableManager'
 
+import { NButton, NCard, NInput } from 'naive-ui'
 import ModelSelectUI from './ModelSelect.vue'
 import ConversationManager from './ConversationManager.vue'
 import OutputDisplay from './OutputDisplay.vue'
@@ -320,6 +325,8 @@ const canStartTest = computed(() => {
 
 // 辅助函数
 const scanVariables = (content: string): string[] => {
+  if (!content || typeof content !== 'string') return []
+  
   const variablePattern = /\{\{([^}]+)\}\}/g
   const variables = new Set<string>()
   let match
@@ -337,6 +344,8 @@ const isPredefinedVariable = (name: string): boolean => {
 }
 
 const replaceVariables = (content: string, variables?: Record<string, string>): string => {
+  if (!content || typeof content !== 'string') return ''
+  
   const vars = variables || allVariables.value
   return content.replace(/\{\{([^}]+)\}\}/g, (match, variableName) => {
     const trimmedName = variableName.trim()

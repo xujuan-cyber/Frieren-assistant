@@ -1,91 +1,60 @@
 <template>
-  <div class="relative">
-    <button
-      @click.stop="toggleDropdown"
-      class="theme-template-select-button"
-      :disabled="disabled"
-    >
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span v-if="modelValue && getSelectedModel && getSelectedModel.enabled" class="theme-text text-sm">
-            {{ getSelectedModel.name }}
-          </span>
-          <span v-else class="theme-placeholder">
-            {{ !enabledModels.length ? t('model.select.noModels') : t('model.select.placeholder') }}
-          </span>
-        </div>
-        <span class="theme-text text-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-          </svg>
-        </span>
-      </div>
-    </button>
-
-    <div v-if="isOpen" 
-         class="theme-dropdown"
-         :style="dropdownStyle"
-         @click.stop
-         v-click-outside="() => isOpen = false"
-    >
-      <div class="p-2 max-h-64 overflow-y-auto">
-        <div v-if="!enabledModels.length" class="theme-dropdown-empty">
-          {{ t('model.select.noAvailableModels') }}
-        </div>
-        <div v-else v-for="model in enabledModels" 
-             :key="model.key"
-             @click="selectModel(model)"
-             class="theme-dropdown-item"
-             :class="[
-               modelValue === model.key
-                 ? 'theme-dropdown-item-active'
-                 : 'theme-dropdown-item-inactive'
-             ]"
-        >
-          <div class="flex items-center justify-between">
-            <span class="theme-text text-sm">{{ model.name }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="theme-dropdown-section">
-        <button
-          @click="$emit('config')"
-          class="theme-dropdown-config-button"
-        >
-          <span>⚙️</span>
-          <span>{{ t('model.select.configure') }}</span>
-        </button>
-      </div>
-    </div>
-  </div>
+  <NSelect
+    :value="selectValue"
+    @update:value="handleModelSelect"
+    :options="selectOptions"
+    :placeholder="selectPlaceholder"
+    :disabled="disabled"
+    :loading="isLoading"
+    size="medium"
+    @focus="handleFocus"
+    filterable
+    clearable
+  >
+    <template #empty>
+      <NSpace vertical align="center" class="py-4">
+        <NText class="text-center text-gray-500">{{ t('model.select.noAvailableModels') }}</NText>
+        <NButton 
+          type="tertiary" 
+          size="small" 
+          @click="$emit('config')" 
+          class="w-full mt-2" 
+          ghost 
+        > 
+          <template #icon> 
+            <NText>⚙️</NText> 
+          </template> 
+          {{ t('model.select.configure') }} 
+        </NButton>
+      </NSpace>
+    </template>
+  </NSelect>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
+import { ref, computed, watch, onMounted, inject, h, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { clickOutside } from '../directives/clickOutside'
+import { NSelect, NTag, NButton, NText, NSpace } from 'naive-ui'
 import type { AppServices } from '../types/services'
 import type { ModelConfig } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    required: true
-  },
-  disabled: {
-    type: Boolean,
-    default: false
-  }
-  // modelManager现在通过inject获取，不再需要props
+interface Props {
+  modelValue: string
+  disabled?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabled: false
 })
 
-const emit = defineEmits(['update:modelValue', 'config'])
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  'config': []
+}>()
 
-const isOpen = ref(false)
-const refreshTrigger = ref(0)
-const vClickOutside = clickOutside
+const isLoading = ref(false)
 
 // 统一使用inject获取services
 const services = inject<Ref<AppServices | null>>('services')
@@ -114,6 +83,7 @@ const enabledModels = ref<Array<ModelConfig & { key: string }>>([])
 // 加载模型数据
 const loadModels = async () => {
   try {
+    isLoading.value = true
     const manager = getModelManager.value
     if (!manager) {
       throw new Error('ModelManager not available')
@@ -135,42 +105,69 @@ const loadModels = async () => {
     console.error('Failed to load models:', error)
     allModels.value = []
     enabledModels.value = []
+  } finally {
+    isLoading.value = false
   }
 }
 
-// 获取选中的模型
-const getSelectedModel = computed(() => {
-  refreshTrigger.value // 触发响应式更新
-  return allModels.value.find(m => m.key === props.modelValue)
+// 选择框选项
+const selectOptions = computed(() => {
+  const modelOptions = enabledModels.value.map(model => ({
+    label: model.name,
+    value: model.key,
+    model: model,
+    isDefault: (model as any)?.isDefault ?? false,
+    type: 'model'
+  }))
+  
+  // 如果没有模型，返回空数组让placeholder显示
+  if (modelOptions.length === 0) {
+    return []
+  }
+  
+  // 添加配置按钮选项
+  const configOption = {
+    label: '⚙️'+t('model.select.configure'),
+    value: '__config__',
+    type: 'config'
+  }
+  
+  return [...modelOptions, configOption]
 })
 
-// 判断是否为默认模型
-const isDefaultModel = (key: string) => {
-  const model = allModels.value.find(m => m.key === key)
-  return (model as any)?.isDefault ?? false
-}
+// 选择框占位符
+const selectValue = computed(() => {
+  // 若没有可用模型或当前值无效，返回 null 以显示占位符
+  if (!enabledModels.value.length) return null as unknown as string
+  const exists = enabledModels.value.some(m => m.key === props.modelValue)
+  return exists ? props.modelValue : null as unknown as string
+})
 
-// 切换下拉框
-const toggleDropdown = async () => {
-  if (props.disabled) return
-  isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    await loadModels()
-    refreshTrigger.value++
+// 选择框占位符
+const selectPlaceholder = computed(() => {
+  if (isLoading.value) return t('common.loading')
+  // 无可用模型时也显示占位符文本，而不是 noAvailableModels（该文案用于下拉空态）
+  return t('model.select.placeholder')
+})
+
+// 处理模型选择
+const handleModelSelect = (value: string) => {
+  // 如果选择的是配置选项，不更新值，直接触发配置事件
+  if (value === '__config__') {
+    emit('config')
+    return
   }
+  emit('update:modelValue', value)
 }
 
-// 选择模型
-const selectModel = (model: ModelConfig & { key: string }) => {
-  emit('update:modelValue', model.key)
-  isOpen.value = false
-  refreshTrigger.value++
+// 处理焦点事件
+const handleFocus = async () => {
+  await loadModels()
 }
 
 // 添加刷新方法
 const refresh = async () => {
   await loadModels()
-  refreshTrigger.value++
 }
 
 // 暴露方法给父组件
@@ -195,15 +192,4 @@ watch(
 onMounted(async () => {
   await loadModels()
 })
-
-// 计算下拉框样式
-const dropdownStyle = computed(() => ({
-  minWidth: '100%'
-}))
 </script>
-
-<style scoped>
-.theme-template-select-button {
-  position: relative;
-}
-</style> 

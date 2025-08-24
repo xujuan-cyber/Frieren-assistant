@@ -1,243 +1,275 @@
 <template>
-  <div class="variable-manager">
+  <NCard class="variable-manager" size="medium">
     <!-- 头部 -->
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold theme-text">
+      <h3 class="text-lg font-semibold">
         {{ t('variables.title') }}
       </h3>
-      <div class="flex items-center gap-2 text-sm theme-text-secondary">
-        <span>{{ t('variables.total', { count: statistics.totalVariableCount }) }}</span>
-        <button
+      <div class="flex items-center gap-2">
+        <NTag size="small" type="info">
+          {{ t('variables.total', { count: statistics.totalVariableCount }) }}
+        </NTag>
+        <NButton
           v-if="Object.keys(customVariables).length > 0"
           @click="showExportDialog = true"
-          class="px-2 py-1 text-xs theme-button-secondary"
+          type="default"
+          size="small"
         >
           {{ t('variables.export') }}
-        </button>
-        <button
+        </NButton>
+        <NButton
           @click="showImportDialog = true"
-          class="px-2 py-1 text-xs theme-button-secondary"
+          type="default"
+          size="small"
         >
           {{ t('variables.import') }}
-        </button>
+        </NButton>
       </div>
     </div>
 
     <!-- 变量列表 -->
-    <div class="variable-list space-y-3 mb-4">
+    <div class="variable-list space-y-4 mb-4">
       <!-- 预定义变量 -->
       <div v-if="predefinedVariables.length > 0" class="predefined-section">
-        <h4 class="text-sm font-medium theme-text-secondary mb-2">
+        <h4 class="text-sm font-medium text-gray-600 mb-3">
           {{ t('variables.predefined') }}
         </h4>
-        <div class="space-y-2">
+        <NCard size="small" class="space-y-2">
           <div 
             v-for="(value, name) in predefinedVariables" 
             :key="`predefined-${name}`"
-            class="variable-item predefined"
+            class="flex items-center justify-between p-2 rounded hover:bg-gray-50"
           >
-            <div class="flex items-center gap-3">
-              <div class="flex-1 grid grid-cols-12 gap-3 items-center">
-                <div class="col-span-3">
-                  <span class="variable-name">{{ name }}</span>
-                  <span class="variable-badge predefined">
-                    {{ t('variables.predefinedBadge') }}
-                  </span>
-                </div>
-                <div class="col-span-8">
-                  <div class="variable-value-display">
-                    {{ value || t('variables.emptyValue') }}
-                  </div>
-                </div>
-                <div class="col-span-1 text-right">
-                  <span class="text-xs theme-text-muted">
-                    {{ t('variables.readonly') }}
-                  </span>
-                </div>
+            <div class="flex items-center gap-3 flex-1">
+              <div class="flex items-center gap-2">
+                <NTag size="tiny" type="info">
+                  {{ name }}
+                </NTag>
+                <NTag size="tiny" type="default">
+                  {{ t('variables.predefinedBadge') }}
+                </NTag>
+              </div>
+              <div class="flex-1 text-sm text-gray-700 truncate">
+                {{ value || t('variables.emptyValue') }}
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ t('variables.readonly') }}
               </div>
             </div>
           </div>
-        </div>
+        </NCard>
       </div>
 
       <!-- 自定义变量 -->
       <div class="custom-section">
-        <h4 class="text-sm font-medium theme-text-secondary mb-2">
+        <h4 class="text-sm font-medium text-gray-600 mb-3">
           {{ t('variables.custom') }}
         </h4>
         
         <div v-if="Object.keys(customVariables).length === 0" class="empty-state">
-          <div class="text-center py-8 theme-text-muted">
-            <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            <p class="text-sm">{{ t('variables.noCustomVariables') }}</p>
-            <p class="text-xs mt-1">{{ t('variables.addFirstVariable') }}</p>
-          </div>
+          <NCard size="small">
+            <div class="text-center py-8 text-gray-500">
+              <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <p class="text-sm">{{ t('variables.noCustomVariables') }}</p>
+              <p class="text-xs mt-1">{{ t('variables.addFirstVariable') }}</p>
+            </div>
+          </NCard>
         </div>
 
-        <div v-else class="space-y-2">
+        <NCard v-else size="small" class="space-y-2">
           <div 
             v-for="(value, name) in customVariables" 
             :key="`custom-${name}`"
-            class="variable-item custom"
+            class="flex items-center justify-between p-2 rounded hover:bg-gray-50"
           >
-            <div class="flex items-center gap-3">
-              <div class="flex-1 grid grid-cols-12 gap-3 items-center">
-                <div class="col-span-3">
-                  <span class="variable-name">{{ name }}</span>
-                  <span class="variable-badge custom">
-                    {{ t('variables.customBadge') }}
-                  </span>
+            <div class="flex items-center gap-3 flex-1">
+              <div class="flex items-center gap-2">
+                <NTag size="tiny" type="success">
+                  {{ name }}
+                </NTag>
+                <NTag size="tiny" type="warning">
+                  {{ t('variables.customBadge') }}
+                </NTag>
+              </div>
+              <div class="flex-1">
+                <NInput
+                  v-if="editingVariable === name"
+                  v-model:value="editingValue"
+                  @keyup.enter="saveEdit"
+                  @keyup.escape="cancelEdit"
+                  @blur="saveEdit"
+                  :placeholder="t('variables.valuePlaceholder')"
+                  size="small"
+                  ref="editInput"
+                />
+                <div 
+                  v-else 
+                  class="text-sm text-gray-700 cursor-pointer px-2 py-1 rounded hover:bg-gray-100" 
+                  @click="startEdit(name, value)"
+                >
+                  {{ value || t('variables.emptyValue') }}
                 </div>
-                <div class="col-span-7">
-                  <input
-                    v-if="editingVariable === name"
-                    v-model="editingValue"
-                    @keyup.enter="saveEdit"
-                    @keyup.escape="cancelEdit"
-                    @blur="saveEdit"
-                    class="variable-value-input"
-                    :placeholder="t('variables.valuePlaceholder')"
-                    ref="editInput"
-                  />
-                  <div v-else class="variable-value-display" @click="startEdit(name, value)">
-                    {{ value || t('variables.emptyValue') }}
-                  </div>
-                </div>
-                <div class="col-span-2 flex items-center justify-end gap-1">
-                  <button
-                    v-if="editingVariable !== name"
-                    @click="startEdit(name, value)"
-                    class="action-btn edit"
-                    :title="t('variables.edit')"
-                  >
+              </div>
+              <div class="flex items-center gap-1">
+                <NButton
+                  v-if="editingVariable !== name"
+                  @click="startEdit(name, value)"
+                  size="tiny"
+                  quaternary
+                  type="info"
+                  :title="t('variables.edit')"
+                >
+                  <template #icon>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                  </button>
-                  <button
-                    v-if="editingVariable !== name"
-                    @click="deleteVariable(name)"
-                    class="action-btn delete"
-                    :title="t('variables.delete')"
-                  >
+                  </template>
+                </NButton>
+                <NButton
+                  v-if="editingVariable !== name"
+                  @click="deleteVariable(name)"
+                  size="tiny"
+                  quaternary
+                  type="error"
+                  :title="t('variables.delete')"
+                >
+                  <template #icon>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
-                </div>
+                  </template>
+                </NButton>
               </div>
             </div>
           </div>
-        </div>
+        </NCard>
       </div>
     </div>
 
     <!-- 添加变量表单 -->
+    <NDivider />
     <div class="add-variable-form">
-      <div class="border-t pt-4">
-        <h4 class="text-sm font-medium theme-text-secondary mb-3">
-          {{ t('variables.addNew') }}
-        </h4>
-        <div class="grid grid-cols-12 gap-3 items-end">
-          <div class="col-span-4">
-            <label class="text-xs font-medium theme-text-secondary block mb-1">
-              {{ t('variables.name') }}
-            </label>
-            <input
-              v-model="newVariableName"
-              @keyup.enter="addVariable"
-              class="w-full px-3 py-2 border rounded-md theme-input"
-              :placeholder="t('variables.namePlaceholder')"
-              :class="{ 'border-red-500': nameError }"
-            />
-            <div v-if="nameError" class="text-xs text-red-500 mt-1">
-              {{ nameError }}
-            </div>
+      <h4 class="text-sm font-medium text-gray-600 mb-3">
+        {{ t('variables.addNew') }}
+      </h4>
+      <div class="grid grid-cols-12 gap-3 items-end">
+        <div class="col-span-4">
+          <label class="text-xs font-medium text-gray-600 block mb-1">
+            {{ t('variables.name') }}
+          </label>
+          <NInput
+            v-model:value="newVariableName"
+            @keyup.enter="addVariable"
+            :placeholder="t('variables.namePlaceholder')"
+            :status="nameError ? 'error' : undefined"
+            size="small"
+          />
+          <div v-if="nameError" class="text-xs text-red-500 mt-1">
+            {{ nameError }}
           </div>
-          <div class="col-span-6">
-            <label class="text-xs font-medium theme-text-secondary block mb-1">
-              {{ t('variables.value') }}
-            </label>
-            <input
-              v-model="newVariableValue"
-              @keyup.enter="addVariable"
-              class="w-full px-3 py-2 border rounded-md theme-input"
-              :placeholder="t('variables.valuePlaceholder')"
-              :class="{ 'border-red-500': valueError }"
-            />
-            <div v-if="valueError" class="text-xs text-red-500 mt-1">
-              {{ valueError }}
-            </div>
+        </div>
+        <div class="col-span-6">
+          <label class="text-xs font-medium text-gray-600 block mb-1">
+            {{ t('variables.value') }}
+          </label>
+          <NInput
+            v-model:value="newVariableValue"
+            @keyup.enter="addVariable"
+            :placeholder="t('variables.valuePlaceholder')"
+            :status="valueError ? 'error' : undefined"
+            size="small"
+          />
+          <div v-if="valueError" class="text-xs text-red-500 mt-1">
+            {{ valueError }}
           </div>
-          <div class="col-span-2">
-            <button
-              @click="addVariable"
-              :disabled="!canAddVariable"
-              class="w-full px-4 py-2 theme-button-primary"
-              :class="{ 'opacity-50 cursor-not-allowed': !canAddVariable }"
-            >
-              {{ t('variables.add') }}
-            </button>
-          </div>
+        </div>
+        <div class="col-span-2">
+          <NButton
+            @click="addVariable"
+            :disabled="!canAddVariable"
+            type="primary"
+            size="small"
+            class="w-full"
+          >
+            {{ t('variables.add') }}
+          </NButton>
         </div>
       </div>
     </div>
 
     <!-- 导出对话框 -->
-    <div v-if="showExportDialog" class="modal-overlay" @click="showExportDialog = false">
-      <div class="modal-content" @click.stop>
-        <h3 class="text-lg font-semibold mb-4">{{ t('variables.exportTitle') }}</h3>
-        <textarea
+    <NModal 
+      v-model:show="showExportDialog" 
+      preset="dialog" 
+      :title="t('variables.exportTitle')"
+      :show-icon="false"
+      style="width: 600px"
+    >
+      <template #default>
+        <NInput
           :value="exportData"
           readonly
-          class="w-full h-64 p-3 border rounded-md theme-input font-mono text-sm"
-        ></textarea>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="showExportDialog = false" class="px-4 py-2 theme-button-secondary">
+          type="textarea"
+          :autosize="{ minRows: 16, maxRows: 16 }"
+          class="font-mono text-sm"
+        />
+      </template>
+      <template #action>
+        <div class="flex justify-end gap-2">
+          <NButton @click="showExportDialog = false" type="default">
             {{ t('common.cancel') }}
-          </button>
-          <button @click="copyExportData" class="px-4 py-2 theme-button-primary">
+          </NButton>
+          <NButton @click="copyExportData" type="primary">
             {{ t('variables.copyData') }}
-          </button>
+          </NButton>
         </div>
-      </div>
-    </div>
+      </template>
+    </NModal>
 
     <!-- 导入对话框 -->
-    <div v-if="showImportDialog" class="modal-overlay" @click="showImportDialog = false">
-      <div class="modal-content" @click.stop>
-        <h3 class="text-lg font-semibold mb-4">{{ t('variables.importTitle') }}</h3>
-        <textarea
-          v-model="importData"
-          class="w-full h-64 p-3 border rounded-md theme-input font-mono text-sm"
+    <NModal 
+      v-model:show="showImportDialog" 
+      preset="dialog" 
+      :title="t('variables.importTitle')"
+      :show-icon="false"
+      style="width: 600px"
+    >
+      <template #default>
+        <NInput
+          v-model:value="importData"
+          type="textarea"
+          :autosize="{ minRows: 16, maxRows: 16 }"
           :placeholder="t('variables.importPlaceholder')"
-        ></textarea>
+          class="font-mono text-sm"
+        />
         <div v-if="importError" class="text-sm text-red-500 mt-2">
           {{ importError }}
         </div>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="showImportDialog = false" class="px-4 py-2 theme-button-secondary">
+      </template>
+      <template #action>
+        <div class="flex justify-end gap-2">
+          <NButton @click="showImportDialog = false" type="default">
             {{ t('common.cancel') }}
-          </button>
-          <button 
+          </NButton>
+          <NButton 
             @click="importVariables" 
             :disabled="!importData.trim()"
-            class="px-4 py-2 theme-button-primary"
-            :class="{ 'opacity-50 cursor-not-allowed': !importData.trim() }"
+            type="primary"
           >
             {{ t('variables.import') }}
-          </button>
+          </NButton>
         </div>
-      </div>
-    </div>
-  </div>
+      </template>
+    </NModal>
+  </NCard>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NButton, NCard, NTag, NModal, NInput, NDivider } from 'naive-ui'
 import { useClipboard } from '../composables/useClipboard'
 import type { IVariableManager } from '../types/variable'
 import { VariableError } from '../types/variable'
@@ -459,169 +491,8 @@ watch(newVariableValue, validateValue)
 </script>
 
 <style scoped>
+/* 仅保留必要的样式，其余由 Naive UI 提供 */
 .variable-manager {
-  @apply border rounded-lg p-4 theme-card;
-}
-
-.variable-item {
-  @apply p-3 rounded-lg border;
-}
-
-.variable-item.predefined {
-  @apply bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700;
-}
-
-.variable-item.custom {
-  @apply bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors;
-}
-
-.variable-name {
-  @apply font-mono text-sm font-medium theme-text;
-}
-
-.variable-badge {
-  @apply inline-block px-2 py-0.5 text-xs rounded-full ml-2;
-}
-
-.variable-badge.predefined {
-  @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
-}
-
-.variable-badge.custom {
-  @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
-}
-
-.variable-value-display {
-  @apply px-3 py-2 rounded border-0 bg-transparent theme-text text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors;
-}
-
-.variable-value-input {
-  @apply w-full px-3 py-2 border rounded theme-input text-sm;
-}
-
-.action-btn {
-  @apply p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
-}
-
-.action-btn.edit {
-  @apply text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300;
-}
-
-.action-btn.delete {
-  @apply text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300;
-}
-
-/* 浅色主题 */
-.theme-card {
-  background-color: white;
-  border-color: #d1d5db;
-}
-
-.theme-text {
-  color: #111827;
-}
-
-.theme-text-secondary {
-  color: #374151;
-}
-
-.theme-text-muted {
-  color: #6b7280;
-}
-
-.theme-input {
-  background-color: white;
-  border-color: #d1d5db;
-  color: #111827;
-}
-
-.theme-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.theme-button-primary {
-  background-color: #2563eb;
-  color: white;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.theme-button-primary:hover {
-  background-color: #1d4ed8;
-}
-
-.theme-button-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.theme-button-secondary:hover {
-  background-color: #d1d5db;
-}
-
-/* 深色主题 */
-.dark .theme-card {
-  background-color: #111827;
-  border-color: #4b5563;
-}
-
-.dark .theme-text {
-  color: #f9fafb;
-}
-
-.dark .theme-text-secondary {
-  color: #d1d5db;
-}
-
-.dark .theme-text-muted {
-  color: #9ca3af;
-}
-
-.dark .theme-input {
-  background-color: #1f2937;
-  border-color: #374151;
-  color: #f9fafb;
-}
-
-.dark .theme-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.dark .theme-button-primary {
-  background-color: #3b82f6;
-}
-
-.dark .theme-button-primary:hover {
-  background-color: #60a5fa;
-}
-
-.dark .theme-button-secondary {
-  background-color: #374151;
-  color: #d1d5db;
-}
-
-.dark .theme-button-secondary:hover {
-  background-color: #4b5563;
-}
-
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
-}
-
-.modal-content {
-  @apply bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto;
-}
-
-.empty-state {
-  @apply bg-gray-50 dark:bg-gray-800 rounded-lg;
+  /* Naive UI NCard 提供所有样式 */
 }
 </style>

@@ -1,54 +1,35 @@
 <template>
-    <div class="text-diff theme-textdiff">
-      <!-- 对比模式切换 -->
-      <div class="diff-header theme-textdiff-header" v-if="showHeader">
-        <div class="diff-controls">
-          <button 
-            class="diff-toggle-btn theme-textdiff-toggle"
-            @click="$emit('toggleDiff')"
-            :aria-label="isEnabled ? '关闭对比模式' : '开启对比模式'"
-          >
-            {{ isEnabled ? '关闭对比' : '开启对比' }}
-          </button>
-          
-          <div v-if="isEnabled && compareResult" class="diff-stats">
-            <span class="stat theme-textdiff-stat-added" v-if="compareResult.summary.additions > 0">
-              +{{ compareResult.summary.additions }}
-            </span>
-            <span class="stat theme-textdiff-stat-removed" v-if="compareResult.summary.deletions > 0">
-              -{{ compareResult.summary.deletions }}
-            </span>
-          </div>
-        </div>
+  <NCard class="text-diff" :style="{ height: '100%' }" :bordered="false" content-style="padding: 0; height: 100%; display: flex; flex-direction: column;">
+    <!-- 统计信息 -->
+    <NFlex v-if="compareResult" justify="flex-end" align="center" :size="8" class="px-3 py-2 border-b" style="flex: 0 0 auto;">
+      <NTag v-if="compareResult.summary.additions > 0" type="success" size="small">
+        +{{ compareResult.summary.additions }}
+      </NTag>
+      <NTag v-if="compareResult.summary.deletions > 0" type="error" size="small">
+        -{{ compareResult.summary.deletions }}
+      </NTag>
+    </NFlex>
+
+    <!-- 文本内容 -->
+    <NScrollbar class="text-diff-content" style="flex: 1; min-height: 0;">
+      <!-- 对比模式：显示高亮的差异 -->
+      <div class="diff-text" v-if="compareResult">
+        <span
+          v-for="fragment in compareResult.fragments"
+          :key="fragment.index"
+          :class="getFragmentClass(fragment.type)"
+          class="text-fragment"
+        >{{ fragment.text }}</span>
       </div>
-  
-      <!-- 文本内容 -->
-      <div class="text-diff-content theme-textdiff-content flex-1 min-h-0">
-        <template v-if="isEnabled && compareResult">
-          <!-- 对比模式：显示高亮的差异 -->
-          <div class="diff-text">
-            <span
-              v-for="fragment in compareResult.fragments"
-              :key="fragment.index"
-              :class="getFragmentClass(fragment.type)"
-              class="text-fragment"
-            >{{ fragment.text }}</span>
-          </div>
-        </template>
-        
-        <template v-else>
-          <!-- 普通模式：显示原始文本 -->
-          <div class="normal-text">
-            {{ displayText }}
-          </div>
-        </template>
-      </div>
-    </div>
-  </template>
+    </NScrollbar>
+  </NCard>
+</template>
   
   <script setup lang="ts">
-  import { computed } from 'vue'
-  import type { CompareResult, ChangeType } from '@prompt-optimizer/core'
+import { computed } from 'vue'
+import { NTag, NCard, NFlex, NScrollbar } from 'naive-ui'
+import type { CompareResult, ChangeType } from '@prompt-optimizer/core'
+import { useNaiveTheme } from '../composables/useNaiveTheme'
   
   interface Props {
     /** 原始文本 */
@@ -56,111 +37,44 @@
     /** 优化后的文本 */
     optimizedText: string
     /** 对比结果 */
-    compareResult?: CompareResult
-    /** 是否启用对比模式 */
-    isEnabled: boolean
-    /** 是否显示头部控制栏 */
-    showHeader?: boolean
-    /** 显示的文本类型：original | optimized */
-    displayMode?: 'original' | 'optimized'
+    compareResult: CompareResult
   }
   
-  interface Emits {
-    (e: 'toggleDiff'): void
-  }
-  
-  const props = withDefaults(defineProps<Props>(), {
-    showHeader: true,
-    displayMode: 'optimized'
-  })
-  
-  defineEmits<Emits>()
-  
-  const displayText = computed(() => {
-    return props.displayMode === 'original' ? props.originalText : props.optimizedText
-  })
-  
-  const getFragmentClass = (type: ChangeType): string => {
+  defineProps<Props>()
+
+// 获取当前主题配置
+const { themeOverrides } = useNaiveTheme()
+const theme = computed(() => themeOverrides.value)
+
+const getFragmentClass = (type: ChangeType): string => {
   switch (type) {
     case 'added':
-      return 'theme-textdiff-added'
+      return 'diff-added'
     case 'removed':
-      return 'theme-textdiff-removed'
+      return 'diff-removed'
     case 'unchanged':
     default:
-      return 'theme-textdiff-unchanged'
+      return 'diff-unchanged'
   }
 }
   </script>
   
   <style scoped>
-.text-diff {
-  /* 使用 flex 布局自适应父容器高度 */
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  border-radius: 8px;
-}
-
-.diff-header {
-  flex-shrink: 0;
-  padding: 12px 16px;
-  border-bottom: 1px solid currentColor;
-  border-opacity: 0.2;
-}
-
-.diff-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.diff-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.diff-stats {
-  display: flex;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stat {
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
 .text-diff-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: relative;
-  box-sizing: border-box; /* 确保内边距被计算在高度之内 */
-  padding-bottom: 3rem;   /* 将缓冲区作为内边距，从根本上解决问题 */
+  min-height: 200px;
 }
 
 .diff-text,
 .normal-text {
-  padding: 0.75rem 1rem; /* 移除底部填充，改用伪元素实现 */
+  padding: 0.75rem 1rem;
   line-height: 1.6;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 1rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
   white-space: pre-wrap;
   word-break: break-word;
-  /* 确保内容可以正常显示和滚动 */
   width: 100%;
   box-sizing: border-box;
+  color: var(--n-text-color);
 }
 
 .text-fragment {
@@ -169,20 +83,26 @@
   padding: 1px 2px;
 }
 
-/* 添加删除线样式 */
-:deep(.theme-textdiff-removed) {
+.diff-added {
+  background-color: v-bind('theme.common?.successColorSuppl || "rgba(34, 197, 94, 0.15)"');
+  color: v-bind('theme.common?.successColor || "#16a34a"');
+}
+
+.diff-removed {
+  background-color: v-bind('theme.common?.errorColorSuppl || "rgba(239, 68, 68, 0.15)"');
+  color: v-bind('theme.common?.errorColor || "#dc2626"');
   text-decoration: line-through;
+}
+
+.diff-unchanged {
+  color: v-bind('theme.common?.textColor3 || "#6b7280"');
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .diff-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .diff-stats {
-    justify-content: center;
+  .diff-text,
+  .normal-text {
+    font-size: 12px;
   }
 }
 </style>

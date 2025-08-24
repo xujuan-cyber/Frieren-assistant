@@ -1,409 +1,290 @@
 <template>
-  <div class="context-editor-fullscreen h-screen w-screen theme-manager-bg">
+  <div class="context-editor-fullscreen h-screen w-screen">
     <!-- 顶部工具栏 -->
-    <div class="editor-header flex items-center justify-between p-4 border-b theme-manager-border theme-manager-card">
+    <NCard class="editor-header" size="small" :bordered="false">
+      <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <h3 class="text-xl font-semibold theme-manager-text">上下文编辑器</h3>
-        <div class="flex items-center gap-2 text-sm theme-manager-text-secondary">
-          <span>{{ messages.length }} 条消息</span>
-          <div v-if="messages.length > 0" class="flex items-center gap-2">
-            <span 
-              class="flex items-center gap-1 cursor-help"
-              :title="allUsedVariables.length > 0 ? `使用的变量: ${allUsedVariables.join(', ')}` : '暂无使用变量'"
-            >
-              <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              变量: {{ allUsedVariables.length }}
-            </span>
-          </div>
-        </div>
+        <h3 class="text-xl font-semibold">上下文编辑器</h3>
+        <NSpace size="small">
+          <NTag size="small" type="info">{{ messages.length }} 条消息</NTag>
+          <NTag v-if="messages.length > 0" size="small" type="success" :title="allUsedVariables.length > 0 ? `使用的变量: ${allUsedVariables.join(', ')}` : '暂无使用变量'">
+            变量: {{ allUsedVariables.length }}
+          </NTag>
+        </NSpace>
       </div>
       
-      <div class="flex items-center gap-2">
+      <NSpace size="small">
         <!-- 导入导出按钮 -->
-        <button
+        <NButton
           @click="showImportDialog = true"
-          class="px-3 py-1.5 text-sm theme-manager-button-secondary"
+          size="small"
+          secondary
           title="导入数据"
         >
-          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-          </svg>
           导入
-        </button>
+        </NButton>
         
-        <button
+        <NButton
           @click="showExportDialog = true"
-          class="px-3 py-1.5 text-sm theme-manager-button-secondary"
+          size="small"
+          secondary
           :disabled="messages.length === 0"
           title="导出数据"
         >
-          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l3-3m0 0l-3-3m3 3H9" />
-          </svg>
           导出
-        </button>
+        </NButton>
         
-        <button
+        <NButton
           @click="addMessage"
-          class="px-3 py-1.5 text-sm theme-manager-button-primary"
+          size="small"
+          type="primary"
           title="添加消息"
         >
-          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
           添加消息
-        </button>
+        </NButton>
 
         <!-- 保存和关闭 -->
-        <div class="border-l theme-manager-border ml-2 pl-2 flex gap-2">
-          <button
+        <NDivider vertical />
+        <NButtonGroup>
+          <NButton
             @click="handleSave"
-            class="px-4 py-1.5 text-sm theme-manager-button-success"
+            size="small"
+            type="success"
           >
             保存
-          </button>
-          <button
+          </NButton>
+          <NButton
             @click="handleClose"
-            class="px-4 py-1.5 text-sm theme-manager-button-secondary"
+            size="small"
+            secondary
           >
-            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
             关闭
-          </button>
-        </div>
+          </NButton>
+        </NButtonGroup>
+      </NSpace>
       </div>
-    </div>
+    </NCard>
 
     <!-- 主编辑区域 -->
     <div class="editor-content flex-1 overflow-hidden flex flex-col">
       <div class="flex-1 p-6 overflow-y-auto">
         <!-- 空状态 -->
         <div v-if="messages.length === 0" class="empty-state text-center py-16">
-          <div class="max-w-md mx-auto">
-            <svg class="w-16 h-16 mx-auto mb-4 theme-manager-text-secondary opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.471L3 21l2.471-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
-            </svg>
-            <h3 class="text-xl font-semibold theme-manager-text mb-2">开始编辑上下文</h3>
-            <p class="theme-manager-text-secondary mb-4">添加消息来构建对话上下文，支持变量提取和模板化</p>
-            <button
-              @click="addMessage"
-              class="px-6 py-2 theme-manager-button-primary"
-            >
-              添加第一条消息
-            </button>
-          </div>
+          <NCard size="large" class="max-w-md mx-auto">
+            <div class="text-center">
+              <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.471L3 21l2.471-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+              </svg>
+              <h3 class="text-xl font-semibold mb-2">开始编辑上下文</h3>
+              <p class="text-sm mb-4">添加消息来构建对话上下文，支持变量提取和模板化</p>
+              <NButton
+                @click="addMessage"
+                type="primary"
+                size="medium"
+              >
+                添加第一条消息
+              </NButton>
+            </div>
+          </NCard>
         </div>
 
         <!-- 消息列表 -->
         <div v-else class="w-full space-y-4">
-          <div
+          <NCard
             v-for="(message, index) in messages"
             :key="`message-${index}`"
-            class="message-item theme-manager-card border theme-manager-border rounded-lg p-4"
+            size="medium"
+            class="message-item"
           >
             <!-- 消息头部 -->
             <div class="message-header flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <span class="text-sm font-mono theme-manager-text-secondary">#{{ index + 1 }}</span>
-                <select 
-                  v-model="message.role"
-                  class="theme-manager-input text-sm py-1 px-2"
-                >
-                  <option value="system">系统</option>
-                  <option value="user">用户</option>
-                  <option value="assistant">助手</option>
-                </select>
+              <NSpace size="medium" align="center">
+                <NTag size="small" type="default">#{{ index + 1 }}</NTag>
+                <NSelect 
+                  v-model:value="message.role"
+                  size="small"
+                  style="width: 100px"
+                  :options="[
+                    { label: '系统', value: 'system' },
+                    { label: '用户', value: 'user' },
+                    { label: '助手', value: 'assistant' }
+                  ]"
+                />
                 
                 <!-- 变量信息显示 -->
-                <div v-if="getMessageVariables(index).detected.length > 0" class="flex items-center gap-2 text-xs">
-                  <span class="theme-manager-text-secondary">
+                <NSpace v-if="getMessageVariables(index).detected.length > 0" size="small">
+                  <NTag size="tiny" type="info">
                     变量: {{ getMessageVariables(index).detected.length }}
-                  </span>
-                  <span v-if="getMessageVariables(index).missing.length > 0" class="text-amber-600">
+                  </NTag>
+                  <NTag v-if="getMessageVariables(index).missing.length > 0" size="tiny" type="warning">
                     缺失: {{ getMessageVariables(index).missing.length }}
-                  </span>
-                </div>
-              </div>
+                  </NTag>
+                </NSpace>
+              </NSpace>
               
-              <div class="flex items-center gap-1">
+              <NButtonGroup size="small">
                 <!-- 预览切换按钮 -->
-                <button
+                <NButton
                   @click="togglePreview(index)"
-                  class="p-1 text-xs theme-manager-button-secondary"
-                  :class="{ 'theme-manager-button-primary': previewMode[index] }"
+                  :type="previewMode[index] ? 'primary' : 'default'"
                   title="切换预览"
                 >
                   👁️
-                </button>
-                <button
+                </NButton>
+                <NButton
                   v-if="index > 0"
                   @click="moveMessage(index, -1)"
-                  class="p-1 text-xs theme-manager-button-secondary"
                   title="上移"
                 >
                   ↑
-                </button>
-                <button
+                </NButton>
+                <NButton
                   v-if="index < messages.length - 1"
                   @click="moveMessage(index, 1)"
-                  class="p-1 text-xs theme-manager-button-secondary"
                   title="下移"
                 >
                   ↓
-                </button>
-                <button
+                </NButton>
+                <NButton
                   @click="deleteMessage(index)"
                   :disabled="messages.length <= 1"
-                  class="p-1 text-xs theme-manager-button-danger"
-                  :class="{ 'opacity-50 cursor-not-allowed': messages.length <= 1 }"
+                  type="error"
                   title="删除"
                 >
                   🗑️
-                </button>
-              </div>
+                </NButton>
+              </NButtonGroup>
             </div>
 
             <!-- 消息内容编辑区 -->
             <div class="message-content relative">
               <!-- 编辑模式 -->
               <div v-if="!previewMode[index]">
-                <textarea
-                  v-model="message.content"
+                <NInput
+                  v-model:value="message.content"
+                  type="textarea"
                   :placeholder="getPlaceholderText(message.role)"
-                  class="w-full theme-manager-input text-sm resize-none"
-                  :style="{ minHeight: '120px', height: 'auto' }"
-                  @input="autoResize($event.target)"
+                  :autosize="{ minRows: 5, maxRows: 20 }"
                   @select="handleTextSelection($event, index)"
-                  rows="5"
-                ></textarea>
+                />
               </div>
               
-              <!-- 预览模式 -->
-              <div v-else class="preview-content">
-                <div class="preview-box theme-manager-input" 
-                     :style="{ minHeight: '120px' }"
-                     v-html="getPreviewHtml(index)">
-                </div>
-              </div>
-              
-              <!-- 缺失变量提示 -->
-              <div v-if="getMessageVariables(index).missing.length > 0" class="variable-missing-hint mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
-                <span class="text-amber-700 font-medium">缺失变量:</span>
-                <span 
-                  v-for="variable in getMessageVariables(index).missing.slice(0, 3)" 
-                  :key="variable"
-                  class="inline-flex items-center gap-1 ml-2"
-                >
-                  <button
-                    @click="createMissingVariable(variable)"
-                    class="text-amber-600 underline hover:text-amber-800 transition-colors"
-                    :title="`点击创建变量 ${variable}`"
-                  >
-                    {{ variable }}
-                  </button>
-                </span>
-                <span v-if="getMessageVariables(index).missing.length > 3" class="text-amber-600">
-                  ... +{{ getMessageVariables(index).missing.length - 3 }}
-                </span>
-              </div>
-              
-              <!-- 变量提取提示 -->
-              <div v-if="selectedText && selectedMessageIndex === index" 
-                   class="variable-extraction-panel absolute right-0 top-0 mt-2 mr-2 p-3 theme-manager-card border theme-manager-border rounded-lg shadow-lg z-10"
-                   style="max-width: 300px;">
-                <h4 class="text-sm font-semibold theme-manager-text mb-2">提取变量</h4>
-                <p class="text-xs theme-manager-text-secondary mb-2">选中的文本: "{{ selectedText.substring(0, 50) }}{{ selectedText.length > 50 ? '...' : '' }}"</p>
-                
-                <!-- 变量名建议 -->
-                <div class="mb-3">
-                  <label class="block text-xs font-medium theme-manager-text mb-1">建议的变量名:</label>
-                  <div class="flex flex-wrap gap-1 mb-2">
-                    <button
-                      v-for="suggestion in variableSuggestions"
-                      :key="suggestion.name"
-                      @click="selectedVariableName = suggestion.name"
-                      class="px-2 py-1 text-xs rounded border"
-                      :class="selectedVariableName === suggestion.name 
-                        ? 'theme-manager-button-primary' 
-                        : 'theme-manager-button-secondary'"
-                    >
-                      {{ suggestion.name }}
-                    </button>
-                  </div>
-                  <input
-                    v-model="selectedVariableName"
-                    placeholder="或输入自定义变量名"
-                    class="w-full theme-manager-input text-xs py-1 px-2"
-                  >
-                </div>
-                
-                <div class="flex gap-2">
-                  <button
-                    @click="extractSelectedVariable"
-                    :disabled="!selectedVariableName.trim()"
-                    class="flex-1 px-3 py-1 text-xs theme-manager-button-primary"
-                    :class="{ 'opacity-50 cursor-not-allowed': !selectedVariableName.trim() }"
-                  >
-                    提取变量
-                  </button>
-                  <button
-                    @click="cancelVariableExtraction"
-                    class="px-3 py-1 text-xs theme-manager-button-secondary"
-                  >
-                    取消
-                  </button>
-                </div>
-              </div>
-              
-              <!-- 缺失变量提示 -->
-              <div v-if="getMessageVariables(index).missing.length > 0" class="variable-missing-hint mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
-                <span class="text-amber-700 font-medium">缺失变量:</span>
-                <span 
-                  v-for="variable in getMessageVariables(index).missing.slice(0, 3)" 
-                  :key="variable"
-                  class="inline-flex items-center gap-1 ml-2"
-                >
-                  <button
-                    @click="createMissingVariable(variable)"
-                    class="text-amber-600 underline hover:text-amber-800 transition-colors"
-                    :title="`点击创建变量 ${variable}`"
-                  >
-                    {{ variable }}
-                  </button>
-                </span>
-                <span v-if="getMessageVariables(index).missing.length > 3" class="text-amber-600">
-                  ... +{{ getMessageVariables(index).missing.length - 3 }}
-                </span>
-              </div>
             </div>
-          </div>
+          </NCard>
         </div>
       </div>
     </div>
 
     <!-- 工具管理面板 -->
-    <div v-if="tools.length > 0 || showToolsPanel" class="tools-panel border-t theme-manager-border bg-gray-50 dark:bg-gray-800 p-4">
+    <NCard v-if="tools.length > 0 || showToolsPanel" size="small" class="tools-panel">
       <div class="tools-header flex items-center justify-between mb-3">
-        <div class="flex items-center gap-3">
-          <h4 class="text-base font-semibold theme-manager-text">工具定义</h4>
-          <span class="text-xs theme-manager-text-secondary px-2 py-0.5 theme-manager-tag rounded">
+        <NSpace align="center">
+          <h4 class="text-base font-semibold">工具定义</h4>
+          <NTag size="small" type="info">
             {{ tools.length }} 个工具
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
+          </NTag>
+        </NSpace>
+        <NSpace size="small">
+          <NButton
             @click="addNewTool"
-            class="px-3 py-1.5 text-xs theme-manager-button-primary"
+            size="small"
+            type="primary"
           >
-            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
             添加工具
-          </button>
-          <button
+          </NButton>
+          <NButton
             @click="toggleToolsPanel"
-            class="px-2 py-1.5 text-xs theme-manager-button-secondary"
+            size="small"
+            :type="showToolsPanel ? 'default' : 'primary'"
           >
-            <svg 
-              class="w-3 h-3 transition-transform duration-200"
-              :class="{ 'rotate-180': !showToolsPanel }"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
+            {{ showToolsPanel ? '收起' : '展开' }}
+          </NButton>
+        </NSpace>
       </div>
       
       <div v-if="showToolsPanel" class="tools-content space-y-3">
         <!-- 工具列表 -->
-        <div v-for="(tool, index) in tools" :key="`tool-${index}`" class="tool-item theme-manager-card border theme-manager-border rounded-lg p-3">
+        <NCard v-for="(tool, index) in tools" :key="`tool-${index}`" size="small" class="tool-item">
           <div class="tool-header flex items-center justify-between mb-2">
-            <div class="flex items-center gap-2">
-              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span class="font-medium theme-manager-text">{{ tool.function.name }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <button
+            <NSpace align="center">
+              <NTag type="primary" size="small">{{ tool.function.name }}</NTag>
+            </NSpace>
+            <NButtonGroup size="small">
+              <NButton
                 @click="editTool(index)"
-                class="p-1 text-xs theme-manager-button-secondary"
                 title="编辑工具"
               >
                 ✏️
-              </button>
-              <button
+              </NButton>
+              <NButton
                 @click="copyTool(index)"
-                class="p-1 text-xs theme-manager-button-secondary"
                 title="复制工具"
               >
                 📋
-              </button>
-              <button
+              </NButton>
+              <NButton
                 @click="deleteTool(index)"
-                class="p-1 text-xs theme-manager-button-danger"
+                type="error"
                 title="删除工具"
               >
                 🗑️
-              </button>
-            </div>
+              </NButton>
+            </NButtonGroup>
           </div>
-          <div class="tool-description text-xs theme-manager-text-secondary mb-2">
+          <div class="tool-description text-xs mb-2">
             {{ tool.function.description || '无描述' }}
           </div>
-          <div class="flex items-center gap-4 text-xs theme-manager-text-secondary">
-            <span>参数: {{ Object.keys(tool.function.parameters?.properties || {}).length }} 个</span>
+          <div class="text-xs">
+            <NTag size="tiny">参数: {{ Object.keys(tool.function.parameters?.properties || {}).length }} 个</NTag>
           </div>
-        </div>
+        </NCard>
         
         <!-- 空状态 -->
         <div v-if="tools.length === 0" class="empty-tools text-center py-8">
-          <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <p class="text-sm theme-manager-text-secondary mb-3">尚未定义工具</p>
-          <p class="text-xs theme-manager-text-secondary">工具可以让AI调用外部功能，如搜索、计算、API调用等</p>
+          <NCard size="large">
+            <div class="text-center">
+              <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <p class="text-sm mb-3">尚未定义工具</p>
+              <p class="text-xs">工具可以让AI调用外部功能，如搜索、计算、API调用等</p>
+            </div>
+          </NCard>
         </div>
       </div>
-    </div>
+    </NCard>
 
     <!-- 导入对话框 -->
-    <div v-if="showImportDialog" class="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center" @click="showImportDialog = false">
-      <div class="theme-manager-card border theme-manager-border rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4" @click.stop>
-        <h3 class="text-lg font-semibold mb-4 theme-manager-text">导入数据</h3>
-        
+    <NModal 
+      v-model:show="showImportDialog" 
+      preset="dialog" 
+      title="导入数据"
+      style="width: 600px"
+    >
+      <template #default>
         <!-- 格式选择 -->
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-2 theme-manager-text">导入格式：</label>
-          <div class="flex gap-2 mb-2">
-            <button
+          <label class="block text-sm font-medium mb-2">导入格式：</label>
+          <NSpace size="small" class="mb-2">
+            <NButton
               v-for="format in importFormats"
               :key="format.id"
               @click="selectedImportFormat = format.id"
-              class="px-3 py-1 text-sm rounded border"
-              :class="selectedImportFormat === format.id 
-                ? 'theme-manager-button-primary' 
-                : 'theme-manager-button-secondary'"
+              size="small"
+              :type="selectedImportFormat === format.id ? 'primary' : 'default'"
             >
               {{ format.name }}
-            </button>
-          </div>
-          <p class="text-xs theme-manager-text-secondary">
+            </NButton>
+          </NSpace>
+          <p class="text-xs text-gray-500">
             {{ importFormats.find(f => f.id === selectedImportFormat)?.description }}
           </p>
         </div>
 
         <!-- 文件上传或文本输入 -->
         <div class="mb-4">
-          <div class="flex gap-2 mb-2">
+          <NSpace size="small" class="mb-2">
             <input
               type="file"
               ref="fileInput"
@@ -411,128 +292,131 @@
               @change="handleFileUpload"
               class="hidden"
             >
-            <button
+            <NButton
               @click="fileInput?.click()"
-              class="px-3 py-1 text-sm theme-manager-button-secondary"
+              size="small"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
               选择文件
-            </button>
-            <span class="text-sm theme-manager-text-secondary">或在下方粘贴文本</span>
-          </div>
+            </NButton>
+            <span class="text-sm text-gray-500">或在下方粘贴文本</span>
+          </NSpace>
         </div>
 
-        <textarea
-          v-model="importData"
-          class="w-full h-40 theme-manager-input text-sm font-mono"
+        <NInput
+          v-model:value="importData"
+          type="textarea"
+          :autosize="{ minRows: 10, maxRows: 10 }"
           :placeholder="getImportPlaceholder()"
-        ></textarea>
+          class="font-mono text-sm"
+        />
         <div v-if="importError" class="text-sm text-red-500 mt-2">
           {{ importError }}
         </div>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="showImportDialog = false" class="px-4 py-2 theme-manager-button-secondary">取消</button>
-          <button 
+      </template>
+      <template #action>
+        <NSpace justify="end">
+          <NButton @click="showImportDialog = false">取消</NButton>
+          <NButton 
             @click="handleImport" 
             :disabled="!importData.trim()"
-            class="px-4 py-2 theme-manager-button-primary"
-            :class="{ 'opacity-50 cursor-not-allowed': !importData.trim() }"
+            type="primary"
           >
             导入
-          </button>
-        </div>
-      </div>
-    </div>
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
 
     <!-- 导出对话框 -->
-    <div v-if="showExportDialog" class="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center" @click="showExportDialog = false">
-      <div class="theme-manager-card border theme-manager-border rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4" @click.stop>
-        <h3 class="text-lg font-semibold mb-4 theme-manager-text">导出数据</h3>
-        <textarea
+    <NModal 
+      v-model:show="showExportDialog" 
+      preset="dialog" 
+      title="导出数据"
+      style="width: 600px"
+    >
+      <template #default>
+        <NInput
           :value="exportData"
           readonly
-          class="w-full h-40 theme-manager-input text-sm font-mono"
-        ></textarea>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="showExportDialog = false" class="px-4 py-2 theme-manager-button-secondary">关闭</button>
-          <button @click="copyExportData" class="px-4 py-2 theme-manager-button-primary">复制</button>
-        </div>
-      </div>
-    </div>
+          type="textarea"
+          :autosize="{ minRows: 10, maxRows: 10 }"
+          class="font-mono text-sm"
+        />
+      </template>
+      <template #action>
+        <NSpace justify="end">
+          <NButton @click="showExportDialog = false">关闭</NButton>
+          <NButton @click="copyExportData" type="primary">复制</NButton>
+        </NSpace>
+      </template>
+    </NModal>
 
     <!-- 工具编辑对话框 -->
-    <div v-if="showToolEditDialog" class="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center" @click="showToolEditDialog = false">
-      <div class="theme-manager-card border theme-manager-border rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col" @click.stop>
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold theme-manager-text">
-            {{ editingToolIndex >= 0 ? '编辑工具' : '新建工具' }}
-          </h3>
-          <button @click="showToolEditDialog = false" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
+    <NModal 
+      v-model:show="showToolEditDialog" 
+      preset="card" 
+      :title="editingToolIndex >= 0 ? '编辑工具' : '新建工具'"
+      style="width: 800px; max-height: 80vh"
+      size="huge"
+      :bordered="false"
+      :segmented="false"
+    >
+      <template #default>
         <!-- 工具编辑表单 -->
-        <div class="flex-1 overflow-y-auto space-y-4">
+        <div class="space-y-4 overflow-y-auto" style="max-height: 60vh">
           <!-- 基础信息 -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-2 theme-manager-text">函数名称 *</label>
-              <input
-                v-model="editingTool.function.name"
-                type="text"
+              <label class="block text-sm font-medium mb-2">函数名称 *</label>
+              <NInput
+                v-model:value="editingTool.function.name"
                 placeholder="例如: search_web"
-                class="w-full theme-manager-input text-sm"
-                :class="{ 'border-red-500': toolValidationErrors.name }"
-              >
+                :status="toolValidationErrors.name ? 'error' : undefined"
+              />
               <p v-if="toolValidationErrors.name" class="text-xs text-red-500 mt-1">
                 {{ toolValidationErrors.name }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-2 theme-manager-text">函数描述</label>
-              <input
-                v-model="editingTool.function.description"
-                type="text"
+              <label class="block text-sm font-medium mb-2">函数描述</label>
+              <NInput
+                v-model:value="editingTool.function.description"
                 placeholder="例如: 在网络上搜索信息"
-                class="w-full theme-manager-input text-sm"
-              >
+              />
             </div>
           </div>
           
           <!-- 参数定义 -->
           <div>
             <div class="flex items-center justify-between mb-3">
-              <label class="block text-sm font-medium theme-manager-text">参数定义 (JSON Schema)</label>
-              <div class="flex items-center gap-2">
-                <button
+              <label class="block text-sm font-medium">参数定义 (JSON Schema)</label>
+              <NSpace size="small">
+                <NButton
                   @click="addParameterExample"
-                  class="px-2 py-1 text-xs theme-manager-button-secondary"
+                  size="small"
                   title="添加示例参数"
                 >
                   + 示例
-                </button>
-                <button
+                </NButton>
+                <NButton
                   @click="validateToolParameters"
-                  class="px-2 py-1 text-xs theme-manager-button-secondary"
+                  size="small"
                   title="验证JSON格式"
                 >
                   验证
-                </button>
-              </div>
+                </NButton>
+              </NSpace>
             </div>
             
-            <textarea
-              v-model="toolParametersJson"
-              class="w-full h-48 theme-manager-input text-sm font-mono"
-              :class="{ 'border-red-500': toolValidationErrors.parameters }"
+            <NInput
+              v-model:value="toolParametersJson"
+              type="textarea"
+              :autosize="{ minRows: 12, maxRows: 12 }"
+              :status="toolValidationErrors.parameters ? 'error' : undefined"
               placeholder="请输入JSON Schema格式的参数定义..."
               @input="updateToolParameters"
-            ></textarea>
+              class="font-mono text-sm"
+            />
             <p v-if="toolValidationErrors.parameters" class="text-xs text-red-500 mt-1">
               {{ toolValidationErrors.parameters }}
             </p>
@@ -540,31 +424,32 @@
           
           <!-- 预览区域 -->
           <div>
-            <label class="block text-sm font-medium mb-2 theme-manager-text">工具预览</label>
-            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded border theme-manager-border">
-              <pre class="text-xs theme-manager-text-secondary whitespace-pre-wrap">{{ getToolPreview() }}</pre>
-            </div>
+            <label class="block text-sm font-medium mb-2">工具预览</label>
+            <NCard size="small" embedded>
+              <pre class="text-xs whitespace-pre-wrap">{{ getToolPreview() }}</pre>
+            </NCard>
           </div>
         </div>
-        
-        <div class="flex justify-end gap-2 pt-4 border-t theme-manager-border">
-          <button @click="showToolEditDialog = false" class="px-4 py-2 theme-manager-button-secondary">取消</button>
-          <button 
+      </template>
+      <template #action>
+        <NSpace justify="end">
+          <NButton @click="showToolEditDialog = false">取消</NButton>
+          <NButton 
             @click="saveEditingTool" 
             :disabled="!isToolValid"
-            class="px-4 py-2 theme-manager-button-primary"
-            :class="{ 'opacity-50 cursor-not-allowed': !isToolValid }"
+            type="primary"
           >
             {{ editingToolIndex >= 0 ? '保存' : '创建' }}
-          </button>
-        </div>
-      </div>
-    </div>
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { NCard, NButton, NTag, NModal, NInput, NDivider, NSelect, NSpace, NButtonGroup } from 'naive-ui'
 import { useClipboard } from '../composables/useClipboard'
 import { useContextEditor } from '../composables/useContextEditor'
 import type { StandardPromptData, StandardMessage, ToolDefinition } from '../types'
@@ -1215,65 +1100,6 @@ watch(messages, () => {
   min-width: 280px;
 }
 
-/* 角色下拉框样式 */
-.message-header select {
-  min-width: 80px;
-  width: auto;
-}
-
-/* 文本区域自动调整高度 */
-.message-content textarea {
-  resize: vertical;
-  overflow: hidden;
-}
-
-/* 深色模式适配 */
-.dark .variable-extraction-panel {
-  background-color: #1f2937;
-  border-color: #374151;
-}
-
-/* 滚动条样式 */
-.editor-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.editor-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.editor-content::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
-  border-radius: 4px;
-}
-
-.editor-content::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
-}
-
-.dark .editor-content::-webkit-scrollbar-thumb {
-  background: #4b5563;
-}
-
-.dark .editor-content::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-/* 预览框样式 */
-.preview-box {
-  background-color: #f9fafb;
-  border-radius: 4px;
-  min-height: 120px;
-  padding: 8px;
-  overflow-y: auto;
-  word-wrap: break-word;
-}
-
-.dark .preview-box {
-  background-color: #374151;
-  color: #f9fafb;
-}
-
 /* 变量高亮 */
 :deep(.variable-replaced) {
   background-color: rgba(22, 101, 52, 0.2);
@@ -1297,16 +1123,5 @@ watch(messages, () => {
 .dark :deep(.variable-missing) {
   background-color: rgba(220, 38, 38, 0.3);
   color: #fca5a5;
-}
-
-/* 缺失变量提示样式 */
-.variable-missing-hint {
-  background-color: #fef3c7;
-  border-color: #f59e0b;
-}
-
-.dark .variable-missing-hint {
-  background-color: rgba(245, 158, 11, 0.1);
-  border-color: #f59e0b;
 }
 </style>

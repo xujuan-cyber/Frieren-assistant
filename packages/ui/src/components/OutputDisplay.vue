@@ -13,6 +13,7 @@
     :loading="loading"
     :streaming="streaming"
     :compareService="compareService"
+    :style="{ height: '100%', maxHeight: '100%', flex: 1, minHeight: 0, overflow: 'hidden' }"
     @update:content="emit('update:content', $event)"
     @update:reasoning="emit('update:reasoning', $event)"
     @copy="handleCopy"
@@ -21,7 +22,6 @@
     @edit-end="emit('edit-end')"
     @reasoning-toggle="emit('reasoning-toggle', $event)"
     @view-change="emit('view-change', $event)"
-    @reasoning-auto-hide="emit('reasoning-auto-hide')"
   />
   <OutputDisplayFullscreen
     v-model="isShowingFullscreen"

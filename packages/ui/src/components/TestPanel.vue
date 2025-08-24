@@ -1,138 +1,165 @@
 <template>
-  <ContentCardUI>
-    <div class="flex flex-col h-full">
-      <!-- Test Input Area -->
-      <div class="flex-none">
-        <!-- Show test input only for system prompt optimization -->
-        <InputPanelUI
-          v-if="optimizationMode === 'system'"
-          v-model="testContent"
-          v-model:selectedModel="selectedTestModel"
-          :label="t('test.content')"
-          :placeholder="t('test.placeholder')"
-          :model-label="t('test.model')"
-          :button-text="isCompareMode ? t('test.startCompare') : t('test.startTest')"
-          :loading-text="t('test.testing')"
-          :loading="isTesting"
-          :disabled="isTesting"
-          @submit="handleTest"
-          @configModel="$emit('showConfig')"
-        >
-          <template #model-select>
+  <NFlex vertical :style="{ flex: 1, overflow: 'auto', height: '100%' }">
+    <!-- Test Input Area -->
+    <NCard size="small" 
+    content-style="height: 30%; max-height: 30%;"
+    >
+      <!-- Show test input only for system prompt optimization -->
+      <InputPanelUI
+        v-if="optimizationMode === 'system'"
+        v-model="testContent"
+        v-model:selectedModel="selectedTestModel"
+        :label="t('test.content')"
+        :placeholder="t('test.placeholder')"
+        :model-label="t('test.model')"
+        :button-text="isCompareMode ? t('test.startCompare') : t('test.startTest')"
+        :loading-text="t('test.testing')"
+        :loading="isTesting"
+        :disabled="isTesting"
+        @submit="handleTest"
+        @configModel="$emit('showConfig')"
+      >
+        <template #model-select>
+          <ModelSelectUI
+            ref="testModelSelect"
+            :modelValue="selectedTestModel"
+            @update:modelValue="updateSelectedModel"
+            :disabled="isTesting"
+            @config="$emit('showConfig')"
+          />
+        </template>
+        <template #control-buttons>
+          <NSpace align="center" class="flex-1">
+            <NSpace>
+              <NButton
+                @click="isCompareMode = !isCompareMode"
+                :type="isCompareMode ? 'primary' : 'default'"
+                size="medium"
+                class="h-10 text-sm whitespace-nowrap"
+              >
+                {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
+              </NButton>
+            </NSpace>
+          </NSpace>
+        </template>
+      </InputPanelUI>
+
+      <!-- For user prompt optimization, show simplified test controls -->
+      <NCard v-else
+       :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
+          content-style="height: 100%; max-height: 100%; overflow: hidden;"
+          >
+
+        <NFlex justify="space-between" align="center">
+          <span class="text-lg font-medium">{{ t('test.userPromptTest') }}</span>
+          <NSpace size="medium">
             <ModelSelectUI
               ref="testModelSelect"
               :modelValue="selectedTestModel"
               @update:modelValue="updateSelectedModel"
               :disabled="isTesting"
               @config="$emit('showConfig')"
+              class="w-48"
             />
-          </template>
-          <template #control-buttons>
-            <div class="flex-1">
-              <div class="h-[20px] mb-1.5"><!-- 占位，与其他元素对齐 --></div>
-              <div class="flex items-center gap-2">
-                <button
-                  @click="isCompareMode = !isCompareMode"
-                  class="h-10 text-sm whitespace-nowrap"
-                  :class="isCompareMode ? 'theme-button-primary' : 'theme-button-secondary'"
-                >
-                  {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
-                </button>
-              </div>
-            </div>
-          </template>
-        </InputPanelUI>
+            <NButton
+              @click="isCompareMode = !isCompareMode"
+              :type="isCompareMode ? 'primary' : 'default'"
+              size="medium"
+              class="h-10 text-sm whitespace-nowrap"
+            >
+              {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
+            </NButton>
+            <NButton
+              @click="handleTest"
+              :disabled="isTesting || !selectedTestModel"
+              :loading="isTesting"
+              type="primary"
+              size="medium"
+              class="h-10 px-4 text-sm font-medium"
+            >
+              {{ isTesting ? t('test.testing') : (isCompareMode ? t('test.startCompare') : t('test.startTest')) }}
+            </NButton>
+          </NSpace>
+        </NFlex>
+      </NCard>
+    </NCard>
 
-        <!-- For user prompt optimization, show simplified test controls -->
-        <div v-else class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-medium theme-text">{{ t('test.userPromptTest') }}</h3>
-            <div class="flex items-center gap-2">
-              <ModelSelectUI
-                ref="testModelSelect"
-                :modelValue="selectedTestModel"
-                @update:modelValue="updateSelectedModel"
-                :disabled="isTesting"
-                @config="$emit('showConfig')"
-                class="w-48"
-              />
-              <button
-                @click="isCompareMode = !isCompareMode"
-                class="h-10 text-sm whitespace-nowrap"
-                :class="isCompareMode ? 'theme-button-primary' : 'theme-button-secondary'"
-              >
-                {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
-              </button>
-              <button
-                @click="handleTest"
-                :disabled="isTesting || !selectedTestModel"
-                class="h-10 px-4 text-sm font-medium theme-button-primary"
-              >
-                {{ isTesting ? t('test.testing') : (isCompareMode ? t('test.startCompare') : t('test.startTest')) }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Test Results Area -->
-      <div class="flex-1 min-h-0 md:overflow-hidden overflow-visible mt-5">
-        <div class="relative h-full flex flex-col md:block">
-          <!-- Original Prompt Test Result -->
-          <div
-            v-show="isCompareMode"
-            class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px] mb-4 md:mb-0 md:absolute md:inset-0 md:h-full md:w-[calc(50%-6px)] md:mr-3"
-            :style="{
-              height: isCompareMode ? 'auto' : '0',
-              opacity: isCompareMode ? 1 : 0,
-              pointerEvents: isCompareMode ? 'auto' : 'none'
-            }"
+    <!-- Test Results Area -->
+    <NCard :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
+    content-style="height: 100%; max-height: 100%; overflow: hidden;"
+    >
+      <!-- 使用 NFlex 组件实现左右布局 -->
+      <NFlex 
+        v-if="isCompareMode" 
+        justify="space-between" 
+        :style="{ flex: 1, overflow: 'hidden', height: '100%' }"
+      >
+        <!-- 原始提示词结果 -->
+        <NCard 
+          size="small" 
+          :style="{ flex: 1, height: '100%', overflow: 'hidden' }"
+          content-style="height: 100%; max-height: 100%; overflow: hidden;"
           >
-            <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">{{ t('test.originalResult') }}</h3>
-            <OutputDisplay
-              :content="originalTestResult"
-              :reasoning="originalTestReasoning"
-              :streaming="isTestingOriginal"
-              :enableDiff="false"
-              mode="readonly"
-              class="flex-1 min-h-0"
-            />
-          </div>
+          <template #header>
+            <span class="text-lg font-semibold">
+              {{ t('test.originalResult') }}
+            </span>
+          </template>
+          <OutputDisplay
+            :content="originalTestResult"
+            :reasoning="originalTestReasoning"
+            :streaming="isTestingOriginal"
+            :enableDiff="false"
+            mode="readonly"
+          />
+        </NCard>
+        
+        <!-- 优化后提示词结果 -->
+        <NCard 
+          size="small" 
+          :style="{ flex: 1, height: '100%', overflow: 'hidden' }"
+          content-style="height: 100%; max-height: 100%; overflow: hidden;"
+        >
+          <template #header>
+            <span class="text-lg font-semibold">
+              {{ t('test.optimizedResult') }}
+            </span>
+          </template>
+          <OutputDisplay
+            :content="optimizedTestResult"
+            :reasoning="optimizedTestReasoning"
+            :streaming="isTestingOptimized"
+            :enableDiff="false"
+            mode="readonly"
+          />
+        </NCard>
+      </NFlex>
+      
+      <!-- 单一结果模式 -->
+      <NCard v-else size="small">
+        <template #header>
+          <span class="text-lg font-semibold">
+            {{ t('test.testResult') }}
+          </span>
+        </template>
+        <OutputDisplay
+          :content="optimizedTestResult"
+          :reasoning="optimizedTestReasoning"
+          :streaming="isTestingOptimized"
+          :enableDiff="false"
+          mode="readonly"
+        />
+      </NCard>
 
-          <!-- Optimized Prompt Test Result -->
-          <div
-            class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px]"
-            :style="{
-              height: isCompareMode ? 'auto' : '100%'
-            }"
-            :class="{
-              'md:absolute md:inset-0 md:h-full md:w-[calc(50%-6px)] md:left-[calc(50%+6px)]': isCompareMode,
-              'md:absolute md:inset-0 md:h-full md:w-full md:left-0': !isCompareMode
-            }"
-          >
-            <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">
-              {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
-            </h3>
-            <OutputDisplay
-              :content="optimizedTestResult"
-              :reasoning="optimizedTestReasoning"
-              :streaming="isTestingOptimized"
-              :enableDiff="false"
-              mode="readonly"
-              class="flex-1 min-h-0"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </ContentCardUI>
+    </NCard>
+  </NFlex>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, withKeys } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NButton, NFlex, NCard, NSpace } from 'naive-ui'
 import { useToast } from '../composables/useToast'
-import ContentCardUI from './ContentCard.vue'
 import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
 import OutputDisplay from './OutputDisplay.vue'
@@ -360,21 +387,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.theme-checkbox {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-/* 小屏幕下允许容器自由扩展 */
-@media (max-width: 767px) {
-  .min-h-\[80px\] {
-    min-height: 120px !important; /* 增加小屏幕下的最小高度 */
-  }
-  
-  /* 确保OutputPanel可以正确扩展 */
-  .flex-1 {
-    flex: 1 0 auto;
-  }
-}
+/* 使用 Naive UI 组件，无需额外样式 */
 </style>

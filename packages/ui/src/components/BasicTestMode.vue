@@ -30,28 +30,26 @@
           <div class="flex-1">
             <div class="h-[20px] mb-1.5"><!-- 占位，与其他元素对齐 --></div>
             <div class="flex items-center gap-2">
-              <button
+              <NButton
                 @click="toggleCompareMode"
+                :type="isCompareMode ? 'primary' : 'default'"
+                size="medium"
                 class="h-10 text-sm whitespace-nowrap"
-                :class="isCompareMode ? 'theme-button-primary' : 'theme-button-secondary'"
               >
                 {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
-              </button>
+              </NButton>
             </div>
           </div>
         </template>
       </InputPanelUI>
 
       <!-- For user prompt optimization, show simplified test controls -->
-      <div
-        v-else
-        class="p-4 theme-bg-card border theme-border rounded-lg"
-      >
+      <NCard v-else size="medium" class="mb-0">
         <div class="flex items-center gap-4">
           <div class="flex-1">
-            <label class="block text-sm font-medium theme-text mb-2">
+            <div class="block text-sm font-medium mb-2">
               {{ t('test.model') }}
-            </label>
+            </div>
             <ModelSelectUI
               ref="testModelSelect"
               :modelValue="internalSelectedModel"
@@ -61,23 +59,27 @@
             />
           </div>
           <div class="flex items-center gap-2">
-            <button
+            <NButton
               @click="toggleCompareMode"
+              :type="isCompareMode ? 'primary' : 'default'"
+              size="medium"
               class="h-10 text-sm whitespace-nowrap"
-              :class="isCompareMode ? 'theme-button-primary' : 'theme-button-secondary'"
             >
               {{ isCompareMode ? t('test.toggleCompare.disable') : t('test.toggleCompare.enable') }}
-            </button>
-            <button
+            </NButton>
+            <NButton
               @click="handleTest"
               :disabled="isTesting || !internalSelectedModel"
-              class="h-10 px-4 text-sm font-medium theme-button-primary"
+              :loading="isTesting"
+              type="primary"
+              size="medium"
+              class="h-10 px-4 text-sm font-medium"
             >
               {{ isTesting ? t('test.testing') : (isCompareMode ? t('test.startCompare') : t('test.startTest')) }}
-            </button>
+            </NButton>
           </div>
         </div>
-      </div>
+      </NCard>
     </div>
 
     <!-- Test Results Area -->
@@ -101,7 +103,7 @@
             'hidden': !isCompareMode
           }"
         >
-          <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">
+          <h3 class="text-lg font-semibold truncate mb-3 flex-none">
             {{ t('test.originalResult') }}
           </h3>
           <OutputDisplay
@@ -125,7 +127,7 @@
             'md:absolute md:inset-0 md:h-full md:w-full md:left-0': !isCompareMode
           }"
         >
-          <h3 class="text-lg font-semibold theme-text truncate mb-3 flex-none">
+          <h3 class="text-lg font-semibold truncate mb-3 flex-none">
             {{ isCompareMode ? t('test.optimizedResult') : t('test.testResult') }}
           </h3>
           <OutputDisplay
@@ -145,6 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NButton, NCard } from 'naive-ui'
 import { useToast } from '../composables/useToast'
 import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'
@@ -362,49 +365,3 @@ watch(() => props.selectedModel, (newVal) => {
 })
 </script>
 
-<style scoped>
-.theme-bg-card {
-  background-color: white;
-}
-
-.theme-border {
-  border-color: #d1d5db;
-}
-
-.theme-text {
-  color: #111827;
-}
-
-.theme-button-primary {
-  background-color: #2563eb;
-  color: white;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-}
-
-.theme-button-primary:hover {
-  background-color: #1d4ed8;
-}
-
-@media (prefers-color-scheme: dark) {
-  .theme-bg-card {
-    background-color: #111827;
-  }
-
-  .theme-border {
-    border-color: #4b5563;
-  }
-
-  .theme-text {
-    color: #f9fafb;
-  }
-
-  .theme-button-primary {
-    background-color: #3b82f6;
-  }
-
-  .theme-button-primary:hover {
-    background-color: #2563eb;
-  }
-}
-</style>

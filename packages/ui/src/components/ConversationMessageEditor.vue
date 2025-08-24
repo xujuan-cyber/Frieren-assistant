@@ -1,145 +1,138 @@
 <template>
   <!-- 紧凑行式布局 -->
-  <div class="compact-message-row" 
+  <NCard size="small" class="compact-message-row" 
        :class="{ 'has-variables': detectedVariables.length > 0, 'has-missing': missingVariables.length > 0 }">
     
-    <!-- 序号 -->
-    <div class="message-index">
-      <span class="text-xs theme-manager-text-secondary font-mono">
-        #{{ index + 1 }}
-      </span>
+    <!-- 消息头部信息 -->
+    <div class="message-header flex items-center justify-between mb-2">
+      <NSpace size="small" align="center">
+        <!-- 序号 -->
+        <NTag size="small" type="default">
+          #{{ index + 1 }}
+        </NTag>
+        
+        <!-- 角色选择 -->
+        <NSelect 
+          v-model:value="localMessage.role" 
+          @update:value="handleRoleChange"
+          size="small"
+          style="width: 80px"
+          :disabled="disabled"
+          :options="[
+            { label: t('conversation.roles.system'), value: 'system' },
+            { label: t('conversation.roles.user'), value: 'user' },
+            { label: t('conversation.roles.assistant'), value: 'assistant' }
+          ]"
+        />
+        
+        <!-- 变量信息显示 -->
+        <NSpace v-if="detectedVariables.length > 0" size="small">
+          <NTag size="tiny" type="info">
+            变量: {{ detectedVariables.length }}
+          </NTag>
+          <NTag v-if="missingVariables.length > 0" size="tiny" type="warning">
+            缺失: {{ missingVariables.length }}
+          </NTag>
+        </NSpace>
+      </NSpace>
+      
+      <!-- 操作按钮组 -->
+      <NButtonGroup size="tiny">
+        <!-- 预览切换按钮 -->
+        <NButton
+          @click="togglePreview"
+          :type="showPreview ? 'primary' : 'default'"
+          title="切换预览"
+        >
+          👁️
+        </NButton>
+        <NButton
+          v-if="canMoveUp"
+          @click="$emit('move-up')"
+          :disabled="disabled"
+          title="上移"
+        >
+          ↑
+        </NButton>
+        <NButton
+          v-if="canMoveDown"
+          @click="$emit('move-down')"
+          :disabled="disabled"
+          title="下移"
+        >
+          ↓
+        </NButton>
+        <NButton
+          @click="$emit('delete')"
+          :disabled="disabled || !canDelete"
+          type="error"
+          title="删除"
+        >
+          🗑️
+        </NButton>
+        <NButton
+          @click="openFullscreenEdit"
+          title="全屏编辑"
+        >
+          ⛶
+        </NButton>
+      </NButtonGroup>
     </div>
     
-    <!-- 角色选择 -->
-    <div class="role-selector">
-      <select 
-        v-model="localMessage.role" 
-        @change="handleRoleChange"
-        class="theme-manager-input text-xs py-1 px-2"
-        :disabled="disabled"
-      >
-        <option value="system">{{ t('conversation.roles.system') }}</option>
-        <option value="user">{{ t('conversation.roles.user') }}</option>
-        <option value="assistant">{{ t('conversation.roles.assistant') }}</option>
-      </select>
-    </div>
-    
-    <!-- 内容编辑区 - 动态高度 -->
-    <div class="content-area flex-1">
+    <!-- 内容编辑区 -->
+    <div class="content-area">
       <!-- 编辑模式 -->
       <div v-if="!showPreview && !showFullscreen">
-        <textarea
+        <NInput
           ref="contentTextarea"
-          v-model="localMessage.content"
+          v-model:value="localMessage.content"
           @input="handleContentChange"
           @blur="handleBlur"
-          class="compact-textarea theme-manager-input w-full resize-none"
-          :class="textareaClasses"
+          type="textarea"
           :placeholder="contentPlaceholder"
           :disabled="disabled"
-          :rows="dynamicRows"
+          :autosize="{ minRows: dynamicRows, maxRows: 10 }"
+          size="small"
         />
       </div>
       
       <!-- 预览模式 -->
       <div v-else-if="showPreview && !showFullscreen" class="preview-content">
-        <div class="compact-preview" 
-             :class="textareaClasses"
-             v-html="previewHtml"></div>
+        <NCard size="small" embedded class="compact-preview" v-html="previewHtml"></NCard>
       </div>
       
       <!-- 全屏编辑占位 -->
       <div v-else-if="showFullscreen" class="fullscreen-placeholder">
-        <span class="text-xs theme-manager-text-secondary italic">
+        <span class="text-xs italic">
           {{ t('conversation.editingInFullscreen') }}
         </span>
       </div>
       
       <!-- 变量提示（缺失变量时显示） -->
-      <div v-if="missingVariables.length > 0" class="variable-hint">
-        <span class="text-xs text-amber-600">
-          {{ t('conversation.missingVars') }}: 
-          <span
+      <NCard v-if="missingVariables.length > 0" size="small" class="variable-hint mt-2">
+        <NSpace size="small" align="center">
+          <NTag size="tiny" type="warning">
+            {{ t('conversation.missingVars') }}:
+          </NTag>
+          <NButton
             v-for="variable in missingVariables.slice(0, 3)"
             :key="variable"
-            class="inline-flex items-center gap-1 mr-2"
+            @click="handleCreateVariableAndOpenManager(variable)"
+            size="tiny"
+            text
+            type="warning"
+            :title="t('conversation.clickToCreateVariable')"
           >
-            <button
-              @click="handleCreateVariableAndOpenManager(variable)"
-              class="variable-missing-btn"
-              :title="t('conversation.clickToCreateVariable')"
-            >
-              {{ variable }}
-            </button>
-            <button
-              @click="copyVariableToClipboard(variable)"
-              class="variable-copy-btn"
-              :title="t('conversation.clickToCopyVariable')"
-            >
-              📋
-            </button>
-          </span>
-          <span v-if="missingVariables.length > 3" class="text-xs text-amber-600">
+            {{ variable }}
+          </NButton>
+          <NTag v-if="missingVariables.length > 3" size="tiny" type="warning">
             ... +{{ missingVariables.length - 3 }}
-          </span>
-        </span>
-      </div>
+          </NTag>
+        </NSpace>
+      </NCard>
     </div>
     
-    <!-- 操作栏 -->
-    <div class="action-bar">
-      <!-- 预览切换 -->
-      <button
-        v-if="!disabled"
-        @click="togglePreview"
-        class="action-btn"
-        :class="{ 'active': showPreview }"
-        :title="showPreview ? t('conversation.hidePreview') : t('conversation.showPreview')"
-      >
-        👁️
-      </button>
-      
-      <!-- 上移 -->
-      <button
-        v-if="!disabled && canMoveUp"
-        @click="$emit('move-up')"
-        class="action-btn"
-        :title="t('conversation.moveUp')"
-      >
-        ↑
-      </button>
-      
-      <!-- 下移 -->
-      <button
-        v-if="!disabled && canMoveDown"
-        @click="$emit('move-down')"
-        class="action-btn"
-        :title="t('conversation.moveDown')"
-      >
-        ↓
-      </button>
-      
-      <!-- 删除 -->
-      <button
-        v-if="!disabled && canDelete"
-        @click="$emit('delete')"
-        class="action-btn delete-btn"
-        :title="t('conversation.deleteMessage')"
-      >
-        🗑️
-      </button>
-      
-      <!-- 全屏编辑 -->
-      <button
-        v-if="!disabled"
-        @click="openFullscreenEdit"
-        class="action-btn"
-        :title="t('conversation.fullscreenEdit')"
-      >
-        ⛶
-      </button>
-    </div>
-  </div>
+  </NCard>
   
   <!-- 全屏编辑模态框 -->
   <div v-if="showFullscreen" class="fullscreen-modal">
@@ -147,37 +140,39 @@
     <div class="fullscreen-content">
       <div class="fullscreen-header">
         <div class="flex items-center gap-3">
-          <h3 class="text-lg font-semibold theme-manager-text">
+          <h3 class="text-lg font-semibold">
             {{ t('conversation.editMessage') }} #{{ index + 1 }} ({{ t(`conversation.roles.${localMessage.role}`) }})
           </h3>
-          <div v-if="detectedVariables.length > 0" class="text-sm theme-manager-text-secondary">
+          <div v-if="detectedVariables.length > 0" class="text-sm text-gray-500">
             {{ t('conversation.variablesDetected') }}: {{ detectedVariables.join(', ') }}
           </div>
         </div>
         <div class="flex gap-2">
-          <button @click="toggleFullscreenPreview" class="theme-manager-button-secondary">
+          <NButton @click="toggleFullscreenPreview" secondary size="small">
             {{ showFullscreenPreview ? t('conversation.edit') : t('conversation.preview') }}
-          </button>
-          <button @click="closeFullscreenEdit" class="theme-manager-button-secondary">
+          </NButton>
+          <NButton @click="closeFullscreenEdit" secondary size="small">
             {{ t('common.close') }}
-          </button>
+          </NButton>
         </div>
       </div>
       
       <div class="fullscreen-body">
         <div v-if="!showFullscreenPreview" class="edit-area">
-          <textarea
-            v-model="localMessage.content"
+          <NInput
+            v-model:value="localMessage.content"
             @input="handleContentChange"
-            class="theme-manager-input w-full h-full resize-none"
+            type="textarea"
             :placeholder="contentPlaceholder"
+            :autosize="{ minRows: 15, maxRows: 15 }"
+            class="w-full"
           />
         </div>
-        <div v-else class="preview-area theme-manager-code-block" v-html="previewHtml"></div>
+        <div v-else class="preview-area" v-html="previewHtml"></div>
         
         <!-- 变量信息 -->
         <div v-if="detectedVariables.length > 0" class="variable-info">
-          <div class="text-sm theme-manager-text">
+          <div class="text-sm">
             <strong>{{ t('conversation.detectedVariables') }}:</strong> {{ detectedVariables.join(', ') }}
           </div>
           <div v-if="missingVariables.length > 0" class="text-sm text-amber-600 mt-1">
@@ -191,6 +186,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { NCard, NSelect, NInput, NTag, NButton, NButtonGroup, NSpace } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { ConversationMessage } from '../types/variable'
 
@@ -253,7 +249,10 @@ const contentPlaceholder = computed(() => {
 
 const detectedVariables = computed(() => {
   if (!props.scanVariables) return []
-  return props.scanVariables(localMessage.value.content)
+  if (!localMessage.value) return []
+  
+  const content = localMessage.value.content || ''
+  return props.scanVariables(content)
 })
 
 const missingVariables = computed(() => {
@@ -264,8 +263,10 @@ const missingVariables = computed(() => {
 
 // 动态行数计算
 const dynamicRows = computed(() => {
+  if (!localMessage.value) return 1
+  
   const content = localMessage.value.content
-  if (!content) return 1
+  if (!content || typeof content !== 'string') return 1
   
   const lineCount = content.split('\n').length
   const charLength = content.length
@@ -284,10 +285,13 @@ const textareaClasses = computed(() => ({
 }))
 
 const previewHtml = computed(() => {
-  if (!props.replaceVariables) return localMessage.value.content
+  if (!localMessage.value) return ''
+  
+  const content = localMessage.value.content || ''
+  if (!props.replaceVariables) return content
   
   const replaced = props.replaceVariables(
-    localMessage.value.content, 
+    content, 
     props.availableVariables
   )
   
@@ -390,100 +394,33 @@ watch(missingVariables, (newMissing) => {
 </script>
 
 <style scoped>
-/* 紧凑行式消息编辑器样式 */
+/* 紧凑行式消息编辑器样式 - 使用 Naive UI NCard 原生布局 */
 .compact-message-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  /* 移除 display: flex，使用 Naive UI NCard 内置布局 */
   transition: all 0.2s;
-  border: 1px solid transparent;
 }
 
+/* NCard hover 效果由 Naive UI 控制 */
 .compact-message-row:hover {
-  background-color: #f8fafc;
-  border-color: #e5e7eb;
+  /* 让 Naive UI NCard 处理 hover 效果 */
 }
 
+/* 变量缺失状态指示 */
 .compact-message-row.has-missing {
   border-left: 3px solid #f59e0b;
 }
 
-/* 序号 */
-.message-index {
-  width: 24px;
-  flex-shrink: 0;
-  text-align: center;
-  padding-top: 4px;
-}
-
-/* 角色选择器 */
-.role-selector {
-  width: 80px;
-  flex-shrink: 0;
-}
-
-.role-selector select {
-  width: 100%;
-  min-height: 28px;
-}
-
 /* 内容区域 */
 .content-area {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
-.compact-textarea {
-  border: 1px solid #d1d5db;
-  font-size: 13px;
-  line-height: 1.4;
-  padding: 4px 8px;
-  transition: all 0.2s;
+/* 变量提示区域 */
+.variable-hint {
+  margin-top: 8px;
 }
 
-.compact-textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
-}
-
-.compact-textarea.single-line {
-  min-height: 28px;
-  max-height: 28px;
-}
-
-.compact-textarea.two-lines {
-  min-height: 48px;
-  max-height: 48px;
-}
-
-.compact-textarea.three-lines {
-  min-height: 68px;
-  max-height: 68px;
-}
-
-.compact-preview {
-  border: 1px solid #d1d5db;
-  font-size: 13px;
-  line-height: 1.4;
-  padding: 4px 8px;
-  background-color: #f9fafb;
-  border-radius: 4px;
-}
-
-.compact-preview.single-line {
-  min-height: 28px;
-}
-
-.compact-preview.two-lines {
-  min-height: 48px;
-}
-
-.compact-preview.three-lines {
-  min-height: 68px;
-}
-
+/* 全屏编辑占位符 */
 .fullscreen-placeholder {
   padding: 4px 8px;
   border: 1px dashed #d1d5db;

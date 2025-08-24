@@ -1,73 +1,46 @@
 <template>
   <div class="relative">
-    <button
-      @click.stop="isOpen = !isOpen"
-      class="theme-template-select-button"
+    <NSelect
+      :value="modelValue?.id || null"
+      @update:value="handleTemplateSelect"
+      :options="selectOptions"
+      :placeholder="t('template.select')"
+      :loading="!isReady"
+      :render-label="renderLabel"
+      :render-tag="renderTag"
+      class="modern-template-select"
+      size="medium"
+      @focus="handleFocus"
     >
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2 min-w-0">
-          <span v-if="modelValue" class="theme-text truncate">
-            {{ modelValue.name }}
-          </span>
-          <span v-else class="theme-placeholder">
-            {{ t('template.select') }}
-          </span>
+      <template #empty>
+        <div class="text-center py-4 text-gray-500">
+          {{ t('template.noAvailableTemplates') }}
         </div>
-        <span class="theme-text">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-          </svg>
-        </span>
-      </div>
-    </button>
-
-    <div v-if="isOpen" 
-         class="theme-dropdown"
-         :style="dropdownStyle"
-         @click.stop
-         v-click-outside="() => isOpen = false"
-    >
-      <div class="p-2 max-h-64 overflow-y-auto">
-        <div v-for="template in templates" 
-             :key="template.id"
-             @click="selectTemplate(template)"
-             class="theme-dropdown-item"
-             :class="[
-               modelValue?.id === template.id
-                 ? 'theme-dropdown-item-active'
-                 : 'theme-dropdown-item-inactive'
-             ]"
-        >
-          <div class="flex items-center justify-between">
-            <span>{{ template.name }}</span>
-            <span v-if="template.isBuiltin" 
-                  class="text-xs px-1.5 py-0.5 rounded theme-dropdown-item-tag">
-              {{ t('common.builtin') }}
-            </span>
-          </div>
-          <p class="text-xs theme-dropdown-item-description mt-1"
-             :title="template.metadata.description || t('template.noDescription')">
-            {{ template.metadata.description || t('template.noDescription') }}
-          </p>
-        </div>
-      </div>
-      <div class="theme-dropdown-section">
-        <button
-          @click="$emit('manage', props.type)"
-          class="theme-dropdown-config-button"
-        >
+      </template>
+    </NSelect>
+    
+    <!-- 配置按钮 -->
+    <div class="mt-2">
+      <NButton
+        type="tertiary" 
+        size="small"
+        @click="$emit('manage', props.type)"
+        class="w-full"
+        ghost
+      >
+        <template #icon>
           <span>📝</span>
-          <span>{{ t('template.configure') }}</span>
-        </button>
-      </div>
+        </template>
+        {{ t('template.configure') }}
+      </NButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, inject, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { clickOutside } from '../directives/clickOutside'
+import { NSelect, NButton, NTag } from 'naive-ui'
 import type { OptimizationMode, ITemplateManager, Template } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { Ref } from 'vue'
@@ -93,15 +66,12 @@ const props = defineProps({
   // 移除services prop，统一使用inject
 })
 
-const vClickOutside = clickOutside
 const emit = defineEmits<{
   'update:modelValue': [template: Template | null]
   'manage': [type: TemplateType]
   'select': [template: Template, showToast?: boolean]
 }>()
 
-const isOpen = ref(false)
-const dropdownStyle = ref<Record<string, string>>({})
 const isReady = ref(false)
 
 // 通过inject获取services，要求不能为null
@@ -130,51 +100,56 @@ const templateManager = computed(() => {
   return manager
 })
 
-// 计算下拉菜单位置
-const updateDropdownPosition = () => {
-  if (!isOpen.value) return
-  
-  // 获取按钮元素
-  const button = document.querySelector('.theme-template-select-button')
-  if (!button) return
-
-  const buttonRect = button.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-  
-  // 计算右侧剩余空间
-  const rightSpace = viewportWidth - buttonRect.right
-  
-  // 如果右侧空间不足，则向左对齐
-  if (rightSpace < 300) {
-    dropdownStyle.value = {
-      right: '0',
-      left: 'auto'
-    }
-  } else {
-    dropdownStyle.value = {
-      left: '0',
-      right: 'auto'
-    }
-  }
-}
-
-// 监听窗口大小变化
-const handleResize = () => {
-  updateDropdownPosition()
-}
-
-// 监听下拉框打开状态
-watch(isOpen, async (newValue) => {
-  if (newValue) {
-    // 确保列表已加载
-    if (!isReady.value) {
-      await ensureTemplateManagerReady()
-    }
-    nextTick(() => {
-      updateDropdownPosition()
-    })
-  }
+// 选择框选项
+const selectOptions = computed(() => {
+  return templates.value.map(template => ({
+    label: template.name,
+    value: template.id,
+    template: template,
+    isBuiltin: template.isBuiltin,
+    description: template.metadata.description || t('template.noDescription')
+  }))
 })
+
+// 渲染标签函数 - 用于下拉列表中的选项显示
+const renderLabel = (option: any) => {
+  return h('div', { class: 'flex items-center justify-between w-full py-2' }, [
+    h('div', { class: 'flex flex-col flex-1' }, [
+      h('span', { class: 'text-sm font-medium' }, option.label),
+      h('p', { 
+        class: 'text-xs opacity-75 mt-1 leading-tight',
+        title: option.description
+      }, option.description)
+    ]),
+    option.isBuiltin ? h(NTag, { 
+      size: 'small',
+      type: 'primary',
+      class: 'ml-3 flex-shrink-0'
+    }, { default: () => t('common.builtin') }) : null
+  ])
+}
+
+// 渲染选中项 - 只显示名称，保持简洁
+const renderTag = ({ option }: any) => {
+  return h('span', { class: 'text-sm' }, option.label)
+}
+
+// 处理模板选择
+const handleTemplateSelect = (value: string | null) => {
+  const template = templates.value.find(t => t.id === value) || null
+  if (template && template.id !== props.modelValue?.id) {
+    emit('update:modelValue', template)
+    emit('select', template, true)
+  }
+}
+
+// 处理焦点事件
+const handleFocus = async () => {
+  if (!isReady.value) {
+    await ensureTemplateManagerReady()
+    await loadTemplatesByType()
+  }
+}
 
 // 确保模板管理器已准备就绪
 const ensureTemplateManagerReady = async () => {
@@ -342,24 +317,20 @@ const refreshTemplates = async () => {
 defineExpose({
   refresh: refreshTemplates
 })
-
-const selectTemplate = (template: Template) => {
-  // 避免选择相同模板时的重复调用
-  if (template.id === props.modelValue?.id) {
-    isOpen.value = false
-    return
-  }
-
-  emit('update:modelValue', template)
-  // 用户主动选择时显示toast（传递true参数）
-  emit('select', template, true)
-  isOpen.value = false
-  // 选择后不需要再次刷新列表，避免连锁反应
-}
 </script>
 
 <style scoped>
-.theme-template-select-button {
-  position: relative;
+.modern-template-select {
+  transition: all 0.3s ease;
+}
+
+/* 隐藏勾选标志 */
+.modern-template-select :deep(.n-base-select-option__check) {
+  display: none;
+}
+
+/* 优化下拉项的间距 */
+.modern-template-select :deep(.n-base-select-option) {
+  padding: 8px 12px;
 }
 </style> 

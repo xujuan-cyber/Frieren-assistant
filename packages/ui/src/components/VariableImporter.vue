@@ -1,170 +1,165 @@
 <template>
-  <div class="modal-overlay" @click="cancel">
-    <div class="modal-container" @click.stop>
-      <!-- 弹窗头部 -->
-      <div class="modal-header">
-        <h3 class="modal-title">{{ t('variables.importer.title') }}</h3>
-        <button class="close-button" @click="cancel" :title="t('common.cancel')">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
-          </svg>
-        </button>
-      </div>
+  <NModal 
+    :show="true" 
+    preset="card" 
+    :title="t('variables.importer.title')"
+    size="large"
+    :segmented="{ content: true }"
+    style="width: 700px;"
+    @close="cancel"
+    :mask-closable="false"
+  >
 
-      <!-- 弹窗内容 -->
-      <div class="modal-content">
-        <!-- 导入方式选择 -->
-        <div class="import-methods">
-          <div class="method-tabs">
-            <button 
-              class="method-tab"
-              :class="{ 'active': activeMethod === 'file' }"
-              @click="activeMethod = 'file'"
-            >
-              {{ t('variables.importer.fromFile') }}
-            </button>
-            <button 
-              class="method-tab"
-              :class="{ 'active': activeMethod === 'text' }"
-              @click="activeMethod = 'text'"
-            >
-              {{ t('variables.importer.fromText') }}
-            </button>
-          </div>
-        </div>
+    <!-- 导入方式选择 -->
+    <NTabs v-model:value="activeMethod" type="segment" class="mb-4">
+      <NTabPane name="file" :tab="t('variables.importer.fromFile')">
+        <!-- 文件导入内容将在下面 -->
+      </NTabPane>
+      <NTabPane name="text" :tab="t('variables.importer.fromText')">
+        <!-- 文本导入内容将在下面 -->
+      </NTabPane>
+    </NTabs>
 
-        <!-- 文件导入 -->
-        <div v-if="activeMethod === 'file'" class="import-section">
-          <div class="file-drop-zone" 
-               :class="{ 'dragover': isDragOver }"
-               @drop="onFileDrop"
-               @dragover="onDragOver"
-               @dragleave="onDragLeave"
-               @click="triggerFileInput">
-            <input 
-              ref="fileInput"
-              type="file"
-              accept=".json"
-              style="display: none"
-              @change="onFileSelect"
-            />
+    <!-- 文件导入 -->
+    <div v-show="activeMethod === 'file'" class="mb-4">
+      <NUpload
+        ref="uploadRef"
+        :file-list="[]"
+        :max="1"
+        accept=".json"
+        :custom-request="handleCustomUpload"
+        :show-file-list="false"
+        @before-upload="handleBeforeUpload"
+      >
+        <NUploadDragger>
+          <div class="text-center p-8">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="mx-auto mb-4 text-gray-400">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
             
-            <div class="drop-zone-content">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="upload-icon">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-              </svg>
-              
-              <div class="drop-zone-text">
-                <p class="primary-text">
-                  {{ t('variables.importer.dropFile') }}
-                </p>
-                <p class="secondary-text">
-                  {{ t('variables.importer.orClickToSelect') }}
-                </p>
-              </div>
-            </div>
+            <NText class="text-base mb-2">
+              {{ t('variables.importer.dropFile') }}
+            </NText>
+            <NText depth="3" class="text-sm">
+              {{ t('variables.importer.orClickToSelect') }}
+            </NText>
           </div>
-          
-          <div class="file-requirements">
-            <h4 class="requirements-title">{{ t('variables.importer.fileRequirements') }}</h4>
-            <ul class="requirements-list">
-              <li>{{ t('variables.importer.jsonFormat') }}</li>
-              <li>{{ t('variables.importer.maxSize') }}</li>
-              <li>{{ t('variables.importer.structureExample') }}</li>
-            </ul>
-          </div>
-        </div>
+        </NUploadDragger>
+      </NUpload>
+      
+      <NAlert type="info" class="mt-4">
+        <template #header>
+          {{ t('variables.importer.fileRequirements') }}
+        </template>
+        <NUl>
+          <NLi>{{ t('variables.importer.jsonFormat') }}</NLi>
+          <NLi>{{ t('variables.importer.maxSize') }}</NLi>
+          <NLi>{{ t('variables.importer.structureExample') }}</NLi>
+        </NUl>
+      </NAlert>
+    </div>
 
-        <!-- 文本导入 -->
-        <div v-if="activeMethod === 'text'" class="import-section">
-          <div class="form-group">
-            <label for="importText" class="form-label">
-              {{ t('variables.importer.jsonText') }}
-            </label>
-            <textarea
-              id="importText"
-              v-model="importText"
-              class="form-textarea"
-              :placeholder="t('variables.importer.jsonTextPlaceholder')"
-              rows="10"
-            ></textarea>
-            <div class="help-text">
-              {{ t('variables.importer.jsonTextHelp') }}
-            </div>
-          </div>
-        </div>
+    <!-- 文本导入 -->
+    <div v-show="activeMethod === 'text'" class="mb-4">
+      <NFormItem :label="t('variables.importer.jsonText')" label-placement="top">
+        <NInput
+          v-model:value="importText"
+          type="textarea"
+          :placeholder="t('variables.importer.jsonTextPlaceholder')"
+          :autosize="{ minRows: 10, maxRows: 15 }"
+          :input-props="{ style: 'font-family: Monaco, Consolas, monospace; font-size: 13px;' }"
+        />
+        <template #feedback>
+          <NText depth="3" class="text-xs">
+            {{ t('variables.importer.jsonTextHelp') }}
+          </NText>
+        </template>
+      </NFormItem>
+    </div>
 
-        <!-- 导入预览 -->
-        <div v-if="parsedVariables.length > 0" class="preview-section">
-          <h4 class="preview-title">
+    <!-- 导入预览 -->
+    <div v-if="parsedVariables.length > 0" class="mb-4">
+      <NCard size="small" embedded>
+        <template #header>
+          <NText class="font-medium">
             {{ t('variables.importer.previewTitle', { count: parsedVariables.length }) }}
-          </h4>
-          
-          <div class="preview-list">
+          </NText>
+        </template>
+        
+        <NScrollbar style="max-height: 250px;">
+          <NSpace vertical size="small">
             <div 
               v-for="variable in parsedVariables" 
               :key="variable.name"
-              class="preview-item"
-              :class="{ 'conflict': variable.hasConflict }"
+              class="flex items-center justify-between p-3 rounded transition-colors"
+              :class="variable.hasConflict ? 'bg-red-50' : 'bg-gray-50'"
             >
-              <div class="preview-name">
-                <code>{{ formatVariableName(variable.name) }}</code>
-                <span v-if="variable.hasConflict" class="conflict-badge">
+              <div class="flex items-center gap-2">
+                <NTag size="small" :type="variable.hasConflict ? 'error' : 'info'">
+                  {{ formatVariableName(variable.name) }}
+                </NTag>
+                <NTag v-if="variable.hasConflict" size="small" type="error">
                   {{ t('variables.importer.conflict') }}
-                </span>
+                </NTag>
               </div>
-              <div class="preview-value">
+              <NText depth="3" class="text-sm max-w-xs truncate">
                 {{ truncateValue(variable.value) }}
-              </div>
+              </NText>
             </div>
-          </div>
-          
-          <div v-if="conflictCount > 0" class="conflict-warning">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" class="warning-icon">
-              <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.19-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
-            </svg>
-            <span>{{ t('variables.importer.conflictWarning', { count: conflictCount }) }}</span>
-          </div>
+          </NSpace>
+        </NScrollbar>
+        
+        <div v-if="conflictCount > 0" class="mt-3">
+          <NAlert type="warning" size="small">
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.19-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+              </svg>
+            </template>
+            {{ t('variables.importer.conflictWarning', { count: conflictCount }) }}
+          </NAlert>
         </div>
+      </NCard>
+    </div>
 
-        <!-- 错误信息 -->
-        <div v-if="error" class="error-section">
-          <div class="error-message">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" class="error-icon">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
-            </svg>
-            <span>{{ error }}</span>
-          </div>
-        </div>
-      </div>
+    <!-- 错误信息 -->
+    <div v-if="error" class="mb-4">
+      <NAlert type="error" size="small">
+        <template #icon>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+          </svg>
+        </template>
+        {{ error }}
+      </NAlert>
+    </div>
 
-      <!-- 弹窗底部 -->
-      <div class="modal-footer">
-        <button 
-          type="button" 
-          class="btn-secondary" 
-          @click="cancel"
-          :disabled="loading"
-        >
+    <template #footer>
+      <NSpace justify="end">
+        <NButton @click="cancel" :disabled="loading">
           {{ t('common.cancel') }}
-        </button>
-        <button 
-          type="button"
-          class="btn-primary" 
+        </NButton>
+        <NButton 
+          type="primary"
           @click="importVariables"
           :disabled="!canImport || loading"
+          :loading="loading"
         >
-          <span v-if="loading" class="loading-spinner"></span>
           {{ t('variables.importer.import') }}
-        </button>
-      </div>
-    </div>
-  </div>
+        </NButton>
+      </NSpace>
+    </template>
+  </NModal>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { 
+  NModal, NButton, NTabs, NTabPane, NUpload, NUploadDragger, NText, 
+  NAlert, NUl, NLi, NFormItem, NInput, NCard, NScrollbar, NSpace, NTag 
+} from 'naive-ui'
+import type { UploadFileInfo, UploadCustomRequestOptions } from 'naive-ui'
 
 const { t } = useI18n()
 
@@ -176,10 +171,9 @@ const emit = defineEmits<{
 // 状态管理
 const loading = ref(false)
 const activeMethod = ref<'file' | 'text'>('file')
-const isDragOver = ref(false)
 const importText = ref('')
 const error = ref('')
-const fileInput = ref<HTMLInputElement>()
+const uploadRef = ref()
 
 interface ParsedVariable {
   name: string
@@ -257,35 +251,20 @@ const processVariables = (data: string) => {
 }
 
 // 文件处理
-const triggerFileInput = () => {
-  fileInput.value?.click()
-}
-
-const onFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
+const handleBeforeUpload = (data: { file: UploadFileInfo, fileList: UploadFileInfo[] }) => {
+  const file = data.file.file
   if (file) {
     handleFile(file)
   }
+  return false // 阻止自动上传
 }
 
-const onFileDrop = (event: DragEvent) => {
-  event.preventDefault()
-  isDragOver.value = false
-  
-  const file = event.dataTransfer?.files[0]
+const handleCustomUpload = (options: UploadCustomRequestOptions) => {
+  // 自定义上传处理，这里不需要实际上传到服务器
+  const file = options.file.file
   if (file) {
     handleFile(file)
   }
-}
-
-const onDragOver = (event: DragEvent) => {
-  event.preventDefault()
-  isDragOver.value = true
-}
-
-const onDragLeave = () => {
-  isDragOver.value = false
 }
 
 const handleFile = (file: File) => {
@@ -354,373 +333,5 @@ watch(activeMethod, () => {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  padding: 1rem;
-}
-
-.modal-container {
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem 1.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  transition: all 0.2s;
-}
-
-.close-button:hover {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.modal-content {
-  flex: 1;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.import-methods {
-  margin-bottom: 1.5rem;
-}
-
-.method-tabs {
-  display: flex;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.method-tab {
-  padding: 0.75rem 1rem;
-  background: none;
-  border: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-}
-
-.method-tab.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
-}
-
-.method-tab:hover {
-  color: #374151;
-}
-
-.import-section {
-  margin-bottom: 1.5rem;
-}
-
-.file-drop-zone {
-  border: 2px dashed #d1d5db;
-  border-radius: 0.5rem;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 1rem;
-}
-
-.file-drop-zone:hover,
-.file-drop-zone.dragover {
-  border-color: #3b82f6;
-  background-color: #f0f9ff;
-}
-
-.drop-zone-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.upload-icon {
-  color: #6b7280;
-}
-
-.drop-zone-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.primary-text {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin: 0;
-}
-
-.secondary-text {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.file-requirements {
-  padding: 1rem;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-}
-
-.requirements-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin: 0 0 0.5rem;
-}
-
-.requirements-list {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.5rem;
-}
-
-.form-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  resize: vertical;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.help-text {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.preview-section {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-}
-
-.preview-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin: 0 0 0.75rem;
-}
-
-.preview-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.preview-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem;
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.25rem;
-}
-
-.preview-item.conflict {
-  background-color: #fef2f2;
-  border-color: #fecaca;
-}
-
-.preview-name {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.preview-name code {
-  background-color: #f3f4f6;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.125rem;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.75rem;
-  color: #7c3aed;
-}
-
-.conflict-badge {
-  background-color: #dc2626;
-  color: white;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.125rem;
-  font-size: 0.625rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.preview-value {
-  font-size: 0.75rem;
-  color: #6b7280;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.conflict-warning {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  padding: 0.5rem;
-  background-color: #fef3c7;
-  border: 1px solid #fbbf24;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  color: #92400e;
-}
-
-.warning-icon {
-  color: #f59e0b;
-  flex-shrink: 0;
-}
-
-.error-section {
-  margin-bottom: 1rem;
-}
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  color: #dc2626;
-}
-
-.error-icon {
-  color: #dc2626;
-  flex-shrink: 0;
-}
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  background-color: #f9fafb;
-}
-
-.btn-primary, .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-.btn-secondary {
-  background-color: white;
-  color: #374151;
-  border-color: #d1d5db;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: #f9fafb;
-}
-
-.btn-primary:disabled, .btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.loading-spinner {
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* Pure Naive UI implementation - no custom theme CSS needed */
 </style>

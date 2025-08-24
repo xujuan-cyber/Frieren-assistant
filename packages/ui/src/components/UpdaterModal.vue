@@ -331,19 +331,22 @@
     <template #footer>
       <!-- 固定页脚：只有关闭和检查更新两个按钮 -->
       <div class="flex justify-between w-full">
-        <button
+        <NButton
           @click="$emit('update:modelValue', false)"
-          class="theme-button-secondary"
+          type="default"
+          size="medium"
         >
           {{ t('common.close') }}
-        </button>
-        <button
+        </NButton>
+        <NButton
           @click="handleCheckUpdate"
           :disabled="state.isCheckingUpdate"
-          class="theme-button-primary"
+          :loading="state.isCheckingUpdate"
+          type="primary"
+          size="medium"
         >
           {{ state.isCheckingUpdate ? t('updater.checking') : t('updater.checkNow') }}
-        </button>
+        </NButton>
       </div>
     </template>
   </Modal>
@@ -351,6 +354,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { NButton } from 'naive-ui'
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { useUpdater } from '../composables/useUpdater'
 import Modal from './Modal.vue'

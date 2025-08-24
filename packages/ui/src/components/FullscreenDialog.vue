@@ -1,31 +1,24 @@
 <template>
-  <Teleport to="body">
-    <div v-if="modelValue" 
-         class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto"
-         @click="onBackdropClick">
-      <div class="relative theme-manager-container min-h-[80vh] h-[90vh] w-[90vw] m-4 flex flex-col">
-        <!-- 标题栏 -->
-        <div class="flex items-center justify-between p-4 border-b theme-manager-border flex-none">
-          <h3 class="text-lg font-semibold theme-manager-text">{{ title }}</h3>
-          <button
-            @click="close"
-            class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
-          >
-            ×
-          </button>
-        </div>
-        
-        <!-- 内容区域 -->
-        <div class="flex-1 min-h-0 p-4">
-          <slot></slot>
-        </div>
-      </div>
+  <NModal 
+    v-model:show="localVisible"
+    preset="card"
+    :title="title"
+    size="huge"
+    :segmented="{ content: true }"
+    style="width: 90vw; height: 90vh; max-width: 90vw; max-height: 90vh;"
+    :mask-closable="true"
+    transform-origin="center"
+    content-style="height: 100%; display: flex; flex-direction: column; min-height: 0;"
+  >
+    <div class="fullscreen-content">
+      <slot></slot>
     </div>
-  </Teleport>
+  </NModal>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
+import { NModal } from 'naive-ui'
 
 const props = defineProps({
   modelValue: {
@@ -40,40 +33,12 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// 关闭弹窗
-const close = () => {
-  emit('update:modelValue', false)
-}
-
-const onBackdropClick = (event: MouseEvent) => {
-  if (event.target === event.currentTarget) {
-    close()
-  }
-}
-
-// 监听ESC键
-const handleKeyDown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape' && props.modelValue) {
-    close()
-  }
-}
-
-// 挂载和卸载事件监听器
-onMounted(() => {
-  document.addEventListener('keydown', handleKeyDown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeyDown)
+// 双向绑定
+const localVisible = computed({
+  get: () => props.modelValue,
+  set: (value: boolean) => emit('update:modelValue', value)
 })
 </script>
-
 <style scoped>
-.overflow-auto {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.overflow-auto::-webkit-scrollbar {
-  display: none;
-}
+/* Pure Naive UI implementation - no custom theme CSS needed */
 </style>

@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@prompt-optimizer/ui": "workspace:*",
-    "element-plus": "^2.9.3",
     "uuid": "^11.0.5",
     "vue": "^3.5.13"
   },

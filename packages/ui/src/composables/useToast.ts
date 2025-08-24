@@ -1,42 +1,56 @@
-import { ref } from 'vue'
+import { useMessage } from 'naive-ui'
 
-interface Toast {
+export interface Toast {
   id: number
   message: string
   type: 'success' | 'error' | 'info' | 'warning'
 }
 
-const toasts = ref<Toast[]>([])
-
 export function useToast() {
-  const add = (message: string, type: Toast['type'] = 'info', duration: number = 3000) => {
-    const id = Date.now()
-    toasts.value.push({ id, message, type })
+  // 使用Naive UI的消息API
+  const message = useMessage()
 
-    setTimeout(() => {
-      remove(id)
-    }, duration)
-  }
+  const add = (content: string, type: Toast['type'] = 'info', duration: number = 3000) => {
+    const options = {
+      content,
+      duration,
+      closable: true,
+      keepAliveOnHover: true
+    }
 
-  const remove = (id: number) => {
-    const index = toasts.value.findIndex(toast => toast.id === id)
-    if (index > -1) {
-      toasts.value.splice(index, 1)
+    switch (type) {
+      case 'success':
+        return message.success(content, options)
+      case 'error':
+        return message.error(content, options)
+      case 'warning':
+        return message.warning(content, options)
+      case 'info':
+      default:
+        return message.info(content, options)
     }
   }
 
-  const success = (message: string, duration?: number) => add(message, 'success', duration)
-  const error = (message: string, duration?: number) => add(message, 'error', duration)
-  const info = (message: string, duration?: number) => add(message, 'info', duration)
-  const warning = (message: string, duration?: number) => add(message, 'warning', duration)
+  const remove = (id: any) => {
+    // Naive UI消息实例可以直接调用destroy方法
+    if (id && typeof id.destroy === 'function') {
+      id.destroy()
+    }
+  }
+
+  const success = (content: string, duration?: number) => add(content, 'success', duration)
+  const error = (content: string, duration?: number) => add(content, 'error', duration)
+  const info = (content: string, duration?: number) => add(content, 'info', duration)
+  const warning = (content: string, duration?: number) => add(content, 'warning', duration)
 
   return {
-    toasts,
     add,
     remove,
     success,
     error,
     info,
-    warning
+    warning,
+    // 向后兼容
+    toasts: [], // Naive UI不需要维护toasts数组
   }
 }

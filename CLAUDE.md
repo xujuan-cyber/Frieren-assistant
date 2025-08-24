@@ -10,9 +10,10 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps write bett
 
 ### Essential Commands
 
+你应该使用 pmpm dev:fresh 清理缓存并重启服务以获得服务的访问地址，并确保最新最可靠的界面体验
+
 ```bash
 # Development
-pnpm dev               # Build core/ui and run web app
 pnpm dev:fresh         # Clean install and restart development 
 pnpm dev:desktop       # Build core/ui, run web and desktop
 pnpm dev:desktop:fresh # Clean install and restart desktop development

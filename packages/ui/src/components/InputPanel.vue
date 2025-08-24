@@ -1,129 +1,135 @@
-<!-- 输入面板组件 -->
+<!-- 输入面板组件 - 纯Naive UI实现 -->
 <template>
-  <div class="space-y-3">
-    <!-- 标题 -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-      <label class="block text-lg theme-label">{{ label }}</label>
-      <div class="flex items-center space-x-3">
+  <NSpace vertical :size="16" 
+  >
+    <!-- 标题区域 -->
+    <NFlex justify="space-between" align="center" :wrap="false">
+      <NText :depth="1" style="font-size: 18px; font-weight: 500;">{{ label }}</NText>
+      <NFlex align="center" :size="12">
         <slot name="optimization-mode-selector"></slot>
-        <button
+        <NButton
+          type="tertiary"
+          size="small"
           @click="openFullscreen"
-          class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2"
           :title="$t('common.expand')"
+          ghost
+          round
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-          </svg>
-        </button>
-      </div>
-    </div>
+          <template #icon>
+            <NIcon>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </NIcon>
+          </template>
+        </NButton>
+      </NFlex>
+    </NFlex>
 
     <!-- 输入框 -->
-    <div class="relative">
-      <textarea
-        :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
-        class="w-full theme-input resize-none"
-        :placeholder="placeholder"
-        rows="4"
-      ></textarea>
-    </div>
+    <NInput
+      :value="modelValue"
+      @update:value="$emit('update:modelValue', $event)"
+      type="textarea"
+      :placeholder="placeholder"
+      :rows="4"
+      :autosize="{ minRows: 4, maxRows: 12 }"
+      clearable
+      show-count
+    />
 
     <!-- 控制面板 -->
-    <div class="flex items-center gap-2">
+    <NGrid :cols="24" :x-gap="12" responsive="screen">
       <!-- 模型选择 -->
-      <div class="min-w-[120px] w-fit shrink-0">
-        <label class="block text-sm theme-label mb-1.5">{{ modelLabel }}</label>
-        <slot name="model-select"></slot>
-      </div>
+      <NGridItem :span="6" :xs="24" :sm="6">
+        <NSpace vertical :size="8">
+          <NText :depth="2" style="font-size: 14px; font-weight: 500;">{{ modelLabel }}</NText>
+          <slot name="model-select"></slot>
+        </NSpace>
+      </NGridItem>
       
       <!-- 提示词模板选择 -->
-      <div v-if="templateLabel" class="flex-1 min-w-0">
-        <label class="block text-sm theme-label mb-1.5 truncate">{{ templateLabel }}</label>
-        <slot name="template-select"></slot>
-      </div>
+      <NGridItem v-if="templateLabel" :span="12" :xs="24" :sm="12">
+        <NSpace vertical :size="8">
+          <NText :depth="2" style="font-size: 14px; font-weight: 500;">{{ templateLabel }}</NText>
+          <slot name="template-select"></slot>
+        </NSpace>
+      </NGridItem>
 
-      <!-- 控制按钮组插槽 -->
-      <slot name="control-buttons"></slot>
+      <!-- 控制按钮组 -->
+      <NGridItem :span="templateLabel ? 2 : 14" :xs="24" :sm="templateLabel ? 2 : 14">
+        <NSpace vertical :size="8" align="end">
+          <slot name="control-buttons"></slot>
+        </NSpace>
+      </NGridItem>
 
       <!-- 提交按钮 -->
-      <div class="min-w-[60px]">
-        <div class="h-[20px] mb-1.5"><!-- 占位，与其他元素对齐 --></div>
-        <button
-          @click="$emit('submit')"
-          :disabled="loading || disabled || !modelValue.trim()"
-          class="w-full h-10 theme-button-primary flex items-center truncate justify-center space-x-1"
-        >
-          <span>{{ loading ? loadingText : buttonText }}</span>
-        </button>
-      </div>
-    </div>
-  </div>
+      <NGridItem :span="4" :xs="24" :sm="4">
+        <NSpace vertical :size="8" align="end">
+          <NButton
+            type="primary"
+            size="medium"
+            @click="$emit('submit')"
+            :loading="loading"
+            :disabled="loading || disabled || !modelValue.trim()"
+            block
+            round
+          >
+            {{ loading ? loadingText : buttonText }}
+          </NButton>
+        </NSpace>
+      </NGridItem>
+    </NGrid>
+  </NSpace>
   
   <!-- 全屏弹窗 -->
   <FullscreenDialog v-model="isFullscreen" :title="label">
-    <div class="h-full flex flex-col">
-      <textarea
-        v-model="fullscreenValue"
-        class="w-full h-full min-h-[70vh] p-4 theme-input resize-none overflow-auto flex-1"
-        :placeholder="placeholder"
-      ></textarea>
-    </div>
+    <NInput
+      v-model:value="fullscreenValue"
+      type="textarea"
+      :placeholder="placeholder"
+      :autosize="{ minRows: 20 }"
+      clearable
+      show-count
+    />
   </FullscreenDialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NInput, NButton, NText, NSpace, NFlex, NGrid, NGridItem, NIcon } from 'naive-ui'
 import { useFullscreen } from '../composables/useFullscreen'
 import FullscreenDialog from './FullscreenDialog.vue'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    required: true
-  },
-  selectedModel: {
-    type: String,
-    required: true
-  },
-  label: {
-    type: String,
-    required: true
-  },
-  placeholder: {
-    type: String,
-    default: ''
-  },
-  modelLabel: {
-    type: String,
-    required: true
-  },
-  templateLabel: {
-    type: String,
-    default: ''
-  },
-  buttonText: {
-    type: String,
-    required: true
-  },
-  loadingText: {
-    type: String,
-    required: true
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  },
-  disabled: {
-    type: Boolean,
-    default: false
-  }
+interface Props {
+  modelValue: string
+  selectedModel: string
+  label: string
+  placeholder?: string
+  modelLabel: string
+  templateLabel?: string
+  buttonText: string
+  loadingText: string
+  loading?: boolean
+  disabled?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  placeholder: '',
+  templateLabel: '',
+  loading: false,
+  disabled: false
 })
 
-const emit = defineEmits(['update:modelValue', 'update:selectedModel', 'submit', 'configModel'])
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  'update:selectedModel': [value: string]
+  'submit': []
+  'configModel': []
+}>()
 
 // 使用全屏组合函数
 const { isFullscreen, fullscreenValue, openFullscreen } = useFullscreen(

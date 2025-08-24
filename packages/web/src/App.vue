@@ -1,20 +1,21 @@
 <template>
-  <div v-if="isInitializing" class="loading-container">
-    <div class="spinner"></div>
-    <p>{{ t('log.info.initializing') }}</p>
-  </div>
-  <div v-else-if="!services" class="loading-container error">
-    <p>{{ t('toast.error.appInitFailed') }}</p>
-  </div>
-  <template v-if="isReady">
-    <MainLayoutUI>
-      <!-- Title Slot -->
-      <template #title>
-        {{ $t('promptOptimizer.title') }}
-      </template>
+  <NConfigProvider :theme="naiveTheme" :theme-overrides="themeOverrides">
+    <div v-if="isInitializing" class="loading-container">
+      <div class="spinner"></div>
+      <p>{{ t('log.info.initializing') }}</p>
+    </div>
+    <div v-else-if="!services" class="loading-container error">
+      <p>{{ t('toast.error.appInitFailed') }}</p>
+    </div>
+    <template v-if="isReady">
+      <MainLayoutUI>
+        <!-- Title Slot -->
+        <template #title>
+          {{ $t('promptOptimizer.title') }}
+        </template>
 
-      <!-- Actions Slot -->
-      <template #actions>
+        <!-- Actions Slot -->
+        <template #actions>
         <!-- 变量管理按钮 - 仅在高级模式下显示 -->
         <ActionButtonUI
           v-if="advancedModeEnabled"
@@ -58,68 +59,77 @@
         />
         <!-- 自动更新组件 - 仅在Electron环境中显示 -->
         <UpdaterIcon />
-        <button
+        <NButton
           @click="openGithubRepo"
-          class="theme-icon-button"
+          secondary
+          size="medium"
+          circle
           title="GitHub"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-          </svg>
-        </button>
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </template>
+        </NButton>
         <LanguageSwitchUI />
-      </template>
+        </template>
+      <template #main>
 
-      <!-- Main Content -->
-      <ContentCardUI class="flex-1 min-w-0 flex flex-col">
-        <div class="flex-none">
-          <InputPanelUI
-            v-model="optimizer.prompt"
-            v-model:selectedModel="modelManager.selectedOptimizeModel"
-            :label="promptInputLabel"
-            :placeholder="promptInputPlaceholder"
-            :model-label="$t('promptOptimizer.optimizeModel')"
-            :template-label="$t('promptOptimizer.templateLabel')"
-            :button-text="$t('promptOptimizer.optimize')"
-            :loading-text="$t('common.loading')"
-            :loading="optimizer.isOptimizing"
-            :disabled="optimizer.isOptimizing"
-            @submit="handleOptimizePrompt"
-            @configModel="modelManager.showConfig = true"
-          >
-            <template #optimization-mode-selector>
-              <OptimizationModeSelectorUI
-                v-model="selectedOptimizationMode"
-                @change="handleOptimizationModeChange"
-              />
-            </template>
-            <template #model-select>
-              <ModelSelectUI
-                ref="optimizeModelSelect"
-                :modelValue="modelManager.selectedOptimizeModel"
-                @update:modelValue="modelManager.selectedOptimizeModel = $event"
-                :disabled="optimizer.isOptimizing"
-                @config="modelManager.showConfig = true"
-              />
-            </template>
-            <template #template-select>
-              <template v-if="services && services.templateManager">
+        
+      <!-- Main Content - 使用 Naive UI NGrid 实现响应式水平左右布局 class="h-full min-h-0 overflow-hidden max-height=100%" -->
+      <NFlex  justify="space-between" :style="{display: 'flex',  flexDirection: 'row', width: '100%' , 'max-height': '100%' }" >
+        <!-- 左侧：优化区域 -->
+        <NFlex vertical :style="{ flex: 1, overflow: 'auto', height: '100%' }">
+          <!-- 组件 A: InputPanelUI -->
+          <NCard :style="{ flexShrink: 0, minHeight: '200px' }">
+            <InputPanelUI
+              v-model="optimizer.prompt"
+              v-model:selectedModel="modelManager.selectedOptimizeModel"
+              :label="promptInputLabel"
+              :placeholder="promptInputPlaceholder"
+              :model-label="$t('promptOptimizer.optimizeModel')"
+              :template-label="$t('promptOptimizer.templateLabel')"
+              :button-text="$t('promptOptimizer.optimize')"
+              :loading-text="$t('common.loading')"
+              :loading="optimizer.isOptimizing"
+              :disabled="optimizer.isOptimizing"
+              @submit="handleOptimizePrompt"
+              @configModel="modelManager.showConfig = true"
+            >
+              <template #optimization-mode-selector>
+                <OptimizationModeSelectorUI
+                  v-model="selectedOptimizationMode"
+                  @change="handleOptimizationModeChange"
+                />
+              </template>
+              <template #model-select>
+                <ModelSelectUI
+                  ref="optimizeModelSelect"
+                  :modelValue="modelManager.selectedOptimizeModel"
+                  @update:modelValue="modelManager.selectedOptimizeModel = $event"
+                  :disabled="optimizer.isOptimizing"
+                  @config="modelManager.showConfig = true"
+                />
+              </template>
+              <template #template-select>
                 <TemplateSelectUI
+                  v-if="services && services.templateManager"
                   ref="templateSelectRef"
                   v-model="currentSelectedTemplate"
                   :type="templateSelectType"
                   :optimization-mode="selectedOptimizationMode"
                   @manage="openTemplateManager"
                 />
+                <NText v-else depth="3" class="p-2 text-sm">
+                  {{ t('template.loading') || '加载中...' }}
+                </NText>
               </template>
-              <div v-else class="p-2 text-sm theme-placeholder">
-                {{ t('template.loading') || '加载中...' }}
-              </div>
-            </template>
-          </InputPanelUI>
+            </InputPanelUI>
+          </NCard>
           
-          <!-- 优化阶段上下文编辑器 - 仅在高级模式下显示 -->
-          <div v-if="advancedModeEnabled" class="mt-4">
+          <!-- 组件 B: ConversationManager (仅在高级模式下显示) -->
+          <NCard v-if="advancedModeEnabled" :style="{ flexShrink: 0, minHeight: '150px', overflow: 'auto' }">
             <ConversationManager
               v-model:messages="optimizationContext"
               :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
@@ -135,11 +145,14 @@
               :collapsible="true"
               :max-height="300"
             />
-          </div>
-        </div>
-        <div class="flex-1 min-h-0">
-          <template v-if="services && services.templateManager">
+          </NCard>
+          
+          <!-- 组件 C: PromptPanelUI -->
+          <NCard :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
+          content-style="height: 100%; max-height: 100%; overflow: hidden;"
+          >
             <PromptPanelUI
+              v-if="services && services.templateManager"
               ref="promptPanelRef"
               v-model:optimized-prompt="optimizer.optimizedPrompt"
               :reasoning="optimizer.optimizedReasoning"
@@ -156,42 +169,44 @@
               @openTemplateManager="openTemplateManager"
               @switchVersion="handleSwitchVersion"
             />
-          </template>
-          <div v-else class="p-4 text-center theme-placeholder">
-            {{ t('prompt.loading') || '加载中...' }}
-          </div>
-        </div>
-      </ContentCardUI>
+          </NCard>
+        </NFlex>
 
-      <!-- 基础模式：使用原来的TestPanelUI -->
-      <TestPanelUI
-        v-if="!advancedModeEnabled"
-        ref="testPanelRef"
-        class="flex-1 min-w-0 flex flex-col"
-        :prompt-service="services?.promptService"
-        :original-prompt="optimizer.prompt"
-        :optimized-prompt="optimizer.optimizedPrompt"
-        :optimization-mode="selectedOptimizationMode"
-        v-model="modelManager.selectedTestModel"
-        @showConfig="modelManager.showConfig = true"
-      />
-      
-      <!-- 高级模式：使用AdvancedTestPanel -->
-      <AdvancedTestPanel
-        v-else
-        ref="testPanelRef"
-        class="flex-1 min-w-0 flex flex-col"
-        :services="services"
-        :original-prompt="optimizer.prompt"
-        :optimized-prompt="optimizer.optimizedPrompt"
-        :optimization-mode="selectedOptimizationMode"
-        :selected-model="modelManager.selectedTestModel"
-        :advanced-mode-enabled="advancedModeEnabled"
-        :variable-manager="variableManager"
-        :open-variable-manager="openVariableManager"
-        @update:selected-model="modelManager.selectedTestModel = $event"
-        @showConfig="modelManager.showConfig = true"
-      />
+        <NCard :style="{ flex: 1, overflow: 'auto', height: '100%' }"
+          content-style="height: 100%; max-height: 100%; overflow: hidden;"
+        >
+        <!-- 右侧：测试区域 -->
+          <!-- 基础模式：使用原来的TestPanelUI -->
+          <TestPanelUI
+            v-if="!advancedModeEnabled"
+            ref="testPanelRef"
+            :prompt-service="services?.promptService"
+            :original-prompt="optimizer.prompt"
+            :optimized-prompt="optimizer.optimizedPrompt"
+            :optimization-mode="selectedOptimizationMode"
+            v-model="modelManager.selectedTestModel"
+            @showConfig="modelManager.showConfig = true"
+          />
+          
+          <!-- 高级模式：使用AdvancedTestPanel -->
+          <AdvancedTestPanel
+            v-else
+            ref="testPanelRef"
+            class="h-full flex flex-col"
+            :services="services"
+            :original-prompt="optimizer.prompt"
+            :optimized-prompt="optimizer.optimizedPrompt"
+            :optimization-mode="selectedOptimizationMode"
+            :selected-model="modelManager.selectedTestModel"
+            :advanced-mode-enabled="advancedModeEnabled"
+            :variable-manager="variableManager"
+            :open-variable-manager="openVariableManager"
+            @update:selected-model="modelManager.selectedTestModel = $event"
+            @showConfig="modelManager.showConfig = true"
+          />
+          </NCard>
+      </NFlex>
+      </template>
     </MainLayoutUI>
 
     <!-- Modals and Drawers that are conditionally rendered -->
@@ -221,18 +236,23 @@
       :focus-variable="focusVariableName"
     />
 
+    <!-- 关键：使用NGlobalStyle同步全局样式到body，消除CSS依赖 -->
+    <NGlobalStyle />
+
     <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
-  </template>
+    </template>
+  </NConfigProvider>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, provide, computed, shallowRef, toRef, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex } from 'naive-ui'
 import {
   // UI Components
   MainLayoutUI, ThemeToggleUI, AdvancedModeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
   LanguageSwitchUI, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
-  ModelSelectUI, TemplateSelectUI, ContentCardUI, TestPanelUI, AdvancedTestPanel, UpdaterIcon, VariableManagerModal,
+  ModelSelectUI, TemplateSelectUI, TestPanelUI, AdvancedTestPanel, UpdaterIcon, VariableManagerModal,
   ConversationManager,
 
   // Composables
@@ -245,6 +265,7 @@ import {
   usePromptHistory,
   useModelSelectors,
   useVariableManager,
+  useNaiveTheme,
 
   // i18n functions
   initializeI18nWithStorage,
@@ -295,6 +316,14 @@ const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>
 
 // 高级模式状态
 const advancedModeEnabled = ref(false)
+
+// Naive UI 主题配置 - 使用新的主题系统
+const { naiveTheme, themeOverrides, initTheme } = useNaiveTheme()
+
+// 初始化主题系统
+if (typeof window !== 'undefined') {
+  initTheme()
+}
 
 // 加载高级模式设置
 const loadAdvancedModeSetting = async () => {

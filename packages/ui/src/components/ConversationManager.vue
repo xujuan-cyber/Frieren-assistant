@@ -1,16 +1,16 @@
 <template>
-  <div class="conversation-manager theme-manager-card border theme-manager-border rounded-lg p-3">
+  <NCard class="conversation-manager" size="small">
     <!-- 紧凑型头部：一行显示标题、消息数量和操作按钮 -->
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-3">
-        <h3 class="text-base font-semibold theme-manager-text">
+        <h3 class="text-base font-semibold">
           上下文管理
         </h3>
-        <span class="text-xs theme-manager-text-secondary px-2 py-0.5 theme-manager-tag rounded">
+        <NTag size="small" type="info">
           {{ t('conversation.messageCount', { count: messages.length }) }}
-        </span>
+        </NTag>
         <!-- 变量和工具统计紧凑显示 -->
-        <div v-if="messages.length > 0" class="flex items-center gap-2 text-xs theme-manager-text-secondary">
+        <div v-if="messages.length > 0" class="flex items-center gap-2 text-xs text-gray-500">
           <span 
             class="flex items-center gap-1 cursor-help"
             :title="allUsedVariables.length > 0 ? `使用的变量: ${allUsedVariables.join(', ')}` : '暂无使用变量'"
@@ -43,100 +43,91 @@
       <!-- 操作按钮组 -->
       <div class="flex items-center gap-1">
         <!-- 快速模板下拉菜单 -->
-        <div class="relative" ref="templateDropdownRef">
-          <button
-            @click="showTemplateDropdown = !showTemplateDropdown"
-            class="px-2 py-1 text-xs theme-manager-button-secondary flex items-center gap-1"
-          >
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
+        <NDropdown 
+          :options="templateDropdownOptions"
+          @select="handleTemplateDropdownSelect"
+        >
+          <NButton size="small" secondary>
+            <template #icon>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+            </template>
             {{ t('conversation.quickTemplates') }}
-          </button>
-          <!-- 下拉菜单 -->
-          <div v-if="showTemplateDropdown" class="absolute right-0 top-full mt-1 w-40 theme-manager-card theme-manager-border border rounded-lg shadow-lg z-10">
-            <div class="p-1">
-              <button
-                v-for="template in quickTemplates"
-                :key="template.id"
-                @click="applyTemplate(template); showTemplateDropdown = false"
-                class="w-full text-left px-2 py-1 text-xs theme-manager-button-secondary hover:theme-manager-button-primary rounded"
-              >
-                {{ t(`conversation.templates.${template.id}`) }}
-              </button>
-              <div class="border-t theme-manager-border my-1"></div>
-              <button
-                @click="clearAllMessages(); showTemplateDropdown = false"
-                :disabled="messages.length === 0"
-                class="w-full text-left px-2 py-1 text-xs theme-manager-button-danger rounded"
-                :class="{ 'opacity-50 cursor-not-allowed': messages.length === 0 }"
-              >
-                {{ t('conversation.clearAll') }}
-              </button>
-            </div>
-          </div>
-        </div>
+          </NButton>
+        </NDropdown>
         
         <!-- 编辑按钮 -->
-        <button
+        <NButton
           v-if="messages.length > 0"
           @click="openContextEditor"
-          class="px-2 py-1 text-xs theme-manager-button-primary"
+          size="small"
+          type="primary"
           title="在全屏编辑器中编辑上下文和提取变量"
         >
-          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
+          <template #icon>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </template>
           编辑
-        </button>
+        </NButton>
         
         <!-- 导入按钮 -->
-        <button
+        <NButton
           @click="showImportDialog = true"
-          class="px-2 py-1 text-xs theme-manager-button-secondary"
+          size="small"
+          secondary
         >
           {{ t('conversation.import') }}
-        </button>
+        </NButton>
         
         <!-- 导出按钮 -->
-        <button
+        <NButton
           v-if="messages.length > 0"
           @click="showExportDialog = true"
-          class="px-2 py-1 text-xs theme-manager-button-secondary"
+          size="small"
+          secondary
         >
           {{ t('conversation.export') }}
-        </button>
+        </NButton>
         
         <!-- 同步到测试按钮 -->
-        <button
+        <NButton
           v-if="showSyncToTest && messages.length > 0"
           @click="handleSyncToTest"
-          class="px-2 py-1 text-xs theme-manager-button-primary"
+          size="small"
+          type="primary"
           title="将当前会话同步到测试区域"
         >
-          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m0-4l-4-4" />
-          </svg>
+          <template #icon>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m0-4l-4-4" />
+            </svg>
+          </template>
           同步到测试
-        </button>
+        </NButton>
         
         <!-- 折叠/展开按钮 -->
-        <button
+        <NButton
           v-if="collapsible"
           @click="toggleCollapse"
-          class="px-2 py-1 text-xs theme-manager-button-secondary"
+          size="small"
+          secondary
           :title="isCollapsed ? t('common.expand', '展开') : t('common.collapse', '收起')"
         >
-          <svg 
-            class="w-3 h-3 transition-transform duration-200"
-            :class="{ 'rotate-180': isCollapsed }"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+          <template #icon>
+            <svg 
+              class="w-3 h-3 transition-transform duration-200"
+              :class="{ 'rotate-180': isCollapsed }"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </template>
+        </NButton>
       </div>
     </div>
 
@@ -145,7 +136,7 @@
       <!-- 滚动消息列表 -->
       <div class="message-list" :class="{ 'has-messages': messages.length > 0 }">
         <div v-if="messages.length === 0" class="empty-state">
-          <div class="text-center py-8 theme-manager-text-secondary">
+          <div class="text-center py-8 text-gray-500">
             <svg class="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.471L3 21l2.471-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
             </svg>
@@ -178,92 +169,103 @@
       </div>
       
       <!-- 集成的添加消息行 -->
-      <div class="add-message-row theme-manager-card">
-        <!-- 序号占位 -->
-        <div class="message-index">
-          <span class="text-xs theme-manager-text-secondary font-mono">
-            #{{ messages.length + 1 }}
-          </span>
-        </div>
-        
-        <!-- 角色选择 -->
-        <div class="role-selector">
-          <select 
-            v-model="newMessageRole" 
-            class="theme-manager-input text-xs py-1 px-2"
+      <NCard size="small" :bordered="false" class="mt-2">
+        <NSpace align="center" :wrap="false" size="small">
+          <!-- 序号 -->
+          <div class="w-6 text-center">
+            <NText depth="3" class="text-xs font-mono">
+              #{{ messages.length + 1 }}
+            </NText>
+          </div>
+          
+          <!-- 角色选择 -->
+          <NSelect 
+            v-model:value="newMessageRole" 
+            :options="roleOptions"
+            size="small"
             :disabled="disabled"
-          >
-            <option value="system">{{ t('conversation.roles.system') }}</option>
-            <option value="user">{{ t('conversation.roles.user') }}</option>
-            <option value="assistant">{{ t('conversation.roles.assistant') }}</option>
-          </select>
-        </div>
-        
-        <!-- 添加按钮区域 -->
-        <div class="add-content-area flex-1">
-          <button
-            @click="addMessage"
-            :disabled="disabled"
-            class="add-message-btn theme-manager-button-secondary w-full"
-            :class="{ 'disabled': disabled }"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>{{ t('conversation.addMessage') }}</span>
-          </button>
-        </div>
-        
-        <!-- 占位区域，保持布局一致 -->
-        <div class="action-placeholder">
-          <!-- 预留给未来功能的空间 -->
-        </div>
-      </div>
+            style="width: 100px;"
+          />
+          
+          <!-- 添加按钮 -->
+          <div class="flex-1">
+            <NButton
+              @click="addMessage"
+              :disabled="disabled"
+              type="primary"
+              size="small"
+              dashed
+              block
+            >
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </template>
+              {{ t('conversation.addMessage') }}
+            </NButton>
+          </div>
+          
+          <!-- 操作区域占位 -->
+          <div class="w-16"></div>
+        </NSpace>
+      </NCard>
     </div>
 
 
     <!-- 导出对话框 -->
-    <div v-if="showExportDialog" class="modal-overlay" @click="showExportDialog = false">
-      <div class="modal-content" @click.stop>
-        <h3 class="text-lg font-semibold mb-4">{{ t('conversation.exportTitle') }}</h3>
-        <textarea
+    <NModal 
+      v-model:show="showExportDialog" 
+      preset="dialog" 
+      :title="t('conversation.exportTitle')"
+      :show-icon="false"
+      style="width: 600px"
+    >
+      <template #default>
+        <NInput
           :value="exportData"
           readonly
-          class="w-full h-64 p-3 border rounded-md theme-input font-mono text-sm"
-        ></textarea>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="showExportDialog = false" class="px-4 py-2 theme-button-secondary">
+          type="textarea"
+          :autosize="{ minRows: 16, maxRows: 16 }"
+          class="font-mono text-sm"
+        />
+      </template>
+      <template #action>
+        <div class="flex justify-end gap-2">
+          <NButton @click="showExportDialog = false" type="default">
             {{ t('common.cancel') }}
-          </button>
-          <button @click="copyExportData" class="px-4 py-2 theme-button-primary">
+          </NButton>
+          <NButton @click="copyExportData" type="primary">
             {{ t('conversation.copyData') }}
-          </button>
+          </NButton>
         </div>
-      </div>
-    </div>
+      </template>
+    </NModal>
 
     <!-- 导入对话框 -->
-    <div v-if="showImportDialog" class="modal-overlay" @click="showImportDialog = false">
-      <div class="modal-content" @click.stop style="width: 600px; max-width: 90vw;">
-        <h3 class="text-lg font-semibold mb-4">{{ t('conversation.importTitle') }}</h3>
-        
+    <NModal 
+      v-model:show="showImportDialog" 
+      preset="dialog" 
+      :title="t('conversation.importTitle')"
+      :show-icon="false"
+      style="width: 600px"
+    >
+      <template #default>
         <!-- 格式选择 -->
         <div class="mb-4">
           <label class="block text-sm font-medium mb-2">导入格式：</label>
-          <div class="flex gap-2 mb-2">
-            <button
+          <NButtonGroup size="small">
+            <NButton
               v-for="format in importFormats"
               :key="format.id"
               @click="selectedImportFormat = format.id"
-              class="px-3 py-1 text-sm rounded border"
-              :class="selectedImportFormat === format.id 
-                ? 'theme-manager-button-primary' 
-                : 'theme-manager-button-secondary'"
+              :type="selectedImportFormat === format.id ? 'primary' : 'default'"
+              size="small"
             >
               {{ format.name }}
-            </button>
-          </div>
-          <p class="text-xs theme-manager-text-secondary">
+            </NButton>
+          </NButtonGroup>
+          <p class="text-xs text-gray-500 mt-2">
             {{ importFormats.find(f => f.id === selectedImportFormat)?.description }}
           </p>
         </div>
@@ -278,42 +280,49 @@
               @change="handleFileUpload"
               class="hidden"
             >
-            <button
+            <NButton
               @click="$refs.fileInput?.click()"
-              class="px-3 py-1 text-sm theme-manager-button-secondary"
+              secondary
+              size="small"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </template>
               选择文件
-            </button>
-            <span class="text-sm theme-manager-text-secondary">或在下方粘贴文本</span>
+            </NButton>
+            <span class="text-sm text-gray-500">或在下方粘贴文本</span>
           </div>
         </div>
 
-        <textarea
-          v-model="importData"
-          class="w-full h-64 p-3 border rounded-md theme-input font-mono text-sm"
+        <NInput
+          v-model:value="importData"
+          type="textarea"
+          :autosize="{ minRows: 16, maxRows: 16 }"
           :placeholder="getImportPlaceholder()"
-        ></textarea>
+          class="font-mono text-sm"
+        />
+        
         <div v-if="importError" class="text-sm text-red-500 mt-2">
           {{ importError }}
         </div>
-        <div class="flex justify-end gap-2 mt-4">
-          <button @click="showImportDialog = false" class="px-4 py-2 theme-button-secondary">
+      </template>
+      <template #action>
+        <div class="flex justify-end gap-2">
+          <NButton @click="showImportDialog = false" type="default">
             {{ t('common.cancel') }}
-          </button>
-          <button 
+          </NButton>
+          <NButton 
             @click="importMessages" 
             :disabled="!importData.trim()"
-            class="px-4 py-2 theme-button-primary"
-            :class="{ 'opacity-50 cursor-not-allowed': !importData.trim() }"
+            type="primary"
           >
             {{ t('conversation.import') }}
-          </button>
+          </NButton>
         </div>
-      </div>
-    </div>
+      </template>
+    </NModal>
     
     <!-- 全屏上下文编辑器 -->
     <div v-if="showContextEditor" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center" @click="handleContextEditorClose()">
@@ -334,12 +343,13 @@
         />
       </div>
     </div>
-  </div>
+  </NCard>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NButton, NCard, NTag, NDropdown, NModal, NInput, NButtonGroup, NSelect, NSpace, NText } from 'naive-ui'
 import { useClipboard } from '../composables/useClipboard'
 import { useContextEditor } from '../composables/useContextEditor'
 import ConversationMessageEditor from './ConversationMessageEditor.vue'
@@ -393,13 +403,41 @@ const showImportDialog = ref(false)
 const showContextEditor = ref(false)
 const importData = ref('')
 const importError = ref('')
-const showTemplateDropdown = ref(false)
+
+// 角色选择选项
+const roleOptions = computed(() => [
+  { label: t('conversation.roles.system'), value: 'system' },
+  { label: t('conversation.roles.user'), value: 'user' },
+  { label: t('conversation.roles.assistant'), value: 'assistant' }
+])
 
 // 🆕 工具管理状态（向后兼容）
 const currentTools = ref<ToolDefinition[]>(props.tools || [])
-const templateDropdownRef = ref<HTMLElement | null>(null)
 const isCollapsed = ref(false) // 折叠状态
 const selectedImportFormat = ref('conversation')
+
+// 模板下拉菜单选项
+const templateDropdownOptions = computed(() => {
+  const options = quickTemplates.value.map(template => ({
+    label: t(`conversation.templates.${template.id}`),
+    key: template.id,
+    template
+  }))
+  
+  // 添加分隔符和清除选项
+  options.push({
+    type: 'divider',
+    key: 'divider'
+  })
+  
+  options.push({
+    label: t('conversation.clearAll'),
+    key: 'clear',
+    disabled: props.messages.length === 0
+  })
+  
+  return options
+})
 
 // 导入格式选项
 const importFormats = [
@@ -452,8 +490,11 @@ const containerStyle = computed(() => {
 const allUsedVariables = computed(() => {
   const variables = new Set<string>()
   props.messages.forEach(message => {
-    const messageVars = props.scanVariables?.(message.content) || []
-    messageVars.forEach(v => variables.add(v))
+    const content = message?.content || ''
+    if (content && props.scanVariables) {
+      const messageVars = props.scanVariables(content) || []
+      messageVars.forEach(v => variables.add(v))
+    }
   })
   return Array.from(variables)
 })
@@ -513,6 +554,15 @@ const addMessage = () => {
 
 const applyTemplate = (template: any) => {
   emit('update:messages', [...template.messages])
+}
+
+// 处理模板下拉菜单选择
+const handleTemplateDropdownSelect = (key: string, option: any) => {
+  if (key === 'clear') {
+    clearAllMessages()
+  } else if (option.template) {
+    applyTemplate(option.template)
+  }
 }
 
 const handleSyncToTest = () => {
@@ -732,22 +782,6 @@ watch(() => props.tools, (newTools) => {
     currentTools.value = [...newTools]
   }
 }, { deep: true, immediate: true })
-
-// 处理点击外部关闭下拉菜单
-const handleClickOutside = (event: MouseEvent) => {
-  if (templateDropdownRef.value && !templateDropdownRef.value.contains(event.target as Node)) {
-    showTemplateDropdown.value = false
-  }
-}
-
-// 生命周期
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 </script>
 
 <style scoped>
@@ -789,63 +823,7 @@ onUnmounted(() => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* 集成的添加消息行 */
-.add-message-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 6px;
-  margin-top: 4px;
-  flex-shrink: 0;
-}
-
-.add-message-row .message-index {
-  width: 24px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.add-message-row .role-selector {
-  width: 80px;
-  flex-shrink: 0;
-}
-
-.add-message-row .role-selector select {
-  width: 100%;
-  min-height: 28px;
-}
-
-.add-content-area {
-  flex: 1;
-  min-width: 0;
-}
-
-.add-message-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 4px 12px;
-  min-height: 28px;
-  border: 1px dashed;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-message-btn.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-placeholder {
-  width: 120px;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end;
-}
+/* 集成的添加消息行 - 使用 Pure Naive UI */
 
 .dark .message-list::-webkit-scrollbar-thumb {
   background: #4b5563;

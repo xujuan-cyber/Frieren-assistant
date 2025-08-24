@@ -1,12 +1,25 @@
-// 导入样式
-import 'element-plus/dist/index.css'
+// 纯Naive UI样式导入 - 移除theme.css依赖
 import './styles/index.css'
 import './styles/scrollbar.css'
 import './styles/common.css'
-import './styles/theme.css'
+// 已移除: import './styles/theme.css' - 完全使用Naive UI主题系统
 
 // 导出插件
 export { installI18n, installI18nOnly, initializeI18nWithStorage, setI18nServices, i18n } from './plugins/i18n'
+
+// 导出Naive UI配置
+export { 
+  currentNaiveTheme as naiveTheme,
+  currentThemeOverrides as themeOverrides, 
+  currentThemeId, 
+  currentThemeConfig,
+  naiveThemeConfigs,
+  switchTheme,
+  initializeNaiveTheme
+} from './config/naive-theme'
+
+// 导出主题相关 Composables
+export { useNaiveTheme } from './composables/useNaiveTheme'
 
 /**
  * 组件导出
@@ -16,7 +29,6 @@ export { installI18n, installI18nOnly, initializeI18nWithStorage, setI18nService
 // Components
 export { default as ToastUI } from './components/Toast.vue'
 export { default as ModelManagerUI } from './components/ModelManager.vue'
-export { default as OutputPanelUI } from './components/OutputPanel.vue'
 export { default as PromptPanelUI } from './components/PromptPanel.vue'
 export { default as OutputDisplay } from './components/OutputDisplay.vue'
 export { default as TemplateManagerUI } from './components/TemplateManager.vue'
@@ -35,6 +47,7 @@ export { default as VariableManagerModal } from './components/VariableManagerMod
 export { default as VariableEditor } from './components/VariableEditor.vue'
 export { default as VariableImporter } from './components/VariableImporter.vue'
 export { default as ConversationManager } from './components/ConversationManager.vue'
+export { default as ConversationMessageEditor } from './components/ConversationMessageEditor.vue'
 export { default as ContextEditor } from './components/ContextEditor.vue'
 export { default as AdvancedTestPanel } from './components/AdvancedTestPanel.vue'
 export { default as AdvancedModeToggleUI } from './components/AdvancedModeToggle.vue'
@@ -44,7 +57,12 @@ export { default as DataManagerUI } from './components/DataManager.vue'
 export { default as OptimizationModeSelectorUI } from './components/OptimizationModeSelector.vue'
 export { default as TextDiffUI } from './components/TextDiff.vue'
 export { default as OutputDisplayFullscreen } from './components/OutputDisplayFullscreen.vue'
+export { default as OutputDisplayCore } from './components/OutputDisplayCore.vue'
 export { default as UpdaterIcon } from './components/UpdaterIcon.vue'
+export { default as UpdaterModal } from './components/UpdaterModal.vue'
+export { default as FullscreenDialog } from './components/FullscreenDialog.vue'
+export { default as InputWithSelect } from './components/InputWithSelect.vue'
+export { default as MarkdownRenderer } from './components/MarkdownRenderer.vue'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'

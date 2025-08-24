@@ -1,81 +1,79 @@
 <template>
   <div ref="componentRef" class="relative">
-    <div class="flex">
-      <input
-        ref="inputRef"
-        :value="modelValue"
-        @input="handleInput"
-        :type="type"
-        :required="required"
-        :placeholder="placeholder"
-        class="theme-manager-input pr-10 flex-grow"
-      />
-      <button
-        type="button"
-        @click="toggleDropdown"
-        class="absolute inset-y-0 right-0 flex items-center px-3 theme-manager-text-secondary hover:theme-manager-text transition-colors"
-        :class="{'animate-pulse': isLoading}"
-      >
-      <!-- 提示文本作为悬浮提示 -->
-      <transition name="fade">
-        <div v-if="!isOpen && !isLoading && showHint" 
-            class="absolute right-10 top-0 bottom-0 min-w-[120px] flex items-center text-xs theme-manager-text-secondary">
-          {{ hintText }}
-        </div>
-      </transition>
-        <!-- 加载中动画 -->
-        <svg v-if="isLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <!-- 正常状态显示下拉箭头 -->
-        <svg v-else
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+    <NInput
+      ref="inputRef"
+      :value="modelValue"
+      @update:value="handleInput"
+      :type="type"
+      :placeholder="placeholder"
+      :loading="isLoading"
+      clearable
+    >
+      <template #suffix>
+        <NButton
+          quaternary
+          circle
+          size="small"
+          @click="toggleDropdown"
+          :loading="isLoading"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-    </div>
+          <template #icon>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </template>
+        </NButton>
+      </template>
+    </NInput>
+    
+    <!-- 提示文本 -->
+    <transition name="fade">
+      <div v-if="!isOpen && !isLoading && showHint" 
+          class="absolute right-12 top-0 bottom-0 min-w-[120px] flex items-center text-xs text-gray-500 pointer-events-none">
+        {{ hintText }}
+      </div>
+    </transition>
     
     <!-- Dropdown Menu -->
-    <div
+    <NCard
       v-if="isOpen"
-      class="absolute z-10 mt-1 w-full rounded-md theme-dropdown shadow-lg max-h-60 overflow-auto"
+      size="small"
+      class="absolute z-10 mt-1 w-full shadow-lg max-h-60 overflow-auto"
+      :bordered="true"
     >
-      <div v-if="isLoading" class="p-2 text-center theme-manager-text-secondary">
-        {{ loadingText }}
-      </div>
-      <div v-else-if="filteredOptions.length === 0" class="p-2 text-center theme-manager-text-secondary">
-        {{ noOptionsText }}
-      </div>
-      <ul v-else class="py-1">
-        <li
+      <NEmpty v-if="isLoading" size="small" :description="loadingText" />
+      <NEmpty v-else-if="filteredOptions.length === 0" size="small" :description="noOptionsText" />
+      <NSpace v-else vertical size="small">
+        <div
           v-for="option in filteredOptions"
           :key="option.value"
           @click="selectOption(option)"
-          :class="[
-              'theme-dropdown-item cursor-pointer px-4 py-2', 
-              modelValue === option.value ? 'theme-dropdown-item-active' : 'theme-dropdown-item-inactive'
-            ]"
+          class="cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          :class="{
+            'bg-blue-100 dark:bg-blue-900': modelValue === option.value
+          }"
         >
           {{ option.label }}
-        </li>
-      </ul>
-    </div>
+        </div>
+      </NSpace>
+    </NCard>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { NInput, NButton, NCard, NEmpty, NSpace } from 'naive-ui';
 
 const props = defineProps({
   modelValue: {
@@ -140,8 +138,7 @@ const filteredOptions = computed(() => {
 });
 
 // 处理输入事件
-const handleInput = (event) => {
-  const value = event.target.value;
+const handleInput = (value) => {
   emit('update:modelValue', value);
   searchText.value = value;
 };
@@ -155,7 +152,7 @@ const toggleDropdown = async () => {
     emit('fetchOptions');
     // 等待DOM更新后聚焦
     setTimeout(() => {
-      if (inputRef.value) {
+      if (inputRef.value && inputRef.value.focus) {
         inputRef.value.focus();
       }
     }, 10);
@@ -216,15 +213,5 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* 下拉菜单的过渡效果 */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.3s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
+/* Pure Naive UI implementation - dropdown and hover styles handled by Naive UI */
 </style>

@@ -1,523 +1,593 @@
 <template>
-  <div
-    v-if="show"
-    class="fixed inset-0 theme-mask z-[60] flex items-center justify-center p-4"
-    @click="onMainBackdropClick"
+  <NModal
+    :show="show"
+    preset="card"
+    :style="{ width: '90vw', maxWidth: '1200px', maxHeight: '90vh' }"
+    :title="t('modelManager.title')"
+    size="large"
+    :bordered="false"
+    :segmented="true"
+    @update:show="(value: boolean) => !value && close()"
   >
-    <div
-      class="relative theme-manager-container w-full max-w-3xl max-h-[90vh] m-4 flex flex-col overflow-hidden"
-    >
-      <div class="flex items-center justify-between p-6 border-b theme-manager-border flex-none">
-          <h2 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.title') }}</h2>
-          <button
-            @click="close"
-            class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
+    <template #header-extra>
+      <NButton
+        type="primary"
+        @click="showAddForm = true"
+        ghost
+      >
+        <template #icon>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M3 15h6"/><path d="M6 12v6"/></svg>
+        </template>
+        {{ t('modelManager.addModel') }}
+      </NButton>
+    </template>
+    
+    <NScrollbar style="max-height: 75vh;">
+      <NSpace vertical :size="12">
+          <NCard
+            v-for="model in models"
+            :key="model.key"
+            hoverable
+            :style="{
+              opacity: model.enabled ? 1 : 0.6
+            }"
           >
-            ×
-          </button>
-        </div>
-
-        <!-- 可滚动内容区域 -->
-        <div class="flex-1 min-h-0 p-6 overflow-y-auto">
-
-        <!-- 已启用模型列表 -->
-        <div class="space-y-3">
-            <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold theme-manager-text">{{ t('modelManager.modelList') }}</h3>
-            <button
-                @click="showAddForm = true"
-                class="flex text-sm items-center gap-1 theme-manager-button-secondary"
-              >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M3 15h6"/><path d="M6 12v6"/></svg>
-              {{ t('modelManager.addModel') }}
-              </button>
-          </div>
-          <div class="space-y-3 pb-3">
-            <div v-for="model in models" :key="model.key" 
-                 :class="['p-4 rounded-xl border transition-colors',
-                         model.enabled 
-                           ? 'theme-manager-card' 
-                           : 'theme-manager-card opacity-50 shadow-none hover:shadow-none']">
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="font-medium" :class="model.enabled ? 'theme-manager-text' : 'theme-manager-text-disabled'">
-                      {{ model.name }}
-                    </h4>
-                    <span v-if="!model.enabled" 
-                          class="inline-flex items-center theme-manager-tag">
-                      <span class="hidden sm:block">{{ t('modelManager.disabled') }}</span>
-                      <svg class="sm:hidden h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.9A9 9 0 0 0 9.1 3.5"/><path d="m2 2 20 20"/><path d="M5.6 5.6C3 8.3 2.2 12.5 4 16l-2 6 6-2c3.4 1.8 7.6 1.1 10.3-1.7"/></svg>
-                    </span>
-                  </div>
-                  <p class="text-sm" :class="model.enabled ? 'theme-manager-text-secondary' : 'theme-manager-text-disabled'">
+            <template #header>
+              <NSpace justify="space-between" align="center">
+                <NSpace vertical :size="4">
+                  <NSpace align="center">
+                    <NText strong>{{ model.name }}</NText>
+                    <NTag
+                      v-if="!model.enabled"
+                      type="warning"
+                      size="small"
+                    >
+                      {{ t('modelManager.disabled') }}
+                    </NTag>
+                  </NSpace>
+                  <NText depth="3" style="font-size: 14px;">
                     {{ model.model }}
-                  </p>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <button @click="testConnection(model.key)"
-                          class="theme-manager-button-test text-sm inline-flex gap-1 items-center justify-center transition-all duration-300 ease-in-out px-4"
-                          :disabled="isTestingConnectionFor(model.key)">
-                          <div class="size-4 flex items-center justify-center">
-                            <!-- 只在未测试时显示链接图标 -->
-                            <svg v-if="!isTestingConnectionFor(model.key)" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                            <!-- 在测试时显示加载图标 -->
-                            <svg v-if="isTestingConnectionFor(model.key)" class="animate-spin size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          </div>
-                    <span class="hidden md:inline">{{ t('modelManager.testConnection') }}</span>
-                  </button>
-                  <button @click="editModel(model.key)"
-                          class="text-sm inline-flex items-center gap-1 theme-manager-button-edit">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                  </NText>
+                </NSpace>
+              </NSpace>
+            </template>
+            
+            <template #header-extra>
+              <NSpace @click.stop>
+                <NButton
+                  @click="testConnection(model.key)"
+                  size="small"
+                  quaternary
+                  :disabled="isTestingConnectionFor(model.key)"
+                  :loading="isTestingConnectionFor(model.key)"
+                >
+                  <template #icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  </template>
+                  <span class="hidden md:inline">{{ t('modelManager.testConnection') }}</span>
+                </NButton>
+                
+                <NButton
+                  @click="editModel(model.key)"
+                  size="small"
+                  quaternary
+                >
+                  <template #icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
                       <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                     </svg>
-                    <span class="hidden md:inline">{{ t('modelManager.editModel') }}</span>
-                  </button>
-                  <button @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
-                          class="text-sm inline-flex items-center gap-1"
-                          :class="[
-                            model.enabled 
-                              ? 'theme-manager-button-warning' 
-                              : 'theme-manager-button-success'
-                          ]">
+                  </template>
+                  <span class="hidden md:inline">{{ t('modelManager.editModel') }}</span>
+                </NButton>
+                
+                <NButton
+                  @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
+                  size="small"
+                  :type="model.enabled ? 'warning' : 'success'"
+                  quaternary
+                >
+                  <template #icon>
                     <svg v-if="model.enabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M12 6v.343"/><path d="M18.218 18.218A7 7 0 0 1 5 15V9a7 7 0 0 1 .782-3.218"/><path d="M19 13.343V9A7 7 0 0 0 8.56 2.902"/><path d="M22 22 2 2"/></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 6v4"/></svg>
-                    <span class="hidden md:inline">{{ model.enabled ? t('common.disable') : t('common.enable') }}</span>
-                  </button>
-                  <!-- 只对自定义模型显示删除按钮 -->
-                  <button v-if="!isDefaultModel(model.key)" 
-                          @click="handleDelete(model.key)"
-                          class="text-sm inline-flex items-center gap-1 theme-manager-button-danger">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                          </svg>
-                          <span class="hidden md:inline">{{ t('common.delete') }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                  </template>
+                  <span class="hidden md:inline">{{ model.enabled ? t('common.disable') : t('common.enable') }}</span>
+                </NButton>
+                
+                <NButton
+                  v-if="!isDefaultModel(model.key)"
+                  @click="handleDelete(model.key)"
+                  size="small"
+                  type="error"
+                  quaternary
+                >
+                  <template #icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </template>
+                  <span class="hidden md:inline">{{ t('common.delete') }}</span>
+                </NButton>
+              </NSpace>
+            </template>
+          </NCard>
+      </NSpace>
+    </NScrollbar>
+  </NModal>
 
-        <!-- 使用 Teleport 将模态框传送到 body -->
-        <Teleport to="body">
-          <!-- 编辑模型弹窗 -->
-          <div v-if="isEditing" 
-               class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
-            
-            <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10"
-                 @click.stop>
-              <div class="p-6 space-y-6">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.editModel') }}</h3>
-                  <button
-                    @click="cancelEdit"
-                    class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl"
+  <!-- 编辑模型弹窗 - 独立的顶级模态框 -->
+  <NModal
+    :show="isEditing"
+    preset="card"
+    :style="{ width: '90vw', maxWidth: '1000px', maxHeight: '90vh' }"
+    :title="t('modelManager.editModel')"
+    size="large"
+    :bordered="false"
+    :segmented="true"
+    @update:show="(value: boolean) => !value && cancelEdit()"
+  >
+    <NScrollbar v-if="editingModel" style="max-height: 75vh;">
+      <NSpace vertical :size="16">
+        <form @submit.prevent="saveEdit">
+          <NSpace vertical :size="16">
+            <div>
+              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.displayName') }}</NText>
+              <NInput
+                v-model:value="editingModel.name"
+                :placeholder="t('modelManager.displayNamePlaceholder')"
+                required
+              />
+            </div>
+              
+              <div>
+                <NText tag="label" strong style="display: block; margin-bottom: 8px;">
+                  {{ t('modelManager.apiUrl') }}
+                  <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.apiUrlHint')">?</NText>
+                </NText>
+                <NInput
+                  v-model:value="editingModel.baseURL"
+                  :placeholder="t('modelManager.apiUrlPlaceholder')"
+                  required
+                />
+              </div>
+              
+              <div>
+                <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.apiKey') }}</NText>
+                <NInput
+                  v-model:value="editingModel.apiKey"
+                  type="password"
+                  :placeholder="t('modelManager.apiKeyPlaceholder')"
+                />
+              </div>
+              
+              <div>
+                <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.defaultModel') }}</NText>
+                <InputWithSelect
+                  v-model="editingModel.defaultModel"
+                  :options="modelOptions"
+                  :is-loading="isLoadingModels"
+                  :loading-text="t('modelManager.loadingModels')"
+                  :no-options-text="t('modelManager.noModelsAvailable')"
+                  :hint-text="t('modelManager.clickToFetchModels')"
+                  required
+                  :placeholder="t('modelManager.defaultModelPlaceholder')"
+                  @fetch-options="handleFetchEditingModels"
+                />
+              </div>
+              
+              <div v-if="vercelProxyAvailable">
+                <NCheckbox
+                  v-model:checked="editingModel.useVercelProxy"
+                  :label="t('modelManager.useVercelProxy')"
+                >
+                  {{ t('modelManager.useVercelProxy') }}
+                  <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
+                </NCheckbox>
+              </div>
+              
+              <div v-if="dockerProxyAvailable">
+                <NCheckbox
+                  v-model:checked="editingModel.useDockerProxy"
+                  :label="t('modelManager.useDockerProxy')"
+                >
+                  {{ t('modelManager.useDockerProxy') }}
+                  <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
+                </NCheckbox>
+              </div>
+
+              
+              <!-- Advanced Parameters Section -->
+              <NDivider style="margin: 20px 0;" />
+              <div>
+                <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
+                  <div>
+                    <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
+                    <NText depth="3" style="font-size: 12px; margin-top: 4px; display: block;">
+                      {{ t('modelManager.advancedParameters.currentProvider') }}: 
+                      <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
+                      <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+                      <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
+                    </NText>
+                  </div>
+                  
+                  <NSelect
+                    v-model:value="selectedNewLLMParamId"
+                    @update:value="handleQuickAddParam"
+                    style="width: 220px;"
+                    size="small"
+                    :options="[
+                      { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
+                      ...availableLLMParamDefinitions.map(paramDef => ({
+                        label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
+                        value: paramDef.id
+                      })),
+                      { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
+                    ]"
+                  />
+                </NSpace>
+                
+                <NText v-if="Object.keys(currentLLMParams || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
+                  {{ t('modelManager.advancedParameters.noParamsConfigured') }}
+                </NText>
+
+                <!-- 参数显示 -->
+                <NSpace vertical :size="12">
+                  <NCard
+                    v-for="(value, key) in currentLLMParams"
+                    :key="key"
+                    size="small"
+                    embedded
                   >
-                    ×
-                  </button>
-                </div>
-                
-                <form @submit.prevent="saveEdit" class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
-                    <input v-model="editingModel.name" type="text" required
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.displayNamePlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}
-                      <span class="cursor-help ml-1" :title="t('modelManager.apiUrlHint')">?</span>
-                    </label>
-                    <input v-model="editingModel.baseURL" type="url" required
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.apiUrlPlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
-                    <input v-model="editingModel.apiKey" type="text"
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.apiKeyPlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
-                    <InputWithSelect
-                      v-model="editingModel.defaultModel"
-                      :options="modelOptions"
-                      :is-loading="isLoadingModels"
-                      :loading-text="t('modelManager.loadingModels')"
-                      :no-options-text="t('modelManager.noModelsAvailable')"
-                      :hint-text="t('modelManager.clickToFetchModels')"
-                      required
-                      :placeholder="t('modelManager.defaultModelPlaceholder')"
-                      @fetch-options="handleFetchEditingModels"
-                    />
-                  </div>
-                  <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
-                    <input
-                      :id="`vercel-proxy-${editingModel.key}`"
-                      v-model="editingModel.useVercelProxy"
-                      type="checkbox"
-                      class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
-                    />
-                    <label :for="`vercel-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
-                      {{ t('modelManager.useVercelProxy') }}
-                      <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
-                    </label>
-                  </div>
-                  <div v-if="dockerProxyAvailable" class="flex items-center space-x-2">
-                    <input
-                      :id="`docker-proxy-${editingModel.key}`"
-                      v-model="editingModel.useDockerProxy"
-                      type="checkbox"
-                      class="w-4 h-4 text-blue-600 bg-black/20 border-blue-600/50 rounded focus:ring-blue-500/50"
-                    />
-                    <label :for="`docker-proxy-${editingModel.key}`" class="text-sm font-medium theme-manager-text">
-                      {{ t('modelManager.useDockerProxy') }}
-                      <span class="cursor-help ml-1" :title="t('modelManager.useDockerProxyHint')">?</span>
-                    </label>
-                  </div>
-
-                  <!-- Advanced Parameters Section -->
-                  <div class="pt-4 mt-4 border-t theme-manager-border">
-                    <div class="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 class="text-md font-semibold theme-manager-text">
-                          {{ t('modelManager.advancedParameters.title') }}
-                        </h4>
-                        <p class="text-xs theme-manager-text-secondary mt-1">
-                          {{ t('modelManager.advancedParameters.currentProvider') }}: <span class="font-medium text-purple-600">{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</span>
-                          <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
-                          <span v-else class="text-yellow-600"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</span>
-                        </p>
-                      </div>
-                      
-                      <!-- 参数选择器 -->
-                      <select v-model="selectedNewLLMParamId" 
-                              @change="handleQuickAddParam"
-                              class="theme-manager-input text-sm py-1.5 px-3 min-w-[180px] max-w-[220px]">
-                        <option disabled value="">{{ t('modelManager.advancedParameters.select') }}</option>
-                        <option v-for="paramDef in availableLLMParamDefinitions" :key="paramDef.id" :value="paramDef.id">
-                          {{ paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name }}
-                        </option>
-                        <option value="custom">{{ t('modelManager.advancedParameters.custom') }}</option>
-                      </select>
-                    </div>
+                    <template #header>
+                      <NSpace justify="space-between" align="center">
+                        <NSpace align="center">
+                          <NText strong>{{ getParamMetadata(key)?.label || key }}</NText>
+                          <NTag
+                            v-if="!getParamMetadata(key)"
+                            type="info"
+                            size="small"
+                          >
+                            {{ t('modelManager.advancedParameters.customParam') }}
+                          </NTag>
+                        </NSpace>
+                        
+                        <NButton
+                          @click="removeLLMParam(key)"
+                          size="tiny"
+                          type="error"
+                          quaternary
+                          circle
+                        >
+                          ×
+                        </NButton>
+                      </NSpace>
+                    </template>
                     
-                    <div v-if="Object.keys(currentLLMParams || {}).length === 0" class="text-sm theme-manager-text-secondary mb-3">
-                      {{ t('modelManager.advancedParameters.noParamsConfigured') }}
-                    </div>
-
-                    <!-- 参数显示 -->
-                    <div v-for="(value, key) in currentLLMParams" :key="key" class="mb-4">
-                      <div class="p-3 theme-manager-card rounded-lg border theme-manager-border">
-                        <!-- 参数标题行 -->
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="flex items-center gap-2">
-                            <span class="text-sm font-medium theme-manager-text">
-                              {{ getParamMetadata(key)?.label || key }}
-                            </span>
-                            <span v-if="!getParamMetadata(key)" class="px-2 py-0.5 text-xs theme-manager-tag rounded">
-                              {{ t('modelManager.advancedParameters.customParam') }}
-                            </span>
-                          </div>
-                          <button @click="removeLLMParam(key)" type="button" 
-                                  class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors">
-                            ×
-                          </button>
-                        </div>
+                    <NSpace vertical :size="8">
+                      <NText v-if="getParamMetadata(key)?.description" depth="3" style="font-size: 12px;">
+                        {{ getParamMetadata(key)?.description }}
+                      </NText>
+                      
+                      <!-- Boolean 类型 -->
+                      <NCheckbox
+                        v-if="getParamMetadata(key)?.type === 'boolean'"
+                        v-model:checked="currentLLMParams[key]"
+                      >
+                        {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
+                      </NCheckbox>
+                      
+                      <!-- Number/Integer 类型 -->
+                      <NSpace
+                        v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')"
+                        vertical :size="4"
+                      >
+                        <NInputNumber
+                          v-model:value="currentLLMParams[key]"
+                          :min="getParamMetadata(key)?.minValue"
+                          :max="getParamMetadata(key)?.maxValue"
+                          :step="getParamMetadata(key)?.step"
+                          :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
+                          :status="isParamInvalid(key, currentLLMParams[key]) ? 'error' : undefined"
+                        />
                         
-                        <!-- 参数描述 -->
-                        <p v-if="getParamMetadata(key)?.description" class="text-xs theme-manager-text-secondary mb-2">
-                          {{ getParamMetadata(key)?.description }}
-                        </p>
+                        <NText
+                          v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined"
+                          depth="3"
+                          style="font-size: 12px;"
+                        >
+                          范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
+                        </NText>
                         
-                        <!-- 输入字段 -->
-                        <div class="w-full">
-                          <!-- Boolean 类型 -->
-                          <template v-if="getParamMetadata(key)?.type === 'boolean'">
-                            <label class="flex items-center cursor-pointer">
-                              <input v-model="currentLLMParams[key]" 
-                                     type="checkbox" 
-                                     :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
-                                     class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
-                              <span class="ml-2 text-sm theme-manager-text">
-                                {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
-                              </span>
-                            </label>
-                          </template>
-                          
-                          <!-- Number/Integer 类型 -->
-                          <template v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')">
-                            <div class="space-y-2">
-                              <input v-model.number="currentLLMParams[key]" 
-                                     type="number"
-                                     :min="getParamMetadata(key)?.minValue" 
-                                     :max="getParamMetadata(key)?.maxValue" 
-                                     :step="getParamMetadata(key)?.step"
-                                     class="theme-manager-input w-full text-sm" 
-                                     :class="{ 'border-red-500': isParamInvalid(key, currentLLMParams[key]) }"
-                                     :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''" />
-                              
-                              <!-- 范围提示 -->
-                              <div v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined" 
-                                   class="text-xs theme-manager-text-secondary">
-                                范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
-                              </div>
-                              
-                              <!-- 错误提示 -->
-                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
-                                {{ getParamValidationMessage(key, currentLLMParams[key]) }}
-                              </div>
-                            </div>
-                          </template>
-                          
-                          <!-- String 类型 -->
-                          <template v-else>
-                            <input v-model="currentLLMParams[key]" 
-                                   type="text" 
-                                   class="theme-manager-input w-full text-sm" 
-                                   :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')" />
-                            <p v-if="getParamMetadata(key)?.name === 'stopSequences'" class="text-xs theme-manager-text-secondary mt-1">
-                              {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
-                            </p>
-                          </template>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="flex justify-end space-x-3 pt-4">
-                    <button
-                      type="button"
-                      @click="cancelEdit"
-                      class="theme-manager-button-secondary"
-                    >
-                      {{ t('common.cancel') }}
-                    </button>
-                    <button
-                      type="submit"
-                      class="theme-manager-button-primary"
-                    >
-                      {{ t('common.save') }}
-                    </button>
-                  </div>
-                </form>
+                        <NText
+                          v-if="isParamInvalid(key, currentLLMParams[key])"
+                          type="error"
+                          style="font-size: 12px;"
+                        >
+                          {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                        </NText>
+                      </NSpace>
+                      
+                      <!-- String 类型 -->
+                      <NSpace v-else vertical :size="4">
+                        <NInput
+                          v-model:value="currentLLMParams[key]"
+                          :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')"
+                        />
+                        <NText
+                          v-if="getParamMetadata(key)?.name === 'stopSequences'"
+                          depth="3"
+                          style="font-size: 12px;"
+                        >
+                          {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
+                        </NText>
+                      </NSpace>
+                    </NSpace>
+                  </NCard>
+                </NSpace>
               </div>
-            </div>
-          </div>
+            </NSpace>
+          </form>
+        </NSpace>
+      </NScrollbar>
+      
+      <template #action>
+        <NSpace justify="end">
+          <NButton @click="cancelEdit">
+            {{ t('common.cancel') }}
+          </NButton>
+          <NButton
+            type="primary"
+            @click="saveEdit"
+          >
+            {{ t('common.save') }}
+          </NButton>
+        </NSpace>
+      </template>
+  </NModal>
 
-          <!-- 添加模型弹窗 -->
-          <div v-if="showAddForm" 
-               class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <!-- 添加模型弹窗 - 独立的顶级模态框 -->
+  <NModal
+    :show="showAddForm"
+    preset="card"
+    :style="{ width: '90vw', maxWidth: '1000px', maxHeight: '90vh' }"
+    :title="t('modelManager.addModel')"
+    size="large"
+    :bordered="false"
+    :segmented="true"
+    @update:show="(value: boolean) => !value && (showAddForm = false)"
+  >
+      <NScrollbar style="max-height: 75vh;">
+        <form @submit.prevent="addCustomModel">
+          <NSpace vertical :size="16">
+            <div>
+              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.modelKey') }}</NText>
+              <NInput
+                v-model:value="newModel.key"
+                :placeholder="t('modelManager.modelKeyPlaceholder')"
+                required
+              />
+            </div>
             
-            <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
-              <div class="p-6 space-y-6">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">{{ t('modelManager.addModel') }}</h3>
-                  <button @click="showAddForm = false" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+            <div>
+              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.displayName') }}</NText>
+              <NInput
+                v-model:value="newModel.name"
+                :placeholder="t('modelManager.displayNamePlaceholder')"
+                required
+              />
+            </div>
+            
+            <div>
+              <NText tag="label" strong style="display: block; margin-bottom: 8px;">
+                {{ t('modelManager.apiUrl') }}
+                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.apiUrlHint')">?</NText>
+              </NText>
+              <NInput
+                v-model:value="newModel.baseURL"
+                :placeholder="t('modelManager.apiUrlPlaceholder')"
+                required
+              />
+            </div>
+            
+            <div>
+              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.apiKey') }}</NText>
+              <NInput
+                v-model:value="newModel.apiKey"
+                type="password"
+                :placeholder="t('modelManager.apiKeyPlaceholder')"
+              />
+            </div>
+            
+            <div>
+              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.defaultModel') }}</NText>
+              <InputWithSelect
+                v-model="newModel.defaultModel"
+                :options="modelOptions"
+                :is-loading="isLoadingModels"
+                :loading-text="t('modelManager.loadingModels')"
+                :no-options-text="t('modelManager.noModelsAvailable')"
+                :hint-text="t('modelManager.clickToFetchModels')"
+                required
+                :placeholder="t('modelManager.defaultModelPlaceholder')"
+                @fetch-options="handleFetchNewModels"
+              />
+            </div>
+            
+            <div v-if="vercelProxyAvailable">
+              <NCheckbox
+                v-model:checked="newModel.useVercelProxy"
+                :label="t('modelManager.useVercelProxy')"
+              >
+                {{ t('modelManager.useVercelProxy') }}
+                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
+              </NCheckbox>
+            </div>
+            
+            <div v-if="dockerProxyAvailable">
+              <NCheckbox
+                v-model:checked="newModel.useDockerProxy"
+                :label="t('modelManager.useDockerProxy')"
+              >
+                {{ t('modelManager.useDockerProxy') }}
+                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
+              </NCheckbox>
+            </div>
+            
+            <!-- Advanced Parameters Section FOR ADD MODEL -->
+            <NDivider style="margin: 20px 0;" />
+            <div>
+              <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
+                <div>
+                  <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
+                  <NText depth="3" style="font-size: 12px; margin-top: 4px; display: block;">
+                    {{ t('modelManager.advancedParameters.currentProvider') }}: 
+                    <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
+                    <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+                    <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
+                  </NText>
                 </div>
                 
-                <form @submit.prevent="addCustomModel" class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.modelKey') }}</label>
-                    <input v-model="newModel.key" type="text" required
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.modelKeyPlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.displayName') }}</label>
-                    <input v-model="newModel.name" type="text" required
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.displayNamePlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiUrl') }}
-	                      <span class="cursor-help ml-1" :title="t('modelManager.apiUrlHint')">?</span>
-	                    </label>
-                    <input v-model="newModel.baseURL" type="url" required
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.apiUrlPlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.apiKey') }}</label>
-                    <input v-model="newModel.apiKey" type="password"
-                          class="theme-manager-input"
-                          :placeholder="t('modelManager.apiKeyPlaceholder')" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium theme-manager-text mb-1.5">{{ t('modelManager.defaultModel') }}</label>
-                    <InputWithSelect
-                      v-model="newModel.defaultModel"
-                      :options="modelOptions"
-                      :is-loading="isLoadingModels"
-                      :loading-text="t('modelManager.loadingModels')"
-                      :no-options-text="t('modelManager.noModelsAvailable')"
-                      :hint-text="t('modelManager.clickToFetchModels')"
-                      required
-                      :placeholder="t('modelManager.defaultModelPlaceholder')"
-                      @fetch-options="handleFetchNewModels"
-                    />
-                  </div>
-                  <div v-if="vercelProxyAvailable" class="flex items-center space-x-2">
-                    <input
-                      id="new-model-vercel-proxy"
-                      v-model="newModel.useVercelProxy"
-                      type="checkbox"
-                      class="w-4 h-4 text-purple-600 bg-black/20 border-purple-600/50 rounded focus:ring-purple-500/50"
-                    />
-                    <label for="new-model-vercel-proxy" class="text-sm font-medium theme-manager-text">
-                      {{ t('modelManager.useVercelProxy') }}
-                      <span class="cursor-help ml-1" :title="t('modelManager.useVercelProxyHint')">?</span>
-                    </label>
-                  </div>
-                  <div v-if="dockerProxyAvailable" class="flex items-center space-x-2">
-                    <input
-                      id="new-model-docker-proxy"
-                      v-model="newModel.useDockerProxy"
-                      type="checkbox"
-                      class="w-4 h-4 text-blue-600 bg-black/20 border-blue-600/50 rounded focus:ring-blue-500/50"
-                    />
-                    <label for="new-model-docker-proxy" class="text-sm font-medium theme-manager-text">
-                      {{ t('modelManager.useDockerProxy') }}
-                      <span class="cursor-help ml-1" :title="t('modelManager.useDockerProxyHint')">?</span>
-                    </label>
-                  </div>
-                   <!-- Advanced Parameters Section FOR ADD MODEL -->
-                  <div class="pt-4 mt-4 border-t theme-manager-border">
-                    <div class="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 class="text-md font-semibold theme-manager-text">
-                          {{ t('modelManager.advancedParameters.title') }}
-                        </h4>
-                        <p class="text-xs theme-manager-text-secondary mt-1">
-                          {{ t('modelManager.advancedParameters.currentProvider') }}: <span class="font-medium text-purple-600">{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</span>
-                          <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
-                          <span v-else class="text-yellow-600"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</span>
-                        </p>
-                      </div>
+                <NSelect
+                  v-model:value="selectedNewLLMParamId"
+                  @update:value="handleQuickAddParam"
+                  style="width: 220px;"
+                  size="small"
+                  :options="[
+                    { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
+                    ...availableLLMParamDefinitions.map(paramDef => ({
+                      label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
+                      value: paramDef.id
+                    })),
+                    { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
+                  ]"
+                />
+              </NSpace>
+              
+              <NText v-if="Object.keys(currentLLMParams || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
+                {{ t('modelManager.advancedParameters.noParamsConfigured') }}
+              </NText>
+
+              <!-- 参数显示 -->
+              <NSpace vertical :size="12">
+                <NCard
+                  v-for="(value, key) in currentLLMParams"
+                  :key="key"
+                  size="small"
+                  embedded
+                >
+                  <template #header>
+                    <NSpace justify="space-between" align="center">
+                      <NSpace align="center">
+                        <NText strong>{{ getParamMetadata(key)?.label || key }}</NText>
+                        <NTag
+                          v-if="!getParamMetadata(key)"
+                          type="info"
+                          size="small"
+                        >
+                          {{ t('modelManager.advancedParameters.customParam') }}
+                        </NTag>
+                      </NSpace>
                       
-                      <!-- 参数选择器 -->
-                      <select v-model="selectedNewLLMParamId" 
-                              @change="handleQuickAddParam"
-                              class="theme-manager-input text-sm py-1.5 px-3 min-w-[180px] max-w-[220px]">
-                        <option disabled value="">{{ t('modelManager.advancedParameters.select') }}</option>
-                        <option v-for="paramDef in availableLLMParamDefinitions" :key="paramDef.id" :value="paramDef.id">
-                          {{ paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name }}
-                        </option>
-                        <option value="custom">{{ t('modelManager.advancedParameters.custom') }}</option>
-                      </select>
-                    </div>
+                      <NButton
+                        @click="removeLLMParam(key)"
+                        size="tiny"
+                        type="error"
+                        quaternary
+                        circle
+                      >
+                        ×
+                      </NButton>
+                    </NSpace>
+                  </template>
+                  
+                  <NSpace vertical :size="8">
+                    <NText v-if="getParamMetadata(key)?.description" depth="3" style="font-size: 12px;">
+                      {{ getParamMetadata(key)?.description }}
+                    </NText>
                     
-                    <div v-if="Object.keys(currentLLMParams || {}).length === 0" class="text-sm theme-manager-text-secondary mb-3">
-                      {{ t('modelManager.advancedParameters.noParamsConfigured') }}
-                    </div>
-
-                    <!-- 参数显示 -->
-                    <div v-for="(value, key) in currentLLMParams" :key="key" class="mb-4">
-                      <div class="p-3 theme-manager-card rounded-lg border theme-manager-border">
-                        <!-- 参数标题行 -->
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="flex items-center gap-2">
-                            <span class="text-sm font-medium theme-manager-text">
-                              {{ getParamMetadata(key)?.label || key }}
-                            </span>
-                            <span v-if="!getParamMetadata(key)" class="px-2 py-0.5 text-xs theme-manager-tag rounded">
-                              {{ t('modelManager.advancedParameters.customParam') }}
-                            </span>
-                          </div>
-                          <button @click="removeLLMParam(key)" type="button" 
-                                  class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors">
-                            ×
-                          </button>
-                        </div>
-                        
-                        <!-- 参数描述 -->
-                        <p v-if="getParamMetadata(key)?.description" class="text-xs theme-manager-text-secondary mb-2">
-                          {{ getParamMetadata(key)?.description }}
-                        </p>
-                        
-                        <!-- 输入字段 -->
-                        <div class="w-full">
-                          <!-- Boolean 类型 -->
-                          <template v-if="getParamMetadata(key)?.type === 'boolean'">
-                            <label class="flex items-center cursor-pointer">
-                              <input v-model="currentLLMParams[key]" 
-                                     type="checkbox" 
-                                     :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
-                                     class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
-                              <span class="ml-2 text-sm theme-manager-text">
-                                {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
-                              </span>
-                            </label>
-                          </template>
-                          
-                          <!-- Number/Integer 类型 -->
-                          <template v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')">
-                            <div class="space-y-2">
-                              <input v-model.number="currentLLMParams[key]" 
-                                     type="number"
-                                     :min="getParamMetadata(key)?.minValue" 
-                                     :max="getParamMetadata(key)?.maxValue" 
-                                     :step="getParamMetadata(key)?.step"
-                                     class="theme-manager-input w-full text-sm" 
-                                     :class="{ 'border-red-500': isParamInvalid(key, currentLLMParams[key]) }"
-                                     :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''" />
-                              
-                              <!-- 范围提示 -->
-                              <div v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined" 
-                                   class="text-xs theme-manager-text-secondary">
-                                范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
-                              </div>
-                              
-                              <!-- 错误提示 -->
-                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
-                                {{ getParamValidationMessage(key, currentLLMParams[key]) }}
-                              </div>
-                            </div>
-                          </template>
-                          
-                          <!-- String 类型 -->
-                          <template v-else>
-                            <input v-model="currentLLMParams[key]" 
-                                   type="text" 
-                                   class="theme-manager-input w-full text-sm" 
-                                   :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')" />
-                            <p v-if="getParamMetadata(key)?.name === 'stopSequences'" class="text-xs theme-manager-text-secondary mt-1">
-                              {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
-                            </p>
-                          </template>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" @click="showAddForm = false" class="theme-manager-button-secondary">
-                      {{ t('common.cancel') }}
-                    </button>
-                    <button type="submit" class="theme-manager-button-primary">
-                      {{ t('common.create') }}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                    <!-- Boolean 类型 -->
+                    <NCheckbox
+                      v-if="getParamMetadata(key)?.type === 'boolean'"
+                      v-model:checked="currentLLMParams[key]"
+                    >
+                      {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
+                    </NCheckbox>
+                    
+                    <!-- Number/Integer 类型 -->
+                    <NSpace
+                      v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')"
+                      vertical :size="4"
+                    >
+                      <NInputNumber
+                        v-model:value="currentLLMParams[key]"
+                        :min="getParamMetadata(key)?.minValue"
+                        :max="getParamMetadata(key)?.maxValue"
+                        :step="getParamMetadata(key)?.step"
+                        :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
+                        :status="isParamInvalid(key, currentLLMParams[key]) ? 'error' : undefined"
+                      />
+                      
+                      <NText
+                        v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined"
+                        depth="3"
+                        style="font-size: 12px;"
+                      >
+                        范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
+                      </NText>
+                      
+                      <NText
+                        v-if="isParamInvalid(key, currentLLMParams[key])"
+                        type="error"
+                        style="font-size: 12px;"
+                      >
+                        {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                      </NText>
+                    </NSpace>
+                    
+                    <!-- String 类型 -->
+                    <NSpace v-else vertical :size="4">
+                      <NInput
+                        v-model:value="currentLLMParams[key]"
+                        :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')"
+                      />
+                      <NText
+                        v-if="getParamMetadata(key)?.name === 'stopSequences'"
+                        depth="3"
+                        style="font-size: 12px;"
+                      >
+                        {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
+                      </NText>
+                    </NSpace>
+                  </NSpace>
+                </NCard>
+              </NSpace>
             </div>
-          </div>
-        </Teleport>
-      </div>
-    </div>
-  </div>
+          </NSpace>
+        </form>
+      </NScrollbar>
+      
+      <template #action>
+        <NSpace justify="end">
+          <NButton @click="showAddForm = false">
+            {{ t('common.cancel') }}
+          </NButton>
+          <NButton
+            type="primary"
+            @click="addCustomModel"
+          >
+            {{ t('common.create') }}
+          </NButton>
+        </NSpace>
+      </template>
+  </NModal>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, computed, inject } from 'vue'; // Added computed and inject
 import { useI18n } from 'vue-i18n';
+import {
+  NModal, NScrollbar, NSpace, NCard, NText, NH3, NH4, NTag, NButton, 
+  NInput, NInputNumber, NCheckbox, NDivider, NSelect
+} from 'naive-ui';
 import {
   createLLMService,
   advancedParameterDefinitions,
@@ -546,12 +616,6 @@ const props = defineProps({
 const close = () => {
   emit('update:show', false);
   emit('close');
-};
-
-const onMainBackdropClick = (event) => {
-  if (event.target === event.currentTarget) {
-    close();
-  }
 };
 
 // 通过依赖注入获取服务
@@ -938,6 +1002,8 @@ const cancelEdit = () => {
   isEditing.value = false;
   editingModel.value = null;
   modelOptions.value = [];
+  // 确保清理所有相关状态
+  isLoadingModels.value = false;
 };
 
 // 保存编辑
