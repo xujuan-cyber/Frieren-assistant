@@ -138,6 +138,38 @@ packages/core/docs/
 2. **最小影响原则**: 只在必要时使用简化功能
 3. **扩展性设计**: 新增变量零成本支持
 
+## 📝 后续更新（2025-08-29）
+
+### 模板技术统一迁移
+
+**背景**: 为了进一步简化架构并提供统一的CSP安全保障，我们完成了从Handlebars到Mustache的全面迁移。
+
+**主要变更**:
+1. **完全移除Handlebars依赖**: 所有环境统一使用Mustache.js作为模板引擎
+2. **废弃CSPSafeTemplateProcessor**: 不再需要环境特定的处理器，Mustache原生支持CSP安全
+3. **统一模板语法**: 所有模板使用标准Mustache语法 `{{#variable}}...{{/variable}}`
+4. **简化架构**: 移除环境检测逻辑，所有环境使用相同的处理流程
+
+**技术优势**:
+- ✅ **更简洁的架构**: 单一模板引擎，无需环境判断
+- ✅ **原生CSP安全**: Mustache.js天然支持CSP环境
+- ✅ **更好的维护性**: 统一的模板语法和处理逻辑
+- ✅ **完全兼容**: 现有变量替换功能保持不变
+
+**文件变更**:
+```diff
+- packages/core/src/services/template/csp-safe-processor.ts (已删除)
+- packages/core/tests/unit/template/csp-safe-processor.test.ts (已删除)
++ 所有模板处理统一使用 Mustache.render()
++ 依赖从 handlebars 更新为 mustache
+```
+
+**文档更新**:
+- 语法指南中的"Handlebars模板技术"已更新为"Mustache模板技术"
+- 所有用户面向文档已同步更新
+
+这次迁移是本CSP安全处理方案的自然演进，从"环境特定的兼容方案"升级为"统一的原生支持方案"。
+
 ---
 
-**🏷️ 标签**: CSP安全, 模板处理, 浏览器扩展, 环境检测, 兼容性
+**🏷️ 标签**: CSP安全, 模板处理, 浏览器扩展, 环境检测, 兼容性, Mustache迁移

@@ -154,7 +154,7 @@ describe('TemplateProcessor Tool Context Injection', () => {
         content: [
           {
             role: 'system' as const,
-            content: 'You are an assistant. {{#if toolsContext}}Available tools: {{toolsContext}}{{/if}}'
+            content: 'You are an assistant. {{#toolsContext}}Available tools: {{toolsContext}}{{/toolsContext}}'
           },
           {
             role: 'user' as const,

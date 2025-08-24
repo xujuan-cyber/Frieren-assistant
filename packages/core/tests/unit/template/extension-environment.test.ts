@@ -1,180 +1,226 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { TemplateProcessor } from '../../../src/services/template/processor';
 import type { Template, TemplateContext } from '../../../src/services/template/processor';
 
-describe('TemplateProcessor in Extension Environment', () => {
-  beforeEach(() => {
-    // Mock Chrome extension environment
-    (global as any).chrome = {
-      runtime: {
-        getManifest: vi.fn(() => ({ name: 'Test Extension' }))
-      }
-    };
-  });
-
-  afterEach(() => {
-    // Clean up
-    delete (global as any).chrome;
-  });
-
-  it('should use CSP-safe processing in extension environment', () => {
+describe('TemplateProcessor with Mustache (Universal CSP-safe)', () => {
+  it('should process simple templates correctly', () => {
     const template: Template = {
-      id: 'test-template',
-      name: 'Test Template',
-      content: [
-        {
-          role: 'system',
-          content: 'You are a {{role}} expert.'
-        },
-        {
-          role: 'user',
-          content: 'Please help me with: {{originalPrompt}}'
-        }
-      ],
+      id: 'simple-test',
+      name: 'Simple Test',
+      content: 'Hello, this is a simple template',
       metadata: {
-        version: '1.0',
+        version: '1.0.0',
         lastModified: Date.now(),
-        templateType: 'optimize'
-      }
+        author: 'Test',
+        templateType: 'optimize',
+        language: 'zh'
+      },
+      isBuiltin: false
     };
 
     const context: TemplateContext = {
-      role: 'writing',
-      originalPrompt: 'creating a novel'
+      originalPrompt: 'Test prompt'
     };
 
-    // This should not throw a CSP error
     const result = TemplateProcessor.processTemplate(template, context);
-
+    
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       role: 'system',
-      content: 'You are a writing expert.'
+      content: 'Hello, this is a simple template'
     });
     expect(result[1]).toEqual({
       role: 'user',
-      content: 'Please help me with: creating a novel'
+      content: 'Test prompt'
     });
   });
 
-  it('should handle missing variables gracefully in extension environment', () => {
+  it('should process advanced templates with variables', () => {
     const template: Template = {
-      id: 'test-template',
-      name: 'Test Template',
+      id: 'advanced-test',
+      name: 'Advanced Test',
       content: [
         {
           role: 'system',
-          content: 'Hello {{name}}, your {{missing}} variable is handled.'
+          content: 'Hello {{name}}, this is a test template.'
+        },
+        {
+          role: 'user',  
+          content: '{{originalPrompt}}'
         }
       ],
       metadata: {
-        version: '1.0',
+        version: '1.0.0',
         lastModified: Date.now(),
-        templateType: 'optimize'
-      }
+        author: 'Test',
+        templateType: 'optimize',
+        language: 'zh'
+      },
+      isBuiltin: false
     };
 
     const context: TemplateContext = {
-      name: 'User'
+      name: 'World',
+      originalPrompt: 'Test prompt'
     };
 
     const result = TemplateProcessor.processTemplate(template, context);
-
-    expect(result).toHaveLength(1);
+    
+    expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       role: 'system',
-      content: 'Hello User, your  variable is handled.'
+      content: 'Hello World, this is a test template.'
+    });
+    expect(result[1]).toEqual({
+      role: 'user',
+      content: 'Test prompt'
     });
   });
 
-  it('should warn about unsupported Handlebars features in extension environment', () => {
-    // Mock extension environment
-    (global as any).window = {};
-
-    // Mock navigator safely
-    Object.defineProperty(global, 'navigator', {
-      value: { userAgent: 'Chrome' },
-      writable: true,
-      configurable: true
-    });
-
-    (global as any).chrome = {
-      runtime: {
-        getManifest: vi.fn(() => ({ manifest_version: 3, name: 'Test Extension' }))
-      }
-    };
-
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
+  it('should process conditional blocks', () => {
     const template: Template = {
-      id: 'test-template',
-      name: 'Test Template',
+      id: 'conditional-test',
+      name: 'Conditional Test',
       content: [
         {
           role: 'system',
-          content: '{{#if condition}}This won\'t work in extensions{{/if}}'
+          content: `{{#conversationContext}}Context: {{conversationContext}}{{/conversationContext}}{{^conversationContext}}No context{{/conversationContext}}`
         }
       ],
       metadata: {
-        version: '1.0',
+        version: '1.0.0',
         lastModified: Date.now(),
-        templateType: 'optimize'
-      }
+        author: 'Test',
+        templateType: 'optimize',
+        language: 'zh'
+      },
+      isBuiltin: false
+    };
+
+    // Test with context
+    const contextWithConversation: TemplateContext = {
+      conversationContext: 'Some conversation'
+    };
+
+    let result = TemplateProcessor.processTemplate(template, contextWithConversation);
+    expect(result[0].content).toBe('Context: Some conversation');
+
+    // Test without context
+    const contextWithoutConversation: TemplateContext = {};
+
+    result = TemplateProcessor.processTemplate(template, contextWithoutConversation);
+    expect(result[0].content).toBe('No context');
+  });
+
+  it('should process tool context information', () => {
+    const template: Template = {
+      id: 'tools-test',
+      name: 'Tools Test',
+      content: [
+        {
+          role: 'system',
+          content: `{{#toolsContext}}Available tools:\n{{toolsContext}}{{/toolsContext}}{{^toolsContext}}No tools available{{/toolsContext}}`
+        }
+      ],
+      metadata: {
+        version: '1.0.0',
+        lastModified: Date.now(),
+        author: 'Test',
+        templateType: 'optimize',
+        language: 'zh'
+      },
+      isBuiltin: false
+    };
+
+    // Test with tools
+    const contextWithTools: TemplateContext = {
+      toolsContext: 'Tool 1: Search\nTool 2: Calculate'
+    };
+
+    let result = TemplateProcessor.processTemplate(template, contextWithTools);
+    expect(result[0].content).toBe('Available tools:\nTool 1: Search\nTool 2: Calculate');
+
+    // Test without tools
+    const contextWithoutTools: TemplateContext = {};
+
+    result = TemplateProcessor.processTemplate(template, contextWithoutTools);
+    expect(result[0].content).toBe('No tools available');
+  });
+
+  it('should handle iteration context', () => {
+    const template: Template = {
+      id: 'iterate-test',
+      name: 'Iterate Test',
+      content: [
+        {
+          role: 'system',
+          content: 'Original: {{originalPrompt}}\nIterate: {{iterateInput}}'
+        }
+      ],
+      metadata: {
+        version: '1.0.0',
+        lastModified: Date.now(),
+        author: 'Test',
+        templateType: 'iterate',
+        language: 'zh'
+      },
+      isBuiltin: false
+    };
+
+    const context: TemplateContext = {
+      originalPrompt: 'Original prompt',
+      iterateInput: 'Iterate input'
+    };
+
+    const result = TemplateProcessor.processTemplate(template, context);
+    expect(result[0].content).toBe('Original: Original prompt\nIterate: Iterate input');
+  });
+
+  it('should validate template content', () => {
+    const invalidTemplate: Template = {
+      id: 'invalid-test',
+      name: 'Invalid Test',
+      content: '',
+      metadata: {
+        version: '1.0.0',
+        lastModified: Date.now(),
+        author: 'Test',
+        templateType: 'optimize',
+        language: 'zh'
+      },
+      isBuiltin: false
     };
 
     const context: TemplateContext = {};
 
-    // Should still process but warn about unsupported features
-    const result = TemplateProcessor.processTemplate(template, context);
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Template contains unsupported Handlebars features')
-    );
-
-    // The CSP-safe processor should handle this by doing simple variable replacement
-    // Since {{#if condition}} and {{/if}} are not valid variables, they get replaced with empty strings
-    // Only the text content "This won't work in extensions" remains
-    expect(result[0].content).toBe('This won\'t work in extensions');
-
-    consoleSpy.mockRestore();
-
-    // Clean up
-    delete (global as any).chrome;
-    delete (global as any).window;
-    delete (global as any).navigator;
+    expect(() => {
+      TemplateProcessor.processTemplate(invalidTemplate, context);
+    }).toThrow('Template content is missing or invalid');
   });
 
-  it('should process predefined template variables correctly', () => {
-    const template: Template = {
-      id: 'iterate-template',
-      name: 'Iterate Template',
-      content: [
-        {
-          role: 'system',
-          content: 'Original: {{originalPrompt}}'
-        },
-        {
-          role: 'user',
-          content: 'Last optimized: {{lastOptimizedPrompt}}, New input: {{iterateInput}}'
-        }
-      ],
+  it('should validate context compatibility for iteration', () => {
+    // Simple template should not work with iteration context
+    const simpleTemplate: Template = {
+      id: 'simple-iteration-test',
+      name: 'Simple Iteration Test',
+      content: 'Simple template content',
       metadata: {
-        version: '1.0',
+        version: '1.0.0',
         lastModified: Date.now(),
-        templateType: 'iterate'
-      }
+        author: 'Test',
+        templateType: 'iterate',
+        language: 'zh'
+      },
+      isBuiltin: false
     };
 
-    const context: TemplateContext = {
-      originalPrompt: 'Write a story',
-      lastOptimizedPrompt: 'Write a creative story about space exploration',
-      iterateInput: 'Make it more dramatic and add conflict'
+    const iterateContext: TemplateContext = {
+      originalPrompt: 'Original prompt',
+      iterateInput: 'Iterate input'
     };
 
-    const result = TemplateProcessor.processTemplate(template, context);
-
-    expect(result).toHaveLength(2);
-    expect(result[0].content).toBe('Original: Write a story');
-    expect(result[1].content).toBe('Last optimized: Write a creative story about space exploration, New input: Make it more dramatic and add conflict');
+    expect(() => {
+      TemplateProcessor.processTemplate(simpleTemplate, iterateContext);
+    }).toThrow('Iteration context requires advanced template');
   });
 });

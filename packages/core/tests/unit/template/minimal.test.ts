@@ -1,36 +1,60 @@
 import { describe, it, expect } from 'vitest';
-import { Handlebars, compile, registerHelper } from '../../../src/services/template/minimal';
+import { Mustache, render } from '../../../src/services/template/minimal';
 
-describe('Minimal Template Solution', () => {
-  it('should work with direct Handlebars usage', () => {
-    const template = Handlebars.compile('Hello {{name}}!');
-    const result = template({ name: 'World' });
+describe('Minimal Template Solution (Mustache)', () => {
+  it('should work with direct Mustache usage', () => {
+    const result = Mustache.render('Hello {{name}}!', { name: 'World' });
     expect(result).toBe('Hello World!');
   });
 
-  it('should work with convenience compile function', () => {
-    const template = compile('Hello {{name}}!');
-    const result = template({ name: 'World' });
+  it('should work with convenience render function', () => {
+    const result = render('Hello {{name}}!', { name: 'World' });
     expect(result).toBe('Hello World!');
   });
 
-  it('should allow users to register their own helpers', () => {
-    registerHelper('shout', (str: string) => str.toUpperCase() + '!!!');
-    
-    const template = compile('{{shout greeting}}');
-    const result = template({ greeting: 'hello' });
-    expect(result).toBe('HELLO!!!');
+  it('should work with conditional rendering', () => {
+    // Mustache uses {{#variable}} for truthy conditions
+    let result = Mustache.render('{{#show}}Hello {{name}}!{{/show}}', { show: true, name: 'World' });
+    expect(result).toBe('Hello World!');
+
+    // Test falsy condition
+    result = Mustache.render('{{#show}}Hello {{name}}!{{/show}}', { show: false, name: 'World' });
+    expect(result).toBe('');
   });
 
-  it('should work with built-in Handlebars features', () => {
-    const template = compile('{{#if show}}Hello {{name}}!{{/if}}');
-    const result = template({ show: true, name: 'World' });
-    expect(result).toBe('Hello World!');
+  it('should work with inverted conditions', () => {
+    // Mustache uses {{^variable}} for falsy conditions
+    const result = Mustache.render('{{^show}}No greeting{{/show}}{{#show}}Hello {{name}}!{{/show}}', { show: false, name: 'World' });
+    expect(result).toBe('No greeting');
   });
 
   it('should work with loops', () => {
-    const template = compile('{{#each items}}{{this}} {{/each}}');
-    const result = template({ items: ['a', 'b', 'c'] });
+    const result = Mustache.render('{{#items}}{{.}} {{/items}}', { items: ['a', 'b', 'c'] });
     expect(result).toBe('a b c ');
   });
-}); 
+
+  it('should work with object loops', () => {
+    const result = Mustache.render('{{#users}}{{name}}: {{age}} {{/users}}', { 
+      users: [
+        { name: 'Alice', age: 25 },
+        { name: 'Bob', age: 30 }
+      ]
+    });
+    expect(result).toBe('Alice: 25 Bob: 30 ');
+  });
+
+  it('should handle missing variables gracefully', () => {
+    const result = Mustache.render('Hello {{name}}, {{missing}}!', { name: 'World' });
+    expect(result).toBe('Hello World, !');
+  });
+
+  it('should support nested object properties', () => {
+    const result = Mustache.render('{{user.name}} lives in {{user.address.city}}', { 
+      user: { 
+        name: 'Alice', 
+        address: { city: 'New York' }
+      }
+    });
+    expect(result).toBe('Alice lives in New York');
+  });
+});

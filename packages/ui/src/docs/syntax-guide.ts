@@ -55,7 +55,7 @@ export const syntaxGuideContent = {
 
 ### ⚡ 高级模板
 
-**工作原理：** 使用消息数组格式和Handlebars模板技术，支持变量替换和精确的消息控制
+**工作原理：** 使用消息数组格式和Mustache模板技术，支持变量替换和精确的消息控制
 
 **适用场景：** 
 - ✅ 优化和迭代场景
@@ -277,7 +277,7 @@ The system currently supports the following 3 predefined variables:
 
 ### ⚡ Advanced Template
 
-**Working Principle:** Uses message array format and Handlebars template technology, supports variable replacement and precise message control
+**Working Principle:** Uses message array format and Mustache template technology, supports variable replacement and precise message control
 
 **Usage Scenarios:** 
 - ✅ Optimization and iteration scenarios

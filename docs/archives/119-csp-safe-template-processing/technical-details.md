@@ -121,3 +121,41 @@ npm test -- extension-environment.test.ts
 - `packages/core/src/services/template/csp-safe-processor.ts` - CSP安全处理器
 - `packages/core/src/services/template/processor.ts` - 主模板处理器（已修改）
 - `packages/extension/public/manifest.json` - 扩展清单文件（CSP配置）
+
+## 🔄 技术迁移更新（2025-08-29）
+
+### Handlebars → Mustache 统一迁移
+
+**问题演进**: 原本的环境特定方案虽然解决了CSP问题，但维护了两套不同的模板处理逻辑，增加了系统复杂性。
+
+**最终解决方案**: 
+1. **统一采用Mustache.js**: 所有环境使用同一个模板引擎，Mustache原生支持CSP环境
+2. **移除环境检测**: 不再需要 `isExtensionEnvironment()` 判断逻辑
+3. **简化处理器**: 废弃 `CSPSafeTemplateProcessor`，统一使用 `Mustache.render()`
+
+**技术优势**:
+- ✅ **架构统一**: 单一代码路径，消除环境差异
+- ✅ **维护简化**: 无需维护两套模板处理逻辑
+- ✅ **原生CSP**: Mustache天然不使用eval，无CSP兼容问题
+- ✅ **功能一致**: 所有环境享有相同的模板功能
+
+**实现对比**:
+```typescript
+// 旧方案：环境判断
+if (CSPSafeTemplateProcessor.isExtensionEnvironment()) {
+  return CSPSafeTemplateProcessor.processContent(msg.content, context);
+} else {
+  return Handlebars.compile(msg.content, { noEscape: true })(context);
+}
+
+// 新方案：统一处理
+return Mustache.render(msg.content, context);
+```
+
+**迁移结果**:
+- 📁 删除文件: `csp-safe-processor.ts`, `csp-safe-processor.test.ts`
+- 📝 更新依赖: `handlebars` → `mustache`
+- 🔧 简化处理: 移除所有环境检测逻辑
+- 📖 文档更新: 用户文档同步更新模板技术描述
+
+这次迁移将CSP安全处理从"兼容性方案"升级为"原生支持方案"，是架构简化的重要里程碑。

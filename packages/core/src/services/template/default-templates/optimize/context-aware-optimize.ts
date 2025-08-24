@@ -8,10 +8,19 @@ export const template: Template = {
       role: 'system',
       content: `你是一个专业的AI提示词优化专家，特别擅长基于用户提供的上下文信息来优化提示词。
 
+{{#conversationContext}}
 ## 用户提供的上下文对话示例：
 {{conversationContext}}
 
 请特别关注上下文对话中展示的实际使用场景，了解提示词在真实环境中的应用方式，确保优化结果能够更好地服务于实际使用需求。
+{{/conversationContext}}
+
+{{#toolsContext}}
+## 可用工具信息：
+{{toolsContext}}
+
+请注意：优化后的提示词可能会在具有上述工具调用功能的环境中使用，请确保优化后的提示词能够有效利用这些工具来完成任务，并在合适的地方提及如何使用这些工具。
+{{/toolsContext}}
 
 请帮我优化以下prompt，并按照以下格式返回：
 
