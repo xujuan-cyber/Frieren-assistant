@@ -13,7 +13,8 @@
 - **大型架构重构经验** → [117-import-export-architecture-refactor/experience.md](../archives/117-import-export-architecture-refactor/experience.md)
 - **版本更新系统经验** → [118-desktop-auto-update-system/experience.md](../archives/118-desktop-auto-update-system/experience.md)
 - **MCP Server 模块开发经验** → [120-mcp-server-module/experience.md](../archives/120-mcp-server-module/experience.md)
-- **多自定义模型支持经验** → [121-multi-custom-models-support/experience.md](../archives/121-multi-custom-models-support/experience.md)
+- **Docker API代理经验** → [122-docker-api-proxy/experience.md](../archives/122-docker-api-proxy/experience.md)
+- **高级功能完整实现经验** → [123-advanced-features-implementation/experience.md](../archives/123-advanced-features-implementation/experience.md)
 
 ## 🔧 通用开发规范
 
