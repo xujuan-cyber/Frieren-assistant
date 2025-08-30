@@ -1,29 +1,35 @@
 <template>
-  <button
+  <NButton
     @click="handleToggle"
-    class="advanced-mode-button"
-    :class="{ 'active': props.enabled }"
-    :disabled="loading"
+    :type="buttonType"
+    :size="buttonSize"
+    :loading="loading"
+    :disabled="props.disabled || loading"
     :title="t('settings.advancedModeTooltip')"
+    class="advanced-mode-toggle"
+    :ghost="!props.enabled"
+    round
   >
-    <svg 
-      class="icon" 
-      :class="{ 'icon-active': props.enabled }"
-      fill="currentColor" 
-      viewBox="0 0 24 24"
-    >
-      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
-    </svg>
-    <span class="text">{{ t('settings.advancedMode') }}</span>
+    <template #icon>
+      <svg 
+        class="w-5 h-5" 
+        fill="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+      </svg>
+    </template>
+    <span class="text-sm max-md:hidden">{{ t('settings.advancedMode') }}</span>
     
     <!-- 状态指示器 -->
-    <div v-if="props.enabled" class="status-dot"></div>
-  </button>
+    <div v-if="props.enabled" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border-2 border-white"></div>
+  </NButton>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { NButton } from 'naive-ui'
 
 const { t } = useI18n()
 
@@ -43,6 +49,10 @@ const emit = defineEmits<{
 }>()
 
 const loading = ref(false)
+
+// 动态计算按钮类型和尺寸
+const buttonType = computed(() => props.enabled ? 'primary' : 'default')
+const buttonSize = computed(() => 'medium')
 
 const handleToggle = async () => {
   if (props.disabled || loading.value) return
@@ -65,76 +75,12 @@ const handleToggle = async () => {
 </script>
 
 <style scoped>
-.advanced-mode-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  border-radius: 0.375rem;
-  background-color: transparent;
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Naive UI主题系统完全集成 - 仅保留必要的定位和动画效果 */
+.advanced-mode-toggle {
   position: relative;
-  user-select: none;
 }
 
-.advanced-mode-button:hover {
-  background-color: var(--color-bg-hover);
-  color: var(--color-text-primary);
-}
-
-.advanced-mode-button:active {
-  transform: translateY(1px);
-}
-
-.advanced-mode-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.advanced-mode-button.active {
-  background-color: var(--color-primary-bg, rgba(59, 130, 246, 0.1));
-  color: var(--color-primary, #2563eb);
-}
-
-.icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  transition: all 0.2s ease;
-}
-
-.icon-active {
-  color: var(--color-primary, #2563eb);
-}
-
-.text {
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.status-dot {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: var(--color-success, #10b981);
-  border-radius: 50%;
-  border: 2px solid var(--color-bg-primary);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .text {
-    display: none;
-  }
-  
-  .advanced-mode-button {
-    padding: 0.5rem;
-  }
+.advanced-mode-toggle:hover {
+  transform: translateY(-1px);
 }
 </style>
