@@ -64,6 +64,9 @@ export { default as FullscreenDialog } from './components/FullscreenDialog.vue'
 export { default as InputWithSelect } from './components/InputWithSelect.vue'
 export { default as MarkdownRenderer } from './components/MarkdownRenderer.vue'
 
+// 导出 Naive UI 组件 (解决 NFlex 组件解析问题)
+export { NFlex } from 'naive-ui'
+
 // 导出指令
 export { clickOutside } from './directives/clickOutside'
 

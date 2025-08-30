@@ -183,3 +183,6 @@ prompt-optimizer-data
 .playwright-mcp
 nul
 .spec-workflow
+.bmad-core
+.trae
+.cursor/rules/bmad

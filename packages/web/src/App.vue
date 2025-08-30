@@ -247,7 +247,7 @@
 <script setup lang="ts">
 import { ref, watch, provide, computed, shallowRef, toRef, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex } from 'naive-ui'
+import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex, useMessage } from 'naive-ui'
 import {
   // UI Components
   MainLayoutUI, ThemeToggleUI, AdvancedModeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
@@ -279,7 +279,7 @@ import type { IPromptService } from '@prompt-optimizer/core'
 
 // 1. 基础 composables
 const { t } = useI18n()
-const toast = useToast()
+// 移除全局toast实例，改为在需要时本地调用
 
 // 2. 初始化应用服务
 const { services, isInitializing } = useAppInitializer()
@@ -300,7 +300,6 @@ watch(services, async (newServices) => {
 
 // 4. 向子组件提供服务
 provide('services', services)
-provide('toast', toast)
 
 // 5. 控制主UI渲染的标志
 const isReady = computed(() => services.value !== null && !isInitializing.value)
@@ -455,7 +454,7 @@ const handleDataImported = () => {
   console.log('[App] 数据导入成功，即将刷新页面以应用所有更改...')
 
   // 显示成功提示，然后刷新页面
-  toast.success(t('dataManager.import.successWithRefresh'))
+  useToast().success(t('dataManager.import.successWithRefresh'))
 
   // 延迟一点时间让用户看到成功提示，然后刷新页面
   setTimeout(() => {
@@ -639,10 +638,10 @@ const handleSyncOptimizationContextToTest = (syncData: { messages: ConversationM
       }
     }
     
-    toast.success(t('conversation.syncToTest.success', '优化上下文已同步到测试区域'))
+    useToast().success(t('conversation.syncToTest.success', '优化上下文已同步到测试区域'))
   } else {
     // 降级处理：如果测试面板不支持同步，显示提示
-    toast.warning(t('conversation.syncToTest.notSupported', '当前测试面板不支持会话同步'))
+    useToast().warning(t('conversation.syncToTest.notSupported', '当前测试面板不支持会话同步'))
   }
 }
 
@@ -664,7 +663,7 @@ const handleHistoryReuse = async (context: { record: any, chainId: string, rootP
   // 如果目标模式与当前模式不同，自动切换
   if (targetMode !== selectedOptimizationMode.value) {
     selectedOptimizationMode.value = targetMode
-    toast.info(t('toast.info.optimizationModeAutoSwitched', {
+    useToast().info(t('toast.info.optimizationModeAutoSwitched', {
       mode: targetMode === 'system' ? t('common.system') : t('common.user')
     }))
   }

@@ -2,10 +2,29 @@
 <template>
   <!-- Naive UI的消息提供者组件 -->
   <NMessageProvider placement="top-right" container-style="position: fixed; top: 20px; right: 20px;">
+    <MessageApiInitializer />
     <slot />
   </NMessageProvider>
 </template>
 
 <script setup lang="ts">
-import { NMessageProvider } from 'naive-ui'
+import { NMessageProvider, useMessage } from 'naive-ui'
+import { onMounted, defineComponent, h } from 'vue'
+import { setGlobalMessageApi } from '../composables/useToast'
+
+// 内部组件用于在正确的上下文中初始化消息API
+const MessageApiInitializer = defineComponent({
+  name: 'MessageApiInitializer',
+  setup() {
+    onMounted(() => {
+      try {
+        const messageApi = useMessage()
+        setGlobalMessageApi(messageApi)
+      } catch (error) {
+        console.error('[Toast] Failed to initialize message API:', error)
+      }
+    })
+    return () => h('div', { style: { display: 'none' } })
+  }
+})
 </script>
