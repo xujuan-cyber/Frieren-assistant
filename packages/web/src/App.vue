@@ -16,63 +16,85 @@
 
         <!-- Actions Slot -->
         <template #actions>
-        <!-- 变量管理按钮 - 仅在高级模式下显示 -->
+        <!-- 核心功能区 -->
+        <!-- 变量管理按钮 - 仅在高级模式下显示，放在高级模式按钮前确保布局稳定 -->
         <ActionButtonUI
           v-if="advancedModeEnabled"
           icon="📊"
           :text="$t('nav.variableManager')"
           @click="openVariableManager"
+          type="default"
+          size="medium"
+          :ghost="false"
+          :round="true"
         />
-        <!-- 高级模式导航按钮 - 始终显示 -->
+        <!-- 高级模式导航按钮 - 始终显示，作为布局锚点 -->
         <ActionButtonUI
           icon="🚀"
           :text="$t('nav.advancedMode')"
           @click="toggleAdvancedMode"
           :class="{ 'active-button': advancedModeEnabled }"
+          type="default"
+          size="medium"
+          :ghost="false"
+          :round="true"
         />
-        <!-- 保留原有的AdvancedModeToggleUI以实现向后兼容，但默认隐藏 -->
-        <AdvancedModeToggleUI 
-          v-if="false"
-          :enabled="advancedModeEnabled"
-          @change="handleAdvancedModeChange"
-        />
-        <ThemeToggleUI />
         <ActionButtonUI
           icon="📝"
           :text="$t('nav.templates')"
           @click="openTemplateManager"
+          type="default"
+          size="medium"
+          :ghost="false"
+          :round="true"
         />
         <ActionButtonUI
           icon="📜"
           :text="$t('nav.history')"
           @click="historyManager.showHistory = true"
+          type="default"
+          size="medium"
+          :ghost="false"
+          :round="true"
         />
         <ActionButtonUI
           icon="⚙️"
           :text="$t('nav.modelManager')"
           @click="modelManager.showConfig = true"
+          type="default"
+          size="medium"
+          :ghost="false"
+          :round="true"
         />
         <ActionButtonUI
           icon="💾"
           :text="$t('nav.dataManager')"
           @click="showDataManager = true"
-        />
-        <!-- 自动更新组件 - 仅在Electron环境中显示 -->
-        <UpdaterIcon />
-        <NButton
-          @click="openGithubRepo"
-          secondary
+          type="default"
           size="medium"
-          circle
-          title="GitHub"
+          :ghost="false"
+          :round="true"
+        />
+        
+        <!-- 辅助功能区 - 使用简化样式降低视觉权重 -->
+        <ThemeToggleUI />
+        <ActionButtonUI
+          icon=""
+          text=""
+          @click="openGithubRepo"
+          size="small"
+          type="quaternary"
+          :ghost="true"
         >
           <template #icon>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
             </svg>
           </template>
-        </NButton>
-        <LanguageSwitchUI />
+        </ActionButtonUI>
+        <LanguageSwitchDropdown />
+        <!-- 自动更新组件 - 仅在Electron环境中显示 -->
+        <UpdaterIcon />
         </template>
       <template #main>
 
@@ -250,8 +272,8 @@ import { useI18n } from 'vue-i18n'
 import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex, useMessage } from 'naive-ui'
 import {
   // UI Components
-  MainLayoutUI, ThemeToggleUI, AdvancedModeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
-  LanguageSwitchUI, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
+  MainLayoutUI, ThemeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
+  LanguageSwitchDropdown, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
   ModelSelectUI, TemplateSelectUI, TestPanelUI, AdvancedTestPanel, UpdaterIcon, VariableManagerModal,
   ConversationManager,
 
@@ -367,7 +389,7 @@ const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() 
 const handleCreateVariable = (name: string, defaultValue?: string) => {
   // 创建新变量并打开变量管理器
   if (variableManager?.variableManager.value) {
-    variableManager.variableManager.value.createVariable(name, defaultValue || '')
+    variableManager.variableManager.value.setVariable(name, defaultValue || '')
   }
   focusVariableName.value = name
   showVariableManager.value = true

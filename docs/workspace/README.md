@@ -135,7 +135,7 @@ graph TD
 - **2025-09-04**: ✅ 项目最终验收通过 - 100% Naive UI迁移成功
 
 ### 已归档子项目
-- **[AdvancedModeToggle迁移](../archives/124-advanced-mode-toggle-migration/README.md)**: 完成最后一个组件迁移，实现100% Naive UI覆盖
+- **[导航栏优化项目](../archives/124-navigation-optimization/README.md)**: 完成导航栏跨模式稳定性、语言切换升级等优化，实现统一的导航体验
 
 ### 风险监控指标
 - **进度风险**: 对照 [todo.md](./todo.md) 中的时间计划

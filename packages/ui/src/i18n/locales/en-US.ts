@@ -559,11 +559,11 @@ export default {
   },
   theme: {
     title: 'Theme Settings',
-    light: 'Light Mode',
-    dark: 'Dark Mode',
-    blue: 'Blue Mode',
-    green: 'Green Mode',
-    purple: 'Purple Mode'
+    light: 'Light',
+    dark: 'Dark',
+    blue: 'Blue',
+    green: 'Green',
+    purple: 'Purple'
   },
   test: {
     title: 'Test',

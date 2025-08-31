@@ -7,7 +7,7 @@
         :title="t('updater.checkForUpdates')"
         quaternary
         circle
-        size="medium"
+        size="small"
       >
         <template #icon>
           <svg

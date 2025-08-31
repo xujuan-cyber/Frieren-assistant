@@ -561,11 +561,11 @@ export default {
   },
   theme: {
     title: '主题设置',
-    light: '日间模式',
-    dark: '夜间模式',
-    blue: '蓝色模式',
-    green: '绿色模式',
-    purple: '暗紫模式'
+    light: '日间',
+    dark: '夜间',
+    blue: '蓝色',
+    green: '绿色',
+    purple: '紫色'
   },
   test: {
     title: '测试',

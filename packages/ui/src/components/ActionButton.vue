@@ -11,7 +11,9 @@
     :round="round"
   >
     <template #icon>
-      <span class="text-base sm:text-lg">{{ icon }}</span>
+      <slot name="icon">
+        <span class="text-base sm:text-lg">{{ icon }}</span>
+      </slot>
     </template>
     <span class="text-sm max-md:hidden">{{ text }}</span>
   </NButton>
@@ -25,11 +27,11 @@ import { NButton } from 'naive-ui'
 const { t } = useI18n()
 
 interface Props {
-  icon: string
+  icon?: string
   text: string
   loading?: boolean
   loadingText?: string
-  type?: 'default' | 'tertiary' | 'primary' | 'success' | 'info' | 'warning' | 'error'
+  type?: 'default' | 'tertiary' | 'primary' | 'success' | 'info' | 'warning' | 'error' | 'quaternary'
   size?: 'tiny' | 'small' | 'medium' | 'large'
   ghost?: boolean
   round?: boolean
