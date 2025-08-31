@@ -2,7 +2,7 @@
  * 智能变量提取器实现
  */
 
-import type { VariableExtractor, VariableSuggestion } from '../types'
+import type { VariableExtractor } from '../types'
 
 // 内置常见变量名库
 const COMMON_VARIABLES = {

@@ -12,5 +12,5 @@
 </template>
 
 <script setup lang="ts">
-import { NCard, NFlex } from 'naive-ui'
+import { NCard, NSpace } from 'naive-ui'
 </script>

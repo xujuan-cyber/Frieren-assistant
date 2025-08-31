@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { NLayout, NLayoutHeader, NLayoutContent, NSpace, NImage, NH1 } from 'naive-ui'
+import { NLayout, NLayoutHeader, NLayoutContent, NSpace, NImage, NH1, NFlex } from 'naive-ui'
 import { ToastUI } from '../index'
 import logoImage from '../assets/logo.jpg'
 

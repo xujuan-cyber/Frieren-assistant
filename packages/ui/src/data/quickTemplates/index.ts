@@ -19,8 +19,10 @@ export class QuickTemplateManager implements QuickTemplateLoader {
     const currentLanguage = language || this.defaultLanguage
     
     // 优先使用请求的语言，如果不存在则回退到默认语言
-    const templates = this.templatesByLanguage[currentLanguage as keyof typeof this.templatesByLanguage] || 
-                     this.templatesByLanguage[this.defaultLanguage]
+    const languageKey = currentLanguage as keyof typeof this.templatesByLanguage
+    const templates = (languageKey in this.templatesByLanguage) 
+      ? this.templatesByLanguage[languageKey] 
+      : this.templatesByLanguage[this.defaultLanguage as keyof typeof this.templatesByLanguage]
 
     return templates[optimizationMode] || []
   }
@@ -39,7 +41,7 @@ export class QuickTemplateManager implements QuickTemplateLoader {
 // 导出单例实例
 export const quickTemplateManager = new QuickTemplateManager()
 
-// 导出所有模板数据
+// 导出所有模板数据 - 使用具体的命名导出避免冲突
 export * from './types'
-export * from './zh-CN'
-export * from './en-US'
+export { zhCNQuickTemplates } from './zh-CN'
+export { enUSQuickTemplates } from './en-US'

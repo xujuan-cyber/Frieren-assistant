@@ -862,7 +862,7 @@ export function useUpdater() {
       state.isDownloadingPrerelease = false
 
       // 设置用户可见的下载错误信息
-      let errorMessage = error.message || error.error || 'Update check failed'
+      const errorMessage = error.message || error.error || 'Update check failed'
 
       if (state.lastDownloadAttempt) {
         const versionType = state.lastDownloadAttempt === 'stable' ? t('updater.stable') : t('updater.prerelease')

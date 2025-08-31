@@ -23,8 +23,8 @@ export function useClipboard(): ClipboardHooks {
   
   // 检查浏览器支持
   const isSupported = !!(
-    navigator?.clipboard?.writeText && 
-    navigator?.clipboard?.readText
+    typeof navigator?.clipboard?.writeText === 'function' && 
+    typeof navigator?.clipboard?.readText === 'function'
   )
   
   /**
@@ -40,7 +40,6 @@ export function useClipboard(): ClipboardHooks {
       error.value = null
       
       await navigator.clipboard.writeText(text)
-      console.log('[useClipboard] Text copied to clipboard successfully')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to copy to clipboard'
       error.value = errorMessage
@@ -64,7 +63,6 @@ export function useClipboard(): ClipboardHooks {
       error.value = null
       
       const text = await navigator.clipboard.readText()
-      console.log('[useClipboard] Text read from clipboard successfully')
       return text
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to read from clipboard'

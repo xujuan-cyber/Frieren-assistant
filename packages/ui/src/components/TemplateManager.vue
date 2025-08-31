@@ -817,7 +817,7 @@ const initializeTextareaHeight = (textarea: HTMLTextAreaElement) => {
     const minHeight = 80
     const maxHeight = 280
     
-    // 临时设置为auto获取内容高度
+    // 设置为auto以获取内容实际高度
     const originalHeight = textarea.style.height
     textarea.style.height = 'auto'
     const scrollHeight = textarea.scrollHeight

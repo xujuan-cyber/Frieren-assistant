@@ -188,9 +188,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { OptimizationMode, ConversationMessage, CustomConversationRequest, ToolDefinition } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
-import type { VariableManagerHooks } from '../composables/useVariableManager'
-
-import { useVariableManager } from '../composables/useVariableManager'
+import { useVariableManager, type VariableManagerHooks } from '../composables/useVariableManager'
 
 import { NButton, NCard, NInput } from 'naive-ui'
 import ModelSelectUI from './ModelSelect.vue'

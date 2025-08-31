@@ -60,10 +60,11 @@
   - 页面过渡动画
   - 组件切换效果
   - 列表动画
-- Element Plus 2.9.x
-  - 组件库
-  - 主题支持
-  - 响应式组件
+- Naive UI 2.42.x
+  - 企业级组件库
+  - 完整的TypeScript支持  
+  - 主题定制系统
+  - 响应式组件设计
 
 #### 1.2.4 状态管理
 - Vue Reactivity
@@ -71,15 +72,16 @@
   - computed
   - watch
   - watchEffect
+- Composables模式
+  - 状态逻辑复用
+  - 响应式组合
+  - 生命周期管理
+  - 副作用处理
 - LocalStorage
   - 配置持久化
   - 历史记录存储
   - 模板管理
   - 加密存储
-- Pinia 2.1.x
-  - 状态管理
-  - 持久化
-  - 插件支持
 
 #### 1.2.5 安全性
 - WebCrypto API
@@ -198,8 +200,8 @@
   ├── components/    # UI组件
   ├── composables/   # 组合式函数
   ├── views/         # 页面组件
-  ├── services/      # 服务
-  ├── stores/        # Pinia状态
+  ├── services/      # 服务层
+  ├── config/        # 配置文件
   ├── assets/        # 静态资源
   ├── utils/         # 工具函数
   ├── types/         # 类型定义
@@ -253,19 +255,145 @@
   - 避免类型断言
 
 ### 3.5 状态管理
-- Pinia存储
-  - 按功能模块组织store
+- Composables模式
+  - 按功能模块组织composables
   - 使用组合式API风格
-  - 实现持久化
-  - 处理异步操作
+  - 实现状态共享和复用
+  - 处理异步操作和副作用
 
-- 组合式API状态
-  - 使用composables封装状态逻辑
-  - 实现状态共享
-  - 处理生命周期
-  - 管理副作用
+- 响应式状态管理
+  - 使用ref/reactive管理局部状态
+  - 使用provide/inject实现依赖注入
+  - 通过composables实现状态逻辑复用
+  - 管理组件生命周期和清理
 
-### 3.6 性能优化
+### 3.6 TypeScript和ESLint配置指导
+
+#### 3.6.1 TypeScript配置最佳实践
+
+**项目级tsconfig.json配置**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "useDefineForClassFields": true
+  },
+  "include": ["src/**/*", "*.vue"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+**Vue组件类型定义**
+```typescript
+// 组件Props类型定义
+interface ComponentProps {
+  title: string
+  items: Array<{ id: string, name: string }>
+  onSelect?: (item: any) => void
+}
+
+// 组件Emits类型定义  
+const emit = defineEmits<{
+  select: [item: any]
+  update: [value: string]
+}>()
+
+// 响应式数据类型
+const formData = ref<{
+  username: string
+  modelConfig: ModelConfig | null
+}>({
+  username: '',
+  modelConfig: null
+})
+```
+
+**服务接口类型安全**
+```typescript
+// 服务依赖注入类型
+interface Services {
+  modelManager: IModelManager
+  templateManager: ITemplateManager
+  variableManager: IVariableManager
+}
+
+const services = inject<{ value: Services | null }>('services')
+if (!services?.value) {
+  throw new Error('Services not provided')
+}
+```
+
+#### 3.6.2 ESLint配置指导
+
+**基础ESLint配置**
+```json
+{
+  "root": true,
+  "parser": "vue-eslint-parser",
+  "parserOptions": {
+    "parser": "@typescript-eslint/parser",
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "extraFileExtensions": [".vue"]
+  },
+  "plugins": ["@typescript-eslint", "vue"],
+  "extends": [
+    "eslint:recommended",
+    "@vue/eslint-config-typescript/recommended"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "vue/multi-word-component-names": "off",
+    "vue/no-unused-vars": "error"
+  }
+}
+```
+
+**Vue文件特定规则**
+```json
+{
+  "rules": {
+    "vue/component-name-in-template-casing": ["error", "PascalCase"],
+    "vue/prop-name-casing": ["error", "camelCase"],
+    "vue/attribute-hyphenation": ["error", "always"],
+    "vue/v-on-event-hyphenation": ["error", "always"],
+    "vue/no-unused-components": "warn",
+    "vue/require-default-prop": "off"
+  }
+}
+```
+
+#### 3.6.3 开发环境集成
+
+**VS Code配置 (.vscode/settings.json)**
+```json
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "vue"
+  ],
+  "vetur.validation.template": false,
+  "vetur.validation.script": false,
+  "vetur.validation.style": false
+}
+```
+
+### 3.7 性能优化
 - 动态导入
   - 使用路由懒加载
   - 组件按需加载
@@ -278,7 +406,219 @@
   - 使用计算属性缓存
   - 优化大型列表
 
-### 3.7 测试规范
+### 3.8 Naive UI使用指南
+
+#### 3.8.1 组件库特性
+- **企业级设计**
+  - 专业的视觉设计语言
+  - 一致的交互体验
+  - 完整的组件生态
+
+- **TypeScript支持**
+  - 完整的类型定义
+  - 智能代码提示
+  - 类型安全的属性传递
+
+- **主题系统**
+  - 内置多种主题（light、dark、blue、green、purple）
+  - 支持主题定制和动态切换
+  - CSS变量支持
+
+#### 3.8.2 配置指南
+
+1. **基础配置**
+   ```vue
+   <template>
+     <NConfigProvider :theme="naiveTheme" :theme-overrides="themeOverrides">
+       <!-- 应用内容 -->
+     </NConfigProvider>
+   </template>
+   
+   <script setup>
+   import { useNaiveTheme } from '@prompt-optimizer/ui'
+   
+   const { naiveTheme, themeOverrides } = useNaiveTheme()
+   </script>
+   ```
+
+2. **主题配置**
+   ```typescript
+   // config/naive-theme.ts
+   export const themeConfig = {
+     light: lightTheme,
+     dark: darkTheme,
+     blue: createCustomTheme(blueColors),
+     green: createCustomTheme(greenColors),
+     purple: createCustomTheme(purpleColors)
+   }
+   ```
+
+3. **组件使用**
+   ```vue
+   <template>
+     <NButton type="primary" @click="handleClick">
+       按钮
+     </NButton>
+     <NCard title="卡片标题">
+       <p>卡片内容</p>
+     </NCard>
+   </template>
+   
+   <script setup>
+   import { NButton, NCard } from 'naive-ui'
+   </script>
+   ```
+
+#### 3.8.3 主题配置详细说明
+
+系统提供5种完整主题配置，每种主题都包含完整的颜色体系和组件样式定制：
+
+**1. 日间模式 (light)**
+- 基础主题：lightTheme
+- 主色调：#0ea5e9 (天蓝色)
+- 适用场景：默认日间使用，清晰简洁
+
+**2. 夜间模式 (dark)**
+- 基础主题：darkTheme  
+- 主色调：#64748b (石板灰)
+- 适用场景：低光环境，护眼模式
+
+**3. 蓝色模式 (blue)**
+- 基础主题：lightTheme + 自定义背景
+- 主色调：#0ea5e9 (天蓝色)
+- 特色：蓝色调背景色系 (#f0f9ff body, #e0f2fe card)
+- 适用场景：商务专业风格
+
+**4. 绿色模式 (green)**
+- 基础主题：darkTheme + 完整绿色配色
+- 主色调：#14b8a6 (青绿色)
+- 特色：深色基调配绿色主题 (#0f1e1a body, #1a2e25 card)
+- 完整配置：包含滚动条、图标、边框等所有UI元素
+
+**5. 暗紫模式 (purple)**
+- 基础主题：darkTheme + 紫色配色
+- 主色调：#a855f7 (紫色)
+- 特色：深色基调配紫色主题 (#1a0f2e body, #251a35 card)
+- 适用场景：创意设计，个性化界面
+
+#### 3.8.4 常用组件使用模式
+
+**1. 表单组件**
+```vue
+<template>
+  <NForm ref="formRef" :model="formModel" :rules="formRules">
+    <NFormItem label="用户名" path="username">
+      <NInput v-model:value="formModel.username" placeholder="请输入用户名" />
+    </NFormItem>
+    <NFormItem label="模型选择" path="model">
+      <NSelect 
+        v-model:value="formModel.model" 
+        :options="modelOptions"
+        placeholder="请选择模型"
+      />
+    </NFormItem>
+    <NFormItem>
+      <NButton type="primary" @click="handleSubmit">
+        提交
+      </NButton>
+    </NFormItem>
+  </NForm>
+</template>
+```
+
+**2. 布局组件**
+```vue
+<template>
+  <!-- 弹性布局 - 推荐用于现代布局 -->
+  <NFlex vertical :size="16">
+    <NFlex justify="space-between" align="center">
+      <NH3>标题</NH3>
+      <NButton type="primary">操作</NButton>
+    </NFlex>
+    
+    <!-- 卡片容器 -->
+    <NCard title="内容卡片" hoverable>
+      <NFlex :size="12">
+        <NTag type="info">标签1</NTag>
+        <NTag type="success">标签2</NTag>
+      </NFlex>
+    </NCard>
+  </NFlex>
+
+  <!-- 传统间距布局 -->
+  <NSpace vertical :size="16">
+    <NSpace justify="space-between" align="center">
+      <NText strong>列表标题</NText>
+      <NButton quaternary>更多</NButton>
+    </NSpace>
+  </NSpace>
+
+  <!-- 网格布局 -->
+  <NGrid :cols="3" :x-gap="16" :y-gap="16">
+    <NGridItem v-for="item in items" :key="item.id">
+      <NCard>{{ item.content }}</NCard>
+    </NGridItem>
+  </NGrid>
+</template>
+```
+
+**3. 反馈组件**
+```vue
+<script setup>
+import { useMessage, useNotification } from 'naive-ui'
+
+const message = useMessage()
+const notification = useNotification()
+
+const showToast = () => {
+  message.success('操作成功')
+}
+
+const showNotification = () => {
+  notification.info({
+    title: '通知标题',
+    content: '通知内容',
+    duration: 3000
+  })
+}
+</script>
+```
+
+**4. 变量管理组件使用模式**
+```vue
+<script setup>
+import { useVariableManager } from '@prompt-optimizer/ui'
+
+const services = inject('services')
+const {
+  isReady,
+  isAdvancedMode,
+  customVariables,
+  allVariables,
+  setAdvancedMode,
+  addVariable,
+  updateVariable,
+  deleteVariable,
+  replaceVariables
+} = useVariableManager(services, { autoSync: true })
+
+// 使用变量替换
+const processedContent = computed(() => {
+  return replaceVariables(originalContent.value, allVariables.value)
+})
+</script>
+```
+
+#### 3.8.5 最佳实践
+
+- **按需导入**：只导入使用的组件，减少包体积
+- **主题一致性**：统一使用主题系统，避免硬编码颜色
+- **响应式设计**：优先使用NFlex而不是NSpace，获得更好的响应式支持
+- **类型安全**：充分利用TypeScript类型定义
+- **组件组合**：合理使用NCard + NFlex + NSpace组合实现复杂布局
+- **主题切换**：通过switchTheme()方法实现动态主题切换
+
+### 3.9 测试规范
 - 组件测试
   - 测试组件渲染
   - 测试用户交互
@@ -543,4 +883,4 @@
 2. 有每月带宽和请求数量限制
 3. 首次请求可能有冷启动延迟
 
-最后更新：2025-01-06
+最后更新：2025-01-15

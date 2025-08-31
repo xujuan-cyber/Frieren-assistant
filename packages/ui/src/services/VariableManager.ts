@@ -3,18 +3,16 @@
  * 负责自定义变量的管理、存储和解析
  */
 
-import type { IPreferenceService } from '../types/services';
-import type { 
-  IVariableManager, 
-  VariableStorage, 
-  ConversationMessage, 
-  VariableSource,
-  PredefinedVariable
-} from '../types/variable';
+import type { IPreferenceService } from '@prompt-optimizer/core';
 import { 
   PREDEFINED_VARIABLES, 
   VARIABLE_VALIDATION,
-  VariableError 
+  VariableError,
+  type IVariableManager, 
+  type VariableStorage, 
+  type ConversationMessage, 
+  type VariableSource,
+  type PredefinedVariable
 } from '../types/variable';
 
 // 存储键
@@ -286,8 +284,9 @@ export class VariableManager implements IVariableManager {
 
       this.saveToStorage();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw new VariableError(
-        `Failed to import variables: ${error.message}`,
+        `Failed to import variables: ${errorMessage}`,
         undefined,
         undefined,
         'IMPORT_ERROR'

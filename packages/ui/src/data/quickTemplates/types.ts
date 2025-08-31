@@ -18,6 +18,3 @@ export interface QuickTemplateDefinition {
   category: 'system' | 'user'
   messages: QuickTemplateMessage[]
 }
-
-// Explicit named export to ensure proper module resolution
-export { QuickTemplateDefinition, QuickTemplateMessage, QuickTemplate }

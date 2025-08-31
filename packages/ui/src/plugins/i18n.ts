@@ -12,7 +12,7 @@ type SupportedLocale = 'zh-CN' | 'en-US'
 const SUPPORTED_LOCALES: SupportedLocale[] = ['zh-CN', 'en-US']
 
 // 服务引用
-let servicesRef = ref<AppServices | null>(null);
+const servicesRef = ref<AppServices | null>(null);
 
 // 设置服务引用的函数
 export function setI18nServices(services: AppServices) {

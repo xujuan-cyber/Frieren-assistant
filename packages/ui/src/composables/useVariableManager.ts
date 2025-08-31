@@ -90,8 +90,6 @@ export function useVariableManager(
     }
     
     try {
-      console.log('[useVariableManager] Initializing variable manager...')
-      
       const manager = new VariableManager(services.value.preferenceService)
       variableManager.value = manager
       
@@ -100,8 +98,6 @@ export function useVariableManager(
       
       refreshState()
       isReady.value = true
-      
-      console.log('[useVariableManager] Variable manager initialized successfully')
     } catch (error) {
       console.error('[useVariableManager] Failed to initialize variable manager:', error)
       isReady.value = false
@@ -128,7 +124,6 @@ export function useVariableManager(
     try {
       variableManager.value.setAdvancedModeEnabled(enabled)
       refreshState()
-      console.log(`[useVariableManager] Advanced mode ${enabled ? 'enabled' : 'disabled'}`)
     } catch (error) {
       console.error('[useVariableManager] Failed to set advanced mode:', error)
     }
@@ -140,7 +135,6 @@ export function useVariableManager(
     try {
       variableManager.value.setVariable(name, value)
       refreshState()
-      console.log(`[useVariableManager] Added variable: ${name}`)
     } catch (error) {
       console.error(`[useVariableManager] Failed to add variable ${name}:`, error)
       throw error
@@ -153,7 +147,6 @@ export function useVariableManager(
     try {
       variableManager.value.setVariable(name, value)
       refreshState()
-      console.log(`[useVariableManager] Updated variable: ${name}`)
     } catch (error) {
       console.error(`[useVariableManager] Failed to update variable ${name}:`, error)
       throw error
@@ -166,7 +159,6 @@ export function useVariableManager(
     try {
       variableManager.value.deleteVariable(name)
       refreshState()
-      console.log(`[useVariableManager] Deleted variable: ${name}`)
     } catch (error) {
       console.error(`[useVariableManager] Failed to delete variable ${name}:`, error)
       throw error
@@ -205,7 +197,6 @@ export function useVariableManager(
     
     try {
       variableManager.value.setLastConversationMessages(messages)
-      console.log(`[useVariableManager] Updated conversation messages: ${messages.length} messages`)
     } catch (error) {
       console.error('[useVariableManager] Failed to set conversation messages:', error)
     }
@@ -222,7 +213,6 @@ export function useVariableManager(
     try {
       variableManager.value.importVariables(data)
       refreshState()
-      console.log('[useVariableManager] Variables imported successfully')
     } catch (error) {
       console.error('[useVariableManager] Failed to import variables:', error)
       throw error

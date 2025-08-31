@@ -59,6 +59,13 @@ export interface IVariableManager {
   // 会话消息管理
   getLastConversationMessages(): ConversationMessage[];
   setLastConversationMessages(messages: ConversationMessage[]): void;
+  
+  // 缺失的方法
+  getStatistics(): { customVariableCount: number; predefinedVariableCount: number; totalVariableCount: number; advancedModeEnabled: boolean; };
+  replaceVariables(content: string, variables?: Record<string, string>): string;
+  detectMissingVariables(content: string | ConversationMessage[], availableVariables?: Record<string, string>): string[];
+  exportVariables(): string;
+  importVariables(jsonData: string): void;
 }
 
 // 变量错误类

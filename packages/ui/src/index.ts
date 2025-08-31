@@ -41,6 +41,8 @@ export { default as ContentCardUI } from './components/ContentCard.vue'
 export { default as ActionButtonUI } from './components/ActionButton.vue'
 export { default as ThemeToggleUI } from './components/ThemeToggleUI.vue'
 export { default as TestPanelUI } from './components/TestPanel.vue'
+export { default as ModalUI } from './components/Modal.vue'
+export { default as PanelUI } from './components/Panel.vue'
 
 export { default as BasicTestMode } from './components/BasicTestMode.vue'
 export { default as VariableManagerModal } from './components/VariableManagerModal.vue'
@@ -53,6 +55,7 @@ export { default as AdvancedTestPanel } from './components/AdvancedTestPanel.vue
 export { default as AdvancedModeToggleUI } from './components/AdvancedModeToggle.vue'
 export { default as LanguageSwitchUI } from './components/LanguageSwitch.vue'
 export { default as BuiltinTemplateLanguageSwitchUi } from './components/BuiltinTemplateLanguageSwitch.vue'
+export { default as VariableManager } from './components/VariableManager.vue'
 export { default as DataManagerUI } from './components/DataManager.vue'
 export { default as OptimizationModeSelectorUI } from './components/OptimizationModeSelector.vue'
 export { default as TextDiffUI } from './components/TextDiff.vue'
@@ -64,8 +67,38 @@ export { default as FullscreenDialog } from './components/FullscreenDialog.vue'
 export { default as InputWithSelect } from './components/InputWithSelect.vue'
 export { default as MarkdownRenderer } from './components/MarkdownRenderer.vue'
 
-// 导出 Naive UI 组件 (解决 NFlex 组件解析问题)
-export { NFlex } from 'naive-ui'
+// 导出 Naive UI 组件 (解决组件解析问题)
+export { 
+  NFlex,
+  NButton,
+  NCard,
+  NInput,
+  NSelect,
+  NModal,
+  NSpace,
+  NTag,
+  NText,
+  NGrid,
+  NGridItem,
+  NIcon,
+  NImage,
+  NLayout,
+  NLayoutHeader,
+  NLayoutContent,
+  NMessageProvider,
+  NButtonGroup,
+  NDropdown,
+  NDivider,
+  NDataTable,
+  NForm,
+  NFormItem,
+  NRadioGroup,
+  NRadioButton,
+  NScrollbar,
+  NEmpty,
+  NBadge,
+  useMessage
+} from 'naive-ui'
 
 // 导出指令
 export { clickOutside } from './directives/clickOutside'

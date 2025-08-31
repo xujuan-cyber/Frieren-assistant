@@ -272,7 +272,7 @@ const handleSourceInput = (value: string) => {
 // 复制功能
 const handleCopy = (type: 'content' | 'reasoning' | 'all') => {
   let textToCopy = ''
-  let emitType: 'content' | 'reasoning' | 'all' = type
+  const emitType: 'content' | 'reasoning' | 'all' = type
   
   switch (type) {
     case 'content':

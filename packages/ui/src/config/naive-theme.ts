@@ -1,7 +1,6 @@
 // Naive UI 主题配置 - 全面基于 Naive UI 的 themeOverrides 系统
 import { computed, ref } from 'vue'
-import type { GlobalThemeOverrides, GlobalTheme } from 'naive-ui'
-import { darkTheme, lightTheme } from 'naive-ui'
+import { darkTheme, lightTheme, type GlobalThemeOverrides, type GlobalTheme } from 'naive-ui'
 
 // 当前主题ID
 export const currentThemeId = ref<string>('light')
@@ -140,8 +139,6 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
         iconColorDisabled: 'rgba(229, 243, 240, 0.4)',
         // 边框和分割线
         borderColor: 'rgba(20, 184, 166, 0.24)',
-        borderColorPressed: 'rgba(20, 184, 166, 0.48)',
-        borderColorDisabled: 'rgba(20, 184, 166, 0.12)',
         dividerColor: 'rgba(20, 184, 166, 0.12)',
         // 滚动条
         scrollbarColor: 'rgba(20, 184, 166, 0.3)',
@@ -280,8 +277,6 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
         iconColorDisabled: 'rgba(240, 229, 255, 0.4)',
         // 边框和分割线
         borderColor: 'rgba(168, 85, 247, 0.24)',
-        borderColorPressed: 'rgba(168, 85, 247, 0.48)',
-        borderColorDisabled: 'rgba(168, 85, 247, 0.12)',
         dividerColor: 'rgba(168, 85, 247, 0.12)',
         // 滚动条
         scrollbarColor: 'rgba(168, 85, 247, 0.3)',

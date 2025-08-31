@@ -5,7 +5,6 @@
 import type {
   DataConverter,
   StandardPromptData,
-  LangFuseTrace,
   OpenAIRequest,
   ConversionResult,
   StandardMessage,
@@ -23,7 +22,7 @@ export class PromptDataConverter implements DataConverter {
   fromLangFuse(langfuseData: any): ConversionResult<StandardPromptData> {
     try {
       let messages: any[] = []
-      let extractedTools: any[] = []
+      const extractedTools: any[] = []
       let metadata: any = {}
 
       // 智能识别LangFuse数据结构层级

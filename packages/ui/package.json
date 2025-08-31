@@ -24,7 +24,9 @@
     "dev": "vite",
     "build": "vite build",
     "build:win": "vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts,.vue --no-eslintrc --config .eslintrc.json",
+    "lint:fix": "eslint src --ext .ts,.vue --no-eslintrc --config .eslintrc.json --fix"
   },
   "dependencies": {
     "@prompt-optimizer/core": "workspace:*",
@@ -38,9 +40,13 @@
   "devDependencies": {
     "@types/node": "^22.13.10",
     "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.5",
     "@vue/tsconfig": "^0.5.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^10.4.0",
     "jsdom": "^26.0.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.0",

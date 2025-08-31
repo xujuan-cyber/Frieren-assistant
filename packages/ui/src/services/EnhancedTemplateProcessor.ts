@@ -73,10 +73,11 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
         ...data.metadata,
         template_info: {
           ...data.metadata?.template_info,
-          is_template: true,
-          variable_count: allVariables.size,
+          name: data.metadata?.template_info?.name,
+          version: data.metadata?.template_info?.version,
+          variables: Array.from(allVariables),
           created_at: new Date().toISOString()
-        }
+        } as any
       }
     }
 
@@ -104,7 +105,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
       messages: processedMessages,
       metadata: {
         ...template.metadata,
-        source: 'template_processed',
+        source: 'manual',
         variables_applied: variables,
         processed_at: new Date().toISOString()
       }
@@ -410,7 +411,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
         const similarity = this.calculateSimilarity(variables[i], variables[j])
         if (similarity > 0.7) {
           // 找到或创建组
-          let foundGroup = groups.find(group => 
+          const foundGroup = groups.find(group => 
             group.includes(variables[i]) || group.includes(variables[j])
           )
           

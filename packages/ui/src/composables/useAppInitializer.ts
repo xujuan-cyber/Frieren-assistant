@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Ref } from 'vue';
 import {
   StorageFactory,
   createModelManager,
@@ -15,7 +15,7 @@ import {
   ElectronDataManagerProxy,
   ElectronLLMProxy,
   ElectronPromptServiceProxy,
-  ElectronTemplateLanguageServiceProxy, // 暂时注释掉直到构建完成
+  ElectronTemplateLanguageServiceProxy,
   isRunningInElectron,
   waitForElectronApi,
   DataManager,
@@ -23,15 +23,18 @@ import {
   createPreferenceService,
 } from '../'; // 从UI包的index导入所有核心模块
 import type { AppServices } from '../types/services';
-import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager } from '@prompt-optimizer/core';
-import type { IPreferenceService } from '../types/services';
+import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager, IPreferenceService } from '@prompt-optimizer/core';
 
 /**
  * 应用服务统一初始化器。
  * 负责根据运行环境（Web 或 Electron）创建和初始化所有核心服务。
  * @returns { services, isInitializing, error }
  */
-export function useAppInitializer() {
+export function useAppInitializer(): {
+  services: Ref<AppServices | null>;
+  isInitializing: Ref<boolean>;
+  error: Ref<Error | null>;
+} {
   const services = ref<AppServices | null>(null);
   const isInitializing = ref(true);
   const error = ref<Error | null>(null);
@@ -138,6 +141,11 @@ export function useAppInitializer() {
           enableModel: (key) => modelManagerInstance.enableModel(key),
           disableModel: (key) => modelManagerInstance.disableModel(key),
           getEnabledModels: () => modelManagerInstance.getEnabledModels(),
+          // IImportExportable methods
+          exportData: () => modelManagerInstance.exportData(),
+          importData: (data) => modelManagerInstance.importData(data),
+          getDataType: () => modelManagerInstance.getDataType(),
+          validateData: (data) => modelManagerInstance.validateData(data),
         };
 
         const languageServiceAdapter = {
@@ -162,6 +170,11 @@ export function useAppInitializer() {
           changeBuiltinTemplateLanguage: (language) => templateManagerInstance.changeBuiltinTemplateLanguage(language),
           getCurrentBuiltinTemplateLanguage: async () => await templateManagerInstance.getCurrentBuiltinTemplateLanguage(),
           getSupportedBuiltinTemplateLanguages: async () => await templateManagerInstance.getSupportedBuiltinTemplateLanguages(),
+          // IImportExportable methods
+          exportData: () => templateManagerInstance.exportData(),
+          importData: (data) => templateManagerInstance.importData(data),
+          getDataType: () => templateManagerInstance.getDataType(),
+          validateData: (data) => templateManagerInstance.validateData(data),
         };
 
         const historyManagerAdapter: IHistoryManager = {
@@ -176,6 +189,11 @@ export function useAppInitializer() {
           createNewChain: (record) => historyManagerInstance.createNewChain(record),
           addIteration: (params) => historyManagerInstance.addIteration(params),
           deleteChain: (id) => historyManagerInstance.deleteChain(id),
+          // IImportExportable methods
+          exportData: () => historyManagerInstance.exportData(),
+          importData: (data) => historyManagerInstance.importData(data),
+          getDataType: () => historyManagerInstance.getDataType(),
+          validateData: (data) => historyManagerInstance.validateData(data),
         };
 
         // Services that depend on initialized managers

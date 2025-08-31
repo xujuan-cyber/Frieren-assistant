@@ -31,7 +31,7 @@ import { ref, onMounted, computed, inject, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NButton } from 'naive-ui'
 import { useToast } from '../composables/useToast'
-import type { BuiltinTemplateLanguage, ITemplateManager, TemplateLanguageService } from '@prompt-optimizer/core'
+import type { BuiltinTemplateLanguage } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 const { t } = useI18n()
