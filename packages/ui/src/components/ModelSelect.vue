@@ -9,7 +9,6 @@
     size="medium"
     @focus="handleFocus"
     filterable
-    clearable
   >
     <template #empty>
       <NSpace vertical align="center" class="py-4">

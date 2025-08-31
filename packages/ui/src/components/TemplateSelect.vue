@@ -1,46 +1,38 @@
 <template>
-  <div class="relative">
-    <NSelect
-      :value="modelValue?.id || null"
-      @update:value="handleTemplateSelect"
-      :options="selectOptions"
-      :placeholder="t('template.select')"
-      :loading="!isReady"
-      :render-label="renderLabel"
-      :render-tag="renderTag"
-      class="modern-template-select"
-      size="medium"
-      @focus="handleFocus"
-    >
-      <template #empty>
-        <div class="text-center py-4 text-gray-500">
-          {{ t('template.noAvailableTemplates') }}
-        </div>
-      </template>
-    </NSelect>
-    
-    <!-- 配置按钮 -->
-    <div class="mt-2">
-      <NButton
-        type="tertiary" 
-        size="small"
-        @click="$emit('manage', props.type)"
-        class="w-full"
-        ghost
-      >
-        <template #icon>
-          <span>📝</span>
-        </template>
-        {{ t('template.configure') }}
-      </NButton>
-    </div>
-  </div>
+  <NSelect
+    :value="modelValue?.id || null"
+    @update:value="handleTemplateSelect"
+    :options="selectOptions"
+    :placeholder="t('template.select')"
+    :loading="!isReady"
+    size="medium"
+    @focus="handleFocus"
+    filterable
+  >
+    <template #empty>
+      <NSpace vertical align="center" class="py-4">
+        <NText class="text-center text-gray-500">{{ t('template.noAvailableTemplates') }}</NText>
+        <NButton 
+          type="tertiary" 
+          size="small" 
+          @click="$emit('manage', props.type)" 
+          class="w-full mt-2" 
+          ghost 
+        > 
+          <template #icon> 
+            <NText>📝</NText> 
+          </template> 
+          {{ t('template.configure') }} 
+        </NButton>
+      </NSpace>
+    </template>
+  </NSelect>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, inject, h } from 'vue'
+import { ref, computed, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NSelect, NButton, NTag } from 'naive-ui'
+import { NSelect, NButton, NSpace, NText } from 'naive-ui'
 import type { OptimizationMode, ITemplateManager, Template } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { Ref } from 'vue'
@@ -102,40 +94,38 @@ const templateManager = computed(() => {
 
 // 选择框选项
 const selectOptions = computed(() => {
-  return templates.value.map(template => ({
+  const templateOptions = templates.value.map(template => ({
     label: template.name,
     value: template.id,
     template: template,
     isBuiltin: template.isBuiltin,
-    description: template.metadata.description || t('template.noDescription')
+    description: template.metadata.description || t('template.noDescription'),
+    type: 'template'
   }))
+  
+  // 如果没有模板，返回空数组让placeholder显示
+  if (templateOptions.length === 0) {
+    return []
+  }
+  
+  // 添加配置按钮选项
+  const configOption = {
+    label: '📝' + t('template.configure'),
+    value: '__config__',
+    type: 'config'
+  }
+  
+  return [...templateOptions, configOption]
 })
-
-// 渲染标签函数 - 用于下拉列表中的选项显示
-const renderLabel = (option: any) => {
-  return h('div', { class: 'flex items-center justify-between w-full py-2' }, [
-    h('div', { class: 'flex flex-col flex-1' }, [
-      h('span', { class: 'text-sm font-medium' }, option.label),
-      h('p', { 
-        class: 'text-xs opacity-75 mt-1 leading-tight',
-        title: option.description
-      }, option.description)
-    ]),
-    option.isBuiltin ? h(NTag, { 
-      size: 'small',
-      type: 'primary',
-      class: 'ml-3 flex-shrink-0'
-    }, { default: () => t('common.builtin') }) : null
-  ])
-}
-
-// 渲染选中项 - 只显示名称，保持简洁
-const renderTag = ({ option }: any) => {
-  return h('span', { class: 'text-sm' }, option.label)
-}
 
 // 处理模板选择
 const handleTemplateSelect = (value: string | null) => {
+  // 如果选择的是配置选项，不更新值，直接触发配置事件
+  if (value === '__config__') {
+    emit('manage', props.type)
+    return
+  }
+  
   const template = templates.value.find(t => t.id === value) || null
   if (template && template.id !== props.modelValue?.id) {
     emit('update:modelValue', template)
@@ -319,18 +309,4 @@ defineExpose({
 })
 </script>
 
-<style scoped>
-.modern-template-select {
-  transition: all 0.3s ease;
-}
-
-/* 隐藏勾选标志 */
-.modern-template-select :deep(.n-base-select-option__check) {
-  display: none;
-}
-
-/* 优化下拉项的间距 */
-.modern-template-select :deep(.n-base-select-option) {
-  padding: 8px 12px;
-}
-</style> 
+ 
