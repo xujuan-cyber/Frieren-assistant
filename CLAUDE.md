@@ -218,3 +218,5 @@ pnpm run version:publish
 - `docs/archives/` - Historical development records and lessons learned
 - `docs/workspace/` - Current project work tracking and reports
 - `docs/testing/` - Testing scenarios and automation guides
+- ui应尽量使用naive ui组件
+- 记住，我们要尽量使用naive ui实现

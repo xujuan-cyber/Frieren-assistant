@@ -576,9 +576,9 @@ export default {
     simpleMode: {
       label: 'Test Content',
       placeholder: 'Enter content to test...',
-      help: 'Enter text content here for AI model testing'
+      help: ''
     },
-    model: 'Model',
+    model: 'Test Model',
     startTest: 'Start Test →',
     startCompare: 'Start Compare Test →',
     testing: 'Testing...',

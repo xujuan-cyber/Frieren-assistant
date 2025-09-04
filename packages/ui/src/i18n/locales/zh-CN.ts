@@ -578,9 +578,9 @@ export default {
     simpleMode: {
       label: '测试内容',
       placeholder: '输入要测试的内容...',
-      help: '在此输入文本内容进行AI模型测试'
+      help: ''
     },
-    model: '模型',
+    model: '测试模型',
     startTest: '开始测试 →',
     startCompare: '开始对比 →',
     testing: '测试中...',

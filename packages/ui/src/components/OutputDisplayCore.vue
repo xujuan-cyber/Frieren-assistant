@@ -127,8 +127,8 @@
         <NSpace v-else
          style="height: 100%;max-height: 100%;"
          item-style="height: 100%;max-height: 100%;"
-         align="center"
-         justify="center"
+         align="stretch"
+         justify="start"
         >
           <MarkdownRenderer
             v-if="displayContent"

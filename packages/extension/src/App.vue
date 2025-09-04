@@ -100,7 +100,7 @@
 
         
       <!-- Main Content - 使用 Naive UI NGrid 实现响应式水平左右布局 class="h-full min-h-0 overflow-hidden max-height=100%" -->
-      <NFlex  justify="space-between" :style="{display: 'flex',  flexDirection: 'row', width: '100%' , 'max-height': '100%' }" >
+      <NFlex  justify="space-between" :style="{display: 'flex',  flexDirection: 'row', width: '100%' , 'max-height': '100%', gap: '16px' }" >
         <!-- 左侧：优化区域 -->
         <NFlex vertical :style="{ flex: 1, overflow: 'auto', height: '100%' }">
           <!-- 组件 A: InputPanelUI -->
@@ -198,34 +198,65 @@
           content-style="height: 100%; max-height: 100%; overflow: hidden;"
         >
         <!-- 右侧：测试区域 -->
-          <!-- 基础模式：使用原来的TestPanelUI -->
-          <TestPanelUI
-            v-if="!advancedModeEnabled"
+          <!-- 使用新的统一TestAreaPanel组件 -->
+          <TestAreaPanel
             ref="testPanelRef"
-            :prompt-service="services?.promptService"
-            :original-prompt="optimizer.prompt"
-            :optimized-prompt="optimizer.optimizedPrompt"
             :optimization-mode="selectedOptimizationMode"
-            v-model="modelManager.selectedTestModel"
-            @showConfig="modelManager.showConfig = true"
-          />
-          
-          <!-- 高级模式：使用AdvancedTestPanel -->
-          <AdvancedTestPanel
-            v-else
-            ref="testPanelRef"
-            class="h-full flex flex-col"
-            :services="services"
-            :original-prompt="optimizer.prompt"
-            :optimized-prompt="optimizer.optimizedPrompt"
-            :optimization-mode="selectedOptimizationMode"
-            :selected-model="modelManager.selectedTestModel"
             :advanced-mode-enabled="advancedModeEnabled"
-            :variable-manager="variableManager"
-            :open-variable-manager="openVariableManager"
-            @update:selected-model="modelManager.selectedTestModel = $event"
-            @showConfig="modelManager.showConfig = true"
-          />
+            v-model:test-content="testContent"
+            v-model:is-compare-mode="isCompareMode"
+            :is-test-running="false"
+            :input-mode="responsiveLayout.recommendedInputMode.value"
+            :control-bar-layout="responsiveLayout.recommendedControlBarLayout.value"
+            :button-size="responsiveLayout.smartButtonSize.value"
+            :enable-compare-mode="true"
+            :enable-fullscreen="true"
+            @test="handleTestAreaTest"
+            @compare-toggle="handleTestAreaCompareToggle"
+          >
+            <template #model-select>
+              <ModelSelectUI
+                :modelValue="modelManager.selectedTestModel"
+                @update:modelValue="modelManager.selectedTestModel = $event"
+                :disabled="false"
+                @config="modelManager.showConfig = true"
+              />
+            </template>
+            <template #conversation-manager>
+              <!-- 高级模式下的对话管理功能可以在这里添加 -->
+            </template>
+            <!-- 添加实际的测试结果内容 -->
+            <template #original-result>
+              <OutputDisplay
+                :content="testResults.originalResult"
+                :reasoning="testResults.originalReasoning"
+                :streaming="testResults.isTestingOriginal"
+                :enableDiff="false"
+                mode="readonly"
+                :style="{ height: '100%', minHeight: '0' }"
+              />
+            </template>
+            <template #optimized-result>
+              <OutputDisplay
+                :content="testResults.optimizedResult"
+                :reasoning="testResults.optimizedReasoning"
+                :streaming="testResults.isTestingOptimized"
+                :enableDiff="false"
+                mode="readonly"
+                :style="{ height: '100%', minHeight: '0' }"
+              />
+            </template>
+            <template #single-result>
+              <OutputDisplay
+                :content="testResults.optimizedResult"
+                :reasoning="testResults.optimizedReasoning"
+                :streaming="testResults.isTestingOptimized"
+                :enableDiff="false"
+                mode="readonly"
+                :style="{ height: '100%', minHeight: '0' }"
+              />
+            </template>
+          </TestAreaPanel>
           </NCard>
       </NFlex>
       </template>
@@ -274,8 +305,8 @@ import {
   // UI Components
   MainLayoutUI, ThemeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
   LanguageSwitchDropdown, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
-  ModelSelectUI, TemplateSelectUI, TestPanelUI, AdvancedTestPanel, UpdaterIcon, VariableManagerModal,
-  ConversationManager,
+  ModelSelectUI, TemplateSelectUI, TestAreaPanel, UpdaterIcon, VariableManagerModal,
+  ConversationManager, OutputDisplay,
 
   // Composables
   usePromptOptimizer,
@@ -288,6 +319,8 @@ import {
   useModelSelectors,
   useVariableManager,
   useNaiveTheme,
+  useResponsiveTestLayout,
+  useTestModeConfig,
 
   // i18n functions
   initializeI18nWithStorage,
@@ -297,7 +330,7 @@ import {
   type OptimizationMode,
   type ConversationMessage,
 } from '@prompt-optimizer/ui'
-import type { IPromptService } from '@prompt-optimizer/core'
+import type { IPromptService, ToolDefinition } from '@prompt-optimizer/core'
 
 // 1. 基础 composables
 const { t } = useI18n()
@@ -329,6 +362,29 @@ const isReady = computed(() => services.value !== null && !isInitializing.value)
 // 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null)
 const selectedOptimizationMode = ref<OptimizationMode>('system')
+
+// TestAreaPanel 统一组件相关状态
+const testContent = ref('')
+const isCompareMode = ref(true)
+
+// 测试结果状态管理
+const testResults = ref({
+  // 原始提示词结果
+  originalResult: '',
+  originalReasoning: '',
+  isTestingOriginal: false,
+  
+  // 优化提示词结果
+  optimizedResult: '',
+  optimizedReasoning: '',
+  isTestingOptimized: false,
+  
+  // 单一结果模式
+  singleResult: '',
+  singleReasoning: '',
+  isTestingSingle: false
+})
+
 const showDataManager = ref(false)
 const optimizeModelSelect = ref(null)
 const testPanelRef = ref(null)
@@ -337,6 +393,10 @@ const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>
 
 // 高级模式状态
 const advancedModeEnabled = ref(false)
+
+// TestAreaPanel 响应式配置
+const responsiveLayout = useResponsiveTestLayout()
+const testModeConfig = useTestModeConfig(selectedOptimizationMode)
 
 // Naive UI 主题配置 - 使用新的主题系统
 const { naiveTheme, themeOverrides, initTheme } = useNaiveTheme()
@@ -665,6 +725,117 @@ const handleSyncOptimizationContextToTest = (syncData: { messages: ConversationM
     // 降级处理：如果测试面板不支持同步，显示提示
     useToast().warning(t('conversation.syncToTest.notSupported', '当前测试面板不支持会话同步'))
   }
+}
+
+// 真实测试处理函数  
+const handleTestAreaTest = async () => {
+  if (!services.value?.promptService) {
+    useToast().error('服务未初始化，请稍后重试')
+    return
+  }
+
+  if (!modelManager.selectedTestModel) {
+    useToast().error('请先选择测试模型')
+    return
+  }
+
+  console.log('[App] Starting real test with content:', testContent.value)
+  
+  if (isCompareMode.value) {
+    // 对比模式：测试原始和优化提示词
+    await Promise.all([
+      testPromptWithType('original'),
+      testPromptWithType('optimized')
+    ])
+  } else {
+    // 单一模式：只测试优化后的提示词
+    await testPromptWithType('optimized')
+  }
+}
+
+// 测试特定类型的提示词
+const testPromptWithType = async (type: 'original' | 'optimized') => {
+  const isOriginal = type === 'original'
+  const prompt = isOriginal ? optimizer.prompt : optimizer.optimizedPrompt
+  
+  if (!prompt) {
+    useToast().error(isOriginal ? '请先输入原始提示词' : '请先生成优化后的提示词')
+    return
+  }
+
+  // 设置测试状态
+  if (isOriginal) {
+    testResults.value.isTestingOriginal = true
+    testResults.value.originalResult = ''
+    testResults.value.originalReasoning = ''
+  } else {
+    testResults.value.isTestingOptimized = true
+    testResults.value.optimizedResult = ''
+    testResults.value.optimizedReasoning = ''
+  }
+
+  try {
+    const streamHandler = {
+      onToken: (token: string) => {
+        if (isOriginal) {
+          testResults.value.originalResult += token
+        } else {
+          testResults.value.optimizedResult += token
+        }
+      },
+      onReasoningToken: (reasoningToken: string) => {
+        if (isOriginal) {
+          testResults.value.originalReasoning += reasoningToken
+        } else {
+          testResults.value.optimizedReasoning += reasoningToken
+        }
+      },
+      onComplete: () => {
+        console.log(`[App] ${type} test completed`)
+      },
+      onError: (err: Error) => {
+        const errorMessage = err.message || t('test.error.failed')
+        console.error(`[App] ${type} test failed:`, errorMessage)
+        useToast().error(`${type === 'original' ? '原始' : '优化'}提示词测试失败: ${errorMessage}`)
+      }
+    }
+
+    let systemPrompt = ''
+    let userPrompt = ''
+
+    if (selectedOptimizationMode.value === 'user') {
+      // 用户提示词模式：提示词作为用户输入
+      systemPrompt = ''
+      userPrompt = prompt
+    } else {
+      // 系统提示词模式：提示词作为系统消息，测试内容作为用户输入
+      systemPrompt = prompt
+      userPrompt = testContent.value || '请按照你的角色设定，展示你的能力并与我互动。'
+    }
+
+    await services.value.promptService.testPromptStream(
+      systemPrompt,
+      userPrompt,
+      modelManager.selectedTestModel,
+      streamHandler
+    )
+
+  } catch (error: any) {
+    console.error(`[App] ${type} test error:`, error)
+    const errorMessage = error.message || t('test.error.failed')
+    useToast().error(`${type === 'original' ? '原始' : '优化'}提示词测试失败: ${errorMessage}`)
+  } finally {
+    // 重置测试状态
+    if (isOriginal) {
+      testResults.value.isTestingOriginal = false
+    } else {
+      testResults.value.isTestingOptimized = false
+    }
+  }
+}
+
+const handleTestAreaCompareToggle = () => {
+  console.log('[App] TestAreaPanel 对比模式切换:', isCompareMode.value)
 }
 
 // 处理历史记录使用 - 智能模式切换

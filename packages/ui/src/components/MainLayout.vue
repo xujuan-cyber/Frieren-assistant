@@ -113,7 +113,6 @@ const logoSize = computed(() => {
 .nav-header-enhanced {
   min-height: 64px !important;
   padding: 12px 16px !important;
-  border-bottom: 1px solid var(--border-color, rgba(239, 239, 245, 0.6));
 }
 
 .nav-content {
