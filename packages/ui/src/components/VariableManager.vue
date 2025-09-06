@@ -271,8 +271,7 @@ import { ref, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NModal, NInput, NDivider } from 'naive-ui'
 import { useClipboard } from '../composables/useClipboard'
-import type { IVariableManager } from '../types/variable'
-import { VariableError } from '../types/variable'
+import { VariableError, type IVariableManager } from '../types/variable'
 
 const { t } = useI18n()
 const { copyText } = useClipboard()

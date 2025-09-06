@@ -1,6 +1,5 @@
 import { createI18n } from 'vue-i18n'
-import type { App } from 'vue'
-import { ref } from 'vue'
+import { ref, type App } from 'vue'
 import zhCN from '../i18n/locales/zh-CN'
 import enUS from '../i18n/locales/en-US'
 import { getPreference, setPreference } from '../composables/usePreferenceManager'

@@ -1,5 +1,4 @@
-import { ref, watch } from 'vue'
-import type { ComputedRef } from 'vue'
+import { ref, watch, type ComputedRef } from 'vue'
 
 export function useFullscreen(
   modelValue: ComputedRef<string> | { value: string }, 

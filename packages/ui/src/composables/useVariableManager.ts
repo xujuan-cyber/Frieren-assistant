@@ -3,8 +3,7 @@
  * 提供变量管理的响应式接口
  */
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import type { Ref } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
 import type { AppServices } from '../types/services'
 import type { IVariableManager, ConversationMessage } from '../types/variable'
 import { VariableManager } from '../services/VariableManager'

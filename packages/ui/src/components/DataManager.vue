@@ -111,7 +111,6 @@ import {
   NIcon, NAlert, type UploadFileInfo 
 } from 'naive-ui'
 import { useToast } from '../composables/useToast'
-import type { IDataManager } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 interface Props {

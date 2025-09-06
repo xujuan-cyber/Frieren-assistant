@@ -18,7 +18,6 @@ import {
   ElectronTemplateLanguageServiceProxy,
   isRunningInElectron,
   waitForElectronApi,
-  DataManager,
   ElectronPreferenceServiceProxy,
   createPreferenceService,
 } from '../'; // 从UI包的index导入所有核心模块
@@ -148,17 +147,6 @@ export function useAppInitializer(): {
           validateData: (data) => modelManagerInstance.validateData(data),
         };
 
-        const languageServiceAdapter = {
-          initialize: () => languageService.initialize(),
-          getCurrentLanguage: () => languageService.getCurrentLanguage(),
-          setLanguage: (language: any) => languageService.setLanguage(language),
-          toggleLanguage: () => languageService.toggleLanguage(),
-          isValidLanguage: (language: string) => languageService.isValidLanguage(language),
-          getSupportedLanguages: () => languageService.getSupportedLanguages(),
-          getLanguageDisplayName: (language: any) => languageService.getLanguageDisplayName(language),
-          isInitialized: () => languageService.isInitialized(),
-        };
-
         const templateManagerAdapter: ITemplateManager = {
           getTemplate: (id) => templateManagerInstance.getTemplate(id),
           saveTemplate: (template) => templateManagerInstance.saveTemplate(template),
@@ -207,20 +195,20 @@ export function useAppInitializer(): {
         const compareService = createCompareService();
 
         // 将所有服务实例赋值给 services.value
-      services.value = {
+        services.value = {
           modelManager: modelManagerAdapter, // 使用适配器
           templateManager: templateManagerAdapter, // 使用适配器
           historyManager: historyManagerAdapter, // 使用适配器
-        dataManager,
-        llmService,
-        promptService,
-        templateLanguageService: languageService,
-        preferenceService, // 使用从core包导入的PreferenceService
-        compareService, // 直接使用
-      };
-      }
+          dataManager,
+          llmService,
+          promptService,
+          templateLanguageService: languageService,
+          preferenceService, // 使用从core包导入的PreferenceService
+          compareService, // 直接使用
+        };
 
-      console.log('[AppInitializer] 所有服务初始化完成');
+        console.log('[AppInitializer] 所有服务初始化完成');
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);

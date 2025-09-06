@@ -1,9 +1,8 @@
-import { ref, watch, nextTick, computed, reactive } from 'vue'
+import { ref, nextTick, computed, reactive, type Ref } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 
 import { v4 as uuidv4 } from 'uuid'
-import type { Ref } from 'vue'
 import type {
   ModelConfig,
   IModelManager,

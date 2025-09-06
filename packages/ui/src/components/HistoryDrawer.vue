@@ -157,8 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed, onUnmounted } from 'vue'
-import type { PropType } from 'vue'
+import { ref, watch, computed, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NModal, NScrollbar, NSpace, NCard, NText, NTag, NButton, 
@@ -188,7 +187,8 @@ const emit = defineEmits<{
   (e: 'deleteChain', chainId: string): void
 }>()
 
-const toast = useToast()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _toast = useToast()
 const expandedVersions = ref<Record<string, boolean>>({})
 
 // --- Close Logic ---
@@ -203,7 +203,8 @@ const sortedHistory = computed(() => {
 })
 
 // 切换版本展开/收起状态
-const toggleVersion = (recordId: string) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _toggleVersion = (recordId: string) => {
   expandedVersions.value = {
     ...expandedVersions.value,
     [recordId]: !expandedVersions.value[recordId]

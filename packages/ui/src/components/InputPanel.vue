@@ -96,13 +96,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 import { NInput, NButton, NText, NSpace, NFlex, NGrid, NGridItem, NIcon } from 'naive-ui'
 import { useFullscreen } from '../composables/useFullscreen'
 import FullscreenDialog from './FullscreenDialog.vue'
-
-const { t } = useI18n()
 
 interface Props {
   modelValue: string

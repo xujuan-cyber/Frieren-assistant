@@ -1,11 +1,10 @@
-import { ref, watch, computed, reactive } from 'vue'
-import type { Ref } from 'vue'
-import type { ModelConfig, IModelManager } from '@prompt-optimizer/core'
+import { watch, computed, reactive, nextTick, type Ref } from 'vue'
+import { MODEL_SELECTION_KEYS, type ModelConfig } from '@prompt-optimizer/core'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { usePreferences } from './usePreferenceManager'
-import { MODEL_SELECTION_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
+import type { ModelSelectRefsHooks } from './useModelSelectRefs'
 
 export interface ModelManagerHooks {
   showConfig: boolean
@@ -18,26 +17,19 @@ export interface ModelManagerHooks {
   loadModels: () => void
 }
 
-export interface ModelManagerOptions {
-  optimizeModelSelect: Ref<any>
-  testModelSelect: Ref<any>
-}
-
 /**
  * 模型管理器Hook
  * @param services 服务实例引用
- * @param options 选项配置
+ * @param modelSelectRefs 模型选择器引用管理器
  * @returns ModelManagerHooks
  */
 export function useModelManager(
   services: Ref<AppServices | null>,
-  options: ModelManagerOptions
+  modelSelectRefs: ModelSelectRefsHooks
 ): ModelManagerHooks {
   const toast = useToast()
   const { t } = useI18n()
   const { getPreference, setPreference } = usePreferences(services)
-  
-  const { optimizeModelSelect, testModelSelect } = options
   
   // 模型管理器引用
   const modelManager = computed(() => services.value?.modelManager)
@@ -47,14 +39,21 @@ export function useModelManager(
     showConfig: false,
     selectedOptimizeModel: '',
     selectedTestModel: '',
-    handleModelManagerClose: async () => {
-      // Update data first
-      await state.loadModels()
-      // Refresh model selection components
-      optimizeModelSelect.value?.refresh()
-      testModelSelect.value?.refresh()
-      // Close interface
+    handleModelManagerClose: () => {
+      // Close interface first
       state.showConfig = false
+      
+      // Perform updates asynchronously without blocking
+      nextTick(async () => {
+        try {
+          // Update data
+          await state.loadModels()
+          // Refresh model selection components using the new refs manager
+          await modelSelectRefs.refreshAll()
+        } catch (error) {
+          console.error('Failed to refresh models after close:', error)
+        }
+      })
     },
     handleModelsUpdated: (modelKey: string) => {
       // Handle other logic after model update if needed

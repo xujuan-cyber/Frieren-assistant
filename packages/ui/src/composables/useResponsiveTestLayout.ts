@@ -17,7 +17,6 @@ const BREAKPOINTS = {
   xxl: 1600
 } as const
 
-type BreakpointKey = keyof typeof BREAKPOINTS
 type ScreenSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
 
 export interface ResponsiveTestLayoutOptions {
@@ -240,14 +239,9 @@ export function useResponsiveTestLayout(options: ResponsiveTestLayoutOptions = {
   }
 
   // 获取特定断点的配置
-  const getConfigForBreakpoint = (breakpoint: ScreenSize): TestAreaConfig => {
-    const originalSize = currentScreenSize.value
-    const tempWidth = breakpoints[breakpoint] + 1
-    
-    // 临时设置尺寸以获取对应配置
-    const tempConfig = { ...testAreaConfig.value }
-    
-    return tempConfig
+  const getConfigForBreakpoint = (): TestAreaConfig => {
+    // 简化实现：直接返回当前配置的副本
+    return { ...testAreaConfig.value }
   }
 
   return {

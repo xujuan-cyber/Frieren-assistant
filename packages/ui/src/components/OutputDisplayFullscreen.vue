@@ -20,12 +20,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, inject } from 'vue'
+import { computed, ref, watch, inject, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FullscreenDialog from './FullscreenDialog.vue'
 import OutputDisplayCore from './OutputDisplayCore.vue'
 import type { AppServices } from '../types/services';
-import type { Ref } from 'vue';
 
 const { t } = useI18n()
 

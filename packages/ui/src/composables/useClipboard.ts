@@ -3,8 +3,7 @@
  * 提供跨平台的剪贴板读写功能
  */
 
-import { ref } from 'vue'
-import type { Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 export interface ClipboardHooks {
   isSupported: boolean

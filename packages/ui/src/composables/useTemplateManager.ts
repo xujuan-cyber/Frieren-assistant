@@ -1,19 +1,9 @@
-import { ref, watch, computed, reactive } from 'vue'
-import type { Ref } from 'vue'
+import { watch, computed, reactive, type Ref } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { usePreferences } from './usePreferenceManager'
-import type { Template, ITemplateManager } from '@prompt-optimizer/core'
+import { TEMPLATE_SELECTION_KEYS, type Template } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
-import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
-
-interface TemplateSelector extends Element {
-  __vueParentComponent?: {
-    ctx?: {
-      refresh?: () => void
-    }
-  }
-}
 
 export interface TemplateManagerHooks {
   showTemplates: boolean

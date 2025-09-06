@@ -57,7 +57,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NGrid, NGridItem, NSpace, NFlex, NText, NButton } from 'naive-ui'
+import { NGrid, NGridItem, NFlex, NText, NButton } from 'naive-ui'
 
 const { t } = useI18n()
 
@@ -83,7 +83,7 @@ interface Props {
   controlButtonsSpan?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showCompareToggle: true,
   isCompareMode: false,
   primaryActionDisabled: false,

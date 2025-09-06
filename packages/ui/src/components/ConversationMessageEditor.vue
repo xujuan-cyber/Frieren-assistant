@@ -278,7 +278,8 @@ const dynamicRows = computed(() => {
 })
 
 // 文本区域样式类
-const textareaClasses = computed(() => ({
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _textareaClasses = computed(() => ({
   'single-line': dynamicRows.value === 1,
   'two-lines': dynamicRows.value === 2,
   'three-lines': dynamicRows.value === 3
@@ -352,7 +353,8 @@ const handleCreateVariableAndOpenManager = (variableName: string) => {
 }
 
 // 复制变量名到剪贴板
-const copyVariableToClipboard = async (variableName: string) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _copyVariableToClipboard = async (variableName: string) => {
   try {
     const formattedVariable = `{{${variableName}}}`
     await navigator.clipboard.writeText(formattedVariable)

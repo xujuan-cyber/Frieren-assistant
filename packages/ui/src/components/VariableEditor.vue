@@ -97,9 +97,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NModal, NForm, NFormItem, NInput, NButton, NCard, NSpace, NTag } from 'naive-ui'
+import { NModal, NForm, NFormItem, NInput, NButton, NCard, NSpace, NTag, type FormInst, type FormRules } from 'naive-ui'
 import type { Variable } from '../types/variable'
-import type { FormInst, FormRules } from 'naive-ui'
 
 const { t } = useI18n()
 

@@ -618,7 +618,7 @@ const importMessages = () => {
     
     // 根据选择的格式处理数据
     switch (selectedImportFormat.value) {
-      case 'smart':
+      case 'smart': {
         // 使用智能导入
         const result = contextEditor.smartImport(JSON.parse(importData.value))
         if (result.success && result.data) {
@@ -632,8 +632,9 @@ const importMessages = () => {
           throw new Error(result.error || '智能导入失败')
         }
         break
+      }
         
-      case 'langfuse':
+      case 'langfuse': {
         // LangFuse 格式导入
         const langfuseResult = contextEditor.convertFromLangFuse(JSON.parse(importData.value))
         if (langfuseResult.success && langfuseResult.data) {
@@ -646,8 +647,9 @@ const importMessages = () => {
           throw new Error(langfuseResult.error || 'LangFuse 导入失败')
         }
         break
+      }
         
-      case 'openai':
+      case 'openai': {
         // OpenAI 格式导入
         const openaiResult = contextEditor.convertFromOpenAI(JSON.parse(importData.value))
         if (openaiResult.success && openaiResult.data) {
@@ -660,6 +662,7 @@ const importMessages = () => {
           throw new Error(openaiResult.error || 'OpenAI 导入失败')
         }
         break
+      }
         
       case 'conversation':
       default:

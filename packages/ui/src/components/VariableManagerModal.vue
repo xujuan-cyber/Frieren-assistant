@@ -84,10 +84,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NModal, NButton, NSpace, NCard, NTag, NDataTable } from 'naive-ui'
+import { NModal, NButton, NSpace, NTag, NDataTable, type DataTableColumns } from 'naive-ui'
 import type { Variable } from '../types/variable'
 import type { VariableManagerHooks } from '../composables/useVariableManager'
-import type { DataTableColumns } from 'naive-ui'
 import VariableEditor from './VariableEditor.vue'
 import VariableImporter from './VariableImporter.vue'
 

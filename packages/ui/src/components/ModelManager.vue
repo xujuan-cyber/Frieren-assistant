@@ -7,7 +7,7 @@
     size="large"
     :bordered="false"
     :segmented="true"
-    @update:show="(value: boolean) => !value && close()"
+    @update:show="(value) => !value && close()"
   >
     <template #header-extra>
       <NButton
@@ -123,23 +123,23 @@
     size="large"
     :bordered="false"
     :segmented="true"
-    @update:show="(value: boolean) => !value && cancelEdit()"
+    @update:show="(value) => !value && cancelEdit()"
   >
     <NScrollbar v-if="editingModel" style="max-height: 75vh;">
       <NSpace vertical :size="16">
         <form @submit.prevent="saveEdit">
           <NSpace vertical :size="16">
-            <div>
-              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.displayName') }}</NText>
+            <NSpace vertical :size="8">
+              <NText tag="label" strong>{{ t('modelManager.displayName') }}</NText>
               <NInput
                 v-model:value="editingModel.name"
                 :placeholder="t('modelManager.displayNamePlaceholder')"
                 required
               />
-            </div>
+            </NSpace>
               
-              <div>
-                <NText tag="label" strong style="display: block; margin-bottom: 8px;">
+              <NSpace vertical :size="8">
+                <NText tag="label" strong>
                   {{ t('modelManager.apiUrl') }}
                   <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.apiUrlHint')">?</NText>
                 </NText>
@@ -148,19 +148,19 @@
                   :placeholder="t('modelManager.apiUrlPlaceholder')"
                   required
                 />
-              </div>
+              </NSpace>
               
-              <div>
-                <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.apiKey') }}</NText>
+              <NSpace vertical :size="8">
+                <NText tag="label" strong>{{ t('modelManager.apiKey') }}</NText>
                 <NInput
                   v-model:value="editingModel.apiKey"
                   type="password"
                   :placeholder="t('modelManager.apiKeyPlaceholder')"
                 />
-              </div>
+              </NSpace>
               
-              <div>
-                <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.defaultModel') }}</NText>
+              <NSpace vertical :size="8">
+                <NText tag="label" strong>{{ t('modelManager.defaultModel') }}</NText>
                 <InputWithSelect
                   v-model="editingModel.defaultModel"
                   :options="modelOptions"
@@ -172,58 +172,89 @@
                   :placeholder="t('modelManager.defaultModelPlaceholder')"
                   @fetch-options="handleFetchEditingModels"
                 />
-              </div>
+              </NSpace>
               
-              <div v-if="vercelProxyAvailable">
-                <NCheckbox
-                  v-model:checked="editingModel.useVercelProxy"
-                  :label="t('modelManager.useVercelProxy')"
-                >
-                  {{ t('modelManager.useVercelProxy') }}
-                  <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
-                </NCheckbox>
-              </div>
+              <NCheckbox
+                v-if="vercelProxyAvailable"
+                v-model:checked="editingModel.useVercelProxy"
+                :label="t('modelManager.useVercelProxy')"
+              >
+                {{ t('modelManager.useVercelProxy') }}
+                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
+              </NCheckbox>
               
-              <div v-if="dockerProxyAvailable">
-                <NCheckbox
-                  v-model:checked="editingModel.useDockerProxy"
-                  :label="t('modelManager.useDockerProxy')"
-                >
-                  {{ t('modelManager.useDockerProxy') }}
-                  <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
-                </NCheckbox>
-              </div>
+              <NCheckbox
+                v-if="dockerProxyAvailable"
+                v-model:checked="editingModel.useDockerProxy"
+                :label="t('modelManager.useDockerProxy')"
+              >
+                {{ t('modelManager.useDockerProxy') }}
+                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
+              </NCheckbox>
 
               
               <!-- Advanced Parameters Section -->
               <NDivider style="margin: 20px 0;" />
-              <div>
-                <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
-                  <div>
-                    <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
-                    <NText depth="3" style="font-size: 12px; margin-top: 4px; display: block;">
-                      {{ t('modelManager.advancedParameters.currentProvider') }}: 
-                      <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
-                      <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
-                      <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
-                    </NText>
-                  </div>
-                  
-                  <NSelect
-                    v-model:value="selectedNewLLMParamId"
-                    @update:value="handleQuickAddParam"
-                    style="width: 220px;"
-                    size="small"
-                    :options="[
-                      { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
-                      ...availableLLMParamDefinitions.map(paramDef => ({
-                        label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
-                        value: paramDef.id
-                      })),
-                      { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
-                    ]"
-                  />
+              <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
+                <NSpace vertical :size="4">
+                  <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
+                  <NText depth="3" style="font-size: 12px;">
+                    {{ t('modelManager.advancedParameters.currentProvider') }}: 
+                    <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
+                    <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+                    <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
+                  </NText>
                 </NSpace>
+                
+                <NSelect
+                  v-model:value="selectedNewLLMParamId"
+                  @update:value="handleQuickAddParam"
+                  style="width: 220px;"
+                  size="small"
+                  :options="[
+                    { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
+                    ...availableLLMParamDefinitions.map(paramDef => ({
+                      label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
+                      value: paramDef.id
+                    })),
+                    { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
+                  ]"
+                />
+              </NSpace>
+                
+                <!-- 自定义参数输入界面 -->
+                <NCard v-if="selectedNewLLMParamId === 'custom'" size="small" style="margin: 12px 0;">
+                  <template #header>
+                    <NSpace justify="space-between" align="center">
+                      <NText strong>{{ t('modelManager.advancedParameters.custom') }}</NText>
+                      <NButton @click="cancelCustomParam" size="tiny" quaternary circle>×</NButton>
+                    </NSpace>
+                  </template>
+                <NSpace vertical :size="12">
+                  <NSpace vertical :size="8">
+                    <NText depth="3" style="font-size: 12px;">参数名称</NText>
+                    <NInput 
+                      v-model:value="customLLMParam.key" 
+                      :placeholder="t('modelManager.advancedParameters.customKeyPlaceholder')"
+                      size="small"
+                    />
+                  </NSpace>
+                  <NSpace vertical :size="8">
+                    <NText depth="3" style="font-size: 12px;">参数值</NText>
+                    <NInput 
+                      v-model:value="customLLMParam.value" 
+                      :placeholder="t('modelManager.advancedParameters.customValuePlaceholder')"
+                      size="small"
+                    />
+                  </NSpace>
+                  <NSpace justify="end">
+                    <NButton @click="cancelCustomParam" size="small">{{ t('common.cancel') }}</NButton>
+                    <NButton @click="handleCustomParamAdd" type="primary" size="small" :disabled="!customLLMParam.key || !customLLMParam.value">
+                      {{ t('common.add') }}
+                    </NButton>
+                  </NSpace>
+                </NSpace>
+                </NCard>
                 
                 <NText v-if="Object.keys(currentLLMParams || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
                   {{ t('modelManager.advancedParameters.noParamsConfigured') }}
@@ -323,7 +354,6 @@
                     </NSpace>
                   </NCard>
                 </NSpace>
-              </div>
             </NSpace>
           </form>
         </NSpace>
@@ -353,31 +383,31 @@
     size="large"
     :bordered="false"
     :segmented="true"
-    @update:show="(value: boolean) => !value && (showAddForm = false)"
+    @update:show="(value) => !value && (showAddForm = false)"
   >
       <NScrollbar style="max-height: 75vh;">
         <form @submit.prevent="addCustomModel">
           <NSpace vertical :size="16">
-            <div>
-              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.modelKey') }}</NText>
+            <NSpace vertical :size="8">
+              <NText tag="label" strong>{{ t('modelManager.modelKey') }}</NText>
               <NInput
                 v-model:value="newModel.key"
                 :placeholder="t('modelManager.modelKeyPlaceholder')"
                 required
               />
-            </div>
+            </NSpace>
             
-            <div>
-              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.displayName') }}</NText>
+            <NSpace vertical :size="8">
+              <NText tag="label" strong>{{ t('modelManager.displayName') }}</NText>
               <NInput
                 v-model:value="newModel.name"
                 :placeholder="t('modelManager.displayNamePlaceholder')"
                 required
               />
-            </div>
+            </NSpace>
             
-            <div>
-              <NText tag="label" strong style="display: block; margin-bottom: 8px;">
+            <NSpace vertical :size="8">
+              <NText tag="label" strong>
                 {{ t('modelManager.apiUrl') }}
                 <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.apiUrlHint')">?</NText>
               </NText>
@@ -386,19 +416,19 @@
                 :placeholder="t('modelManager.apiUrlPlaceholder')"
                 required
               />
-            </div>
+            </NSpace>
             
-            <div>
-              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.apiKey') }}</NText>
+            <NSpace vertical :size="8">
+              <NText tag="label" strong>{{ t('modelManager.apiKey') }}</NText>
               <NInput
                 v-model:value="newModel.apiKey"
                 type="password"
                 :placeholder="t('modelManager.apiKeyPlaceholder')"
               />
-            </div>
+            </NSpace>
             
-            <div>
-              <NText tag="label" strong style="display: block; margin-bottom: 8px;">{{ t('modelManager.defaultModel') }}</NText>
+            <NSpace vertical :size="8">
+              <NText tag="label" strong>{{ t('modelManager.defaultModel') }}</NText>
               <InputWithSelect
                 v-model="newModel.defaultModel"
                 :options="modelOptions"
@@ -410,57 +440,88 @@
                 :placeholder="t('modelManager.defaultModelPlaceholder')"
                 @fetch-options="handleFetchNewModels"
               />
-            </div>
+            </NSpace>
             
-            <div v-if="vercelProxyAvailable">
-              <NCheckbox
-                v-model:checked="newModel.useVercelProxy"
-                :label="t('modelManager.useVercelProxy')"
-              >
-                {{ t('modelManager.useVercelProxy') }}
-                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
-              </NCheckbox>
-            </div>
+            <NCheckbox
+              v-if="vercelProxyAvailable"
+              v-model:checked="newModel.useVercelProxy"
+              :label="t('modelManager.useVercelProxy')"
+            >
+              {{ t('modelManager.useVercelProxy') }}
+              <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
+            </NCheckbox>
             
-            <div v-if="dockerProxyAvailable">
-              <NCheckbox
-                v-model:checked="newModel.useDockerProxy"
-                :label="t('modelManager.useDockerProxy')"
-              >
-                {{ t('modelManager.useDockerProxy') }}
-                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
-              </NCheckbox>
-            </div>
+            <NCheckbox
+              v-if="dockerProxyAvailable"
+              v-model:checked="newModel.useDockerProxy"
+              :label="t('modelManager.useDockerProxy')"
+            >
+              {{ t('modelManager.useDockerProxy') }}
+              <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
+            </NCheckbox>
             
             <!-- Advanced Parameters Section FOR ADD MODEL -->
             <NDivider style="margin: 20px 0;" />
-            <div>
-              <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
-                <div>
-                  <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
-                  <NText depth="3" style="font-size: 12px; margin-top: 4px; display: block;">
-                    {{ t('modelManager.advancedParameters.currentProvider') }}: 
-                    <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
-                    <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
-                    <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
-                  </NText>
-                </div>
-                
-                <NSelect
-                  v-model:value="selectedNewLLMParamId"
-                  @update:value="handleQuickAddParam"
-                  style="width: 220px;"
-                  size="small"
-                  :options="[
-                    { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
-                    ...availableLLMParamDefinitions.map(paramDef => ({
-                      label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
-                      value: paramDef.id
-                    })),
-                    { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
-                  ]"
-                />
+            <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
+              <NSpace vertical :size="4">
+                <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
+                <NText depth="3" style="font-size: 12px;">
+                  {{ t('modelManager.advancedParameters.currentProvider') }}: 
+                  <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
+                  <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+                  <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
+                </NText>
               </NSpace>
+              
+              <NSelect
+                v-model:value="selectedNewLLMParamId"
+                @update:value="handleQuickAddParam"
+                style="width: 220px;"
+                size="small"
+                :options="[
+                  { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
+                  ...availableLLMParamDefinitions.map(paramDef => ({
+                    label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
+                    value: paramDef.id
+                  })),
+                  { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
+                ]"
+              />
+            </NSpace>
+              
+              <!-- 自定义参数输入界面 --FOR ADD MODEL-- -->
+              <NCard v-if="selectedNewLLMParamId === 'custom'" size="small" style="margin: 12px 0;">
+                <template #header>
+                  <NSpace justify="space-between" align="center">
+                    <NText strong>{{ t('modelManager.advancedParameters.custom') }}</NText>
+                    <NButton @click="cancelCustomParam" size="tiny" quaternary circle>×</NButton>
+                  </NSpace>
+                </template>
+              <NSpace vertical :size="12">
+                <NSpace vertical :size="8">
+                  <NText depth="3" style="font-size: 12px;">参数名称</NText>
+                  <NInput 
+                    v-model:value="customLLMParam.key" 
+                    :placeholder="t('modelManager.advancedParameters.customKeyPlaceholder')"
+                    size="small"
+                  />
+                </NSpace>
+                <NSpace vertical :size="8">
+                  <NText depth="3" style="font-size: 12px;">参数值</NText>
+                  <NInput 
+                    v-model:value="customLLMParam.value" 
+                    :placeholder="t('modelManager.advancedParameters.customValuePlaceholder')"
+                    size="small"
+                  />
+                </NSpace>
+                <NSpace justify="end">
+                  <NButton @click="cancelCustomParam" size="small">{{ t('common.cancel') }}</NButton>
+                  <NButton @click="handleCustomParamAdd" type="primary" size="small" :disabled="!customLLMParam.key || !customLLMParam.value">
+                    {{ t('common.add') }}
+                  </NButton>
+                </NSpace>
+              </NSpace>
+              </NCard>
               
               <NText v-if="Object.keys(currentLLMParams || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
                 {{ t('modelManager.advancedParameters.noParamsConfigured') }}
@@ -560,7 +621,6 @@
                   </NSpace>
                 </NCard>
               </NSpace>
-            </div>
           </NSpace>
         </form>
       </NScrollbar>

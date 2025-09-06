@@ -8,14 +8,12 @@
 
 <script setup>
 import { NScrollbar } from 'naive-ui'
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
-import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
 const props = defineProps({
   content: {
     type: String,

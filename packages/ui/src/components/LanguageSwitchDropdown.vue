@@ -55,12 +55,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, h } from 'vue'
+import { computed, inject, type Ref } from 'vue'
 import { NButton, NDropdown, type DropdownOption } from 'naive-ui'
 import { i18n } from '../plugins/i18n'
 import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 import { usePreferences } from '../composables/usePreferenceManager'
-import type { Ref } from 'vue'
 import type { AppServices } from '../types/services'
 
 // 服务注入

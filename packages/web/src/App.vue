@@ -127,7 +127,7 @@
               </template>
               <template #model-select>
                 <ModelSelectUI
-                  ref="optimizeModelSelect"
+                  :ref="(el) => modelSelectRefs.optimizeModelSelect = el"
                   :modelValue="modelManager.selectedOptimizeModel"
                   @update:modelValue="modelManager.selectedOptimizeModel = $event"
                   :disabled="optimizer.isOptimizing"
@@ -220,7 +220,7 @@
             <!-- 模型选择插槽 -->
             <template #model-select>
               <ModelSelectUI
-                ref="testModelSelect"
+                :ref="(el) => modelSelectRefs.testModelSelect = el"
                 :modelValue="modelManager.selectedTestModel"
                 @update:modelValue="modelManager.selectedTestModel = $event"
                 :disabled="false"
@@ -341,7 +341,7 @@ import {
   useTemplateManager,
   useAppInitializer,
   usePromptHistory,
-  useModelSelectors,
+  useModelSelectRefs,
   useVariableManager,
   useNaiveTheme,
   useResponsiveTestLayout,
@@ -382,7 +382,7 @@ watch(services, async (newServices) => {
 provide('services', services)
 
 // 5. 控制主UI渲染的标志
-const isReady = computed(() => services.value !== null && !isInitializing.value)
+const isReady = computed(() => !!services.value && !isInitializing.value)
 
 // 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null)
@@ -488,20 +488,14 @@ const handleOpenVariableManager = (variableName?: string) => {
 }
 
 // 6. 在顶层调用所有 Composables
-// 测试面板的模型选择器引用
-const testModelSelect = computed(() => (testPanelRef.value as any)?.modelSelectRef || null)
+// 模型选择器引用管理
+const modelSelectRefs = useModelSelectRefs()
 
 // 使用类型断言解决类型不匹配问题
-// 模型选择器
-const modelSelectors = useModelSelectors(services as any)
-
 // 模型管理器
 const modelManager = useModelManager(
   services as any,
-  {
-    optimizeModelSelect: modelSelectors.optimizeModelSelect,
-    testModelSelect
-  }
+  modelSelectRefs
 )
 
 // 提示词优化器

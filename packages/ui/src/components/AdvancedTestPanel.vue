@@ -648,54 +648,6 @@ watch(() => props.tools, (newTools) => {
   }
 }, { deep: true, immediate: true })
 
-// 应用优化提示词到测试环境
-const applyOptimizedPromptToTest = (optimizationData: {
-  originalPrompt: string
-  optimizedPrompt: string
-  optimizationMode: string
-}) => {
-  console.log('[AdvancedTestPanel] Applying optimized prompt to test:', optimizationData)
-  
-  // 根据优化模式创建合适的会话结构
-  if (optimizationData.optimizationMode === 'system') {
-    // 系统提示词优化模式：系统消息 + 用户消息
-    conversationMessages.value = [
-      {
-        role: 'system',
-        content: '{{currentPrompt}}'
-      },
-      {
-        role: 'user', 
-        content: '{{userQuestion}}'
-      }
-    ]
-    // 设置默认测试内容
-    testContent.value = '请按照你的角色设定，展示你的能力并与我互动。'
-  } else if (optimizationData.optimizationMode === 'user') {
-    // 用户提示词优化模式：只有用户消息
-    // 优化后的提示词直接作为用户消息，用户可以通过会话管理器添加上下文
-    conversationMessages.value = [
-      {
-        role: 'user',
-        content: '{{currentPrompt}}'
-      }
-    ]
-    // 用户提示词优化模式不需要额外的测试内容
-    testContent.value = ''
-  } else {
-    // 兜底处理：默认使用用户消息模式
-    conversationMessages.value = [
-      {
-        role: 'user',
-        content: '{{currentPrompt}}'
-      }
-    ]
-    testContent.value = ''
-  }
-  
-  console.log('[AdvancedTestPanel] Applied conversation template:', conversationMessages.value)
-}
-
 // 暴露方法供父组件调用
 defineExpose({
   setConversationMessages,

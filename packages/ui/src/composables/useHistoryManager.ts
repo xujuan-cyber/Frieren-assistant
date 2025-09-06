@@ -1,7 +1,4 @@
-import { ref, computed, reactive, type Ref } from 'vue'
-import type { IHistoryManager } from '@prompt-optimizer/core'
-import { useToast } from './useToast'
-import { useI18n } from 'vue-i18n'
+import { reactive, type Ref } from 'vue'
 import type { AppServices } from '../types/services'
 
 export interface HistoryManagerHooks {
@@ -35,12 +32,6 @@ export function useHistoryManager(
   handleClearHistoryBase: () => void,
   handleDeleteChainBase: (chainId: string) => void
 ): HistoryManagerHooks {
-  const toast = useToast()
-  const { t } = useI18n()
-  
-  // 历史记录管理器引用
-  const historyManager = computed(() => services.value?.historyManager)
-
   // 创建一个 reactive 状态对象
   const state = reactive<HistoryManagerHooks>({
     showHistory: false,

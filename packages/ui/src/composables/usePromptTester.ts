@@ -1,8 +1,7 @@
-import { ref, computed, reactive } from 'vue'
+import { computed, reactive, type Ref } from 'vue'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
-import type { Ref } from 'vue'
-import type { IPromptService, OptimizationMode } from '@prompt-optimizer/core'
+import type { OptimizationMode } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 /**

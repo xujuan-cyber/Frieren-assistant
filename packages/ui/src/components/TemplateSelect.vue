@@ -160,7 +160,7 @@ const loadTemplatesByType = async () => {
 
   // 统一使用异步方法，立即抛错不静默处理
   const typeTemplates = await templateManager.value.listTemplatesByType(props.type)
-  templates.value = typeTemplates
+  templates.value.splice(0, templates.value.length, ...typeTemplates)
 }
 
 // 添加对services变化的监听
@@ -174,7 +174,7 @@ watch(
     } else {
       // 立即抛错，不静默处理
       isReady.value = false
-      templates.value = []
+      templates.value.splice(0, templates.value.length)
       throw new Error('[TemplateSelect] Template manager is not available')
     }
   },

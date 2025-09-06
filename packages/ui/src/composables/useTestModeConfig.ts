@@ -174,8 +174,6 @@ export function useTestModeConfig(
 
   // 模式特定的帮助信息
   const getModeHelpInfo = computed(() => {
-    const config = currentModeConfig.value
-    
     switch (optimizationMode.value) {
       case 'system':
         return {

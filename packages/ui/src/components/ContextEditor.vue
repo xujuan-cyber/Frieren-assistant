@@ -579,7 +579,8 @@ const replaceVariables = (content: string, variables?: Record<string, string>): 
 
 
 // 生成预览HTML（包含高亮）
-const getPreviewHtml = (messageIndex: number): string => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _getPreviewHtml = (messageIndex: number): string => {
   const message = messages.value[messageIndex]
   if (!message) return ''
   
@@ -854,7 +855,8 @@ const togglePreview = (messageIndex: number) => {
 }
 
 // 创建缺失变量
-const createMissingVariable = (variableName: string) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _createMissingVariable = (variableName: string) => {
   // 生成默认值
   let defaultValue = ''
   if (variableName.toLowerCase().includes('name')) {
@@ -890,7 +892,8 @@ const handleTextSelection = (event: Event, messageIndex: number) => {
   }
 }
 
-const extractSelectedVariable = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+const _extractSelectedVariable = () => {
   if (!selectedText.value || !selectedVariableName.value.trim() || !textSelection.value) {
     return
   }
@@ -923,7 +926,7 @@ const handleImport = () => {
     
     // 根据选择的格式处理数据
     switch (selectedImportFormat.value) {
-      case 'smart':
+      case 'smart': {
         // 使用智能导入
         const result = contextEditor.smartImport(JSON.parse(importData.value))
         if (result.success && result.data) {
@@ -941,8 +944,9 @@ const handleImport = () => {
           throw new Error(result.error || '智能导入失败')
         }
         break
+      }
         
-      case 'langfuse':
+      case 'langfuse': {
         // LangFuse 格式导入
         const langfuseResult = contextEditor.convertFromLangFuse(JSON.parse(importData.value))
         if (langfuseResult.success && langfuseResult.data) {
@@ -959,8 +963,9 @@ const handleImport = () => {
           throw new Error(langfuseResult.error || 'LangFuse 导入失败')
         }
         break
+      }
         
-      case 'openai':
+      case 'openai': {
         // OpenAI 格式导入
         const openaiResult = contextEditor.convertFromOpenAI(JSON.parse(importData.value))
         if (openaiResult.success && openaiResult.data) {
@@ -977,6 +982,7 @@ const handleImport = () => {
           throw new Error(openaiResult.error || 'OpenAI 导入失败')
         }
         break
+      }
         
       case 'conversation':
       default:
