@@ -127,8 +127,8 @@
         <NSpace v-else
          style="height: 100%;max-height: 100%;"
          item-style="height: 100%;max-height: 100%;"
-         align="stretch"
-         justify="start"
+         :align="displayContent ? 'start' : 'center'"
+         :justify="displayContent ? 'start' : 'center'"
         >
           <MarkdownRenderer
             v-if="displayContent"
@@ -304,9 +304,9 @@ const scrollReasoningToBottom = () => {
   if (reasoningContentRef.value) {
     nextTick(() => {
       if (reasoningContentRef.value) {
-        // NScrollbar 组件的滚动方式
+        // 使用 Naive UI NScrollbar 的正确 API
         reasoningContentRef.value.scrollTo({
-          top: reasoningContentRef.value.scrollHeight,
+          top: 999999,  // 滚动到底部
           behavior: 'smooth'
         })
       }
