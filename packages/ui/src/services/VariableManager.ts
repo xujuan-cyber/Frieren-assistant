@@ -136,6 +136,13 @@ export class VariableManager implements IVariableManager {
 
   scanVariablesInContent(content: string): string[] {
     const variables: string[] = [];
+    
+    // 防御性编程：确保content是字符串类型
+    if (typeof content !== 'string') {
+      console.warn('[VariableManager] scanVariablesInContent received non-string input:', typeof content, content);
+      return variables;
+    }
+    
     const matches = content.matchAll(VARIABLE_VALIDATION.VARIABLE_SCAN_PATTERN);
     
     for (const match of matches) {

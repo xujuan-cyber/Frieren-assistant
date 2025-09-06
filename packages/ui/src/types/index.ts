@@ -10,5 +10,30 @@ export * from './services'
 export * from './standard-prompt'
 export * from './data-converter'
 
+// 高级模块组件类型
+export * from './components'
+
 // 测试区域组件类型
-export * from '../components/types/test-area'
+export type {
+  ComponentSize,
+  LayoutMode,
+  ButtonSize,
+  TestInputSectionProps,
+  TestInputSectionEmits,
+  TestControlBarProps,
+  TestControlBarEmits,
+  TestAreaConfig,
+  TestControlLayout,
+  TestResultConfig,
+  TestAreaPanelInstance,
+  TestAreaSlots,
+  TestAreaEventCallbacks,
+  CreateTestAreaConfig,
+  TestAreaPresets
+} from '../components/types/test-area'
+
+// 明确区分不同模块的同名类型
+export type {
+  TestAreaPanelProps as TestAreaPanelLegacyProps,
+  TestResultSectionProps as TestResultSectionLegacyProps
+} from '../components/types/test-area'

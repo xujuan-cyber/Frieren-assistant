@@ -1,9 +1,10 @@
 <template>
-    <NScrollbar :style="{ height: '100%' }" :bordered="false" content-style="padding: 0; height: 100%; display: flex; flex-direction: column;">
+    <NScrollbar v-if="!disableInternalScroll" :style="{ height: '100%' }" :bordered="false" content-style="padding: 0; height: 100%; display: flex; flex-direction: column;">
       <div ref="markdownContainer" class="markdown-content" :style="{ height: '100%',maxHeight: '100%' }">
       </div>
-    </NScrollbar>  
-
+    </NScrollbar>
+    <div v-else ref="markdownContainer" class="markdown-content" :style="{ height: '100%',maxHeight: '100%' }">
+    </div>
 </template>
 
 <script setup>
@@ -21,6 +22,11 @@ const props = defineProps({
   },
   // 新增：流式模式标识，用于优化流式渲染性能
   streaming: {
+    type: Boolean,
+    default: false
+  },
+  // 新增：禁用内部滚动，避免与外层滚动冲突
+  disableInternalScroll: {
     type: Boolean,
     default: false
   }

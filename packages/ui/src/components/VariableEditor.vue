@@ -1,13 +1,13 @@
 <template>
   <NModal 
-    :show="true" 
+    v-model:show="localVisible"
     preset="card" 
     :title="isEditing ? t('variables.editor.editTitle') : t('variables.editor.addTitle')"
     size="medium"
     :segmented="{ content: true }"
-    style="width: 600px;"
-    @close="cancel"
-    :mask-closable="false"
+    :style="modalStyle"
+    @after-leave="onAfterLeave"
+    :mask-closable="true"
   >
 
     <NForm 
@@ -30,9 +30,9 @@
           clearable
         />
         <template #feedback>
-          <div class="text-xs text-gray-500 mt-1">
+          <NText depth="3" style="font-size: 12px; display:block; margin-top: 4px;">
             {{ t('variables.editor.variableNameHelp') }}
-          </div>
+          </NText>
         </template>
       </NFormItem>
 
@@ -43,6 +43,7 @@
         required
       >
         <NInput
+          ref="valueInputRef"
           v-model:value="formData.value"
           type="textarea"
           :placeholder="t('variables.editor.variableValuePlaceholder')"
@@ -52,28 +53,11 @@
           clearable
         />
         <template #feedback>
-          <div class="text-xs text-gray-500 mt-1">
+          <NText depth="3" style="font-size: 12px; display:block; margin-top: 4px;">
             {{ t('variables.editor.variableValueHelp') }}
-          </div>
+          </NText>
         </template>
       </NFormItem>
-
-      <!-- 预览 -->
-      <NCard v-if="formData.name && formData.value" size="small" embedded>
-        <template #header>
-          <div class="text-sm font-medium">{{ t('variables.editor.preview') }}</div>
-        </template>
-        <NSpace vertical size="small">
-          <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-500 min-w-[80px]">{{ t('variables.editor.usage') }}:</span>
-            <NTag size="small" type="info">{{ formatVariableName(formData.name) }}</NTag>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="text-xs text-gray-500 min-w-[80px]">{{ t('variables.editor.resolvedValue') }}:</span>
-            <div class="flex-1 text-xs max-h-20 overflow-y-auto p-2 bg-gray-50 rounded">{{ formData.value }}</div>
-          </div>
-        </NSpace>
-      </NCard>
     </NForm>
 
     <template #footer>
@@ -95,9 +79,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NModal, NForm, NFormItem, NInput, NButton, NCard, NSpace, NTag, type FormInst, type FormRules } from 'naive-ui'
+import { NModal, NForm, NFormItem, NInput, NButton, NSpace, NText, type FormInst, type FormRules } from 'naive-ui'
 import type { Variable } from '../types/variable'
 
 const { t } = useI18n()
@@ -105,20 +89,33 @@ const { t } = useI18n()
 interface Props {
   variable?: Variable | null
   existingNames: string[]
+  show?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  variable: null
+  variable: null,
+  show: true
 })
 
-const emit = defineEmits<{
-  'save': [variable: { name: string; value: string }]
-  'cancel': []
-}>()
+interface Emits {
+  (e: 'save', variable: { name: string; value: string }): void
+  (e: 'cancel'): void
+  (e: 'update:show', value: boolean): void
+}
+const emit = defineEmits<Emits>()
+
+// 显隐受控，统一动画与尺寸
+const localVisible = computed({
+  get: () => props.show ?? true,
+  set: (val: boolean) => emit('update:show', val)
+})
+
+const modalStyle = { width: '600px', maxWidth: '90vw' }
 
 // 状态管理
 const loading = ref(false)
 const formRef = ref<FormInst>()
+const valueInputRef = ref<InstanceType<typeof NInput> | null>(null)
 const formData = ref({
   name: '',
   value: ''
@@ -199,10 +196,6 @@ const validateValue = () => {
   formRef.value?.validate(['value'])
 }
 
-const formatVariableName = (name: string): string => {
-  return `{{${name}}}`
-}
-
 // 事件处理
 const save = async () => {
   if (!formRef.value) return
@@ -221,8 +214,12 @@ const save = async () => {
   }
 }
 
-const cancel = () => {
+const onAfterLeave = () => {
   emit('cancel')
+}
+
+const cancel = () => {
+  localVisible.value = false
 }
 
 // 初始化
@@ -232,6 +229,17 @@ onMounted(() => {
       name: props.variable.name,
       value: props.variable.value
     }
+    if ((props.variable.value ?? '') === '') {
+      nextTick(() => {
+        valueInputRef.value?.focus()
+      })
+    }
+    // 如果是从缺失变量引导添加，通常会以新增模式打开，此处保持默认行为
+  } else {
+    // 新增模式：自动聚焦到值输入，方便直接填写
+    nextTick(() => {
+      valueInputRef.value?.focus()
+    })
   }
 })
 
@@ -241,6 +249,11 @@ watch(() => props.variable, (newVariable) => {
     formData.value = {
       name: newVariable.name,
       value: newVariable.value
+    }
+    if ((newVariable.value ?? '') === '') {
+      nextTick(() => {
+        valueInputRef.value?.focus()
+      })
     }
   } else {
     formData.value = {
@@ -252,5 +265,4 @@ watch(() => props.variable, (newVariable) => {
 </script>
 
 <style scoped>
-/* 移除所有自定义样式，完全依赖 theme.css 中的主题类 */
 </style>

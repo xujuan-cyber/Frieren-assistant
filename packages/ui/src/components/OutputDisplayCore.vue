@@ -72,7 +72,7 @@
       </NFlex>
 
       <!-- 推理内容区域 -->
-      <NFlex v-if="shouldShowReasoning" style="flex: 0 0 auto; max-height: 30%;">
+      <NFlex v-if="shouldShowReasoning" style="flex: 0 0 auto;">
         <NCollapse v-model:expanded-names="reasoningExpandedNames" style="width: 100%;">
           <NCollapseItem name="reasoning">
             <template #header>
@@ -87,11 +87,12 @@
               </NFlex>
             </template>
             
-            <NScrollbar class="reasoning-content" ref="reasoningContentRef" style="max-height: 200px;">
+            <NScrollbar class="reasoning-content" ref="reasoningContentRef" style="max-height: clamp(160px, 28vh, 360px); overflow: auto;">
               <MarkdownRenderer
                 v-if="displayReasoning"
                 :content="displayReasoning"
                 :streaming="streaming"
+                :disableInternalScroll="true"
                 class="prose-sm max-w-none px-3 py-2"
               />
               <NSpace v-else-if="streaming" class="text-gray-500 text-sm italic px-3 py-2">
@@ -305,10 +306,19 @@ const scrollReasoningToBottom = () => {
     nextTick(() => {
       if (reasoningContentRef.value) {
         // 使用 Naive UI NScrollbar 的正确 API
-        reasoningContentRef.value.scrollTo({
-          top: 999999,  // 滚动到底部
-          behavior: 'smooth'
-        })
+        const scrollContainer = reasoningContentRef.value.$el || reasoningContentRef.value
+        if (scrollContainer && scrollContainer.scrollTo) {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth'
+          })
+        } else if (reasoningContentRef.value.scrollTo) {
+          // 直接调用 NScrollbar 实例的 scrollTo 方法
+          reasoningContentRef.value.scrollTo({
+            top: 999999,  // 滚动到底部
+            behavior: 'smooth'
+          })
+        }
       }
     })
   }
@@ -376,11 +386,11 @@ watch(() => props.reasoning, (newReasoning, oldReasoning) => {
     isReasoningExpanded.value = true
   }
   
-  // 如果思考过程已展开，滚动到底部
-  if (isReasoningExpanded.value) {
+  // 如果思考过程已展开且有新内容，滚动到底部
+  if (isReasoningExpanded.value && newReasoning) {
     scrollReasoningToBottom()
   }
-})
+}, { flush: 'post' })
 
 watch(() => props.content, (newContent, oldContent) => {
   // 当主要内容开始流式输出时，如果用户未干预，自动折叠思考过程

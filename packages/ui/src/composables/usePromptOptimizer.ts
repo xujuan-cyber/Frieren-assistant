@@ -68,7 +68,7 @@ export function usePromptOptimizer(
     
     // 方法 (将在下面定义并绑定到 state)
     handleOptimizePrompt: async () => {},
-    handleOptimizePromptWithContext: async (advancedContext: { variables: Record<string, string>, messages?: ConversationMessage[] }) => {},
+    handleOptimizePromptWithContext: async (advancedContext: { variables: Record<string, string>, messages?: ConversationMessage[], tools?: any[] }) => {},
     handleIteratePrompt: async (payload: { originalPrompt: string, optimizedPrompt: string, iterateInput: string }) => {},
     handleSwitchVersion: async (version: PromptChain['versions'][number]) => {}
   })
@@ -169,7 +169,7 @@ export function usePromptOptimizer(
   }
   
   // 带上下文的优化提示词
-  state.handleOptimizePromptWithContext = async (advancedContext: { variables: Record<string, string>, messages?: ConversationMessage[] }) => {
+  state.handleOptimizePromptWithContext = async (advancedContext: { variables: Record<string, string>, messages?: ConversationMessage[], tools?: any[] }) => {
     if (!state.prompt.trim() || state.isOptimizing) return
 
     // 根据优化模式选择对应的模板
@@ -205,7 +205,8 @@ export function usePromptOptimizer(
         // 关键：添加高级上下文
         advancedContext: {
           variables: advancedContext.variables,
-          messages: advancedContext.messages
+          messages: advancedContext.messages,
+          tools: advancedContext.tools  // 🆕 添加工具传递
         }
       }
 

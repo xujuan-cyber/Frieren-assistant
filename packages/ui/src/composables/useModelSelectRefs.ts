@@ -1,8 +1,13 @@
 import { ref, nextTick, type Ref } from 'vue'
 
+// 模型选择器组件实例类型定义
+interface ModelSelectInstance {
+  refresh?: () => Promise<void>
+}
+
 export interface ModelSelectRefsHooks {
-  optimizeModelSelect: Ref<any>
-  testModelSelect: Ref<any>
+  optimizeModelSelect: Ref<ModelSelectInstance | null>
+  testModelSelect: Ref<ModelSelectInstance | null>
   refreshAll: () => Promise<void>
   refreshOptimize: () => Promise<void>
   refreshTest: () => Promise<void>
@@ -14,8 +19,8 @@ export interface ModelSelectRefsHooks {
  * @returns ModelSelectRefsHooks
  */
 export function useModelSelectRefs(): ModelSelectRefsHooks {
-  const optimizeModelSelect = ref(null)
-  const testModelSelect = ref(null)
+  const optimizeModelSelect = ref<ModelSelectInstance | null>(null)
+  const testModelSelect = ref<ModelSelectInstance | null>(null)
 
   const refreshOptimize = async () => {
     await nextTick()

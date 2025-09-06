@@ -51,26 +51,6 @@ export interface TestControlBarEmits {
   'primary-action': []
 }
 
-// ConversationSection 组件类型
-export interface ConversationSectionProps {
-  // 显示控制
-  visible?: boolean
-  collapsed?: boolean
-  collapsible?: boolean
-  
-  // 内容配置
-  title?: string
-  maxHeight?: string
-  
-  // 尺寸配置
-  size?: ComponentSize
-}
-
-export interface ConversationSectionEmits {
-  'update:collapsed': [value: boolean]
-  'toggle': [collapsed: boolean]
-}
-
 // TestResultSection 组件类型
 export interface TestResultSectionProps {
   // 布局模式

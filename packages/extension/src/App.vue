@@ -127,7 +127,7 @@
               </template>
               <template #model-select>
                 <ModelSelectUI
-                  ref="optimizeModelSelect"
+                  :ref="(el) => modelSelectRefs.optimizeModelSelect = el"
                   :modelValue="modelManager.selectedOptimizeModel"
                   @update:modelValue="modelManager.selectedOptimizeModel = $event"
                   :disabled="optimizer.isOptimizing"
@@ -194,38 +194,59 @@
           </NCard>
         </NFlex>
 
+        <!-- 右侧：测试区域 -->
         <NCard :style="{ flex: 1, overflow: 'auto', height: '100%' }"
           content-style="height: 100%; max-height: 100%; overflow: hidden;"
         >
-        <!-- 右侧：测试区域 -->
           <!-- 使用新的统一TestAreaPanel组件 -->
           <TestAreaPanel
             ref="testPanelRef"
             :optimization-mode="selectedOptimizationMode"
+            :is-test-running="false"
             :advanced-mode-enabled="advancedModeEnabled"
             v-model:test-content="testContent"
             v-model:is-compare-mode="isCompareMode"
-            :is-test-running="false"
-            :input-mode="responsiveLayout.recommendedInputMode.value"
-            :control-bar-layout="responsiveLayout.recommendedControlBarLayout.value"
-            :button-size="responsiveLayout.smartButtonSize.value"
             :enable-compare-mode="true"
             :enable-fullscreen="true"
+            :input-mode="responsiveLayout.recommendedInputMode.value"
+            :control-bar-layout="responsiveLayout.recommendedControlBarLayout.value" 
+            :button-size="responsiveLayout.smartButtonSize.value"
+            :conversation-max-height="responsiveLayout.responsiveHeights.value.conversationMax"
+            :show-original-result="true"
+            :result-vertical-layout="responsiveLayout.isMobile.value"
             @test="handleTestAreaTest"
             @compare-toggle="handleTestAreaCompareToggle"
           >
+            <!-- 模型选择插槽 -->
             <template #model-select>
               <ModelSelectUI
+                :ref="(el) => modelSelectRefs.testModelSelect = el"
                 :modelValue="modelManager.selectedTestModel"
                 @update:modelValue="modelManager.selectedTestModel = $event"
                 :disabled="false"
                 @config="modelManager.showConfig = true"
               />
             </template>
+
+            <!-- 对话管理插槽 -->
             <template #conversation-manager>
-              <!-- 高级模式下的对话管理功能可以在这里添加 -->
+              <ConversationManager
+                v-if="advancedModeEnabled"
+                :messages="optimizationContext"
+                :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
+                :scan-variables="(content) => variableManager?.variableManager.value?.scanVariablesInContent(content) || []"
+                :is-predefined-variable="(name) => variableManager?.variableManager.value?.isPredefinedVariable(name) || false"
+                :replace-variables="(content, vars) => variableManager?.variableManager.value?.replaceVariables(content, vars) || content"
+                :optimization-mode="selectedOptimizationMode"
+                @create-variable="handleCreateVariable"
+                @open-variable-manager="handleOpenVariableManager"
+                :compact-mode="responsiveLayout.isMobile.value"
+                :collapsible="true"
+                :max-height="250"
+              />
             </template>
-            <!-- 添加实际的测试结果内容 -->
+
+            <!-- 原始结果插槽 -->
             <template #original-result>
               <OutputDisplay
                 :content="testResults.originalResult"
@@ -236,6 +257,8 @@
                 :style="{ height: '100%', minHeight: '0' }"
               />
             </template>
+
+            <!-- 优化结果插槽 -->  
             <template #optimized-result>
               <OutputDisplay
                 :content="testResults.optimizedResult"
@@ -246,6 +269,8 @@
                 :style="{ height: '100%', minHeight: '0' }"
               />
             </template>
+
+            <!-- 单一结果插槽 -->
             <template #single-result>
               <OutputDisplay
                 :content="testResults.optimizedResult"
@@ -257,7 +282,7 @@
               />
             </template>
           </TestAreaPanel>
-          </NCard>
+        </NCard>
       </NFlex>
       </template>
     </MainLayoutUI>
@@ -316,7 +341,7 @@ import {
   useTemplateManager,
   useAppInitializer,
   usePromptHistory,
-  useModelSelectors,
+  useModelSelectRefs,
   useVariableManager,
   useNaiveTheme,
   useResponsiveTestLayout,
@@ -330,7 +355,7 @@ import {
   type OptimizationMode,
   type ConversationMessage,
 } from '@prompt-optimizer/ui'
-import type { IPromptService, ToolDefinition } from '@prompt-optimizer/core'
+import type { IPromptService } from '@prompt-optimizer/core'
 
 // 1. 基础 composables
 const { t } = useI18n()
@@ -357,13 +382,21 @@ watch(services, async (newServices) => {
 provide('services', services)
 
 // 5. 控制主UI渲染的标志
-const isReady = computed(() => services.value !== null && !isInitializing.value)
+const isReady = computed(() => !!services.value && !isInitializing.value)
 
 // 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null)
 const selectedOptimizationMode = ref<OptimizationMode>('system')
+const showDataManager = ref(false)
+const optimizeModelSelect = ref(null)
+const testPanelRef = ref(null)
+const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
+const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
 
-// TestAreaPanel 统一组件相关状态
+// 高级模式状态
+const advancedModeEnabled = ref(false)
+
+// 测试内容状态 - 新增
 const testContent = ref('')
 const isCompareMode = ref(true)
 
@@ -385,16 +418,7 @@ const testResults = ref({
   isTestingSingle: false
 })
 
-const showDataManager = ref(false)
-const optimizeModelSelect = ref(null)
-const testPanelRef = ref(null)
-const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
-const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
-
-// 高级模式状态
-const advancedModeEnabled = ref(false)
-
-// TestAreaPanel 响应式配置
+// 响应式布局和模式配置 - 新增
 const responsiveLayout = useResponsiveTestLayout()
 const testModeConfig = useTestModeConfig(selectedOptimizationMode)
 
@@ -464,20 +488,14 @@ const handleOpenVariableManager = (variableName?: string) => {
 }
 
 // 6. 在顶层调用所有 Composables
-// 测试面板的模型选择器引用
-const testModelSelect = computed(() => (testPanelRef.value as any)?.modelSelectRef || null)
+// 模型选择器引用管理
+const modelSelectRefs = useModelSelectRefs()
 
 // 使用类型断言解决类型不匹配问题
-// 模型选择器
-const modelSelectors = useModelSelectors(services as any)
-
 // 模型管理器
 const modelManager = useModelManager(
   services as any,
-  {
-    optimizeModelSelect: modelSelectors.optimizeModelSelect,
-    testModelSelect
-  }
+  modelSelectRefs
 )
 
 // 提示词优化器
@@ -727,7 +745,44 @@ const handleSyncOptimizationContextToTest = (syncData: { messages: ConversationM
   }
 }
 
-// 真实测试处理函数  
+// 处理历史记录使用 - 智能模式切换
+const handleHistoryReuse = async (context: { record: any, chainId: string, rootPrompt: string, chain: any }) => {
+  const { chain } = context
+
+  // 根据链条的根记录类型确定应该切换到的优化模式
+  let targetMode: OptimizationMode
+  if (chain.rootRecord.type === 'optimize') {
+    targetMode = 'system'
+  } else if (chain.rootRecord.type === 'userOptimize') {
+    targetMode = 'user'
+  } else {
+    // 兜底：从根记录的 metadata 中获取优化模式
+    targetMode = chain.rootRecord.metadata?.optimizationMode || 'system'
+  }
+
+  // 如果目标模式与当前模式不同，自动切换
+  if (targetMode !== selectedOptimizationMode.value) {
+    selectedOptimizationMode.value = targetMode
+    useToast().info(t('toast.info.optimizationModeAutoSwitched', {
+      mode: targetMode === 'system' ? t('common.system') : t('common.user')
+    }))
+  }
+
+  // 调用原有的历史记录处理逻辑
+  await promptHistory.handleSelectHistory(context)
+}
+
+// 提示词输入标签
+const promptInputLabel = computed(() => {
+  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPrompt') : t('promptOptimizer.userPromptInput')
+})
+
+// 提示词输入占位符
+const promptInputPlaceholder = computed(() => {
+  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPromptPlaceholder') : t('promptOptimizer.userPromptPlaceholder')
+})
+
+// 真实测试处理函数
 const handleTestAreaTest = async () => {
   if (!services.value?.promptService) {
     useToast().error('服务未初始化，请稍后重试')
@@ -835,45 +890,8 @@ const testPromptWithType = async (type: 'original' | 'optimized') => {
 }
 
 const handleTestAreaCompareToggle = () => {
-  console.log('[App] TestAreaPanel 对比模式切换:', isCompareMode.value)
+  console.log('[App] Compare mode toggled:', isCompareMode.value)
 }
-
-// 处理历史记录使用 - 智能模式切换
-const handleHistoryReuse = async (context: { record: any, chainId: string, rootPrompt: string, chain: any }) => {
-  const { chain } = context
-
-  // 根据链条的根记录类型确定应该切换到的优化模式
-  let targetMode: OptimizationMode
-  if (chain.rootRecord.type === 'optimize') {
-    targetMode = 'system'
-  } else if (chain.rootRecord.type === 'userOptimize') {
-    targetMode = 'user'
-  } else {
-    // 兜底：从根记录的 metadata 中获取优化模式
-    targetMode = chain.rootRecord.metadata?.optimizationMode || 'system'
-  }
-
-  // 如果目标模式与当前模式不同，自动切换
-  if (targetMode !== selectedOptimizationMode.value) {
-    selectedOptimizationMode.value = targetMode
-    useToast().info(t('toast.info.optimizationModeAutoSwitched', {
-      mode: targetMode === 'system' ? t('common.system') : t('common.user')
-    }))
-  }
-
-  // 调用原有的历史记录处理逻辑
-  await promptHistory.handleSelectHistory(context)
-}
-
-// 提示词输入标签
-const promptInputLabel = computed(() => {
-  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPrompt') : t('promptOptimizer.userPromptInput')
-})
-
-// 提示词输入占位符
-const promptInputPlaceholder = computed(() => {
-  return selectedOptimizationMode.value === 'system' ? t('promptOptimizer.originalPromptPlaceholder') : t('promptOptimizer.userPromptPlaceholder')
-})
 </script>
 
 <style scoped>

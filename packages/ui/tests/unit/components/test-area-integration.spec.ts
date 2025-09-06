@@ -142,19 +142,6 @@ vi.mock('../../../src/components/TestControlBar.vue', () => ({
   }
 }))
 
-vi.mock('../../../src/components/ConversationSection.vue', () => ({
-  default: {
-    name: 'ConversationSection',
-    props: ['visible', 'collapsible', 'title', 'maxHeight'],
-    template: `
-      <div v-if="visible" data-testid="conversation-section" class="conversation-section">
-        <h3>{{ title }}</h3>
-        <slot />
-      </div>
-    `,
-  }
-}))
-
 vi.mock('../../../src/components/TestResultSection.vue', () => ({
   default: {
     name: 'TestResultSection',

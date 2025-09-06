@@ -6,6 +6,7 @@ export default {
     confirm: 'Confirm',
     delete: 'Delete',
     edit: 'Edit',
+    copy: 'Copy',
     create: 'Create',
     search: 'Search',
     settings: 'Settings',
@@ -48,7 +49,6 @@ export default {
     number: 'Number',
     integer: 'Integer',
     optional: 'Optional',
-    copy: 'Copy',
     content: 'Content',
     noContent: 'No content',
     clickToEdit: 'Click to edit',
@@ -56,6 +56,7 @@ export default {
     generatingReasoning: 'Thinking...',
     copyContent: 'Copy Content',
     copyAll: 'Copy All',
+    focus: 'Focus',
     expandReasoning: 'Expand reasoning',
     collapseReasoning: 'Collapse reasoning',
     success: 'Success',
@@ -72,7 +73,12 @@ export default {
     render: 'Render',
     source: 'Source',
     reasoning: 'Reasoning',
-    compare: 'Compare'
+    compare: 'Compare',
+    moveUp: 'Move Up',
+    moveDown: 'Move Down',
+    preview: 'Preview',
+    import: 'Import',
+    export: 'Export'
   },
   actions: {
     copy: 'Copy',
@@ -121,11 +127,21 @@ export default {
   },
   variables: {
     title: 'Variable Manager',
+    count: 'Variables: {count}',
+    missing: 'Missing: {count}',
     total: '{count} variables total',
     predefined: 'Predefined Variables',
     custom: 'Custom Variables',
     predefinedBadge: 'Built-in',
     customBadge: 'Custom',
+    predefinedDescriptions: {
+      originalPrompt: 'Current original prompt content',
+      lastOptimizedPrompt: 'Last optimized prompt result',
+      iterateInput: 'Input content for iteration optimization',
+      currentPrompt: 'Current prompt in use (optimized or original)',
+      userQuestion: 'User question or input',
+      conversationContext: 'Current conversation context information'
+    },
     readonly: 'Read-only',
     emptyValue: '(empty)',
     noCustomVariables: 'No custom variables yet',
@@ -158,11 +174,18 @@ export default {
       export: 'Export',
       variableName: 'Variable Name',
       value: 'Value',
+      description: 'Description',
       sourceLabel: 'Source',
       preview: 'Preview',
       deleteConfirm: 'Are you sure you want to delete variable "{name}"?',
       totalCount: '{count} variables total',
       noVariables: 'No variables',
+      exportTitle: 'Export Variables',
+      exportFormat: 'Export Format',
+      exportInfo: 'Export Information',
+      exportPreview: 'Export Preview',
+      variables: 'variables',
+      download: 'Download',
       source: {
         predefined: 'Predefined',
         custom: 'Custom'
@@ -210,34 +233,45 @@ export default {
       dropFile: 'Drop file here',
       orClickToSelect: 'or click to select file',
       fileRequirements: 'File Requirements',
-      jsonFormat: 'JSON format file',
-      maxSize: 'File size no more than 1MB',
-      structureExample: 'Structure example: {"variableName": "variableValue"}',
-      jsonText: 'JSON Text',
-      jsonTextPlaceholder: 'Paste JSON format variable data...',
-      jsonTextHelp: 'Supports exported JSON format or simple key-value format',
+      supportedFormats: 'Supported Formats',
+      maxSize: 'Max Size',
+      structureExample: 'Structure example: key-value pairs',
+      textFormat: 'Text Format',
+      csvText: 'CSV Text',
+      txtText: 'TXT Text',
+      keyValuePairs: 'Key-Value Pairs',
+      csvTextHelp: 'Supports CSV format variable data',
+      txtTextHelp: 'Supports TXT format variable data',
       previewTitle: 'Preview ({count} variables)',
       conflict: 'Conflict',
       conflictWarning: '{count} variables conflict with predefined variables and will be skipped',
       import: 'Import',
       errors: {
         invalidFormat: 'Invalid JSON format',
-        invalidFileType: 'Please select a JSON file',
-        fileTooLarge: 'File too large, please select a file smaller than 1MB',
+        invalidFileType: 'Please select a CSV or TXT file',
+        fileTooLarge: 'File too large, please select a file smaller than 10MB',
         fileReadError: 'File read failed',
-        parseError: 'JSON parse failed',
+        parseError: 'File parse failed',
         invalidVariableFormat: 'Variable "{key}" format is invalid',
-        invalidVariableName: 'Variable name "{name}" format is invalid'
+        invalidVariableName: 'Variable name "{name}" format is invalid',
+        unsupportedFormat: 'Unsupported format',
+        csvMinRows: 'CSV file must have at least 2 rows (header and data)',
+        csvRequiredColumns: 'CSV file must contain name and value columns'
       }
     }
   },
   conversation: {
+    management: {
+      title: 'Conversation Manager',
+      openEditor: 'Open Editor'
+    },
     title: 'Conversation Manager',
     messageCount: '{count} messages',
     quickTemplates: 'Quick Templates',
     clearAll: 'Clear All',
     noMessages: 'No conversation messages yet',
     addFirstMessage: 'Add your first message below',
+    addFirst: 'Add your first message below',
     addMessage: 'Add Message',
     export: 'Export',
     import: 'Import',
@@ -319,6 +353,9 @@ export default {
       success: 'Optimization context synced to test area',
       notSupported: 'Current test panel does not support conversation sync'
     }
+  },
+  tools: {
+    count: '{count} tools'
   },
   settings: {
     title: 'Settings',
@@ -836,6 +873,58 @@ export default {
       "unit": "tokens"
     }
   },
+  contextEditor: {
+    title: 'Context Editor',
+    systemTemplates: 'System Templates',
+    // Basic
+    noMessages: 'No messages',
+    addFirstMessage: 'Add your first message',
+    addMessage: 'Add Message',
+    noTools: 'No tools',
+    addFirstTool: 'Add first tool',
+    addTool: 'Add Tool',
+    noDescription: 'No description',
+    parametersCount: '{count} parameters',
+
+    // Templates
+    templateCategory: 'Template Category',
+    templateCount: '{count} templates',
+    noTemplates: 'No templates',
+    noTemplatesHint: 'Add templates in Template Manager',
+    applyTemplate: 'Apply Template',
+    moreMessages: '{count} more messages...',
+    templateApplied: 'Template applied: {name}',
+
+    // Import/Export
+    importTitle: 'Import Context Data',
+    importFormat: 'Import Format:',
+    selectFile: 'Select File',
+    orPasteText: 'Or paste text below',
+    import: 'Import',
+    exportTitle: 'Export Context Data',
+    exportFormat: 'Export Format:',
+    exportPreview: 'Export Preview:',
+    copyToClipboard: 'Copy to Clipboard',
+    saveToFile: 'Save to File',
+
+    // Tools editor
+    editTool: 'Edit Tool',
+    deleteToolConfirm: 'Are you sure you want to delete tool "{name}"?',
+    toolDeleted: 'Tool deleted: {name}',
+    exampleTemplate: 'Example Template',
+    exampleTemplateDesc: 'Start from a weather example or from an empty template.',
+    basicInfo: 'Basic Info',
+    toolNamePlaceholder: 'Enter tool name, e.g., get_weather',
+    toolDescPlaceholder: 'Enter tool description',
+    parameters: 'Parameters',
+    parametersPlaceholder: 'Enter JSON format parameter configuration',
+    invalidJson: 'Invalid JSON',
+    useExample: 'Use Example',
+    startEmpty: 'Start Empty',
+    save: 'Save',
+    toolsTooltip: 'Tools: {tools}',
+    toolsCount: '{count} tools'
+  },
   updater: {
     title: 'App Updates',
     checkForUpdates: 'Check for updates',
@@ -896,5 +985,44 @@ export default {
     viewOnGitHub: 'View on GitHub',
     noReleasesFound: 'No releases found. This project may not have published any versions yet.',
     noStableReleasesFound: 'No stable releases found. Only prerelease versions may be available.'
+  },
+  accessibility: {
+    labels: {
+      contextEditor: 'Context Editor',
+      statisticsToolbar: 'Statistics Toolbar',
+      editorMain: 'Editor Main Area',
+      editorTabs: 'Editor Tabs',
+      messageCount: 'Message Count',
+      variableCount: 'Variable Count',
+      messagesTab: 'Messages Tab',
+      messagesPanel: 'Messages Panel',
+      messagesList: 'Messages List',
+      conversationMessages: 'Conversation Messages',
+      messageItem: 'Message Item',
+      templatesPanel: 'Templates panel',
+      templateCard: 'Template card',
+      toolCount: 'Tool Count'
+    },
+    descriptions: {
+      contextEditor: 'Edit and manage conversation context and tools',
+      messagesTab: 'Tab for managing conversation messages'
+    },
+    liveRegion: {
+      modalOpened: 'Modal dialog opened',
+      modalClosed: 'Modal dialog closed',
+      tabChanged: 'Tab changed'
+    }
+  },
+  toolCall: {
+    title: 'Tool Calls',
+    count: '{count} calls',
+    arguments: 'Arguments',
+    result: 'Result',
+    error: 'Error',
+    status: {
+      pending: 'Pending',
+      success: 'Success',
+      error: 'Failed'
+    }
   }
 };

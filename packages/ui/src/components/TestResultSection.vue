@@ -28,14 +28,23 @@
           height: '100%', 
           overflow: 'hidden' 
         }"
-        content-style="height: 100%; max-height: 100%; overflow: hidden;"
+        content-style="height: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column;"
       >
         <template #header>
           <NText style="font-size: 16px; font-weight: 600;">
             {{ originalTitle }}
           </NText>
         </template>
-        <slot name="original-result"></slot>
+        <div class="result-body">
+          <slot name="original-result"></slot>
+        </div>
+        <!-- 原始结果的工具调用 -->
+        <ToolCallDisplay 
+          v-if="originalResult?.toolCalls"
+          :tool-calls="originalResult.toolCalls"
+          :size="size"
+          class="tool-calls-section"
+        />
       </NCard>
       
       <!-- 优化结果 -->
@@ -46,14 +55,23 @@
           height: '100%', 
           overflow: 'hidden' 
         }"
-        content-style="height: 100%; max-height: 100%; overflow: hidden;"
+        content-style="height: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column;"
       >
         <template #header>
           <NText style="font-size: 16px; font-weight: 600;">
             {{ optimizedTitle }}
           </NText>
         </template>
-        <slot name="optimized-result"></slot>
+        <div class="result-body">
+          <slot name="optimized-result"></slot>
+        </div>
+        <!-- 优化结果的工具调用 -->
+        <ToolCallDisplay 
+          v-if="optimizedResult?.toolCalls"
+          :tool-calls="optimizedResult.toolCalls"
+          :size="size"
+          class="tool-calls-section"
+        />
       </NCard>
     </NFlex>
     
@@ -66,14 +84,23 @@
         height: '100%', 
         overflow: 'hidden' 
       }"
-      content-style="height: 100%; max-height: 100%; overflow: hidden;"
+      content-style="height: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column;"
     >
       <template #header>
         <NText style="font-size: 16px; font-weight: 600;">
           {{ singleResultTitle }}
         </NText>
       </template>
-      <slot name="single-result"></slot>
+      <div class="result-body">
+        <slot name="single-result"></slot>
+      </div>
+      <!-- 单一结果的工具调用 -->
+      <ToolCallDisplay 
+        v-if="singleResult?.toolCalls"
+        :tool-calls="singleResult.toolCalls"
+        :size="size"
+        class="tool-calls-section"
+      />
     </NCard>
   </div>
 </template>
@@ -82,6 +109,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NFlex, NCard, NText } from 'naive-ui'
+import ToolCallDisplay from './ToolCallDisplay.vue'
+import type { AdvancedTestResult } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
@@ -96,8 +125,14 @@ interface Props {
   optimizedTitle?: string
   singleResultTitle?: string
   
+  // 测试结果数据（用于工具调用显示）
+  originalResult?: AdvancedTestResult
+  optimizedResult?: AdvancedTestResult
+  singleResult?: AdvancedTestResult
+  
   // 尺寸配置
   cardSize?: 'small' | 'medium' | 'large'
+  size?: 'small' | 'medium' | 'large'
   
   // 间距配置
   gap?: string | number
@@ -111,6 +146,7 @@ const props = withDefaults(defineProps<Props>(), {
   optimizedTitle: '',
   singleResultTitle: '',
   cardSize: 'small',
+  size: 'small',
   gap: 12
 })
 
@@ -133,5 +169,18 @@ const singleResultTitle = computed(() =>
   /* 确保正确的flex行为和高度管理 */
   min-height: 0;
   max-height: 100%;
+}
+
+/* 三段式布局样式 */
+.result-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  /* 为正文区域提供独立滚动 */
+}
+
+.tool-calls-section {
+  flex: 0 0 auto;
+  /* 工具调用区域根据内容自适应高度 */
 }
 </style>

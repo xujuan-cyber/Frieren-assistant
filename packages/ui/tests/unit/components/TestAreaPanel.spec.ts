@@ -22,14 +22,6 @@ vi.mock('../../../src/components/TestControlBar.vue', () => ({
   }
 }))
 
-vi.mock('../../../src/components/ConversationSection.vue', () => ({
-  default: {
-    name: 'ConversationSection',
-    template: '<div data-testid="conversation-section">ConversationSection Mock<slot /></div>',
-    props: ['visible', 'collapsible', 'title', 'maxHeight']
-  }
-}))
-
 vi.mock('../../../src/components/TestResultSection.vue', () => ({
   default: {
     name: 'TestResultSection',
@@ -125,23 +117,6 @@ describe('TestAreaPanel', () => {
     })
   })
 
-  describe('高级模式', () => {
-    it('启用高级模式时应该显示ConversationSection', async () => {
-      wrapper = createWrapper({ advancedModeEnabled: true })
-      
-      await nextTick()
-      
-      expect(wrapper.find('[data-testid="conversation-section"]').exists()).toBe(true)
-    })
-
-    it('禁用高级模式时应该隐藏ConversationSection', async () => {
-      wrapper = createWrapper({ advancedModeEnabled: false })
-      
-      await nextTick()
-      
-      expect(wrapper.find('[data-testid="conversation-section"]').exists()).toBe(false)
-    })
-  })
 
   describe('事件处理', () => {
     it('应该正确处理test事件', async () => {
@@ -257,16 +232,6 @@ describe('TestAreaPanel', () => {
       })
 
       expect(wrapper.find('[data-testid="model-select-slot"]').exists()).toBe(true)
-    })
-
-    it('应该正确渲染conversation-manager插槽', () => {
-      wrapper = createWrapper({ advancedModeEnabled: true }, {
-        slots: {
-          'conversation-manager': '<div data-testid="conversation-manager-slot">Conversation Manager Slot</div>'
-        }
-      })
-
-      expect(wrapper.find('[data-testid="conversation-manager-slot"]').exists()).toBe(true)
     })
 
     it('应该正确渲染结果插槽', () => {

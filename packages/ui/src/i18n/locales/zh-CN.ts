@@ -1,4 +1,4 @@
-export default {
+﻿export default {
   common: {
     loading: '加载中...',
     save: '保存',
@@ -50,6 +50,7 @@ export default {
     optional: '可选',
     copy: '复制',
     content: '内容',
+    focus: '聚焦',
     noContent: '暂无内容',
     clickToEdit: '点击编辑',
     generating: '生成中...',
@@ -72,7 +73,12 @@ export default {
     render: '渲染',
     source: '原文',
     reasoning: '思考过程',
-    compare: '对比'
+    compare: '对比',
+    moveUp: '上移',
+    moveDown: '下移',
+    preview: '预览',
+    import: '导入',
+    export: '导出'
   },
   actions: {
     copy: '复制',
@@ -121,11 +127,21 @@ export default {
   },
   variables: {
     title: '变量管理',
+    count: '变量：{count}',
+    missing: '缺失：{count}',
     total: '共 {count} 个变量',
     predefined: '预定义变量',
     custom: '自定义变量',
     predefinedBadge: '内置',
     customBadge: '自定义',
+    predefinedDescriptions: {
+      originalPrompt: '当前原始提示词内容',
+      lastOptimizedPrompt: '最后一次优化的提示词结果',
+      iterateInput: '迭代优化的输入内容',
+      currentPrompt: '当前使用的提示词（优化后或原始）',
+      userQuestion: '用户问题或输入',
+      conversationContext: '当前会话上下文信息'
+    },
     readonly: '只读',
     emptyValue: '(空)',
     noCustomVariables: '暂无自定义变量',
@@ -158,11 +174,18 @@ export default {
       export: '导出',
       variableName: '变量名',
       value: '值',
+      description: '描述',
       sourceLabel: '来源',
       preview: '预览',
       deleteConfirm: '确定要删除变量 "{name}" 吗？',
       totalCount: '共 {count} 个变量',
       noVariables: '暂无变量',
+      exportTitle: '导出变量',
+      exportFormat: '导出格式',
+      exportInfo: '导出信息',
+      exportPreview: '导出预览',
+      variables: '变量',
+      download: '下载',
       source: {
         predefined: '预定义',
         custom: '自定义'
@@ -210,33 +233,44 @@ export default {
       dropFile: '拖拽文件到此处',
       orClickToSelect: '或点击选择文件',
       fileRequirements: '文件要求',
-      jsonFormat: 'JSON格式文件',
-      maxSize: '文件大小不超过1MB',
-      structureExample: '结构示例：{"变量名": "变量值"}',
-      jsonText: 'JSON文本',
-      jsonTextPlaceholder: '粘贴JSON格式的变量数据...',
-      jsonTextHelp: '支持导出的JSON格式或简单的键值对格式',
+      supportedFormats: '支持的格式',
+      maxSize: '最大文件大小',
+      structureExample: '结构示例：键值对格式',
+      textFormat: '文本格式',
+      csvText: 'CSV文本',
+      txtText: 'TXT文本',
+      keyValuePairs: '键值对',
+      csvTextHelp: '支持CSV格式的变量数据',
+      txtTextHelp: '支持TXT格式的变量数据',
       previewTitle: '预览（{count}个变量）',
       conflict: '冲突',
       conflictWarning: '{count}个变量与预定义变量重名，将被跳过',
       import: '导入',
       errors: {
         invalidFormat: '无效的JSON格式',
-        invalidFileType: '请选择JSON文件',
-        fileTooLarge: '文件过大，请选择小于1MB的文件',
+        invalidFileType: '请选择CSV或TXT文件',
+        fileTooLarge: '文件过大，请选择小于10MB的文件',
         fileReadError: '文件读取失败',
-        parseError: 'JSON解析失败',
+        parseError: '文件解析失败',
         invalidVariableFormat: '变量"{key}"格式不正确',
-        invalidVariableName: '变量名"{name}"格式不正确'
+        invalidVariableName: '变量名"{name}"格式不正确',
+        unsupportedFormat: '不支持的格式',
+        csvMinRows: 'CSV文件必须至少包含2行（标题和数据）',
+        csvRequiredColumns: 'CSV文件必须包含name和value列'
       }
     }
   },
   conversation: {
+    management: {
+      title: '会话管理器',
+      openEditor: '打开编辑器'
+    },
     title: '会话管理',
     messageCount: '共 {count} 条消息',
     quickTemplates: '快速模板',
     clearAll: '清空全部',
     noMessages: '暂无会话消息',
+    addFirst: '添加第一条消息',
     addFirstMessage: '在下方添加您的第一条消息',
     addMessage: '添加消息',
     export: '导出',
@@ -247,8 +281,6 @@ export default {
     importPlaceholder: '请粘贴JSON格式的会话数据',
     importError: '导入会话失败',
     confirmClear: '确定要清空所有消息吗？',
-    addTemplate: '添加模板',
-    
     roles: {
       system: '系统',
       user: '用户',
@@ -321,6 +353,9 @@ export default {
       success: '优化上下文已同步到测试区域',
       notSupported: '当前测试面板不支持会话同步'
     }
+  },
+  tools: {
+    count: '{count} 个工具'
   },
   settings: {
     title: '设置',
@@ -839,6 +874,57 @@ export default {
       "unit": "令牌"
     }
   },
+  contextEditor: {
+    // Tools editor（新增）
+    editTool: '编辑工具',
+    deleteToolConfirm: '确定要删除工具“{name}”吗？',
+    toolDeleted: '已删除工具：{name}',
+    exampleTemplate: '示例模板',
+    exampleTemplateDesc: '可从天气示例开始，或从空白模板开始。',
+    basicInfo: '基本信息',
+    toolNamePlaceholder: '请输入工具名称，例如 get_weather',
+    toolDescPlaceholder: '请输入工具描述',
+    parameters: '参数配置',
+    parametersPlaceholder: '请输入JSON格式的参数配置',
+    invalidJson: '无效的 JSON',
+    useExample: '使用示例',
+    startEmpty: '从空白开始',
+    save: '保存',
+    toolsTooltip: '工具：{tools}',
+    toolsCount: '{count} 个工具',
+    title: '上下文编辑器',
+    systemTemplates: '系统模板',
+    // Basic
+    noMessages: '暂无消息',
+    addFirstMessage: '添加您的第一条消息',
+    addMessage: '添加消息',
+    noTools: '暂无工具',
+    addFirstTool: '添加第一个工具',
+    addTool: '添加工具',
+    noDescription: '暂无描述',
+    parametersCount: '{count} 个参数',
+
+    // Templates
+    templateCategory: '模板分类',
+    templateCount: '{count} 个模板',
+    noTemplates: '暂无模板',
+    noTemplatesHint: '在模板管理器中添加模板',
+    applyTemplate: '应用模板',
+    moreMessages: '还有 {count} 条消息...',
+    templateApplied: '已应用模板：{name}',
+
+    // Import/Export
+    importTitle: '导入上下文数据',
+    importFormat: '导入格式：',
+    selectFile: '选择文件',
+    orPasteText: '或在下方粘贴文本',
+    import: '导入',
+    exportTitle: '导出上下文数据',
+    exportFormat: '导出格式：',
+    exportPreview: '导出预览：',
+    copyToClipboard: '复制到剪贴板',
+    saveToFile: '保存到文件'
+  },
   updater: {
     title: '应用更新',
     checkForUpdates: '检查更新',
@@ -898,6 +984,45 @@ export default {
     devEnvironment: '开发环境：更新检查已禁用',
     clickToCheck: '点击检查更新',
     noReleasesFound: '未找到发布版本。此项目可能尚未发布任何版本。',
-    noStableReleasesFound: '未找到正式版本。可能只有预览版本可用。'
+    noStableReleasesFound: '未找到稳定版本。可能只有预发布版本可用。'
+  },
+  accessibility: {
+    labels: {
+      contextEditor: '上下文编辑器',
+      statisticsToolbar: '统计工具栏',
+      editorMain: '编辑器主区域',
+      editorTabs: '编辑器标签页',
+      messageCount: '消息数量',
+      variableCount: '变量数量',
+      messagesTab: '消息标签页',
+      messagesPanel: '消息面板',
+      messagesList: '消息列表',
+      conversationMessages: '对话消息',
+      messageItem: '消息项',
+      templatesPanel: '模板面板',
+      templateCard: '模板卡片',
+      toolCount: '工具数量'
+    },
+    descriptions: {
+      contextEditor: '编辑和管理对话上下文和工具',
+      messagesTab: '用于管理对话消息的标签页'
+    },
+    liveRegion: {
+      modalClosed: '模式对话框已关闭',
+      modalOpened: '模态框已打开',
+      tabChanged: '标签页已切换'
+    }
+  },
+  toolCall: {
+    title: '工具调用',
+    count: '{count} 个调用',
+    arguments: '参数',
+    result: '结果',
+    error: '错误',
+    status: {
+      pending: '处理中',
+      success: '成功',
+      error: '失败'
+    }
   }
 };

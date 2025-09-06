@@ -1,491 +1,1158 @@
 <template>
-  <div class="context-editor-fullscreen h-screen w-screen">
+  <NModal
+    v-model:show="localVisible" 
+    preset="card"
+    :title="title"
+    :style="modalStyle"
+    size="huge"
+    :bordered="false"
+    :segmented="false"
+    :mask-closable="false"
+    :class="accessibilityClasses"
+    role="dialog"
+    :aria-label="aria.getLabel('contextEditor')"
+    :aria-describedby="aria.getDescription('contextEditor')"
+    aria-modal="true"
+    @update:show="handleVisibilityChange"
+    @after-enter="handleModalOpen"
+    @after-leave="handleModalClose"
+  >
     <!-- 顶部工具栏 -->
-    <NCard class="editor-header" size="small" :bordered="false">
-      <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <h3 class="text-xl font-semibold">上下文编辑器</h3>
-        <NSpace size="small">
-          <NTag size="small" type="info">{{ messages.length }} 条消息</NTag>
-          <NTag v-if="messages.length > 0" size="small" type="success" :title="allUsedVariables.length > 0 ? `使用的变量: ${allUsedVariables.join(', ')}` : '暂无使用变量'">
-            变量: {{ allUsedVariables.length }}
-          </NTag>
-        </NSpace>
-      </div>
-      
-      <NSpace size="small">
-        <!-- 导入导出按钮 -->
-        <NButton
-          @click="showImportDialog = true"
-          size="small"
-          secondary
-          title="导入数据"
+    <template #header-extra>
+      <NSpace :size="buttonSize" role="toolbar" :aria-label="aria.getLabel('statisticsToolbar')">
+        <!-- 统计信息 -->
+        <NTag 
+          :size="tagSize" 
+          type="info"
+          role="status"
+          :aria-label="aria.getLabel('messageCount', `${localState.messages.length} 条消息`)"
         >
-          导入
-        </NButton>
-        
-        <NButton
-          @click="showExportDialog = true"
-          size="small"
-          secondary
-          :disabled="messages.length === 0"
-          title="导出数据"
+          {{ localState.messages.length }} 条消息
+        </NTag>
+        <NTag 
+          v-if="variableCount > 0" 
+          :size="tagSize" 
+          type="success"
+          role="status"
+          :aria-label="aria.getLabel('variableCount', `变量: ${variableCount}`)"
         >
-          导出
-        </NButton>
-        
-        <NButton
-          @click="addMessage"
-          size="small"
+          变量: {{ variableCount }}
+        </NTag>
+        <NTag 
+          v-if="localState.tools.length > 0" 
+          :size="tagSize" 
           type="primary"
-          title="添加消息"
+          role="status"
+          :aria-label="aria.getLabel('toolCount', `工具: ${localState.tools.length}`)"
         >
-          添加消息
-        </NButton>
-
-        <!-- 保存和关闭 -->
-        <NDivider vertical />
-        <NButtonGroup>
-          <NButton
-            @click="handleSave"
-            size="small"
-            type="success"
-          >
-            保存
-          </NButton>
-          <NButton
-            @click="handleClose"
-            size="small"
-            secondary
-          >
-            关闭
-          </NButton>
-        </NButtonGroup>
+          工具: {{ localState.tools.length }}
+        </NTag>
       </NSpace>
-      </div>
-    </NCard>
+    </template>
 
     <!-- 主编辑区域 -->
-    <div class="editor-content flex-1 overflow-hidden flex flex-col">
-      <div class="flex-1 p-6 overflow-y-auto">
-        <!-- 空状态 -->
-        <div v-if="messages.length === 0" class="empty-state text-center py-16">
-          <NCard size="large" class="max-w-md mx-auto">
-            <div class="text-center">
-              <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.471L3 21l2.471-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
-              </svg>
-              <h3 class="text-xl font-semibold mb-2">开始编辑上下文</h3>
-              <p class="text-sm mb-4">添加消息来构建对话上下文，支持变量提取和模板化</p>
-              <NButton
-                @click="addMessage"
-                type="primary"
-                size="medium"
-              >
-                添加第一条消息
-              </NButton>
-            </div>
-          </NCard>
-        </div>
+    <div class="context-editor-content" role="main" :aria-label="aria.getLabel('editorMain')">
+      <NTabs 
+        v-model:value="activeTab" 
+        type="line" 
+        :size="size"
+        role="tablist"
+        :aria-label="aria.getLabel('editorTabs')"
+        @update:value="handleTabChange"
+      >
+        <!-- 消息编辑标签页 -->
+        <NTabPane 
+          name="messages" 
+          tab="消息编辑"
+          role="tabpanel"
+          :aria-label="aria.getLabel('messagesTab')"
+          :aria-describedby="aria.getDescription('messagesTab')"
+        >
+          <div class="messages-panel" role="region" :aria-label="aria.getLabel('messagesPanel')">
+            <!-- 空状态 -->
+            <NEmpty 
+              v-if="localState.messages.length === 0" 
+              :description="t('contextEditor.noMessages')"
+              role="status"
+              :aria-label="aria.getLabel('emptyMessages')"
+            >
+              <template #icon>
+                <svg 
+                  width="48" 
+                  height="48" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="1"
+                  role="img"
+                  :aria-label="aria.getLabel('messageIcon')"
+                >
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+              </template>
+              <template #extra>
+                <NButton 
+                  @click="addMessage"
+                  :size="buttonSize"
+                  type="primary"
+                  :aria-label="aria.getLabel('addFirstMessage')"
+                  :aria-describedby="aria.getDescription('addFirstMessage')"
+                >
+                  {{ t('contextEditor.addFirstMessage') }}
+                </NButton>
+              </template>
+            </NEmpty>
 
-        <!-- 消息列表 -->
-        <div v-else class="w-full space-y-4">
-          <NCard
-            v-for="(message, index) in messages"
-            :key="`message-${index}`"
-            size="medium"
-            class="message-item"
-          >
-            <!-- 消息头部 -->
-            <div class="message-header flex items-center justify-between mb-3">
-              <NSpace size="medium" align="center">
-                <NTag size="small" type="default">#{{ index + 1 }}</NTag>
-                <NSelect 
-                  v-model:value="message.role"
-                  size="small"
-                  style="width: 100px"
-                  :options="[
-                    { label: '系统', value: 'system' },
-                    { label: '用户', value: 'user' },
-                    { label: '助手', value: 'assistant' }
-                  ]"
-                />
-                
-                <!-- 变量信息显示 -->
-                <NSpace v-if="getMessageVariables(index).detected.length > 0" size="small">
-                  <NTag size="tiny" type="info">
-                    变量: {{ getMessageVariables(index).detected.length }}
-                  </NTag>
-                  <NTag v-if="getMessageVariables(index).missing.length > 0" size="tiny" type="warning">
-                    缺失: {{ getMessageVariables(index).missing.length }}
+            <!-- 消息列表 -->
+            <NScrollbar v-else :style="scrollbarStyle" :aria-label="aria.getLabel('messagesList')">
+              <NList role="list" :aria-label="aria.getLabel('conversationMessages')">
+                <NListItem 
+                  v-for="(message, index) in localState.messages" 
+                  :key="`message-${index}`"
+                  role="listitem"
+                  :aria-label="aria.getLabel('messageItem', `消息 ${index + 1}: ${message.role}`)"
+                >
+                  <NCard
+                    :size="cardSize"
+                    embedded
+                    :class="{ 'focused-card': focusedIndex === index }"
+                    :ref="(el: any) => setMessageRef(index, el)"
+                  >
+                    <template #header>
+                      <NSpace justify="space-between" align="center">
+                        <NSpace align="center" :size="4">
+                          <!-- 消息序号 -->
+                          <NTag :size="tagSize" round>
+                            {{ index + 1 }}
+                          </NTag>
+                          
+                          <!-- 角色选择 -->
+                          <NSelect 
+                            v-model:value="message.role"
+                            :size="size"
+                            style="width: 100px"
+                            :options="roleOptions"
+                            :disabled="disabled"
+                            @update:value="handleMessageUpdate(index, message)"
+                          />
+                          
+                          <!-- 变量统计 -->
+                          <NTag 
+                            v-if="getMessageVariables(message.content).detected.length > 0" 
+                            :size="tagSize" 
+                            type="info"
+                          >
+                            变量: {{ getMessageVariables(message.content).detected.length }}
+                          </NTag>
+                          <NTag 
+                            v-if="getMessageVariables(message.content).missing.length > 0" 
+                            :size="tagSize" 
+                            type="warning"
+                          >
+                            缺失: {{ getMessageVariables(message.content).missing.length }}
+                          </NTag>
+                        </NSpace>
+                        
+                        <!-- 消息操作按钮 -->
+                        <NSpace :size="4">
+                          <NButton
+                            @click="togglePreview(index)"
+                            :size="buttonSize"
+                            :type="previewMode.get(index) ? 'primary' : 'default'"
+                            quaternary
+                            circle
+                            :title="previewMode.get(index) ? t('common.edit') : t('common.preview')"
+                          >
+                            <template #icon>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </template>
+                          </NButton>
+                          <NButton
+                            v-if="index > 0"
+                            @click="moveMessage(index, -1)"
+                            :size="buttonSize"
+                            quaternary
+                            circle
+                            :title="t('common.moveUp')"
+                            :disabled="disabled"
+                          >
+                            <template #icon>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                              </svg>
+                            </template>
+                          </NButton>
+                          <NButton
+                            v-if="index < localState.messages.length - 1"
+                            @click="moveMessage(index, 1)"
+                            :size="buttonSize"
+                            quaternary
+                            circle
+                            :title="t('common.moveDown')"
+                            :disabled="disabled"
+                          >
+                            <template #icon>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </template>
+                          </NButton>
+                          <NButton
+                            @click="deleteMessage(index)"
+                            :size="buttonSize"
+                            quaternary
+                            circle
+                            type="error"
+                            :title="t('common.delete')"
+                            :disabled="disabled || localState.messages.length <= 1"
+                          >
+                            <template #icon>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            </template>
+                          </NButton>
+                        </NSpace>
+                      </NSpace>
+                    </template>
+                    
+                    <!-- 消息内容 -->
+                    <div v-if="!previewMode.get(index)">
+                      <NInput
+                        v-model:value="message.content"
+                        type="textarea"
+                        :placeholder="getPlaceholderText(message.role)"
+                        :autosize="{ minRows: 1, maxRows: 20 }"
+                        :size="inputSize"
+                        :disabled="disabled"
+                        @update:value="handleMessageUpdate(index, message)"
+                      />
+                      <!-- 缺失变量提示与快捷操作 -->
+                      <NCard v-if="getMessageVariables(message.content).missing.length > 0" size="small" class="mt-2" embedded>
+                        <NSpace size="small" align="center" wrap>
+                          <NTag :size="tagSize" type="warning">{{ t('conversation.missingVars') || '缺失变量' }}</NTag>
+                          <NButton
+                            v-for="varName in getMessageVariables(message.content).missing.slice(0, 3)"
+                            :key="`miss-${index}-${varName}`"
+                            size="tiny"
+                            text
+                            type="warning"
+                            :title="t('conversation.clickToCreateVariable') || '点击创建变量'"
+                            @click="handleCreateVariableAndOpenManager(varName)"
+                          >
+                            {{ varName }}
+                          </NButton>
+                          <NTag v-if="getMessageVariables(message.content).missing.length > 3" :size="tagSize" type="warning">
+                            +{{ getMessageVariables(message.content).missing.length - 3 }}
+                          </NTag>
+                          <NButton size="tiny" quaternary @click="emit('openVariableManager')">
+                            {{ t('variables.management.title') || '变量管理' }}
+                          </NButton>
+                        </NSpace>
+                      </NCard>
+                    </div>
+                    <div v-else class="preview-content">
+                      <NText>{{ replaceVariables(message.content) }}</NText>
+                    </div>
+                  </NCard>
+                </NListItem>
+              </NList>
+
+              <!-- 添加消息按钮 -->
+              <div class="mt-4">
+                <NCard :size="cardSize" embedded dashed>
+                  <NSpace justify="center">
+                    <NButton 
+                      @click="addMessage"
+                      :size="buttonSize"
+                      dashed
+                      type="primary"
+                      block
+                      :disabled="disabled"
+                    >
+                      <template #icon>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </template>
+                      {{ t('contextEditor.addMessage') }}
+                    </NButton>
+                  </NSpace>
+                </NCard>
+              </div>
+            </NScrollbar>
+          </div>
+        </NTabPane>
+        
+        <!-- 模板管理标签页 -->
+        <NTabPane name="templates" tab="快速模板">
+          <div class="templates-panel" role="region" :aria-label="aria.getLabel('templatesPanel')">
+            <!-- 模板分类和筛选 -->
+            <NCard size="small" embedded class="mb-4">
+              <NSpace align="center" justify="space-between">
+                <NSpace align="center" :size="8">
+                  <NText strong>{{ t('contextEditor.templateCategory') || '模板分类' }}</NText>
+                  <NTag :size="tagSize" type="info">
+                    {{ t(`contextEditor.${optimizationMode}Templates`) || `${optimizationMode === 'system' ? '系统' : '用户'}提示词模板` }}
                   </NTag>
                 </NSpace>
+                <NTag :size="tagSize" type="success">
+                  {{ t('contextEditor.templateCount', { count: quickTemplates.length }) || `共 ${quickTemplates.length} 个模板` }}
+                </NTag>
               </NSpace>
-              
-              <NButtonGroup size="small">
-                <!-- 预览切换按钮 -->
-                <NButton
-                  @click="togglePreview(index)"
-                  :type="previewMode[index] ? 'primary' : 'default'"
-                  title="切换预览"
-                >
-                  👁️
-                </NButton>
-                <NButton
-                  v-if="index > 0"
-                  @click="moveMessage(index, -1)"
-                  title="上移"
-                >
-                  ↑
-                </NButton>
-                <NButton
-                  v-if="index < messages.length - 1"
-                  @click="moveMessage(index, 1)"
-                  title="下移"
-                >
-                  ↓
-                </NButton>
-                <NButton
-                  @click="deleteMessage(index)"
-                  :disabled="messages.length <= 1"
-                  type="error"
-                  title="删除"
-                >
-                  🗑️
-                </NButton>
-              </NButtonGroup>
-            </div>
+            </NCard>
 
-            <!-- 消息内容编辑区 -->
-            <div class="message-content relative">
-              <!-- 编辑模式 -->
-              <div v-if="!previewMode[index]">
-                <NInput
-                  v-model:value="message.content"
-                  type="textarea"
-                  :placeholder="getPlaceholderText(message.role)"
-                  :autosize="{ minRows: 5, maxRows: 20 }"
-                  @select="handleTextSelection($event, index)"
-                />
-              </div>
-              
+            <!-- 模板列表 -->
+            <NEmpty 
+              v-if="quickTemplates.length === 0" 
+              :description="t('contextEditor.noTemplates') || '暂无模板'"
+              role="status"
+              :aria-label="aria.getLabel('emptyTemplates')"
+            >
+              <template #icon>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                  <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </template>
+              <template #extra>
+                <NText depth="3">{{ t('contextEditor.noTemplatesHint') || '请在模板管理中添加模板' }}</NText>
+              </template>
+            </NEmpty>
+
+            <NGrid v-else :cols="isMobile ? 1 : 2" :x-gap="12" :y-gap="12">
+              <NGridItem v-for="template in quickTemplates" :key="template.id">
+                <NCard 
+                  :size="cardSize" 
+                  embedded 
+                  hoverable
+                  class="template-card"
+                  role="button"
+                  :aria-label="aria.getLabel('templateCard', template.name)"
+                  tabindex="0"
+                  @click="handleTemplatePreview(template)"
+                  @keydown.enter="handleTemplatePreview(template)"
+                  @keydown.space.prevent="handleTemplatePreview(template)"
+                >
+                  <template #header>
+                    <NSpace justify="space-between" align="center">
+                      <NSpace align="center" :size="4">
+                        <NTag :size="tagSize" round type="primary">
+                          {{ template.name }}
+                        </NTag>
+                        <NTag v-if="template.messages" :size="tagSize" type="info">
+                          {{ template.messages.length }} 条消息
+                        </NTag>
+                      </NSpace>
+                      <NSpace :size="4">
+                        <NButton
+                          @click.stop="handleTemplatePreview(template)"
+                          :size="buttonSize"
+                          quaternary
+                          circle
+                          :title="t('common.preview') || '预览'"
+                        >
+                          <template #icon>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </template>
+                        </NButton>
+                        <NButton
+                          @click.stop="handleTemplateApply(template)"
+                          :size="buttonSize"
+                          type="primary"
+                          circle
+                          :title="t('contextEditor.applyTemplate') || '应用模板'"
+                          :disabled="disabled"
+                        >
+                          <template #icon>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </template>
+                        </NButton>
+                      </NSpace>
+                    </NSpace>
+                  </template>
+                  
+                  <div class="template-content">
+                    <NText depth="3" class="template-description">
+                      {{ template.description || t('contextEditor.noDescription') || '无描述' }}
+                    </NText>
+                    
+                    <!-- 模板消息预览 -->
+                    <div v-if="template.messages && template.messages.length > 0" class="template-preview mt-3">
+                      <div 
+                        v-for="(message, index) in template.messages.slice(0, 2)" 
+                        :key="`preview-${index}`"
+                        class="preview-message"
+                      >
+                        <NSpace align="center" :size="4" class="mb-1">
+                          <NTag :size="tagSize" round>{{ getRoleLabel(message.role) }}</NTag>
+                          <NText depth="3" class="text-xs">
+                            {{ message.content.length > 40 ? message.content.substring(0, 40) + '...' : message.content }}
+                          </NText>
+                        </NSpace>
+                      </div>
+                      <NText v-if="template.messages.length > 2" depth="3" class="text-xs mt-1">
+                        {{ t('contextEditor.moreMessages', { count: template.messages.length - 2 }) || `还有 ${template.messages.length - 2} 条消息...` }}
+                      </NText>
+                    </div>
+                  </div>
+                </NCard>
+              </NGridItem>
+            </NGrid>
+          </div>
+        </NTabPane>
+
+        <!-- 工具管理标签页 -->
+        <NTabPane v-if="showToolManager" name="tools" tab="工具管理">
+          <div class="tools-panel">
+            <!-- 工具列表内容 -->
+            <NEmpty v-if="localState.tools.length === 0" :description="t('contextEditor.noTools')">
+              <template #icon>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                  <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </template>
+              <template #extra>
+                <NButton 
+                  @click="addTool"
+                  :size="buttonSize"
+                  type="primary"
+                  :disabled="disabled"
+                >
+                  {{ t('contextEditor.addFirstTool') }}
+                </NButton>
+              </template>
+            </NEmpty>
+            
+            <NList v-else>
+              <NListItem v-for="(tool, index) in localState.tools" :key="`tool-${index}`">
+                <NCard :size="cardSize" embedded>
+                  <template #header>
+                    <NSpace justify="space-between" align="center">
+                      <NTag type="primary" :size="tagSize">{{ tool.function.name }}</NTag>
+                      <NSpace :size="4">
+                        <NButton
+                          @click="editTool(index)"
+                          :size="buttonSize"
+                          quaternary
+                          circle
+                          :title="t('common.edit')"
+                          :disabled="disabled"
+                        >
+                          <template #icon>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </template>
+                        </NButton>
+                        <NButton
+                          @click="focusMessage(index)"
+                          :size="buttonSize"
+                          quaternary
+                          circle
+                          :title="t('common.focus') || '聚焦此消息'"
+                        >
+                          <template #icon>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v2m0 10v2m7-7h-2M7 12H5m11.657 4.657l-1.414-1.414M8.757 9.343 7.343 7.929m8.314 0-1.414 1.414M8.757 14.657l-1.414 1.414" />
+                            </svg>
+                          </template>
+                        </NButton>
+                        <NButton
+                          @click="deleteTool(index)"
+                          :size="buttonSize"
+                          quaternary
+                          circle
+                          type="error"
+                          :title="t('common.delete')"
+                          :disabled="disabled"
+                        >
+                          <template #icon>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </template>
+                        </NButton>
+                      </NSpace>
+                    </NSpace>
+                  </template>
+                  
+                  <NText depth="3" :size="size">{{ tool.function.description || t('contextEditor.noDescription') }}</NText>
+                  <div class="mt-2">
+                    <NTag :size="tagSize">{{ t('contextEditor.parametersCount', { count: Object.keys(tool.function.parameters?.properties || {}).length }) }}</NTag>
+                  </div>
+                </NCard>
+              </NListItem>
+            </NList>
+            
+            <!-- 添加工具按钮 -->
+            <div v-if="localState.tools.length > 0" class="mt-4">
+              <NCard :size="cardSize" embedded dashed>
+                <NSpace justify="center">
+                  <NButton 
+                    @click="addTool"
+                    :size="buttonSize"
+                    dashed
+                    type="primary"
+                    block
+                    :disabled="disabled"
+                  >
+                    <template #icon>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </template>
+                    {{ t('contextEditor.addTool') }}
+                  </NButton>
+                </NSpace>
+              </NCard>
             </div>
-          </NCard>
-        </div>
-      </div>
+          </div>
+        </NTabPane>
+      </NTabs>
     </div>
 
-    <!-- 工具管理面板 -->
-    <NCard v-if="tools.length > 0 || showToolsPanel" size="small" class="tools-panel">
-      <div class="tools-header flex items-center justify-between mb-3">
-        <NSpace align="center">
-          <h4 class="text-base font-semibold">工具定义</h4>
-          <NTag size="small" type="info">
-            {{ tools.length }} 个工具
-          </NTag>
-        </NSpace>
-        <NSpace size="small">
+    
+    <!-- 底部操作栏 -->
+    <template #action>
+      <NSpace justify="space-between">
+        <NSpace>
+          <!-- 导入导出按钮 -->
           <NButton
-            @click="addNewTool"
-            size="small"
-            type="primary"
+            @click="handleImport"
+            :size="buttonSize"
+            secondary
+            :disabled="disabled || loading"
           >
-            添加工具
-          </NButton>
-          <NButton
-            @click="toggleToolsPanel"
-            size="small"
-            :type="showToolsPanel ? 'default' : 'primary'"
-          >
-            {{ showToolsPanel ? '收起' : '展开' }}
-          </NButton>
-        </NSpace>
-      </div>
-      
-      <div v-if="showToolsPanel" class="tools-content space-y-3">
-        <!-- 工具列表 -->
-        <NCard v-for="(tool, index) in tools" :key="`tool-${index}`" size="small" class="tool-item">
-          <div class="tool-header flex items-center justify-between mb-2">
-            <NSpace align="center">
-              <NTag type="primary" size="small">{{ tool.function.name }}</NTag>
-            </NSpace>
-            <NButtonGroup size="small">
-              <NButton
-                @click="editTool(index)"
-                title="编辑工具"
-              >
-                ✏️
-              </NButton>
-              <NButton
-                @click="copyTool(index)"
-                title="复制工具"
-              >
-                📋
-              </NButton>
-              <NButton
-                @click="deleteTool(index)"
-                type="error"
-                title="删除工具"
-              >
-                🗑️
-              </NButton>
-            </NButtonGroup>
-          </div>
-          <div class="tool-description text-xs mb-2">
-            {{ tool.function.description || '无描述' }}
-          </div>
-          <div class="text-xs">
-            <NTag size="tiny">参数: {{ Object.keys(tool.function.parameters?.properties || {}).length }} 个</NTag>
-          </div>
-        </NCard>
-        
-        <!-- 空状态 -->
-        <div v-if="tools.length === 0" class="empty-tools text-center py-8">
-          <NCard size="large">
-            <div class="text-center">
-              <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
               </svg>
-              <p class="text-sm mb-3">尚未定义工具</p>
-              <p class="text-xs">工具可以让AI调用外部功能，如搜索、计算、API调用等</p>
-            </div>
-          </NCard>
-        </div>
-      </div>
-    </NCard>
-
-    <!-- 导入对话框 -->
-    <NModal 
-      v-model:show="showImportDialog" 
-      preset="dialog" 
-      title="导入数据"
-      style="width: 600px"
-    >
-      <template #default>
-        <!-- 格式选择 -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">导入格式：</label>
-          <NSpace size="small" class="mb-2">
-            <NButton
-              v-for="format in importFormats"
-              :key="format.id"
-              @click="selectedImportFormat = format.id"
-              size="small"
-              :type="selectedImportFormat === format.id ? 'primary' : 'default'"
-            >
-              {{ format.name }}
-            </NButton>
-          </NSpace>
-          <p class="text-xs text-gray-500">
-            {{ importFormats.find(f => f.id === selectedImportFormat)?.description }}
-          </p>
-        </div>
-
-        <!-- 文件上传或文本输入 -->
-        <div class="mb-4">
-          <NSpace size="small" class="mb-2">
-            <input
-              type="file"
-              ref="fileInput"
-              accept=".json,.txt"
-              @change="handleFileUpload"
-              class="hidden"
-            >
-            <NButton
-              @click="fileInput?.click()"
-              size="small"
-            >
-              选择文件
-            </NButton>
-            <span class="text-sm text-gray-500">或在下方粘贴文本</span>
-          </NSpace>
-        </div>
-
-        <NInput
-          v-model:value="importData"
-          type="textarea"
-          :autosize="{ minRows: 10, maxRows: 10 }"
-          :placeholder="getImportPlaceholder()"
-          class="font-mono text-sm"
-        />
-        <div v-if="importError" class="text-sm text-red-500 mt-2">
-          {{ importError }}
-        </div>
-      </template>
-      <template #action>
-        <NSpace justify="end">
-          <NButton @click="showImportDialog = false">取消</NButton>
-          <NButton 
-            @click="handleImport" 
-            :disabled="!importData.trim()"
-            type="primary"
+            </template>
+            {{ t('common.import') }}
+          </NButton>
+          
+          <NButton
+            @click="handleExport"
+            :size="buttonSize"
+            secondary
+            :disabled="disabled || loading || (localState.messages.length === 0 && localState.tools.length === 0)"
           >
-            导入
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </template>
+            {{ t('common.export') }}
           </NButton>
         </NSpace>
-      </template>
-    </NModal>
+        
+        <NSpace>
+          <NButton
+            @click="handleCancel"
+            :size="buttonSize"
+            :disabled="loading"
+          >
+            {{ t('common.cancel') }}
+          </NButton>
+          <NButton
+            @click="handleSave"
+            :size="buttonSize"
+            type="primary"
+            :loading="loading"
+          >
+            {{ t('common.save') }}
+          </NButton>
+        </NSpace>
+      </NSpace>
+    </template>
+  </NModal>
 
-    <!-- 导出对话框 -->
-    <NModal 
-      v-model:show="showExportDialog" 
-      preset="dialog" 
-      title="导出数据"
-      style="width: 600px"
-    >
-      <template #default>
+  <!-- 工具编辑器（简化版） -->
+  <NModal
+    v-model:show="toolEditState.showEditor"
+    preset="card"
+    :title="toolEditState.editingIndex !== null ? (t('contextEditor.editTool') || '编辑工具') : (t('contextEditor.addTool') || '添加工具')"
+    style="width: 600px"
+  >
+    <NSpace vertical>
+      <!-- 示例提示（仅新建时显示） -->
+      <NAlert
+        v-if="toolEditState.editingIndex === null"
+        type="info"
+        :title="t('contextEditor.exampleTemplate') || '示例模板'"
+      >
+        {{ t('contextEditor.exampleTemplateDesc') || '可从示例开始或从空白模板开始。' }}
+      </NAlert>
+
+      <!-- 基本信息 -->
+      <NCard size="small" :title="t('contextEditor.basicInfo') || '基本信息'">
+        <NSpace vertical v-if="toolEditState.editingTool">
+          <NInput
+            v-model:value="toolEditState.editingTool.function.name"
+            :placeholder="t('contextEditor.toolNamePlaceholder') || '请输入工具名称'"
+          />
+          <NInput
+            v-model:value="toolEditState.editingTool.function.description"
+            type="textarea"
+            :placeholder="t('contextEditor.toolDescPlaceholder') || '请输入工具描述'"
+          />
+        </NSpace>
+      </NCard>
+
+      <!-- 参数配置 -->
+      <NCard size="small" :title="t('contextEditor.parameters') || '参数配置'">
         <NInput
-          :value="exportData"
+          v-model:value="parametersJson"
+          type="textarea"
+          :autosize="{ minRows: 8, maxRows: 12 }"
+          :placeholder="defaultParametersJson"
+          style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace;"
+        />
+        <NText v-if="jsonError" type="error" class="mt-2">
+          {{ t('contextEditor.invalidJson') || '无效的 JSON' }}: {{ jsonError }}
+        </NText>
+      </NCard>
+    </NSpace>
+
+    <template #action>
+      <NSpace>
+        <NButton @click="closeToolEditor">{{ t('common.cancel') }}</NButton>
+        <NButton @click="useWeatherExample" secondary v-if="toolEditState.editingIndex === null">
+          {{ t('contextEditor.useExample') || '使用示例' }}
+        </NButton>
+        <NButton @click="useEmptyTemplate" secondary v-if="toolEditState.editingIndex === null">
+          {{ t('contextEditor.startEmpty') || '从空白开始' }}
+        </NButton>
+        <NButton @click="saveTool" type="primary" :disabled="!isValidTool">
+          {{ t('common.save') }}
+        </NButton>
+      </NSpace>
+    </template>
+  </NModal>
+
+  <!-- 导入对话框 -->
+  <NModal
+    v-model:show="showImportDialog"
+    preset="dialog"
+    :title="t('contextEditor.importTitle') || '导入上下文数据'"
+    :show-icon="false"
+    style="width: 600px"
+    :mask-closable="false"
+  >
+    <template #default>
+      <!-- 格式选择 -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.importFormat') || '导入格式：' }}</label>
+        <NSpace size="small" wrap>
+          <NButton
+            v-for="format in importFormats"
+            :key="format.id"
+            @click="selectedImportFormat = format.id"
+            :type="selectedImportFormat === format.id ? 'primary' : 'default'"
+            :size="buttonSize"
+          >
+            {{ format.name }}
+          </NButton>
+        </NSpace>
+        <p class="text-xs text-gray-500 mt-2">
+          {{ importFormats.find(f => f.id === selectedImportFormat)?.description }}
+        </p>
+      </div>
+
+      <!-- 文件上传 -->
+      <div class="mb-4">
+        <NSpace align="center" :size="8" class="mb-2">
+          <input
+            type="file"
+            ref="fileInputRef"
+            accept=".json,.txt"
+            @change="handleFileUpload"
+            class="hidden"
+          />
+          <NButton
+            @click="fileInputRef?.click()"
+            secondary
+            :size="buttonSize"
+          >
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </template>
+            {{ t('contextEditor.selectFile') || '选择文件' }}
+          </NButton>
+          <NText depth="3" class="text-sm">
+            {{ t('contextEditor.orPasteText') || '或在下方粘贴文本' }}
+          </NText>
+        </NSpace>
+      </div>
+
+      <!-- 文本输入区域 -->
+      <NInput
+        v-model:value="importData"
+        type="textarea"
+        :placeholder="getImportPlaceholder()"
+        :autosize="{ minRows: 12, maxRows: 16 }"
+        class="font-mono text-sm"
+      />
+
+      <div v-if="importError" class="text-sm text-red-500 mt-2">
+        {{ importError }}
+      </div>
+    </template>
+
+    <template #action>
+      <NSpace justify="end">
+        <NButton @click="showImportDialog = false" :size="buttonSize">
+          {{ t('common.cancel') || '取消' }}
+        </NButton>
+        <NButton
+          @click="handleImportSubmit"
+          :disabled="!importData.trim()"
+          type="primary"
+          :size="buttonSize"
+          :loading="contextEditor.isLoading.value"
+        >
+          {{ t('contextEditor.import') || '导入' }}
+        </NButton>
+      </NSpace>
+    </template>
+  </NModal>
+
+  <!-- 导出对话框 -->
+  <NModal
+    v-model:show="showExportDialog"
+    preset="dialog"
+    :title="t('contextEditor.exportTitle') || '导出上下文数据'"
+    :show-icon="false"
+    style="width: 600px"
+    :mask-closable="false"
+  >
+    <template #default>
+      <!-- 格式选择 -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.exportFormat') || '导出格式：' }}</label>
+        <NSpace size="small" wrap>
+          <NButton
+            v-for="format in exportFormats"
+            :key="format.id"
+            @click="selectedExportFormat = format.id"
+            :type="selectedExportFormat === format.id ? 'primary' : 'default'"
+            :size="buttonSize"
+          >
+            {{ format.name }}
+          </NButton>
+        </NSpace>
+        <p class="text-xs text-gray-500 mt-2">
+          {{ exportFormats.find(f => f.id === selectedExportFormat)?.description }}
+        </p>
+      </div>
+
+      <!-- 导出预览 -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.exportPreview') || '导出预览：' }}</label>
+        <NInput
+          :value="JSON.stringify({
+            messages: localState.messages,
+            metadata: {
+              variables: localState.variables,
+              tools: localState.tools,
+              exportTime: new Date().toISOString()
+            }
+          }, null, 2)"
           readonly
           type="textarea"
-          :autosize="{ minRows: 10, maxRows: 10 }"
+          :autosize="{ minRows: 8, maxRows: 12 }"
           class="font-mono text-sm"
         />
-      </template>
-      <template #action>
-        <NSpace justify="end">
-          <NButton @click="showExportDialog = false">关闭</NButton>
-          <NButton @click="copyExportData" type="primary">复制</NButton>
-        </NSpace>
-      </template>
-    </NModal>
+      </div>
+    </template>
 
-    <!-- 工具编辑对话框 -->
-    <NModal 
-      v-model:show="showToolEditDialog" 
-      preset="card" 
-      :title="editingToolIndex >= 0 ? '编辑工具' : '新建工具'"
-      style="width: 800px; max-height: 80vh"
-      size="huge"
-      :bordered="false"
-      :segmented="false"
-    >
-      <template #default>
-        <!-- 工具编辑表单 -->
-        <div class="space-y-4 overflow-y-auto" style="max-height: 60vh">
-          <!-- 基础信息 -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-2">函数名称 *</label>
-              <NInput
-                v-model:value="editingTool.function.name"
-                placeholder="例如: search_web"
-                :status="toolValidationErrors.name ? 'error' : undefined"
-              />
-              <p v-if="toolValidationErrors.name" class="text-xs text-red-500 mt-1">
-                {{ toolValidationErrors.name }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-2">函数描述</label>
-              <NInput
-                v-model:value="editingTool.function.description"
-                placeholder="例如: 在网络上搜索信息"
-              />
-            </div>
-          </div>
-          
-          <!-- 参数定义 -->
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <label class="block text-sm font-medium">参数定义 (JSON Schema)</label>
-              <NSpace size="small">
-                <NButton
-                  @click="addParameterExample"
-                  size="small"
-                  title="添加示例参数"
-                >
-                  + 示例
-                </NButton>
-                <NButton
-                  @click="validateToolParameters"
-                  size="small"
-                  title="验证JSON格式"
-                >
-                  验证
-                </NButton>
-              </NSpace>
-            </div>
-            
-            <NInput
-              v-model:value="toolParametersJson"
-              type="textarea"
-              :autosize="{ minRows: 12, maxRows: 12 }"
-              :status="toolValidationErrors.parameters ? 'error' : undefined"
-              placeholder="请输入JSON Schema格式的参数定义..."
-              @input="updateToolParameters"
-              class="font-mono text-sm"
-            />
-            <p v-if="toolValidationErrors.parameters" class="text-xs text-red-500 mt-1">
-              {{ toolValidationErrors.parameters }}
-            </p>
-          </div>
-          
-          <!-- 预览区域 -->
-          <div>
-            <label class="block text-sm font-medium mb-2">工具预览</label>
-            <NCard size="small" embedded>
-              <pre class="text-xs whitespace-pre-wrap">{{ getToolPreview() }}</pre>
-            </NCard>
-          </div>
-        </div>
-      </template>
-      <template #action>
-        <NSpace justify="end">
-          <NButton @click="showToolEditDialog = false">取消</NButton>
-          <NButton 
-            @click="saveEditingTool" 
-            :disabled="!isToolValid"
-            type="primary"
+    <template #action>
+      <NSpace justify="space-between">
+        <NButton @click="showExportDialog = false" :size="buttonSize">
+          {{ t('common.cancel') || '取消' }}
+        </NButton>
+        
+        <NSpace>
+          <NButton
+            @click="handleExportToClipboard"
+            secondary
+            :size="buttonSize"
+            :loading="contextEditor.isLoading.value"
           >
-            {{ editingToolIndex >= 0 ? '保存' : '创建' }}
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </template>
+            {{ t('contextEditor.copyToClipboard') || '复制到剪贴板' }}
+          </NButton>
+          <NButton
+            @click="handleExportToFile"
+            type="primary"
+            :size="buttonSize"
+            :loading="contextEditor.isLoading.value"
+          >
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+            </template>
+            {{ t('contextEditor.saveToFile') || '保存到文件' }}
           </NButton>
         </NSpace>
-      </template>
-    </NModal>
+      </NSpace>
+    </template>
+  </NModal>
+
+  <!-- 实时区域用于屏幕阅读器 -->
+  <div 
+    role="status" 
+    aria-live="polite" 
+    aria-atomic="true" 
+    class="sr-only"
+    v-if="liveRegionMessage"
+  >
+    {{ liveRegionMessage }}
+  </div>
+
+  <!-- 断言性实时区域 -->
+  <div 
+    role="alert" 
+    aria-live="assertive" 
+    aria-atomic="true" 
+    class="sr-only"
+    v-if="isAccessibilityMode && announcements.length > 0"
+  >
+    {{ announcements[announcements.length - 1] }}
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import { NCard, NButton, NTag, NModal, NInput, NDivider, NSelect, NSpace, NButtonGroup } from 'naive-ui'
-import { useClipboard } from '../composables/useClipboard'
+import { ref, computed, watch, shallowRef, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { 
+  NModal, NTabs, NTabPane, NCard, NButton, NSpace, NTag, NList, NListItem, 
+  NEmpty, NScrollbar, NInput, NSelect, NText, NDropdown, NGrid, NGridItem, NAlert
+} from 'naive-ui'
+import { useResponsive } from '../composables/useResponsive'
+import { usePerformanceMonitor } from '../composables/usePerformanceMonitor'
+import { useDebounceThrottle } from '../composables/useDebounceThrottle'
+import { useAccessibility } from '../composables/useAccessibility'
 import { useContextEditor } from '../composables/useContextEditor'
-import type { StandardPromptData, StandardMessage, ToolDefinition } from '../types'
+import { quickTemplateManager } from '../data/quickTemplates'
+import type { ContextEditorProps, ContextEditorEvents } from '../types/components'
+import type { ContextEditorState, ConversationMessage, ToolDefinition } from '@prompt-optimizer/core'
 
-const { copyText } = useClipboard()
+const { t, locale } = useI18n()
+
+// 性能监控
+const { recordUpdate } = usePerformanceMonitor('ContextEditor')
+
+// 防抖节流
+const { debounce, throttle, batchExecute } = useDebounceThrottle()
+
+// 可访问性支持
+const {
+  aria,
+  announce,
+  accessibilityClasses,
+  isAccessibilityMode,
+  liveRegionMessage
+} = useAccessibility('ContextEditor')
+
+// 导入导出功能
 const contextEditor = useContextEditor()
 
-interface Props {
-  initialData?: StandardPromptData | null
-  availableVars?: Record<string, string>
-}
+// 响应式配置
+const {
+  modalWidth,
+  buttonSize: responsiveButtonSize,
+  inputSize: responsiveInputSize,
+  shouldUseVerticalLayout,
+  isMobile
+} = useResponsive()
 
-const props = withDefaults(defineProps<Props>(), {
-  availableVars: () => ({})
+// Props 和 Events
+const props = withDefaults(defineProps<ContextEditorProps>(), {
+  disabled: false,
+  readonly: false,
+  size: 'medium',
+  visible: false,
+  showToolManager: true,
+  optimizationMode: 'system',
+  title: '上下文编辑器',
+  width: '90vw',
+  height: '85vh'
 })
 
-const emit = defineEmits<{
-  close: [data?: StandardPromptData]
-  save: [data: StandardPromptData]
-  'create-variable': [name: string, defaultValue?: string]
-}>()
+const emit = defineEmits<ContextEditorEvents>()
 
-// 状态
-const messages = ref<StandardMessage[]>([])
-const tools = ref<ToolDefinition[]>([])
+// 状态管理 - 使用性能优化
+const loading = ref(false)
+const activeTab = ref('messages')
+const localVisible = ref(props.visible)
+
+// 导入导出状态
 const showImportDialog = ref(false)
 const showExportDialog = ref(false)
 const importData = ref('')
 const importError = ref('')
-const selectedImportFormat = ref('conversation')
-const fileInput = ref<HTMLInputElement | null>(null)
+const selectedImportFormat = ref('smart')
+const selectedExportFormat = ref('standard')
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
-// 工具编辑器状态
-const showToolEditDialog = ref(false)
-const editingToolIndex = ref(-1)
-const editingTool = ref<ToolDefinition>({
+// 使用shallowRef优化深度对象
+const localState = shallowRef<ContextEditorState>({
+  messages: [],
+  variables: {},
+  tools: [],
+  showVariablePreview: true,
+  showToolManager: props.showToolManager,
+  mode: 'edit'
+})
+
+// 预览模式控制 - 使用Map优化
+const previewMode = shallowRef<Map<number, boolean>>(new Map())
+
+// 批量状态更新
+const batchStateUpdate = batchExecute((updates: Array<() => void>) => {
+  updates.forEach(update => update())
+  recordUpdate()
+}, 16) // 使用16ms批处理，匹配60fps
+
+// 计算属性
+const buttonSize = computed(() => {
+  return responsiveButtonSize.value
+})
+
+const tagSize = computed(() => {
+  const sizeMap = { small: 'small', medium: 'small', large: 'medium' } as const
+  return sizeMap[responsiveButtonSize.value] || 'small'
+})
+
+const cardSize = computed(() => {
+  const sizeMap = { small: 'small', medium: 'small', large: 'medium' } as const
+  return sizeMap[responsiveButtonSize.value] || 'small'
+})
+
+const inputSize = computed(() => {
+  return responsiveInputSize.value
+})
+
+const modalStyle = computed(() => ({
+  width: modalWidth.value,
+  height: isMobile.value ? '95vh' : (props.height || '85vh')
+}))
+
+const scrollbarStyle = computed(() => ({
+  maxHeight: isMobile.value ? '40vh' : '60vh'
+}))
+
+const size = computed(() => responsiveButtonSize.value)
+
+const variableCount = computed(() => {
+  const variables = new Set<string>()
+  localState.value.messages.forEach(message => {
+    const detected = props.scanVariables(message.content || '')
+    detected.forEach(v => variables.add(v))
+  })
+  return variables.size
+})
+
+const roleOptions = computed(() => [
+  { label: t('conversation.roles.system'), value: 'system' },
+  { label: t('conversation.roles.user'), value: 'user' },
+  { label: t('conversation.roles.assistant'), value: 'assistant' }
+])
+
+// 快速模板管理 - 根据优化模式和语言获取
+const quickTemplates = computed(() => {
+  const currentLanguage = locale?.value || 'zh-CN'
+  return quickTemplateManager.getTemplates(props.optimizationMode, currentLanguage)
+})
+
+// 工具函数（统一使用注入函数）
+const getMessageVariables = (content: string) => {
+  const detected = props.scanVariables(content || '') || []
+  const missing = detected.filter(varName => localState.value.variables[varName] === undefined)
+  return { detected, missing }
+}
+
+const replaceVariables = (content: string): string => {
+  return props.replaceVariables(content || '', localState.value.variables)
+}
+
+const getPlaceholderText = (role: string) => {
+  switch (role) {
+    case 'system':
+      return t('conversation.placeholders.system')
+    case 'user':
+      return t('conversation.placeholders.user')
+    case 'assistant':
+      return t('conversation.placeholders.assistant')
+    default:
+      return t('conversation.placeholders.default')
+  }
+}
+
+const getRoleLabel = (role: string) => {
+  switch (role) {
+    case 'system':
+      return t('conversation.roles.system') || '系统'
+    case 'user':
+      return t('conversation.roles.user') || '用户'
+    case 'assistant':
+      return t('conversation.roles.assistant') || '助手'
+    default:
+      return role
+  }
+}
+
+// 可访问性事件处理（不启用键盘焦点陷阱，避免拦截箭头键）
+const handleModalOpen = () => {
+  nextTick(() => {
+    announce(aria.getLiveRegionText('modalOpened'), 'assertive')
+  })
+}
+
+const handleModalClose = () => {
+  announce(aria.getLiveRegionText('modalClosed'), 'polite')
+}
+
+const handleTabChange = (activeKey: string) => {
+  recordUpdate()
+  const tabName = activeKey === 'messages' ? '消息编辑' : '工具管理'
+  announce(aria.getLiveRegionText('tabChanged').replace('{tab}', tabName), 'polite')
+}
+
+// 消息处理方法
+const addMessage = () => {
+  const newMessage: ConversationMessage = {
+    role: 'user',
+    content: ''
+  }
+  localState.value.messages.push(newMessage)
+  handleStateChange()
+}
+
+const deleteMessage = (index: number) => {
+  if (localState.value.messages.length > 1) {
+    localState.value.messages.splice(index, 1)
+    handleStateChange()
+  }
+}
+
+const moveMessage = (index: number, direction: number) => {
+  const newIndex = index + direction
+  if (newIndex >= 0 && newIndex < localState.value.messages.length) {
+    const temp = localState.value.messages[index]
+    localState.value.messages[index] = localState.value.messages[newIndex]
+    localState.value.messages[newIndex] = temp
+    handleStateChange()
+  }
+}
+
+const handleMessageUpdate = debounce((index: number, message: ConversationMessage) => {
+  batchStateUpdate(() => {
+    localState.value.messages[index] = { ...message }
+  })
+  handleStateChange()
+}, 300, false, 'messageUpdate')
+
+const togglePreview = throttle((index: number) => {
+  const currentMode = previewMode.value.get(index) || false
+  previewMode.value.set(index, !currentMode)
+  recordUpdate()
+}, 100, 'togglePreview')
+
+// 工具管理方法 - 实际实现在后面
+
+// 模板管理方法
+const handleTemplatePreview = (template: any) => {
+  // TODO: 实现模板预览功能
+  console.log('Preview template:', template.name)
+}
+
+const handleTemplateApply = (template: any) => {
+  if (!template.messages || template.messages.length === 0) {
+    console.warn('Template has no messages to apply')
+    return
+  }
+  
+  // 应用模板到本地状态
+  localState.value.messages = [...template.messages]
+  handleStateChange()
+  
+  // 切换到消息编辑标签页
+  activeTab.value = 'messages'
+  
+  // 通知用户模板已应用
+  announce(t('contextEditor.templateApplied', { name: template.name }) || `已应用模板：${template.name}`, 'polite')
+}
+
+// 事件处理方法
+const handleVisibilityChange = (visible: boolean) => {
+  localVisible.value = visible
+  emit('update:visible', visible)
+}
+
+const handleStateChange = () => {
+  emit('update:state', { ...localState.value })
+  emit('contextChange', [...localState.value.messages], { ...localState.value.variables })
+}
+
+// ============ 工具管理：状态、校验与事件 ============
+interface ToolEditState {
+  editingIndex: number | null
+  editingTool: ToolDefinition | null
+  showEditor: boolean
+}
+
+const toolEditState = ref<ToolEditState>({
+  editingIndex: null,
+  editingTool: null,
+  showEditor: false
+})
+
+const parametersJson = ref('')
+const jsonError = ref('')
+
+const createWeatherToolTemplate = (): ToolDefinition => ({
+  type: 'function',
+  function: {
+    name: 'get_weather',
+    description: 'Get current weather information for a specific location',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'string',
+          description: 'The location to get weather for'
+        },
+        unit: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+          default: 'celsius'
+        }
+      },
+      required: ['location']
+    }
+  }
+})
+
+const createEmptyToolTemplate = (): ToolDefinition => ({
   type: 'function',
   function: {
     name: '',
@@ -497,637 +1164,554 @@ const editingTool = ref<ToolDefinition>({
     }
   }
 })
-const toolParametersJson = ref('')
-const toolValidationErrors = ref<Record<string, string>>({})
 
-// 导入格式选项
-const importFormats = [
-  {
-    id: 'conversation',
-    name: '会话格式',
-    description: '标准的会话消息格式，包含 role 和 content 字段'
-  },
-  {
-    id: 'langfuse',
-    name: 'LangFuse',
-    description: 'LangFuse 追踪数据格式，自动提取消息和变量'
-  },
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    description: 'OpenAI API 请求格式，支持工具调用'
-  },
-  {
-    id: 'smart',
-    name: '智能识别',
-    description: '自动检测格式并转换'
+// 独立定义字符串变量，避免内联复杂字符串
+const defaultParametersJson = `{
+  "type": "object",
+  "properties": {},
+  "required": []
+}`
+
+// 默认参数对象
+const defaultParametersObject = {
+  type: 'object',
+  properties: {},
+  required: []
+}
+
+const syncParametersJsonFromTool = (tool: ToolDefinition | null) => {
+  if (!tool) {
+    parametersJson.value = ''
+    jsonError.value = ''
+    return
   }
-]
-
-// 变量提取相关状态
-const selectedText = ref('')
-const selectedMessageIndex = ref(-1)
-const selectedVariableName = ref('')
-const variableSuggestions = ref<Array<{ name: string; confidence: number }>>([])
-const textSelection = ref<{ start: number; end: number } | null>(null)
-
-// 变量检测和预览相关
-const previewMode = ref<Record<number, boolean>>({})
-const availableVariables = ref<Record<string, string>>({})
-
-// 工具管理相关状态
-const showToolsPanel = ref(true) // 默认展开，有工具时显示
-
-// 变量扫描函数
-const scanVariables = (content: string): string[] => {
-  const matches = content.match(/\{\{\s*([^}]+)\s*\}\}/g)
-  if (!matches) return []
-  
-  return matches.map(match => {
-    const varName = match.replace(/\{\{\s*|\s*\}\}/g, '')
-    return varName
-  })
-}
-
-
-// 检测指定消息的变量
-const getMessageVariables = (messageIndex: number) => {
-  const message = messages.value[messageIndex]
-  if (!message) return { detected: [], missing: [] }
-  
-  const detected = scanVariables(message.content)
-  const missing = detected.filter(varName => 
-    availableVariables.value[varName] === undefined
-  )
-  
-  return { detected, missing }
-}
-
-// 替换变量内容用于预览
-const replaceVariables = (content: string, variables?: Record<string, string>): string => {
-  const vars = variables || availableVariables.value
-  
-  return content.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, varName) => {
-    const trimmedName = varName.trim()
-    if (vars[trimmedName] !== undefined) {
-      return vars[trimmedName]
-    }
-    return match // 保持原样如果变量不存在
-  })
-}
-
-
-
-// 生成预览HTML（包含高亮）
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-const _getPreviewHtml = (messageIndex: number): string => {
-  const message = messages.value[messageIndex]
-  if (!message) return ''
-  
-  const replaced = replaceVariables(message.content, availableVariables.value)
-  
-  return replaced
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
-    .replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-      const trimmedName = varName.trim()
-      if (availableVariables.value[trimmedName] !== undefined) {
-        return `<span class="variable-replaced">${availableVariables.value[trimmedName]}</span>`
-      } else {
-        return `<span class="variable-missing">${match}</span>`
-      }
-    })
-}
-
-// 初始化数据
-onMounted(() => {
-  if (props.initialData && props.initialData.messages) {
-    messages.value = [...props.initialData.messages]
+  try {
+    parametersJson.value = JSON.stringify(tool.function?.parameters ?? defaultParametersObject, null, 2)
+    jsonError.value = ''
+  } catch (e: any) {
+    jsonError.value = e?.message || 'JSON stringify error'
   }
-  if (props.initialData && props.initialData.tools) {
-    tools.value = [...props.initialData.tools]
+}
+
+const isValidTool = computed(() => {
+  const tool = toolEditState.value.editingTool
+  if (!tool) return false
+  const name = tool.function?.name?.trim()
+  if (!name) return false
+  // 参数必须为可解析的对象
+  try {
+    const parsed = parametersJson.value ? JSON.parse(parametersJson.value) : defaultParametersObject
+    return parsed && typeof parsed === 'object'
+  } catch {
+    return false
   }
-  // 初始化可用变量
-  availableVariables.value = { ...props.availableVars }
 })
 
-// 监听可用变量变化
-watch(() => props.availableVars, (newVars) => {
-  availableVariables.value = { ...newVars }
-}, { deep: true })
+// 固定占位符：不通过 i18n，避免大括号与 i18n 插值冲突
 
-// 计算属性
-const allUsedVariables = computed(() => {
-  const variables = new Set<string>()
-  
-  // 扫描消息中的变量
-  messages.value.forEach(message => {
-    const messageVars = scanVariables(message.content)
-    messageVars.forEach(v => variables.add(v))
-  })
-  
-  
-  return Array.from(variables)
-})
+const useWeatherExample = () => {
+  toolEditState.value.editingTool = createWeatherToolTemplate()
+  syncParametersJsonFromTool(toolEditState.value.editingTool)
+}
 
-const exportData = computed(() => {
-  const data: StandardPromptData = {
-    messages: messages.value,
-    tools: tools.value.length > 0 ? tools.value : undefined,
-    metadata: {
-      source: 'context_editor',
-      variables: {},
-      tools_count: tools.value.length,
-      exported_at: new Date().toISOString()
-    }
+const useEmptyTemplate = () => {
+  toolEditState.value.editingTool = createEmptyToolTemplate()
+  syncParametersJsonFromTool(toolEditState.value.editingTool)
+}
+
+const addTool = () => {
+  toolEditState.value = {
+    editingIndex: null,
+    editingTool: createWeatherToolTemplate(),
+    showEditor: true
   }
-  return JSON.stringify(data, null, 2)
-})
-
-// 方法
-const getPlaceholderText = (role: string) => {
-  switch (role) {
-    case 'system':
-      return '请输入系统消息（定义AI行为和上下文）...'
-    case 'user':
-      return '请输入用户消息（您的输入或问题）...'
-    case 'assistant':
-      return '请输入助手消息（AI的回复）...'
-    default:
-      return '请输入消息内容...'
-  }
-}
-
-const addMessage = () => {
-  messages.value.push({
-    role: 'user',
-    content: ''
-  })
-}
-
-const deleteMessage = (index: number) => {
-  if (messages.value.length > 1) {
-    messages.value.splice(index, 1)
-  }
-}
-
-const moveMessage = (index: number, direction: number) => {
-  const newIndex = index + direction
-  if (newIndex >= 0 && newIndex < messages.value.length) {
-    const temp = messages.value[index]
-    messages.value[index] = messages.value[newIndex]
-    messages.value[newIndex] = temp
-  }
-}
-
-const autoResize = (textarea: HTMLTextAreaElement) => {
-  textarea.style.height = 'auto'
-  textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px'
-}
-
-// 工具管理方法
-const toggleToolsPanel = () => {
-  showToolsPanel.value = !showToolsPanel.value
-}
-
-const addNewTool = () => {
-  resetToolEditor()
-  showToolEditDialog.value = true
-}
-
-const deleteTool = (index: number) => {
-  if (confirm('确定要删除这个工具吗？')) {
-    tools.value.splice(index, 1)
-  }
-}
-
-const copyTool = (index: number) => {
-  const originalTool = tools.value[index]
-  const copiedTool: ToolDefinition = {
-    type: 'function',
-    function: {
-      name: `${originalTool.function.name}_copy`,
-      description: originalTool.function.description,
-      parameters: JSON.parse(JSON.stringify(originalTool.function.parameters || {}))
-    }
-  }
-  tools.value.splice(index + 1, 0, copiedTool)
+  syncParametersJsonFromTool(toolEditState.value.editingTool)
 }
 
 const editTool = (index: number) => {
-  editingToolIndex.value = index
-  const tool = tools.value[index]
-  editingTool.value = {
-    type: 'function',
-    function: {
-      name: tool.function.name,
-      description: tool.function.description || '',
-      parameters: JSON.parse(JSON.stringify(tool.function.parameters || {
-        type: 'object',
-        properties: {},
-        required: []
-      }))
-    }
+  if (index < 0 || index >= localState.value.tools.length) {
+    console.error(`工具编辑失败：索引 ${index} 超出范围`)
+    return
   }
-  toolParametersJson.value = JSON.stringify(editingTool.value.function.parameters, null, 2)
-  toolValidationErrors.value = {}
-  showToolEditDialog.value = true
+  
+  const tool = localState.value.tools[index]
+  if (!tool) {
+    console.error(`工具编辑失败：索引 ${index} 处的工具不存在`)
+    return
+  }
+  
+  toolEditState.value = {
+    editingIndex: index,
+    editingTool: JSON.parse(JSON.stringify(tool)),
+    showEditor: true
+  }
+  syncParametersJsonFromTool(toolEditState.value.editingTool)
 }
 
-// 工具编辑器方法
-const updateToolParameters = () => {
+const closeToolEditor = () => {
+  toolEditState.value = { editingIndex: null, editingTool: null, showEditor: false }
+  parametersJson.value = ''
+  jsonError.value = ''
+}
+
+const saveTool = () => {
+  const state = toolEditState.value
+  const current = state.editingTool ? JSON.parse(JSON.stringify(state.editingTool)) as ToolDefinition : null
+  if (!current) return
+  
+  // 更严格的防护性检查
+  if (!current.function) {
+    console.error('工具保存失败：缺少 function 属性')
+    jsonError.value = '工具数据结构错误：缺少 function 属性'
+    return
+  }
+  
   try {
-    const parsed = JSON.parse(toolParametersJson.value)
-    editingTool.value.function.parameters = parsed
-    if (toolValidationErrors.value.parameters) {
-      delete toolValidationErrors.value.parameters
+    const parsed = parametersJson.value ? JSON.parse(parametersJson.value) : defaultParametersObject
+    current.function.parameters = parsed
+    const editingIndex = state.editingIndex
+    if (editingIndex !== null) {
+      // update
+      localState.value.tools[editingIndex] = current
+      emit('toolChange', [...localState.value.tools], 'update', editingIndex)
+    } else {
+      // add
+      localState.value.tools.push(current)
+      emit('toolChange', [...localState.value.tools], 'add', localState.value.tools.length - 1)
     }
-  } catch (error) {
-    // JSON解析错误，但不立即显示错误，等验证时显示
+    emit('update:tools', [...localState.value.tools])
+    handleStateChange()
+    announce(t('contextEditor.save') || t('common.save') || '已保存', 'polite')
+    closeToolEditor()
+  } catch (e: any) {
+    jsonError.value = e?.message || t('contextEditor.invalidJson') || 'Invalid JSON'
   }
 }
 
-const validateToolParameters = () => {
-  toolValidationErrors.value = {}
-  
-  // 验证函数名
-  if (!editingTool.value.function.name.trim()) {
-    toolValidationErrors.value.name = '函数名称不能为空'
-  } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(editingTool.value.function.name)) {
-    toolValidationErrors.value.name = '函数名称只能包含字母、数字和下划线，且不能以数字开头'
-  }
-  
-  // 验证参数JSON
-  if (toolParametersJson.value.trim()) {
-    try {
-      const parsed = JSON.parse(toolParametersJson.value)
-      editingTool.value.function.parameters = parsed
-    } catch (error) {
-      toolValidationErrors.value.parameters = `JSON格式错误: ${error.message}`
-    }
-  }
-  
-  return Object.keys(toolValidationErrors.value).length === 0
+const deleteTool = (index: number) => {
+  const tool = localState.value.tools[index]
+  const confirmed = confirm(
+    t('contextEditor.deleteToolConfirm', { name: tool?.function?.name || '' }) || `确定要删除工具 "${tool?.function?.name || ''}" 吗？`
+  )
+  if (!confirmed) return
+  localState.value.tools.splice(index, 1)
+  emit('toolChange', [...localState.value.tools], 'delete', index)
+  emit('update:tools', [...localState.value.tools])
+  handleStateChange()
+  announce(t('contextEditor.toolDeleted', { name: tool?.function?.name || '' }) || '已删除工具', 'polite')
 }
 
-const addParameterExample = () => {
-  const example = {
-    type: 'object',
-    properties: {
-      query: {
-        type: 'string',
-        description: '搜索查询词'
-      },
-      count: {
-        type: 'number',
-        description: '返回结果数量',
-        default: 10
-      }
-    },
-    required: ['query']
-  }
-  toolParametersJson.value = JSON.stringify(example, null, 2)
-  updateToolParameters()
-}
-
-const isToolValid = computed(() => {
-  return editingTool.value.function.name.trim() !== '' && 
-         !/\S/.test(toolValidationErrors.value.name || '') &&
-         !/\S/.test(toolValidationErrors.value.parameters || '')
-})
-
-const getToolPreview = () => {
-  return JSON.stringify(editingTool.value, null, 2)
-}
-
-const saveEditingTool = () => {
-  if (!validateToolParameters()) {
-    return
-  }
-  
-  if (editingToolIndex.value >= 0) {
-    // 更新现有工具
-    tools.value[editingToolIndex.value] = { ...editingTool.value }
-  } else {
-    // 添加新工具
-    tools.value.push({ ...editingTool.value })
-  }
-  
-  showToolEditDialog.value = false
-  resetToolEditor()
-}
-
-const resetToolEditor = () => {
-  editingToolIndex.value = -1
-  // 🆕 提供内置天气获取工具作为默认示例
-  editingTool.value = {
-    type: 'function',
-    function: {
-      name: 'get_weather',
-      description: 'Get current weather information for a specific location',
-      parameters: {
-        type: 'object',
-        properties: {
-          location: {
-            type: 'string',
-            description: 'The location to get weather for (e.g., "Beijing", "New York")'
-          },
-          unit: {
-            type: 'string',
-            enum: ['celsius', 'fahrenheit'],
-            description: 'Temperature unit',
-            default: 'celsius'
-          }
-        },
-        required: ['location']
-      }
-    }
-  }
-  toolParametersJson.value = JSON.stringify(editingTool.value.function.parameters, null, 2)
-  toolValidationErrors.value = {}
-}
-
-// 切换预览模式
-const togglePreview = (messageIndex: number) => {
-  previewMode.value[messageIndex] = !previewMode.value[messageIndex]
-}
-
-// 创建缺失变量
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-const _createMissingVariable = (variableName: string) => {
-  // 生成默认值
-  let defaultValue = ''
-  if (variableName.toLowerCase().includes('name')) {
-    defaultValue = 'Example Name'
-  } else if (variableName.toLowerCase().includes('question')) {
-    defaultValue = 'Your question here'
-  } else if (variableName.toLowerCase().includes('description')) {
-    defaultValue = 'Description here'
-  } else {
-    defaultValue = `Value for ${variableName}`
-  }
-  
-  emit('create-variable', variableName, defaultValue)
-}
-
-// 文本选择处理
-const handleTextSelection = (event: Event, messageIndex: number) => {
-  const textarea = event.target as HTMLTextAreaElement
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  
-  if (start !== end) {
-    selectedText.value = textarea.value.substring(start, end)
-    selectedMessageIndex.value = messageIndex
-    textSelection.value = { start, end }
-    selectedVariableName.value = ''
-    
-    // 生成变量名建议
-    variableSuggestions.value = contextEditor.suggestVariableNames(selectedText.value)
-    if (variableSuggestions.value.length > 0) {
-      selectedVariableName.value = variableSuggestions.value[0].name
-    }
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-const _extractSelectedVariable = () => {
-  if (!selectedText.value || !selectedVariableName.value.trim() || !textSelection.value) {
-    return
-  }
-  
-  const message = messages.value[selectedMessageIndex.value]
-  const { start, end } = textSelection.value
-  
-  // 替换选中文本为变量占位符
-  const before = message.content.substring(0, start)
-  const after = message.content.substring(end)
-  message.content = before + `{{${selectedVariableName.value}}}` + after
-  
-  // 发出创建变量事件，这样变量会被注入到变量管理系统中
-  emit('create-variable', selectedVariableName.value, selectedText.value)
-  
-  cancelVariableExtraction()
-}
-
-const cancelVariableExtraction = () => {
-  selectedText.value = ''
-  selectedMessageIndex.value = -1
-  selectedVariableName.value = ''
-  variableSuggestions.value = []
-  textSelection.value = null
-}
+// 工具变更自动同步给父级（保持向后兼容）
+watch(() => localState.value.tools, (newTools) => {
+  emit('update:tools', [...newTools])
+}, { deep: true })
 
 const handleImport = () => {
-  try {
-    let data: any
-    
-    // 根据选择的格式处理数据
-    switch (selectedImportFormat.value) {
-      case 'smart': {
-        // 使用智能导入
-        const result = contextEditor.smartImport(JSON.parse(importData.value))
-        if (result.success && result.data) {
-          // 转换为会话格式
-          const importedMessages = result.data.messages.map(msg => ({
-            role: msg.role as 'system' | 'user' | 'assistant',
-            content: msg.content
-          }))
-          messages.value = importedMessages
-          // 导入工具数据
-          if (result.data.tools) {
-            tools.value = [...result.data.tools]
-          }
-        } else {
-          throw new Error(result.error || '智能导入失败')
-        }
-        break
-      }
-        
-      case 'langfuse': {
-        // LangFuse 格式导入
-        const langfuseResult = contextEditor.convertFromLangFuse(JSON.parse(importData.value))
-        if (langfuseResult.success && langfuseResult.data) {
-          const importedMessages = langfuseResult.data.messages.map(msg => ({
-            role: msg.role as 'system' | 'user' | 'assistant',
-            content: msg.content
-          }))
-          messages.value = importedMessages
-          // 导入工具数据
-          if (langfuseResult.data.tools) {
-            tools.value = [...langfuseResult.data.tools]
-          }
-        } else {
-          throw new Error(langfuseResult.error || 'LangFuse 导入失败')
-        }
-        break
-      }
-        
-      case 'openai': {
-        // OpenAI 格式导入
-        const openaiResult = contextEditor.convertFromOpenAI(JSON.parse(importData.value))
-        if (openaiResult.success && openaiResult.data) {
-          const importedMessages = openaiResult.data.messages.map(msg => ({
-            role: msg.role as 'system' | 'user' | 'assistant',
-            content: msg.content
-          }))
-          messages.value = importedMessages
-          // 导入工具数据
-          if (openaiResult.data.tools) {
-            tools.value = [...openaiResult.data.tools]
-          }
-        } else {
-          throw new Error(openaiResult.error || 'OpenAI 导入失败')
-        }
-        break
-      }
-        
-      case 'conversation':
-      default:
-        // 标准会话格式
-        data = JSON.parse(importData.value)
-        
-        if (!Array.isArray(data.messages)) {
-          throw new Error('Invalid format: messages must be an array')
-        }
-        
-        // 验证消息格式
-        for (const message of data.messages) {
-          if (!message.role || !['system', 'user', 'assistant'].includes(message.role)) {
-            throw new Error(`Invalid message role: ${message.role}`)
-          }
-          if (typeof message.content !== 'string') {
-            throw new Error('Invalid message content: must be string')
-          }
-        }
-        
-        messages.value = data.messages
-        // 导入工具数据（如果存在）
-        if (data.tools) {
-          tools.value = [...data.tools]
-        }
-        break
-    }
-    
-    importData.value = ''
-    importError.value = ''
-    showImportDialog.value = false
-    
-    console.log('[ContextEditor] Messages imported successfully')
-  } catch (error) {
-    importError.value = error.message || '导入失败'
-    console.error('[ContextEditor] Failed to import messages:', error)
-  }
+  showImportDialog.value = true
 }
 
-const copyExportData = async () => {
-  try {
-    await copyText(exportData.value)
-    showExportDialog.value = false
-  } catch (error) {
-    console.error('复制失败:', error)
-  }
+const handleExport = () => {
+  showExportDialog.value = true
 }
 
 const handleSave = () => {
-  const data: StandardPromptData = {
-    messages: messages.value,
-    tools: tools.value.length > 0 ? tools.value : undefined,
-    metadata: {
-      source: 'context_editor',
-      variables: {},
-      tools_count: tools.value.length,
-      saved_at: new Date().toISOString()
-    }
+  const context = {
+    messages: [...localState.value.messages],
+    variables: { ...localState.value.variables },
+    tools: [...localState.value.tools]
   }
-  emit('save', data)
+  emit('save', context)
 }
 
-const handleClose = () => {
-  emit('close')
+const handleCancel = () => {
+  emit('cancel')
+  handleVisibilityChange(false)
 }
 
-// 文件上传处理
-const handleFileUpload = (event: Event) => {
+// 变量快捷操作
+const handleCreateVariableAndOpenManager = (name: string) => {
+  if (!name) return
+  // 新流程：先打开变量管理器，并直接打开新增变量编辑器，变量名预填，光标聚焦到值
+  emit('openVariableManager', name)
+}
+
+// 消息聚焦（滚动并高亮）
+const focusedIndex = ref<number | null>(null)
+const messageRefs = new Map<number, HTMLElement>()
+const setMessageRef = (index: number, el: any) => {
+  const element = el?.$el ? (el.$el as HTMLElement) : (el as HTMLElement)
+  if (element) messageRefs.set(index, element)
+}
+const focusMessage = (index: number) => {
+  focusedIndex.value = index
+  nextTick(() => {
+    const el = messageRefs.get(index)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    // 1.5s 后移除高亮
+    setTimeout(() => {
+      if (focusedIndex.value === index) focusedIndex.value = null
+    }, 1500)
+  })
+}
+
+// 生命周期
+watch(() => props.visible, (newVisible) => {
+  localVisible.value = newVisible
+})
+
+watch(() => props.state, (newState) => {
+  if (newState) {
+    localState.value = { ...newState }
+  }
+}, { deep: true })
+
+watch(() => props.showToolManager, (show) => {
+  localState.value.showToolManager = show
+})
+
+// 导入导出方法
+const importFormats = [
+  { id: 'smart', name: '智能识别', description: '自动检测格式并转换' },
+  { id: 'conversation', name: '会话格式', description: '标准的会话消息格式' },
+  { id: 'openai', name: 'OpenAI', description: 'OpenAI API 请求格式' },
+  { id: 'langfuse', name: 'LangFuse', description: 'LangFuse 追踪数据格式' }
+]
+
+const exportFormats = [
+  { id: 'standard', name: '标准格式', description: '内部标准数据格式' },
+  { id: 'openai', name: 'OpenAI', description: 'OpenAI API 兼容格式' },
+  { id: 'template', name: '模板格式', description: '可复用的模板格式' }
+]
+
+const handleFileUpload = async (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
-  
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    importData.value = e.target?.result as string
+
+  try {
+    loading.value = true
+    importError.value = ''
+    
+    const success = await contextEditor.importFromFile(file)
+    
+    if (success && contextEditor.currentData.value) {
+      // 将导入的数据同步到本地状态
+      const data = contextEditor.currentData.value
+      localState.value.messages = (data.messages || []).map(msg => ({
+        role: msg.role || 'user',
+        content: msg.content || ''
+      }))
+      localState.value.variables = data.metadata?.variables || {}
+      localState.value.tools = data.tools || []
+      
+      handleStateChange()
+      showImportDialog.value = false
+      importData.value = ''
+      importError.value = ''
+      
+      // 切换到消息编辑标签页
+      activeTab.value = 'messages'
+      announce('文件导入成功', 'polite')
+    } else {
+      importError.value = '文件导入失败，请检查文件格式'
+    }
+  } catch (err) {
+    console.error('File upload error:', err)
+    const errorMsg = err instanceof Error ? err.message : '文件导入失败'
+    importError.value = errorMsg
+  } finally {
+    loading.value = false
   }
-  reader.readAsText(file)
 }
 
-// 获取导入占位符
+const handleImportSubmit = async () => {
+  if (!importData.value.trim()) {
+    importError.value = '请输入要导入的数据'
+    return
+  }
+
+  try {
+    loading.value = true
+    importError.value = ''
+    const jsonData = JSON.parse(importData.value)
+    let result
+
+    switch (selectedImportFormat.value) {
+      case 'smart':
+        result = contextEditor.smartImport(jsonData)
+        break
+      case 'openai':
+        result = contextEditor.convertFromOpenAI(jsonData)
+        break
+      case 'langfuse':
+        result = contextEditor.convertFromLangFuse(jsonData)
+        break
+      case 'conversation':
+        // 直接设置为对话格式
+        if (Array.isArray(jsonData)) {
+          localState.value.messages = jsonData.map(msg => ({
+            role: msg.role || 'user',
+            content: msg.content || ''
+          }))
+        } else if (jsonData.messages && Array.isArray(jsonData.messages)) {
+          localState.value.messages = jsonData.messages.map(msg => ({
+            role: msg.role || 'user',
+            content: msg.content || ''
+          }))
+          localState.value.variables = jsonData.metadata?.variables || jsonData.variables || {}
+          localState.value.tools = jsonData.tools || []
+        } else {
+          importError.value = '无效的会话格式：必须包含messages数组'
+          return
+        }
+        handleStateChange()
+        showImportDialog.value = false
+        importData.value = ''
+        importError.value = ''
+        activeTab.value = 'messages'
+        announce('导入成功', 'polite')
+        return
+      default:
+        importError.value = '不支持的导入格式'
+        return
+    }
+
+    // 处理转换结果
+    if (result && result.success && contextEditor.currentData.value) {
+      // 将导入的数据同步到本地状态
+      const data = contextEditor.currentData.value
+      localState.value.messages = (data.messages || []).map(msg => ({
+        role: msg.role || 'user',
+        content: msg.content || ''
+      }))
+      localState.value.variables = data.metadata?.variables || {}
+      localState.value.tools = data.tools || []
+      
+      handleStateChange()
+      showImportDialog.value = false
+      importData.value = ''
+      importError.value = ''
+      activeTab.value = 'messages'
+      announce('导入成功', 'polite')
+    } else {
+      importError.value = result?.error || '导入失败：数据转换失败'
+    }
+  } catch (err) {
+    console.error('Import error:', err)
+    const errorMsg = err instanceof Error ? err.message : '数据格式错误，请检查JSON格式'
+    importError.value = errorMsg
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleExportToFile = () => {
+  try {
+    loading.value = true
+    
+    // 准备导出数据 - 转换为 StandardPromptData 格式
+    const exportData: any = {
+      messages: localState.value.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        // 保留其他可能的属性
+        ...(msg.name && { name: msg.name }),
+        ...(msg.tool_calls && { tool_calls: msg.tool_calls }),
+        ...(msg.tool_call_id && { tool_call_id: msg.tool_call_id })
+      })),
+      tools: localState.value.tools,
+      metadata: {
+        variables: localState.value.variables,
+        exportTime: new Date().toISOString(),
+        version: '1.0',
+        source: 'context_editor'
+      }
+    }
+
+    // 设置导出数据到contextEditor
+    contextEditor.setData(exportData)
+    
+    // 执行导出
+    const success = contextEditor.exportToFile(
+      selectedExportFormat.value as any,
+      `context-export-${Date.now()}`
+    )
+    
+    if (success) {
+      showExportDialog.value = false
+      announce('导出成功', 'polite')
+    } else {
+      throw new Error('导出操作失败')
+    }
+  } catch (err) {
+    console.error('Export to file error:', err)
+    const errorMsg = err instanceof Error ? err.message : '导出失败'
+    // TODO: 显示错误提示给用户
+    announce(`导出失败: ${errorMsg}`, 'assertive')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleExportToClipboard = async () => {
+  try {
+    loading.value = true
+    
+    // 准备导出数据 - 转换为 StandardPromptData 格式
+    const exportData: any = {
+      messages: localState.value.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        // 保留其他可能的属性
+        ...(msg.name && { name: msg.name }),
+        ...(msg.tool_calls && { tool_calls: msg.tool_calls }),
+        ...(msg.tool_call_id && { tool_call_id: msg.tool_call_id })
+      })),
+      tools: localState.value.tools,
+      metadata: {
+        variables: localState.value.variables,
+        exportTime: new Date().toISOString(),
+        version: '1.0',
+        source: 'context_editor'
+      }
+    }
+
+    // 设置导出数据到contextEditor
+    contextEditor.setData(exportData)
+    
+    // 执行导出到剪贴板
+    const success = await contextEditor.exportToClipboard(selectedExportFormat.value as any)
+    
+    if (success) {
+      showExportDialog.value = false
+      announce('已复制到剪贴板', 'polite')
+    } else {
+      throw new Error('复制到剪贴板失败')
+    }
+  } catch (err) {
+    console.error('Export to clipboard error:', err)
+    const errorMsg = err instanceof Error ? err.message : '导出失败'
+    // TODO: 显示错误提示给用户  
+    announce(`复制失败: ${errorMsg}`, 'assertive')
+  } finally {
+    loading.value = false
+  }
+}
+
 const getImportPlaceholder = () => {
   switch (selectedImportFormat.value) {
-    case 'langfuse':
-      return 'LangFuse 追踪数据，例如：\n{\n  "input": {\n    "messages": [...]\n  },\n  "output": {...}\n}'
     case 'openai':
-      return 'OpenAI API 请求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4",\n  "tools": [...]\n}'
-    case 'smart':
-      return '粘贴任意支持格式的 JSON 数据，系统将自动识别'
-    default:
+      return 'OpenAI API 请求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4"\n}'
+    case 'langfuse':
+      return 'LangFuse 追踪数据，例如：\n{\n  "input": {\n    "messages": [...]\n  }\n}'
+    case 'conversation':
       return '标准会话格式，例如：\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}'
+    case 'smart':
+    default:
+      return '粘贴任意支持格式的 JSON 数据，系统将自动识别'
   }
 }
 
-// 监听文本区域自动调整高度
-watch(messages, () => {
-  nextTick(() => {
-    const textareas = document.querySelectorAll('textarea')
-    textareas.forEach(textarea => {
-      autoResize(textarea as HTMLTextAreaElement)
-    })
-  })
-}, { deep: true })
+// 复制变量占位符到剪贴板
+const copyVariableToClipboard = async (name: string) => {
+  try {
+    await navigator.clipboard.writeText(`{{${name}}}`)
+  } catch (e) {
+    console.warn('Failed to copy variable placeholder', e)
+  }
+}
 </script>
 
 <style scoped>
-.context-editor-fullscreen {
-  display: flex;
-  flex-direction: column;
+/* Pure Naive UI implementation - no custom theme CSS needed */
+.context-editor-content {
+  /* All styling handled by Naive UI components */
 }
 
-.editor-content {
-  flex: 1;
-  min-height: 0;
+.messages-panel {
+  /* Naive UI layout */
 }
 
-.message-item {
-  position: relative;
+.templates-panel {
+  /* Template management styling */
 }
 
-.variable-extraction-panel {
-  width: 320px;
-  min-width: 280px;
+.template-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* 变量高亮 */
-:deep(.variable-replaced) {
-  background-color: rgba(22, 101, 52, 0.2);
-  color: #166534;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
+.template-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-:deep(.variable-missing) {
-  background-color: rgba(220, 38, 38, 0.2);
-  color: #dc2626;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
+.template-content {
+  /* Template content styling */
 }
 
-.dark :deep(.variable-replaced) {
-  background-color: rgba(22, 101, 52, 0.3);
-  color: #86efac;
+.template-description {
+  line-height: 1.4;
+  margin-bottom: 8px;
 }
 
-.dark :deep(.variable-missing) {
-  background-color: rgba(220, 38, 38, 0.3);
-  color: #fca5a5;
+.template-preview {
+  /* Template preview styling */
+}
+
+.preview-message {
+  padding: 2px 0;
+  border-left: 2px solid var(--n-color-border, #e0e0e6);
+  padding-left: 8px;
+  margin-bottom: 4px;
+}
+
+.preview-content {
+  /* Preview styling */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.focused-card {
+  box-shadow: 0 0 0 2px var(--n-color-target, #18a058) inset;
+  transition: box-shadow 0.2s ease;
+}
+
+/* 可访问性支持样式 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 减少动画偏好支持 */
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* 高对比度模式支持 */
+.high-contrast {
+  /* 增强对比度的样式将由Naive UI主题系统处理 */
+}
+
+/* 键盘导航模式高亮 */
+.keyboard-only *:focus-visible {
+  outline: 2px solid var(--n-color-target);
+  outline-offset: 2px;
+}
+
+/* 屏幕阅读器模式优化 */
+.screen-reader {
+  /* 为屏幕阅读器优化的样式 */
 }
 </style>

@@ -105,3 +105,6 @@ export type {
   TemplateSelectionKey,
   StorageKey
 } from './constants/storage-keys'
+
+// 导出高级模块相关类型
+export * from './types/advanced'
