@@ -51,6 +51,16 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 🔐 **Access Control**: Password protection feature for secure deployment
 - 🧩 **MCP Protocol Support**: Supports Model Context Protocol (MCP), enabling integration with MCP-compatible AI applications like Claude Desktop
 
+## 🚀 Advanced Features Preview (Beta)
+
+> **Preview Environment**: [https://prompt-dev.always200.com](https://prompt-dev.always200.com) | Experience new features and provide feedback
+
+- 📊 **Context Variable Management**: Custom variables, multi-turn conversation testing, variable replacement preview
+- 🛠️ **Function Calling Support**: Function Calling integration with support for OpenAI and Gemini tool calling
+- 🎯 **Advanced Testing Mode**: More flexible prompt testing and debugging capabilities
+
+*Note: Advanced features are currently in development and will be officially integrated into the main version in future releases*
+
 ## Quick Start
 
 ### 1. Use Online Version (Recommended)
@@ -297,11 +307,15 @@ pnpm dev:fresh        # Complete reset and restart development environment
 
 - [x] Basic feature development
 - [x] Web application release
-- [x] Internationalization support
 - [x] Chrome extension release
+- [x] Internationalization support
 - [x] Support for system prompt optimization and user prompt optimization
 - [x] Desktop application release
 - [x] MCP service release
+- [x] Advanced mode: Variable management, context testing, function calling
+- [ ] Support for image input and multimodal processing
+- [ ] Support for workspace/project management
+- [ ] Support for prompt favorites and template management
 
 For detailed project status, see [Project Status Document](docs/project-status.md)
 

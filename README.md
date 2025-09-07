@@ -14,7 +14,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[在线体验](https://prompt.always200.com) | [快速开始](#快速开始) | [常见问题](#常见问题) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna) | [💖赞助支持](images/other/sponsor_wx.jpg)
 
 [开发文档](dev.md) | [Vercel部署指南](docs/user/deployment/vercel.md) | [MCP部署使用说明](docs/user/mcp-server.md) | [DeepWiki文档](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead文档](https://zread.ai/linshenkx/prompt-optimizer)
 
@@ -50,6 +50,16 @@ Prompt Optimizer是一个强大的AI提示词优化工具，帮助你编写更�
 - 📱 **多端支持**：同时提供Web应用、桌面应用、Chrome插件和Docker部署四种使用方式
 - 🔐 **访问控制**：支持密码保护功能，保障部署安全
 - 🧩 **MCP协议支持**：支持Model Context Protocol (MCP) 协议，可与Claude Desktop等MCP兼容应用集成
+
+## 🚀 高级功能预览 (Beta)
+
+> **预览环境**：[https://prompt-dev.always200.com](https://prompt-dev.always200.com) | 欢迎体验新功能并反馈
+
+- 📊 **上下文变量管理**：自定义变量、多轮会话测试、变量替换预览
+- 🛠️ **工具调用支持**：Function Calling集成，支持OpenAI和Gemini工具调用
+- 🎯 **高级测试模式**：更灵活的提示词测试和调试能力
+
+*注：高级功能正在开发完善中，未来版本将正式集成到主版本*
 
 ## 快速开始
 
@@ -298,7 +308,11 @@ pnpm dev:fresh        # 完整重置并重新启动开发环境
 - [x] 国际化支持
 - [x] 支持系统提示词优化和用户提示词优化
 - [x] 桌面应用发布
-- [x] mcp服务发布
+- [x] MCP服务发布
+- [x] 高级模式：变量管理、上下文测试、工具调用
+- [ ] 支持图片输入和多模态处理
+- [ ] 支持工作区/项目管理
+- [ ] 支持提示词收藏和模板管理
 
 详细的项目状态可查看 [项目状态文档](docs/project-status.md)
 
