@@ -917,6 +917,8 @@ export default {
     variableFromGlobal: 'From Global',
     variableFromPredefined: 'Predefined',
     predefinedVariableCannotOverride: 'Predefined variables cannot be overridden',
+    addVariable: 'Add Context Variable',
+    editVariable: 'Edit Context Variable',
     contextVariableHelp: 'Context variables will override global variables with the same name, but cannot override predefined variables',
     finalVariablesPreview: 'Final Variables Preview',
     contextVariableName: 'Variable Name',
@@ -982,7 +984,37 @@ export default {
     startEmpty: 'Start Empty',
     save: 'Save',
     toolsTooltip: 'Tools: {tools}',
-    toolsCount: '{count} tools'
+    toolsCount: '{count} tools',
+    
+    // Missing keys
+    override: 'Context Variable',
+    createOverride: 'Create Context Variable',
+    overrideCount: '{count} context variables',
+    variableOverrides: 'Context Variables',
+    globalVariables: 'Global: {count}',
+    noVariables: 'No variables',
+    addFirstVariable: 'Add your first context variable',
+    variableName: 'Variable Name',
+    variableValue: 'Variable Value',
+    variableNamePlaceholder: 'Enter variable name (without brackets)',
+    predefinedVariableWarning: 'Cannot modify predefined variables',
+    variableValuePlaceholder: 'Enter variable value',
+    deleteVariableConfirm: 'Are you sure you want to delete context variable "{name}"?',
+    variableDeleted: 'Context variable deleted: {name}',
+    predefinedVariableError: 'Cannot modify predefined variables',
+    variableSaved: '{action} context variable: {name}',
+    
+    // Variable source labels
+    variableSourceLabels: {
+      global: 'Global',
+      context: 'Context'
+    },
+    
+    // Variable status labels
+    variableStatusLabels: {
+      active: 'Active',
+      overridden: 'Overridden'
+    }
   },
   updater: {
     title: 'App Updates',
@@ -1060,7 +1092,13 @@ export default {
       messageItem: 'Message Item',
       templatesPanel: 'Templates panel',
       templateCard: 'Template card',
-      toolCount: 'Tool Count'
+      toolCount: 'Tool Count',
+      variablesPanel: 'Variables Panel',
+      emptyMessages: 'Empty messages state',
+      messageIcon: 'Message icon',
+      addFirstMessage: 'Add first message button',
+      emptyTemplates: 'Empty templates state',
+      emptyVariables: 'Empty variables state'
     },
     descriptions: {
       contextEditor: 'Edit and manage conversation context and tools',

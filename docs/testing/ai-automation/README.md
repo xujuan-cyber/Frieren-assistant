@@ -24,7 +24,12 @@ ai-automation/
 │   │   ├── 04b-user-prompt-optimization.md  # 已更新 - 包含结果展示功能测试
 │   │   ├── 05-history-management.md
 │   │   ├── 06-data-management.md
-│   │   └── 07-ui-interaction-features.md  # 新增 - UI交互功能测试
+│   │   ├── 07-ui-interaction-features.md  # 新增 - UI交互功能测试
+│   │   ├── 08-context-persistence.md      # 新增 - 上下文持久化
+│   │   ├── 09-context-variables-and-preview.md  # 新增 - 上下文变量/预览
+│   │   ├── 10-tools-management-and-advanced-context.md  # 新增 - 工具与高级上下文
+│   │   ├── 11-context-import-export.md   # 新增 - 上下文导入导出
+│   │   └── 12-advanced-context-optimization-and-testing.md  # 新增 - 高级优化与测试（变量/上下文/工具）
 │   ├── edge-cases/                # 边缘情况测试
 │   │   ├── input-validation.md
 │   │   ├── performance-limits.md

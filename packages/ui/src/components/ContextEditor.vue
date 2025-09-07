@@ -233,7 +233,7 @@
                       <!-- 缺失变量提示与快捷操作 -->
                       <NCard v-if="getMessageVariables(message.content).missing.length > 0" size="small" class="mt-2" embedded>
                         <NSpace size="small" align="center" wrap>
-                          <NTag :size="tagSize" type="warning">{{ t('conversation.missingVars') || '缺失变量' }}</NTag>
+                          <NTag :size="tagSize" type="warning">{{ t('conversation.missingVars') }}</NTag>
                           <NButton
                             v-for="varName in getMessageVariables(message.content).missing.slice(0, 3)"
                             :key="`miss-${index}-${varName}`"
@@ -294,13 +294,13 @@
             <NCard size="small" embedded class="mb-4">
               <NSpace align="center" justify="space-between">
                 <NSpace align="center" :size="8">
-                  <NText strong>{{ t('contextEditor.templateCategory') || '模板分类' }}</NText>
+                  <NText strong>{{ t('contextEditor.templateCategory') }}</NText>
                   <NTag :size="tagSize" type="info">
-                    {{ t(`contextEditor.${optimizationMode}Templates`) || `${optimizationMode === 'system' ? '系统' : '用户'}提示词模板` }}
+                    {{ t(`contextEditor.${optimizationMode}Templates`) }}
                   </NTag>
                 </NSpace>
                 <NTag :size="tagSize" type="success">
-                  {{ t('contextEditor.templateCount', { count: quickTemplates.length }) || `共 ${quickTemplates.length} 个模板` }}
+                  {{ t('contextEditor.templateCount', { count: quickTemplates.length }) }}
                 </NTag>
               </NSpace>
             </NCard>
@@ -308,7 +308,7 @@
             <!-- 模板列表 -->
             <NEmpty 
               v-if="quickTemplates.length === 0" 
-              :description="t('contextEditor.noTemplates') || '暂无模板'"
+              :description="t('contextEditor.noTemplates')"
               role="status"
               :aria-label="aria.getLabel('emptyTemplates')"
             >
@@ -318,7 +318,7 @@
                 </svg>
               </template>
               <template #extra>
-                <NText depth="3">{{ t('contextEditor.noTemplatesHint') || '请在模板管理中添加模板' }}</NText>
+                <NText depth="3">{{ t('contextEditor.noTemplatesHint') }}</NText>
               </template>
             </NEmpty>
 
@@ -366,7 +366,7 @@
                           :size="buttonSize"
                           type="primary"
                           circle
-                          :title="t('contextEditor.applyTemplate') || '应用模板'"
+                          :title="t('contextEditor.applyTemplate')"
                           :disabled="disabled"
                         >
                           <template #icon>
@@ -381,7 +381,7 @@
                   
                   <div class="template-content">
                     <NText depth="3" class="template-description">
-                      {{ template.description || t('contextEditor.noDescription') || '无描述' }}
+                      {{ template.description || t('contextEditor.noDescription') }}
                     </NText>
                     
                     <!-- 模板消息预览 -->
@@ -399,7 +399,7 @@
                         </NSpace>
                       </div>
                       <NText v-if="template.messages.length > 2" depth="3" class="text-xs mt-1">
-                        {{ t('contextEditor.moreMessages', { count: template.messages.length - 2 }) || `还有 ${template.messages.length - 2} 条消息...` }}
+                        {{ t('contextEditor.moreMessages', { count: template.messages.length - 2 }) }}
                       </NText>
                     </div>
                   </div>
@@ -416,13 +416,13 @@
             <NCard size="small" embedded class="mb-4">
               <NSpace align="center" justify="space-between">
                 <NSpace align="center" :size="8">
-                  <NText strong>{{ t('contextEditor.variableOverrides') || '上下文变量覆盖' }}</NText>
+                  <NText strong>{{ t('contextEditor.variableOverrides') }}</NText>
                   <NTag :size="tagSize" type="info">
-                    {{ t('contextEditor.overrideCount', { count: Object.keys(localState.variables).length }) || `${Object.keys(localState.variables).length} 个覆盖` }}
+                    {{ t('contextEditor.overrideCount', { count: Object.keys(localState.variables).length }) }}
                   </NTag>
                 </NSpace>
                 <NTag :size="tagSize" type="warning" v-if="availableVariables">
-                  {{ t('contextEditor.globalVariables', { count: Object.keys(availableVariables || {}).length }) || `全局: ${Object.keys(availableVariables || {}).length}` }}
+                  {{ t('contextEditor.globalVariables', { count: Object.keys(availableVariables || {}).length }) }}
                 </NTag>
               </NSpace>
             </NCard>
@@ -430,7 +430,7 @@
             <!-- 变量列表 -->
             <NEmpty 
               v-if="Object.keys(localState.variables).length === 0 && (!availableVariables || Object.keys(availableVariables).length === 0)" 
-              :description="t('contextEditor.noVariables') || '暂无变量'"
+              :description="t('contextEditor.noVariables')"
               role="status"
               :aria-label="aria.getLabel('emptyVariables')"
             >
@@ -446,7 +446,7 @@
                   type="primary"
                   :disabled="disabled"
                 >
-                  {{ t('contextEditor.addFirstVariable') || '添加第一个变量覆盖' }}
+                  {{ t('contextEditor.addFirstVariable') }}
                 </NButton>
               </template>
             </NEmpty>
@@ -479,7 +479,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
                     </template>
-                    {{ t('contextEditor.addVariable') || '添加变量覆盖' }}
+                    {{ t('contextEditor.addVariable') }}
                   </NButton>
                 </NSpace>
               </NCard>
@@ -659,7 +659,7 @@
   <NModal
     v-model:show="toolEditState.showEditor"
     preset="card"
-    :title="toolEditState.editingIndex !== null ? (t('contextEditor.editTool') || '编辑工具') : (t('contextEditor.addTool') || '添加工具')"
+    :title="toolEditState.editingIndex !== null ? t('contextEditor.editTool') : t('contextEditor.addTool')"
     style="width: 600px"
   >
     <NSpace vertical>
@@ -667,28 +667,28 @@
       <NAlert
         v-if="toolEditState.editingIndex === null"
         type="info"
-        :title="t('contextEditor.exampleTemplate') || '示例模板'"
+        :title="t('contextEditor.exampleTemplate')"
       >
-        {{ t('contextEditor.exampleTemplateDesc') || '可从示例开始或从空白模板开始。' }}
+        {{ t('contextEditor.exampleTemplateDesc') }}
       </NAlert>
 
       <!-- 基本信息 -->
-      <NCard size="small" :title="t('contextEditor.basicInfo') || '基本信息'">
+      <NCard size="small" :title="t('contextEditor.basicInfo')">
         <NSpace vertical v-if="toolEditState.editingTool">
           <NInput
             v-model:value="toolEditState.editingTool.function.name"
-            :placeholder="t('contextEditor.toolNamePlaceholder') || '请输入工具名称'"
+            :placeholder="t('contextEditor.toolNamePlaceholder')"
           />
           <NInput
             v-model:value="toolEditState.editingTool.function.description"
             type="textarea"
-            :placeholder="t('contextEditor.toolDescPlaceholder') || '请输入工具描述'"
+            :placeholder="t('contextEditor.toolDescPlaceholder')"
           />
         </NSpace>
       </NCard>
 
       <!-- 参数配置 -->
-      <NCard size="small" :title="t('contextEditor.parameters') || '参数配置'">
+      <NCard size="small" :title="t('contextEditor.parameters')">
         <NInput
           v-model:value="parametersJson"
           type="textarea"
@@ -697,7 +697,7 @@
           style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace;"
         />
         <NText v-if="jsonError" type="error" class="mt-2">
-          {{ t('contextEditor.invalidJson') || '无效的 JSON' }}: {{ jsonError }}
+          {{ t('contextEditor.invalidJson') }}: {{ jsonError }}
         </NText>
       </NCard>
     </NSpace>
@@ -706,10 +706,10 @@
       <NSpace>
         <NButton @click="closeToolEditor">{{ t('common.cancel') }}</NButton>
         <NButton @click="useWeatherExample" secondary v-if="toolEditState.editingIndex === null">
-          {{ t('contextEditor.useExample') || '使用示例' }}
+          {{ t('contextEditor.useExample') }}
         </NButton>
         <NButton @click="useEmptyTemplate" secondary v-if="toolEditState.editingIndex === null">
-          {{ t('contextEditor.startEmpty') || '从空白开始' }}
+          {{ t('contextEditor.startEmpty') }}
         </NButton>
         <NButton @click="saveTool" type="primary" :disabled="!isValidTool">
           {{ t('common.save') }}
@@ -722,7 +722,7 @@
   <NModal
     v-model:show="showImportDialog"
     preset="dialog"
-    :title="t('contextEditor.importTitle') || '导入上下文数据'"
+    :title="t('contextEditor.importTitle')"
     :show-icon="false"
     style="width: 600px"
     :mask-closable="false"
@@ -730,7 +730,7 @@
     <template #default>
       <!-- 格式选择 -->
       <div class="mb-4">
-        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.importFormat') || '导入格式：' }}</label>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.importFormat') }}</label>
         <NSpace size="small" wrap>
           <NButton
             v-for="format in importFormats"
@@ -767,10 +767,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             </template>
-            {{ t('contextEditor.selectFile') || '选择文件' }}
+            {{ t('contextEditor.selectFile') }}
           </NButton>
           <NText depth="3" class="text-sm">
-            {{ t('contextEditor.orPasteText') || '或在下方粘贴文本' }}
+            {{ t('contextEditor.orPasteText') }}
           </NText>
         </NSpace>
       </div>
@@ -801,7 +801,7 @@
           :size="buttonSize"
           :loading="contextEditor.isLoading.value"
         >
-          {{ t('contextEditor.import') || '导入' }}
+          {{ t('contextEditor.import') }}
         </NButton>
       </NSpace>
     </template>
@@ -811,7 +811,7 @@
   <NModal
     v-model:show="showExportDialog"
     preset="dialog"
-    :title="t('contextEditor.exportTitle') || '导出上下文数据'"
+    :title="t('contextEditor.exportTitle')"
     :show-icon="false"
     style="width: 600px"
     :mask-closable="false"
@@ -819,7 +819,7 @@
     <template #default>
       <!-- 格式选择 -->
       <div class="mb-4">
-        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.exportFormat') || '导出格式：' }}</label>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.exportFormat') }}</label>
         <NSpace size="small" wrap>
           <NButton
             v-for="format in exportFormats"
@@ -838,7 +838,7 @@
 
       <!-- 导出预览 -->
       <div class="mb-4">
-        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.exportPreview') || '导出预览：' }}</label>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.exportPreview') }}</label>
         <NInput
           :value="JSON.stringify({
             messages: localState.messages,
@@ -874,7 +874,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </template>
-            {{ t('contextEditor.copyToClipboard') || '复制到剪贴板' }}
+            {{ t('contextEditor.copyToClipboard') }}
           </NButton>
           <NButton
             @click="handleExportToFile"
@@ -887,7 +887,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
             </template>
-            {{ t('contextEditor.saveToFile') || '保存到文件' }}
+            {{ t('contextEditor.saveToFile') }}
           </NButton>
         </NSpace>
       </NSpace>
@@ -898,33 +898,33 @@
   <NModal
     v-model:show="variableEditState.show"
     preset="card"
-    :title="variableEditState.isEditing ? (t('contextEditor.editVariable') || '编辑变量覆盖') : (t('contextEditor.addVariable') || '添加变量覆盖')"
+    :title="variableEditState.isEditing ? t('contextEditor.editVariable') : t('contextEditor.addVariable')"
     style="width: 500px"
     :mask-closable="false"
   >
     <NSpace vertical>
       <!-- 变量名 -->
       <div>
-        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.variableName') || '变量名：' }}</label>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.variableName') }}</label>
         <NInput
           v-model:value="variableEditState.name"
-          :placeholder="t('contextEditor.variableNamePlaceholder') || '请输入变量名（不含大括号）'"
+          :placeholder="t('contextEditor.variableNamePlaceholder')"
           :disabled="variableEditState.isEditing || variableEditState.isFromMissing"
           @keydown.enter="saveVariable"
         />
         <NText depth="3" class="text-xs mt-1" v-if="PREDEFINED_VARIABLES.includes(variableEditState.name)">
-          <span class="text-red-500">{{ t('contextEditor.predefinedVariableWarning') || '不能覆盖预定义变量' }}</span>
+          <span class="text-red-500">{{ t('contextEditor.predefinedVariableWarning') }}</span>
         </NText>
       </div>
       
       <!-- 变量值 -->
       <div>
-        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.variableValue') || '变量值：' }}</label>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.variableValue') }}</label>
         <NInput
           ref="variableValueInputRef"
           v-model:value="variableEditState.value"
           type="textarea"
-          :placeholder="t('contextEditor.variableValuePlaceholder') || '请输入变量值'"
+          :placeholder="t('contextEditor.variableValuePlaceholder')"
           :autosize="{ minRows: 3, maxRows: 8 }"
           @keydown.ctrl.enter="saveVariable"
         />
@@ -942,7 +942,7 @@
           :size="buttonSize"
           :disabled="!variableEditState.name.trim() || PREDEFINED_VARIABLES.includes(variableEditState.name)"
         >
-          {{ variableEditState.isEditing ? (t('common.save') || '保存') : (t('common.add') || '添加') }}
+          {{ variableEditState.isEditing ? t('common.save') : t('common.add') }}
         </NButton>
       </NSpace>
     </template>
@@ -1125,7 +1125,7 @@ const quickTemplates = computed(() => {
 // 变量管理相关计算属性
 const finalVars = computed(() => {
   const result = { ...props.availableVariables }
-  // 合并上下文覆盖，并过滤掉预定义变量名的覆盖
+  // 合并上下文变量，并过滤掉预定义变量名的覆盖
   Object.entries(localState.value.variables).forEach(([name, value]) => {
     if (!PREDEFINED_VARIABLES.includes(name as any)) {
       result[name] = value
@@ -1155,7 +1155,7 @@ const variableTableData = computed(() => {
     })
   }
   
-  // 添加上下文覆盖变量
+  // 添加上下文变量
   Object.entries(localState.value.variables).forEach(([name, value]) => {
     if (!PREDEFINED_VARIABLES.includes(name as any)) {
       data.push({
@@ -1164,7 +1164,7 @@ const variableTableData = computed(() => {
         value: value.length > 50 ? value.substring(0, 50) + '...' : value,
         fullValue: value,
         source: 'context',
-        status: 'override',
+        status: 'active',
         readonly: false
       })
     }
@@ -1176,7 +1176,7 @@ const variableTableData = computed(() => {
 // 变量表格列定义
 const variableColumns = computed((): DataTableColumns => [
   {
-    title: t('contextEditor.variableName') || '变量名',
+    title: t('contextEditor.variableName'),
     key: 'name',
     width: 140,
     render: (row: any) => {
@@ -1188,7 +1188,7 @@ const variableColumns = computed((): DataTableColumns => [
     }
   },
   {
-    title: t('contextEditor.variableValue') || '变量值',
+    title: t('contextEditor.variableValue'),
     key: 'value',
     ellipsis: {
       tooltip: true
@@ -1205,13 +1205,13 @@ const variableColumns = computed((): DataTableColumns => [
     }
   },
   {
-    title: t('contextEditor.variableSource') || '来源',
+    title: t('contextEditor.variableSource'),
     key: 'source',
     width: 80,
     render: (row: any) => {
       const typeMap = {
-        global: { type: 'info', text: '全局' },
-        context: { type: 'warning', text: '覆盖' }
+        global: { type: 'info', text: t('contextEditor.variableSourceLabels.global') },
+        context: { type: 'warning', text: t('contextEditor.variableSourceLabels.context') }
       }
       const config = typeMap[row.source] || { type: 'default', text: row.source }
       return h(NTag, {
@@ -1221,14 +1221,13 @@ const variableColumns = computed((): DataTableColumns => [
     }
   },
   {
-    title: t('contextEditor.variableStatus') || '状态',
+    title: t('contextEditor.variableStatus'),
     key: 'status',
     width: 80,
     render: (row: any) => {
       const statusMap = {
-        active: { type: 'success', text: '活跃' },
-        override: { type: 'warning', text: '覆盖' },
-        overridden: { type: 'default', text: '被覆盖' }
+        active: { type: 'success', text: t('contextEditor.variableStatusLabels.active') },
+        overridden: { type: 'default', text: t('contextEditor.variableStatusLabels.overridden') }
       }
       const config = statusMap[row.status] || { type: 'default', text: row.status }
       return h(NTag, {
@@ -1238,7 +1237,7 @@ const variableColumns = computed((): DataTableColumns => [
     }
   },
   {
-    title: t('common.actions') || '操作',
+    title: t('common.actions'),
     key: 'actions',
     width: 120,
     render: (row: any) => {
@@ -1293,19 +1292,6 @@ const variableColumns = computed((): DataTableColumns => [
                 'd': 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
               })
             ])
-          })
-        )
-      } else if (row.status === 'overridden') {
-        // 显示"创建覆盖"按钮
-        actions.push(
-          h(NButton, {
-            size: 'small',
-            quaternary: true,
-            type: 'primary',
-            title: t('contextEditor.createOverride') || '创建覆盖',
-            onClick: () => addVariableOverride(row.name, row.fullValue)
-          }, {
-            default: () => t('contextEditor.override') || '覆盖'
           })
         )
       }
@@ -1431,7 +1417,7 @@ const handleTemplateApply = (template: any) => {
   activeTab.value = 'messages'
   
   // 通知用户模板已应用
-  announce(t('contextEditor.templateApplied', { name: template.name }) || `已应用模板：${template.name}`, 'polite')
+  announce(t('contextEditor.templateApplied', { name: template.name }), 'polite')
 }
 
 // 事件处理方法
@@ -1613,24 +1599,24 @@ const saveTool = () => {
     }
     emit('update:tools', [...localState.value.tools])
     handleStateChange()
-    announce(t('contextEditor.save') || t('common.save') || '已保存', 'polite')
+    announce(t('common.save'), 'polite')
     closeToolEditor()
   } catch (e: any) {
-    jsonError.value = e?.message || t('contextEditor.invalidJson') || 'Invalid JSON'
+    jsonError.value = e?.message || t('contextEditor.invalidJson')
   }
 }
 
 const deleteTool = (index: number) => {
   const tool = localState.value.tools[index]
   const confirmed = confirm(
-    t('contextEditor.deleteToolConfirm', { name: tool?.function?.name || '' }) || `确定要删除工具 "${tool?.function?.name || ''}" 吗？`
+    t('contextEditor.deleteToolConfirm', { name: tool?.function?.name || '' })
   )
   if (!confirmed) return
   localState.value.tools.splice(index, 1)
   emit('toolChange', [...localState.value.tools], 'delete', index)
   emit('update:tools', [...localState.value.tools])
   handleStateChange()
-  announce(t('contextEditor.toolDeleted', { name: tool?.function?.name || '' }) || '已删除工具', 'polite')
+  announce(t('contextEditor.toolDeleted', { name: tool?.function?.name || '' }), 'polite')
 }
 
 // 工具变更自动同步给父级（保持向后兼容）
@@ -1711,13 +1697,13 @@ const editVariable = (name: string) => {
 
 const deleteVariable = (name: string) => {
   const confirmed = confirm(
-    t('contextEditor.deleteVariableConfirm', { name }) || `确定要删除变量覆盖 "${name}" 吗？`
+    t('contextEditor.deleteVariableConfirm', { name })
   )
   if (!confirmed) return
   
   delete localState.value.variables[name]
   handleStateChange()
-  announce(t('contextEditor.variableDeleted', { name }) || `已删除变量覆盖：${name}`, 'polite')
+  announce(t('contextEditor.variableDeleted', { name }), 'polite')
 }
 
 const saveVariable = () => {
@@ -1730,7 +1716,7 @@ const saveVariable = () => {
   
   // 检查是否是预定义变量名
   if (PREDEFINED_VARIABLES.includes(name as any)) {
-    announce(t('contextEditor.predefinedVariableError') || '不能覆盖预定义变量', 'assertive')
+    announce(t('contextEditor.predefinedVariableError'), 'assertive')
     return
   }
   
@@ -1749,18 +1735,18 @@ const saveVariable = () => {
   handleStateChange()
   
   // 通知用户
-  const action = isEditing ? '更新' : '添加'
-  announce(t('contextEditor.variableSaved', { action, name }) || `已${action}变量覆盖：${name}`, 'polite')
+  const action = isEditing ? t('common.edit') : t('common.add')
+  announce(t('contextEditor.variableSaved', { action, name }), 'polite')
 }
 
 const cancelVariableEdit = () => {
   variableEditState.value.show = false
 }
 
-// 变量快捷操作（修改行为：直接在上下文中创建覆盖）
+// 变量快捷操作（修改行为：直接在上下文中创建上下文变量）
 const handleCreateVariableAndOpenManager = (name: string) => {
   if (!name) return
-  // 直接在上下文中创建变量覆盖，标记为来自缺失变量
+  // 直接在上下文中创建上下文变量，标记为来自缺失变量
   variableEditState.value = {
     show: true,
     isEditing: false,

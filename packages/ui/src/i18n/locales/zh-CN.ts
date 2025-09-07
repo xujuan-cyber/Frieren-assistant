@@ -918,6 +918,8 @@
     variableFromGlobal: '来自全局',
     variableFromPredefined: '预定义',
     predefinedVariableCannotOverride: '预定义变量不可覆盖',
+    addVariable: '添加上下文变量',
+    editVariable: '编辑上下文变量',
     contextVariableHelp: '上下文变量会覆盖全局同名变量，但不能覆盖预定义变量',
     finalVariablesPreview: '最终变量预览',
     contextVariableName: '变量名',
@@ -982,7 +984,37 @@
     exportFormat: '导出格式：',
     exportPreview: '导出预览：',
     copyToClipboard: '复制到剪贴板',
-    saveToFile: '保存到文件'
+    saveToFile: '保存到文件',
+    
+    // Missing keys
+    override: '上下文变量',
+    createOverride: '创建上下文变量',
+    overrideCount: '{count} 个上下文变量',
+    variableOverrides: '上下文变量',
+    globalVariables: '全局: {count}',
+    noVariables: '暂无变量',
+    addFirstVariable: '添加第一个上下文变量',
+    variableName: '变量名',
+    variableValue: '变量值',
+    variableNamePlaceholder: '请输入变量名（不含大括号）',
+    predefinedVariableWarning: '不能修改预定义变量',
+    variableValuePlaceholder: '请输入变量值',
+    deleteVariableConfirm: '确定要删除上下文变量"{name}"吗？',
+    variableDeleted: '已删除上下文变量：{name}',
+    predefinedVariableError: '不能修改预定义变量',
+    variableSaved: '已{action}上下文变量：{name}',
+    
+    // Variable source labels
+    variableSourceLabels: {
+      global: '全局',
+      context: '上下文'
+    },
+    
+    // Variable status labels
+    variableStatusLabels: {
+      active: '活跃',
+      overridden: '被覆盖'
+    }
   },
   updater: {
     title: '应用更新',
@@ -1060,7 +1092,13 @@
       messageItem: '消息项',
       templatesPanel: '模板面板',
       templateCard: '模板卡片',
-      toolCount: '工具数量'
+      toolCount: '工具数量',
+      variablesPanel: '变量面板',
+      emptyMessages: '空消息状态',
+      messageIcon: '消息图标',
+      addFirstMessage: '添加第一条消息按钮',
+      emptyTemplates: '空模板状态',
+      emptyVariables: '空变量状态'
     },
     descriptions: {
       contextEditor: '编辑和管理对话上下文和工具',

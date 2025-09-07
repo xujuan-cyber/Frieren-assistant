@@ -341,13 +341,13 @@ const formatFileSize = (bytes: number): string => {
 // 处理上下文导出到文件
 const handleContextExportToFile = async () => {
   try {
-    const dataManager = getDataManager.value
-    if (!dataManager) {
-      toast.error('数据管理服务不可用，请稍后重试')
+    const servicesValue = services.value
+    if (!servicesValue) {
+      toast.error('服务不可用，请稍后重试')
       return
     }
 
-    const contextRepo = dataManager.getContextRepo()
+    const contextRepo = servicesValue.contextRepo
     if (!contextRepo) {
       toast.error('上下文服务不可用，请稍后重试')
       return
@@ -382,13 +382,13 @@ const handleContextExportToFile = async () => {
 // 处理上下文导出到剪贴板
 const handleContextExportToClipboard = async () => {
   try {
-    const dataManager = getDataManager.value
-    if (!dataManager) {
-      toast.error('数据管理服务不可用，请稍后重试')
+    const servicesValue = services.value
+    if (!servicesValue) {
+      toast.error('服务不可用，请稍后重试')
       return
     }
 
-    const contextRepo = dataManager.getContextRepo()
+    const contextRepo = servicesValue.contextRepo
     if (!contextRepo) {
       toast.error('上下文服务不可用，请稍后重试')
       return
@@ -435,13 +435,13 @@ const handleContextFileChange = async (options: { fileList: UploadFileInfo[] }) 
 // 处理从文件导入上下文
 const handleContextImportFromFile = async (file: File) => {
   try {
-    const dataManager = getDataManager.value
-    if (!dataManager) {
-      toast.error('数据管理服务不可用，请稍后重试')
+    const servicesValue = services.value
+    if (!servicesValue) {
+      toast.error('服务不可用，请稍后重试')
       return
     }
 
-    const contextRepo = dataManager.getContextRepo()
+    const contextRepo = servicesValue.contextRepo
     if (!contextRepo) {
       toast.error('上下文服务不可用，请稍后重试')
       return
@@ -486,13 +486,13 @@ const handleContextImportFromFile = async (file: File) => {
 // 处理从剪贴板导入上下文（修正版本）
 const handleContextImportFromClipboard = async () => {
   try {
-    const dataManager = getDataManager.value
-    if (!dataManager) {
-      toast.error('数据管理服务不可用，请稍后重试')
+    const servicesValue = services.value
+    if (!servicesValue) {
+      toast.error('服务不可用，请稍后重试')
       return
     }
 
-    const contextRepo = dataManager.getContextRepo()
+    const contextRepo = servicesValue.contextRepo
     if (!contextRepo) {
       toast.error('上下文服务不可用，请稍后重试')
       return

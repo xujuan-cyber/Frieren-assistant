@@ -30,11 +30,6 @@ export interface IDataManager {
    * @param dataString JSON格式的数据字符串
    */
   importAllData(dataString: string): Promise<void>;
-
-  /**
-   * 获取上下文仓库引用
-   */
-  getContextRepo(): ContextRepo;
 }
 
 export class DataManager implements IDataManager {
@@ -139,10 +134,6 @@ export class DataManager implements IDataManager {
     if (errors.length > 0) {
       throw new Error(`Import completed with ${errors.length} errors: ${errors.join('; ')}`);
     }
-  }
-
-  getContextRepo(): ContextRepo {
-    return this.contextRepo;
   }
 }
 

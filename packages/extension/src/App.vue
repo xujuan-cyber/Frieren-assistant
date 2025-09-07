@@ -495,18 +495,9 @@ hljs.registerLanguage('json', jsonLang)
           optimizationContext.value = [...context.messages]
           optimizationContextTools.value = [...(context.tools || [])]
           
-          // 同步上下文变量到变量管理器（只处理非预定义变量）
-          if (variableManager?.variableManager.value && context.variables) {
-            Object.entries(context.variables).forEach(([name, value]) => {
-              if (!variableManager.variableManager.value?.isPredefinedVariable(name)) {
-                try {
-                  variableManager.variableManager.value?.setVariable(name, value)
-                } catch (error) {
-                  console.warn(`Failed to load context variable ${name}:`, error)
-                }
-              }
-            })
-          }
+          // 🚫 移除全局变量同步 - 上下文变量不应污染全局变量库
+          // 上下文变量应该只存在于上下文中，通过上下文编辑器进行管理
+          // 这里只需要加载消息和工具，变量在上下文编辑器中自动获取
         }
       }
     } catch (error) {
@@ -562,11 +553,24 @@ hljs.registerLanguage('json', jsonLang)
   }
   
   // 打开上下文编辑器
-  const handleOpenContextEditor = (messages?: ConversationMessage[], variables?: Record<string, string>) => {
-    // 设置初始状态
+  const handleOpenContextEditor = async (messages?: ConversationMessage[], variables?: Record<string, string>) => {
+    // 🔧 修复：从 contextRepo 读取真正的上下文变量，避免全局变量污染
+    let contextVariables: Record<string, string> = {}
+    
+    if (contextRepo.value && currentContextId.value) {
+      try {
+        const context = await contextRepo.value.get(currentContextId.value)
+        contextVariables = context?.variables || {}
+        console.log('[App] Loaded context variables from contextRepo:', Object.keys(contextVariables))
+      } catch (error) {
+        console.warn('[App] Failed to load context variables:', error)
+      }
+    }
+    
+    // 设置初始状态 - 只使用上下文本身的变量
     contextEditorState.value = {
       messages: messages || [...optimizationContext.value],
-      variables: variables || variableManager?.variableManager.value?.resolveAllVariables() || {},
+      variables: contextVariables, // 🚫 不再使用传入的全局变量
       tools: [...optimizationContextTools.value],  // 🆕 传递现有工具状态
       showVariablePreview: true,
       showToolManager: false,
@@ -581,19 +585,8 @@ hljs.registerLanguage('json', jsonLang)
     optimizationContext.value = [...context.messages]
     optimizationContextTools.value = [...context.tools]  // 🆕 保存工具状态
     
-    // 更新变量管理器 - 只更新非预定义变量
-    if (variableManager?.variableManager.value) {
-      Object.entries(context.variables).forEach(([name, value]) => {
-        // 跳过预定义变量，只处理自定义变量
-        if (!variableManager.variableManager.value?.isPredefinedVariable(name)) {
-          try {
-            variableManager.variableManager.value?.setVariable(name, value)
-          } catch (error) {
-            console.warn(`Failed to set variable ${name}:`, error)
-          }
-        }
-      })
-    }
+    // 🚫 移除全局变量更新 - 上下文变量不应污染全局变量库
+    // 上下文变量应该只存在于上下文中，通过 persistContextUpdate 持久化到 contextRepo
     
     // 持久化到contextRepo
     await persistContextUpdate({
@@ -618,19 +611,8 @@ hljs.registerLanguage('json', jsonLang)
     optimizationContext.value = [...state.messages]
     optimizationContextTools.value = [...(state.tools || [])]  // 🆕 同步工具状态
     
-    // 实时更新变量管理器 - 只更新非预定义变量
-    if (variableManager?.variableManager.value) {
-      Object.entries(state.variables || {}).forEach(([name, value]) => {
-        // 跳过预定义变量，只处理自定义变量
-        if (!variableManager.variableManager.value?.isPredefinedVariable(name)) {
-          try {
-            variableManager.variableManager.value?.setVariable(name, value)
-          } catch (error) {
-            console.warn(`Failed to sync variable ${name} during real-time update:`, error)
-          }
-        }
-      })
-    }
+    // 🚫 移除全局变量更新 - 上下文变量不应污染全局变量库
+    // 上下文变量应该只存在于上下文中，通过 persistContextUpdate 持久化到 contextRepo
     
     // 实时持久化（节流处理在persistContextUpdate中处理）
     await persistContextUpdate({

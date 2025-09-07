@@ -23,6 +23,11 @@
 - **04b-user-prompt-optimization.md** - 用户提示词优化功能（已更新 - 包含结果展示功能测试）✅
 - **05-history-management.md** - 历史记录管理功能
 - **06-data-management.md** - 数据管理功能（导入导出等）
+- **08-context-persistence.md** - 上下文管理与持久化（新增）⭐
+- **09-context-variables-and-preview.md** - 上下文变量与预览一致性（新增）⭐
+- **10-tools-management-and-advanced-context.md** - 工具管理与高级上下文（新增）⭐
+- **11-context-import-export.md** - 上下文集合导入导出（新增）⭐
+ - **12-advanced-context-optimization-and-testing.md** - 全量高级优化与测试（变量/上下文/工具）⭐
 
 ### UI交互功能测试
 - **07-ui-interaction-features.md** - UI交互功能独立测试（新增）⭐
