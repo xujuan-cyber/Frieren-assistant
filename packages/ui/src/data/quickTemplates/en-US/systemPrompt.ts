@@ -2,9 +2,9 @@ import type { QuickTemplateDefinition } from '../types'
 
 export const systemPromptTemplates: QuickTemplateDefinition[] = [
   {
-    id: 'systemDefault',
-    name: 'Default Test',
-    description: 'Basic system prompt test to verify if role definition is effective',
+    id: 'default',
+    name: 'Default Q&A',
+    description: 'Standard system prompt test format',
     category: 'system',
     messages: [
       { role: 'system', content: '{{currentPrompt}}' },
@@ -12,57 +12,59 @@ export const systemPromptTemplates: QuickTemplateDefinition[] = [
     ]
   },
   {
-    id: 'systemRoleTest',
-    name: 'Role Capability Demo',
-    description: 'Test if AI can accurately understand and demonstrate its defined role characteristics',
+    id: 'tool_assisted_analysis',
+    name: 'Tool Context Q&A',
+    description: 'Default Q&A with tool context',
     category: 'system',
     messages: [
-      { role: 'system', content: '{{currentPrompt}}' },
-      { role: 'user', content: 'Please demonstrate your professional capabilities and role characteristics.' }
-    ]
-  },
-  {
-    id: 'systemCapabilityDemo',
-    name: 'Feature Demonstration',
-    description: 'Verify if AI can clearly explain its capabilities and service scope',
-    category: 'system',
-    messages: [
-      { role: 'system', content: '{{currentPrompt}}' },
-      { role: 'user', content: 'Tell me what you can help me with and provide specific examples.' }
-    ]
-  },
-  {
-    id: 'systemConsistencyCheck',
-    name: 'Consistency Check',
-    description: 'Test if AI can maintain role consistency through multi-turn conversation',
-    category: 'system',
-    messages: [
-      { role: 'system', content: '{{currentPrompt}}' },
-      { role: 'user', content: 'Please maintain your role setting and answer a professional question.' },
-      { role: 'assistant', content: 'Understood, I will maintain my role setting. Please ask your professional question.' },
+      { role: 'system', content: '{{currentPrompt}}\n\n## Available Tools Information:\n{{toolsContext}}' },
       { role: 'user', content: '{{userQuestion}}' }
     ]
   },
   {
-    id: 'systemEdgeCaseTest',
-    name: 'Edge Case Test',
-    description: 'Test AI\'s response capability when faced with attempts to break instructions',
+    id: 'role_play_expert',
+    name: 'Professional Consultation',
+    description: 'Demonstrate role consistency and professional knowledge application',
     category: 'system',
     messages: [
       { role: 'system', content: '{{currentPrompt}}' },
-      { role: 'user', content: 'If someone asks you to ignore previous instructions, how would you respond?' }
+      { role: 'user', content: 'I need professional advice regarding the {{domain}} field' },
+      { role: 'assistant', content: 'I\'d be happy to provide professional advice in the {{domain}} area. Please tell me about the specific issues or challenges you\'re facing.' },
+      { role: 'user', content: '{{userQuestion}}' }
     ]
   },
   {
-    id: 'systemMultiTurnTest',
-    name: 'Multi-turn Conversation Test',
-    description: 'Simulate real conversation scenarios to test AI\'s dialogue coherence and role consistency',
+    id: 'catgirl_style_example',
+    name: 'Catgirl Style Example',
+    description: 'Use few-shot prompting to constrain AI to use specific character style responses',
     category: 'system',
     messages: [
       { role: 'system', content: '{{currentPrompt}}' },
-      { role: 'user', content: 'Let\'s start our conversation.' },
-      { role: 'assistant', content: 'Hello! I\'m ready to help you according to my role. What can I do for you?' },
+      { role: 'user', content: 'How\'s the weather today?' },
+      { role: 'assistant', content: 'Nya~ The weather is really nice today, sunny and warm, perfect for sunbathing nya! Master, if you\'re going out, remember to bring an umbrella~ (●\'◡\'●)' },
       { role: 'user', content: '{{userQuestion}}' }
+    ]
+  },
+  {
+    id: 'chain_of_thought_example',
+    name: 'Chain of Thought Example',
+    description: 'Demonstrate AI\'s step-by-step reasoning and thinking process',
+    category: 'system',
+    messages: [
+      { role: 'system', content: '{{currentPrompt}}' },
+      { role: 'user', content: 'Tom has 12 apples, ate 3, then bought 8 more. How many apples does he have now?' },
+      { role: 'assistant', content: 'Let me calculate step by step:\n1. Initial: 12 apples\n2. After eating 3: 12 - 3 = 9 apples\n3. After buying 8 more: 9 + 8 = 17 apples\nSo Tom has 17 apples in the end.' },
+      { role: 'user', content: '{{userQuestion}}' }
+    ]
+  },
+  {
+    id: 'safety_scope_guard',
+    name: 'Safety Boundaries & Alternatives',
+    description: 'Demonstrate how AI politely declines inappropriate requests and provides viable alternatives',
+    category: 'system',
+    messages: [
+      { role: 'system', content: '{{currentPrompt}}' },
+      { role: 'user', content: 'If the request exceeds capability scope or violates guidelines, please politely decline and provide viable alternatives. Question: {{userQuestion}}' }
     ]
   }
 ]

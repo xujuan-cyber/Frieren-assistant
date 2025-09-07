@@ -160,3 +160,6 @@ export type {
 // 导出新增的类型和服务
 export * from './types'
 export * from './services'
+
+// 导出快速模板管理器
+export { quickTemplateManager } from './data/quickTemplates'

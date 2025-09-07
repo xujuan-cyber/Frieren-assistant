@@ -4,6 +4,7 @@ import { enUSQuickTemplates } from './en-US'
 
 export interface QuickTemplateLoader {
   getTemplates(optimizationMode: 'system' | 'user', language?: string): QuickTemplateDefinition[]
+  getTemplate(optimizationMode: 'system' | 'user', templateId: string, language?: string): QuickTemplateDefinition | null
   getSupportedLanguages(): string[]
 }
 
@@ -25,6 +26,11 @@ export class QuickTemplateManager implements QuickTemplateLoader {
       : this.templatesByLanguage[this.defaultLanguage as keyof typeof this.templatesByLanguage]
 
     return templates[optimizationMode] || []
+  }
+
+  getTemplate(optimizationMode: 'system' | 'user', templateId: string, language?: string): QuickTemplateDefinition | null {
+    const templates = this.getTemplates(optimizationMode, language)
+    return templates.find(template => template.id === templateId) || null
   }
 
   getSupportedLanguages(): string[] {

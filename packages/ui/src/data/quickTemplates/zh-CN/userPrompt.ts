@@ -2,75 +2,58 @@ import type { QuickTemplateDefinition } from '../types'
 
 export const userPromptTemplates: QuickTemplateDefinition[] = [
   {
-    id: 'userSimpleTest',
-    name: '简单测试',
-    description: '直接测试用户提示词，不添加任何上下文',
+    id: 'default',
+    name: '直接执行',
+    description: '直接处理用户请求，无额外增强',
     category: 'user',
     messages: [
       { role: 'user', content: '{{currentPrompt}}' }
     ]
   },
   {
-    id: 'userWithContext',
-    name: '带上下文测试',
-    description: '在系统角色提供基础上下文的情况下测试用户提示词',
+    id: 'tool_enhanced_execution',
+    name: '工具上下文执行',
+    description: '使用工具上下文信息处理用户请求',
     category: 'user',
     messages: [
-      { role: 'system', content: '请根据用户的要求，提供有帮助、准确和详细的回答。' },
+      { role: 'system', content: '可用工具：{{toolsContext}}' },
       { role: 'user', content: '{{currentPrompt}}' }
     ]
   },
   {
-    id: 'userExpertMode',
-    name: '专家模式',
-    description: '让AI以专业专家的角度回答用户提示词',
+    id: 'structured_output',
+    name: '结构化输出格式',
+    description: '按照结构化格式来处理和回答用户请求',
     category: 'user',
     messages: [
-      { role: 'system', content: '你是该领域的专家，请以专业的角度回答用户问题，提供深入的见解和建议。' },
-      { role: 'user', content: '{{currentPrompt}}' }
+      { role: 'user', content: '请参考这个输出格式：\n需求分析：...\n技术方案：...\n代码实现：...\n\n现在请处理：{{currentPrompt}}' }
     ]
   },
   {
-    id: 'userStepByStep',
-    name: '分步解答',
-    description: '要求AI按步骤详细回答用户提示词中的问题',
+    id: 'expert_consultation',
+    name: '专家咨询模式',
+    description: '以专业专家身份提供深入的建议和解决方案',
     category: 'user',
     messages: [
-      { role: 'system', content: '请按步骤详细回答用户的问题，确保每个步骤都清晰易懂。' },
-      { role: 'user', content: '{{currentPrompt}}' }
+      { role: 'user', content: '作为该领域专家，{{currentPrompt}}，并提供最佳实践建议' }
     ]
   },
   {
-    id: 'userCreativeMode',
-    name: '创意模式',
-    description: '激发AI的创造性思维来回答用户提示词',
+    id: 'step_by_step_analysis',
+    name: '思维链分析模式',
+    description: '展示逐步分析推理过程，而不是直接给出结论',
     category: 'user',
     messages: [
-      { role: 'system', content: '发挥你的创造力，以创新和有趣的方式回答用户问题。' },
-      { role: 'user', content: '{{currentPrompt}}' }
+      { role: 'user', content: '请一步步分析并解决：{{currentPrompt}}' }
     ]
   },
   {
-    id: 'userComparison',
-    name: '对比分析',
-    description: '要求AI进行多角度的对比和分析来回答用户提示词',
+    id: 'multiple_solutions',
+    name: '多方案对比模式',
+    description: '提供多种解决方案并对比优缺点，帮助决策',
     category: 'user',
     messages: [
-      { role: 'system', content: '请全面分析用户的问题，提供多角度的对比和评价。' },
-      { role: 'user', content: '{{currentPrompt}}' },
-      { role: 'assistant', content: '我将从多个角度来分析您的问题：' },
-      { role: 'user', content: '请继续详细分析。' }
-    ]
-  },
-  {
-    id: 'userDialogue',
-    name: '互动对话',
-    description: '通过对话式交互来深入探讨用户提示词的内容',
-    category: 'user',
-    messages: [
-      { role: 'user', content: '{{currentPrompt}}' },
-      { role: 'assistant', content: '这是一个很有趣的问题，让我来帮您分析一下。' },
-      { role: 'user', content: '请提供更具体的建议和实例。' }
+      { role: 'user', content: '{{currentPrompt}}，请提供多种解决方案并对比优缺点' }
     ]
   }
 ]

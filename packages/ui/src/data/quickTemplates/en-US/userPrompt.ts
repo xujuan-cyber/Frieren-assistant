@@ -2,75 +2,58 @@ import type { QuickTemplateDefinition } from '../types'
 
 export const userPromptTemplates: QuickTemplateDefinition[] = [
   {
-    id: 'userSimpleTest',
-    name: 'Simple Test',
-    description: 'Directly test user prompt without adding any context',
+    id: 'default',
+    name: 'Direct Execution',
+    description: 'Process user request directly without additional enhancement',
     category: 'user',
     messages: [
       { role: 'user', content: '{{currentPrompt}}' }
     ]
   },
   {
-    id: 'userWithContext',
-    name: 'Test with Context',
-    description: 'Test user prompt with basic context provided by system role',
+    id: 'tool_enhanced_execution',
+    name: 'Tool Context Execution',
+    description: 'Process user request using tool context',
     category: 'user',
     messages: [
-      { role: 'system', content: 'Please provide helpful, accurate and detailed responses based on user requests.' },
+      { role: 'system', content: 'Available tools: {{toolsContext}}' },
       { role: 'user', content: '{{currentPrompt}}' }
     ]
   },
   {
-    id: 'userExpertMode',
-    name: 'Expert Mode',
-    description: 'Have AI respond to user prompt from a professional expert perspective',
+    id: 'structured_output',
+    name: 'Structured Output Format',
+    description: 'Process and respond to user requests in a structured format',
     category: 'user',
     messages: [
-      { role: 'system', content: 'You are an expert in the field. Please answer user questions from a professional perspective, providing deep insights and advice.' },
-      { role: 'user', content: '{{currentPrompt}}' }
+      { role: 'user', content: 'Please follow this output format:\nRequirement Analysis: ...\nTechnical Solution: ...\nCode Implementation: ...\n\nNow please process: {{currentPrompt}}' }
     ]
   },
   {
-    id: 'userStepByStep',
-    name: 'Step-by-step Response',
-    description: 'Ask AI to answer user prompt questions in detailed steps',
+    id: 'expert_consultation',
+    name: 'Expert Consultation Mode',
+    description: 'Provide in-depth advice and solutions as a professional expert',
     category: 'user',
     messages: [
-      { role: 'system', content: 'Please answer user questions step by step in detail, ensuring each step is clear and understandable.' },
-      { role: 'user', content: '{{currentPrompt}}' }
+      { role: 'user', content: 'As an expert in the field, {{currentPrompt}}, and provide best practice recommendations' }
     ]
   },
   {
-    id: 'userCreativeMode',
-    name: 'Creative Mode',
-    description: 'Inspire AI\'s creative thinking to answer user prompt',
+    id: 'step_by_step_analysis',
+    name: 'Chain of Thought Analysis',
+    description: 'Show step-by-step analysis and reasoning process instead of direct conclusions',
     category: 'user',
     messages: [
-      { role: 'system', content: 'Use your creativity to answer user questions in an innovative and interesting way.' },
-      { role: 'user', content: '{{currentPrompt}}' }
+      { role: 'user', content: 'Please analyze and solve step by step: {{currentPrompt}}' }
     ]
   },
   {
-    id: 'userComparison',
-    name: 'Comparative Analysis',
-    description: 'Ask AI to provide multi-perspective comparison and analysis for user prompt',
+    id: 'multiple_solutions',
+    name: 'Multiple Solutions Comparison',
+    description: 'Provide multiple solutions and compare their pros and cons for decision-making',
     category: 'user',
     messages: [
-      { role: 'system', content: 'Please comprehensively analyze user questions and provide multi-perspective comparisons and evaluations.' },
-      { role: 'user', content: '{{currentPrompt}}' },
-      { role: 'assistant', content: 'I will analyze your question from multiple perspectives:' },
-      { role: 'user', content: 'Please continue with detailed analysis.' }
-    ]
-  },
-  {
-    id: 'userDialogue',
-    name: 'Interactive Dialogue',
-    description: 'Explore user prompt content in depth through interactive dialogue',
-    category: 'user',
-    messages: [
-      { role: 'user', content: '{{currentPrompt}}' },
-      { role: 'assistant', content: 'That\'s an interesting question, let me help you analyze it.' },
-      { role: 'user', content: 'Please provide more specific suggestions and examples.' }
+      { role: 'user', content: '{{currentPrompt}}, please provide multiple solutions and compare their pros and cons' }
     ]
   }
 ]

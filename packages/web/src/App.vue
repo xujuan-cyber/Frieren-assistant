@@ -351,6 +351,9 @@ hljs.registerLanguage('json', jsonLang)
     // Types from UI package
     type OptimizationMode,
     type ConversationMessage,
+    
+    // Quick Template Manager
+    quickTemplateManager,
   } from '@prompt-optimizer/ui'
   import type { IPromptService } from '@prompt-optimizer/core'
   
@@ -783,27 +786,50 @@ hljs.registerLanguage('json', jsonLang)
     }
   })
   
-  // 监听高级模式和优化模式变化，自动加载默认对话模板
+  // 监听高级模式和优化模式变化，自动加载默认快速模板
   watch(
     [advancedModeEnabled, selectedOptimizationMode],
     ([newAdvancedMode, newOptimizationMode]) => {
-      // 当启用高级模式时，根据优化模式自动加载默认对话模板
+      // 当启用高级模式时，根据优化模式自动加载默认快速模板
       if (newAdvancedMode) {
         // 如果当前没有优化上下文或者是空的，则设置默认模板
         if (!optimizationContext.value || optimizationContext.value.length === 0) {
-          if (newOptimizationMode === 'system') {
-            // 系统提示词优化模式：系统消息 + 用户消息
-            optimizationContext.value = [
-              { role: 'system', content: '{{currentPrompt}}' },
-              { role: 'user', content: '{{userQuestion}}' }
-            ]
-            console.log('[App] Auto-loaded default conversation template for system prompt optimization')
-          } else if (newOptimizationMode === 'user') {
-            // 用户提示词优化模式：用户消息（可以添加系统上下文）
-            optimizationContext.value = [
-              { role: 'user', content: '{{currentPrompt}}' }
-            ]
-            console.log('[App] Auto-loaded default conversation template for user prompt optimization')
+          try {
+            // 根据优化模式获取默认模板
+            const defaultTemplate = quickTemplateManager.getTemplate(newOptimizationMode, 'default')
+            
+            if (defaultTemplate && defaultTemplate.messages) {
+              optimizationContext.value = [...defaultTemplate.messages]
+              console.log(`[App] Auto-loaded default ${newOptimizationMode} template: ${defaultTemplate.name}`)
+            } else {
+              // 如果获取模板失败，回退到硬编码逻辑
+              console.warn(`[App] Failed to load default ${newOptimizationMode} template, using fallback`)
+              if (newOptimizationMode === 'system') {
+                optimizationContext.value = [
+                  { role: 'system', content: '{{currentPrompt}}' },
+                  { role: 'user', content: '{{userQuestion}}' }
+                ]
+              } else if (newOptimizationMode === 'user') {
+                optimizationContext.value = [
+                  { role: 'user', content: '{{currentPrompt}}' }
+                ]
+              }
+            }
+          } catch (error) {
+            // 如果获取模板失败，回退到硬编码逻辑
+            console.warn('[App] Failed to load default template, using fallback logic:', error)
+            if (newOptimizationMode === 'system') {
+              optimizationContext.value = [
+                { role: 'system', content: '{{currentPrompt}}' },
+                { role: 'user', content: '{{userQuestion}}' }
+              ]
+              console.log('[App] Auto-loaded fallback template for system prompt optimization')
+            } else if (newOptimizationMode === 'user') {
+              optimizationContext.value = [
+                { role: 'user', content: '{{currentPrompt}}' }
+              ]
+              console.log('[App] Auto-loaded fallback template for user prompt optimization')
+            }
           }
         }
       }
