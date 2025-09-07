@@ -9,6 +9,8 @@ import {
   createPromptService,
   createTemplateLanguageService,
   createCompareService,
+  createContextRepo,
+  ElectronContextRepoProxy,
   ElectronModelManagerProxy,
   ElectronTemplateManagerProxy,
   ElectronHistoryManagerProxy,
@@ -82,6 +84,9 @@ export function useAppInitializer(): {
         // 创建 CompareService（直接使用，无需代理）
         const compareService = createCompareService();
 
+        // 使用 ElectronContextRepoProxy 代替临时方案
+        const contextRepo = new ElectronContextRepoProxy();
+
         services.value = {
           modelManager,
           templateManager,
@@ -92,6 +97,7 @@ export function useAppInitializer(): {
           templateLanguageService, // 使用代理而不是null
           preferenceService, // 使用从core包导入的ElectronPreferenceServiceProxy
           compareService, // 直接使用，无需代理
+          contextRepo, // 使用Electron代理
         };
         console.log('[AppInitializer] Electron代理服务初始化完成');
 
@@ -189,10 +195,14 @@ export function useAppInitializer(): {
         llmService = createLLMService(modelManagerInstance);
         promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
 
-        dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, preferenceService);
-
         // 创建 CompareService（直接使用）
         const compareService = createCompareService();
+
+        // 创建 ContextRepo（使用相同的存储提供器）
+        const contextRepo = createContextRepo(storageProvider);
+
+        // 创建 DataManager（需要contextRepo）
+        dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, preferenceService, contextRepo);
 
         // 将所有服务实例赋值给 services.value
         services.value = {
@@ -205,6 +215,7 @@ export function useAppInitializer(): {
           templateLanguageService: languageService,
           preferenceService, // 使用从core包导入的PreferenceService
           compareService, // 直接使用
+          contextRepo, // 上下文仓库
         };
 
         console.log('[AppInitializer] 所有服务初始化完成');

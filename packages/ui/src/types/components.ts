@@ -127,6 +127,8 @@ export interface ContextEditorProps extends BaseComponentProps {
   visible: boolean
   /** 编辑器状态 */
   state?: ContextEditorState
+  /** 可用变量集合（全局变量，用于缺失检测和预览） */
+  availableVariables?: Record<string, string>
   /** 是否显示工具管理标签页 */
   showToolManager?: boolean
   /** 工具列表 */

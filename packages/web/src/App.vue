@@ -297,6 +297,7 @@
         v-if="isReady"
         v-model:visible="showContextEditor"
         :state="contextEditorState"
+        :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
         :optimization-mode="selectedOptimizationMode"
         :scan-variables="(content) => variableManager?.variableManager.value?.scanVariablesInContent(content) || []"
         :replace-variables="(content, vars) => variableManager?.variableManager.value?.replaceVariables(content, vars) || content"
@@ -475,6 +476,69 @@ hljs.registerLanguage('json', jsonLang)
   // 变量管理器实例
   const variableManager = useVariableManager(services as any)
   
+  // 上下文持久化状态
+  const currentContextId = ref<string | null>(null)
+  const contextRepo = computed(() => services.value?.contextRepo)
+  
+  // 初始化上下文持久化
+  const initializeContextPersistence = async () => {
+    if (!contextRepo.value) return
+    
+    try {
+      // 获取当前上下文ID
+      currentContextId.value = await contextRepo.value.getCurrentId()
+      
+      if (currentContextId.value) {
+        // 加载当前上下文
+        const context = await contextRepo.value.get(currentContextId.value)
+        if (context) {
+          optimizationContext.value = [...context.messages]
+          optimizationContextTools.value = [...(context.tools || [])]
+          
+          // 同步上下文变量到变量管理器（只处理非预定义变量）
+          if (variableManager?.variableManager.value && context.variables) {
+            Object.entries(context.variables).forEach(([name, value]) => {
+              if (!variableManager.variableManager.value?.isPredefinedVariable(name)) {
+                try {
+                  variableManager.variableManager.value?.setVariable(name, value)
+                } catch (error) {
+                  console.warn(`Failed to load context variable ${name}:`, error)
+                }
+              }
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[App] Failed to initialize context persistence:', error)
+    }
+  }
+  
+  // 持久化上下文更新（轻度节流）
+  let persistContextUpdateTimer: NodeJS.Timeout | null = null
+  const persistContextUpdate = async (patch: {
+    messages?: ConversationMessage[]
+    variables?: Record<string, string>
+    tools?: any[]
+  }) => {
+    if (!contextRepo.value || !currentContextId.value) return
+    
+    // 清除之前的定时器
+    if (persistContextUpdateTimer) {
+      clearTimeout(persistContextUpdateTimer)
+    }
+    
+    // 设置新的节流定时器（300ms延迟）
+    persistContextUpdateTimer = setTimeout(async () => {
+      try {
+        await contextRepo.value!.update(currentContextId.value!, patch)
+        console.log('[App] Context persisted to storage')
+      } catch (error) {
+        console.warn('[App] Failed to persist context update:', error)
+      }
+    }, 300)
+  }
+  
   const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
     return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
   });
@@ -512,7 +576,7 @@ hljs.registerLanguage('json', jsonLang)
   }
   
   // 处理上下文编辑器保存
-  const handleContextEditorSave = (context: { messages: ConversationMessage[], variables: Record<string, string>, tools: any[] }) => {
+  const handleContextEditorSave = async (context: { messages: ConversationMessage[], variables: Record<string, string>, tools: any[] }) => {
     // 更新优化上下文
     optimizationContext.value = [...context.messages]
     optimizationContextTools.value = [...context.tools]  // 🆕 保存工具状态
@@ -531,6 +595,13 @@ hljs.registerLanguage('json', jsonLang)
       })
     }
     
+    // 持久化到contextRepo
+    await persistContextUpdate({
+      messages: context.messages,
+      variables: context.variables,
+      tools: context.tools
+    })
+    
     // 关闭编辑器
     showContextEditor.value = false
     
@@ -539,7 +610,7 @@ hljs.registerLanguage('json', jsonLang)
   }
   
   // 处理上下文编辑器实时状态更新
-  const handleContextEditorStateUpdate = (state: { messages: ConversationMessage[], variables: Record<string, string>, tools: any[] }) => {
+  const handleContextEditorStateUpdate = async (state: { messages: ConversationMessage[], variables: Record<string, string>, tools: any[] }) => {
     // 实时同步状态到contextEditorState
     contextEditorState.value = { ...contextEditorState.value, ...state }
     
@@ -561,7 +632,14 @@ hljs.registerLanguage('json', jsonLang)
       })
     }
     
-    console.log('[App] Context editor state synchronized in real-time')
+    // 实时持久化（节流处理在persistContextUpdate中处理）
+    await persistContextUpdate({
+      messages: state.messages,
+      variables: state.variables,
+      tools: state.tools
+    })
+    
+    console.log('[App] Context editor state synchronized and persisted in real-time')
   }
   
   // 6. 在顶层调用所有 Composables
@@ -617,11 +695,14 @@ hljs.registerLanguage('json', jsonLang)
   )
   
   // 7. 监听服务初始化
-  watch(services, (newServices) => {
+  watch(services, async (newServices) => {
     if (!newServices) return
   
     // 设置服务引用
     promptService.value = newServices.promptService
+    
+    // 初始化上下文持久化
+    await initializeContextPersistence()
   
     console.log('All services and composables initialized.')
   })

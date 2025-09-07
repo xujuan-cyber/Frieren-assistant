@@ -62,6 +62,24 @@ interface Window {
       }) => Promise<any>;
       deleteChain: (chainId: string) => Promise<void>;
     };
+    context: {
+      list: () => Promise<Array<{ id: string; title: string; updatedAt: string }>>;
+      getCurrentId: () => Promise<string>;
+      setCurrentId: (id: string) => Promise<void>;
+      get: (id: string) => Promise<any>;
+      create: (meta?: { title?: string }) => Promise<string>;
+      duplicate: (id: string) => Promise<string>;
+      rename: (id: string, title: string) => Promise<void>;
+      save: (ctx: any) => Promise<void>;
+      update: (id: string, patch: any) => Promise<void>;
+      remove: (id: string) => Promise<void>;
+      exportAll: () => Promise<any>;
+      importAll: (bundle: any, mode: 'replace' | 'append' | 'merge') => Promise<any>;
+      exportData?: () => Promise<any>;
+      importData?: (data: any) => Promise<void>;
+      getDataType?: () => Promise<string>;
+      validateData?: (data: any) => Promise<boolean>;
+    };
     config: {
       getEnvironmentVariables: () => Promise<Record<string, string>>;
     };

@@ -95,6 +95,82 @@
         </NButton>
       </div>
 
+      <!-- 上下文导入导出功能 -->
+      <div>
+        <NText tag="h3" :depth="1" strong style="font-size: 18px; margin-bottom: 12px;">
+          {{ $t('dataManager.contexts.title') }}
+        </NText>
+        <NText :depth="3" style="display: block; margin-bottom: 16px;">
+          {{ $t('dataManager.contexts.description') }}
+        </NText>
+        
+        <NSpace vertical :size="12">
+          <!-- 上下文导出 -->
+          <NButton
+            @click="handleContextExportToFile"
+            :disabled="isContextExporting"
+            type="default"
+            :loading="isContextExporting"
+            block
+          >
+            <template #icon>
+              <span>💾</span>
+            </template>
+            {{ isContextExporting ? $t('common.exporting') : $t('dataManager.contexts.exportFile') }}
+          </NButton>
+          
+          <NButton
+            @click="handleContextExportToClipboard"
+            :disabled="isContextExporting"
+            type="default"
+            :loading="isContextExporting"
+            block
+          >
+            <template #icon>
+              <span>📋</span>
+            </template>
+            {{ isContextExporting ? $t('common.exporting') : $t('dataManager.contexts.exportClipboard') }}
+          </NButton>
+          
+          <!-- 上下文导入 -->
+          <!-- 文件导入 -->
+          <NUpload
+            :file-list="[]"
+            accept=".json"
+            :show-file-list="false"
+            @change="handleContextFileChange"
+            :custom-request="() => {}"
+            :disabled="isContextImporting"
+          >
+            <NButton
+              :disabled="isContextImporting"
+              type="default"
+              :loading="isContextImporting && isContextImportingFromFile"
+              block
+            >
+              <template #icon>
+                <span>📁</span>
+              </template>
+              {{ (isContextImporting && isContextImportingFromFile) ? $t('common.importing') : $t('dataManager.contexts.importFile') }}
+            </NButton>
+          </NUpload>
+          
+          <!-- 剪贴板导入 -->
+          <NButton
+            @click="handleContextImportFromClipboard"
+            :disabled="isContextImporting"
+            type="default"
+            :loading="isContextImporting && !isContextImportingFromFile"
+            block
+          >
+            <template #icon>
+              <span>📝</span>
+            </template>
+            {{ (isContextImporting && !isContextImportingFromFile) ? $t('common.importing') : $t('dataManager.contexts.importClipboard') }}
+          </NButton>
+        </NSpace>
+      </div>
+
       <!-- 警告信息 -->
       <NAlert type="warning" :show-icon="true">
         {{ $t('dataManager.warning') }}
@@ -153,6 +229,11 @@ const getDataManager = computed(() => {
 const isExporting = ref(false)
 const isImporting = ref(false)
 const selectedFile = ref<File | null>(null)
+
+// 上下文导入导出状态
+const isContextExporting = ref(false)
+const isContextImporting = ref(false)
+const isContextImportingFromFile = ref(false) // 区分文件和剪贴板导入
 
 // 处理文件变化
 const handleFileChange = (options: { fileList: UploadFileInfo[] }) => {
@@ -255,5 +336,212 @@ const formatFileSize = (bytes: number): string => {
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 处理上下文导出到文件
+const handleContextExportToFile = async () => {
+  try {
+    const dataManager = getDataManager.value
+    if (!dataManager) {
+      toast.error('数据管理服务不可用，请稍后重试')
+      return
+    }
+
+    const contextRepo = dataManager.getContextRepo()
+    if (!contextRepo) {
+      toast.error('上下文服务不可用，请稍后重试')
+      return
+    }
+
+    isContextExporting.value = true
+    
+    // 使用 exportAll 获取 ContextBundle 格式
+    const contextBundle = await contextRepo.exportAll()
+    const exportContent = JSON.stringify(contextBundle, null, 2)
+    
+    // 创建下载链接
+    const blob = new Blob([exportContent], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `contexts-backup-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    toast.success(`已导出 ${contextBundle.contexts.length} 个上下文集合到文件`)
+  } catch (error) {
+    console.error('上下文文件导出失败:', error)
+    toast.error('上下文导出失败: ' + (error as Error).message)
+  } finally {
+    isContextExporting.value = false
+  }
+}
+
+// 处理上下文导出到剪贴板
+const handleContextExportToClipboard = async () => {
+  try {
+    const dataManager = getDataManager.value
+    if (!dataManager) {
+      toast.error('数据管理服务不可用，请稍后重试')
+      return
+    }
+
+    const contextRepo = dataManager.getContextRepo()
+    if (!contextRepo) {
+      toast.error('上下文服务不可用，请稍后重试')
+      return
+    }
+
+    isContextExporting.value = true
+    
+    // 使用 exportAll 获取 ContextBundle 格式
+    const contextBundle = await contextRepo.exportAll()
+    const exportContent = JSON.stringify(contextBundle, null, 2)
+    
+    // 复制到剪贴板
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(exportContent)
+    } else {
+      // 降级方案
+      const textarea = document.createElement('textarea')
+      textarea.value = exportContent
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    
+    toast.success(`已导出 ${contextBundle.contexts.length} 个上下文集合到剪贴板`)
+  } catch (error) {
+    console.error('上下文剪贴板导出失败:', error)
+    toast.error('上下文导出失败: ' + (error as Error).message)
+  } finally {
+    isContextExporting.value = false
+  }
+}
+
+// 处理上下文文件选择和导入
+const handleContextFileChange = async (options: { fileList: UploadFileInfo[] }) => {
+  if (options.fileList.length === 0 || !options.fileList[0].file) return
+  
+  const file = options.fileList[0].file as File
+  await handleContextImportFromFile(file)
+}
+
+// 处理从文件导入上下文
+const handleContextImportFromFile = async (file: File) => {
+  try {
+    const dataManager = getDataManager.value
+    if (!dataManager) {
+      toast.error('数据管理服务不可用，请稍后重试')
+      return
+    }
+
+    const contextRepo = dataManager.getContextRepo()
+    if (!contextRepo) {
+      toast.error('上下文服务不可用，请稍后重试')
+      return
+    }
+
+    isContextImporting.value = true
+    isContextImportingFromFile.value = true
+    
+    // 读取文件内容
+    const content = await file.text()
+    
+    // 解析JSON数据
+    let importData: any
+    try {
+      importData = JSON.parse(content)
+    } catch (parseError) {
+      toast.error('无效的JSON格式，请检查文件内容')
+      return
+    }
+    
+    // 使用 importAll 并获取详细统计
+    const result = await contextRepo.importAll(importData, 'replace')
+    
+    // 显示详细的导入统计
+    const stats = []
+    if (result.imported > 0) stats.push(`导入 ${result.imported} 个上下文`)
+    if (result.skipped > 0) stats.push(`跳过 ${result.skipped} 个`)
+    if (result.predefinedVariablesRemoved > 0) stats.push(`剔除 ${result.predefinedVariablesRemoved} 个预定义变量覆盖`)
+    
+    const message = stats.length > 0 ? `成功：${stats.join('，')}` : '导入完成'
+    toast.success(message)
+    emit('imported') // 触发父组件的导入成功事件
+  } catch (error) {
+    console.error('上下文文件导入失败:', error)
+    toast.error('上下文导入失败: ' + (error as Error).message)
+  } finally {
+    isContextImporting.value = false
+    isContextImportingFromFile.value = false
+  }
+}
+
+// 处理从剪贴板导入上下文（修正版本）
+const handleContextImportFromClipboard = async () => {
+  try {
+    const dataManager = getDataManager.value
+    if (!dataManager) {
+      toast.error('数据管理服务不可用，请稍后重试')
+      return
+    }
+
+    const contextRepo = dataManager.getContextRepo()
+    if (!contextRepo) {
+      toast.error('上下文服务不可用，请稍后重试')
+      return
+    }
+
+    isContextImporting.value = true
+    isContextImportingFromFile.value = false
+    
+    // 从剪贴板读取内容
+    let clipboardContent = ''
+    if (navigator.clipboard) {
+      clipboardContent = await navigator.clipboard.readText()
+    } else {
+      // 如果无法访问剪贴板，提示用户手动粘贴
+      clipboardContent = prompt('请粘贴要导入的上下文数据:') || ''
+    }
+    
+    if (!clipboardContent.trim()) {
+      toast.warning('剪贴板内容为空，请先复制要导入的数据')
+      return
+    }
+    
+    // 解析JSON数据
+    let importData: any
+    try {
+      importData = JSON.parse(clipboardContent)
+    } catch (parseError) {
+      toast.error('无效的JSON格式，请检查数据格式')
+      return
+    }
+    
+    // 使用 importAll 并获取详细统计
+    const result = await contextRepo.importAll(importData, 'replace')
+    
+    // 显示详细的导入统计
+    const stats = []
+    if (result.imported > 0) stats.push(`导入 ${result.imported} 个上下文`)
+    if (result.skipped > 0) stats.push(`跳过 ${result.skipped} 个`)
+    if (result.predefinedVariablesRemoved > 0) stats.push(`剔除 ${result.predefinedVariablesRemoved} 个预定义变量覆盖`)
+    
+    const message = stats.length > 0 ? `成功：${stats.join('，')}` : '导入完成'
+    toast.success(message)
+    emit('imported') // 触发父组件的导入成功事件
+  } catch (error) {
+    console.error('上下文剪贴板导入失败:', error)
+    toast.error('上下文导入失败: ' + (error as Error).message)
+  } finally {
+    isContextImporting.value = false
+    isContextImportingFromFile.value = false
+  }
 }
 </script> 

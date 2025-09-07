@@ -827,6 +827,29 @@
       failed: '数据导入失败',
       successWithRefresh: '数据导入成功，页面将刷新以应用所有更改'
     },
+    contexts: {
+      title: '上下文集合管理',
+      description: '导入或导出所有上下文集合，包括消息、变量和工具配置。',
+      exportFile: '导出到文件',
+      exportClipboard: '导出到剪贴板',
+      importFile: '从文件导入',
+      importClipboard: '从剪贴板导入',
+      importMode: '导入模式',
+      replaceMode: '替换模式',
+      appendMode: '追加模式',  
+      mergeMode: '合并模式',
+      replaceModeDesc: '完全替换现有上下文集合',
+      appendModeDesc: '将导入内容追加到现有集合（自动处理ID冲突）',
+      mergeModeDesc: '合并同ID的上下文，以导入内容为准',
+      importSuccess: '成功导入 {count} 个上下文',
+      exportSuccess: '成功导出 {count} 个上下文到 {target}',
+      predefinedVariablesSkipped: '跳过了 {count} 个预定义变量覆盖',
+      conflictingIdsRenamed: '{count} 个冲突ID已重命名',
+      currentContextRestored: '当前上下文已恢复为：{contextId}',
+      noContextsToImport: '没有有效的上下文可导入',
+      invalidContextBundle: '无效的上下文集合格式',
+      importModeRequired: '请选择导入模式'
+    },
     warning: '导入数据将覆盖现有的历史记录、模型配置、自定义提示词和所有用户设置（包括主题、语言偏好等），请确保已备份重要数据。'
   },
   params: {
@@ -875,6 +898,42 @@
     }
   },
   contextEditor: {
+    // Variables tab (新增)
+    variablesTab: '变量',
+    contextVariables: '上下文变量',
+    contextVariablesDesc: '管理当前上下文的变量覆盖，不影响全局变量',
+    noContextVariables: '暂无上下文变量',
+    addFirstContextVariable: '添加您的第一个上下文变量',
+    addContextVariable: '添加上下文变量',
+    editContextVariable: '编辑上下文变量',
+    deleteContextVariable: '删除上下文变量',
+    deleteContextVariableConfirm: '确定要删除上下文变量"{name}"吗？删除后将回退到全局值。',
+    contextVariableDeleted: '已删除上下文变量：{name}',
+    variableSource: '变量来源',
+    contextOverride: '上下文覆盖',
+    globalVariable: '全局变量',
+    predefinedVariable: '预定义变量',
+    missingVariable: '缺失变量',
+    variableFromContext: '来自上下文',
+    variableFromGlobal: '来自全局',
+    variableFromPredefined: '预定义',
+    predefinedVariableCannotOverride: '预定义变量不可覆盖',
+    contextVariableHelp: '上下文变量会覆盖全局同名变量，但不能覆盖预定义变量',
+    finalVariablesPreview: '最终变量预览',
+    contextVariableName: '变量名',
+    contextVariableValue: '变量值',
+    variableNameRequired: '变量名是必需的',
+    variableNameInvalid: '变量名格式无效',
+    variableNamePredefined: '不能使用预定义变量名',
+    variableNameExists: '变量名已存在',
+    variableValueRequired: '变量值是必需的',
+    
+    // Import/Export context variables
+    importContextVariables: '导入上下文变量',
+    exportContextVariables: '导出上下文变量',
+    contextVariableImported: '已导入 {count} 个上下文变量',
+    contextVariableSkipped: '跳过 {count} 个预定义变量冲突',
+    
     // Tools editor（新增）
     editTool: '编辑工具',
     deleteToolConfirm: '确定要删除工具“{name}”吗？',

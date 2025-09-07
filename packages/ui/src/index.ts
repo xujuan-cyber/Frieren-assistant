@@ -132,6 +132,8 @@ export {
     createPreferenceService,
     ElectronPreferenceServiceProxy,
     createCompareService,
+    createContextRepo,
+    ElectronContextRepoProxy,
     isRunningInElectron,
     waitForElectronApi,
 } from '@prompt-optimizer/core'
@@ -149,6 +151,9 @@ export type {
     IPromptService,
     IPreferenceService,
     ICompareService,
+    ContextRepo,
+    ContextPackage,
+    ContextBundle,
     Template
 } from '@prompt-optimizer/core'
 

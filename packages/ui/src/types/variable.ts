@@ -81,15 +81,10 @@ export class VariableError extends Error {
   }
 }
 
-// 预定义变量常量
-export const PREDEFINED_VARIABLES = [
-  'originalPrompt',
-  'lastOptimizedPrompt', 
-  'iterateInput',
-  'currentPrompt',  // 测试阶段使用的当前提示词变量
-  'userQuestion',   // 用户问题变量
-  'conversationContext'  // 会话上下文变量
-] as const;
+import { PREDEFINED_VARIABLES as CORE_PREDEFINED_VARIABLES } from '@prompt-optimizer/core';
+
+// 预定义变量常量（从core导入，保证一致性）
+export const PREDEFINED_VARIABLES = CORE_PREDEFINED_VARIABLES;
 
 export type PredefinedVariable = typeof PREDEFINED_VARIABLES[number];
 

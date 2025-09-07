@@ -2,6 +2,7 @@ import { IHistoryManager } from '../history/types';
 import { IModelManager } from '../model/types';
 import { ITemplateManager } from '../template/types';
 import { IPreferenceService } from '../preference/types';
+import { ContextRepo } from '../context/types';
 
 /**
  * 数据导入导出管理器
@@ -29,6 +30,11 @@ export interface IDataManager {
    * @param dataString JSON格式的数据字符串
    */
   importAllData(dataString: string): Promise<void>;
+
+  /**
+   * 获取上下文仓库引用
+   */
+  getContextRepo(): ContextRepo;
 }
 
 export class DataManager implements IDataManager {
@@ -36,17 +42,20 @@ export class DataManager implements IDataManager {
   private templateManager: ITemplateManager;
   private historyManager: IHistoryManager;
   private preferenceService: IPreferenceService;
+  private contextRepo: ContextRepo;
 
   constructor(
     modelManager: IModelManager,
     templateManager: ITemplateManager,
     historyManager: IHistoryManager,
-    preferenceService: IPreferenceService
+    preferenceService: IPreferenceService,
+    contextRepo: ContextRepo
   ) {
     this.modelManager = modelManager;
     this.templateManager = templateManager;
     this.historyManager = historyManager;
     this.preferenceService = preferenceService;
+    this.contextRepo = contextRepo;
   }
 
   async exportAllData(): Promise<string> {
@@ -58,6 +67,7 @@ export class DataManager implements IDataManager {
       data['models'] = await this.modelManager.exportData();
       data['userTemplates'] = await this.templateManager.exportData();
       data['userSettings'] = await this.preferenceService.exportData();
+      data['contexts'] = await this.contextRepo.exportData();
     } catch (error) {
       console.error('导出数据失败:', error);
       throw error;
@@ -95,7 +105,7 @@ export class DataManager implements IDataManager {
       dataToImport = exportData.data;
     }
     // Old format: direct data object { history: [...], models: [...], ... }
-    else if (exportData.history || exportData.models || exportData.userTemplates || exportData.userSettings) {
+    else if (exportData.history || exportData.models || exportData.userTemplates || exportData.userSettings || exportData.contexts) {
       dataToImport = exportData;
     }
     else {
@@ -109,7 +119,8 @@ export class DataManager implements IDataManager {
       { service: this.historyManager, dataKey: 'history' },
       { service: this.modelManager, dataKey: 'models' },
       { service: this.templateManager, dataKey: 'userTemplates' },
-      { service: this.preferenceService, dataKey: 'userSettings' }
+      { service: this.preferenceService, dataKey: 'userSettings' },
+      { service: this.contextRepo, dataKey: 'contexts' }
     ];
 
     for (const { service, dataKey } of serviceMap) {
@@ -129,6 +140,10 @@ export class DataManager implements IDataManager {
       throw new Error(`Import completed with ${errors.length} errors: ${errors.join('; ')}`);
     }
   }
+
+  getContextRepo(): ContextRepo {
+    return this.contextRepo;
+  }
 }
 
 /**
@@ -137,13 +152,15 @@ export class DataManager implements IDataManager {
  * @param templateManager 模板管理器实例
  * @param historyManager 历史记录管理器实例
  * @param preferenceService 偏好设置服务实例
+ * @param contextRepo 上下文仓库实例
  * @returns 数据管理器实例
  */
 export function createDataManager(
   modelManager: IModelManager,
   templateManager: ITemplateManager,
   historyManager: IHistoryManager,
-  preferenceService: IPreferenceService
+  preferenceService: IPreferenceService,
+  contextRepo: ContextRepo
 ): DataManager {
-  return new DataManager(modelManager, templateManager, historyManager, preferenceService);
+  return new DataManager(modelManager, templateManager, historyManager, preferenceService, contextRepo);
 }

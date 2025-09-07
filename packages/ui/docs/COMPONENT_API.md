@@ -41,6 +41,8 @@ interface ContextEditorProps {
   customClass?: string
   /** 尺寸大小 */
   size?: 'small' | 'medium' | 'large'
+  /** 全局可用变量（用于变量解析和预览） */
+  availableVariables?: Record<string, string>
 }
 
 interface ContextState {
@@ -69,6 +71,10 @@ interface ContextEditorEmits {
   cancel: () => void
   /** 更新可见性 */
   'update:visible': (visible: boolean) => void
+  /** 上下文状态更新 */
+  'update:state': (state: ContextState) => void
+  /** 上下文内容变更 */
+  contextChange: (context: ContextState) => void
 }
 ```
 
@@ -90,6 +96,24 @@ interface ContextEditorEmits {
 </template>
 ```
 
+#### 功能特性
+
+- **多标签页界面**: 消息编辑、变量管理、工具配置三个标签页
+- **变量管理**: 上下文级变量覆盖，不影响全局变量
+- **预定义变量保护**: 防止覆盖系统预定义变量
+- **变量预览与缺失检测**: 实时显示变量替换结果和缺失变量
+- **直接持久化**: 编辑内容实时保存，无需手动保存
+- **导入导出支持**: 支持上下文集合的批量导入导出
+
+#### 变量标签页
+
+变量标签页专门用于管理上下文级变量覆盖：
+
+1. **变量列表**: 显示变量名、当前值、来源（覆盖/全局/预定义）和状态
+2. **新增/编辑**: 支持添加或修改上下文变量，自动校验格式和预定义冲突
+3. **删除覆盖**: 删除覆盖项后回退到全局或预定义值
+4. **缺失变量处理**: 点击缺失变量按钮直接进入上下文变量编辑
+
 #### 可访问性特性
 
 - **ARIA**: 完整的 `role`、`aria-label`、`aria-describedby` 支持
@@ -109,8 +133,11 @@ interface ContextEditorEmits {
     <ContextEditor
       v-model:visible="showEditor"
       :state="contextState"
+      :available-variables="availableVariables"
       @save="handleSave"
       @cancel="handleCancel"
+      @update:state="handleStateUpdate"
+      @contextChange="handleContextChange"
     />
   </div>
 </template>
@@ -120,16 +147,25 @@ import { ref } from 'vue'
 import { ContextEditor, type ContextState } from '@prompt-optimizer/ui'
 
 const showEditor = ref(false)
+
+// 上下文状态数据
 const contextState = ref<ContextState>({
   messages: [
     { role: 'user', content: 'Hello {{name}}' },
     { role: 'assistant', content: 'Hi there!' }
   ],
-  variables: { name: 'World' },
+  variables: { name: 'World' }, // 上下文覆盖变量
   tools: [],
   showVariablePreview: true,
   showToolManager: true,
   mode: 'edit'
+})
+
+// 全局可用变量（包括预定义和全局变量）
+const availableVariables = ref<Record<string, string>>({
+  currentDate: new Date().toISOString(),
+  userName: 'Default User',
+  // 其他全局变量...
 })
 
 const handleSave = (context: ContextState) => {
@@ -139,6 +175,16 @@ const handleSave = (context: ContextState) => {
 
 const handleCancel = () => {
   showEditor.value = false
+}
+
+const handleStateUpdate = (state: ContextState) => {
+  console.log('State updated:', state)
+  // 实时持久化逻辑
+}
+
+const handleContextChange = (context: ContextState) => {
+  console.log('Context changed:', context)
+  // 上下文变更处理逻辑
 }
 </script>
 ```

@@ -409,6 +409,84 @@
           </div>
         </NTabPane>
 
+        <!-- 变量管理标签页 -->
+        <NTabPane name="variables" tab="变量管理">
+          <div class="variables-panel" role="region" :aria-label="aria.getLabel('variablesPanel')">
+            <!-- 变量状态信息 -->
+            <NCard size="small" embedded class="mb-4">
+              <NSpace align="center" justify="space-between">
+                <NSpace align="center" :size="8">
+                  <NText strong>{{ t('contextEditor.variableOverrides') || '上下文变量覆盖' }}</NText>
+                  <NTag :size="tagSize" type="info">
+                    {{ t('contextEditor.overrideCount', { count: Object.keys(localState.variables).length }) || `${Object.keys(localState.variables).length} 个覆盖` }}
+                  </NTag>
+                </NSpace>
+                <NTag :size="tagSize" type="warning" v-if="availableVariables">
+                  {{ t('contextEditor.globalVariables', { count: Object.keys(availableVariables || {}).length }) || `全局: ${Object.keys(availableVariables || {}).length}` }}
+                </NTag>
+              </NSpace>
+            </NCard>
+
+            <!-- 变量列表 -->
+            <NEmpty 
+              v-if="Object.keys(localState.variables).length === 0 && (!availableVariables || Object.keys(availableVariables).length === 0)" 
+              :description="t('contextEditor.noVariables') || '暂无变量'"
+              role="status"
+              :aria-label="aria.getLabel('emptyVariables')"
+            >
+              <template #icon>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                  <path d="M4 7v10c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V7M4 7c0-2.21 1.79-4 4-4h8c2.21 0 4-1.79 4-4M4 7h16M8 11h8M8 15h6" />
+                </svg>
+              </template>
+              <template #extra>
+                <NButton 
+                  @click="addVariable"
+                  :size="buttonSize"
+                  type="primary"
+                  :disabled="disabled"
+                >
+                  {{ t('contextEditor.addFirstVariable') || '添加第一个变量覆盖' }}
+                </NButton>
+              </template>
+            </NEmpty>
+
+            <div v-else>
+              <!-- 变量表格 -->
+              <NDataTable
+                :columns="variableColumns"
+                :data="variableTableData"
+                :pagination="false"
+                :bordered="false"
+                size="small"
+                striped
+                class="mb-4"
+              />
+              
+              <!-- 添加变量按钮 -->
+              <NCard :size="cardSize" embedded dashed>
+                <NSpace justify="center">
+                  <NButton 
+                    @click="addVariable"
+                    :size="buttonSize"
+                    dashed
+                    type="primary"
+                    block
+                    :disabled="disabled"
+                  >
+                    <template #icon>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </template>
+                    {{ t('contextEditor.addVariable') || '添加变量覆盖' }}
+                  </NButton>
+                </NSpace>
+              </NCard>
+            </div>
+          </div>
+        </NTabPane>
+
         <!-- 工具管理标签页 -->
         <NTabPane v-if="showToolManager" name="tools" tab="工具管理">
           <div class="tools-panel">
@@ -816,6 +894,60 @@
     </template>
   </NModal>
 
+  <!-- 变量编辑对话框 -->
+  <NModal
+    v-model:show="variableEditState.show"
+    preset="card"
+    :title="variableEditState.isEditing ? (t('contextEditor.editVariable') || '编辑变量覆盖') : (t('contextEditor.addVariable') || '添加变量覆盖')"
+    style="width: 500px"
+    :mask-closable="false"
+  >
+    <NSpace vertical>
+      <!-- 变量名 -->
+      <div>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.variableName') || '变量名：' }}</label>
+        <NInput
+          v-model:value="variableEditState.name"
+          :placeholder="t('contextEditor.variableNamePlaceholder') || '请输入变量名（不含大括号）'"
+          :disabled="variableEditState.isEditing || variableEditState.isFromMissing"
+          @keydown.enter="saveVariable"
+        />
+        <NText depth="3" class="text-xs mt-1" v-if="PREDEFINED_VARIABLES.includes(variableEditState.name)">
+          <span class="text-red-500">{{ t('contextEditor.predefinedVariableWarning') || '不能覆盖预定义变量' }}</span>
+        </NText>
+      </div>
+      
+      <!-- 变量值 -->
+      <div>
+        <label class="block text-sm font-medium mb-2">{{ t('contextEditor.variableValue') || '变量值：' }}</label>
+        <NInput
+          ref="variableValueInputRef"
+          v-model:value="variableEditState.value"
+          type="textarea"
+          :placeholder="t('contextEditor.variableValuePlaceholder') || '请输入变量值'"
+          :autosize="{ minRows: 3, maxRows: 8 }"
+          @keydown.ctrl.enter="saveVariable"
+        />
+      </div>
+    </NSpace>
+
+    <template #action>
+      <NSpace justify="end">
+        <NButton @click="cancelVariableEdit" :size="buttonSize">
+          {{ t('common.cancel') || '取消' }}
+        </NButton>
+        <NButton
+          @click="saveVariable"
+          type="primary"
+          :size="buttonSize"
+          :disabled="!variableEditState.name.trim() || PREDEFINED_VARIABLES.includes(variableEditState.name)"
+        >
+          {{ variableEditState.isEditing ? (t('common.save') || '保存') : (t('common.add') || '添加') }}
+        </NButton>
+      </NSpace>
+    </template>
+  </NModal>
+
   <!-- 实时区域用于屏幕阅读器 -->
   <div 
     role="status" 
@@ -840,11 +972,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, shallowRef, nextTick } from 'vue'
+import { ref, computed, watch, shallowRef, nextTick, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { 
   NModal, NTabs, NTabPane, NCard, NButton, NSpace, NTag, NList, NListItem, 
-  NEmpty, NScrollbar, NInput, NSelect, NText, NDropdown, NGrid, NGridItem, NAlert
+  NEmpty, NScrollbar, NInput, NSelect, NText, NDropdown, NGrid, NGridItem, NAlert,
+  NDataTable, type DataTableColumns
 } from 'naive-ui'
 import { useResponsive } from '../composables/useResponsive'
 import { usePerformanceMonitor } from '../composables/usePerformanceMonitor'
@@ -854,6 +987,7 @@ import { useContextEditor } from '../composables/useContextEditor'
 import { quickTemplateManager } from '../data/quickTemplates'
 import type { ContextEditorProps, ContextEditorEvents } from '../types/components'
 import type { ContextEditorState, ConversationMessage, ToolDefinition } from '@prompt-optimizer/core'
+import { PREDEFINED_VARIABLES } from '../types/variable'
 
 const { t, locale } = useI18n()
 
@@ -885,7 +1019,9 @@ const {
 } = useResponsive()
 
 // Props 和 Events
-const props = withDefaults(defineProps<ContextEditorProps>(), {
+const props = withDefaults(defineProps<ContextEditorProps & {
+  availableVariables?: Record<string, string>
+}>(), {
   disabled: false,
   readonly: false,
   size: 'medium',
@@ -894,7 +1030,8 @@ const props = withDefaults(defineProps<ContextEditorProps>(), {
   optimizationMode: 'system',
   title: '上下文编辑器',
   width: '90vw',
-  height: '85vh'
+  height: '85vh',
+  availableVariables: () => ({})
 })
 
 const emit = defineEmits<ContextEditorEvents>()
@@ -912,6 +1049,8 @@ const importError = ref('')
 const selectedImportFormat = ref('smart')
 const selectedExportFormat = ref('standard')
 const fileInputRef = ref<HTMLInputElement | null>(null)
+// 变量值输入框引用（用于自动聚焦）
+const variableValueInputRef = ref(null)
 
 // 使用shallowRef优化深度对象
 const localState = shallowRef<ContextEditorState>({
@@ -983,15 +1122,208 @@ const quickTemplates = computed(() => {
   return quickTemplateManager.getTemplates(props.optimizationMode, currentLanguage)
 })
 
+// 变量管理相关计算属性
+const finalVars = computed(() => {
+  const result = { ...props.availableVariables }
+  // 合并上下文覆盖，并过滤掉预定义变量名的覆盖
+  Object.entries(localState.value.variables).forEach(([name, value]) => {
+    if (!PREDEFINED_VARIABLES.includes(name as any)) {
+      result[name] = value
+    }
+  })
+  return result
+})
+
+// 变量表格数据
+const variableTableData = computed(() => {
+  const data = []
+  
+  // 添加全局变量（只读显示）
+  if (props.availableVariables) {
+    Object.entries(props.availableVariables).forEach(([name, value]) => {
+      if (!PREDEFINED_VARIABLES.includes(name as any)) {
+        data.push({
+          key: `global-${name}`,
+          name,
+          value: value.length > 50 ? value.substring(0, 50) + '...' : value,
+          fullValue: value,
+          source: 'global',
+          status: localState.value.variables[name] ? 'overridden' : 'active',
+          readonly: true
+        })
+      }
+    })
+  }
+  
+  // 添加上下文覆盖变量
+  Object.entries(localState.value.variables).forEach(([name, value]) => {
+    if (!PREDEFINED_VARIABLES.includes(name as any)) {
+      data.push({
+        key: `override-${name}`,
+        name,
+        value: value.length > 50 ? value.substring(0, 50) + '...' : value,
+        fullValue: value,
+        source: 'context',
+        status: 'override',
+        readonly: false
+      })
+    }
+  })
+  
+  return data
+})
+
+// 变量表格列定义
+const variableColumns = computed((): DataTableColumns => [
+  {
+    title: t('contextEditor.variableName') || '变量名',
+    key: 'name',
+    width: 140,
+    render: (row: any) => {
+      return h(NTag, {
+        size: 'small',
+        type: row.source === 'context' ? 'primary' : 'default',
+        round: true
+      }, () => `{{${row.name}}}`)
+    }
+  },
+  {
+    title: t('contextEditor.variableValue') || '变量值',
+    key: 'value',
+    ellipsis: {
+      tooltip: true
+    },
+    render: (row: any) => {
+      return h(NText, {
+        depth: row.readonly ? 3 : 1,
+        style: { 
+          fontFamily: 'ui-monospace, monospace',
+          fontSize: '12px',
+          textDecoration: row.status === 'overridden' ? 'line-through' : 'none'
+        }
+      }, () => row.value)
+    }
+  },
+  {
+    title: t('contextEditor.variableSource') || '来源',
+    key: 'source',
+    width: 80,
+    render: (row: any) => {
+      const typeMap = {
+        global: { type: 'info', text: '全局' },
+        context: { type: 'warning', text: '覆盖' }
+      }
+      const config = typeMap[row.source] || { type: 'default', text: row.source }
+      return h(NTag, {
+        size: 'small',
+        type: config.type
+      }, () => config.text)
+    }
+  },
+  {
+    title: t('contextEditor.variableStatus') || '状态',
+    key: 'status',
+    width: 80,
+    render: (row: any) => {
+      const statusMap = {
+        active: { type: 'success', text: '活跃' },
+        override: { type: 'warning', text: '覆盖' },
+        overridden: { type: 'default', text: '被覆盖' }
+      }
+      const config = statusMap[row.status] || { type: 'default', text: row.status }
+      return h(NTag, {
+        size: 'small',
+        type: config.type
+      }, () => config.text)
+    }
+  },
+  {
+    title: t('common.actions') || '操作',
+    key: 'actions',
+    width: 120,
+    render: (row: any) => {
+      const actions = []
+      
+      if (!row.readonly) {
+        // 编辑按钮
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            quaternary: true,
+            title: t('common.edit') || '编辑',
+            onClick: () => editVariable(row.name)
+          }, {
+            icon: () => h('svg', {
+              width: '14',
+              height: '14',
+              viewBox: '0 0 24 24',
+              fill: 'none',
+              stroke: 'currentColor'
+            }, [
+              h('path', {
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+                'stroke-width': '2',
+                'd': 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+              })
+            ])
+          })
+        )
+        
+        // 删除按钮
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            quaternary: true,
+            type: 'error',
+            title: t('common.delete') || '删除',
+            onClick: () => deleteVariable(row.name)
+          }, {
+            icon: () => h('svg', {
+              width: '14',
+              height: '14',
+              viewBox: '0 0 24 24',
+              fill: 'none',
+              stroke: 'currentColor'
+            }, [
+              h('path', {
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+                'stroke-width': '2',
+                'd': 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+              })
+            ])
+          })
+        )
+      } else if (row.status === 'overridden') {
+        // 显示"创建覆盖"按钮
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            quaternary: true,
+            type: 'primary',
+            title: t('contextEditor.createOverride') || '创建覆盖',
+            onClick: () => addVariableOverride(row.name, row.fullValue)
+          }, {
+            default: () => t('contextEditor.override') || '覆盖'
+          })
+        )
+      }
+      
+      return h(NSpace, { size: 4 }, () => actions)
+    }
+  }
+])
+
 // 工具函数（统一使用注入函数）
 const getMessageVariables = (content: string) => {
   const detected = props.scanVariables(content || '') || []
-  const missing = detected.filter(varName => localState.value.variables[varName] === undefined)
+  const missing = detected.filter(varName => finalVars.value[varName] === undefined)
   return { detected, missing }
 }
 
 const replaceVariables = (content: string): string => {
-  return props.replaceVariables(content || '', localState.value.variables)
+  return props.replaceVariables(content || '', finalVars.value)
 }
 
 const getPlaceholderText = (role: string) => {
@@ -1328,11 +1660,119 @@ const handleCancel = () => {
   handleVisibilityChange(false)
 }
 
-// 变量快捷操作
+// 变量管理相关状态
+const variableEditState = ref<{
+  show: boolean
+  isEditing: boolean
+  isFromMissing: boolean
+  editingName: string
+  name: string
+  value: string
+}>({
+  show: false,
+  isEditing: false,
+  isFromMissing: false,
+  editingName: '',
+  name: '',
+  value: ''
+})
+
+// 变量管理方法
+const addVariable = () => {
+  variableEditState.value = {
+    show: true,
+    isEditing: false,
+    editingName: '',
+    name: '',
+    value: ''
+  }
+}
+
+const addVariableOverride = (name: string, currentValue: string) => {
+  variableEditState.value = {
+    show: true,
+    isEditing: false,
+    editingName: '',
+    name,
+    value: currentValue
+  }
+}
+
+const editVariable = (name: string) => {
+  const value = localState.value.variables[name] || ''
+  variableEditState.value = {
+    show: true,
+    isEditing: true,
+    editingName: name,
+    name,
+    value
+  }
+}
+
+const deleteVariable = (name: string) => {
+  const confirmed = confirm(
+    t('contextEditor.deleteVariableConfirm', { name }) || `确定要删除变量覆盖 "${name}" 吗？`
+  )
+  if (!confirmed) return
+  
+  delete localState.value.variables[name]
+  handleStateChange()
+  announce(t('contextEditor.variableDeleted', { name }) || `已删除变量覆盖：${name}`, 'polite')
+}
+
+const saveVariable = () => {
+  const { isEditing, editingName, name, value } = variableEditState.value
+  
+  // 验证变量名
+  if (!name.trim()) {
+    return
+  }
+  
+  // 检查是否是预定义变量名
+  if (PREDEFINED_VARIABLES.includes(name as any)) {
+    announce(t('contextEditor.predefinedVariableError') || '不能覆盖预定义变量', 'assertive')
+    return
+  }
+  
+  // 如果是编辑模式且变量名发生变化，需要删除旧的
+  if (isEditing && editingName !== name) {
+    delete localState.value.variables[editingName]
+  }
+  
+  // 设置新值
+  localState.value.variables[name] = value
+  
+  // 关闭编辑器
+  variableEditState.value.show = false
+  
+  // 触发状态更新
+  handleStateChange()
+  
+  // 通知用户
+  const action = isEditing ? '更新' : '添加'
+  announce(t('contextEditor.variableSaved', { action, name }) || `已${action}变量覆盖：${name}`, 'polite')
+}
+
+const cancelVariableEdit = () => {
+  variableEditState.value.show = false
+}
+
+// 变量快捷操作（修改行为：直接在上下文中创建覆盖）
 const handleCreateVariableAndOpenManager = (name: string) => {
   if (!name) return
-  // 新流程：先打开变量管理器，并直接打开新增变量编辑器，变量名预填，光标聚焦到值
-  emit('openVariableManager', name)
+  // 直接在上下文中创建变量覆盖，标记为来自缺失变量
+  variableEditState.value = {
+    show: true,
+    isEditing: false,
+    isFromMissing: true,
+    editingName: '',
+    name,
+    value: ''
+  }
+  // 等待弹窗打开后自动聚焦到变量值输入框
+  nextTick(() => {
+    variableValueInputRef.value?.focus?.()
+  })
 }
 
 // 消息聚焦（滚动并高亮）

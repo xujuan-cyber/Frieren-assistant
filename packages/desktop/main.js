@@ -43,6 +43,7 @@ const {
   createPromptService,
   createTemplateLanguageService,
   createDataManager,
+  createContextRepo,
   FileStorageProvider,
   // 导入共享的环境变量扫描常量
   CUSTOM_API_PATTERN,
@@ -77,7 +78,7 @@ function safeSerialize(obj) {
 }
 
 let mainWindow;
-let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager;
+let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager, contextRepo;
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
 let isQuitting = false; // 防止重复保存数据的标志
 let isUpdaterQuitting = false; // 标识是否为更新安装退出，跳过数据保存
@@ -376,6 +377,9 @@ async function initializeServices() {
     
     console.log('[DESKTOP] Creating Data manager...');
     dataManager = createDataManager(modelManager, templateManager, historyManager, preferenceService);
+    
+    console.log('[DESKTOP] Creating Context repository...');
+    contextRepo = createContextRepo(storageProvider);
     
     console.log('[Main Process] Core services initialized successfully.');
     
@@ -1055,6 +1059,157 @@ function setupIPC() {
       // 清理Vue响应式对象，防止IPC序列化错误
       const safeData = safeSerialize(data);
       const result = await historyManager.validateData(safeData);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Context Repository handlers
+  ipcMain.handle('context-list', async (event) => {
+    try {
+      const result = await contextRepo.list();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-getCurrentId', async (event) => {
+    try {
+      const result = await contextRepo.getCurrentId();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-setCurrentId', async (event, id) => {
+    try {
+      await contextRepo.setCurrentId(id);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-get', async (event, id) => {
+    try {
+      const result = await contextRepo.get(id);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-create', async (event, meta) => {
+    try {
+      const safeMeta = meta ? safeSerialize(meta) : undefined;
+      const result = await contextRepo.create(safeMeta);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-duplicate', async (event, id) => {
+    try {
+      const result = await contextRepo.duplicate(id);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-rename', async (event, id, title) => {
+    try {
+      await contextRepo.rename(id, title);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-save', async (event, ctx) => {
+    try {
+      const safeCtx = safeSerialize(ctx);
+      await contextRepo.save(safeCtx);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-update', async (event, id, patch) => {
+    try {
+      const safePatch = safeSerialize(patch);
+      await contextRepo.update(id, safePatch);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-remove', async (event, id) => {
+    try {
+      await contextRepo.remove(id);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-exportAll', async (event) => {
+    try {
+      const result = await contextRepo.exportAll();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-importAll', async (event, bundle, mode) => {
+    try {
+      const safeBundle = safeSerialize(bundle);
+      const result = await contextRepo.importAll(safeBundle, mode);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-exportData', async (event) => {
+    try {
+      const result = await contextRepo.exportData();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-importData', async (event, data) => {
+    try {
+      const safeData = safeSerialize(data);
+      await contextRepo.importData(safeData);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-getDataType', async (event) => {
+    try {
+      const result = contextRepo.getDataType();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('context-validateData', async (event, data) => {
+    try {
+      const safeData = safeSerialize(data);
+      const result = await contextRepo.validateData(safeData);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);

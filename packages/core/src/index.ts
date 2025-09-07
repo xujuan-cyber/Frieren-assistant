@@ -106,5 +106,11 @@ export type {
   StorageKey
 } from './constants/storage-keys'
 
+// 导出上下文相关
+export * from './services/context/types'
+export { createContextRepo } from './services/context/repo'
+export { ElectronContextRepoProxy } from './services/context/electron-proxy'
+export * from './services/context/constants'
+
 // 导出高级模块相关类型
 export * from './types/advanced'

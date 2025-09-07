@@ -7,7 +7,8 @@ import type {
   IPromptService,
   ITemplateLanguageService,
   ICompareService,
-  IPreferenceService
+  IPreferenceService,
+  ContextRepo
 } from '@prompt-optimizer/core'
 
 /**
@@ -23,4 +24,5 @@ export interface AppServices {
   templateLanguageService: ITemplateLanguageService;
   preferenceService: IPreferenceService;
   compareService: ICompareService;
+  contextRepo: ContextRepo;
 }

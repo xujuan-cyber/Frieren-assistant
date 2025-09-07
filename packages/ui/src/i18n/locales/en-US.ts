@@ -826,6 +826,29 @@ export default {
       failed: 'Failed to import data',
       successWithRefresh: 'Data imported successfully, page will refresh to apply all changes'
     },
+    contexts: {
+      title: 'Context Collections Management',
+      description: 'Import or export all context collections, including messages, variables and tool configurations.',
+      exportFile: 'Export to File',
+      exportClipboard: 'Export to Clipboard',
+      importFile: 'Import from File',
+      importClipboard: 'Import from Clipboard',
+      importMode: 'Import Mode',
+      replaceMode: 'Replace Mode',
+      appendMode: 'Append Mode',  
+      mergeMode: 'Merge Mode',
+      replaceModeDesc: 'Completely replace existing context collections',
+      appendModeDesc: 'Append import content to existing collections (auto handle ID conflicts)',
+      mergeModeDesc: 'Merge contexts with same ID, using import content as priority',
+      importSuccess: 'Successfully imported {count} contexts',
+      exportSuccess: 'Successfully exported {count} contexts to {target}',
+      predefinedVariablesSkipped: 'Skipped {count} predefined variable overrides',
+      conflictingIdsRenamed: '{count} conflicting IDs renamed',
+      currentContextRestored: 'Current context restored to: {contextId}',
+      noContextsToImport: 'No valid contexts to import',
+      invalidContextBundle: 'Invalid context bundle format',
+      importModeRequired: 'Please select import mode'
+    },
     warning: 'Importing data will overwrite existing history records, model configurations, custom templates and all user settings (including theme, language preferences, etc.). Please ensure you have backed up important data.'
   },
   params: {
@@ -874,6 +897,42 @@ export default {
     }
   },
   contextEditor: {
+    // Variables tab (新增)
+    variablesTab: 'Variables',
+    contextVariables: 'Context Variables',
+    contextVariablesDesc: 'Manage context-level variable overrides without affecting global variables',
+    noContextVariables: 'No context variables',
+    addFirstContextVariable: 'Add your first context variable',
+    addContextVariable: 'Add Context Variable',
+    editContextVariable: 'Edit Context Variable',
+    deleteContextVariable: 'Delete Context Variable',
+    deleteContextVariableConfirm: 'Are you sure you want to delete context variable "{name}"? It will revert to global value.',
+    contextVariableDeleted: 'Context variable deleted: {name}',
+    variableSource: 'Variable Source',
+    contextOverride: 'Context Override',
+    globalVariable: 'Global Variable',
+    predefinedVariable: 'Predefined Variable',
+    missingVariable: 'Missing Variable',
+    variableFromContext: 'From Context',
+    variableFromGlobal: 'From Global',
+    variableFromPredefined: 'Predefined',
+    predefinedVariableCannotOverride: 'Predefined variables cannot be overridden',
+    contextVariableHelp: 'Context variables will override global variables with the same name, but cannot override predefined variables',
+    finalVariablesPreview: 'Final Variables Preview',
+    contextVariableName: 'Variable Name',
+    contextVariableValue: 'Variable Value',
+    variableNameRequired: 'Variable name is required',
+    variableNameInvalid: 'Invalid variable name format',
+    variableNamePredefined: 'Cannot use predefined variable name',
+    variableNameExists: 'Variable name already exists',
+    variableValueRequired: 'Variable value is required',
+    
+    // Import/Export context variables
+    importContextVariables: 'Import Context Variables',
+    exportContextVariables: 'Export Context Variables',
+    contextVariableImported: 'Imported {count} context variables',
+    contextVariableSkipped: 'Skipped {count} predefined variable conflicts',
+    
     title: 'Context Editor',
     systemTemplates: 'System Templates',
     // Basic
