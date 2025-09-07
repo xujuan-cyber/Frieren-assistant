@@ -148,7 +148,7 @@ const formRules: FormRules = {
     },
     {
       validator: (rule: any, value: string) => {
-        const predefinedNames = ['originalPrompt', 'lastOptimizedPrompt', 'iterateInput']
+        const predefinedNames = ['originalPrompt', 'lastOptimizedPrompt', 'iterateInput', 'currentPrompt', 'userQuestion', 'conversationContext', 'toolsContext']
         if (value && predefinedNames.includes(value.trim())) {
           return new Error(t('variables.editor.errors.namePredefined'))
         }

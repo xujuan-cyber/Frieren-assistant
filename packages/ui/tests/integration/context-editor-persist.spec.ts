@@ -236,7 +236,7 @@ const TestContextEditorWithPersistence = {
     
     // 检查是否为预定义变量
     const isPredefinedVariable = (name: string): boolean => {
-      const predefined = ['originalPrompt', 'currentPrompt', 'userQuestion', 'conversationContext', 'iterateInput', 'lastOptimizedPrompt']
+      const predefined = ['originalPrompt', 'currentPrompt', 'userQuestion', 'conversationContext', 'iterateInput', 'lastOptimizedPrompt', 'toolsContext']
       return predefined.includes(name)
     }
     

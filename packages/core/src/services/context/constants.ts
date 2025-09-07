@@ -13,7 +13,8 @@ export const PREDEFINED_VARIABLES = [
   'iterateInput',
   'currentPrompt',  // 测试阶段使用的当前提示词变量
   'userQuestion',   // 用户问题变量
-  'conversationContext'  // 会话上下文变量
+  'conversationContext',  // 会话上下文变量
+  'toolsContext' // 可用工具上下文（由模板处理器/服务注入）
 ] as const;
 
 export type PredefinedVariable = typeof PREDEFINED_VARIABLES[number];

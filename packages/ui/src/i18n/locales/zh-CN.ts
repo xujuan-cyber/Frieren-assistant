@@ -140,7 +140,8 @@
       iterateInput: '迭代优化的输入内容',
       currentPrompt: '当前使用的提示词（优化后或原始）',
       userQuestion: '用户问题或输入',
-      conversationContext: '当前会话上下文信息'
+      conversationContext: '当前会话上下文信息',
+      toolsContext: '可用工具信息（由系统自动注入）'
     },
     readonly: '只读',
     emptyValue: '(空)',

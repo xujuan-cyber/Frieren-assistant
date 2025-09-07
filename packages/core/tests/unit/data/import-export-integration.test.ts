@@ -9,6 +9,7 @@ import { MemoryStorageProvider } from '../../../src/services/storage/memoryStora
 import { ModelConfig } from '../../../src/services/model/types';
 import { Template } from '../../../src/services/template/types';
 import { PromptRecord } from '../../../src/services/history/types';
+import { ContextRepo } from '../../../src/services/context/types';
 
 describe('DataManager Import/Export Integration', () => {
   let dataManager: DataManager;
@@ -16,6 +17,7 @@ describe('DataManager Import/Export Integration', () => {
   let templateManager: TemplateManager;
   let historyManager: HistoryManager;
   let preferenceService: PreferenceService;
+  let mockContextRepo: ContextRepo;
   let storageProvider: MemoryStorageProvider;
 
   beforeEach(async () => {
@@ -33,7 +35,27 @@ describe('DataManager Import/Export Integration', () => {
 
     historyManager = new HistoryManager(storageProvider, modelManager);
 
-    dataManager = new DataManager(modelManager, templateManager, historyManager, preferenceService);
+    // 创建 mockContextRepo
+    mockContextRepo = {
+      list: vi.fn().mockResolvedValue([]),
+      getCurrentId: vi.fn().mockResolvedValue('default'),
+      setCurrentId: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({}),
+      create: vi.fn().mockResolvedValue('new-context-id'),
+      duplicate: vi.fn().mockResolvedValue('duplicated-context-id'),
+      rename: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      remove: vi.fn().mockResolvedValue(undefined),
+      exportAll: vi.fn().mockResolvedValue({}),
+      importAll: vi.fn().mockResolvedValue({}),
+      exportData: vi.fn().mockResolvedValue({}),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockReturnValue('contexts'),
+      validateData: vi.fn().mockReturnValue(true),
+    } as ContextRepo;
+
+    dataManager = new DataManager(modelManager, templateManager, historyManager, preferenceService, mockContextRepo);
   });
 
   afterEach(() => {

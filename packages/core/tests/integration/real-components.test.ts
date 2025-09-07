@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ModelManager, HistoryManager, TemplateManager, PromptService, DataManager } from '../../src'
 import { LocalStorageProvider } from '../../src/services/storage/localStorageProvider'
 import { createLLMService } from '../../src/services/llm/service'
@@ -8,6 +8,7 @@ import { createModelManager } from '../../src/services/model/manager'
 import { createHistoryManager } from '../../src/services/history/manager'
 import { createPreferenceService } from '../../src/services/preference/service'
 import { Template } from '../../src/services/template/types'
+import { ContextRepo } from '../../src/services/context/types'
 
 /**
  * 真实组件集成测试
@@ -20,6 +21,7 @@ describe('Real Components Integration Tests', () => {
   let templateManager: TemplateManager
   let dataManager: DataManager
   let promptService: PromptService
+  let mockContextRepo: ContextRepo
 
   beforeEach(async () => {
     // 清理存储，确保测试隔离
@@ -31,7 +33,27 @@ describe('Real Components Integration Tests', () => {
     const languageService = createTemplateLanguageService(storage, preferenceService)
     templateManager = createTemplateManager(storage, languageService)
 
-    dataManager = new DataManager(modelManager, templateManager, historyManager, preferenceService)
+    // 创建 mockContextRepo
+    mockContextRepo = {
+      list: vi.fn().mockResolvedValue([]),
+      getCurrentId: vi.fn().mockResolvedValue('default'),
+      setCurrentId: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue({}),
+      create: vi.fn().mockResolvedValue('new-context-id'),
+      duplicate: vi.fn().mockResolvedValue('duplicated-context-id'),
+      rename: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      remove: vi.fn().mockResolvedValue(undefined),
+      exportAll: vi.fn().mockResolvedValue({}),
+      importAll: vi.fn().mockResolvedValue({}),
+      exportData: vi.fn().mockResolvedValue({}),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockReturnValue('contexts'),
+      validateData: vi.fn().mockReturnValue(true),
+    } as ContextRepo;
+
+    dataManager = new DataManager(modelManager, templateManager, historyManager, preferenceService, mockContextRepo)
 
     const llmService = createLLMService(modelManager)
     promptService = new PromptService(modelManager, llmService, templateManager, historyManager)

@@ -391,7 +391,7 @@ const importVariables = () => {
     }
     
     // 过滤掉预定义变量
-    const predefinedNames = ['originalPrompt', 'lastOptimizedPrompt', 'iterateInput', 'currentPrompt', 'userQuestion', 'conversationContext']
+    const predefinedNames = ['originalPrompt', 'lastOptimizedPrompt', 'iterateInput', 'currentPrompt', 'userQuestion', 'conversationContext', 'toolsContext']
     const filteredVariables: Record<string, string> = {}
     
     for (const [name, value] of Object.entries(variables)) {

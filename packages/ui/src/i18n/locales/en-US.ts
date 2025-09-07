@@ -140,7 +140,8 @@ export default {
       iterateInput: 'Input content for iteration optimization',
       currentPrompt: 'Current prompt in use (optimized or original)',
       userQuestion: 'User question or input',
-      conversationContext: 'Current conversation context information'
+      conversationContext: 'Current conversation context information',
+      toolsContext: 'Available tools information (auto-injected)'
     },
     readonly: 'Read-only',
     emptyValue: '(empty)',
