@@ -25,7 +25,8 @@
     "dotenv": "^16.0.0",
     "electron-log": "^5.4.1",
     "electron-updater": "6.3.9",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "undici": "^6.19.8"
   },
   "build": {
     "appId": "com.promptoptimizer.desktop",

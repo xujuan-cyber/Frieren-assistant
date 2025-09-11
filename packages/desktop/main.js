@@ -5,7 +5,7 @@ const consoleLogger = new ConsoleLogger();
 // 立即设置全局错误处理器，确保任何异常都能被记录
 consoleLogger.setupGlobalErrorHandlers();
 
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const {
   buildReleaseUrl,
@@ -97,6 +97,94 @@ function setupEmergencyExit() {
     console.error('[DESKTOP] EMERGENCY EXIT: Force terminating process after 10 seconds');
     process.exit(1); // 强制终止进程
   }, EMERGENCY_EXIT_TIME);
+}
+
+// === System Proxy → Undici Global Dispatcher (A1 方案) ===
+// 说明：在主进程中尽量早地设置 undici 全局代理分发器，使 Node/SDK 请求复用系统代理。
+// 安全：任意步骤失败将优雅跳过，绝不影响启动流程。
+async function setupGlobalProxyDispatcherFromSystem() {
+  // 动态加载 undici，兼容不同 Node/Electron 版本
+  let undici;
+  try {
+    try {
+      undici = require('undici');
+    } catch (_) {
+      undici = require('node:undici');
+    }
+  } catch (e) {
+    console.log('[Proxy] undici 不可用，跳过全局代理设置');
+    return; // 无 undici 时直接跳过，不影响启动
+  }
+
+  const { setGlobalDispatcher, ProxyAgent, Agent } = undici || {};
+  if (!setGlobalDispatcher || !ProxyAgent) {
+    console.log('[Proxy] undici 不支持 setGlobalDispatcher/ProxyAgent，跳过');
+    return;
+  }
+
+  // 解析 Electron 系统代理（包含 PAC/WPAD）
+  // 选择常见外网目标进行解析；解析失败则回退为直连。
+  let proxyDecision = 'DIRECT';
+  let rawResolve = 'DIRECT';
+  try {
+    // 确保 session 可用（需在 app ready 之后调用）
+    const targetUrl = 'https://www.example.com';
+    const result = await session.defaultSession.resolveProxy(targetUrl);
+    // result 形如："PROXY host:port; SOCKS5 host:port; DIRECT"
+    rawResolve = result || 'DIRECT';
+    proxyDecision = rawResolve.split(';')[0].trim();
+  } catch (e) {
+    console.log('[Proxy] 解析系统代理失败，使用直连:', e && e.message);
+    proxyDecision = 'DIRECT';
+  }
+
+  // 将代理决策映射为 undici 的代理 URL
+  // 支持：PROXY/HTTPS/SOCKS/SOCKS5/DIRECT
+  let dispatcher;
+  let mappedProxyUrl = 'DIRECT';
+  try {
+    if (proxyDecision.startsWith('PROXY ') || proxyDecision.startsWith('HTTPS ')) {
+      const hostPort = proxyDecision.split(' ')[1]; // host:port
+      mappedProxyUrl = `http://${hostPort}`;
+      dispatcher = new ProxyAgent(mappedProxyUrl);
+    } else if (proxyDecision.startsWith('SOCKS5 ')) {
+      const hostPort = proxyDecision.split(' ')[1];
+      mappedProxyUrl = `socks5://${hostPort}`;
+      dispatcher = new ProxyAgent(mappedProxyUrl);
+    } else if (proxyDecision.startsWith('SOCKS ')) {
+      const hostPort = proxyDecision.split(' ')[1];
+      mappedProxyUrl = `socks://${hostPort}`;
+      dispatcher = new ProxyAgent(mappedProxyUrl);
+    } else {
+      // DIRECT 或未知，使用默认直连 Agent
+      dispatcher = new Agent();
+    }
+
+    setGlobalDispatcher(dispatcher);
+    // 基础日志（始终输出）
+    console.log('[Proxy] 系统代理解析结果(raw):', rawResolve);
+    console.log('[Proxy] 选用决策(decision):', proxyDecision);
+    console.log('[Proxy] undici 全局代理:', mappedProxyUrl);
+
+    // 诊断信息（仅在环境变量开启时输出）
+    const debug = process.env.DEBUG_PROXY === '1' || process.env.PROXY_DEBUG === '1';
+    if (debug) {
+      console.log('[Proxy][DEBUG] 环境变量: HTTPS_PROXY=', process.env.HTTPS_PROXY || '');
+      console.log('[Proxy][DEBUG] 环境变量: HTTP_PROXY =', process.env.HTTP_PROXY || '');
+      console.log('[Proxy][DEBUG] 环境变量: NO_PROXY   =', process.env.NO_PROXY || '');
+      console.log('[Proxy][DEBUG] Node/Electron 版本:', {
+        node: process.versions.node,
+        electron: process.versions.electron,
+        chrome: process.versions.chrome
+      });
+    }
+  } catch (e) {
+    console.log('[Proxy] 设置全局代理分发器失败，使用直连:', e && e.message);
+    try {
+      const { Agent } = undici;
+      if (Agent) setGlobalDispatcher(new Agent());
+    } catch (_) { /* no-op */ }
+  }
 }
 
 async function initializePreferenceService(storageProvider) {
@@ -369,6 +457,9 @@ async function initializeServices() {
     console.log('[DESKTOP] Initializing model manager...');
     await modelManager.ensureInitialized();
     
+    // 在创建任何网络相关服务前，先根据系统代理设置 undici 全局分发器
+    await setupGlobalProxyDispatcherFromSystem();
+
     console.log('[DESKTOP] Creating LLM service...');
     llmService = createLLMService(modelManager);
 
