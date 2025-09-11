@@ -322,90 +322,92 @@
               </template>
             </NEmpty>
 
-            <NGrid v-else :cols="isMobile ? 1 : 2" :x-gap="12" :y-gap="12">
-              <NGridItem v-for="template in quickTemplates" :key="template.id">
-                <NCard 
-                  :size="cardSize" 
-                  embedded 
-                  hoverable
-                  class="template-card"
-                  role="button"
-                  :aria-label="aria.getLabel('templateCard', template.name)"
-                  tabindex="0"
-                  @click="handleTemplatePreview(template)"
-                  @keydown.enter="handleTemplatePreview(template)"
-                  @keydown.space.prevent="handleTemplatePreview(template)"
-                >
-                  <template #header>
-                    <NSpace justify="space-between" align="center">
-                      <NSpace align="center" :size="4">
-                        <NTag :size="tagSize" round type="primary">
-                          {{ template.name }}
-                        </NTag>
-                        <NTag v-if="template.messages" :size="tagSize" type="info">
-                          {{ template.messages.length }} 条消息
-                        </NTag>
-                      </NSpace>
-                      <NSpace :size="4">
-                        <NButton
-                          @click.stop="handleTemplatePreview(template)"
-                          :size="buttonSize"
-                          quaternary
-                          circle
-                          :title="t('common.preview') || '预览'"
-                        >
-                          <template #icon>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </template>
-                        </NButton>
-                        <NButton
-                          @click.stop="handleTemplateApply(template)"
-                          :size="buttonSize"
-                          type="primary"
-                          circle
-                          :title="t('contextEditor.applyTemplate')"
-                          :disabled="disabled"
-                        >
-                          <template #icon>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </template>
-                        </NButton>
-                      </NSpace>
-                    </NSpace>
-                  </template>
-                  
-                  <div class="template-content">
-                    <NText depth="3" class="template-description">
-                      {{ template.description || t('contextEditor.noDescription') }}
-                    </NText>
-                    
-                    <!-- 模板消息预览 -->
-                    <div v-if="template.messages && template.messages.length > 0" class="template-preview mt-3">
-                      <div 
-                        v-for="(message, index) in template.messages.slice(0, 2)" 
-                        :key="`preview-${index}`"
-                        class="preview-message"
-                      >
-                        <NSpace align="center" :size="4" class="mb-1">
-                          <NTag :size="tagSize" round>{{ getRoleLabel(message.role) }}</NTag>
-                          <NText depth="3" class="text-xs">
-                            {{ message.content.length > 40 ? message.content.substring(0, 40) + '...' : message.content }}
-                          </NText>
+            <NScrollbar v-else :style="scrollbarStyle">
+              <NGrid :cols="isMobile ? 1 : 2" :x-gap="12" :y-gap="12">
+                <NGridItem v-for="template in quickTemplates" :key="template.id">
+                  <NCard 
+                    :size="cardSize" 
+                    embedded 
+                    hoverable
+                    class="template-card"
+                    role="button"
+                    :aria-label="aria.getLabel('templateCard', template.name)"
+                    tabindex="0"
+                    @click="handleTemplatePreview(template)"
+                    @keydown.enter="handleTemplatePreview(template)"
+                    @keydown.space.prevent="handleTemplatePreview(template)"
+                  >
+                    <template #header>
+                      <NSpace justify="space-between" align="center">
+                        <NSpace align="center" :size="4">
+                          <NTag :size="tagSize" round type="primary">
+                            {{ template.name }}
+                          </NTag>
+                          <NTag v-if="template.messages" :size="tagSize" type="info">
+                            {{ template.messages.length }} 条消息
+                          </NTag>
                         </NSpace>
-                      </div>
-                      <NText v-if="template.messages.length > 2" depth="3" class="text-xs mt-1">
-                        {{ t('contextEditor.moreMessages', { count: template.messages.length - 2 }) }}
+                        <NSpace :size="4">
+                          <NButton
+                            @click.stop="handleTemplatePreview(template)"
+                            :size="buttonSize"
+                            quaternary
+                            circle
+                            :title="t('common.preview') || '预览'"
+                          >
+                            <template #icon>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </template>
+                          </NButton>
+                          <NButton
+                            @click.stop="handleTemplateApply(template)"
+                            :size="buttonSize"
+                            type="primary"
+                            circle
+                            :title="t('contextEditor.applyTemplate')"
+                            :disabled="disabled"
+                          >
+                            <template #icon>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </template>
+                          </NButton>
+                        </NSpace>
+                      </NSpace>
+                    </template>
+                    
+                    <div class="template-content">
+                      <NText depth="3" class="template-description">
+                        {{ template.description || t('contextEditor.noDescription') }}
                       </NText>
+                      
+                      <!-- 模板消息预览 -->
+                      <div v-if="template.messages && template.messages.length > 0" class="template-preview mt-3">
+                        <div 
+                          v-for="(message, index) in template.messages.slice(0, 2)" 
+                          :key="`preview-${index}`"
+                          class="preview-message"
+                        >
+                          <NSpace align="center" :size="4" class="mb-1">
+                            <NTag :size="tagSize" round>{{ getRoleLabel(message.role) }}</NTag>
+                            <NText depth="3" class="text-xs">
+                              {{ message.content.length > 40 ? message.content.substring(0, 40) + '...' : message.content }}
+                            </NText>
+                          </NSpace>
+                        </div>
+                        <NText v-if="template.messages.length > 2" depth="3" class="text-xs mt-1">
+                          {{ t('contextEditor.moreMessages', { count: template.messages.length - 2 }) }}
+                        </NText>
+                      </div>
                     </div>
-                  </div>
-                </NCard>
-              </NGridItem>
-            </NGrid>
+                  </NCard>
+                </NGridItem>
+              </NGrid>
+            </NScrollbar>
           </div>
         </NTabPane>
 
@@ -651,6 +653,57 @@
             {{ t('common.save') }}
           </NButton>
         </NSpace>
+      </NSpace>
+    </template>
+  </NModal>
+
+  <!-- 模板预览弹窗 -->
+  <NModal
+    v-model:show="showTemplatePreview"
+    preset="card"
+    :title="previewTemplate?.name || t('common.preview') || '模板详情'"
+    :mask-closable="true"
+    :style="previewModalStyle"
+  >
+    <div>
+      <NText depth="3" class="mb-2 block">
+        {{ previewTemplate?.description || t('contextEditor.noDescription') || '无描述' }}
+      </NText>
+
+      <NAlert v-if="!previewTemplate" type="warning" :show-icon="false" class="mb-2">
+        {{ t('contextEditor.noTemplates') || '暂无模板' }}
+      </NAlert>
+
+      <NScrollbar v-else :style="scrollbarStyle">
+        <NList hoverable clickable>
+          <NListItem v-for="(msg, idx) in previewTemplate.messages" :key="`msg-${idx}`">
+            <NCard :size="cardSize" embedded>
+              <NSpace align="center" :size="8" class="mb-2">
+                <NTag :size="tagSize" round type="info">{{ getRoleLabel(msg.role) }}</NTag>
+                <NText depth="3">#{{ idx + 1 }}</NText>
+              </NSpace>
+              <div class="preview-content">
+                <NText>{{ msg.content }}</NText>
+              </div>
+            </NCard>
+          </NListItem>
+        </NList>
+      </NScrollbar>
+    </div>
+
+    <template #action>
+      <NSpace justify="end">
+        <NButton @click="showTemplatePreview = false" :size="buttonSize">
+          {{ t('common.close') || '关闭' }}
+        </NButton>
+        <NButton
+          type="primary"
+          :size="buttonSize"
+          :disabled="!previewTemplate || disabled"
+          @click="previewTemplate && (handleTemplateApply(previewTemplate), showTemplatePreview = false)"
+        >
+          {{ t('contextEditor.applyTemplate') || '应用模板' }}
+        </NButton>
       </NSpace>
     </template>
   </NModal>
@@ -985,6 +1038,7 @@ import { useDebounceThrottle } from '../composables/useDebounceThrottle'
 import { useAccessibility } from '../composables/useAccessibility'
 import { useContextEditor } from '../composables/useContextEditor'
 import { quickTemplateManager } from '../data/quickTemplates'
+import type { QuickTemplateDefinition } from '../data/quickTemplates'
 import type { ContextEditorProps, ContextEditorEvents } from '../types/components'
 import type { ContextEditorState, ConversationMessage, ToolDefinition } from '@prompt-optimizer/core'
 import { PREDEFINED_VARIABLES } from '../types/variable'
@@ -1052,6 +1106,10 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 // 变量值输入框引用（用于自动聚焦）
 const variableValueInputRef = ref(null)
 
+// 模板预览状态
+const showTemplatePreview = ref(false)
+const previewTemplate = ref<QuickTemplateDefinition | null>(null)
+
 // 使用shallowRef优化深度对象
 const localState = shallowRef<ContextEditorState>({
   messages: [],
@@ -1093,6 +1151,12 @@ const inputSize = computed(() => {
 const modalStyle = computed(() => ({
   width: modalWidth.value,
   height: isMobile.value ? '95vh' : (props.height || '85vh')
+}))
+
+// 模板预览弹窗尺寸（限制宽度，移动端占满宽度）
+const previewModalStyle = computed(() => ({
+  width: isMobile.value ? '95vw' : '840px',
+  maxWidth: '95vw'
 }))
 
 const scrollbarStyle = computed(() => ({
@@ -1398,9 +1462,9 @@ const togglePreview = throttle((index: number) => {
 // 工具管理方法 - 实际实现在后面
 
 // 模板管理方法
-const handleTemplatePreview = (template: any) => {
-  // TODO: 实现模板预览功能
-  console.log('Preview template:', template.name)
+const handleTemplatePreview = (template: QuickTemplateDefinition) => {
+  previewTemplate.value = template
+  showTemplatePreview.value = true
 }
 
 const handleTemplateApply = (template: any) => {
