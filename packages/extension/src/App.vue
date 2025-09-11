@@ -297,7 +297,7 @@
         v-if="isReady"
         v-model:visible="showContextEditor"
         :state="contextEditorState"
-        :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
+        :available-variables="variableManager?.allVariables.value || {}"
         :optimization-mode="selectedOptimizationMode"
         :scan-variables="(content) => variableManager?.variableManager.value?.scanVariablesInContent(content) || []"
         :replace-variables="(content, vars) => variableManager?.variableManager.value?.replaceVariables(content, vars) || content"
@@ -475,29 +475,31 @@ hljs.registerLanguage('json', jsonLang)
   // 优化阶段上下文状态
   const optimizationContext = ref<ConversationMessage[]>([])
   const optimizationContextTools = ref<any[]>([])  // 🆕 添加工具状态
-  
+  // 标记是否已从持久化仓库加载过上下文（用于区分 null vs [] 语义）
+  const isContextLoaded = ref(false)
+
   // 变量管理器实例
   const variableManager = useVariableManager(services as any)
-  
+
   // 上下文持久化状态
   const currentContextId = ref<string | null>(null)
   const contextRepo = computed(() => services.value?.contextRepo)
-  
+
   // 初始化上下文持久化
   const initializeContextPersistence = async () => {
     if (!contextRepo.value) return
-    
+
     try {
       // 获取当前上下文ID
       currentContextId.value = await contextRepo.value.getCurrentId()
-      
+
       if (currentContextId.value) {
         // 加载当前上下文
         const context = await contextRepo.value.get(currentContextId.value)
         if (context) {
           optimizationContext.value = [...context.messages]
           optimizationContextTools.value = [...(context.tools || [])]
-          
+
           // 🚫 移除全局变量同步 - 上下文变量不应污染全局变量库
           // 上下文变量应该只存在于上下文中，通过上下文编辑器进行管理
           // 这里只需要加载消息和工具，变量在上下文编辑器中自动获取
@@ -505,9 +507,12 @@ hljs.registerLanguage('json', jsonLang)
       }
     } catch (error) {
       console.warn('[App] Failed to initialize context persistence:', error)
+    } finally {
+      // 无论成功失败，都认为已完成一次初始化尝试
+      isContextLoaded.value = true
     }
   }
-  
+
   // 持久化上下文更新（轻度节流）
   let persistContextUpdateTimer: NodeJS.Timeout | null = null
   const persistContextUpdate = async (patch: {
@@ -516,12 +521,12 @@ hljs.registerLanguage('json', jsonLang)
     tools?: any[]
   }) => {
     if (!contextRepo.value || !currentContextId.value) return
-    
+
     // 清除之前的定时器
     if (persistContextUpdateTimer) {
       clearTimeout(persistContextUpdateTimer)
     }
-    
+
     // 设置新的节流定时器（300ms延迟）
     persistContextUpdateTimer = setTimeout(async () => {
       try {
@@ -532,11 +537,11 @@ hljs.registerLanguage('json', jsonLang)
       }
     }, 300)
   }
-  
+
   const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
     return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
   });
-  
+
   // 变量管理处理函数
   const handleCreateVariable = (name: string, defaultValue?: string) => {
     // 创建新变量并打开变量管理器
@@ -546,7 +551,7 @@ hljs.registerLanguage('json', jsonLang)
     focusVariableName.value = name
     showVariableManager.value = true
   }
-  
+
   const handleOpenVariableManager = (variableName?: string) => {
     // 打开变量管理器并聚焦到指定变量
     if (variableName) {
@@ -554,12 +559,30 @@ hljs.registerLanguage('json', jsonLang)
     }
     showVariableManager.value = true
   }
-  
+
   // 打开上下文编辑器
   const handleOpenContextEditor = async (messages?: ConversationMessage[], variables?: Record<string, string>) => {
+    // 确保全局变量已加载并刷新（避免初次为空）
+    try {
+      await variableManager?.refresh?.()
+    } catch (e) {
+      console.warn('[App] Variable manager refresh failed (non-blocking):', e)
+    }
+    // 若首次加载（未完成持久化加载）且高级模式开启且当前无会话消息，按模式灌入默认模板
+    if (advancedModeEnabled.value && !isContextLoaded.value && (!optimizationContext.value || optimizationContext.value.length === 0)) {
+      try {
+        const defaultTemplate = quickTemplateManager.getTemplate(selectedOptimizationMode.value, 'default')
+        if (defaultTemplate?.messages?.length) {
+          optimizationContext.value = [...defaultTemplate.messages]
+          console.log(`[App] Auto-filled default template for ${selectedOptimizationMode.value} on first open of ContextEditor`)
+        }
+      } catch (e) {
+        console.warn('[App] Failed to auto-fill default template on editor open:', e)
+      }
+    }
     // 🔧 修复：从 contextRepo 读取真正的上下文变量，避免全局变量污染
     let contextVariables: Record<string, string> = {}
-    
+
     if (contextRepo.value && currentContextId.value) {
       try {
         const context = await contextRepo.value.get(currentContextId.value)
@@ -569,7 +592,7 @@ hljs.registerLanguage('json', jsonLang)
         console.warn('[App] Failed to load context variables:', error)
       }
     }
-    
+
     // 设置初始状态 - 只使用上下文本身的变量
     contextEditorState.value = {
       messages: messages || [...optimizationContext.value],
@@ -581,51 +604,58 @@ hljs.registerLanguage('json', jsonLang)
     }
     showContextEditor.value = true
   }
-  
+
   // 处理上下文编辑器保存
   const handleContextEditorSave = async (context: { messages: ConversationMessage[], variables: Record<string, string>, tools: any[] }) => {
     // 更新优化上下文
     optimizationContext.value = [...context.messages]
     optimizationContextTools.value = [...context.tools]  // 🆕 保存工具状态
-    
+
     // 🚫 移除全局变量更新 - 上下文变量不应污染全局变量库
     // 上下文变量应该只存在于上下文中，通过 persistContextUpdate 持久化到 contextRepo
-    
+
     // 持久化到contextRepo
     await persistContextUpdate({
       messages: context.messages,
       variables: context.variables,
       tools: context.tools
     })
-    
+
     // 关闭编辑器
     showContextEditor.value = false
-    
+
     // 显示成功提示
     useToast().success('上下文已更新')
   }
-  
+
   // 处理上下文编辑器实时状态更新
   const handleContextEditorStateUpdate = async (state: { messages: ConversationMessage[], variables: Record<string, string>, tools: any[] }) => {
     // 实时同步状态到contextEditorState
     contextEditorState.value = { ...contextEditorState.value, ...state }
-    
+
     // 实时更新优化上下文（保持轻量级Manager的数据同步）
     optimizationContext.value = [...state.messages]
     optimizationContextTools.value = [...(state.tools || [])]  // 🆕 同步工具状态
-    
+
     // 🚫 移除全局变量更新 - 上下文变量不应污染全局变量库
     // 上下文变量应该只存在于上下文中，通过 persistContextUpdate 持久化到 contextRepo
-    
+
     // 实时持久化（节流处理在persistContextUpdate中处理）
     await persistContextUpdate({
       messages: state.messages,
       variables: state.variables,
       tools: state.tools
     })
-    
+
     console.log('[App] Context editor state synchronized and persisted in real-time')
   }
+
+  // 监听主界面上下文管理器（ConversationManager）的消息变更，自动持久化
+  watch(optimizationContext, async (newMessages) => {
+    // 避免与全屏编辑器重复持久化（全屏编辑器已有专属持久化逻辑）
+    if (showContextEditor.value) return
+    await persistContextUpdate({ messages: newMessages })
+  }, { deep: true })
   
   // 6. 在顶层调用所有 Composables
   // 模型选择器引用管理

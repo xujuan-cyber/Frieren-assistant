@@ -297,7 +297,7 @@
         v-if="isReady"
         v-model:visible="showContextEditor"
         :state="contextEditorState"
-        :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
+        :available-variables="variableManager?.allVariables.value || {}"
         :optimization-mode="selectedOptimizationMode"
         :scan-variables="(content) => variableManager?.variableManager.value?.scanVariablesInContent(content) || []"
         :replace-variables="(content, vars) => variableManager?.variableManager.value?.replaceVariables(content, vars) || content"
@@ -475,6 +475,8 @@ hljs.registerLanguage('json', jsonLang)
   // 优化阶段上下文状态
   const optimizationContext = ref<ConversationMessage[]>([])
   const optimizationContextTools = ref<any[]>([])  // 🆕 添加工具状态
+  // 标记是否已从持久化仓库加载过上下文（用于区分 null vs [] 语义）
+  const isContextLoaded = ref(false)
   
   // 变量管理器实例
   const variableManager = useVariableManager(services as any)
@@ -505,6 +507,9 @@ hljs.registerLanguage('json', jsonLang)
       }
     } catch (error) {
       console.warn('[App] Failed to initialize context persistence:', error)
+    } finally {
+      // 无论成功失败，都认为已完成一次初始化尝试
+      isContextLoaded.value = true
     }
   }
   
@@ -557,6 +562,24 @@ hljs.registerLanguage('json', jsonLang)
   
   // 打开上下文编辑器
   const handleOpenContextEditor = async (messages?: ConversationMessage[], variables?: Record<string, string>) => {
+    // 确保全局变量已加载并刷新（避免初次为空）
+    try {
+      await variableManager?.refresh?.()
+    } catch (e) {
+      console.warn('[App] Variable manager refresh failed (non-blocking):', e)
+    }
+    // 若首次加载（未完成持久化加载）且高级模式开启且当前无会话消息，按模式灌入默认模板
+    if (advancedModeEnabled.value && !isContextLoaded.value && (!optimizationContext.value || optimizationContext.value.length === 0)) {
+      try {
+        const defaultTemplate = quickTemplateManager.getTemplate(selectedOptimizationMode.value, 'default')
+        if (defaultTemplate?.messages?.length) {
+          optimizationContext.value = [...defaultTemplate.messages]
+          console.log(`[App] Auto-filled default template for ${selectedOptimizationMode.value} on first open of ContextEditor`)
+        }
+      } catch (e) {
+        console.warn('[App] Failed to auto-fill default template on editor open:', e)
+      }
+    }
     // 🔧 修复：从 contextRepo 读取真正的上下文变量，避免全局变量污染
     let contextVariables: Record<string, string> = {}
     
@@ -626,6 +649,13 @@ hljs.registerLanguage('json', jsonLang)
     
     console.log('[App] Context editor state synchronized and persisted in real-time')
   }
+
+  // 监听主界面上下文管理器（ConversationManager）的消息变更，自动持久化
+  watch(optimizationContext, async (newMessages) => {
+    // 避免与全屏编辑器重复持久化（全屏编辑器已有专属持久化逻辑）
+    if (showContextEditor.value) return
+    await persistContextUpdate({ messages: newMessages })
+  }, { deep: true })
   
   // 6. 在顶层调用所有 Composables
   // 模型选择器引用管理

@@ -424,14 +424,14 @@
                   </NTag>
                 </NSpace>
                 <NTag :size="tagSize" type="warning" v-if="availableVariables">
-                  {{ t('contextEditor.globalVariables', { count: Object.keys(availableVariables || {}).length }) }}
+                  {{ t('contextEditor.globalVariables', { count: globalCustomVariableCount }) }}
                 </NTag>
               </NSpace>
             </NCard>
 
             <!-- 变量列表 -->
             <NEmpty 
-              v-if="Object.keys(localState.variables).length === 0 && (!availableVariables || Object.keys(availableVariables).length === 0)" 
+              v-if="Object.keys(localState.variables).length === 0 && (!availableVariables || globalCustomVariableCount === 0)" 
               :description="t('contextEditor.noVariables')"
               role="status"
               :aria-label="aria.getLabel('emptyVariables')"
@@ -1172,6 +1172,18 @@ const variableCount = computed(() => {
     detected.forEach(v => variables.add(v))
   })
   return variables.size
+})
+
+// 仅统计“全局自定义变量”（排除预定义变量），用于避免“全局7”的误导
+const globalCustomVariableCount = computed(() => {
+  const available = props.availableVariables || {}
+  let count = 0
+  for (const name of Object.keys(available)) {
+    if (!PREDEFINED_VARIABLES.includes(name as any)) {
+      count++
+    }
+  }
+  return count
 })
 
 const roleOptions = computed(() => [
