@@ -910,6 +910,7 @@ export default {
     deleteContextVariableConfirm: 'Are you sure you want to delete context variable "{name}"? It will revert to global value.',
     contextVariableDeleted: 'Context variable deleted: {name}',
     variableSource: 'Variable Source',
+    variableStatus: 'Status',
     contextOverride: 'Context Override',
     globalVariable: 'Global Variable',
     predefinedVariable: 'Predefined Variable',

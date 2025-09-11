@@ -911,6 +911,7 @@
     deleteContextVariableConfirm: '确定要删除上下文变量"{name}"吗？删除后将回退到全局值。',
     contextVariableDeleted: '已删除上下文变量：{name}',
     variableSource: '变量来源',
+    variableStatus: '状态',
     contextOverride: '上下文覆盖',
     globalVariable: '全局变量',
     predefinedVariable: '预定义变量',
