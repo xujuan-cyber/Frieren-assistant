@@ -488,21 +488,154 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     },
-    optimizePromptStream: async (request, streamId) => {
+    // 统一的流式封装（与 llm.sendMessageStream 同模式）
+    optimizePromptStream: async (request, callbacks) => {
+      const streamId = generateStreamId();
+
+      const tokenListener = (event, token) => {
+        if (callbacks?.onToken) callbacks.onToken(token);
+      };
+      const reasoningListener = (event, token) => {
+        if (callbacks?.onReasoningToken) callbacks.onReasoningToken(token);
+      };
+      const finishListener = () => {
+        cleanup();
+        if (callbacks?.onComplete) callbacks.onComplete();
+      };
+      const errorListener = (event, error) => {
+        cleanup();
+        if (callbacks?.onError) callbacks.onError(new Error(error));
+      };
+
+      const cleanup = () => {
+        ipcRenderer.removeListener(`stream-token-${streamId}`, tokenListener);
+        ipcRenderer.removeListener(`stream-reasoning-token-${streamId}`, reasoningListener);
+        ipcRenderer.removeListener(`stream-finish-${streamId}`, finishListener);
+        ipcRenderer.removeListener(`stream-error-${streamId}`, errorListener);
+      };
+
+      ipcRenderer.on(`stream-token-${streamId}`, tokenListener);
+      ipcRenderer.on(`stream-reasoning-token-${streamId}`, reasoningListener);
+      ipcRenderer.on(`stream-finish-${streamId}`, finishListener);
+      ipcRenderer.on(`stream-error-${streamId}`, errorListener);
+
       const result = await ipcRenderer.invoke('prompt-optimizePromptStream', request, streamId);
       if (!result.success) {
+        cleanup();
         throw new Error(result.error);
       }
     },
-    iteratePromptStream: async (originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, streamId) => {
+    iteratePromptStream: async (originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, callbacks) => {
+      const streamId = generateStreamId();
+
+      const tokenListener = (event, token) => {
+        if (callbacks?.onToken) callbacks.onToken(token);
+      };
+      const reasoningListener = (event, token) => {
+        if (callbacks?.onReasoningToken) callbacks.onReasoningToken(token);
+      };
+      const finishListener = () => {
+        cleanup();
+        if (callbacks?.onComplete) callbacks.onComplete();
+      };
+      const errorListener = (event, error) => {
+        cleanup();
+        if (callbacks?.onError) callbacks.onError(new Error(error));
+      };
+
+      const cleanup = () => {
+        ipcRenderer.removeListener(`stream-token-${streamId}`, tokenListener);
+        ipcRenderer.removeListener(`stream-reasoning-token-${streamId}`, reasoningListener);
+        ipcRenderer.removeListener(`stream-finish-${streamId}`, finishListener);
+        ipcRenderer.removeListener(`stream-error-${streamId}`, errorListener);
+      };
+
+      ipcRenderer.on(`stream-token-${streamId}`, tokenListener);
+      ipcRenderer.on(`stream-reasoning-token-${streamId}`, reasoningListener);
+      ipcRenderer.on(`stream-finish-${streamId}`, finishListener);
+      ipcRenderer.on(`stream-error-${streamId}`, errorListener);
+
       const result = await ipcRenderer.invoke('prompt-iteratePromptStream', originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, streamId);
       if (!result.success) {
+        cleanup();
         throw new Error(result.error);
       }
     },
-    testPromptStream: async (systemPrompt, userPrompt, modelKey, streamId) => {
+    testPromptStream: async (systemPrompt, userPrompt, modelKey, callbacks) => {
+      const streamId = generateStreamId();
+
+      const tokenListener = (event, token) => {
+        if (callbacks?.onToken) callbacks.onToken(token);
+      };
+      const reasoningListener = (event, token) => {
+        if (callbacks?.onReasoningToken) callbacks.onReasoningToken(token);
+      };
+      const finishListener = () => {
+        cleanup();
+        if (callbacks?.onComplete) callbacks.onComplete();
+      };
+      const errorListener = (event, error) => {
+        cleanup();
+        if (callbacks?.onError) callbacks.onError(new Error(error));
+      };
+
+      const cleanup = () => {
+        ipcRenderer.removeListener(`stream-token-${streamId}`, tokenListener);
+        ipcRenderer.removeListener(`stream-reasoning-token-${streamId}`, reasoningListener);
+        ipcRenderer.removeListener(`stream-finish-${streamId}`, finishListener);
+        ipcRenderer.removeListener(`stream-error-${streamId}`, errorListener);
+      };
+
+      ipcRenderer.on(`stream-token-${streamId}`, tokenListener);
+      ipcRenderer.on(`stream-reasoning-token-${streamId}`, reasoningListener);
+      ipcRenderer.on(`stream-finish-${streamId}`, finishListener);
+      ipcRenderer.on(`stream-error-${streamId}`, errorListener);
+
       const result = await ipcRenderer.invoke('prompt-testPromptStream', systemPrompt, userPrompt, modelKey, streamId);
       if (!result.success) {
+        cleanup();
+        throw new Error(result.error);
+      }
+    },
+    // 自定义会话测试（支持工具调用）
+    testCustomConversationStream: async (request, callbacks) => {
+      const streamId = generateStreamId();
+
+      const tokenListener = (event, token) => {
+        if (callbacks?.onToken) callbacks.onToken(token);
+      };
+      const reasoningListener = (event, token) => {
+        if (callbacks?.onReasoningToken) callbacks.onReasoningToken(token);
+      };
+      const toolCallListener = (event, toolCall) => {
+        if (callbacks?.onToolCall) callbacks.onToolCall(toolCall);
+      };
+      const finishListener = () => {
+        cleanup();
+        if (callbacks?.onComplete) callbacks.onComplete();
+      };
+      const errorListener = (event, error) => {
+        cleanup();
+        if (callbacks?.onError) callbacks.onError(new Error(error));
+      };
+
+      const cleanup = () => {
+        ipcRenderer.removeListener(`stream-token-${streamId}`, tokenListener);
+        ipcRenderer.removeListener(`stream-reasoning-token-${streamId}`, reasoningListener);
+        ipcRenderer.removeListener(`stream-tool-call-${streamId}`, toolCallListener);
+        ipcRenderer.removeListener(`stream-finish-${streamId}`, finishListener);
+        ipcRenderer.removeListener(`stream-error-${streamId}`, errorListener);
+      };
+
+      ipcRenderer.on(`stream-token-${streamId}`, tokenListener);
+      ipcRenderer.on(`stream-reasoning-token-${streamId}`, reasoningListener);
+      ipcRenderer.on(`stream-tool-call-${streamId}`, toolCallListener);
+      ipcRenderer.on(`stream-finish-${streamId}`, finishListener);
+      ipcRenderer.on(`stream-error-${streamId}`, errorListener);
+
+      const result = await ipcRenderer.invoke('prompt-testCustomConversationStream', request, streamId);
+      if (!result.success) {
+        cleanup();
         throw new Error(result.error);
       }
     },

@@ -375,11 +375,11 @@ async function initializeServices() {
     console.log('[DESKTOP] Creating Prompt service...');
     promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
     
-    console.log('[DESKTOP] Creating Data manager...');
-    dataManager = createDataManager(modelManager, templateManager, historyManager, preferenceService);
-    
     console.log('[DESKTOP] Creating Context repository...');
     contextRepo = createContextRepo(storageProvider);
+
+    console.log('[DESKTOP] Creating Data manager...');
+    dataManager = createDataManager(modelManager, templateManager, historyManager, preferenceService, contextRepo);
     
     console.log('[Main Process] Core services initialized successfully.');
     
@@ -602,6 +602,12 @@ function setupIPC() {
         window.webContents.send(`stream-reasoning-token-${streamId}`, token);
       }
     },
+    onToolCall: (toolCall) => {
+      // 工具调用事件单独通道
+      if (window && !window.isDestroyed()) {
+        window.webContents.send(`stream-tool-call-${streamId}`, toolCall);
+      }
+    },
     onComplete: () => {
       if (window && !window.isDestroyed()) {
         window.webContents.send(`stream-finish-${streamId}`);
@@ -640,6 +646,18 @@ function setupIPC() {
     const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
     try {
       await promptService.testPromptStream(systemPrompt, userPrompt, modelKey, streamHandlers);
+      return createSuccessResponse(null);
+    } catch (error) {
+      streamHandlers.onError(error);
+      return createErrorResponse(error);
+    }
+  });
+
+  // 自定义会话测试（支持工具、变量、对话消息）
+  ipcMain.handle('prompt-testCustomConversationStream', async (event, request, streamId) => {
+    const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
+    try {
+      await promptService.testCustomConversationStream(request, streamHandlers);
       return createSuccessResponse(null);
     } catch (error) {
       streamHandlers.onError(error);
