@@ -135,166 +135,114 @@
           <NListItem
             v-for="(message, index) in messages"
             :key="`message-${index}`"
+            style="padding: 0;"
           >
-            <NCard :size="cardSize" embedded>
-              <template #header>
-                <NSpace justify="space-between" align="center">
-                  <NSpace align="center" :size="4">
-                    <!-- 消息序号 -->
-                    <NTag :size="tagSize" round>
-                      {{ index + 1 }}
-                    </NTag>
-
-                    <!-- 角色标签 -->
-                    <NTag
-                      :size="tagSize"
-                      :type="getRoleTagType(message.role)"
-                    >
+            <NCard :size="cardSize" embedded :bordered="false" content-style="padding: 0;">
+              <div class="cm-row">
+                <!-- 角色标签（小号，单行布局） -->
+                <NSpace align="center" :size="4" class="left">
+                  <NDropdown
+                    trigger="click"
+                    :options="roleOptions"
+                    placement="bottom-start"
+                    @select="(key) => handleRoleSelect(index, key as 'system'|'user'|'assistant')"
+                  >
+                    <NTag :size="tagSize" :type="getRoleTagType(message.role)" class="clickable-tag">
                       {{ t(`conversation.roles.${message.role}`) }}
                     </NTag>
-                  </NSpace>
-
-                  <!-- 消息操作按钮 -->
-                  <NSpace v-if="!readonly" :size="4">
-                    <NButton
-                      v-if="index > 0"
-                      @click="handleMoveMessage(index, -1)"
-                      :size="buttonSize"
-                      quaternary
-                      circle
-                      :title="t('common.moveUp')"
-                    >
-                      <template #icon>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                        </svg>
-                      </template>
-                    </NButton>
-
-                    <NButton
-                      v-if="index < messages.length - 1"
-                      @click="handleMoveMessage(index, 1)"
-                      :size="buttonSize"
-                      quaternary
-                      circle
-                      :title="t('common.moveDown')"
-                    >
-                      <template #icon>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </template>
-                    </NButton>
-
-                    <NButton
-                      @click="handleDeleteMessage(index)"
-                      :size="buttonSize"
-                      quaternary
-                      circle
-                      type="error"
-                      :title="t('common.delete')"
-                    >
-                      <template #icon>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </template>
-                    </NButton>
-                  </NSpace>
+                  </NDropdown>
                 </NSpace>
-              </template>
 
-              <!-- 消息内容 -->
-              <div class="message-content">
-                <NInput
-                  v-if="!readonly"
-                  :value="message.content"
-                  @update:value="(value) => handleMessageUpdate(index, { ...message, content: value })"
-                  type="textarea"
-                  :placeholder="t(`conversation.placeholders.${message.role}`)"
-                  :autosize="getAutosizeConfig(message.content)"
-                  :size="inputSize"
-                />
-                <NText v-else>
-                  {{ message.content }}
-                </NText>
-
-                <!-- 变量信息统计和缺失变量提示 -->
-                <div v-if="!readonly && safeGetMessageVariables(message.content).detected.length > 0" class="mt-2">
-                  <!-- 变量统计标签 -->
-                  <NSpace size="small" align="center" wrap class="mb-2">
-                    <NTag :size="tagSize" type="info">
-                      <template #icon>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                        </svg>
-                      </template>
-                      变量: {{ safeGetMessageVariables(message.content).detected.length }}
-                    </NTag>
-                    <NTag 
-                      v-if="safeGetMessageVariables(message.content).missing.length > 0" 
-                      :size="tagSize" 
-                      type="warning"
-                    >
-                      <template #icon>
-                        <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.19-1.458-1.515-2.625L8.485 2.495z" clip-rule="evenodd"/>
-                        </svg>
-                      </template>
-                      缺失: {{ safeGetMessageVariables(message.content).missing.length }}
-                    </NTag>
-                  </NSpace>
-                  
-                  <!-- 缺失变量的快速创建按钮 -->
-                  <NSpace v-if="safeGetMessageVariables(message.content).missing.length > 0" size="small" align="center" wrap>
-                    <NButton
-                      v-for="varName in safeGetMessageVariables(message.content).missing.slice(0, 2)"
-                      :key="`missing-${index}-${varName}`"
-                      :size="tagSize === 'small' ? 'tiny' : 'small'"
-                      text
-                      type="warning"
-                      :title="t('conversation.clickToCreateVariable') || '点击创建变量'"
-                      @click="handleCreateVariable(varName)"
-                    >
-                      {{ varName }}
-                    </NButton>
-                    <NTag v-if="safeGetMessageVariables(message.content).missing.length > 2" :size="tagSize" type="warning">
-                      +{{ safeGetMessageVariables(message.content).missing.length - 2 }}
-                    </NTag>
-                    <NButton size="tiny" quaternary @click="emit('openVariableManager')">
-                      {{ t('variables.management.title') || '变量管理' }}
-                    </NButton>
-                  </NSpace>
+                <!-- 内容输入，单行自增高 -->
+                <div class="content">
+                  <NInput
+                    v-if="!readonly"
+                    :value="message.content"
+                    @update:value="(value) => handleMessageUpdate(index, { ...message, content: value })"
+                    type="textarea"
+                    :placeholder="t(`conversation.placeholders.${message.role}`)"
+                    :autosize="{ minRows: 1, maxRows: 1 }"
+                    :resizable="false"
+                    :size="inputSize"
+                    :style="{ width: '100%' }"
+                  />
+                  <NText v-else>{{ message.content }}</NText>
                 </div>
+
+                <!-- 操作按钮（上/下/删） -->
+                <NSpace v-if="!readonly" :size="4" class="actions">
+                  <NButton
+                    v-if="index > 0"
+                    @click="handleMoveMessage(index, -1)"
+                    :size="buttonSize"
+                    quaternary
+                    circle
+                    :title="t('common.moveUp')"
+                  >
+                    <template #icon>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      </svg>
+                    </template>
+                  </NButton>
+
+                  <NButton
+                    v-if="index < messages.length - 1"
+                    @click="handleMoveMessage(index, 1)"
+                    :size="buttonSize"
+                    quaternary
+                    circle
+                    :title="t('common.moveDown')"
+                  >
+                    <template #icon>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </template>
+                  </NButton>
+
+                  <NButton
+                    @click="handleDeleteMessage(index)"
+                    :size="buttonSize"
+                    quaternary
+                    circle
+                    type="error"
+                    :title="t('common.delete')"
+                  >
+                    <template #icon>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </template>
+                  </NButton>
+                </NSpace>
               </div>
             </NCard>
           </NListItem>
         </NList>
 
-        <!-- 添加消息按钮 -->
-        <div v-if="!readonly" class="mt-4">
-          <NCard :size="cardSize" embedded dashed>
-            <NSpace justify="center">
-              <NDropdown
-                :options="addMessageOptions"
-                @select="handleAddMessageWithRole"
+        <!-- 添加消息按钮（去边框、去额外内边距） -->
+        <div v-if="!readonly" class="mt-4 add-row">
+          <NSpace justify="center">
+            <NDropdown
+              :options="addMessageOptions"
+              @select="handleAddMessageWithRole"
+            >
+              <NButton
+                :size="buttonSize"
+                dashed
+                type="primary"
+                block
               >
-                <NButton
-                  :size="buttonSize"
-                  dashed
-                  type="primary"
-                  block
-                >
-                  <template #icon>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                  </template>
-                  {{ t('conversation.addMessage') }}
-                </NButton>
-              </NDropdown>
-            </NSpace>
-          </NCard>
+                <template #icon>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </template>
+                {{ t('conversation.addMessage') }}
+              </NButton>
+            </NDropdown>
+          </NSpace>
         </div>
       </NScrollbar>
     </div>
@@ -401,6 +349,13 @@ const allMissingVariables = computed(() => {
   const available = props.availableVariables || {}
   return allUsedVariables.value.filter(name => available[name] === undefined)
 })
+
+// 角色切换下拉
+const roleOptions = computed(() => [
+  { label: t('conversation.roles.system'), key: 'system' },
+  { label: t('conversation.roles.user'), key: 'user' },
+  { label: t('conversation.roles.assistant'), key: 'assistant' }
+])
 
 // 添加消息的下拉菜单选项
 const addMessageOptions = computed(() => [
@@ -573,6 +528,17 @@ const handleOpenContextEditor = () => {
   emit('openContextEditor', [...props.messages], props.availableVariables)
 }
 
+// 角色切换
+const handleRoleSelect = (index: number, role: 'system' | 'user' | 'assistant') => {
+  const current = props.messages[index]
+  if (!current || current.role === role) return
+  const updated: ConversationMessage = { ...current, role }
+  const newMessages = [...props.messages]
+  newMessages[index] = updated
+  emit('update:messages', newMessages)
+  emit('messageChange', index, updated, 'update')
+}
+
 
 // 生命周期 - 使用批处理优化
 watch(() => props.messages, () => {
@@ -586,5 +552,36 @@ watch(() => props.messages, () => {
 /* Pure Naive UI implementation - no custom theme CSS needed */
 .conversation-manager {
   /* All styling handled by Naive UI components */
+}
+
+.cm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.cm-row .actions {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.cm-row:hover .actions {
+  opacity: 1;
+}
+
+.clickable-tag {
+  cursor: pointer;
+}
+
+.cm-row .left {
+  flex: 0 0 auto;
+}
+
+.cm-row .content {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 </style>

@@ -151,7 +151,7 @@
             </NCard>
             
             <!-- 组件 B: ConversationManager (使用v-show替代v-if避免组件频繁销毁重建) -->
-            <NCard v-show="advancedModeEnabled" :style="{ flexShrink: 0, minHeight: '150px', overflow: 'auto' }">
+            <NCard v-show="advancedModeEnabled" :style="{ flexShrink: 0, minHeight: '150px', overflow: 'auto' }" content-style="padding: 0;">
               <ConversationManager
                 v-model:messages="optimizationContext"
                 :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"
@@ -164,7 +164,7 @@
                 :max-height="300"
               />
             </NCard>
-            
+
             <!-- 组件 C: PromptPanelUI -->
             <NCard :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
             content-style="height: 100%; max-height: 100%; overflow: hidden;"
@@ -189,7 +189,7 @@
               />
             </NCard>
           </NFlex>
-  
+
           <!-- 右侧：测试区域 -->
           <NCard :style="{ flex: 1, overflow: 'auto', height: '100%' }"
             content-style="height: 100%; max-height: 100%; overflow: hidden;"
@@ -205,7 +205,7 @@
               :enable-compare-mode="true"
               :enable-fullscreen="true"
               :input-mode="responsiveLayout.recommendedInputMode.value"
-              :control-bar-layout="responsiveLayout.recommendedControlBarLayout.value" 
+              :control-bar-layout="responsiveLayout.recommendedControlBarLayout.value"
               :button-size="responsiveLayout.smartButtonSize.value"
               :conversation-max-height="responsiveLayout.responsiveHeights.value.conversationMax"
               :show-original-result="true"
@@ -223,7 +223,7 @@
                   @config="modelManager.showConfig = true"
                 />
               </template>
-    
+
               <!-- 原始结果插槽 -->
               <template #original-result>
                 <OutputDisplay
@@ -235,8 +235,8 @@
                   :style="{ height: '100%', minHeight: '0' }"
                 />
               </template>
-  
-              <!-- 优化结果插槽 -->  
+
+              <!-- 优化结果插槽 -->
               <template #optimized-result>
                 <OutputDisplay
                   :content="testResults.optimizedResult"
@@ -247,7 +247,7 @@
                   :style="{ height: '100%', minHeight: '0' }"
                 />
               </template>
-  
+
               <!-- 单一结果插槽 -->
               <template #single-result>
                 <OutputDisplay
@@ -264,7 +264,7 @@
         </NFlex>
         </template>
       </MainLayoutUI>
-  
+
       <!-- Modals and Drawers that are conditionally rendered -->
       <ModelManagerUI v-if="isReady" v-model:show="modelManager.showConfig" />
       <TemplateManagerUI
@@ -283,7 +283,7 @@
         @deleteChain="promptHistory.handleDeleteChain"
       />
       <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
-      
+
       <!-- 变量管理弹窗 -->
       <VariableManagerModal
         v-if="isReady"
@@ -307,15 +307,15 @@
         @cancel="showContextEditor = false"
         @open-variable-manager="handleOpenVariableManager"
       />
-  
+
       <!-- 关键：使用NGlobalStyle同步全局样式到body，消除CSS依赖 -->
       <NGlobalStyle />
-  
+
       <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
       </template>
     </NConfigProvider>
   </template>
-  
+
   <script setup lang="ts">
   import { ref, watch, provide, computed, shallowRef, toRef, nextTick } from 'vue'
   import { useI18n } from 'vue-i18n'
@@ -329,7 +329,7 @@ hljs.registerLanguage('json', jsonLang)
     LanguageSwitchDropdown, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
     ModelSelectUI, TemplateSelectUI, TestAreaPanel, UpdaterIcon, VariableManagerModal,
     ConversationManager, OutputDisplay, ContextEditor,
-  
+
     // Composables
     usePromptOptimizer,
     useToast,
@@ -343,29 +343,29 @@ hljs.registerLanguage('json', jsonLang)
     useNaiveTheme,
     useResponsiveTestLayout,
     useTestModeConfig,
-  
+
     // i18n functions
     initializeI18nWithStorage,
     setI18nServices,
-  
+
     // Types from UI package
     type OptimizationMode,
     type ConversationMessage,
-    
+
     // Quick Template Manager
     quickTemplateManager,
   } from '@prompt-optimizer/ui'
   import type { IPromptService } from '@prompt-optimizer/core'
-  
+
   // 1. 基础 composables
   // highlight.js for Naive NCode
   const hljsInstance = hljs
   const { t } = useI18n()
   // 移除全局toast实例，改为在需要时本地调用
-  
+
   // 2. 初始化应用服务
   const { services, isInitializing } = useAppInitializer()
-  
+
   // 3. Initialize i18n with storage when services are ready
   watch(services, async (newServices) => {
     if (newServices) {
@@ -374,18 +374,18 @@ hljs.registerLanguage('json', jsonLang)
       // 然后初始化语言设置
       await initializeI18nWithStorage()
       console.log('[Web] i18n initialized')
-      
+
       // 加载高级模式设置
       await loadAdvancedModeSetting()
     }
   }, { immediate: true })
-  
+
   // 4. 向子组件提供服务
   provide('services', services)
-  
+
   // 5. 控制主UI渲染的标志
   const isReady = computed(() => !!services.value && !isInitializing.value)
-  
+
   // 6. 创建所有必要的引用
   const promptService = shallowRef<IPromptService | null>(null)
   const selectedOptimizationMode = ref<OptimizationMode>('system')
@@ -394,44 +394,44 @@ hljs.registerLanguage('json', jsonLang)
   const testPanelRef = ref(null)
   const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
   const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
-  
+
   // 高级模式状态
   const advancedModeEnabled = ref(false)
-  
+
   // 测试内容状态 - 新增
   const testContent = ref('')
   const isCompareMode = ref(true)
-  
+
   // 测试结果状态管理
   const testResults = ref({
     // 原始提示词结果
     originalResult: '',
     originalReasoning: '',
     isTestingOriginal: false,
-    
+
     // 优化提示词结果
     optimizedResult: '',
     optimizedReasoning: '',
     isTestingOptimized: false,
-    
+
     // 单一结果模式
     singleResult: '',
     singleReasoning: '',
     isTestingSingle: false
   })
-  
+
   // 响应式布局和模式配置 - 新增
   const responsiveLayout = useResponsiveTestLayout()
   const testModeConfig = useTestModeConfig(selectedOptimizationMode)
-  
+
   // Naive UI 主题配置 - 使用新的主题系统
   const { naiveTheme, themeOverrides, initTheme } = useNaiveTheme()
-  
+
   // 初始化主题系统
   if (typeof window !== 'undefined') {
     initTheme()
   }
-  
+
   // 加载高级模式设置
   const loadAdvancedModeSetting = async () => {
     if (services.value?.preferenceService) {
@@ -444,7 +444,7 @@ hljs.registerLanguage('json', jsonLang)
       }
     }
   }
-  
+
   // 保存高级模式设置
   const saveAdvancedModeSetting = async (enabled: boolean) => {
     if (services.value?.preferenceService) {
@@ -456,11 +456,11 @@ hljs.registerLanguage('json', jsonLang)
       }
     }
   }
-  
+
   // 变量管理状态
   const showVariableManager = ref(false)
   const focusVariableName = ref<string | undefined>(undefined)
-  
+
   // 上下文编辑器状态
   const showContextEditor = ref(false)
   const contextEditorState = ref({
@@ -471,7 +471,7 @@ hljs.registerLanguage('json', jsonLang)
     showToolManager: false,
     mode: 'edit' as 'edit' | 'preview'
   })
-  
+
   // 优化阶段上下文状态
   const optimizationContext = ref<ConversationMessage[]>([])
   const optimizationContextTools = ref<any[]>([])  // 🆕 添加工具状态

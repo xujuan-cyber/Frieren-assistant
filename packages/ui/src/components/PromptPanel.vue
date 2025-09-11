@@ -8,7 +8,7 @@
     }"
   >
   <!-- 标题和按钮区域 -->
-    <NCard size="small" class="mb-3 flex-none" :style="{ maxHeight: '120px', overflow: 'visible' }">
+    <NCard size="small" :bordered="false" :segmented="false" class="flex-none" content-style="padding: 0;" :style="{ maxHeight: '120px', overflow: 'visible' }">
         <NFlex justify="space-between" align="flex-start" :wrap="false">
           <!-- 左侧：标题和版本 -->
           <NSpace vertical :size="8" class="flex-1 min-w-0">

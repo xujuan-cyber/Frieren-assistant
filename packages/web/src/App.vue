@@ -151,7 +151,7 @@
             </NCard>
             
             <!-- 组件 B: ConversationManager (使用v-show替代v-if避免组件频繁销毁重建) -->
-            <NCard v-show="advancedModeEnabled" :style="{ flexShrink: 0, minHeight: '150px', overflow: 'auto' }">
+            <NCard v-show="advancedModeEnabled" :style="{ flexShrink: 0, minHeight: '150px', overflow: 'auto' }" content-style="padding: 0;">
               <ConversationManager
                 v-model:messages="optimizationContext"
                 :available-variables="variableManager?.variableManager.value?.resolveAllVariables() || {}"

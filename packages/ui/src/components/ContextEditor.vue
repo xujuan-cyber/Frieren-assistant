@@ -7,7 +7,7 @@
     size="huge"
     :bordered="false"
     :segmented="false"
-    :mask-closable="false"
+    :mask-closable="true"
     :class="accessibilityClasses"
     role="dialog"
     :aria-label="aria.getLabel('contextEditor')"
