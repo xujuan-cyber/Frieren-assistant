@@ -956,6 +956,7 @@
     toolsCount: '{count} 个工具',
     title: '上下文编辑器',
     systemTemplates: '系统模板',
+    userTemplates: '用户模板',
     // Basic
     noMessages: '暂无消息',
     addFirstMessage: '添加您的第一条消息',

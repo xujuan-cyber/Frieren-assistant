@@ -938,6 +938,7 @@ export default {
     
     title: 'Context Editor',
     systemTemplates: 'System Templates',
+    userTemplates: 'User Templates',
     // Basic
     noMessages: 'No messages',
     addFirstMessage: 'Add your first message',
