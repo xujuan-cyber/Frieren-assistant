@@ -946,7 +946,7 @@ hljs.registerLanguage('json', jsonLang)
     }
   }
   
-  // 测试特定类型的提示词
+  // 测试特定类型的提示词（复用会话上下文 + 变量 + 工具）
   const testPromptWithType = async (type: 'original' | 'optimized') => {
     const isOriginal = type === 'original'
     const prompt = isOriginal ? optimizer.prompt : optimizer.optimizedPrompt
@@ -995,10 +995,11 @@ hljs.registerLanguage('json', jsonLang)
           useToast().error(`${type === 'original' ? '原始' : '优化'}提示词测试失败: ${errorMessage}`)
         }
       }
-  
+
+      // 统一构造对话与变量，尽量复用上下文
       let systemPrompt = ''
       let userPrompt = ''
-  
+
       if (selectedOptimizationMode.value === 'user') {
         // 用户提示词模式：提示词作为用户输入
         systemPrompt = ''
@@ -1008,49 +1009,48 @@ hljs.registerLanguage('json', jsonLang)
         systemPrompt = prompt
         userPrompt = testContent.value || '请按照你的角色设定，展示你的能力并与我互动。'
       }
-  
-      // 检查是否有工具需要传递（高级模式下）
-      if (advancedModeEnabled.value && optimizationContextTools.value.length > 0) {
-        // 🆕 使用支持工具的自定义会话测试
-        const messages = []
-        if (systemPrompt) {
-          messages.push({ role: 'system', content: systemPrompt })
-        }
-        messages.push({ role: 'user', content: userPrompt })
 
-        const request = {
+      const hasConversationContext = advancedModeEnabled.value && (optimizationContext.value?.length || 0) > 0
+      const hasTools = advancedModeEnabled.value && (optimizationContextTools.value?.length || 0) > 0
+
+      // 变量：合并变量库 + 当前提示词/问题（用于会话模板中的占位符）
+      const baseVars = (variableManager?.variableManager.value?.resolveAllVariables() || {}) as Record<string, string>
+      const variables = {
+        ...baseVars,
+        currentPrompt: prompt,
+        userQuestion: userPrompt
+      }
+
+      // 对话：优先复用会话上下文；若无上下文则回退到 system+user 组合
+      const messages = hasConversationContext
+        ? optimizationContext.value.map(m => ({ role: m.role, content: m.content }))
+        : [
+            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+            { role: 'user', content: userPrompt }
+          ]
+
+      // 统一使用自定义会话测试，以便支持上下文与工具
+      await services.value.promptService.testCustomConversationStream(
+        {
           modelKey: modelManager.selectedTestModel,
           messages,
-          variables: variableManager?.variableManager.value?.resolveAllVariables() || {},
-          tools: optimizationContextTools.value
+          variables,
+          tools: hasTools ? optimizationContextTools.value : []
+        },
+        {
+          ...streamHandler,
+          onToolCall: (toolCall: any) => {
+            if (!hasTools) return
+            console.log(`[App] ${type} test tool call received:`, toolCall)
+            const toolCallResult = {
+              toolCall: toolCall,
+              status: 'success' as const,
+              timestamp: new Date()
+            }
+            testPanelRef.value?.handleToolCall?.(toolCallResult, type)
+          },
         }
-
-        await services.value.promptService.testCustomConversationStream(
-          request,
-          {
-            ...streamHandler,
-            onToolCall: (toolCall: any) => {
-              console.log(`[App] ${type} test tool call received:`, toolCall)
-              // 将原始工具调用包装成 ToolCallResult 格式
-              const toolCallResult = {
-                toolCall: toolCall,
-                status: 'success' as const,
-                timestamp: new Date()
-              }
-              // 传递工具调用到 TestAreaPanel
-              testPanelRef.value?.handleToolCall?.(toolCallResult, type)
-            },
-          }
-        )
-      } else {
-        // 传统的简单测试（无工具）
-        await services.value.promptService.testPromptStream(
-          systemPrompt,
-          userPrompt,
-          modelManager.selectedTestModel,
-          streamHandler
-        )
-      }
+      )
   
     } catch (error: any) {
       console.error(`[App] ${type} test error:`, error)
