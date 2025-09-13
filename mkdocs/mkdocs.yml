@@ -1,0 +1,173 @@
+# 站点信息
+site_name: Prompt Optimizer 文档
+site_url: https://docs.always200.com
+site_description: Prompt Optimizer 使用文档与部署指南
+site_author: linshenkx
+
+# 源与产物目录（与外层项目解耦）
+docs_dir: docs
+site_dir: site
+
+# 主题：Material（基础配置，i18n/版本选择后续任务补充）
+theme:
+  name: material
+  logo: assets/images/logo.png
+  favicon: assets/images/favicon.png
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.footer
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+
+# 插件：基础包含 search 与 i18n（多版本由 mike 驱动，无需插件）
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+  - mermaid2:
+      version: 10.4.0
+      arguments:
+        theme: auto
+        themeVariables:
+          fontSize: 16px
+      cache: true
+  - glightbox
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: zh
+          name: 简体中文
+          build: true
+          default: true
+          nav:
+            - 首页: index.md
+            - 用户指南:
+                - 快速开始: user/quick-start.md
+            - 功能指南:
+                - 基础管理:
+                    - 模型管理: basic/models.md
+                    - 模板管理: basic/templates.md
+                    - 历史记录: basic/history.md
+                    - 数据管理: basic/data.md
+                - 基础模式:
+                    - 系统提示词优化: basic/system-optimization.md
+                    - 用户提示词优化: basic/user-optimization.md
+                - 高级模式:
+                    - 变量管理: advanced/variables.md
+                    - 上下文管理: advanced/context.md
+                    - 工具调用: advanced/tools.md
+            - 部署指南:
+                - Web版部署: deployment/web.md
+                - 桌面应用: deployment/desktop.md
+                - Chrome插件: deployment/extension.md
+                - Docker部署:
+                    - 基础部署: deployment/docker-basic.md
+                    - 高级配置: deployment/docker-advanced.md
+                    - 故障排除: deployment/docker-troubleshooting.md
+                - MCP服务器: user/mcp-server.md
+            - 帮助支持:
+                - 常见问题: help/common-questions.md
+                - 连接问题: help/connection-issues.md
+                - 故障排除: help/troubleshooting.md
+                - 技术支持: help/support.md
+            - 使用案例:
+                - 系统提示词优化:
+                    - 示例与最佳实践: examples/system-prompt-examples.md
+                - 用户提示词优化:
+                    - 示例与最佳实践: examples/user-prompt-examples.md
+                    - 创意写作: examples/creative-writing.md
+                    - 商务沟通: examples/business-communication.md
+                    - 教学培训: examples/educational-training.md
+        - locale: en
+          name: English
+          build: true
+          nav:
+            - Home: index.md
+            - User Guide:
+                - Quick Start: user/quick-start.md
+                - Basic Features:
+                    - Prompt Optimization: basic/optimization.md
+                    - Model Management: basic/models.md
+                    - History Management: basic/history.md
+                    - Template Management: basic/templates.md
+                    - Data Management: basic/data.md
+                - Advanced Features:
+                    - Variable Management: advanced/variables.md
+                    - Tool Calling: advanced/tools.md
+                    - Context Management: advanced/context.md
+            - Deployment:
+                - Web Deployment: deployment/web.md
+                - Desktop App: deployment/desktop.md
+                - Chrome Extension: deployment/extension.md
+                - Docker Deployment:
+                    - Basic Deployment: deployment/docker-basic.md
+                    - Advanced Configuration: deployment/docker-advanced.md
+                    - Troubleshooting: deployment/docker-troubleshooting.md
+                - MCP Server: user/mcp-server.md
+            - Help & Support:
+                - Common Questions: help/common-questions.md
+                - Connection Issues: help/connection-issues.md
+                - Troubleshooting: help/troubleshooting.md
+                - Technical Support: help/support.md
+            - Use Cases:
+                - Creative Writing: examples/creative-writing.md
+                - Business Communication: examples/business-communication.md
+                - Educational Training: examples/educational-training.md
+            - Developer Guide:
+                - Media Examples: guide/media.md
+  # 多版本：由 mike 管理（无需在此启用插件）
+
+# 额外脚本：Mermaid（无需插件，直接加载 JS 即可）
+# 若中文分词需要增强，可按需引入 lunr-languages（本地文件或 CDN）
+# extra_javascript:
+#   - assets/javascripts/lunr.zh.js
+
+# Material 与 mike 集成：启用版本选择器
+extra:
+  version:
+    provider: mike
+  alternate:
+    - name: 简体中文
+      link: /
+      lang: zh
+    - name: English  
+      link: /en/
+      lang: en
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/linshenkx/prompt-optimizer
+      name: GitHub
+
+# Markdown 扩展
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.details
+  - attr_list
+
+# 导航配置已移至 i18n 插件内，为每种语言提供本地化导航
+
+# 仓库与编辑链接
+repo_url: https://github.com/linshenkx/prompt-optimizer
+repo_name: linshenkx/prompt-optimizer
+edit_uri: edit/main/mkdocs/docs/
+
+# 严格构建：将链接/引用问题视为错误
+strict: true
+
+# 版权信息（页脚显示）
+copyright: "© 2025 Prompt Optimizer"

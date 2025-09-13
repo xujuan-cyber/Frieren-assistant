@@ -1,0 +1,8 @@
+{
+  "buildCommand": "git fetch --tags --force || true && pip install -r requirements.txt && mkdocs build --clean -f mkdocs.yml",
+  "outputDirectory": "site",
+  "rewrites": [
+    { "source": "/", "destination": "/latest/zh/" },
+    { "source": "/latest", "destination": "/latest/zh/" }
+  ]
+}
