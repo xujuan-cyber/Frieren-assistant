@@ -207,7 +207,9 @@ const emit = defineEmits<{
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
-const templateType = ref<'optimize' | 'iterate'>('iterate')
+const templateType = computed<'iterate' | 'contextIterate'>(() => {
+  return props.advancedModeEnabled ? 'contextIterate' : 'iterate'
+})
 
 const outputDisplayRef = ref<InstanceType<typeof OutputDisplay> | null>(null);
 const iterateTemplateSelectRef = ref<{ refresh?: () => void } | null>(null);

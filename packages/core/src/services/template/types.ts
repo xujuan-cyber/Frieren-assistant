@@ -10,7 +10,7 @@ export interface TemplateMetadata {
   lastModified: number;     // 最后修改时间
   author?: string;          // 作者（可选）
   description?: string;     // 描述（可选）
-  templateType: 'optimize' | 'userOptimize' | 'iterate'; // 模板类型标识
+  templateType: 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate'; // 模板类型标识
   language?: 'zh' | 'en';   // 模板语言（可选，主要用于内置模板语言切换）
   [key: string]: any;       // 允许任意额外字段
 }
@@ -119,7 +119,7 @@ export const templateSchema = z.object({
     lastModified: z.number(),
     author: z.string().optional(),
     description: z.string().optional(),
-    templateType: z.enum(['optimize', 'userOptimize', 'iterate']),
+    templateType: z.enum(['optimize', 'userOptimize', 'iterate', 'contextSystemOptimize', 'contextUserOptimize', 'contextIterate']),
     language: z.enum(['zh', 'en']).optional()
   }).passthrough(), // 允许额外字段通过验证
   isBuiltin: z.boolean().optional()

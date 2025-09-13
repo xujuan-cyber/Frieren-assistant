@@ -343,6 +343,7 @@ hljs.registerLanguage('json', jsonLang)
     useNaiveTheme,
     useResponsiveTestLayout,
     useTestModeConfig,
+    useFunctionMode,
   
     // i18n functions
     initializeI18nWithStorage,
@@ -375,8 +376,7 @@ hljs.registerLanguage('json', jsonLang)
       await initializeI18nWithStorage()
       console.log('[Web] i18n initialized')
       
-      // 加载高级模式设置
-      await loadAdvancedModeSetting()
+  // 移除：高级模式设置的独立加载（改为 useFunctionMode 管理）
     }
   }, { immediate: true })
   
@@ -396,7 +396,11 @@ hljs.registerLanguage('json', jsonLang)
   const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
   
   // 高级模式状态
-  const advancedModeEnabled = ref(false)
+  const { functionMode, setFunctionMode } = useFunctionMode(services as any)
+  const advancedModeEnabled = computed({
+    get: () => functionMode.value === 'pro',
+    set: (val: boolean) => { setFunctionMode(val ? 'pro' : 'basic') }
+  })
   
   // 测试内容状态 - 新增
   const testContent = ref('')
@@ -432,30 +436,7 @@ hljs.registerLanguage('json', jsonLang)
     initTheme()
   }
   
-  // 加载高级模式设置
-  const loadAdvancedModeSetting = async () => {
-    if (services.value?.preferenceService) {
-      try {
-        const saved = await services.value.preferenceService.get('advancedModeEnabled', false)
-        advancedModeEnabled.value = saved
-        console.log(`[App] Loaded advanced mode setting: ${saved}`)
-      } catch (error) {
-        console.error('[App] Failed to load advanced mode setting:', error)
-      }
-    }
-  }
-  
-  // 保存高级模式设置
-  const saveAdvancedModeSetting = async (enabled: boolean) => {
-    if (services.value?.preferenceService) {
-      try {
-        await services.value.preferenceService.set('advancedModeEnabled', enabled)
-        console.log(`[App] Saved advanced mode setting: ${enabled}`)
-      } catch (error) {
-        console.error('[App] Failed to save advanced mode setting:', error)
-      }
-    }
-  }
+  // 取消独立的高级模式偏好读写，改由 useFunctionMode 统一管理（默认 basic）
   
   // 变量管理状态
   const showVariableManager = ref(false)
@@ -538,9 +519,13 @@ hljs.registerLanguage('json', jsonLang)
     }, 300)
   }
   
-  const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate'>(() => {
-    return selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize';
-  });
+  const templateSelectType = computed<'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize'>(() => {
+    const isPro = advancedModeEnabled.value
+    if (selectedOptimizationMode.value === 'system') {
+      return isPro ? 'contextSystemOptimize' : 'optimize'
+    }
+    return isPro ? 'contextUserOptimize' : 'userOptimize'
+  })
   
   // 变量管理处理函数
   const handleCreateVariable = (name: string, defaultValue?: string) => {
@@ -718,6 +703,9 @@ hljs.registerLanguage('json', jsonLang)
     
     // 初始化上下文持久化
     await initializeContextPersistence()
+
+    // 确保功能模式已初始化（默认 basic）
+    // useFunctionMode 内部已处理默认值与持久化
   
     console.log('All services and composables initialized.')
   })
@@ -791,11 +779,9 @@ hljs.registerLanguage('json', jsonLang)
   
   // 切换高级模式（导航菜单使用）
   const toggleAdvancedMode = async () => {
-    advancedModeEnabled.value = !advancedModeEnabled.value
-    console.log(`[App] Advanced mode ${advancedModeEnabled.value ? 'enabled' : 'disabled'} (toggled from navigation)`)
-    
-    // 保存设置
-    await saveAdvancedModeSetting(advancedModeEnabled.value)
+    const next = !advancedModeEnabled.value
+    advancedModeEnabled.value = next
+    console.log(`[App] Advanced mode ${next ? 'enabled' : 'disabled'} (toggled from navigation)`)
   }
   
   // 打开变量管理器
@@ -919,9 +905,9 @@ hljs.registerLanguage('json', jsonLang)
   
     // 根据链条的根记录类型确定应该切换到的优化模式
     let targetMode: OptimizationMode
-    if (chain.rootRecord.type === 'optimize') {
+    if (chain.rootRecord.type === 'optimize' || chain.rootRecord.type === 'contextSystemOptimize') {
       targetMode = 'system'
-    } else if (chain.rootRecord.type === 'userOptimize') {
+    } else if (chain.rootRecord.type === 'userOptimize' || chain.rootRecord.type === 'contextUserOptimize') {
       targetMode = 'user'
     } else {
       // 兜底：从根记录的 metadata 中获取优化模式
@@ -935,6 +921,10 @@ hljs.registerLanguage('json', jsonLang)
         mode: targetMode === 'system' ? t('common.system') : t('common.user')
       }))
     }
+    // 根据根记录类型自动切换功能模式
+    const rt = chain.rootRecord.type
+    const isContext = rt === 'contextSystemOptimize' || rt === 'contextUserOptimize' || rt === 'contextIterate'
+    await setFunctionMode(isContext ? 'pro' : 'basic')
   
     // 调用原有的历史记录处理逻辑
     await promptHistory.handleSelectHistory(context)

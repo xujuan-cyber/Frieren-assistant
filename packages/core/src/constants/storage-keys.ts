@@ -17,6 +17,7 @@ export const UI_SETTINGS_KEYS = {
   THEME_ID: 'app:settings:ui:theme-id',
   PREFERRED_LANGUAGE: 'app:settings:ui:preferred-language',
   BUILTIN_TEMPLATE_LANGUAGE: 'app:settings:ui:builtin-template-language',
+  FUNCTION_MODE: 'app:settings:ui:function-mode',
 } as const
 
 // 模型选择相关
@@ -30,6 +31,9 @@ export const TEMPLATE_SELECTION_KEYS = {
   SYSTEM_OPTIMIZE_TEMPLATE: 'app:selected-optimize-template', // 系统优化模板（兼容旧版本）
   USER_OPTIMIZE_TEMPLATE: 'app:selected-user-optimize-template', // 用户优化模板
   ITERATE_TEMPLATE: 'app:selected-iterate-template', // 迭代模板
+  CONTEXT_SYSTEM_OPTIMIZE_TEMPLATE: 'app:selected-context-system-optimize-template',
+  CONTEXT_USER_OPTIMIZE_TEMPLATE: 'app:selected-context-user-optimize-template',
+  CONTEXT_ITERATE_TEMPLATE: 'app:selected-context-iterate-template',
 } as const
 
 // 所有存储键的联合类型

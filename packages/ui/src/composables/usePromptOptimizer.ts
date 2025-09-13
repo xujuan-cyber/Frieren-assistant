@@ -17,6 +17,7 @@ import type {
   ConversationMessage
 } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
+import { useFunctionMode, type FunctionMode } from './useFunctionMode'
 
 
 type PromptChain = PromptRecordChain
@@ -50,6 +51,7 @@ export function usePromptOptimizer(
   const templateManager = computed(() => services.value?.templateManager)
   const historyManager = computed(() => services.value?.historyManager)
   const promptService = computed(() => services.value?.promptService)
+  const { functionMode } = useFunctionMode(services)
   
   // 使用 reactive 创建一个响应式状态对象，而不是单独的 ref
   const state = reactive({
@@ -126,16 +128,30 @@ export function usePromptOptimizer(
 
             try {
               // Create new record chain with enhanced metadata，ElectronProxy会自动处理序列化
+              // 依据 functionMode 与当前模板类型决定历史记录类型
+              const isPro = (functionMode.value as FunctionMode) === 'pro'
+              const baseType = (optimizationMode.value === 'system' ? 'optimize' : 'userOptimize') as PromptRecordType
+              const recordType = (() => {
+                if (isPro) {
+                  return (optimizationMode.value === 'system' ? 'contextSystemOptimize' : 'contextUserOptimize') as PromptRecordType
+                }
+                // 兼容：若选择的是 context 模板（即使当前模式非 pro），也记录为 context*
+                const tplType = currentTemplate.metadata?.templateType
+                if (tplType === 'contextSystemOptimize' || tplType === 'contextUserOptimize') return tplType as PromptRecordType
+                return baseType
+              })()
+
               const recordData = {
                 id: uuidv4(),
                 originalPrompt: state.prompt,
                 optimizedPrompt: state.optimizedPrompt,
-                type: (optimizationMode.value === 'system' ? 'optimize' : 'userOptimize') as PromptRecordType,
+                type: recordType,
                 modelKey: optimizeModel.value,
                 templateId: currentTemplate.id,
                 timestamp: Date.now(),
                 metadata: {
-                  optimizationMode: optimizationMode.value
+                  optimizationMode: optimizationMode.value,
+                  functionMode: functionMode.value
                 }
               };
 
@@ -227,17 +243,27 @@ export function usePromptOptimizer(
 
             // 创建历史记录 - 包含上下文信息
             try {
+              const isPro = (functionMode.value as FunctionMode) === 'pro'
+              const baseType = (optimizationMode.value === 'system' ? 'optimize' : 'userOptimize') as PromptRecordType
+              const recordType = (() => {
+                if (isPro) return (optimizationMode.value === 'system' ? 'contextSystemOptimize' : 'contextUserOptimize') as PromptRecordType
+                const tplType = currentTemplate.metadata?.templateType
+                if (tplType === 'contextSystemOptimize' || tplType === 'contextUserOptimize') return tplType as PromptRecordType
+                return baseType
+              })()
+
               const recordData = {
                 id: uuidv4(),
                 originalPrompt: state.prompt,
                 optimizedPrompt: state.optimizedPrompt,
-                type: (optimizationMode.value === 'system' ? 'optimize' : 'userOptimize') as PromptRecordType,
+                type: recordType,
                 modelKey: optimizeModel.value,
                 templateId: currentTemplate.id,
                 timestamp: Date.now(),
                 // 添加上下文信息到历史记录
                 metadata: {
                   optimizationMode: optimizationMode.value,
+                  functionMode: functionMode.value,
                   hasAdvancedContext: true,
                   variableCount: Object.keys(advancedContext.variables).length,
                   messageCount: advancedContext.messages?.length || 0

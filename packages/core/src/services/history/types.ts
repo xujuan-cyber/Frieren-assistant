@@ -3,7 +3,7 @@ import type { OptimizationMode } from '../prompt/types';
 /**
  * 提示词记录类型
  */
-export type PromptRecordType = 'optimize' | 'userOptimize' | 'iterate' | 'test';
+export type PromptRecordType = 'optimize' | 'userOptimize' | 'iterate' | 'test' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate';
 
 /**
  * 提示词记录接口

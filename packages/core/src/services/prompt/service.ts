@@ -452,10 +452,10 @@ export class PromptService implements IPromptService {
   /**
    * 获取默认模板ID
    */
-  private async getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'iterate'): Promise<string> {
+  private async getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate'): Promise<string> {
     try {
       // 尝试获取指定类型的模板列表
-      const templates = await this.templateManager.listTemplatesByType(templateType);
+      const templates = await this.templateManager.listTemplatesByType(templateType as any);
       if (templates.length > 0) {
         // 返回列表中第一个模板的ID
         return templates[0].id;
@@ -468,16 +468,16 @@ export class PromptService implements IPromptService {
     try {
       let fallbackTypes: ('optimize' | 'userOptimize' | 'iterate')[] = [];
 
-      if (templateType === 'optimize') {
+      if (templateType === 'optimize' || templateType === 'contextSystemOptimize') {
         fallbackTypes = ['userOptimize']; // optimize类型回退到userOptimize
-      } else if (templateType === 'userOptimize') {
+      } else if (templateType === 'userOptimize' || templateType === 'contextUserOptimize') {
         fallbackTypes = ['optimize']; // userOptimize类型回退到optimize
-      } else if (templateType === 'iterate') {
+      } else if (templateType === 'iterate' || templateType === 'contextIterate') {
         fallbackTypes = ['optimize', 'userOptimize']; // iterate类型回退到任意优化类型
       }
 
       for (const fallbackType of fallbackTypes) {
-        const fallbackTemplates = await this.templateManager.listTemplatesByType(fallbackType);
+        const fallbackTemplates = await this.templateManager.listTemplatesByType(fallbackType as any);
         if (fallbackTemplates.length > 0) {
           console.log(`Using fallback template type ${fallbackType} for ${templateType}`);
           return fallbackTemplates[0].id;

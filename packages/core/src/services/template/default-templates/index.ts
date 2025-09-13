@@ -11,7 +11,23 @@ import { template as output_format_optimize } from './optimize/output-format-opt
 import { template as output_format_optimize_en } from './optimize/output-format-optimize_en';
 import { template as analytical_optimize } from './optimize/analytical-optimize';
 import { template as analytical_optimize_en } from './optimize/analytical-optimize_en';
-import { template as context_aware_optimize } from './optimize/context-aware-optimize';
+import { template as context_iterate } from './iterate/context/context-iterate';
+import { template as context_iterate_en } from './iterate/context/context-iterate_en';
+// 新增对齐的系统上下文模板：通用版（中/英）
+import { template as context_general_optimize } from './optimize/context/context-general-optimize';
+import { template as context_general_optimize_en } from './optimize/context/context-general-optimize_en';
+// 新增对齐的系统上下文模板：分析型/输出格式（中/英）
+import { template as context_analytical_optimize } from './optimize/context/context-analytical-optimize';
+import { template as context_analytical_optimize_en } from './optimize/context/context-analytical-optimize_en';
+import { template as context_output_format_optimize } from './optimize/context/context-output-format-optimize';
+import { template as context_output_format_optimize_en } from './optimize/context/context-output-format-optimize_en';
+// 新增对齐的用户上下文模板（基础/专业/规划）（中/英）
+import { template as context_user_prompt_basic } from './user-optimize/context/context-user-prompt-basic';
+import { template as context_user_prompt_basic_en } from './user-optimize/context/context-user-prompt-basic_en';
+import { template as context_user_prompt_professional_ctx } from './user-optimize/context/context-user-prompt-professional';
+import { template as context_user_prompt_professional_ctx_en } from './user-optimize/context/context-user-prompt-professional_en';
+import { template as context_user_prompt_planning_ctx } from './user-optimize/context/context-user-prompt-planning';
+import { template as context_user_prompt_planning_ctx_en } from './user-optimize/context/context-user-prompt-planning_en';
 
 import { template as iterate } from './iterate/iterate';
 import { template as iterate_en } from './iterate/iterate_en';
@@ -31,7 +47,20 @@ export const ALL_TEMPLATES = {
   output_format_optimize_en,
   analytical_optimize,
   analytical_optimize_en,
-  context_aware_optimize,
+  context_iterate,
+  context_iterate_en,
+  context_general_optimize,
+  context_general_optimize_en,
+  context_analytical_optimize,
+  context_analytical_optimize_en,
+  context_output_format_optimize,
+  context_output_format_optimize_en,
+  context_user_prompt_basic,
+  context_user_prompt_basic_en,
+  context_user_prompt_professional_ctx,
+  context_user_prompt_professional_ctx_en,
+  context_user_prompt_planning_ctx,
+  context_user_prompt_planning_ctx_en,
   user_prompt_professional,
   user_prompt_professional_en,
   iterate,

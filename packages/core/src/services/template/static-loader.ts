@@ -8,8 +8,14 @@ import { ALL_TEMPLATES } from './default-templates';
  * 🔄 直接使用：无需复杂的元数据推导和映射
  */
 
-// 类型定义
-export type TemplateType = 'optimize' | 'iterate' | 'user-optimize';
+// 类型定义（支持 6 类：基础 + 上下文）
+export type TemplateType =
+  | 'optimize'
+  | 'user-optimize'
+  | 'iterate'
+  | 'context-system-optimize'
+  | 'context-user-optimize'
+  | 'context-iterate';
 export type Language = 'zh' | 'en';
 
 export interface StaticTemplateCollection {
@@ -60,8 +66,11 @@ export class StaticLoader {
       const byLanguage: Record<Language, Record<string, Template>> = { zh: {}, en: {} };
       const byType: Record<TemplateType, Record<Language, Record<string, Template>>> = {
         'optimize': { zh: {}, en: {} },
+        'user-optimize': { zh: {}, en: {} },
         'iterate': { zh: {}, en: {} },
-        'user-optimize': { zh: {}, en: {} }
+        'context-system-optimize': { zh: {}, en: {} },
+        'context-user-optimize': { zh: {}, en: {} },
+        'context-iterate': { zh: {}, en: {} }
       };
 
       // 处理每个模板
@@ -75,8 +84,27 @@ export class StaticLoader {
           throw new Error(`Built-in template '${id}' is missing required 'language' field in metadata`);
         }
         
-        // 规范化模板类型
-        const normalizedType: TemplateType = templateType === 'userOptimize' ? 'user-optimize' : templateType as TemplateType;
+        // 规范化模板类型（将 metadata.templateType 映射为静态分类键）
+        let normalizedType: TemplateType;
+        switch (templateType) {
+          case 'userOptimize':
+            normalizedType = 'user-optimize';
+            break;
+          case 'contextSystemOptimize':
+            normalizedType = 'context-system-optimize';
+            break;
+          case 'contextUserOptimize':
+            normalizedType = 'context-user-optimize';
+            break;
+          case 'contextIterate':
+            normalizedType = 'context-iterate';
+            break;
+          case 'iterate':
+          case 'optimize':
+          default:
+            normalizedType = (templateType as any) === 'iterate' ? 'iterate' : (templateType as any) === 'optimize' ? 'optimize' : 'optimize';
+            break;
+        }
         
         // 存储到各个分类中
         all[id] = template;
@@ -95,8 +123,11 @@ export class StaticLoader {
         '中文': Object.keys(byLanguage.zh).length,
         '英文': Object.keys(byLanguage.en).length,
         optimize: Object.keys(byType.optimize.zh).length + Object.keys(byType.optimize.en).length,
+        'user-optimize': Object.keys(byType['user-optimize'].zh).length + Object.keys(byType['user-optimize'].en).length,
         iterate: Object.keys(byType.iterate.zh).length + Object.keys(byType.iterate.en).length,
-        'user-optimize': Object.keys(byType['user-optimize'].zh).length + Object.keys(byType['user-optimize'].en).length
+        'context-system-optimize': Object.keys(byType['context-system-optimize'].zh).length + Object.keys(byType['context-system-optimize'].en).length,
+        'context-user-optimize': Object.keys(byType['context-user-optimize'].zh).length + Object.keys(byType['context-user-optimize'].en).length,
+        'context-iterate': Object.keys(byType['context-iterate'].zh).length + Object.keys(byType['context-iterate'].en).length
       });
 
       StaticLoader.templateCache = result;

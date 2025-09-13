@@ -27,28 +27,40 @@
       </NSpace>
     </template>
 
-    <!-- 类型切换标签使用 NTabs -->
-    <NTabs 
-      v-model:value="currentCategory" 
-      type="segment"
-      size="large"
-    >
-      <NTabPane 
-        name="system-optimize" 
-        :tab="`🎯 ${t('templateManager.optimizeTemplates')}`"
-      >
-      </NTabPane>
-      <NTabPane 
-        name="user-optimize" 
-        :tab="`👤 ${t('templateManager.userOptimizeTemplates')}`"
-      >
-      </NTabPane>
-      <NTabPane 
-        name="iterate" 
-        :tab="`🔄 ${t('templateManager.iterateTemplates')}`"
-      >
-      </NTabPane>
-    </NTabs>
+    <!-- 类型切换：一行网格自动分两行，每行三列，按钮全宽（更易扩展） -->
+    <NGrid :cols="3" :x-gap="8" :y-gap="8">
+      <NGridItem>
+        <NButton block :type="currentCategory==='system-optimize' ? 'primary' : 'default'" @click="currentCategory='system-optimize'">
+          {{ `🎯 ${t('templateManager.optimizeTemplates')}` }}
+        </NButton>
+      </NGridItem>
+      <NGridItem>
+        <NButton block :type="currentCategory==='user-optimize' ? 'primary' : 'default'" @click="currentCategory='user-optimize'">
+          {{ `👤 ${t('templateManager.userOptimizeTemplates')}` }}
+        </NButton>
+      </NGridItem>
+      <NGridItem>
+        <NButton block :type="currentCategory==='iterate' ? 'primary' : 'default'" @click="currentCategory='iterate'">
+          {{ `🔄 ${t('templateManager.iterateTemplates')}` }}
+        </NButton>
+      </NGridItem>
+
+      <NGridItem>
+        <NButton block :type="currentCategory==='context-system-optimize' ? 'primary' : 'default'" @click="currentCategory='context-system-optimize'">
+          {{ `🎯 ${t('templateManager.optimizeTemplatesContext')}` }}
+        </NButton>
+      </NGridItem>
+      <NGridItem>
+        <NButton block :type="currentCategory==='context-user-optimize' ? 'primary' : 'default'" @click="currentCategory='context-user-optimize'">
+          {{ `👤 ${t('templateManager.userOptimizeTemplatesContext')}` }}
+        </NButton>
+      </NGridItem>
+      <NGridItem>
+        <NButton block :type="currentCategory==='context-iterate' ? 'primary' : 'default'" @click="currentCategory='context-iterate'">
+          {{ `🔄 ${t('templateManager.iterateTemplatesContext')}` }}
+        </NButton>
+      </NGridItem>
+    </NGrid>
 
     <!-- 模板列表 -->
     <NSpace vertical :size="16" style="margin-top: 16px;">
@@ -531,7 +543,8 @@ import { useI18n } from 'vue-i18n'
 import { 
   NModal, NCard, NTabs, NTabPane, NButton, NTag, NInput, NInputGroup, 
   NSelect, NSpace, NText, NH3, NH4, NDivider, NScrollbar,
-  NButtonGroup, NIcon, NCode, NSwitch, NMessageProvider
+  NButtonGroup, NIcon, NCode, NSwitch, NMessageProvider,
+  NGrid, NGridItem
 } from 'naive-ui'
 import { TemplateProcessor, type Template, type MessageTemplate } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
@@ -631,7 +644,7 @@ function getCategoryFromProps() {
 }
 
 // 获取当前模板类型 - 根据当前分类而不是props
-function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' {
+function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate' {
   switch (currentCategory.value) {
     case 'system-optimize':
       return 'optimize'
@@ -639,6 +652,12 @@ function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' {
       return 'userOptimize'
     case 'iterate':
       return 'iterate'
+    case 'context-system-optimize':
+      return 'contextSystemOptimize'
+    case 'context-user-optimize':
+      return 'contextUserOptimize'
+    case 'context-iterate':
+      return 'contextIterate'
     default:
       return 'optimize'
   }
@@ -658,6 +677,12 @@ function getCurrentCategoryLabel() {
       return t('templateManager.userOptimizeTemplateList')
     case 'iterate':
       return t('templateManager.iterateTemplateList')
+    case 'context-system-optimize':
+      return t('templateManager.optimizeTemplateList') + ' (Pro)'
+    case 'context-user-optimize':
+      return t('templateManager.userOptimizeTemplateList') + ' (Pro)'
+    case 'context-iterate':
+      return t('templateManager.iterateTemplateList') + ' (Pro)'
     default:
       return ''
   }
@@ -1078,6 +1103,18 @@ const filteredTemplates = computed(() => {
       case 'iterate':
         // 迭代优化模板：iterate类型
         return templateType === 'iterate'
+
+      case 'context-system-optimize':
+        // 上下文-系统优化模板
+        return templateType === 'contextSystemOptimize'
+
+      case 'context-user-optimize':
+        // 上下文-用户优化模板
+        return templateType === 'contextUserOptimize'
+
+      case 'context-iterate':
+        // 上下文-迭代优化模板
+        return templateType === 'contextIterate'
 
       default:
         return false

@@ -39,7 +39,7 @@ import type { Ref } from 'vue'
 
 const { t } = useI18n()
 
-type TemplateType = 'optimize' | 'userOptimize' | 'iterate';
+type TemplateType = 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate';
 
 const props = defineProps({
   modelValue: {
@@ -49,7 +49,9 @@ const props = defineProps({
   type: {
     type: String as () => TemplateType,
     required: true,
-    validator: (value: string): boolean => ['optimize', 'userOptimize', 'iterate'].includes(value)
+    validator: (value: string): boolean => (
+      ['optimize', 'userOptimize', 'iterate', 'contextSystemOptimize', 'contextUserOptimize', 'contextIterate'] as string[]
+    ).includes(value)
   },
   optimizationMode: {
     type: String as () => OptimizationMode,
