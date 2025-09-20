@@ -33,5 +33,11 @@ describe('useFunctionMode', () => {
     await setFunctionMode('pro')
     expect(functionMode.value).toBe('pro')
   })
-})
 
+  it('supports image mode', async () => {
+    const { functionMode, setFunctionMode, ensureInitialized } = useFunctionMode(services)
+    await ensureInitialized()
+    await setFunctionMode('image' as any)
+    expect(functionMode.value).toBe('image')
+  })
+})

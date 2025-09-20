@@ -193,13 +193,18 @@ const props = defineProps({
   advancedModeEnabled: {
     type: Boolean,
     default: false
+  },
+  // 🆕 允许外部指定迭代模板类型（基础/上下文/图像），默认保持原行为
+  iterateTemplateType: {
+    type: String as () => 'iterate' | 'contextIterate' | 'imageIterate',
+    default: undefined
   }
 })
 
 const emit = defineEmits<{
   'update:optimizedPrompt': [value: string];
   'iterate': [payload: IteratePayload];
-  'openTemplateManager': [type: 'optimize' | 'userOptimize' | 'iterate'];
+  'openTemplateManager': [type: 'optimize' | 'userOptimize' | 'iterate' | 'imageIterate' | 'contextIterate'];
   'update:selectedIterateTemplate': [template: Template | null];
   'switchVersion': [version: PromptRecord];
   'templateSelect': [template: Template];
@@ -207,8 +212,8 @@ const emit = defineEmits<{
 
 const showIterateInput = ref(false)
 const iterateInput = ref('')
-const templateType = computed<'iterate' | 'contextIterate'>(() => {
-  return props.advancedModeEnabled ? 'contextIterate' : 'iterate'
+const templateType = computed<'iterate' | 'contextIterate' | 'imageIterate'>(() => {
+  return (props.iterateTemplateType as any) || (props.advancedModeEnabled ? 'contextIterate' : 'iterate')
 })
 
 const outputDisplayRef = ref<InstanceType<typeof OutputDisplay> | null>(null);

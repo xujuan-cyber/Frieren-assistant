@@ -41,6 +41,8 @@ const {
   createHistoryManager,
   createLLMService,
   createPromptService,
+  createImageModelManager,
+  createImageService,
   createTemplateLanguageService,
   createDataManager,
   createContextRepo,
@@ -79,6 +81,7 @@ function safeSerialize(obj) {
 
 let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager, contextRepo;
+let imageModelManager, imageService;
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
 let isQuitting = false; // 防止重复保存数据的标志
 let isUpdaterQuitting = false; // 标识是否为更新安装退出，跳过数据保存
@@ -456,6 +459,10 @@ async function initializeServices() {
     
     console.log('[DESKTOP] Initializing model manager...');
     await modelManager.ensureInitialized();
+    // 图像模型管理器
+    console.log('[DESKTOP] Creating image model manager...');
+    imageModelManager = createImageModelManager(storageProvider);
+    await imageModelManager.ensureInitialized();
     
     // 在创建任何网络相关服务前，先根据系统代理设置 undici 全局分发器
     await setupGlobalProxyDispatcherFromSystem();
@@ -465,6 +472,8 @@ async function initializeServices() {
 
     console.log('[DESKTOP] Creating Prompt service...');
     promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
+    console.log('[DESKTOP] Creating Image service...');
+    imageService = createImageService(imageModelManager);
     
     console.log('[DESKTOP] Creating Context repository...');
     contextRepo = createContextRepo(storageProvider);
@@ -844,6 +853,75 @@ function setupIPC() {
       return createErrorResponse(error);
     }
   });
+
+  // ===== Image Model handlers =====
+  ipcMain.handle('image-model-ensureInitialized', async () => {
+    try { await imageModelManager.ensureInitialized(); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-isInitialized', async () => {
+    try { const r = await imageModelManager.isInitialized(); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-getAllModels', async () => {
+    try { const r = await imageModelManager.getAllModels(); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-getModel', async (e, key) => {
+    try { const r = await imageModelManager.getModel(key); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-addModel', async (e, model) => {
+    try { const safeModel = safeSerialize(model); const { key, ...cfg } = safeModel; await imageModelManager.addModel(key, cfg); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-updateModel', async (e, key, updates) => {
+    try { const safe = safeSerialize(updates); await imageModelManager.updateModel(key, safe); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-deleteModel', async (e, key) => {
+    try { await imageModelManager.deleteModel(key); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-enableModel', async (e, key) => {
+    try { await imageModelManager.enableModel(key); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-disableModel', async (e, key) => {
+    try { await imageModelManager.disableModel(key); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-getEnabledModels', async () => {
+    try { const r = await imageModelManager.getEnabledModels(); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-exportData', async () => {
+    try { const r = await imageModelManager.exportData(); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-importData', async (e, data) => {
+    try { const safe = safeSerialize(data); await imageModelManager.importData(safe); return createSuccessResponse(null) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-getDataType', async () => {
+    try { const r = await imageModelManager.getDataType(); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+  ipcMain.handle('image-model-validateData', async (e, data) => {
+    try { const safe = safeSerialize(data); const r = await imageModelManager.validateData(safe); return createSuccessResponse(r) }
+    catch (error) { return createErrorResponse(error) }
+  })
+
+  // ===== Image Service handlers =====
+  ipcMain.handle('image-generate', async (e, request, modelKey) => {
+    try {
+      const safeReq = safeSerialize(request)
+      const res = await imageService.generate(safeReq, modelKey)
+      return createSuccessResponse(res)
+    } catch (error) {
+      return createErrorResponse(error)
+    }
+  })
 
   ipcMain.handle('model-importData', async (event, data) => {
     try {
@@ -1356,6 +1434,9 @@ function setupIPC() {
         VITE_DEEPSEEK_API_KEY: process.env.VITE_DEEPSEEK_API_KEY || '',
         VITE_SILICONFLOW_API_KEY: process.env.VITE_SILICONFLOW_API_KEY || '',
         VITE_ZHIPU_API_KEY: process.env.VITE_ZHIPU_API_KEY || '',
+        // 图像模型相关（Seedream / ARK）
+        VITE_SEEDREAM_API_KEY: process.env.VITE_SEEDREAM_API_KEY || '',
+        VITE_ARK_API_KEY: process.env.VITE_ARK_API_KEY || '',
         VITE_CUSTOM_API_KEY: process.env.VITE_CUSTOM_API_KEY || '',
         VITE_CUSTOM_API_BASE_URL: process.env.VITE_CUSTOM_API_BASE_URL || '',
         VITE_CUSTOM_API_MODEL: process.env.VITE_CUSTOM_API_MODEL || ''

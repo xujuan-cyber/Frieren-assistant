@@ -1,0 +1,778 @@
+import { ref, computed, reactive, nextTick, toRef, type Ref } from 'vue'
+import { useToast } from './useToast'
+import { useI18n } from 'vue-i18n'
+import { usePreferences } from './usePreferenceManager'
+import { useImageGeneration } from './useImageGeneration'
+import { v4 as uuidv4 } from 'uuid'
+
+import type {
+  Template,
+  PromptRecordChain,
+  PromptRecordType,
+  OptimizationRequest,
+  OptimizationMode,
+  ImageRequest,
+  ImageResult
+} from '@prompt-optimizer/core'
+import { IMAGE_MODE_KEYS } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
+
+/**
+ * 图像模式工作区 Hook
+ * 复用现有的历史记录系统，添加图像优化类型支持
+ */
+export function useImageWorkspace(services: Ref<AppServices | null>) {
+  const toast = useToast()
+  const { t } = useI18n()
+  const { getPreference, setPreference } = usePreferences(services)
+  const { imageModels, generating: isGenerating, progress: generationProgress, error: generationError, result: imageResult, generate: generateImage, loadImageModels } = useImageGeneration()
+
+  // 服务引用
+  const modelManager = computed(() => services.value?.modelManager)
+  const templateManager = computed(() => services.value?.templateManager)
+  const historyManager = computed(() => services.value?.historyManager)
+  const promptService = computed(() => services.value?.promptService)
+
+  // 响应式状态
+  const state = reactive({
+    // 基础状态
+    originalPrompt: '',
+    optimizedPrompt: '',
+    optimizedReasoning: '',
+    isOptimizing: false,
+    isIterating: false,
+
+    // 图像模式状态
+    imageMode: 'text2image' as 'text2image' | 'image2image',
+
+    // 模型和模板选择
+    selectedTextModelKey: '',
+    selectedImageModelKey: '',
+    selectedTemplate: null as Template | null,
+    selectedIterateTemplate: null as Template | null,
+
+    // 图像相关状态
+    inputImageB64: null as string | null,
+    inputImageMime: 'image/png',
+    isCompareMode: true,
+
+    // 图像结果
+    originalImageResult: null as ImageResult | null,
+    optimizedImageResult: null as ImageResult | null,
+    currentImageResult: null as ImageResult | null,
+
+    // 版本管理
+    currentChainId: '',
+    currentVersions: [] as PromptRecordChain['versions'],
+    currentVersionId: '',
+
+    // 上传状态
+    uploadStatus: 'idle' as 'idle' | 'uploading' | 'success' | 'error',
+    uploadProgress: 0
+  })
+
+  // 模板管理器状态
+  const templateManagerState = reactive({
+    showTemplates: false,
+    currentType: 'text2imageOptimize' as 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate' | 'iterate'
+  })
+
+  // 模型选项
+  const textModelOptions = ref<{ label: string; value: string }[]>([])
+  const imageModelOptions = ref<{ label: string; value: string }[]>([])
+
+  // 当前使用的提示词
+  const currentPrompt = computed(() => state.optimizedPrompt || state.originalPrompt)
+
+  // 根据图像模式确定模板类型
+  const templateType = computed(() => {
+    return state.imageMode === 'text2image' ? 'text2imageOptimize' : 'image2imageOptimize'
+  })
+
+  // 计算优化模式（图像模式统一使用 user 模式）
+  const optimizationMode = 'user' as OptimizationMode
+
+  // 计算高级模式状态（图像模式暂不支持高级模式）
+  const advancedModeEnabled = false
+
+  // 预览图像URL - 加强防护，确保不会因为undefined值而出错
+  const previewImageUrl = computed(() => {
+    if (!state.inputImageB64) return null
+    const mimeType = state.inputImageMime || 'image/png' // 确保mime类型不为空
+    return `data:${mimeType};base64,${state.inputImageB64}`
+  })
+
+  // 初始化
+  const initialize = async () => {
+    try {
+      // 加载文本模型
+      if (modelManager.value) {
+        const textModels = await modelManager.value.getEnabledModels()
+        textModelOptions.value = textModels.map(m => ({
+          label: `${m.name} (${m.provider})`,
+          value: m.key
+        }))
+      }
+
+      // 加载图像模型
+      await loadImageModels()
+      imageModelOptions.value = imageModels.value.map((m) => ({
+        label: `${m.name} (${m.provider})`,
+        value: m.key
+      }))
+
+      // 恢复保存的选择（包括模板选择）
+      await restoreSelections()
+
+      // 🆕 监听历史记录恢复事件
+      if (typeof window !== 'undefined') {
+        window.addEventListener('image-workspace-restore', handleHistoryRestore as EventListener)
+      }
+
+    } catch (error) {
+      console.error('Failed to initialize image workspace:', error)
+    }
+  }
+
+  // 刷新图像模型及下拉选项，并校验当前选择
+  const refreshImageModels = async () => {
+    try {
+      await loadImageModels()
+      imageModelOptions.value = imageModels.value.map((m) => ({
+        label: `${m.name} (${m.provider})`,
+        value: m.key
+      }))
+      // 若当前选择已不在可用列表，回退到第一个可用项
+      const current = state.selectedImageModelKey
+      const exists = imageModels.value.some(m => m.key === current)
+      if (!exists) {
+        state.selectedImageModelKey = imageModels.value[0]?.key || ''
+        await saveSelections()
+      }
+    } catch (e) {
+      console.error('[useImageWorkspace] Failed to refresh image models:', e)
+    }
+  }
+
+  // 恢复保存的选择
+  const restoreSelections = async () => {
+    try {
+      state.selectedTextModelKey = await getPreference(IMAGE_MODE_KEYS.SELECTED_TEXT_MODEL, textModelOptions.value[0]?.value || '')
+      state.selectedImageModelKey = await getPreference(IMAGE_MODE_KEYS.SELECTED_IMAGE_MODEL, imageModelOptions.value[0]?.value || '')
+      state.isCompareMode = await getPreference(IMAGE_MODE_KEYS.COMPARE_MODE_ENABLED, true)
+      
+      // 恢复保存的模板选择
+      await restoreTemplateSelection()
+
+      // 恢复图像迭代模板选择（仅使用 imageIterate 类型，不做其他类型回退）
+      await restoreImageIterateTemplateSelection()
+    } catch (error) {
+      console.warn('Failed to restore selections:', error)
+    }
+  }
+
+  // 恢复模板选择
+  const restoreTemplateSelection = async () => {
+    if (!templateManager.value) return
+
+    try {
+      // 根据当前图像模式获取对应的模板
+      const currentTemplateType = templateType.value
+      const templates = await templateManager.value.listTemplatesByType(currentTemplateType as any)
+      if (templates.length === 0) return
+
+      // 尝试恢复保存的模板
+      const savedTemplateId = await getPreference(IMAGE_MODE_KEYS.SELECTED_TEMPLATE, '')
+      let selectedTemplate: Template | null = null
+
+      if (savedTemplateId) {
+        selectedTemplate = templates.find(t => t.id === savedTemplateId) || null
+      }
+
+      // 如果没有保存的模板或找不到，使用默认模板
+      if (!selectedTemplate) {
+        // 根据模板类型选择合适的默认模板
+        if (currentTemplateType === 'text2imageOptimize') {
+          selectedTemplate = templates.find(t => t.id === 'image-chinese-optimize') ||
+                            templates.find(t => t.id === 'image-dalle-optimize') ||
+                            templates.find(t => t.name.includes('通用')) ||
+                            templates[0]
+        } else {
+          // image2imageOptimize 模板
+          selectedTemplate = templates.find(t => t.id === 'image2image-general-optimize') ||
+                            templates[0]
+        }
+
+        // 保存默认选择
+        if (selectedTemplate) {
+          await setPreference(IMAGE_MODE_KEYS.SELECTED_TEMPLATE, selectedTemplate.id)
+        }
+      }
+
+      state.selectedTemplate = selectedTemplate
+      console.log('[useImageWorkspace] Template restored:', selectedTemplate?.name, 'ID:', selectedTemplate?.id, 'Type:', currentTemplateType)
+    } catch (error) {
+      console.error('Failed to restore template selection:', error)
+    }
+  }
+
+  // 加载默认模板（仅在没有保存选择时使用）
+  const loadDefaultTemplate = async () => {
+    // 这个函数现在由 restoreTemplateSelection 处理
+    // 保留为空函数以保持兼容性
+  }
+
+  // 保存选择
+  const saveSelections = async () => {
+    try {
+      await setPreference(IMAGE_MODE_KEYS.SELECTED_TEXT_MODEL, state.selectedTextModelKey)
+      await setPreference(IMAGE_MODE_KEYS.SELECTED_IMAGE_MODEL, state.selectedImageModelKey)
+      await setPreference(IMAGE_MODE_KEYS.COMPARE_MODE_ENABLED, state.isCompareMode)
+      if (state.selectedTemplate) {
+        await setPreference(IMAGE_MODE_KEYS.SELECTED_TEMPLATE, state.selectedTemplate.id)
+      }
+      if (state.selectedIterateTemplate) {
+        await setPreference(IMAGE_MODE_KEYS.SELECTED_ITERATE_TEMPLATE, state.selectedIterateTemplate.id)
+      }
+    } catch (error) {
+      console.warn('Failed to save selections:', error)
+    }
+  }
+
+  // 恢复图像迭代模板选择
+  const restoreImageIterateTemplateSelection = async () => {
+    if (!templateManager.value) return
+    try {
+      const iterateTemplates = await templateManager.value.listTemplatesByType('imageIterate' as any)
+      if (iterateTemplates.length === 0) {
+        console.warn('[useImageWorkspace] No imageIterate templates available')
+        state.selectedIterateTemplate = null
+        return
+      }
+      const savedIterateId = await getPreference(IMAGE_MODE_KEYS.SELECTED_ITERATE_TEMPLATE, '')
+      if (savedIterateId) {
+        const found = iterateTemplates.find(t => t.id === savedIterateId)
+        state.selectedIterateTemplate = found || iterateTemplates[0]
+      } else {
+        state.selectedIterateTemplate = iterateTemplates[0]
+      }
+    } catch (error) {
+      console.error('[useImageWorkspace] Failed to restore image iterate template:', error)
+    }
+  }
+
+  // 文件上传处理
+  const handleUploadChange = async (data: { file: any, fileList: any[] }) => {
+    const f: File | undefined = data?.file?.file || data?.file
+    
+    if (!f) {
+      state.inputImageB64 = null
+      state.inputImageMime = 'image/png' // 重置为默认值，防止undefined错误
+      state.uploadStatus = 'idle'
+      return
+    }
+
+    // 验证文件类型
+    if (!/image\/(png|jpeg)/.test(f.type)) {
+      toast.error('仅支持 PNG/JPEG 格式')
+      state.uploadStatus = 'error'
+      return
+    }
+
+    // 验证文件大小
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error('文件大小不能超过 10MB')
+      state.uploadStatus = 'error'
+      return
+    }
+
+    state.uploadStatus = 'uploading'
+    state.uploadProgress = 0
+
+    const reader = new FileReader()
+    
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const base64 = dataUrl.split(',')[1]
+      state.inputImageB64 = base64
+      state.inputImageMime = f.type
+      state.uploadStatus = 'success'
+      state.uploadProgress = 100
+      toast.success('图片上传成功')
+    }
+
+    reader.onerror = () => {
+      toast.error('文件读取失败，请重试')
+      state.uploadStatus = 'error'
+    }
+
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) {
+        state.uploadProgress = Math.round((e.loaded / e.total) * 100)
+      }
+    }
+
+    reader.readAsDataURL(f)
+  }
+
+  // 优化提示词
+  const handleOptimizePrompt = async () => {
+    if (!state.originalPrompt.trim() || state.isOptimizing) return
+
+    if (!state.selectedTemplate) {
+      toast.error('请选择优化模板')
+      return
+    }
+
+    if (!state.selectedTextModelKey) {
+      toast.error('请选择文本模型')
+      return
+    }
+
+    // 保存当前选择
+    await saveSelections()
+
+    state.isOptimizing = true
+    state.optimizedPrompt = ''
+    state.optimizedReasoning = ''
+    
+    await nextTick()
+
+    try {
+      const request: OptimizationRequest = {
+        optimizationMode: 'user' as const, // 图像优化使用用户模式
+        targetPrompt: state.originalPrompt,
+        templateId: state.selectedTemplate.id,
+        modelKey: state.selectedTextModelKey
+      }
+
+      await promptService.value!.optimizePromptStream(
+        request,
+        {
+          onToken: (token: string) => {
+            state.optimizedPrompt += token
+          },
+          onReasoningToken: (reasoningToken: string) => {
+            state.optimizedReasoning += reasoningToken
+          },
+          onComplete: async () => {
+            await createHistoryRecord()
+            toast.success('提示词优化完成')
+          },
+          onError: (error: Error) => {
+            throw error
+          }
+        }
+      )
+    } catch (error: any) {
+      toast.error('优化失败：' + (error?.message || String(error)))
+    } finally {
+      state.isOptimizing = false
+    }
+  }
+
+  // 创建历史记录
+  const createHistoryRecord = async () => {
+    if (!state.selectedTemplate || !historyManager.value) return
+
+    try {
+      const recordData = {
+        id: uuidv4(),
+        originalPrompt: state.originalPrompt,
+        optimizedPrompt: state.optimizedPrompt,
+        type: 'imageOptimize' as PromptRecordType,
+        modelKey: state.selectedTextModelKey,
+        templateId: state.selectedTemplate.id,
+        timestamp: Date.now(),
+        metadata: {
+          optimizationMode: 'user' as OptimizationMode,
+          functionMode: 'image',
+          imageModelKey: state.selectedImageModelKey,
+          hasInputImage: !!state.inputImageB64,
+          compareMode: state.isCompareMode
+        }
+      }
+
+      const newRecord = await historyManager.value.createNewChain(recordData)
+      
+      state.currentChainId = newRecord.chainId
+      state.currentVersions = newRecord.versions
+      state.currentVersionId = newRecord.currentRecord.id
+
+    } catch (error) {
+      console.error('创建历史记录失败:', error)
+      toast.warning('历史记录保存失败，但优化结果已生成')
+    }
+  }
+
+  // 生成图像
+  const handleGenerateImage = async () => {
+    if (!state.selectedImageModelKey || !currentPrompt.value.trim()) {
+      toast.error('请选择图像模型并确保有有效的提示词')
+      return
+    }
+
+    // 保存当前选择
+    await saveSelections()
+
+    const imageRequest: ImageRequest = {
+      prompt: currentPrompt.value,
+      count: 1,
+      inputImage: state.inputImageB64 ? { 
+        b64: state.inputImageB64, 
+        mimeType: state.inputImageMime 
+      } : undefined,
+      imgParams: { outputMimeType: 'image/png' }
+    }
+
+    try {
+      if (state.isCompareMode) {
+        // 对比模式：生成原始和优化版本
+        if (state.originalPrompt.trim()) {
+          const originalRequest: ImageRequest = {
+            ...imageRequest,
+            prompt: state.originalPrompt
+          }
+          await generateImage(state.selectedImageModelKey, originalRequest)
+          state.originalImageResult = imageResult.value
+        }
+        
+        if (state.optimizedPrompt.trim()) {
+          const optimizedRequest: ImageRequest = {
+            ...imageRequest,
+            prompt: state.optimizedPrompt
+          }
+          await generateImage(state.selectedImageModelKey, optimizedRequest)
+          state.optimizedImageResult = imageResult.value
+        }
+      } else {
+        // 单一模式：生成当前提示词图像
+        await generateImage(state.selectedImageModelKey, imageRequest)
+        // 单一模式下按基础模式语义展示“优化后的测试结果”
+        if (state.optimizedPrompt.trim()) {
+          state.optimizedImageResult = imageResult.value
+        } else if (state.originalPrompt.trim()) {
+          // 若尚未有优化内容，则临时作为原始结果
+          state.originalImageResult = imageResult.value
+        }
+        // 兼容旧UI：仍保留 currentImageResult 赋值
+        state.currentImageResult = imageResult.value
+      }
+      
+      toast.success('图像生成完成')
+    } catch (error: any) {
+      toast.error('生成失败：' + (error?.message || String(error)))
+    }
+  }
+
+  // 使用优化后提示词
+  const useOptimizedPrompt = () => {
+    toast.success('已应用优化后的提示词')
+  }
+
+  // 复制优化后提示词
+  const copyOptimizedPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(state.optimizedPrompt)
+      toast.success('已复制到剪贴板')
+    } catch {
+      toast.error('复制失败')
+    }
+  }
+
+  // 切换版本
+  const handleSwitchVersion = async (version: PromptRecordChain['versions'][number]) => {
+    state.optimizedPrompt = version.optimizedPrompt
+    state.currentVersionId = version.id
+    await nextTick()
+  }
+
+  // 获取图像显示源地址
+  const getImageSrc = (imageItem: any) => {
+    if (imageItem?.url) {
+      return imageItem.url
+    } else if (imageItem?.b64) {
+      return 'data:image/png;base64,' + imageItem.b64
+    }
+    return ''
+  }
+
+  // 下载图像
+  const downloadImageFromResult = async (imageItem: any, prefix: string) => {
+    if (imageItem?.url) {
+      try {
+        const response = await fetch(imageItem.url)
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${prefix}-image.png`
+        a.click()
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        toast.error('下载失败')
+      }
+    } else if (imageItem?.b64) {
+      const a = document.createElement('a')
+      a.href = 'data:image/png;base64,' + imageItem.b64
+      a.download = `${prefix}-image.png`
+      a.click()
+    }
+  }
+
+  // 迭代优化处理
+  const handleIteratePrompt = async (payload: {
+    originalPrompt: string
+    optimizedPrompt: string
+    iterateInput: string
+  }) => {
+    if (!state.selectedIterateTemplate || !templateManager.value || !promptService.value) {
+      console.error('Missing dependencies for iteration')
+      return
+    }
+
+    state.isIterating = true
+
+    // 清空当前内容，准备接收新的流式内容
+    const previousOptimizedPrompt = state.optimizedPrompt
+    state.optimizedPrompt = ''
+    state.optimizedReasoning = ''
+
+    try {
+      await promptService.value.iteratePromptStream(
+        payload.originalPrompt,
+        payload.optimizedPrompt,
+        payload.iterateInput,
+        state.selectedTextModelKey,
+        {
+          onToken: (token: string) => {
+            state.optimizedPrompt += token
+          },
+          onReasoningToken: (reasoningToken: string) => {
+            state.optimizedReasoning += reasoningToken
+          },
+          onComplete: async () => {
+            try {
+              if (historyManager.value && state.currentChainId) {
+                const updatedChain = await historyManager.value.addIteration({
+                  chainId: state.currentChainId,
+                  originalPrompt: payload.originalPrompt,
+                  optimizedPrompt: state.optimizedPrompt,
+                  iterationNote: payload.iterateInput,
+                  modelKey: state.selectedTextModelKey,
+                  templateId: state.selectedIterateTemplate!.id
+                })
+                state.currentVersions = updatedChain.versions
+                state.currentVersionId = updatedChain.currentRecord.id
+              } else {
+                await createHistoryRecord()
+              }
+              toast.success('提示词迭代优化完成')
+            } catch (e) {
+              console.error('[useImageWorkspace] Failed to persist iteration:', e)
+              toast.warning('迭代结果已生成，但历史记录保存失败')
+            }
+          },
+          onError: (error: Error) => {
+            throw error
+          }
+        },
+        state.selectedIterateTemplate.id
+      )
+    } catch (error: any) {
+      toast.error('迭代优化失败：' + (error?.message || String(error)))
+      // 恢复之前的内容
+      state.optimizedPrompt = previousOptimizedPrompt
+    } finally {
+      state.isIterating = false
+    }
+  }
+
+  // 复制图像数据
+  const copyImageFromResult = async (imageItem: any) => {
+    if (imageItem?.b64) {
+      try {
+        await navigator.clipboard.writeText(imageItem.b64)
+        toast.success('Base64已复制')
+      } catch {
+        toast.error('复制失败')
+      }
+    } else if (imageItem?.url) {
+      try {
+        const response = await fetch(imageItem.url)
+        const blob = await response.blob()
+        const reader = new FileReader()
+        reader.onload = async () => {
+          const dataUrl = reader.result as string
+          const base64 = dataUrl.split(',')[1]
+          try {
+            await navigator.clipboard.writeText(base64)
+            toast.success('Base64已复制')
+          } catch {
+            toast.error('复制失败')
+          }
+        }
+        reader.readAsDataURL(blob)
+      } catch {
+        toast.error('获取图像数据失败')
+      }
+    }
+  }
+
+  // 🆕 处理历史记录恢复
+  const handleHistoryRestore = async (event: Event) => {
+    const customEvent = event as CustomEvent
+    try {
+      const historyData = customEvent.detail
+      console.log('[useImageWorkspace] Restoring history data:', historyData)
+
+      // 恢复基础数据
+      state.originalPrompt = historyData.originalPrompt || ''
+      state.optimizedPrompt = historyData.optimizedPrompt || ''
+      
+      // 恢复版本信息
+      state.currentChainId = historyData.chainId || ''
+      state.currentVersions = historyData.versions || []
+      state.currentVersionId = historyData.currentVersionId || ''
+
+      // 恢复模型选择（如果历史记录中有保存）
+      if (historyData.metadata) {
+        if (historyData.metadata.imageModelKey) {
+          state.selectedImageModelKey = historyData.metadata.imageModelKey
+        }
+        if (historyData.metadata.compareMode !== undefined) {
+          state.isCompareMode = historyData.metadata.compareMode
+        }
+      }
+
+      // 恢复模板选择（根据历史记录中的templateId）
+      if (historyData.templateId && templateManager.value) {
+        try {
+          // 直接通过ID获取模板，避免类型不匹配导致恢复失败
+          const template = await templateManager.value.getTemplate(historyData.templateId)
+          if (template) {
+            state.selectedTemplate = template
+          }
+        } catch (error) {
+          console.warn('[useImageWorkspace] Failed to restore template by id, fallback to type search:', error)
+          try {
+            // 兼容旧记录：根据当前模式的类型尝试列表查找
+            const type = templateType.value
+            const list = await templateManager.value.listTemplatesByType(type as any)
+            const t = list.find(t => t.id === historyData.templateId)
+            if (t) state.selectedTemplate = t
+          } catch (err) {
+            console.warn('[useImageWorkspace] Fallback template restore failed:', err)
+          }
+        }
+      }
+
+      // 保存恢复的选择
+      await saveSelections()
+
+      console.log('[useImageWorkspace] History data restored successfully')
+    } catch (error) {
+      console.error('[useImageWorkspace] Failed to restore history data:', error)
+    }
+  }
+
+  // 图像模式切换处理
+  const handleImageModeChange = async (mode: 'text2image' | 'image2image') => {
+    if (state.imageMode === mode) return
+
+    state.imageMode = mode
+
+    // 如果切换到文生图模式，清除上传的图片
+    if (mode === 'text2image' && state.inputImageB64) {
+      state.inputImageB64 = null
+      // previewImageUrl 是计算属性，会自动根据 inputImageB64 的值更新
+    }
+
+    // 重置模板选择，因为模板类型已变化
+    state.selectedTemplate = null
+
+    // 重新加载适合新模式的模板
+    await restoreTemplateSelection()
+
+    // 保存选择
+    await saveSelections()
+
+    console.log('[useImageWorkspace] Image mode changed to:', mode)
+  }
+
+
+  // 打开模板管理器
+  const handleOpenTemplateManager = (templateType?: 'text2imageOptimize' | 'image2imageOptimize' | 'iterate' | 'imageIterate') => {
+    let target: any = templateType
+    // 在图像模式中，迭代应打开 imageIterate 类别
+    if (templateType === 'iterate') target = 'imageIterate'
+    if (!target) {
+      target = state.imageMode === 'text2image' ? 'text2imageOptimize' : 'image2imageOptimize'
+    }
+    templateManagerState.currentType = target
+    templateManagerState.showTemplates = true
+  }
+
+  // 🆕 清理事件监听器
+  const cleanup = () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('image-workspace-restore', handleHistoryRestore as EventListener)
+    }
+  }
+
+  return {
+    // 状态 - 使用 toRefs 保持响应式
+    originalPrompt: toRef(state, 'originalPrompt'),
+    optimizedPrompt: toRef(state, 'optimizedPrompt'),
+    optimizedReasoning: toRef(state, 'optimizedReasoning'),
+    isOptimizing: toRef(state, 'isOptimizing'),
+    isIterating: toRef(state, 'isIterating'),
+    imageMode: toRef(state, 'imageMode'),
+    selectedTextModelKey: toRef(state, 'selectedTextModelKey'),
+    selectedImageModelKey: toRef(state, 'selectedImageModelKey'),
+    selectedTemplate: toRef(state, 'selectedTemplate'),
+    selectedIterateTemplate: toRef(state, 'selectedIterateTemplate'),
+    inputImageB64: toRef(state, 'inputImageB64'),
+    isCompareMode: toRef(state, 'isCompareMode'),
+    originalImageResult: toRef(state, 'originalImageResult'),
+    optimizedImageResult: toRef(state, 'optimizedImageResult'),
+    currentImageResult: toRef(state, 'currentImageResult'),
+    currentVersions: toRef(state, 'currentVersions'),
+    currentVersionId: toRef(state, 'currentVersionId'),
+    uploadStatus: toRef(state, 'uploadStatus'),
+    uploadProgress: toRef(state, 'uploadProgress'),
+
+    // 计算属性
+    currentPrompt,
+    previewImageUrl,
+    templateType,
+    textModelOptions,
+    imageModelOptions,
+    optimizationMode,
+    advancedModeEnabled,
+
+    // 图像生成状态
+    isGenerating,
+    generationProgress,
+    generationError,
+
+    // 方法
+    initialize,
+    handleUploadChange,
+    handleOptimizePrompt,
+    handleIteratePrompt,
+    handleGenerateImage,
+    handleImageModeChange,
+    handleOpenTemplateManager,
+    useOptimizedPrompt,
+    copyOptimizedPrompt,
+    handleSwitchVersion,
+    getImageSrc,
+    downloadImageFromResult,
+    copyImageFromResult,
+    saveSelections,
+    cleanup,
+    refreshImageModels,
+    templateManagerState
+  }
+}

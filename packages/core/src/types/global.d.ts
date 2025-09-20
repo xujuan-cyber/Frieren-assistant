@@ -83,6 +83,25 @@ interface Window {
     config: {
       getEnvironmentVariables: () => Promise<Record<string, string>>;
     };
+    image: {
+      generate: (request: any, modelKey: string) => Promise<any>;
+    };
+    imageModel: {
+      ensureInitialized: () => Promise<void>;
+      isInitialized: () => Promise<boolean>;
+      getAllModels: () => Promise<any[]>;
+      getModel: (key: string) => Promise<any>;
+      addModel: (model: any) => Promise<void>;
+      updateModel: (key: string, updates: any) => Promise<void>;
+      deleteModel: (key: string) => Promise<void>;
+      enableModel: (key: string) => Promise<void>;
+      disableModel: (key: string) => Promise<void>;
+      getEnabledModels: () => Promise<any[]>;
+      exportData: () => Promise<any>;
+      importData: (data: any) => Promise<void>;
+      getDataType: () => Promise<string>;
+      validateData: (data: any) => Promise<boolean>;
+    };
     storage: {
       // Define the methods for the Storage API proxy
       getItem: (key: string) => Promise<string | null>;

@@ -75,11 +75,36 @@ interface EventAPI {
   once(channel: string, listener: (...args: any[]) => void): void
 }
 
+// 图像生成API
+interface ImageAPI {
+  generate(request: any, modelKey: string): Promise<any>
+}
+
+// 图像模型管理API
+interface ImageModelAPI {
+  ensureInitialized(): Promise<void>
+  isInitialized(): Promise<boolean>
+  getAllModels(): Promise<any[]>
+  getModel(key: string): Promise<any>
+  addModel(model: any): Promise<void>
+  updateModel(key: string, updates: any): Promise<void>
+  deleteModel(key: string): Promise<void>
+  enableModel(key: string): Promise<void>
+  disableModel(key: string): Promise<void>
+  getEnabledModels(): Promise<any[]>
+  exportData(): Promise<any>
+  importData(data: any): Promise<void>
+  getDataType(): Promise<string>
+  validateData(data: any): Promise<boolean>
+}
+
 // 完整的ElectronAPI接口
 interface ElectronAPI {
   app: AppAPI
   updater: UpdaterAPI
   shell: ShellAPI
+  image: ImageAPI
+  imageModel: ImageModelAPI
   on: EventAPI['on']
   off: EventAPI['off']
   once: EventAPI['once']
@@ -138,6 +163,8 @@ export type {
   UpdaterAPI,
   ShellAPI,
   EventAPI,
+  ImageAPI,
+  ImageModelAPI,
   ElectronAPI,
   DownloadProgress,
   UpdateInfo,

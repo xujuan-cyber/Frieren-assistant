@@ -452,7 +452,7 @@ export class PromptService implements IPromptService {
   /**
    * 获取默认模板ID
    */
-  private async getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate'): Promise<string> {
+  private async getDefaultTemplateId(templateType: 'optimize' | 'userOptimize' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate'): Promise<string> {
     try {
       // 尝试获取指定类型的模板列表
       const templates = await this.templateManager.listTemplatesByType(templateType as any);
@@ -466,7 +466,7 @@ export class PromptService implements IPromptService {
 
     // 如果指定类型没有模板，尝试获取相关类型的模板作为回退
     try {
-      let fallbackTypes: ('optimize' | 'userOptimize' | 'iterate')[] = [];
+      let fallbackTypes: ('optimize' | 'userOptimize' | 'text2imageOptimize' | 'image2imageOptimize' | 'iterate')[] = [];
 
       if (templateType === 'optimize' || templateType === 'contextSystemOptimize') {
         fallbackTypes = ['userOptimize']; // optimize类型回退到userOptimize
@@ -474,6 +474,12 @@ export class PromptService implements IPromptService {
         fallbackTypes = ['optimize']; // userOptimize类型回退到optimize
       } else if (templateType === 'iterate' || templateType === 'contextIterate') {
         fallbackTypes = ['optimize', 'userOptimize']; // iterate类型回退到任意优化类型
+      } else if (templateType === 'text2imageOptimize') {
+        fallbackTypes = ['userOptimize', 'optimize']; // 文生图回退到基础优化
+      } else if (templateType === 'image2imageOptimize') {
+        fallbackTypes = ['text2imageOptimize', 'userOptimize', 'optimize']; // 图生图优先回退到文生图
+      } else if (templateType === 'imageIterate') {
+        fallbackTypes = ['iterate', 'text2imageOptimize', 'userOptimize']; // 图像迭代回退到通用迭代/文生图
       }
 
       for (const fallbackType of fallbackTypes) {

@@ -58,6 +58,7 @@ export { default as LanguageSwitchDropdown } from './components/LanguageSwitchDr
 export { default as BuiltinTemplateLanguageSwitchUi } from './components/BuiltinTemplateLanguageSwitch.vue'
 export { default as DataManagerUI } from './components/DataManager.vue'
 export { default as OptimizationModeSelectorUI } from './components/OptimizationModeSelector.vue'
+export { default as FunctionModeSelector } from './components/FunctionModeSelector.vue'
 export { default as TextDiffUI } from './components/TextDiff.vue'
 export { default as OutputDisplayFullscreen } from './components/OutputDisplayFullscreen.vue'
 export { default as OutputDisplayCore } from './components/OutputDisplayCore.vue'
@@ -163,3 +164,7 @@ export * from './services'
 
 // 导出快速模板管理器
 export { quickTemplateManager } from './data/quickTemplates'
+
+// 导出图像模式组件与核心图像服务（转发 core 能力）
+export { default as ImageWorkspace } from './components/image-mode/ImageWorkspace.vue'
+export { ImageModelManager, createImageModelManager, ImageService, createImageService } from '@prompt-optimizer/core'

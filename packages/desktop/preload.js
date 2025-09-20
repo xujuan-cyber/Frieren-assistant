@@ -236,6 +236,82 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // Image Model Manager interface
+  imageModel: {
+    ensureInitialized: async () => {
+      const result = await ipcRenderer.invoke('image-model-ensureInitialized');
+      if (!result.success) throw new Error(result.error);
+    },
+    isInitialized: async () => {
+      const result = await ipcRenderer.invoke('image-model-isInitialized');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    getAllModels: async () => {
+      const result = await ipcRenderer.invoke('image-model-getAllModels');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    getModel: async (key) => {
+      const result = await ipcRenderer.invoke('image-model-getModel', key);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    addModel: async (model) => {
+      const result = await ipcRenderer.invoke('image-model-addModel', model);
+      if (!result.success) throw new Error(result.error);
+    },
+    updateModel: async (key, updates) => {
+      const result = await ipcRenderer.invoke('image-model-updateModel', key, updates);
+      if (!result.success) throw new Error(result.error);
+    },
+    deleteModel: async (key) => {
+      const result = await ipcRenderer.invoke('image-model-deleteModel', key);
+      if (!result.success) throw new Error(result.error);
+    },
+    enableModel: async (key) => {
+      const result = await ipcRenderer.invoke('image-model-enableModel', key);
+      if (!result.success) throw new Error(result.error);
+    },
+    disableModel: async (key) => {
+      const result = await ipcRenderer.invoke('image-model-disableModel', key);
+      if (!result.success) throw new Error(result.error);
+    },
+    getEnabledModels: async () => {
+      const result = await ipcRenderer.invoke('image-model-getEnabledModels');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    exportData: async () => {
+      const result = await ipcRenderer.invoke('image-model-exportData');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    importData: async (data) => {
+      const result = await ipcRenderer.invoke('image-model-importData', data);
+      if (!result.success) throw new Error(result.error);
+    },
+    getDataType: async () => {
+      const result = await ipcRenderer.invoke('image-model-getDataType');
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    validateData: async (data) => {
+      const result = await ipcRenderer.invoke('image-model-validateData', data);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+  },
+
+  // Image Service interface
+  image: {
+    generate: async (request, modelKey) => {
+      const result = await ipcRenderer.invoke('image-generate', request, modelKey);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    }
+  },
+
   // Template Manager interface
   template: {
     // Get all templates

@@ -94,6 +94,9 @@
     dataManager: '数据管理',
     advancedMode: '高级模式',
     variableManager: '变量管理',
+    basicMode: '基础',
+    contextMode: '上下文',
+    imageMode: '图像',
   },
   promptOptimizer: {
     title: '提示词优化器',
@@ -430,6 +433,8 @@
     updateFailed: '更新失败：{error}',
     addSuccess: '添加成功',
     addFailed: '添加失败：{error}',
+    createSuccess: '创建成功',
+    createFailed: '创建失败：{error}',
     enableSuccess: '启用成功',
     enableFailed: '启用失败：{error}',
     disableSuccess: '禁用成功',
@@ -486,6 +491,10 @@
     userOptimizeTemplates: '用户提示词优化模板',
     userOptimizeTemplatesContext: '用户提示词优化模板（上下文）',
     userOptimizeTemplateList: '用户提示词优化模板列表',
+    // 图像类标签
+    imageText2ImageTemplates: '图像 · 文生图模板',
+    imageImage2ImageTemplates: '图像 · 图生图模板',
+    imageIterateTemplates: '图像 · 迭代模板',
     addTemplate: '添加',
     editTemplate: '编辑',
     deleteTemplate: '删除',
@@ -652,6 +661,7 @@
     configure: '配置提示词',
     selected: '已选择',
     select: '选择',
+    noAvailableTemplates: '暂无可用模板',
     builtinLanguage: '内置模板语言',
     switchBuiltinLanguage: '切换内置模板语言',
     languageChanged: '内置模板语言已切换为 {language}',
@@ -1126,6 +1136,62 @@
       pending: '处理中',
       success: '成功',
       error: '失败'
+    }
+  },
+
+  // 图像模式配置
+  imageMode: {
+    text2image: '文生图',
+    image2image: '图生图',
+    text2imageDescription: '从文本描述生成图像',
+    image2imageDescription: '基于现有图像进行修改',
+    uploadRequired: '图生图模式需要先上传参考图片'
+  },
+
+  imageWorkspace: {
+    // 输入区域
+    input: {
+      originalPrompt: '原始提示词',
+      originalPromptPlaceholder: '请输入需要优化的图像生成提示词',
+      image: '图片',
+      selectImage: '📁 选择',
+      optimizeTemplate: '优化模板',
+      templatePlaceholder: '请选择模板',
+      textModel: '文本模型',
+      modelPlaceholder: '选择模型',
+      optimizing: '优化中...',
+      optimizePrompt: '优化提示词'
+    },
+    
+    // 图像生成区域
+    generation: {
+      imageModel: '图像模型',
+      imageModelPlaceholder: '请选择图像模型',
+      compareMode: '对比模式',
+      generating: '生成中...',
+      generateImage: '生成图像',
+      processing: '处理中'
+    },
+    
+    // 结果显示
+    results: {
+      originalPromptResult: '原始提示词',
+      optimizedPromptResult: '优化提示词',
+      testResult: '测试结果',
+      download: '下载',
+      copyBase64: '复制Base64',
+      noOriginalResult: '暂无原始结果',
+      noOptimizedResult: '暂无优化结果',
+      noGenerationResult: '暂无生成结果'
+    },
+    
+    // 上传弹窗
+    upload: {
+      title: '上传参考图片',
+      dragText: '点击或拖拽上传图片',
+      fileRequirements: '支持 PNG/JPEG 格式，文件大小不超过 10MB',
+      uploadFailed: '上传失败',
+      uploadSuccess: '上传成功'
     }
   }
 };

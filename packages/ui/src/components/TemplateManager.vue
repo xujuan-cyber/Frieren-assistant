@@ -60,6 +60,25 @@
           {{ `🔄 ${t('templateManager.iterateTemplatesContext')}` }}
         </NButton>
       </NGridItem>
+
+      <!-- 图像 · 文生图 -->
+      <NGridItem>
+        <NButton block :type="currentCategory==='image-text2image-optimize' ? 'primary' : 'default'" @click="currentCategory='image-text2image-optimize'">
+          {{ `🖼️ ${t('templateManager.imageText2ImageTemplates')}` }}
+        </NButton>
+      </NGridItem>
+      <!-- 图像 · 图生图 -->
+      <NGridItem>
+        <NButton block :type="currentCategory==='image-image2image-optimize' ? 'primary' : 'default'" @click="currentCategory='image-image2image-optimize'">
+          {{ `📷 ${t('templateManager.imageImage2ImageTemplates')}` }}
+        </NButton>
+      </NGridItem>
+      <!-- 图像 · 迭代 -->
+      <NGridItem>
+        <NButton block :type="currentCategory==='image-iterate' ? 'primary' : 'default'" @click="currentCategory='image-iterate'">
+          {{ `🌀 ${t('templateManager.imageIterateTemplates')}` }}
+        </NButton>
+      </NGridItem>
     </NGrid>
 
     <!-- 模板列表 -->
@@ -574,7 +593,7 @@ const props = defineProps<{
   selectedSystemOptimizeTemplate?: Template,
   selectedUserOptimizeTemplate?: Template,
   selectedIterateTemplate?: Template,
-  templateType: 'optimize' | 'userOptimize' | 'iterate',
+  templateType: 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate',
   show: boolean
 }>()
 
@@ -638,13 +657,19 @@ function getCategoryFromProps() {
       return 'user-optimize'
     case 'iterate':
       return 'iterate'
+    case 'text2imageOptimize':
+      return 'image-text2image-optimize'
+    case 'image2imageOptimize':
+      return 'image-image2image-optimize'
+    case 'imageIterate':
+      return 'image-iterate'
     default:
       return 'system-optimize'
   }
 }
 
 // 获取当前模板类型 - 根据当前分类而不是props
-function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate' {
+function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate' {
   switch (currentCategory.value) {
     case 'system-optimize':
       return 'optimize'
@@ -652,6 +677,12 @@ function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'co
       return 'userOptimize'
     case 'iterate':
       return 'iterate'
+    case 'image-text2image-optimize':
+      return 'text2imageOptimize'
+    case 'image-image2image-optimize':
+      return 'image2imageOptimize'
+    case 'image-iterate':
+      return 'imageIterate'
     case 'context-system-optimize':
       return 'contextSystemOptimize'
     case 'context-user-optimize':
@@ -677,6 +708,12 @@ function getCurrentCategoryLabel() {
       return t('templateManager.userOptimizeTemplateList')
     case 'iterate':
       return t('templateManager.iterateTemplateList')
+    case 'image-text2image-optimize':
+      return t('templateManager.imageText2ImageTemplates')
+    case 'image-image2image-optimize':
+      return t('templateManager.imageImage2ImageTemplates')
+    case 'image-iterate':
+      return t('templateManager.imageIterateTemplates')
     case 'context-system-optimize':
       return t('templateManager.optimizeTemplateList') + ' (Pro)'
     case 'context-user-optimize':
@@ -1103,6 +1140,14 @@ const filteredTemplates = computed(() => {
       case 'iterate':
         // 迭代优化模板：iterate类型
         return templateType === 'iterate'
+
+      // 图像类模板
+      case 'image-text2image-optimize':
+        return templateType === 'text2imageOptimize'
+      case 'image-image2image-optimize':
+        return templateType === 'image2imageOptimize'
+      case 'image-iterate':
+        return templateType === 'imageIterate'
 
       case 'context-system-optimize':
         // 上下文-系统优化模板

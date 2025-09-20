@@ -33,15 +33,23 @@
                 <NText depth="3" style="font-size: 14px;">
                   {{ t('common.createdAt') }} {{ formatDate(chain.rootRecord.timestamp) }}
                 </NText>
+                <!-- 功能模式标签 -->
                 <NTag
-                  v-if="chain.rootRecord.type === 'optimize'"
+                  :type="getFunctionModeTagType(chain.rootRecord.type)"
+                  size="small"
+                >
+                  {{ getFunctionModeLabel(chain.rootRecord.type) }}
+                </NTag>
+                <!-- 优化模式标签 -->
+                <NTag
+                  v-if="chain.rootRecord.type === 'optimize' || chain.rootRecord.type === 'contextSystemOptimize'"
                   type="info"
                   size="small"
                 >
                   {{ t('common.system') }}
                 </NTag>
                 <NTag
-                  v-if="chain.rootRecord.type === 'userOptimize'"
+                  v-if="chain.rootRecord.type === 'userOptimize' || chain.rootRecord.type === 'contextUserOptimize'"
                   type="success"
                   size="small"
                 >
@@ -178,10 +186,11 @@ const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'update:show', value: boolean): void
-  (e: 'reuse', context: { 
-    record: PromptRecord, 
+  (e: 'reuse', context: {
+    record: PromptRecord,
     chainId: string,
-    rootPrompt: string 
+    rootPrompt: string,
+    chain: PromptRecordChain
   }): void
   (e: 'clear'): void
   (e: 'deleteChain', chainId: string): void
@@ -245,6 +254,28 @@ const reuse = (record: PromptRecord, chain: PromptRecordChain) => {
 const truncateText = (text: string, maxLength: number) => {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...'
+}
+
+// 获取功能模式标签类型
+const getFunctionModeTagType = (recordType: string) => {
+  if (recordType.includes('image')) {
+    return 'warning'
+  } else if (recordType.includes('context')) {
+    return 'primary'
+  } else {
+    return 'default'
+  }
+}
+
+// 获取功能模式标签文本
+const getFunctionModeLabel = (recordType: string) => {
+  if (recordType.includes('image')) {
+    return t('nav.imageMode')
+  } else if (recordType.includes('context')) {
+    return t('nav.contextMode')
+  } else {
+    return t('nav.basicMode')
+  }
 }
 
 // 添加删除单条记录的方法

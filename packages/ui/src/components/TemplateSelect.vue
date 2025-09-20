@@ -33,13 +33,13 @@
 import { ref, computed, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NSelect, NButton, NSpace, NText } from 'naive-ui'
-import type { OptimizationMode, ITemplateManager, Template } from '@prompt-optimizer/core'
+import type { OptimizationMode, ITemplateManager, Template, TemplateMetadata } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { Ref } from 'vue'
 
 const { t } = useI18n()
 
-type TemplateType = 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate';
+type TemplateType = TemplateMetadata['templateType'];
 
 const props = defineProps({
   modelValue: {
@@ -50,7 +50,7 @@ const props = defineProps({
     type: String as () => TemplateType,
     required: true,
     validator: (value: string): boolean => (
-      ['optimize', 'userOptimize', 'iterate', 'contextSystemOptimize', 'contextUserOptimize', 'contextIterate'] as string[]
+      ['optimize', 'userOptimize', 'text2imageOptimize', 'image2imageOptimize', 'imageIterate', 'iterate', 'contextSystemOptimize', 'contextUserOptimize', 'contextIterate'] as string[]
     ).includes(value)
   },
   optimizationMode: {
@@ -161,7 +161,7 @@ const loadTemplatesByType = async () => {
   }
 
   // 统一使用异步方法，立即抛错不静默处理
-  const typeTemplates = await templateManager.value.listTemplatesByType(props.type)
+  const typeTemplates = await templateManager.value.listTemplatesByType(props.type as any)
   templates.value.splice(0, templates.value.length, ...typeTemplates)
 }
 

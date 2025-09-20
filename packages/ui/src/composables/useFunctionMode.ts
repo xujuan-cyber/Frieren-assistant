@@ -3,13 +3,14 @@ import type { AppServices } from '../types/services'
 import { usePreferences } from './usePreferenceManager'
 import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 
-export type FunctionMode = 'basic' | 'pro'
+export type FunctionMode = 'basic' | 'pro' | 'image'
 
 interface UseFunctionModeApi {
   functionMode: Ref<FunctionMode>
   setFunctionMode: (mode: FunctionMode) => Promise<void>
   switchToBasic: () => Promise<void>
   switchToPro: () => Promise<void>
+  switchToImage: () => Promise<void>
   ensureInitialized: () => Promise<void>
 }
 
@@ -41,9 +42,9 @@ export function useFunctionMode(services: Ref<AppServices | null>): UseFunctionM
       try {
         // 读取 function-mode；若不存在，返回默认 'basic'
         const saved = await getPreference<FunctionMode>(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
-        singleton!.mode.value = (saved === 'pro' ? 'pro' : 'basic')
+        singleton!.mode.value = (saved === 'pro' || saved === 'image') ? saved : 'basic'
         // 将默认值持久化（若未设置过）
-        if (saved !== 'pro' && saved !== 'basic') {
+        if (saved !== 'pro' && saved !== 'basic' && saved !== 'image') {
           await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
         }
       } catch (e) {
@@ -65,13 +66,14 @@ export function useFunctionMode(services: Ref<AppServices | null>): UseFunctionM
 
   const switchToBasic = () => setFunctionMode('basic')
   const switchToPro = () => setFunctionMode('pro')
+  const switchToImage = () => setFunctionMode('image')
 
   return {
     functionMode: readonly(singleton.mode) as Ref<FunctionMode>,
     setFunctionMode,
     switchToBasic,
     switchToPro,
+    switchToImage,
     ensureInitialized
   }
 }
-

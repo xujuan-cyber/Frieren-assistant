@@ -94,6 +94,9 @@ export default {
     dataManager: 'Data Manager',
     advancedMode: 'Advanced Mode',
     variableManager: 'Variable Manager',
+    basicMode: 'Basic',
+    contextMode: 'Context',
+    imageMode: 'Image',
   },
   promptOptimizer: {
     title: 'Prompt Optimizer',
@@ -430,6 +433,8 @@ export default {
     updateFailed: 'Update failed: {error}',
     addSuccess: 'Model added successfully',
     addFailed: 'Failed to add model: {error}',
+    createSuccess: 'Model created successfully',
+    createFailed: 'Failed to create model: {error}',
     enableSuccess: 'Model enabled',
     enableFailed: 'Failed to enable model: {error}',
     disableSuccess: 'Model disabled',
@@ -486,6 +491,10 @@ export default {
     userOptimizeTemplates: 'User Prompt Optimization Templates',
     userOptimizeTemplatesContext: 'User Prompt Optimization Templates (Context)',
     userOptimizeTemplateList: 'User Prompt Optimization Template List',
+    // Image categories
+    imageText2ImageTemplates: 'Image · Text-to-Image Templates',
+    imageImage2ImageTemplates: 'Image · Image-to-Image Templates',
+    imageIterateTemplates: 'Image · Iterate Templates',
     addTemplate: 'Add',
     editTemplate: 'Edit',
     deleteTemplate: 'Delete',
@@ -651,6 +660,7 @@ export default {
     configure: 'Configure Template',
     selected: 'Selected',
     select: 'Select',
+    noAvailableTemplates: 'No available templates',
     builtinLanguage: 'Built-in Template Language',
     switchBuiltinLanguage: 'Switch built-in template language',
     languageChanged: 'Built-in template language switched to {language}',
@@ -1126,6 +1136,62 @@ export default {
       pending: 'Pending',
       success: 'Success',
       error: 'Failed'
+    }
+  },
+
+  // Image mode configuration
+  imageMode: {
+    text2image: 'Text-to-Image',
+    image2image: 'Image-to-Image',
+    text2imageDescription: 'Generate images from text descriptions',
+    image2imageDescription: 'Modify based on existing images',
+    uploadRequired: 'Image-to-Image mode requires uploading a reference image first'
+  },
+
+  imageWorkspace: {
+    // Input area
+    input: {
+      originalPrompt: 'Original Prompt',
+      originalPromptPlaceholder: 'Enter the image generation prompt to optimize',
+      image: 'Image',
+      selectImage: '📁 Select',
+      optimizeTemplate: 'Optimization Template',
+      templatePlaceholder: 'Please select template',
+      textModel: 'Text Model',
+      modelPlaceholder: 'Select model',
+      optimizing: 'Optimizing...',
+      optimizePrompt: 'Optimize Prompt'
+    },
+    
+    // Image generation area
+    generation: {
+      imageModel: 'Image Model',
+      imageModelPlaceholder: 'Please select image model',
+      compareMode: 'Compare Mode',
+      generating: 'Generating...',
+      generateImage: 'Generate Image',
+      processing: 'Processing'
+    },
+    
+    // Results display
+    results: {
+      originalPromptResult: 'Original Prompt',
+      optimizedPromptResult: 'Optimized Prompt',
+      testResult: 'Test Result',
+      download: 'Download',
+      copyBase64: 'Copy Base64',
+      noOriginalResult: 'No original result',
+      noOptimizedResult: 'No optimized result',
+      noGenerationResult: 'No generation result'
+    },
+    
+    // Upload modal
+    upload: {
+      title: 'Upload Reference Image',
+      dragText: 'Click or drag to upload image',
+      fileRequirements: 'Supports PNG/JPEG formats, file size up to 10MB',
+      uploadFailed: 'Upload failed',
+      uploadSuccess: 'Upload successful'
     }
   }
 };

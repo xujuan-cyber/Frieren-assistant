@@ -119,9 +119,18 @@ declare module 'vue-i18n' {
     templateManager: {
       title: string;
       optimizeTemplates: string;
+      userOptimizeTemplates: string;
       iterateTemplates: string;
+      optimizeTemplatesContext: string;
+      userOptimizeTemplatesContext: string;
+      iterateTemplatesContext: string;
       optimizeTemplateList: string;
+      userOptimizeTemplateList: string;
       iterateTemplateList: string;
+      // Image template categories
+      imageText2ImageTemplates: string;
+      imageImage2ImageTemplates: string;
+      imageIterateTemplates: string;
       addTemplate: string;
       editTemplate: string;
       deleteTemplate: string;

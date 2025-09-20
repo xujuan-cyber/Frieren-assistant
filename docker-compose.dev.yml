@@ -6,6 +6,7 @@ services:
     build:
        context: .
        dockerfile: Dockerfile
+    image: linshen/prompt-optimizer:dev
     container_name: prompt-optimizer-dev
     restart: unless-stopped
     ports:

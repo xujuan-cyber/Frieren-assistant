@@ -15,7 +15,6 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_popup": "index.html",
     "default_title": "__MSG_extName__"
   },
   "background": {
@@ -26,7 +25,7 @@
   "homepage_url": "https://github.com/linshenkx/prompt-optimizer",
   "author": "linshenkx",
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self';"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
   },
   "offline_enabled": true,
   "incognito": "split",

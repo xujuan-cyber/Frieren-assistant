@@ -11,22 +11,30 @@
       <!-- 顶部导航栏 -->
       <NLayoutHeader class="theme-header nav-header-enhanced">
         <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="false" :size="[16, 12]">
-          <!-- 左侧：Logo + 标题 -->
-          <NFlex align="center" :size="8" :wrap="false">
-            <NImage
-              :src="logoSrc"
-              alt="Logo"
-              :width="logoSize"
-              :height="logoSize"
-              object-fit="cover"
-              class="logo-image"
-              :show-toolbar="false"
-              :preview-disabled="true"
-              :fallback-src="fallbackLogoSrc"
-            />
-            <NText class="text-lg sm:text-xl font-bold theme-title" tag="h2">
-              <slot name="title">{{ t('common.appName') }}</slot>
-            </NText>
+          <!-- 左侧：Logo + 标题 + 核心导航 -->
+          <NFlex align="center" :size="16" :wrap="false">
+            <!-- Logo + 标题 -->
+            <NFlex align="center" :size="8" :wrap="false">
+              <NImage
+                :src="logoSrc"
+                alt="Logo"
+                :width="logoSize"
+                :height="logoSize"
+                object-fit="cover"
+                class="logo-image"
+                :show-toolbar="false"
+                :preview-disabled="true"
+                :fallback-src="fallbackLogoSrc"
+              />
+              <NText class="text-lg sm:text-xl font-bold theme-title" tag="h2">
+                <slot name="title">{{ t('common.appName') }}</slot>
+              </NText>
+            </NFlex>
+
+            <!-- 核心导航元素 -->
+            <div class="core-navigation">
+              <slot name="core-nav"></slot>
+            </div>
           </NFlex>
 
           <!-- 右侧：操作按钮 -->
@@ -141,10 +149,64 @@ const logoSize = computed(() => {
   white-space: nowrap;
 }
 
+/* 核心导航样式 */
+.core-navigation {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-color, rgba(239, 239, 245, 0.6));
+  min-height: 32px;
+}
+
+.core-navigation :deep(.function-mode-selector) {
+  transform: scale(1.05);
+}
+
+.core-navigation :deep(.n-radio-group) {
+  background: var(--modal-color, #fff);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color, rgba(239, 239, 245, 0.6));
+}
+
+.core-navigation :deep(.n-radio-button) {
+  font-weight: 500;
+  min-width: 60px;
+  border-radius: 6px !important;
+  transition: all 0.2s ease;
+}
+
+.core-navigation :deep(.n-radio-button--checked) {
+  background: var(--primary-color) !important;
+  color: white !important;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.core-navigation :deep(.n-radio-button:not(.n-radio-button--checked):hover) {
+  background: var(--hover-color, rgba(0, 0, 0, 0.06));
+}
+
 /* 响应式优化 */
 @media (max-width: 639px) {
   .logo-image {
     border-radius: 4px;
+  }
+
+  .core-navigation {
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+
+  .core-navigation :deep(.function-mode-selector) {
+    transform: scale(0.95);
+  }
+
+  .core-navigation :deep(.n-radio-button) {
+    min-width: 48px;
+    font-size: 12px;
   }
 }
 

@@ -12,7 +12,7 @@
     <template #header-extra>
       <NButton
         type="primary"
-        @click="showAddForm = true"
+        @click="openAddForActiveTab"
         ghost
       >
         <template #icon>
@@ -23,6 +23,12 @@
     </template>
     
     <NScrollbar style="max-height: 75vh;">
+      <NTabs v-model:value="activeTab" type="line" size="small" style="margin-bottom: 12px;">
+        <NTabPane name="text" tab="文本模型" />
+        <NTabPane name="image" tab="图像模型" />
+      </NTabs>
+
+      <template v-if="activeTab === 'text'">
       <NSpace vertical :size="12">
           <NCard
             v-for="model in models"
@@ -111,7 +117,117 @@
             </template>
           </NCard>
       </NSpace>
+      </template>
+
+      <template v-else>
+        <NSpace vertical :size="12">
+          <NCard
+            v-for="im in imageModels"
+            :key="im.key"
+            hoverable
+            :style="{ opacity: im.enabled ? 1 : 0.6 }"
+          >
+            <template #header>
+              <NSpace justify="space-between" align="center">
+                <NSpace vertical :size="4">
+                  <NSpace align="center">
+                    <NText strong>{{ im.name }}</NText>
+                    <NTag size="small">{{ im.provider }}</NTag>
+                    <NTag v-if="!im.enabled" type="warning" size="small">{{ t('modelManager.disabled') }}</NTag>
+                  </NSpace>
+                  <NText depth="3" style="font-size: 14px;">{{ im.defaultModel }}</NText>
+                </NSpace>
+              </NSpace>
+            </template>
+            <template #header-extra>
+              <NSpace @click.stop>
+                <NButton size="small" quaternary disabled>
+                  <span class="hidden md:inline">测试连接（暂不可用）</span>
+                </NButton>
+                <NButton @click="editImageModel(im.key)" size="small" quaternary>
+                  {{ t('modelManager.editModel') }}
+                </NButton>
+                <NButton @click="im.enabled ? disableImageModel(im.key) : enableImageModel(im.key)"
+                         size="small"
+                         :type="im.enabled ? 'warning' : 'success'"
+                         quaternary>
+                  {{ im.enabled ? t('common.disable') : t('common.enable') }}
+                </NButton>
+                <NButton v-if="!isDefaultImageModel(im.key)" @click="deleteImageModel(im.key)" size="small" type="error" quaternary>
+                  {{ t('common.delete') }}
+                </NButton>
+              </NSpace>
+            </template>
+          </NCard>
+        </NSpace>
+      </template>
     </NScrollbar>
+  </NModal>
+
+  <!-- 图像模型：编辑弹窗 -->
+  <NModal
+    :show="isEditingImage"
+    preset="card"
+    :style="{ width: '720px' }"
+    title="编辑图像模型"
+    :bordered="false"
+    :segmented="true"
+    @update:show="(v) => !v && (isEditingImage = false)"
+  >
+    <NScrollbar style="max-height: 60vh;" v-if="editingImageModel">
+      <NSpace vertical :size="12">
+        <NInput v-model:value="editingImageModel.name" placeholder="显示名称" />
+        <NSelect v-model:value="editingImageModel.provider" :options="[
+          { label: 'Gemini', value: 'gemini' },
+          { label: 'Seedream', value: 'seedream' },
+          { label: 'OpenAI', value: 'openai' },
+          { label: 'Custom', value: 'custom' }
+        ]" />
+        <NInput v-model:value="editingImageModel.baseURL" placeholder="API Base URL（可选）" />
+        <NInput v-model:value="editingImageModel.apiKey" placeholder="API Key（可选）" type="password" />
+        <NInput v-model:value="editingImageModel.defaultModel" placeholder="默认模型ID" />
+        <NCheckbox v-model:checked="editingImageModel.enabled">{{ t('common.enable') }}</NCheckbox>
+      </NSpace>
+    </NScrollbar>
+    <template #action>
+      <NSpace justify="end">
+        <NButton @click="isEditingImage = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="saveImageEdit">{{ t('common.save') }}</NButton>
+      </NSpace>
+    </template>
+  </NModal>
+
+  <!-- 图像模型：新增弹窗 -->
+  <NModal
+    :show="showAddImageForm"
+    preset="card"
+    :style="{ width: '720px' }"
+    title="新增图像模型"
+    :bordered="false"
+    :segmented="true"
+    @update:show="(v) => !v && (showAddImageForm = false)"
+  >
+    <NScrollbar style="max-height: 60vh;">
+      <NSpace vertical :size="12">
+        <NInput v-model:value="newImageModel.key" placeholder="模型Key（唯一标识）" />
+        <NInput v-model:value="newImageModel.name" placeholder="显示名称" />
+        <NSelect v-model:value="newImageModel.provider" :options="[
+          { label: 'Gemini', value: 'gemini' },
+          { label: 'Seedream', value: 'seedream' },
+          { label: 'OpenAI', value: 'openai' },
+          { label: 'Custom', value: 'custom' }
+        ]" />
+        <NInput v-model:value="newImageModel.baseURL" placeholder="API Base URL（可选）" />
+        <NInput v-model:value="newImageModel.apiKey" placeholder="API Key（可选）" type="password" />
+        <NInput v-model:value="newImageModel.defaultModel" placeholder="默认模型ID" />
+      </NSpace>
+    </NScrollbar>
+    <template #action>
+      <NSpace justify="end">
+        <NButton @click="showAddImageForm = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="addImageModel">{{ t('common.create') }}</NButton>
+      </NSpace>
+    </template>
   </NModal>
 
   <!-- 编辑模型弹窗 - 独立的顶级模态框 -->
@@ -646,7 +762,7 @@ import { ref, onMounted, watch, computed, inject } from 'vue'; // Added computed
 import { useI18n } from 'vue-i18n';
 import {
   NModal, NScrollbar, NSpace, NCard, NText, NH3, NH4, NTag, NButton, 
-  NInput, NInputNumber, NCheckbox, NDivider, NSelect
+  NInput, NInputNumber, NCheckbox, NDivider, NSelect, NTabs, NTabPane
 } from 'naive-ui';
 import {
   createLLMService,
@@ -678,6 +794,22 @@ const close = () => {
   emit('close');
 };
 
+// 活动标签（文本/图像）
+const activeTab = ref('text')
+
+// 图像模型区状态
+const imageModels = ref([])
+const isEditingImage = ref(false)
+const editingImageModel = ref(null)
+const showAddImageForm = ref(false)
+const newImageModel = ref({ key: '', name: '', provider: 'gemini', baseURL: '', apiKey: '', defaultModel: '', enabled: true })
+
+// 打开新增弹窗（根据活动标签）
+const openAddForActiveTab = () => {
+  if (activeTab.value === 'image') showAddImageForm.value = true
+  else showAddForm.value = true
+}
+
 // 通过依赖注入获取服务
 const services = inject('services');
 if (!services) {
@@ -685,6 +817,7 @@ if (!services) {
 }
 const modelManager = services.value.modelManager;
 const llmService = services.value.llmService;
+const imageModelManager = services.value.imageModelManager;
 
 // =============== 状态变量 ===============
 // UI状态
@@ -858,6 +991,52 @@ const disableModel = async (key) => {
     console.error('禁用模型失败:', error)
     toast.error(t('modelManager.disableFailed', { error: error.message }))
   }
+}
+
+// ===== 图像模型：加载/增删改/启用禁用 =====
+const loadImageModels = async () => {
+  try {
+    const list = await imageModelManager.getAllModels()
+    imageModels.value = JSON.parse(JSON.stringify(list))
+  } catch (e) {
+    console.error('加载图像模型失败:', e)
+  }
+}
+const isDefaultImageModel = (key) => ['image-gemini', 'image-seedream'].includes(key)
+const enableImageModel = async (key) => {
+  try { await imageModelManager.enableModel(key); await loadImageModels(); toast.success(t('modelManager.enableSuccess')) }
+  catch (e) { toast.error(t('modelManager.enableFailed', { error: e.message })) }
+}
+const disableImageModel = async (key) => {
+  try { await imageModelManager.disableModel(key); await loadImageModels(); toast.success(t('modelManager.disableSuccess')) }
+  catch (e) { toast.error(t('modelManager.disableFailed', { error: e.message })) }
+}
+const deleteImageModel = async (key) => {
+  if (!confirm(t('modelManager.deleteConfirm'))) return
+  try { await imageModelManager.deleteModel(key); await loadImageModels(); toast.success(t('modelManager.deleteSuccess')) }
+  catch (e) { toast.error(t('modelManager.deleteFailed', { error: e.message })) }
+}
+const editImageModel = async (key) => {
+  const m = await imageModelManager.getModel(key)
+  if (!m) return
+  editingImageModel.value = { originalKey: key, name: m.name, provider: m.provider || 'gemini', baseURL: m.baseURL || '', apiKey: m.apiKey || '', defaultModel: m.defaultModel || '', enabled: m.enabled }
+  isEditingImage.value = true
+}
+const saveImageEdit = async () => {
+  const e = editingImageModel.value
+  if (!e?.originalKey) return
+  try {
+    await imageModelManager.updateModel(e.originalKey, { name: e.name, provider: e.provider, baseURL: e.baseURL, apiKey: e.apiKey, defaultModel: e.defaultModel, enabled: e.enabled })
+    isEditingImage.value = false; editingImageModel.value = null; await loadImageModels(); toast.success((t('common.save') || '保存') + '成功')
+  } catch (err) { const msg = err && err.message ? err.message : String(err); toast.error((t('common.save') || '保存') + '失败: ' + msg) }
+}
+const addImageModel = async () => {
+  const n = newImageModel.value
+  if (!n.key) { toast.error(t('modelManager.modelKeyPlaceholder')); return }
+  try {
+    await imageModelManager.addModel(n.key, { name: n.name, provider: n.provider, baseURL: n.baseURL, apiKey: n.apiKey, defaultModel: n.defaultModel, enabled: true, imgParams: {} })
+    showAddImageForm.value = false; newImageModel.value = { key: '', name: '', provider: 'gemini', baseURL: '', apiKey: '', defaultModel: '', enabled: true }; await loadImageModels(); toast.success(t('modelManager.addSuccess') || '创建成功')
+  } catch (err) { const msg = err && err.message ? err.message : String(err); toast.error(t('modelManager.addFailed', { error: msg }) || ('创建失败: ' + msg)) }
 }
 
 // =============== 编辑相关函数 ===============
@@ -1380,6 +1559,7 @@ onMounted(() => {
   loadModels();
   checkVercelProxy();
   checkDockerProxy();
+  if (imageModelManager) loadImageModels();
 });
 </script>
 

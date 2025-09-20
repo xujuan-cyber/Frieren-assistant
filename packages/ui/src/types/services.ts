@@ -8,7 +8,9 @@ import type {
   ITemplateLanguageService,
   ICompareService,
   IPreferenceService,
-  ContextRepo
+  ContextRepo,
+  IImageModelManager,
+  IImageService
 } from '@prompt-optimizer/core'
 
 /**
@@ -25,4 +27,7 @@ export interface AppServices {
   preferenceService: IPreferenceService;
   compareService: ICompareService;
   contextRepo: ContextRepo;
+  // 图像相关（Web 优先，可选）
+  imageModelManager?: IImageModelManager;
+  imageService?: IImageService;
 }

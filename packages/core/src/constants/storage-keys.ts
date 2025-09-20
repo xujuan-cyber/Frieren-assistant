@@ -8,6 +8,7 @@
 // 核心服务存储键
 export const CORE_SERVICE_KEYS = {
   MODELS: 'models', // 模型配置存储键
+  IMAGE_MODELS: 'image-models', // 图像模型配置存储键
   USER_TEMPLATES: 'user-templates', // 用户模板存储键
   PROMPT_HISTORY: 'prompt_history', // 提示词历史记录存储键
 } as const
@@ -36,12 +37,22 @@ export const TEMPLATE_SELECTION_KEYS = {
   CONTEXT_ITERATE_TEMPLATE: 'app:selected-context-iterate-template',
 } as const
 
+// 图像模式选择相关
+export const IMAGE_MODE_KEYS = {
+  SELECTED_TEXT_MODEL: 'app:image-mode:selected-text-model',
+  SELECTED_IMAGE_MODEL: 'app:image-mode:selected-image-model',
+  SELECTED_TEMPLATE: 'app:image-mode:selected-template',
+  SELECTED_ITERATE_TEMPLATE: 'app:image-mode:selected-iterate-template',
+  COMPARE_MODE_ENABLED: 'app:image-mode:compare-mode-enabled',
+} as const
+
 // 所有存储键的联合类型
 export const ALL_STORAGE_KEYS = {
   ...CORE_SERVICE_KEYS,
   ...UI_SETTINGS_KEYS,
   ...MODEL_SELECTION_KEYS,
   ...TEMPLATE_SELECTION_KEYS,
+  ...IMAGE_MODE_KEYS,
 } as const
 
 // 导出所有键的数组（用于DataManager等需要遍历的场景）
@@ -52,4 +63,5 @@ export type CoreServiceKey = typeof CORE_SERVICE_KEYS[keyof typeof CORE_SERVICE_
 export type UISettingsKey = typeof UI_SETTINGS_KEYS[keyof typeof UI_SETTINGS_KEYS]
 export type ModelSelectionKey = typeof MODEL_SELECTION_KEYS[keyof typeof MODEL_SELECTION_KEYS]
 export type TemplateSelectionKey = typeof TEMPLATE_SELECTION_KEYS[keyof typeof TEMPLATE_SELECTION_KEYS]
+export type ImageModeKey = typeof IMAGE_MODE_KEYS[keyof typeof IMAGE_MODE_KEYS]
 export type StorageKey = typeof ALL_STORAGE_KEYS[keyof typeof ALL_STORAGE_KEYS]

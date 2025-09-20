@@ -13,7 +13,15 @@
           <template #title>
             {{ $t('promptOptimizer.title') }}
           </template>
-  
+
+          <!-- Core Navigation Slot -->
+          <template #core-nav>
+            <FunctionModeSelector
+              v-model="functionMode"
+              @change="handleModeSelect"
+            />
+          </template>
+
           <!-- Actions Slot -->
           <template #actions>
           <!-- 核心功能区 -->
@@ -23,17 +31,6 @@
             icon="📊"
             :text="$t('nav.variableManager')"
             @click="openVariableManager"
-            type="default"
-            size="medium"
-            :ghost="false"
-            :round="true"
-          />
-          <!-- 高级模式导航按钮 - 始终显示，作为布局锚点 -->
-          <ActionButtonUI
-            icon="🚀"
-            :text="$t('nav.advancedMode')"
-            @click="toggleAdvancedMode"
-            :class="{ 'active-button': advancedModeEnabled }"
             type="default"
             size="medium"
             :ghost="false"
@@ -99,6 +96,8 @@
         <template #main>
   
           
+        <!-- 非图像模式：沿用现有布局 -->
+        <template v-if="functionMode !== 'image'">
         <!-- Main Content - 使用 Naive UI NGrid 实现响应式水平左右布局 class="h-full min-h-0 overflow-hidden max-height=100%" -->
         <NFlex  justify="space-between" :style="{display: 'flex',  flexDirection: 'row', width: '100%' , 'max-height': '100%', gap: '16px' }" >
           <!-- 左侧：优化区域 -->
@@ -263,10 +262,19 @@
           </NCard>
         </NFlex>
         </template>
+        <!-- 图像模式：渲染新的工作区组件，不破坏现有结构 -->
+        <template v-else>
+          <ImageWorkspace />
+        </template>
+        </template>
       </MainLayoutUI>
   
       <!-- Modals and Drawers that are conditionally rendered -->
-      <ModelManagerUI v-if="isReady" v-model:show="modelManager.showConfig" />
+      <ModelManagerUI
+        v-if="isReady"
+        v-model:show="modelManager.showConfig"
+        @update:show="(v: boolean) => { if (!v) handleModelManagerClosed() }"
+      />
       <TemplateManagerUI
         v-if="isReady"
         v-model:show="templateManagerState.showTemplates"
@@ -328,6 +336,7 @@ hljs.registerLanguage('json', jsonLang)
     MainLayoutUI, ThemeToggleUI, ActionButtonUI, ModelManagerUI, TemplateManagerUI, HistoryDrawerUI,
     LanguageSwitchDropdown, DataManagerUI, InputPanelUI, PromptPanelUI, OptimizationModeSelectorUI,
     ModelSelectUI, TemplateSelectUI, TestAreaPanel, UpdaterIcon, VariableManagerModal,
+    ImageWorkspace, FunctionModeSelector,
     ConversationManager, OutputDisplay, ContextEditor,
   
     // Composables
@@ -401,7 +410,12 @@ hljs.registerLanguage('json', jsonLang)
     get: () => functionMode.value === 'pro',
     set: (val: boolean) => { setFunctionMode(val ? 'pro' : 'basic') }
   })
-  
+
+  // 处理功能模式变化
+  const handleModeSelect = async (mode: 'basic' | 'pro' | 'image') => {
+    await setFunctionMode(mode)
+  }
+
   // 测试内容状态 - 新增
   const testContent = ref('')
   const isCompareMode = ref(true)
@@ -873,9 +887,9 @@ hljs.registerLanguage('json', jsonLang)
   }
   
   // 打开模板管理器
-  const openTemplateManager = (templateType?: 'optimize' | 'userOptimize' | 'iterate') => {
+  const openTemplateManager = (templateType?: 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate') => {
     // 如果传入了模板类型，直接使用；否则根据当前优化模式判断（向后兼容）
-    templateManagerState.currentType = templateType || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
+    templateManagerState.currentType = (templateType as any) || (selectedOptimizationMode.value === 'system' ? 'optimize' : 'userOptimize')
     templateManagerState.showTemplates = true
   }
   
@@ -887,47 +901,102 @@ hljs.registerLanguage('json', jsonLang)
   // 处理模板语言变化
   const handleTemplateLanguageChanged = (newLanguage: string) => {
     console.log('[App] 模板语言已切换:', newLanguage)
-  
+
     // 刷新主界面的模板选择组件
     if (templateSelectRef.value?.refresh) {
       templateSelectRef.value.refresh()
     }
-  
+
     // 刷新迭代页面的模板选择组件
     if (promptPanelRef.value?.refreshIterateTemplateSelect) {
       promptPanelRef.value.refreshIterateTemplateSelect()
+    }
+
+    // 通知图像模式工作区刷新迭代模板选择
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('image-workspace-refresh-iterate-select'))
+    }
+  }
+
+  // 向子组件提供统一的 openTemplateManager 接口（图像模式复用）
+  provide('openTemplateManager', openTemplateManager)
+
+  // 模型管理器关闭回调：同步刷新基础模式下拉，并通知图像模式刷新图像模型
+  const handleModelManagerClosed = async () => {
+    try {
+      // 基础模式：复用现有逻辑刷新文本模型与下拉
+      modelManager.handleModelManagerClose()
+    } catch (e) {
+      console.warn('[App] Failed to refresh text models after manager close:', e)
+    }
+    // 图像模式：广播刷新图像模型事件（ImageWorkspace 监听并执行刷新）
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('image-workspace-refresh-image-models'))
     }
   }
   
   // 处理历史记录使用 - 智能模式切换
   const handleHistoryReuse = async (context: { record: any, chainId: string, rootPrompt: string, chain: any }) => {
-    const { chain } = context
-  
-    // 根据链条的根记录类型确定应该切换到的优化模式
-    let targetMode: OptimizationMode
-    if (chain.rootRecord.type === 'optimize' || chain.rootRecord.type === 'contextSystemOptimize') {
-      targetMode = 'system'
-    } else if (chain.rootRecord.type === 'userOptimize' || chain.rootRecord.type === 'contextUserOptimize') {
-      targetMode = 'user'
-    } else {
-      // 兜底：从根记录的 metadata 中获取优化模式
-      targetMode = chain.rootRecord.metadata?.optimizationMode || 'system'
-    }
-  
-    // 如果目标模式与当前模式不同，自动切换
-    if (targetMode !== selectedOptimizationMode.value) {
-      selectedOptimizationMode.value = targetMode
-      useToast().info(t('toast.info.optimizationModeAutoSwitched', {
-        mode: targetMode === 'system' ? t('common.system') : t('common.user')
-      }))
-    }
-    // 根据根记录类型自动切换功能模式
+    const { record, chain } = context
     const rt = chain.rootRecord.type
-    const isContext = rt === 'contextSystemOptimize' || rt === 'contextUserOptimize' || rt === 'contextIterate'
-    await setFunctionMode(isContext ? 'pro' : 'basic')
-  
-    // 调用原有的历史记录处理逻辑
-    await promptHistory.handleSelectHistory(context)
+
+    // 🆕 扩展模式切换逻辑 - 支持图像模式
+    if (rt === 'imageOptimize' || rt === 'contextImageOptimize' || rt === 'imageIterate') {
+      // 切换到图像模式
+      await setFunctionMode('image')
+      useToast().info('已自动切换到图像模式')
+      
+      // 🆕 图像模式专用数据回填逻辑
+      // 等待模式切换完成后再回填数据
+      await nextTick()
+      
+      // 通过全局事件或直接访问ImageWorkspace的数据来回填
+      // 由于ImageWorkspace是独立组件，我们需要通过provide/inject或事件系统来传递数据
+      const imageHistoryData = {
+        originalPrompt: record.originalPrompt || chain.rootRecord.originalPrompt,
+        optimizedPrompt: record.optimizedPrompt,
+        metadata: record.metadata || chain.rootRecord.metadata,
+        chainId: chain.chainId,
+        versions: chain.versions,
+        currentVersionId: record.id
+      }
+      
+      // 触发图像工作区数据恢复事件
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('image-workspace-restore', {
+          detail: imageHistoryData
+        }))
+      }
+      
+      useToast().success('图像历史记录已恢复')
+      return // 图像模式不需要调用原有的历史记录处理逻辑
+    } else {
+      // 根据链条的根记录类型确定应该切换到的优化模式
+      let targetMode: OptimizationMode
+      if (rt === 'optimize' || rt === 'contextSystemOptimize') {
+        targetMode = 'system'
+      } else if (rt === 'userOptimize' || rt === 'contextUserOptimize') {
+        targetMode = 'user'
+      } else {
+        // 兜底：从根记录的 metadata 中获取优化模式
+        targetMode = chain.rootRecord.metadata?.optimizationMode || 'system'
+      }
+
+      // 如果目标模式与当前模式不同，自动切换
+      if (targetMode !== selectedOptimizationMode.value) {
+        selectedOptimizationMode.value = targetMode
+        useToast().info(t('toast.info.optimizationModeAutoSwitched', {
+          mode: targetMode === 'system' ? t('common.system') : t('common.user')
+        }))
+      }
+      
+      // 根据根记录类型自动切换功能模式
+      const isContext = rt === 'contextSystemOptimize' || rt === 'contextUserOptimize' || rt === 'contextIterate'
+      await setFunctionMode(isContext ? 'pro' : 'basic')
+      
+      // 调用原有的历史记录处理逻辑
+      await promptHistory.handleSelectHistory(context)
+    }
   }
   
   // 提示词输入标签

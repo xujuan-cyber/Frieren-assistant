@@ -39,6 +39,23 @@ import { user_prompt_basic_en } from './user-optimize/user-prompt-basic_en';
 import { user_prompt_planning } from './user-optimize/user-prompt-planning';
 import { user_prompt_planning_en } from './user-optimize/user-prompt-planning_en';
 
+// 图像优化模板（重构后的目录结构）
+// 文生图
+import { template as image_dalle_optimize } from './image-optimize/text2image/dalle-optimize';
+import { template as image_dalle_optimize_en } from './image-optimize/text2image/dalle-optimize_en';
+import { template as image_sd_optimize } from './image-optimize/text2image/stable-diffusion-optimize';
+import { template as image_sd_optimize_en } from './image-optimize/text2image/stable-diffusion-optimize_en';
+import { template as image_chinese_optimize } from './image-optimize/text2image/chinese-model-optimize';
+import { template as image_chinese_optimize_en } from './image-optimize/text2image/chinese-model-optimize_en';
+import { template as image_general_optimize } from './image-optimize/text2image/general-image-optimize';
+import { template as image_general_optimize_en } from './image-optimize/text2image/general-image-optimize_en';
+// 图生图
+import { template as image2image_optimize } from './image-optimize/image2image/image2image-optimize';
+import { template as image2image_optimize_en } from './image-optimize/image2image/image2image-optimize_en';
+// 图像迭代
+import { template as image_iterate_general } from './image-optimize/iterate/image-iterate-general';
+import { template as image_iterate_general_en } from './image-optimize/iterate/image-iterate-general_en';
+
 // 简单的模板集合 - 模板自身已包含完整信息（id、name、language、type等）
 export const ALL_TEMPLATES = {
   general_optimize,
@@ -69,4 +86,19 @@ export const ALL_TEMPLATES = {
   user_prompt_basic_en,
   user_prompt_planning,
   user_prompt_planning_en,
+  // 图像优化模板
+  image_dalle_optimize,
+  image_dalle_optimize_en,
+  image_sd_optimize,
+  image_sd_optimize_en,
+  image_chinese_optimize,
+  image_chinese_optimize_en,
+  image_general_optimize,
+  image_general_optimize_en,
+  // 图生图模板
+  image2image_optimize,
+  image2image_optimize_en,
+  // 图像迭代模板
+  image_iterate_general,
+  image_iterate_general_en,
 };
