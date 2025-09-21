@@ -171,7 +171,13 @@ vi.mock('../../src/composables/useDebounceThrottle', () => ({
   useDebounceThrottle: () => ({
     debounce: (fn: Function) => fn,
     throttle: (fn: Function) => fn,
-    batchExecute: (fn: Function) => fn
+    batchExecute: (fn: Function) => {
+      // 正确模拟批处理函数：接收一个处理数组的函数，返回一个接收单个项目的函数
+      return (item: any) => {
+        // 在测试中立即执行，传入包含单个项目的数组
+        fn([item])
+      }
+    }
   })
 }))
 

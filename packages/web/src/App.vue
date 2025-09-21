@@ -325,7 +325,7 @@
   </template>
   
   <script setup lang="ts">
-  import { ref, watch, provide, computed, shallowRef, toRef, nextTick } from 'vue'
+  import { ref, watch, provide, computed, shallowRef, toRef, nextTick, onMounted } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex, useMessage } from 'naive-ui'
 import hljs from 'highlight.js/lib/core'
@@ -684,6 +684,9 @@ hljs.registerLanguage('json', jsonLang)
     toRef(optimizer, 'currentVersions') as any,
     toRef(optimizer, 'currentVersionId') as any
   )
+
+  // 提供全局历史实例给子组件复用
+  provide('promptHistory', promptHistory)
   
   // 历史管理器
   const historyManager = useHistoryManager(
@@ -722,6 +725,12 @@ hljs.registerLanguage('json', jsonLang)
     // useFunctionMode 内部已处理默认值与持久化
   
     console.log('All services and composables initialized.')
+
+    // 监听全局历史刷新事件（来自图像模式）
+    const handleGlobalHistoryRefresh = () => {
+      promptHistory.initHistory()
+    }
+    window.addEventListener('prompt-optimizer:history-refresh', handleGlobalHistoryRefresh)
   })
   
   // 8. 处理数据导入成功后的刷新
@@ -941,7 +950,8 @@ hljs.registerLanguage('json', jsonLang)
     const rt = chain.rootRecord.type
 
     // 🆕 扩展模式切换逻辑 - 支持图像模式
-    if (rt === 'imageOptimize' || rt === 'contextImageOptimize' || rt === 'imageIterate') {
+    if (rt === 'imageOptimize' || rt === 'contextImageOptimize' || rt === 'imageIterate' ||
+        rt === 'text2imageOptimize' || rt === 'image2imageOptimize') {
       // 切换到图像模式
       await setFunctionMode('image')
       useToast().info('已自动切换到图像模式')
@@ -949,7 +959,12 @@ hljs.registerLanguage('json', jsonLang)
       // 🆕 图像模式专用数据回填逻辑
       // 等待模式切换完成后再回填数据
       await nextTick()
-      
+
+      // 根据记录类型设置正确的图像子模式
+      const imageMode = rt === 'text2imageOptimize' ? 'text2image' :
+                       rt === 'image2imageOptimize' ? 'image2image' :
+                       'text2image' // 默认为文生图模式
+
       // 通过全局事件或直接访问ImageWorkspace的数据来回填
       // 由于ImageWorkspace是独立组件，我们需要通过provide/inject或事件系统来传递数据
       const imageHistoryData = {
@@ -958,7 +973,8 @@ hljs.registerLanguage('json', jsonLang)
         metadata: record.metadata || chain.rootRecord.metadata,
         chainId: chain.chainId,
         versions: chain.versions,
-        currentVersionId: record.id
+        currentVersionId: record.id,
+        imageMode: imageMode // 添加图像模式信息
       }
       
       // 触发图像工作区数据恢复事件

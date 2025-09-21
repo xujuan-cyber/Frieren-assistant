@@ -42,6 +42,7 @@ const {
   createLLMService,
   createPromptService,
   createImageModelManager,
+  createImageAdapterRegistry,
   createImageService,
   createTemplateLanguageService,
   createDataManager,
@@ -82,6 +83,7 @@ function safeSerialize(obj) {
 let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager, contextRepo;
 let imageModelManager, imageService;
+let imageAdapterRegistry; // 全局引用以供 IPC 处理器使用
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
 let isQuitting = false; // 防止重复保存数据的标志
 let isUpdaterQuitting = false; // 标识是否为更新安装退出，跳过数据保存
@@ -264,6 +266,32 @@ function setupPreferenceHandlers() {
       return createErrorResponse(error);
     }
   });
+}
+
+// 构建注入到渲染进程的运行时配置脚本（双份键：带前缀与不带前缀）
+function buildRuntimeConfigScriptFromEnv() {
+  try {
+    const entries = Object.entries(process.env)
+      .filter(([k, v]) => k.startsWith('VITE_') && v !== undefined && v !== null && String(v).length > 0);
+
+    const props = [];
+    for (const [k, v] of entries) {
+      const val = String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const noPrefix = k.replace(/^VITE_/, '');
+      props.push([noPrefix, val]);
+      props.push([k, val]);
+    }
+
+    const body = props.map(([key, val]) => `  ${key}: "${val}"`).join(',\n');
+
+    return `// Injected by Electron main process\n`
+      + `window.runtime_config = Object.assign({}, (window.runtime_config || {}), {\n`
+      + `${body}\n`
+      + `});\n`
+      + `console.log('[Main Process] runtime_config injected with ${entries.length} VITE_* vars (dual keys)');\n`;
+  } catch (e) {
+    return `console.warn('[Main Process] Failed to build runtime_config:', ${JSON.stringify(String(e))});`;
+  }
 }
 
 function createWindow() {
@@ -461,7 +489,8 @@ async function initializeServices() {
     await modelManager.ensureInitialized();
     // 图像模型管理器
     console.log('[DESKTOP] Creating image model manager...');
-    imageModelManager = createImageModelManager(storageProvider);
+    imageAdapterRegistry = createImageAdapterRegistry();
+    imageModelManager = createImageModelManager(storageProvider, imageAdapterRegistry);
     await imageModelManager.ensureInitialized();
     
     // 在创建任何网络相关服务前，先根据系统代理设置 undici 全局分发器
@@ -473,7 +502,7 @@ async function initializeServices() {
     console.log('[DESKTOP] Creating Prompt service...');
     promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
     console.log('[DESKTOP] Creating Image service...');
-    imageService = createImageService(imageModelManager);
+    imageService = createImageService(imageModelManager, imageAdapterRegistry);
     
     console.log('[DESKTOP] Creating Context repository...');
     contextRepo = createContextRepo(storageProvider);
@@ -753,6 +782,25 @@ function setupIPC() {
     }
   });
 
+  // 在页面加载前拦截 /config.js 并注入运行时环境变量（双份键）
+  try {
+    const ses = (mainWindow && mainWindow.webContents && mainWindow.webContents.session) || session.defaultSession;
+    if (ses && ses.webRequest && typeof ses.webRequest.onBeforeRequest === 'function') {
+      const filter = { urls: ['*://*/*', 'file://*/*'] };
+      ses.webRequest.onBeforeRequest(filter, (details, callback) => {
+        if (/\/config\.js(\?.*)?$/i.test(details.url)) {
+          const script = buildRuntimeConfigScriptFromEnv();
+          const dataUrl = 'data:application/javascript;charset=utf-8,' + encodeURIComponent(script);
+          return callback({ redirectURL: dataUrl });
+        }
+        return callback({});
+      });
+      console.log('[Main Process] Runtime config (config.js) interceptor registered');
+    }
+  } catch (e) {
+    console.warn('[Main Process] Unable to register runtime config interceptor:', e);
+  }
+
   // 自定义会话测试（支持工具、变量、对话消息）
   ipcMain.handle('prompt-testCustomConversationStream', async (event, request, streamId) => {
     const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
@@ -854,7 +902,7 @@ function setupIPC() {
     }
   });
 
-  // ===== Image Model handlers =====
+  // ===== Image Model handlers (Config-centric) =====
   ipcMain.handle('image-model-ensureInitialized', async () => {
     try { await imageModelManager.ensureInitialized(); return createSuccessResponse(null) }
     catch (error) { return createErrorResponse(error) }
@@ -863,36 +911,28 @@ function setupIPC() {
     try { const r = await imageModelManager.isInitialized(); return createSuccessResponse(r) }
     catch (error) { return createErrorResponse(error) }
   })
-  ipcMain.handle('image-model-getAllModels', async () => {
-    try { const r = await imageModelManager.getAllModels(); return createSuccessResponse(r) }
+  ipcMain.handle('image-model-getAllConfigs', async () => {
+    try { const r = await imageModelManager.getAllConfigs(); return createSuccessResponse(r) }
     catch (error) { return createErrorResponse(error) }
   })
-  ipcMain.handle('image-model-getModel', async (e, key) => {
-    try { const r = await imageModelManager.getModel(key); return createSuccessResponse(r) }
+  ipcMain.handle('image-model-getConfig', async (e, id) => {
+    try { const r = await imageModelManager.getConfig(id); return createSuccessResponse(r) }
     catch (error) { return createErrorResponse(error) }
   })
-  ipcMain.handle('image-model-addModel', async (e, model) => {
-    try { const safeModel = safeSerialize(model); const { key, ...cfg } = safeModel; await imageModelManager.addModel(key, cfg); return createSuccessResponse(null) }
+  ipcMain.handle('image-model-addConfig', async (e, config) => {
+    try { const safeCfg = safeSerialize(config); await imageModelManager.addConfig(safeCfg); return createSuccessResponse(null) }
     catch (error) { return createErrorResponse(error) }
   })
-  ipcMain.handle('image-model-updateModel', async (e, key, updates) => {
-    try { const safe = safeSerialize(updates); await imageModelManager.updateModel(key, safe); return createSuccessResponse(null) }
+  ipcMain.handle('image-model-updateConfig', async (e, id, updates) => {
+    try { const safe = safeSerialize(updates); await imageModelManager.updateConfig(id, safe); return createSuccessResponse(null) }
     catch (error) { return createErrorResponse(error) }
   })
-  ipcMain.handle('image-model-deleteModel', async (e, key) => {
-    try { await imageModelManager.deleteModel(key); return createSuccessResponse(null) }
+  ipcMain.handle('image-model-deleteConfig', async (e, id) => {
+    try { await imageModelManager.deleteConfig(id); return createSuccessResponse(null) }
     catch (error) { return createErrorResponse(error) }
   })
-  ipcMain.handle('image-model-enableModel', async (e, key) => {
-    try { await imageModelManager.enableModel(key); return createSuccessResponse(null) }
-    catch (error) { return createErrorResponse(error) }
-  })
-  ipcMain.handle('image-model-disableModel', async (e, key) => {
-    try { await imageModelManager.disableModel(key); return createSuccessResponse(null) }
-    catch (error) { return createErrorResponse(error) }
-  })
-  ipcMain.handle('image-model-getEnabledModels', async () => {
-    try { const r = await imageModelManager.getEnabledModels(); return createSuccessResponse(r) }
+  ipcMain.handle('image-model-getEnabledConfigs', async () => {
+    try { const r = await imageModelManager.getEnabledConfigs(); return createSuccessResponse(r) }
     catch (error) { return createErrorResponse(error) }
   })
   ipcMain.handle('image-model-exportData', async () => {
@@ -913,11 +953,53 @@ function setupIPC() {
   })
 
   // ===== Image Service handlers =====
-  ipcMain.handle('image-generate', async (e, request, modelKey) => {
+  ipcMain.handle('image-generate', async (e, request) => {
     try {
       const safeReq = safeSerialize(request)
-      const res = await imageService.generate(safeReq, modelKey)
+      const res = await imageService.generate(safeReq)
       return createSuccessResponse(res)
+    } catch (error) {
+      return createErrorResponse(error)
+    }
+  })
+  ipcMain.handle('image-validateRequest', async (e, request) => {
+    try {
+      const safeReq = safeSerialize(request)
+      const res = await imageService.validateRequest(safeReq)
+      return createSuccessResponse(res)
+    } catch (error) {
+      return createErrorResponse(error)
+    }
+  })
+
+  // 新增：连接测试（在主进程执行，避免渲染端网络请求）
+  ipcMain.handle('image-testConnection', async (e, config) => {
+    try {
+      const safeCfg = safeSerialize(config)
+      const adapter = imageAdapterRegistry.getAdapter(safeCfg.providerId)
+      const model = safeCfg.model
+      // 选择测试类型
+      let testType = 'text2image'
+      const caps = model?.capabilities || {}
+      if (caps.text2image && !caps.image2image) testType = 'text2image'
+      else if (!caps.text2image && caps.image2image) testType = 'image2image'
+      else if (caps.text2image && caps.image2image) testType = 'text2image'
+      // 构建测试请求（适配器提供）
+      const baseReq = (adapter).getTestImageRequest ? (adapter).getTestImageRequest(testType) : { prompt: 'hello', count: 1 }
+      const request = { ...baseReq, configId: safeCfg.id || 'test' }
+      const result = await adapter.generate(request, safeCfg)
+      return createSuccessResponse(result)
+    } catch (error) {
+      return createErrorResponse(error)
+    }
+  })
+
+  // 新增：动态模型拉取（在主进程执行）
+  ipcMain.handle('image-getDynamicModels', async (e, providerId, connectionConfig) => {
+    try {
+      const safeConn = safeSerialize(connectionConfig)
+      const models = await imageAdapterRegistry.getDynamicModels(providerId, safeConn)
+      return createSuccessResponse(models)
     } catch (error) {
       return createErrorResponse(error)
     }
@@ -1427,43 +1509,21 @@ function setupIPC() {
   // 环境配置同步 - 主进程作为唯一配置源
   ipcMain.handle('config-getEnvironmentVariables', async (event) => {
     try {
-      // 静态环境变量
-      const staticEnvVars = {
-        VITE_OPENAI_API_KEY: process.env.VITE_OPENAI_API_KEY || '',
-        VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY || '',
-        VITE_DEEPSEEK_API_KEY: process.env.VITE_DEEPSEEK_API_KEY || '',
-        VITE_SILICONFLOW_API_KEY: process.env.VITE_SILICONFLOW_API_KEY || '',
-        VITE_ZHIPU_API_KEY: process.env.VITE_ZHIPU_API_KEY || '',
-        // 图像模型相关（Seedream / ARK）
-        VITE_SEEDREAM_API_KEY: process.env.VITE_SEEDREAM_API_KEY || '',
-        VITE_ARK_API_KEY: process.env.VITE_ARK_API_KEY || '',
-        VITE_CUSTOM_API_KEY: process.env.VITE_CUSTOM_API_KEY || '',
-        VITE_CUSTOM_API_BASE_URL: process.env.VITE_CUSTOM_API_BASE_URL || '',
-        VITE_CUSTOM_API_MODEL: process.env.VITE_CUSTOM_API_MODEL || ''
-      };
+      // 自动透传所有 VITE_* 变量并附加无前缀副本
+      const viteEnv = Object.fromEntries(
+        Object.entries(process.env)
+          .filter(([k, v]) => k.startsWith('VITE_') && v !== undefined)
+          .map(([k, v]) => [k, String(v)])
+      );
 
-      // 扫描动态自定义模型环境变量
-      // 使用统一的正则表达式模式和验证规则
+      const noPrefixEnv = Object.fromEntries(
+        Object.entries(viteEnv).map(([k, v]) => [k.replace(/^VITE_/, ''), v])
+      );
 
-      const dynamicEnvVars = {};
-      Object.keys(process.env).forEach(key => {
-        const match = key.match(CUSTOM_API_PATTERN);
-        if (match) {
-          const [, , suffix] = match;
-          if (suffix && suffix.length <= MAX_SUFFIX_LENGTH && SUFFIX_PATTERN.test(suffix)) {
-            dynamicEnvVars[key] = process.env[key] || '';
-          }
-        }
-      });
-
-      // 合并所有环境变量
-      const allEnvVars = {
-        ...staticEnvVars,
-        ...dynamicEnvVars
-      };
+      const allEnvVars = { ...viteEnv, ...noPrefixEnv };
 
       console.log('[Main Process] Environment variables requested by UI process');
-      console.log(`[Main Process] Returning ${Object.keys(staticEnvVars).length} static + ${Object.keys(dynamicEnvVars).length} dynamic environment variables`);
+      console.log(`[Main Process] Returning ${Object.keys(viteEnv).length} VITE_* variables (with no-prefix duplicates)`);
 
       return createSuccessResponse(allEnvVars);
     } catch (error) {

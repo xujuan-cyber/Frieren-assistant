@@ -11,7 +11,9 @@ import { createHistoryManager } from '../../src/services/history/manager'
  * 真实API集成测试
  * 只有在相应的环境变量存在时才执行
  */
-describe('Real API Integration Tests', () => {
+const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+
+describe.skipIf(!RUN_REAL_API)('Real API Integration Tests', () => {
   const hasOpenAIKey = !!process.env.VITE_OPENAI_API_KEY
   const hasCustomKey = !!process.env.VITE_CUSTOM_API_KEY && !!process.env.VITE_CUSTOM_BASE_URL
   const hasGeminiKey = !!process.env.VITE_GEMINI_API_KEY

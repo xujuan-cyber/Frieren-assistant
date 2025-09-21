@@ -3,7 +3,7 @@ import type { OptimizationMode } from '../prompt/types';
 /**
  * 提示词记录类型
  */
-export type PromptRecordType = 'optimize' | 'userOptimize' | 'iterate' | 'test' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate' | 'imageOptimize' | 'contextImageOptimize' | 'imageIterate';
+export type PromptRecordType = 'optimize' | 'userOptimize' | 'iterate' | 'test' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate' | 'imageOptimize' | 'contextImageOptimize' | 'imageIterate' | 'text2imageOptimize' | 'image2imageOptimize';
 
 /**
  * 提示词记录接口

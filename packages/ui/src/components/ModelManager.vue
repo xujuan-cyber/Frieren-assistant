@@ -11,6 +11,7 @@
   >
     <template #header-extra>
       <NButton
+        v-if="activeTab === 'text'"
         type="primary"
         @click="openAddForActiveTab"
         ghost
@@ -20,12 +21,23 @@
         </template>
         {{ t('modelManager.addModel') }}
       </NButton>
+      <NButton
+        v-else-if="activeTab === 'image'"
+        type="primary"
+        @click="handleAddImageModel"
+        ghost
+      >
+        <template #icon>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M3 15h6"/><path d="M6 12v6"/></svg>
+        </template>
+        {{ t('modelManager.addImageModel') }}
+      </NButton>
     </template>
     
     <NScrollbar style="max-height: 75vh;">
       <NTabs v-model:value="activeTab" type="line" size="small" style="margin-bottom: 12px;">
-        <NTabPane name="text" tab="文本模型" />
-        <NTabPane name="image" tab="图像模型" />
+        <NTabPane name="text" :tab="t('modelManager.textModels')" />
+        <NTabPane name="image" :tab="t('modelManager.imageModels')" />
       </NTabs>
 
       <template v-if="activeTab === 'text'">
@@ -120,115 +132,12 @@
       </template>
 
       <template v-else>
-        <NSpace vertical :size="12">
-          <NCard
-            v-for="im in imageModels"
-            :key="im.key"
-            hoverable
-            :style="{ opacity: im.enabled ? 1 : 0.6 }"
-          >
-            <template #header>
-              <NSpace justify="space-between" align="center">
-                <NSpace vertical :size="4">
-                  <NSpace align="center">
-                    <NText strong>{{ im.name }}</NText>
-                    <NTag size="small">{{ im.provider }}</NTag>
-                    <NTag v-if="!im.enabled" type="warning" size="small">{{ t('modelManager.disabled') }}</NTag>
-                  </NSpace>
-                  <NText depth="3" style="font-size: 14px;">{{ im.defaultModel }}</NText>
-                </NSpace>
-              </NSpace>
-            </template>
-            <template #header-extra>
-              <NSpace @click.stop>
-                <NButton size="small" quaternary disabled>
-                  <span class="hidden md:inline">测试连接（暂不可用）</span>
-                </NButton>
-                <NButton @click="editImageModel(im.key)" size="small" quaternary>
-                  {{ t('modelManager.editModel') }}
-                </NButton>
-                <NButton @click="im.enabled ? disableImageModel(im.key) : enableImageModel(im.key)"
-                         size="small"
-                         :type="im.enabled ? 'warning' : 'success'"
-                         quaternary>
-                  {{ im.enabled ? t('common.disable') : t('common.enable') }}
-                </NButton>
-                <NButton v-if="!isDefaultImageModel(im.key)" @click="deleteImageModel(im.key)" size="small" type="error" quaternary>
-                  {{ t('common.delete') }}
-                </NButton>
-              </NSpace>
-            </template>
-          </NCard>
-        </NSpace>
+        <!-- 图像模型列表 -->
+        <ImageModelManager ref="imageListRef" @edit="handleEditImageModel" @add="handleAddImageModel" />
       </template>
     </NScrollbar>
   </NModal>
 
-  <!-- 图像模型：编辑弹窗 -->
-  <NModal
-    :show="isEditingImage"
-    preset="card"
-    :style="{ width: '720px' }"
-    title="编辑图像模型"
-    :bordered="false"
-    :segmented="true"
-    @update:show="(v) => !v && (isEditingImage = false)"
-  >
-    <NScrollbar style="max-height: 60vh;" v-if="editingImageModel">
-      <NSpace vertical :size="12">
-        <NInput v-model:value="editingImageModel.name" placeholder="显示名称" />
-        <NSelect v-model:value="editingImageModel.provider" :options="[
-          { label: 'Gemini', value: 'gemini' },
-          { label: 'Seedream', value: 'seedream' },
-          { label: 'OpenAI', value: 'openai' },
-          { label: 'Custom', value: 'custom' }
-        ]" />
-        <NInput v-model:value="editingImageModel.baseURL" placeholder="API Base URL（可选）" />
-        <NInput v-model:value="editingImageModel.apiKey" placeholder="API Key（可选）" type="password" />
-        <NInput v-model:value="editingImageModel.defaultModel" placeholder="默认模型ID" />
-        <NCheckbox v-model:checked="editingImageModel.enabled">{{ t('common.enable') }}</NCheckbox>
-      </NSpace>
-    </NScrollbar>
-    <template #action>
-      <NSpace justify="end">
-        <NButton @click="isEditingImage = false">{{ t('common.cancel') }}</NButton>
-        <NButton type="primary" @click="saveImageEdit">{{ t('common.save') }}</NButton>
-      </NSpace>
-    </template>
-  </NModal>
-
-  <!-- 图像模型：新增弹窗 -->
-  <NModal
-    :show="showAddImageForm"
-    preset="card"
-    :style="{ width: '720px' }"
-    title="新增图像模型"
-    :bordered="false"
-    :segmented="true"
-    @update:show="(v) => !v && (showAddImageForm = false)"
-  >
-    <NScrollbar style="max-height: 60vh;">
-      <NSpace vertical :size="12">
-        <NInput v-model:value="newImageModel.key" placeholder="模型Key（唯一标识）" />
-        <NInput v-model:value="newImageModel.name" placeholder="显示名称" />
-        <NSelect v-model:value="newImageModel.provider" :options="[
-          { label: 'Gemini', value: 'gemini' },
-          { label: 'Seedream', value: 'seedream' },
-          { label: 'OpenAI', value: 'openai' },
-          { label: 'Custom', value: 'custom' }
-        ]" />
-        <NInput v-model:value="newImageModel.baseURL" placeholder="API Base URL（可选）" />
-        <NInput v-model:value="newImageModel.apiKey" placeholder="API Key（可选）" type="password" />
-        <NInput v-model:value="newImageModel.defaultModel" placeholder="默认模型ID" />
-      </NSpace>
-    </NScrollbar>
-    <template #action>
-      <NSpace justify="end">
-        <NButton @click="showAddImageForm = false">{{ t('common.cancel') }}</NButton>
-        <NButton type="primary" @click="addImageModel">{{ t('common.create') }}</NButton>
-      </NSpace>
-    </template>
-  </NModal>
 
   <!-- 编辑模型弹窗 - 独立的顶级模态框 -->
   <NModal
@@ -271,6 +180,7 @@
                 <NInput
                   v-model:value="editingModel.apiKey"
                   type="password"
+                  autocomplete="off"
                   :placeholder="t('modelManager.apiKeyPlaceholder')"
                 />
               </NSpace>
@@ -539,6 +449,7 @@
               <NInput
                 v-model:value="newModel.apiKey"
                 type="password"
+                autocomplete="off"
                 :placeholder="t('modelManager.apiKeyPlaceholder')"
               />
             </NSpace>
@@ -755,25 +666,34 @@
         </NSpace>
       </template>
   </NModal>
+
+  <!-- 图像模型编辑弹窗 -->
+  <ImageModelEditModal
+    :show="showImageModelEdit"
+    :config-id="editingImageModelId"
+    @update:show="showImageModelEdit = $event"
+    @saved="handleImageModelSaved"
+  />
 </template>
 
-<script setup>
-import { ref, onMounted, watch, computed, inject } from 'vue'; // Added computed and inject
+<script setup lang="ts">
+import { ref, onMounted, watch, computed, inject, provide } from 'vue'; // Added computed, inject and provide
 import { useI18n } from 'vue-i18n';
 import {
-  NModal, NScrollbar, NSpace, NCard, NText, NH3, NH4, NTag, NButton, 
+  NModal, NScrollbar, NSpace, NCard, NText, NH4, NTag, NButton,
   NInput, NInputNumber, NCheckbox, NDivider, NSelect, NTabs, NTabPane
 } from 'naive-ui';
 import {
-  createLLMService,
   advancedParameterDefinitions,
   checkVercelApiAvailability,
   resetVercelStatusCache,
   checkDockerApiAvailability,
-  resetDockerStatusCache
+  resetDockerStatusCache,
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
+import ImageModelManager from './ImageModelManager.vue'
+import ImageModelEditModal from './ImageModelEditModal.vue'
 
 
 const { t } = useI18n()
@@ -781,7 +701,7 @@ const toast = useToast();
 const emit = defineEmits(['modelsUpdated', 'close', 'select', 'update:show']);
 
 // 组件属性
-const props = defineProps({
+defineProps({
   show: {
     type: Boolean,
     default: false
@@ -797,17 +717,11 @@ const close = () => {
 // 活动标签（文本/图像）
 const activeTab = ref('text')
 
-// 图像模型区状态
-const imageModels = ref([])
-const isEditingImage = ref(false)
-const editingImageModel = ref(null)
-const showAddImageForm = ref(false)
-const newImageModel = ref({ key: '', name: '', provider: 'gemini', baseURL: '', apiKey: '', defaultModel: '', enabled: true })
 
 // 打开新增弹窗（根据活动标签）
 const openAddForActiveTab = () => {
-  if (activeTab.value === 'image') showAddImageForm.value = true
-  else showAddForm.value = true
+  if (activeTab.value === 'text') showAddForm.value = true
+  else if (activeTab.value === 'image') handleAddImageModel()
 }
 
 // 通过依赖注入获取服务
@@ -819,10 +733,22 @@ const modelManager = services.value.modelManager;
 const llmService = services.value.llmService;
 const imageModelManager = services.value.imageModelManager;
 
+// 使用统一注入的单实例注册表
+const imageAdapterRegistry = services.value.imageAdapterRegistry;
+
+// 为ImageModelManager组件提供必要的依赖
+provide('imageModelManager', imageModelManager);
+provide('imageRegistry', imageAdapterRegistry);
+// 额外提供 imageService，供下游 composable 使用（无感知地走 IPC 或本地实现）
+provide('imageService', services.value.imageService);
+
 // =============== 状态变量 ===============
 // UI状态
 const isEditing = ref(false);
 const showAddForm = ref(false);
+const showImageModelEdit = ref(false);
+const editingImageModelId = ref<string | undefined>(undefined);
+const imageListRef = ref<any>(null)
 const modelOptions = ref([]);
 const isLoadingModels = ref(false);
 const testingConnections = ref({});
@@ -830,6 +756,7 @@ const testingConnections = ref({});
 const vercelProxyAvailable = ref(false);
 // 是否支持Docker代理
 const dockerProxyAvailable = ref(false);
+
 // For Advanced Parameters UI
 const selectedNewLLMParamId = ref(''); // Stores ID of param selected from dropdown
 const customLLMParam = ref({ key: '', value: '' });
@@ -837,7 +764,6 @@ const customLLMParam = ref({ key: '', value: '' });
 // 数据状态
 const models = ref([]);
 const editingModel = ref(null);
-const editingTempKey = ref(null);
 
 // 表单状态
 const newModel = ref({
@@ -856,8 +782,6 @@ const newModel = ref({
 // 检测Vercel代理是否可用
 const checkVercelProxy = async () => {
   try {
-    // 先重置缓存，确保每次都重新检测
-    resetVercelStatusCache();
     // 使用core中的检测函数
     const available = await checkVercelApiAvailability();
     vercelProxyAvailable.value = available;
@@ -871,8 +795,6 @@ const checkVercelProxy = async () => {
 // 检测Docker代理是否可用
 const checkDockerProxy = async () => {
   try {
-    // 先重置缓存，确保每次都重新检测
-    resetDockerStatusCache();
     // 使用core中的检测函数
     const available = await checkDockerApiAvailability();
     dockerProxyAvailable.value = available;
@@ -993,51 +915,6 @@ const disableModel = async (key) => {
   }
 }
 
-// ===== 图像模型：加载/增删改/启用禁用 =====
-const loadImageModels = async () => {
-  try {
-    const list = await imageModelManager.getAllModels()
-    imageModels.value = JSON.parse(JSON.stringify(list))
-  } catch (e) {
-    console.error('加载图像模型失败:', e)
-  }
-}
-const isDefaultImageModel = (key) => ['image-gemini', 'image-seedream'].includes(key)
-const enableImageModel = async (key) => {
-  try { await imageModelManager.enableModel(key); await loadImageModels(); toast.success(t('modelManager.enableSuccess')) }
-  catch (e) { toast.error(t('modelManager.enableFailed', { error: e.message })) }
-}
-const disableImageModel = async (key) => {
-  try { await imageModelManager.disableModel(key); await loadImageModels(); toast.success(t('modelManager.disableSuccess')) }
-  catch (e) { toast.error(t('modelManager.disableFailed', { error: e.message })) }
-}
-const deleteImageModel = async (key) => {
-  if (!confirm(t('modelManager.deleteConfirm'))) return
-  try { await imageModelManager.deleteModel(key); await loadImageModels(); toast.success(t('modelManager.deleteSuccess')) }
-  catch (e) { toast.error(t('modelManager.deleteFailed', { error: e.message })) }
-}
-const editImageModel = async (key) => {
-  const m = await imageModelManager.getModel(key)
-  if (!m) return
-  editingImageModel.value = { originalKey: key, name: m.name, provider: m.provider || 'gemini', baseURL: m.baseURL || '', apiKey: m.apiKey || '', defaultModel: m.defaultModel || '', enabled: m.enabled }
-  isEditingImage.value = true
-}
-const saveImageEdit = async () => {
-  const e = editingImageModel.value
-  if (!e?.originalKey) return
-  try {
-    await imageModelManager.updateModel(e.originalKey, { name: e.name, provider: e.provider, baseURL: e.baseURL, apiKey: e.apiKey, defaultModel: e.defaultModel, enabled: e.enabled })
-    isEditingImage.value = false; editingImageModel.value = null; await loadImageModels(); toast.success((t('common.save') || '保存') + '成功')
-  } catch (err) { const msg = err && err.message ? err.message : String(err); toast.error((t('common.save') || '保存') + '失败: ' + msg) }
-}
-const addImageModel = async () => {
-  const n = newImageModel.value
-  if (!n.key) { toast.error(t('modelManager.modelKeyPlaceholder')); return }
-  try {
-    await imageModelManager.addModel(n.key, { name: n.name, provider: n.provider, baseURL: n.baseURL, apiKey: n.apiKey, defaultModel: n.defaultModel, enabled: true, imgParams: {} })
-    showAddImageForm.value = false; newImageModel.value = { key: '', name: '', provider: 'gemini', baseURL: '', apiKey: '', defaultModel: '', enabled: true }; await loadImageModels(); toast.success(t('modelManager.addSuccess') || '创建成功')
-  } catch (err) { const msg = err && err.message ? err.message : String(err); toast.error(t('modelManager.addFailed', { error: msg }) || ('创建失败: ' + msg)) }
-}
 
 // =============== 编辑相关函数 ===============
 // 编辑模型
@@ -1550,8 +1427,28 @@ watch(() => newModel.value.key, (newKey) => {
     newModel.value.llmParams = {};
   }
 });
- 
 
+
+// =============== 图像模型管理函数 ===============
+// 处理添加图像模型
+const handleAddImageModel = () => {
+  editingImageModelId.value = undefined;
+  showImageModelEdit.value = true;
+};
+
+// 处理编辑图像模型
+const handleEditImageModel = (configId: string) => {
+  editingImageModelId.value = configId;
+  showImageModelEdit.value = true;
+};
+
+// 处理图像模型保存完成
+const handleImageModelSaved = () => {
+  showImageModelEdit.value = false;
+  editingImageModelId.value = undefined;
+  // 刷新图像模型列表
+  try { imageListRef.value?.refresh?.() } catch {}
+};
 
 // =============== 生命周期钩子 ===============
 // 初始化
@@ -1559,7 +1456,7 @@ onMounted(() => {
   loadModels();
   checkVercelProxy();
   checkDockerProxy();
-  if (imageModelManager) loadImageModels();
+  // 图像模型的加载由 ImageModelManager 组件处理
 });
 </script>
 

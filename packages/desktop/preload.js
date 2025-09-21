@@ -236,7 +236,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
-  // Image Model Manager interface
+  // Image Model Manager interface (Config-centric)
   imageModel: {
     ensureInitialized: async () => {
       const result = await ipcRenderer.invoke('image-model-ensureInitialized');
@@ -247,38 +247,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    getAllModels: async () => {
-      const result = await ipcRenderer.invoke('image-model-getAllModels');
+    getAllConfigs: async () => {
+      const result = await ipcRenderer.invoke('image-model-getAllConfigs');
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    getModel: async (key) => {
-      const result = await ipcRenderer.invoke('image-model-getModel', key);
+    getConfig: async (id) => {
+      const result = await ipcRenderer.invoke('image-model-getConfig', id);
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    addModel: async (model) => {
-      const result = await ipcRenderer.invoke('image-model-addModel', model);
+    addConfig: async (config) => {
+      const result = await ipcRenderer.invoke('image-model-addConfig', config);
       if (!result.success) throw new Error(result.error);
     },
-    updateModel: async (key, updates) => {
-      const result = await ipcRenderer.invoke('image-model-updateModel', key, updates);
+    updateConfig: async (id, updates) => {
+      const result = await ipcRenderer.invoke('image-model-updateConfig', id, updates);
       if (!result.success) throw new Error(result.error);
     },
-    deleteModel: async (key) => {
-      const result = await ipcRenderer.invoke('image-model-deleteModel', key);
+    deleteConfig: async (id) => {
+      const result = await ipcRenderer.invoke('image-model-deleteConfig', id);
       if (!result.success) throw new Error(result.error);
     },
-    enableModel: async (key) => {
-      const result = await ipcRenderer.invoke('image-model-enableModel', key);
-      if (!result.success) throw new Error(result.error);
-    },
-    disableModel: async (key) => {
-      const result = await ipcRenderer.invoke('image-model-disableModel', key);
-      if (!result.success) throw new Error(result.error);
-    },
-    getEnabledModels: async () => {
-      const result = await ipcRenderer.invoke('image-model-getEnabledModels');
+    getEnabledConfigs: async () => {
+      const result = await ipcRenderer.invoke('image-model-getEnabledConfigs');
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
@@ -305,8 +297,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Image Service interface
   image: {
-    generate: async (request, modelKey) => {
-      const result = await ipcRenderer.invoke('image-generate', request, modelKey);
+    generate: async (request) => {
+      const result = await ipcRenderer.invoke('image-generate', request);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    validateRequest: async (request) => {
+      const result = await ipcRenderer.invoke('image-validateRequest', request);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    // 新增：连接测试在主进程执行
+    testConnection: async (config) => {
+      const result = await ipcRenderer.invoke('image-testConnection', config);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    // 新增：动态模型列表在主进程获取
+    getDynamicModels: async (providerId, connectionConfig) => {
+      const result = await ipcRenderer.invoke('image-getDynamicModels', providerId, connectionConfig);
       if (!result.success) throw new Error(result.error);
       return result.data;
     }

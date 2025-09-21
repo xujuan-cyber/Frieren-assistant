@@ -8,7 +8,9 @@ beforeAll(() => {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 });
 
-describe('DeepSeek API 测试', () => {
+const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+
+describe.skipIf(!RUN_REAL_API)('DeepSeek API 测试', () => {
   // 跳过没有设置 API 密钥的测试
   const apiKey = process.env.VITE_DEEPSEEK_API_KEY;
   if (!apiKey) {

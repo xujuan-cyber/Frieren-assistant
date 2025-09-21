@@ -9,7 +9,9 @@ import {
 } from '../../../src';
 import { createTemplateLanguageService } from '../../../src/services/template/languageService';
 
-describe('Advanced Optimize Template Real API Test', () => {
+const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+
+describe.skipIf(!RUN_REAL_API)('Advanced Optimize Template Real API Test', () => {
   it('should optimize "你是一个诗人" with real API', async () => {
     // 检查是否有可用的API密钥
     const hasApiKey = process.env.GEMINI_API_KEY || process.env.DEEPSEEK_API_KEY ||

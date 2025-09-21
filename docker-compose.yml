@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   prompt-optimizer:
     image: linshen/prompt-optimizer:latest

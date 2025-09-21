@@ -171,7 +171,10 @@ export async function checkVercelApiAvailability(): Promise<boolean> {
       localStorage.setItem(PROXY_URL_KEY, JSON.stringify(vercelStatusCache));
     
       return isAvailable;
-    }else{
+    } else {
+      // 与 Docker 逻辑对齐：对失败路径也进行缓存，避免重复请求
+      vercelStatusCache = { available: false, checked: true };
+      localStorage.setItem(PROXY_URL_KEY, JSON.stringify(vercelStatusCache));
       return false;
     }
   } catch (error) {

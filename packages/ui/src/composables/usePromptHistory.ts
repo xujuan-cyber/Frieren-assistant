@@ -138,8 +138,8 @@ export function usePromptHistory(
     }
   })
 
-  // Watch version changes, update history
-  watch([currentVersions], async () => {
+  // Watch version and chain changes, update history
+  watch([currentVersions, currentChainId], async (newValues, oldValues) => {
     await refreshHistory()
   })
 

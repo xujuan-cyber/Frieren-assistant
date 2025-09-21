@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   prompt-optimizer:
     # 开发模式：从源码构建

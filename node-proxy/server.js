@@ -63,13 +63,15 @@ const server = http.createServer(async (req, res) => {
       return json(res, 400, { error: 'Invalid targetUrl parameter' });
     }
 
-    // 复制请求头（排除会引发问题的头）
+    // 复制请求头（排除会引发问题的头），强制使用 identity 编码，避免上游压缩
     const headers = new Headers();
     for (const [k, v] of Object.entries(req.headers)) {
-      if (!['host', 'connection', 'content-length'].includes(k.toLowerCase()) && v) {
+      const lower = k.toLowerCase();
+      if (!['host', 'connection', 'content-length', 'accept-encoding'].includes(lower) && v) {
         headers.set(k, Array.isArray(v) ? v.join(',') : String(v));
       }
     }
+    headers.set('accept-encoding', 'identity');
 
     // 读取请求体（仅非GET/HEAD）
     let body = undefined;
@@ -117,14 +119,21 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
 
-    // 透传状态码和响应头
+    // 透传状态码和“安全响应头”
     res.statusCode = upstream.status;
     res.statusMessage = upstream.statusText;
-    
-    // 透传重要的响应头
+    const skipRespHeaders = new Set([
+      'access-control-allow-origin',
+      'access-control-allow-methods',
+      'access-control-allow-headers',
+      'connection',
+      'keep-alive',
+      'transfer-encoding',
+      'content-encoding',
+      'content-length'
+    ]);
     upstream.headers.forEach((val, key) => {
-      // 跳过一些可能冲突的头
-      if (!['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'].includes(key.toLowerCase())) {
+      if (!skipRespHeaders.has(key.toLowerCase())) {
         res.setHeader(key, val);
       }
     });
@@ -136,15 +145,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     // 处理响应体
-    if (isStream && upstream.body) {
-      // 流式响应：WebStream → Node Readable 转换
-      logRequest(req, targetUrl, upstream.status, startTime, requestId);
-      Readable.fromWeb(upstream.body).pipe(res);
+    const finishLog = () => logRequest(req, targetUrl, upstream.status, startTime, requestId);
+    if (upstream.body) {
+      // 统一透传上游流，避免长度/编码不一致问题
+      Readable.fromWeb(upstream.body).once('end', finishLog).pipe(res);
     } else {
-      // 普通响应
-      const buf = Buffer.from(await upstream.arrayBuffer());
-      logRequest(req, targetUrl, upstream.status, startTime, requestId);
-      res.end(buf);
+      // 无 body（如 HEAD），直接结束
+      finishLog();
+      res.end();
     }
 
   } catch (error) {

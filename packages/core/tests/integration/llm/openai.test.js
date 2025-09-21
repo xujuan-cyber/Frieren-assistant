@@ -8,7 +8,9 @@ beforeAll(() => {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 });
 
-describe('OpenAI API 真实连接测试', () => {
+const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+
+describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
   // 检查OpenAI兼容的环境变量（任何一个存在就可以运行测试）
   const openaiCompatibleKeys = [
     'OPENAI_API_KEY', 'VITE_OPENAI_API_KEY',

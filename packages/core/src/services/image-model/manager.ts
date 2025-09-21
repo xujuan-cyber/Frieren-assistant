@@ -1,279 +1,338 @@
-import { IImageModelManager, ImageModelConfig } from '../image/types'
+import {
+  IImageModelManager,
+  ImageModelConfig,
+  IImageAdapterRegistry
+} from '../image/types'
 import { IStorageProvider } from '../storage/types'
 import { StorageAdapter } from '../storage/adapter'
 import { CORE_SERVICE_KEYS } from '../../constants/storage-keys'
 import { ImportExportError } from '../../interfaces/import-export'
-import { APIError } from '../llm/errors'
 import { getDefaultImageModels } from './defaults'
 
 /**
- * 图像模型管理器：与文本模型管理器解耦，使用独立存储键
+ * 图像模型管理器：专注于配置管理，遵循新的三层架构
+ * 负责ImageModelConfig的CRUD操作和组合查询
  */
 export class ImageModelManager implements IImageModelManager {
   private readonly storageKey = CORE_SERVICE_KEYS.IMAGE_MODELS
   private readonly storage: IStorageProvider
-  private initPromise: Promise<void>
+  private readonly registry: IImageAdapterRegistry
+  private initPromise: Promise<void> | null = null
 
-  constructor(storageProvider: IStorageProvider) {
+  constructor(storageProvider: IStorageProvider, registry: IImageAdapterRegistry) {
     this.storage = new StorageAdapter(storageProvider)
-    this.initPromise = this.init().catch(err => {
-      console.error('[ImageModelManager] initialization failed:', err)
-      throw err
-    })
+    this.registry = registry
   }
 
+  // === 初始化（写入默认配置） ===
   public async ensureInitialized(): Promise<void> {
-    await this.initPromise
+    if (!this.initPromise) {
+      this.initPromise = this.init()
+    }
+    return this.initPromise
   }
 
   public async isInitialized(): Promise<boolean> {
-    const stored = await this.storage.getItem(this.storageKey)
-    return !!stored
+    const raw = await this.storage.getItem(this.storageKey)
+    return !!raw
   }
 
   private async init(): Promise<void> {
-    const storedRaw = await this.storage.getItem(this.storageKey)
-    const defaults = getDefaultImageModels()
-
-    if (!storedRaw) {
-      // 初次写入默认模型
-      await this.storage.setItem(this.storageKey, JSON.stringify(defaults))
-      return
-    }
-
-    // 合并已有配置与默认配置（保留用户关键自定义字段）
-    let needSave = false
-    let existing: Record<string, ImageModelConfig>
     try {
-      const parsed = JSON.parse(storedRaw)
-      existing = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
-    } catch {
-      existing = {}
-    }
+      const raw = await this.storage.getItem(this.storageKey)
+      if (!raw) {
+        // 没有任何配置，直接写入默认项
+        const defaults = getDefaultImageModels(this.registry)
+        await this.storage.setItem(this.storageKey, JSON.stringify(defaults))
+        return
+      }
 
-    const merged: Record<string, ImageModelConfig> = { ...existing }
-    for (const [key, defCfg] of Object.entries(defaults)) {
-      if (!merged[key]) {
-        merged[key] = defCfg
-        needSave = true
-      } else {
-        const cur = merged[key]
-        const updated: ImageModelConfig = {
-          ...defCfg,
-          name: cur.name !== undefined ? cur.name : defCfg.name,
-          baseURL: cur.baseURL || defCfg.baseURL,
-          defaultModel: cur.defaultModel !== undefined ? cur.defaultModel : defCfg.defaultModel,
-          apiKey: cur.apiKey || defCfg.apiKey,
-          enabled: cur.enabled !== undefined ? cur.enabled : defCfg.enabled,
-          imgParams: cur.imgParams || defCfg.imgParams,
-          capabilities: cur.capabilities || defCfg.capabilities,
-          provider: cur.provider || defCfg.provider
-        }
-        if (JSON.stringify(cur) !== JSON.stringify(updated)) {
-          merged[key] = updated
-          needSave = true
+      // 已有配置：补齐缺失的默认项（不覆盖用户已有）
+      let data: Record<string, ImageModelConfig>
+      try {
+        data = JSON.parse(raw) || {}
+      } catch {
+        data = {}
+      }
+      // 轻量迁移：为旧数据补齐缺失的 id（仅填充 id，不推导 provider/model）
+      // 说明：旧数据仅存在于开发阶段，不再做字段补齐（如 providerId/modelId/provider/model）。
+      // 目的仅为让 UI 能识别并删除这些条目，避免因缺少 id 无法操作。
+      let changed = false
+      for (const [key, cfg] of Object.entries(data)) {
+        if (cfg && typeof cfg === 'object' && !(cfg as any).id) {
+          ;(cfg as any).id = key
+          changed = true
         }
       }
+      const defaults = getDefaultImageModels(this.registry)
+      // 合并默认项
+      for (const [key, cfg] of Object.entries(defaults)) {
+        if (!data[key]) {
+          data[key] = cfg
+          changed = true
+        }
+      }
+
+      if (changed) {
+        await this.storage.setItem(this.storageKey, JSON.stringify(data))
+      }
+    } catch (e) {
+      // 初始化失败时，尽量写入默认项，避免空列表
+      try {
+        const defaults = getDefaultImageModels(this.registry)
+        await this.storage.setItem(this.storageKey, JSON.stringify(defaults))
+      } catch {}
     }
-
-    if (needSave) {
-      await this.storage.setItem(this.storageKey, JSON.stringify(merged))
-    }
   }
 
-  // === 基本CRUD ===
+  // === 配置 CRUD 操作 ===
 
-  async getAllModels(): Promise<Array<ImageModelConfig & { key: string }>> {
-    await this.ensureInitialized()
-    const raw = await this.storage.getItem(this.storageKey)
-    const data: Record<string, ImageModelConfig> = raw ? JSON.parse(raw) : {}
-    return Object.entries(data).map(([key, cfg]) => ({ ...cfg, key }))
-  }
+  async addConfig(config: ImageModelConfig): Promise<void> {
+    // 确保配置是自包含的
+    const completeConfig = this.ensureSelfContained(config)
+    this.validateConfig(completeConfig)
 
-  async getModel(key: string): Promise<ImageModelConfig | undefined> {
-    await this.ensureInitialized()
-    const raw = await this.storage.getItem(this.storageKey)
-    const data: Record<string, ImageModelConfig> = raw ? JSON.parse(raw) : {}
-    return data[key]
-  }
-
-  async addModel(key: string, config: ImageModelConfig): Promise<void> {
-    await this.ensureInitialized()
-    this.validateConfig(config)
     await this.storage.updateData<Record<string, ImageModelConfig>>(
       this.storageKey,
       (current) => {
         const data = current || {}
-        if (data[key]) {
-          throw new APIError(`Image model ${key} already exists`)
+        if (data[completeConfig.id]) {
+          throw new Error(`Configuration with id '${completeConfig.id}' already exists`)
         }
-        return { ...data, [key]: { ...config, ...(config.imgParams && { imgParams: { ...config.imgParams } }) } }
+        return { ...data, [completeConfig.id]: { ...completeConfig } }
       }
     )
   }
 
-  async updateModel(key: string, config: Partial<ImageModelConfig>): Promise<void> {
-    await this.ensureInitialized()
+  async updateConfig(id: string, updates: Partial<ImageModelConfig>): Promise<void> {
     await this.storage.updateData<Record<string, ImageModelConfig>>(
       this.storageKey,
       (current) => {
         const data = current || {}
-        if (!data[key]) {
-          throw new APIError(`Image model ${key} does not exist`)
+        if (!data[id]) {
+          throw new Error(`Configuration with id '${id}' does not exist`)
         }
+
         const updated: ImageModelConfig = {
-          ...data[key],
-          ...config,
-          enabled: config.enabled !== undefined ? config.enabled : data[key].enabled,
-          ...(config.imgParams && { imgParams: { ...config.imgParams } })
+          ...data[id],
+          ...updates,
+          id: data[id].id // 保护id不被更新
         }
-        this.validateConfig(updated)
-        return { ...data, [key]: updated }
+
+        // 确保更新后的配置是自包含的
+        const completeConfig = this.ensureSelfContained(updated)
+        this.validateConfig(completeConfig)
+        return { ...data, [id]: completeConfig }
       }
     )
   }
 
-  async deleteModel(key: string): Promise<void> {
-    await this.ensureInitialized()
+  async deleteConfig(id: string): Promise<void> {
     await this.storage.updateData<Record<string, ImageModelConfig>>(
       this.storageKey,
       (current) => {
         const data = current || {}
-        if (!data[key]) {
-          throw new APIError(`Image model ${key} does not exist`)
+        if (!data[id]) {
+          throw new Error(`Configuration with id '${id}' does not exist`)
         }
-        const { [key]: removed, ...rest } = data
+        const { [id]: removed, ...rest } = data
         return rest
       }
     )
   }
 
-  async enableModel(key: string): Promise<void> {
-    await this.ensureInitialized()
-    await this.storage.updateData<Record<string, ImageModelConfig>>(
-      this.storageKey,
-      (current) => {
-        const data = current || {}
-        if (!data[key]) throw new APIError(`Unknown image model: ${key}`)
-        const cfg = { ...data[key], enabled: true }
-        this.validateEnableConfig(cfg)
-        return { ...data, [key]: cfg }
-      }
-    )
+  async getConfig(id: string): Promise<ImageModelConfig | null> {
+    const raw = await this.storage.getItem(this.storageKey)
+    const data: Record<string, ImageModelConfig> = raw ? JSON.parse(raw) : {}
+    const cfg = data[id]
+    if (!cfg) return null
+    // 轻量迁移兜底：返回前补齐缺失的 id，避免 UI 无法删除
+    // 说明：旧数据来自开发期，仅补 id 用于删除，不补 providerId/modelId/provider/model
+    if (!(cfg as any).id) {
+      return { ...(cfg as any), id } as ImageModelConfig
+    }
+    return cfg
   }
 
-  async disableModel(key: string): Promise<void> {
-    await this.ensureInitialized()
-    await this.storage.updateData<Record<string, ImageModelConfig>>(
-      this.storageKey,
-      (current) => {
-        const data = current || {}
-        if (!data[key]) throw new APIError(`Unknown image model: ${key}`)
-        return { ...data, [key]: { ...data[key], enabled: false } }
+  async getAllConfigs(): Promise<ImageModelConfig[]> {
+    const raw = await this.storage.getItem(this.storageKey)
+    const data: Record<string, ImageModelConfig> = raw ? JSON.parse(raw) : {}
+    // 轻量迁移兜底：为缺失 id 的旧记录补齐 id（仅返回层面，不强制持久化）
+    // 说明：旧数据来自开发期，仅补 id 以便在界面上删除，无需补齐其它字段
+    return Object.entries(data).map(([key, cfg]) => {
+      if (cfg && typeof cfg === 'object' && !(cfg as any).id) {
+        return { ...(cfg as any), id: key } as ImageModelConfig
       }
-    )
+      return cfg
+    })
   }
 
-  async getEnabledModels(): Promise<Array<ImageModelConfig & { key: string }>> {
-    const all = await this.getAllModels()
-    return all.filter(m => m.enabled)
+  async getEnabledConfigs(): Promise<ImageModelConfig[]> {
+    const all = await this.getAllConfigs()
+    return all.filter(config => config.enabled)
   }
 
   // === 导入导出 ===
 
   async exportData(): Promise<ImageModelConfig[]> {
     try {
-      return await this.getAllModels()
+      return await this.getAllConfigs()
     } catch (error) {
-      throw new ImportExportError('Failed to export image model data', await this.getDataType(), error as Error)
+      throw new ImportExportError(
+        'Failed to export image model configurations',
+        await this.getDataType(),
+        error as Error
+      )
     }
   }
 
   async importData(data: any): Promise<void> {
     if (!Array.isArray(data)) {
-      throw new Error('Invalid image model data format: data must be an array')
+      throw new ImportExportError(
+        'Invalid data format: expected array of ImageModelConfig',
+        await this.getDataType()
+      )
     }
-    const models = data as (ImageModelConfig & { key: string })[]
-    const failed: { model: ImageModelConfig & { key: string }, error: Error }[] = []
-    for (const m of models) {
+
+    const configs = data as ImageModelConfig[]
+    const failed: { config: ImageModelConfig, error: Error }[] = []
+
+    for (const config of configs) {
       try {
-        if (!this.validateSingleModel(m)) {
-          failed.push({ model: m, error: new Error('Invalid image model configuration') })
-          continue
-        }
-        const existing = await this.getModel(m.key)
+        this.validateConfig(config)
+
+        // 检查是否已存在
+        const existing = await this.getConfig(config.id)
         if (existing) {
-          const merged: ImageModelConfig = {
-            name: m.name,
-            baseURL: m.baseURL ?? existing.baseURL,
-            defaultModel: m.defaultModel ?? existing.defaultModel,
-            provider: m.provider ?? existing.provider,
-            enabled: m.enabled ?? existing.enabled,
-            ...(m.apiKey !== undefined && { apiKey: m.apiKey }),
-            ...(m.useVercelProxy !== undefined && { useVercelProxy: m.useVercelProxy }),
-            ...(m.useDockerProxy !== undefined && { useDockerProxy: m.useDockerProxy }),
-            ...(m.imgParams !== undefined && { imgParams: m.imgParams })
-          }
-          await this.updateModel(m.key, merged)
+          // 更新现有配置
+          await this.updateConfig(config.id, config)
         } else {
-          const newCfg: ImageModelConfig = {
-            name: m.name,
-            baseURL: m.baseURL,
-            defaultModel: m.defaultModel,
-            provider: m.provider || 'custom',
-            enabled: m.enabled ?? false,
-            ...(m.apiKey !== undefined && { apiKey: m.apiKey }),
-            ...(m.useVercelProxy !== undefined && { useVercelProxy: m.useVercelProxy }),
-            ...(m.useDockerProxy !== undefined && { useDockerProxy: m.useDockerProxy }),
-            ...(m.imgParams !== undefined && { imgParams: m.imgParams })
-          }
-          await this.addModel(m.key, newCfg)
+          // 添加新配置
+          await this.addConfig(config)
         }
-      } catch (e) {
-        failed.push({ model: m, error: e as Error })
+      } catch (error) {
+        failed.push({ config, error: error as Error })
       }
     }
+
     if (failed.length > 0) {
-      console.warn(`[ImageModelManager] Failed to import ${failed.length} image models`)
+      console.warn(`[ImageModelManager] Failed to import ${failed.length} configurations`)
+      // 可以选择抛出异常或者只记录警告
     }
   }
 
-  async getDataType(): Promise<string> { return 'image-models' }
+  async getDataType(): Promise<string> {
+    return 'image-model-configs'
+  }
 
   async validateData(data: any): Promise<boolean> {
-    return Array.isArray(data) && data.every(item => this.validateSingleModel(item))
+    if (!Array.isArray(data)) {
+      return false
+    }
+
+    return data.every(item => {
+      try {
+        this.validateConfig(item)
+        return true
+      } catch {
+        return false
+      }
+    })
   }
 
-  // === 校验 ===
+  // === 私有辅助方法 ===
 
-  private validateConfig(cfg: ImageModelConfig): void {
+  // 确保配置是自包含的（包含完整的provider和model信息）
+  private ensureSelfContained(config: ImageModelConfig): ImageModelConfig {
+    // 如果已经有完整的自包含字段，直接返回
+    if (config.provider && config.model) {
+      return config
+    }
+
+    // 获取provider和model信息
+    const adapter = this.registry.getAdapter(config.providerId)
+    const provider = adapter.getProvider()
+
+    // 尝试从静态模型列表获取模型信息
+    let model = this.registry.getStaticModels(config.providerId).find(m => m.id === config.modelId)
+
+    // 如果静态模型不存在，使用buildDefaultModel构建
+    if (!model) {
+      model = adapter.buildDefaultModel(config.modelId)
+    }
+
+    // 返回自包含配置
+    return {
+      ...config,
+      provider,
+      model
+    }
+  }
+
+  private validateConfig(config: ImageModelConfig): void {
     const errors: string[] = []
-    if (!cfg.name) errors.push('Missing model name (name)')
-    if (!cfg.defaultModel) errors.push('Missing default model (defaultModel)')
-    if (!cfg.provider) errors.push('Missing provider (provider)')
-    // imgParams 允许为任意对象
-    if (cfg.imgParams !== undefined && (typeof cfg.imgParams !== 'object' || cfg.imgParams === null || Array.isArray(cfg.imgParams))) {
-      errors.push('imgParams must be an object')
-    }
-    if (errors.length) {
-      throw new APIError('Invalid image model configuration: ' + errors.join(', '))
-    }
-  }
 
-  private validateEnableConfig(cfg: ImageModelConfig): void {
-    this.validateConfig(cfg)
-  }
+    // 验证必需字段
+    if (!config.id || typeof config.id !== 'string') {
+      errors.push('Missing or invalid id')
+    }
+    if (!config.name || typeof config.name !== 'string') {
+      errors.push('Missing or invalid name')
+    }
+    if (!config.providerId || typeof config.providerId !== 'string') {
+      errors.push('Missing or invalid providerId')
+    }
+    if (!config.modelId || typeof config.modelId !== 'string') {
+      errors.push('Missing or invalid modelId')
+    }
+    if (typeof config.enabled !== 'boolean') {
+      errors.push('Missing or invalid enabled flag')
+    }
 
-  private validateSingleModel(item: any): boolean {
-    return typeof item === 'object' && item !== null &&
-      typeof item.key === 'string' &&
-      typeof item.name === 'string' &&
-      typeof item.defaultModel === 'string' &&
-      typeof item.enabled === 'boolean' &&
-      typeof item.provider === 'string'
+    // 验证自包含数据字段
+    if (!config.provider || typeof config.provider !== 'object') {
+      errors.push('Missing or invalid provider data')
+    }
+    if (!config.model || typeof config.model !== 'object') {
+      errors.push('Missing or invalid model data')
+    }
+
+    // 验证连接配置（如果存在）
+    if (config.connectionConfig !== undefined) {
+      if (typeof config.connectionConfig !== 'object' || config.connectionConfig === null) {
+        errors.push('connectionConfig must be an object')
+      }
+    }
+
+    // 验证参数覆盖（如果存在）
+    if (config.paramOverrides !== undefined) {
+      if (typeof config.paramOverrides !== 'object' || config.paramOverrides === null) {
+        errors.push('paramOverrides must be an object')
+      }
+    }
+
+    // 验证提供商是否存在
+    try {
+      this.registry.getAdapter(config.providerId)
+    } catch {
+      errors.push(`Unknown provider: ${config.providerId}`)
+    }
+
+    // 模型存在性由各自来源保证：
+    // - 动态模型：API实时获取，理论上必然存在
+    // - 静态模型：代码预置，由开发者维护
+    // - 自定义模型：用户自行负责
+    // 因此不需要在此验证模型是否存在
+
+    if (errors.length > 0) {
+      throw new Error(`Invalid configuration: ${errors.join(', ')}`)
+    }
   }
 }
 
-export function createImageModelManager(storageProvider: IStorageProvider): ImageModelManager {
-  return new ImageModelManager(storageProvider)
+export function createImageModelManager(
+  storageProvider: IStorageProvider,
+  registry: IImageAdapterRegistry
+): ImageModelManager {
+  return new ImageModelManager(storageProvider, registry)
 }

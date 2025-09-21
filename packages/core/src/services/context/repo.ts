@@ -42,6 +42,18 @@ function getCurrentISOTime(): string {
 }
 
 /**
+ * 基于上一次时间戳生成严格单调递增的 ISO 时间
+ */
+function getMonotonicISO(previous?: string): string {
+  const nowIso = new Date().toISOString();
+  if (!previous) return nowIso;
+  // 直接字符串比较对 ISO8601 有序有效
+  if (nowIso > previous) return nowIso;
+  const nextMs = new Date(previous).getTime() + 1;
+  return new Date(nextMs).toISOString();
+}
+
+/**
  * 检查是否为预定义变量名
  */
 function isPredefinedVariable(name: string): boolean {
@@ -304,7 +316,7 @@ export class ContextRepoImpl implements ContextRepo {
       }
 
       context.title = title;
-      context.updatedAt = getCurrentISOTime();
+      context.updatedAt = getMonotonicISO(context.updatedAt);
       return doc;
     });
   }
@@ -361,7 +373,7 @@ export class ContextRepoImpl implements ContextRepo {
       // 合并安全的更新字段
       Object.assign(context, safeUpdate, {
         variables: sanitizedVariables || context.variables,
-        updatedAt: getCurrentISOTime()
+        updatedAt: getMonotonicISO(context.updatedAt)
       });
 
       if (removedCount > 0 && process.env.NODE_ENV === 'development') {

@@ -24,7 +24,7 @@ import {
   createPreferenceService,
 } from '../'; // 从UI包的index导出所有核心模块
 import type { AppServices } from '../types/services';
-import { createImageModelManager, createImageService } from '@prompt-optimizer/core';
+import { createImageModelManager, createImageService, createImageAdapterRegistry } from '@prompt-optimizer/core';
 import type { IImageModelManager, IImageService } from '@prompt-optimizer/core'
 import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager, IPreferenceService } from '@prompt-optimizer/core';
 
@@ -56,6 +56,7 @@ export function useAppInitializer(): {
       let preferenceService: IPreferenceService;
       let imageModelManager: IImageModelManager | undefined;
       let imageService: IImageService | undefined;
+      let imageAdapterRegistryInstance: ReturnType<typeof createImageAdapterRegistry> | undefined;
 
       if (isRunningInElectron()) {
         console.log('[AppInitializer] 检测到Electron环境，等待API就绪...');
@@ -80,6 +81,7 @@ export function useAppInitializer(): {
         preferenceService = new ElectronPreferenceServiceProxy();
         // 图像相关（Electron 渲染进程代理）
         const { ElectronImageModelManagerProxy, ElectronImageServiceProxy } = await import('@prompt-optimizer/core')
+        imageAdapterRegistryInstance = createImageAdapterRegistry();
         imageModelManager = new ElectronImageModelManagerProxy();
         imageService = new ElectronImageServiceProxy();
 
@@ -108,6 +110,7 @@ export function useAppInitializer(): {
           contextRepo, // 使用Electron代理
           imageModelManager,
           imageService,
+          imageAdapterRegistry: imageAdapterRegistryInstance,
         };
         console.log('[AppInitializer] Electron代理服务初始化完成');
 
@@ -124,7 +127,9 @@ export function useAppInitializer(): {
         // Services with no dependencies or only storage
         const modelManagerInstance = createModelManager(storageProvider);
         // 图像模型管理器（独立存储空间）
-        const imageModelManagerInstance = createImageModelManager(storageProvider);
+        const imageAdapterRegistry = await import('@prompt-optimizer/core').then(m => m.createImageAdapterRegistry())
+        imageAdapterRegistryInstance = imageAdapterRegistry
+        const imageModelManagerInstance = createImageModelManager(storageProvider, imageAdapterRegistry);
         
         // Initialize language service first, as template manager depends on it
         console.log('[AppInitializer] 初始化语言服务...');
@@ -209,7 +214,15 @@ export function useAppInitializer(): {
         console.log('[AppInitializer] 创建依赖其他管理器的服务...');
         llmService = createLLMService(modelManagerInstance);
         promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
-        imageService = createImageService(imageModelManagerInstance);
+        imageService = createImageService(imageModelManagerInstance, imageAdapterRegistryInstance);
+
+        // Ensure image model defaults are seeded (similar to text models)
+        try {
+          // Optional chaining for backward compatibility
+          await (imageModelManagerInstance as any)?.ensureInitialized?.()
+        } catch (e) {
+          console.warn('[AppInitializer] ImageModelManager ensureInitialized failed (non-critical):', e)
+        }
 
         // 创建 CompareService（直接使用）
         const compareService = createCompareService();
@@ -234,6 +247,7 @@ export function useAppInitializer(): {
           contextRepo, // 上下文仓库
           imageModelManager: imageModelManagerInstance,
           imageService,
+          imageAdapterRegistry: imageAdapterRegistryInstance,
         };
 
         console.log('[AppInitializer] 所有服务初始化完成');

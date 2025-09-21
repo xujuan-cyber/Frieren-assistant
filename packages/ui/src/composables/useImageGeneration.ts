@@ -9,32 +9,31 @@ export function useImageGeneration() {
   const error = ref<string>('')
   const result = ref<ImageResult | null>(null)
 
-  const imageModels = ref<(ImageModelConfig & { key: string })[]>([])
-  
+  const imageModels = ref<ImageModelConfig[]>([])
+
   const loadImageModels = async () => {
     if (!services?.value?.imageModelManager) {
       imageModels.value = []
       return
     }
     try {
-      const models = await services.value.imageModelManager.getEnabledModels()
-      imageModels.value = models
+      // 直接使用 getEnabledConfigs 获取自包含的配置数据
+      const enabledConfigs = await services.value.imageModelManager.getEnabledConfigs()
+      imageModels.value = enabledConfigs
     } catch (error) {
       console.error('Failed to load image models:', error)
       imageModels.value = []
     }
   }
 
-  const generate = async (modelKey: string, req: ImageRequest) => {
+  const generate = async (req: ImageRequest) => {
     if (!services?.value?.imageService) throw new Error('Image service not available')
     error.value = ''
     result.value = null
     generating.value = true
     progress.value = 'queued'
     try {
-      const res = await services.value.imageService.generate(req, modelKey, {
-        onProgress: (s: string | number) => { progress.value = s },
-      })
+      const res = await services.value.imageService.generate(req)
       result.value = res
       progress.value = 'done'
     } catch (e: any) {

@@ -195,14 +195,40 @@
         <div :style="{ flexShrink: 0 }">
           <n-form label-placement="left" size="medium">
             <n-form-item :label="t('imageWorkspace.generation.imageModel')">
-              <n-select
-                :options="imageModelOptions"
-                v-model:value="selectedImageModelKey"
-                :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
-                style="width: 260px;"
-                :disabled="isGenerating"
-                @update:value="saveSelections"
-              />
+              <n-space align="center" :size="12">
+                <n-select
+                  :options="imageModelOptions"
+                  v-model:value="selectedImageModelKey"
+                  :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
+                  style="min-width: 200px; max-width: 100%;"
+                  :disabled="isGenerating"
+                  @update:value="saveSelections"
+                />
+                <!-- 当前选中模型的Provider、Model和能力标签 -->
+                <n-space v-if="selectedImageModelInfo || selectedImageModelCapabilities" :size="6" :wrap="true">
+                  <!-- Provider和Model标签 -->
+                  <template v-if="selectedImageModelInfo">
+                    <n-tag size="small" type="info" :bordered="false">
+                      {{ selectedImageModelInfo.provider }}
+                    </n-tag>
+                    <n-tag size="small" type="primary" :bordered="false">
+                      {{ selectedImageModelInfo.model }}
+                    </n-tag>
+                  </template>
+                  <!-- 能力标签 -->
+                  <template v-if="selectedImageModelCapabilities">
+                    <n-tag v-if="selectedImageModelCapabilities.text2image" size="small" type="success" :bordered="false">
+                      {{ t('image.capability.text2image') }}
+                    </n-tag>
+                    <n-tag v-if="selectedImageModelCapabilities.image2image" size="small" type="info" :bordered="false">
+                      {{ t('image.capability.image2image') }}
+                    </n-tag>
+                    <n-tag v-if="selectedImageModelCapabilities.highResolution" size="small" type="primary" :bordered="false">
+                      {{ t('image.capability.highResolution') }}
+                    </n-tag>
+                  </template>
+                </n-space>
+              </n-space>
             </n-form-item>
             <n-form-item>
               <n-space align="center" wrap>
@@ -220,29 +246,6 @@
                 >
                   {{ isGenerating ? t('imageWorkspace.generation.generating') : t('imageWorkspace.generation.generateImage') }}
                 </n-button>
-                <!-- 进度显示：对象格式显示进度条，字符串格式显示文字 -->
-                <template v-if="generationProgress && generationProgress !== 'idle'">
-                  <!-- 对象格式：显示进度条 -->
-                  <template v-if="typeof generationProgress === 'object' && (generationProgress as any).progress !== undefined">
-                    <n-space align="center" size="small">
-                      <n-text depth="3" style="font-size: 12px;">{{ (generationProgress as any).phase || t('imageWorkspace.generation.processing') }}</n-text>
-                      <n-progress
-                        type="line"
-                        :percentage="(generationProgress as any).progress"
-                        :show-indicator="true"
-                        status="info"
-                        style="width: 120px;"
-                      />
-                    </n-space>
-                  </template>
-                  <!-- 字符串格式：显示文字 -->
-                  <n-text v-else depth="3">
-                    {{ generationProgress }}
-                  </n-text>
-                </template>
-                <n-text type="error" v-if="generationError">
-                  {{ generationError }}
-                </n-text>
               </n-space>
             </n-form-item>
           </n-form>
@@ -258,67 +261,203 @@
         >
           <template #original-result>
             <template v-if="originalImageResult && originalImageResult.images.length > 0">
-              <n-image
-                :src="getImageSrc(originalImageResult.images[0])"
-                object-fit="contain"
-                :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
-              />
-              <n-space style="margin-top: 8px;" justify="center">
-                <n-button size="small" @click="downloadImageFromResult(originalImageResult.images[0], 'original')">
-                  {{ t('imageWorkspace.results.download') }}
-                </n-button>
-              </n-space>
+              <!-- 多模态结果显示：图像 + 文本（使用Naive UI组件） -->
+              <NSpace vertical :size="12">
+                <!-- 图像显示 -->
+                <NImage
+                  :src="getImageSrc(originalImageResult.images[0])"
+                  object-fit="contain"
+                  :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
+                />
+
+                <!-- 文本输出显示（如果存在） -->
+                <template v-if="originalImageResult.text">
+                  <NCard size="small" :title="t('imageWorkspace.results.textOutput')" style="margin-top: 8px;">
+                    <NText :depth="2" style="white-space: pre-wrap; line-height: 1.5;">
+                      {{ originalImageResult.text }}
+                    </NText>
+                  </NCard>
+                </template>
+
+                <!-- 操作按钮 -->
+                <NSpace justify="center" :size="8">
+                  <NButton size="small" @click="downloadImageFromResult(originalImageResult.images[0], 'original')">
+                    <template #icon>
+                      <NIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                      </NIcon>
+                    </template>
+                    {{ t('imageWorkspace.results.download') }}
+                  </NButton>
+
+                  <NButton v-if="originalImageResult.text" size="small" secondary @click="copyImageText(originalImageResult.text)">
+                    <template #icon>
+                      <NIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                        </svg>
+                      </NIcon>
+                    </template>
+                    {{ t('imageWorkspace.results.copyText') }}
+                  </NButton>
+                </NSpace>
+              </NSpace>
             </template>
             <template v-else>
-              <n-empty :description="t('imageWorkspace.results.noOriginalResult')" />
+              <NEmpty :description="t('imageWorkspace.results.noOriginalResult')" />
             </template>
           </template>
 
           <template #optimized-result>
             <template v-if="optimizedImageResult && optimizedImageResult.images.length > 0">
-              <n-image
-                :src="getImageSrc(optimizedImageResult.images[0])"
-                object-fit="contain"
-                :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
-              />
-              <n-space style="margin-top: 8px;" justify="center">
-                <n-button size="small" @click="downloadImageFromResult(optimizedImageResult.images[0], 'optimized')">
-                  {{ t('imageWorkspace.results.download') }}
-                </n-button>
-              </n-space>
+              <!-- 多模态结果显示：图像 + 文本（使用Naive UI组件） -->
+              <NSpace vertical :size="12">
+                <!-- 图像显示 -->
+                <NImage
+                  :src="getImageSrc(optimizedImageResult.images[0])"
+                  object-fit="contain"
+                  :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
+                />
+
+                <!-- 文本输出显示（如果存在） -->
+                <template v-if="optimizedImageResult.text">
+                  <NCard size="small" :title="t('imageWorkspace.results.textOutput')" style="margin-top: 8px;">
+                    <NText :depth="2" style="white-space: pre-wrap; line-height: 1.5;">
+                      {{ optimizedImageResult.text }}
+                    </NText>
+                  </NCard>
+                </template>
+
+                <!-- 操作按钮 -->
+                <NSpace justify="center" :size="8">
+                  <NButton size="small" @click="downloadImageFromResult(optimizedImageResult.images[0], 'optimized')">
+                    <template #icon>
+                      <NIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                      </NIcon>
+                    </template>
+                    {{ t('imageWorkspace.results.download') }}
+                  </NButton>
+
+                  <NButton v-if="optimizedImageResult.text" size="small" secondary @click="copyImageText(optimizedImageResult.text)">
+                    <template #icon>
+                      <NIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                        </svg>
+                      </NIcon>
+                    </template>
+                    {{ t('imageWorkspace.results.copyText') }}
+                  </NButton>
+                </NSpace>
+              </NSpace>
             </template>
             <template v-else>
-              <n-empty :description="t('imageWorkspace.results.noOptimizedResult')" />
+              <NEmpty :description="t('imageWorkspace.results.noOptimizedResult')" />
             </template>
           </template>
 
           <template #single-result>
             <template v-if="optimizedImageResult && optimizedImageResult.images.length > 0">
-              <n-image
-                :src="getImageSrc(optimizedImageResult.images[0])"
-                object-fit="contain"
-                :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
-              />
-              <n-space style="margin-top: 8px;" justify="center">
-                <n-button @click="downloadImageFromResult(optimizedImageResult.images[0], 'optimized')">
-                  {{ t('imageWorkspace.results.download') }}
-                </n-button>
-              </n-space>
-            </template>
-            <template v-else>
-              <template v-if="originalImageResult && originalImageResult.images.length > 0">
-                <n-image
-                  :src="getImageSrc(originalImageResult.images[0])"
+              <!-- 多模态结果显示：图像 + 文本（使用Naive UI组件） -->
+              <NSpace vertical :size="12">
+                <!-- 图像显示 -->
+                <NImage
+                  :src="getImageSrc(optimizedImageResult.images[0])"
                   object-fit="contain"
                   :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
                 />
-                <n-space style="margin-top: 8px;" justify="center">
-                  <n-button @click="downloadImageFromResult(originalImageResult.images[0], 'original')">
+
+                <!-- 文本输出显示（如果存在） -->
+                <template v-if="optimizedImageResult.text">
+                  <NCard size="small" :title="t('imageWorkspace.results.textOutput')" style="margin-top: 8px;">
+                    <NText :depth="2" style="white-space: pre-wrap; line-height: 1.5;">
+                      {{ optimizedImageResult.text }}
+                    </NText>
+                  </NCard>
+                </template>
+
+                <!-- 操作按钮 -->
+                <NSpace justify="center" :size="8">
+                  <NButton @click="downloadImageFromResult(optimizedImageResult.images[0], 'optimized')">
+                    <template #icon>
+                      <NIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                      </NIcon>
+                    </template>
                     {{ t('imageWorkspace.results.download') }}
-                  </n-button>
-                </n-space>
+                  </NButton>
+
+                  <NButton v-if="optimizedImageResult.text" size="small" secondary @click="copyImageText(optimizedImageResult.text)">
+                    <template #icon>
+                      <NIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                        </svg>
+                      </NIcon>
+                    </template>
+                    {{ t('imageWorkspace.results.copyText') }}
+                  </NButton>
+                </NSpace>
+              </NSpace>
+            </template>
+            <template v-else>
+              <template v-if="originalImageResult && originalImageResult.images.length > 0">
+                <!-- 多模态结果显示：图像 + 文本（使用Naive UI组件） -->
+                <NSpace vertical :size="12">
+                  <!-- 图像显示 -->
+                  <NImage
+                    :src="getImageSrc(originalImageResult.images[0])"
+                    object-fit="contain"
+                    :img-props="{ style: { width: '100%', height: 'auto', display: 'block' } }"
+                  />
+
+                  <!-- 文本输出显示（如果存在） -->
+                  <template v-if="originalImageResult.text">
+                    <NCard size="small" :title="t('imageWorkspace.results.textOutput')" style="margin-top: 8px;">
+                      <NText :depth="2" style="white-space: pre-wrap; line-height: 1.5;">
+                        {{ originalImageResult.text }}
+                      </NText>
+                    </NCard>
+                  </template>
+
+                  <!-- 操作按钮 -->
+                  <NSpace justify="center" :size="8">
+                    <NButton @click="downloadImageFromResult(originalImageResult.images[0], 'original')">
+                      <template #icon>
+                        <NIcon>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                          </svg>
+                        </NIcon>
+                      </template>
+                      {{ t('imageWorkspace.results.download') }}
+                    </NButton>
+
+                    <NButton v-if="originalImageResult.text" size="small" secondary @click="copyImageText(originalImageResult.text)">
+                      <template #icon>
+                        <NIcon>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                          </svg>
+                        </NIcon>
+                      </template>
+                      {{ t('imageWorkspace.results.copyText') }}
+                    </NButton>
+                  </NSpace>
+                </NSpace>
               </template>
-              <n-empty v-else :description="t('imageWorkspace.results.noGenerationResult')" />
+              <NEmpty v-else :description="t('imageWorkspace.results.noGenerationResult')" />
             </template>
           </template>
         </TestResultSection>
@@ -340,7 +479,7 @@
   </FullscreenDialog>
 
   <!-- 图片上传弹窗 -->
-  <n-modal v-model:show="showUploadModal" preset="card" :title="t('imageWorkspace.upload.title')" style="width: 500px;">
+  <n-modal v-model:show="showUploadModal" preset="card" :title="t('imageWorkspace.upload.title')" style="width: min(500px, 90vw); max-width: 500px;">
     <div style="padding: 16px;">
       <n-upload
         :max="1"
@@ -393,7 +532,7 @@ import { onMounted, onUnmounted, inject, ref, computed, type Ref } from 'vue'
 import {
   NCard, NButton, NInput, NSelect, NEmpty, NFormItem, NForm, NSpace,
   NUpload, NUploadDragger, NImage, NText, NSwitch, NFlex, NGrid, NGridItem,
-  NP, NProgress, NAlert, NModal, NIcon
+  NP, NProgress, NAlert, NModal, NIcon, NTag
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 // 使用 Naive UI 内置图标或简单文本替代
@@ -443,6 +582,8 @@ const {
   imageModelOptions,
   optimizationMode,
   advancedModeEnabled,
+  selectedImageModelCapabilities,
+  selectedImageModelInfo,
 
   // 图像生成状态
   isGenerating,
@@ -506,6 +647,17 @@ const handleModalUploadChange = (data: any) => {
 const clearUploadedImage = () => {
   // 调用上传变更处理器，传入空数据来清除图片
   handleUploadChange({ file: null, fileList: [] })
+}
+
+// 复制图像文本输出
+const copyImageText = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success(t('imageWorkspace.results.copySuccess'))
+  } catch (error) {
+    console.error('Failed to copy text:', error)
+    toast.error(t('imageWorkspace.results.copyError'))
+  }
 }
 
 // 初始化

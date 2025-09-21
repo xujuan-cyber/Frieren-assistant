@@ -7,6 +7,7 @@
     delete: '删除',
     edit: '编辑',
     create: '创建',
+    update: '更新',
     search: '搜索',
     settings: '设置',
     language: '语言',
@@ -78,7 +79,8 @@
     moveDown: '下移',
     preview: '预览',
     import: '导入',
-    export: '导出'
+    export: '导出',
+    next: '下一步'
   },
   actions: {
     copy: '复制',
@@ -373,6 +375,8 @@
   },
   modelManager: {
     title: '模型管理',
+    textModels: '文本模型',
+    imageModels: '图像模型',
     modelList: '模型列表',
     testConnection: '测试连接',
     editModel: '编辑',
@@ -389,6 +393,7 @@
     useDockerProxy: '使用Docker代理',
     useDockerProxyHint: '使用Docker代理可以解决跨域问题，适用于Docker部署环境',
     addModel: '添加',
+    addImageModel: '添加图像模型',
 
     // 高级参数
     advancedParameters: {
@@ -441,6 +446,7 @@
     disableFailed: '禁用失败：{error}',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败：{error}',
+    toggleFailed: '切换失败：{error}',
     fetchModelsSuccess: '成功获取 {count} 个模型',
     loadingModels: '正在加载模型选项...',
     noModelsAvailable: '没有可用模型',
@@ -910,6 +916,55 @@
     "tokens": {
       "unit": "令牌"
     }
+    ,
+    "size": {
+      "label": "图像尺寸",
+      "description": "生成图像的分辨率/尺寸，如 1024x1024"
+    },
+    "quality": {
+      "label": "图像质量",
+      "description": "生成图像的质量等级：auto（自动）、high（高质量）、medium（中等）、low（低质量）"
+    },
+    "background": {
+      "label": "背景透明度",
+      "description": "设置图像背景：auto（自动）、transparent（透明）、opaque（不透明）"
+    },
+    "imageSize": {
+      "label": "图像尺寸",
+      "description": "生成图像的分辨率/尺寸，如 1024x1024"
+    },
+    "steps": {
+      "label": "迭代步数",
+      "description": "扩散/推理迭代次数，步数越多通常质量越高但更慢"
+    },
+    "guidance": {
+      "label": "引导强度",
+      "description": "提示词遵循强度，值越大越贴近提示"
+    },
+    "cfg": {
+      "label": "CFG强度",
+      "description": "无分类器引导强度，用于控制生成图像与提示词的匹配程度（仅Qwen-Image模型）"
+    },
+    "negativePrompt": {
+      "label": "负向提示词",
+      "description": "不希望图像出现的内容或风格"
+    },
+    "responseFormat": {
+      "label": "响应格式",
+      "description": "返回图片的格式（URL 或 Base64 编码）"
+    },
+    "watermark": {
+      "label": "水印",
+      "description": "是否在生成的图像上添加水印"
+    },
+    "sequentialGeneration": {
+      "label": "序列生成",
+      "description": "控制序列图像生成模式（支持的模型）"
+    },
+    "seed": {
+      "label": "随机种子",
+      "description": "用于控制生成结果的随机数种子，相同种子产生相同结果"
+    }
   },
   contextEditor: {
     // Variables tab (新增)
@@ -1180,6 +1235,10 @@
       testResult: '测试结果',
       download: '下载',
       copyBase64: '复制Base64',
+      copyText: '复制文本',
+      copySuccess: '复制成功',
+      copyError: '复制失败',
+      textOutput: '文本输出',
       noOriginalResult: '暂无原始结果',
       noOptimizedResult: '暂无优化结果',
       noGenerationResult: '暂无生成结果'
@@ -1192,6 +1251,132 @@
       fileRequirements: '支持 PNG/JPEG 格式，文件大小不超过 10MB',
       uploadFailed: '上传失败',
       uploadSuccess: '上传成功'
+    }
+  },
+
+  // 图像模型管理器配置界面
+  image: {
+    capability: {
+      text2image: '文生图',
+      image2image: '图生图',
+      multiImage: '多图生成',
+      highResolution: '高分辨率'
+    },
+    step: {
+      basic: '基本信息',
+      provider: '选择提供商',
+      connection: '连接配置',
+      model: '模型选择',
+      parameters: '参数设置'
+    },
+    config: {
+      basic: {
+        title: '基本配置'
+      },
+      name: {
+        label: '配置名称',
+        placeholder: '请输入配置名称'
+      },
+      enabled: {
+        label: '启用状态'
+      },
+      updateSuccess: '配置已更新',
+      createSuccess: '配置已创建',
+      saveFailed: '保存配置失败',
+      loadFailed: '加载配置失败'
+    },
+    provider: {
+      title: '提供商选择',
+      section: '提供商配置',
+      label: '图像提供商',
+      placeholder: '请选择提供商',
+      loadFailed: '加载提供商失败'
+    },
+    connection: {
+      title: '连接配置',
+      test: '测试连接',
+      testing: '正在测试连接...',
+      testSuccess: '功能测试成功',
+      testFailed: '连接测试失败',
+      testError: '连接测试错误',
+      functionTestTextToImage: '文生图测试',
+      functionTestImageToImage: '图生图测试',
+      testImagePreview: '测试图像预览',
+      downloadSuccess: '图像下载成功',
+      downloadFailed: '图像下载失败',
+      apiKey: {
+        label: 'API 密钥',
+        description: '用于认证的密钥',
+        placeholder: '请输入 API Key'
+      },
+      baseURL: {
+        label: 'API 地址',
+        description: '服务端点的基础地址',
+        placeholder: 'https://api.example.com/v1'
+      },
+      organization: {
+        label: '组织标识（可选）',
+        description: 'OpenAI 组织 ID（如适用）',
+        placeholder: 'org_xxx'
+      },
+      useVercelProxy: {
+        label: '使用 Vercel 代理',
+        description: '通过内置 /api/proxy 反向代理请求，缓解跨域问题',
+        placeholder: ''
+      },
+      useDockerProxy: {
+        label: '使用 Docker 代理',
+        description: '在 Docker 部署中通过容器内代理转发请求',
+        placeholder: ''
+      },
+      validation: {
+        missing: '缺少必填字段：{fields}',
+        invalidType: '{field} 类型应为 {expected}，实际为 {actual}'
+      }
+    },
+    model: {
+      section: '模型配置',
+      label: '选择模型',
+      placeholder: '请选择模型',
+      loading: '正在加载模型...',
+      refreshTooltip: '刷新模型列表',
+      refreshDisabledTooltip: {
+        dynamicNotSupported: '当前提供商不支持动态获取模型',
+        connectionRequired: '需要有效的连接配置才能刷新模型'
+      },
+      refreshSuccess: '模型列表已刷新',
+      refreshError: '刷新模型列表失败',
+      selectRequired: '请选择一个模型进行测试',
+      count: '共 {count} 个模型',
+      capabilities: '模型能力',
+      empty: '暂无图像模型配置',
+      addFirst: '添加第一个图像模型',
+      staticLoaded: '已加载静态模型',
+      noStaticModels: '没有静态模型',
+      staticLoadFailed: '加载静态模型失败',
+      dynamicLoaded: '已加载动态模型',
+      dynamicFailed: '加载动态模型失败，已回退静态列表',
+      connectionRequired: '请先填写并校验连接信息',
+      refreshFailed: '刷新模型失败'
+    },
+    parameters: {
+      noParameters: '该模型暂无可配置参数',
+      advancedConfig: '高级参数配置',
+      advancedConfigDescription: '可选，用于覆盖默认模型参数'
+    },
+    params: {
+      size: {
+        label: '图像尺寸',
+        description: '生成图像的分辨率/尺寸，如 1024x1024'
+      },
+      quality: {
+        label: '图像质量',
+        description: '生成图像的质量等级：auto（自动）、high（高质量）、medium（中等）、low（低质量）'
+      },
+      background: {
+        label: '背景透明度',
+        description: '设置图像背景：auto（自动）、transparent（透明）、opaque（不透明）'
+      }
     }
   }
 };

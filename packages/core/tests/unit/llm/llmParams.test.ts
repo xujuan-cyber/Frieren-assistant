@@ -10,7 +10,9 @@ beforeAll(() => {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 });
 
-describe('LLM Parameters (llmParams) Functionality', () => {
+const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+
+describe.skipIf(!RUN_REAL_API)('LLM Parameters (llmParams) Functionality', () => {
   // Check for available API keys
   const openaiCompatibleKeys = [
     'OPENAI_API_KEY', 'VITE_OPENAI_API_KEY',

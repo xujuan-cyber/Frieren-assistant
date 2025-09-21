@@ -1,142 +1,253 @@
-import { describe, test, expect } from 'vitest'
-import { SiliconFlowImageAdapter } from '../../../src/services/image/adapters/siliconflow-adapter'
-import { ImageRequest, ImageModelConfig } from '../../../src/services/image/types'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
+import { SiliconFlowImageAdapter } from '../../../src/services/image/adapters/siliconflow'
+import type { ImageRequest, ImageModelConfig } from '../../../src/services/image/types'
 
 describe('SiliconFlowImageAdapter', () => {
-  test('should create adapter with correct capabilities', () => {
-    const adapter = new SiliconFlowImageAdapter()
+  let adapter: SiliconFlowImageAdapter
 
-    expect(adapter.capabilities).toEqual({
-      edit: true,
-      multiImage: false,
-      asyncJob: false,
-      streamingPreview: false
+  beforeEach(() => {
+    adapter = new SiliconFlowImageAdapter()
+  })
+
+  describe('Provider Information', () => {
+    test('should return correct provider information', () => {
+      const provider = adapter.getProvider()
+
+      expect(provider.id).toBe('siliconflow')
+      expect(provider.name).toBe('SiliconFlow')
+      expect(provider.requiresApiKey).toBe(true)
+      expect(provider.defaultBaseURL).toBe('https://api.siliconflow.cn/v1')
+      expect(provider.supportsDynamicModels).toBe(false)
+      expect(provider.connectionSchema?.required).toContain('apiKey')
+      expect(provider.connectionSchema?.optional).toEqual(expect.arrayContaining(['baseURL']))
     })
   })
 
-  test.skip('should map image sizes correctly', () => {
-    // 注意：mapImageSize 是私有方法，这里通过请求参数间接测试
-    // 实际尺寸映射将在集成测试或真实 API 调用中验证
-    const adapter = new SiliconFlowImageAdapter()
+  describe('Static Models', () => {
+    test('should return static models list', () => {
+      const models = adapter.getModels()
 
-    // 测试支持的尺寸列表
-    const sizes = adapter.getSupportedSizes()
-    expect(sizes).toContain('1024x1024')
-    expect(sizes).toContain('960x1280')
-    expect(sizes).toContain('768x1024')
-    expect(sizes).toContain('720x1440')
-    expect(sizes).toContain('720x1280')
+      expect(Array.isArray(models)).toBe(true)
+      expect(models.length).toBeGreaterThan(0)
+
+      const kolorsModel = models.find(m => m.id === 'Kwai-Kolors/Kolors')
+      expect(kolorsModel).toBeDefined()
+      expect(kolorsModel).toMatchObject({
+        id: 'Kwai-Kolors/Kolors',
+        name: 'Kolors',
+        providerId: 'siliconflow',
+        capabilities: {
+          text2image: true,
+          image2image: true,
+          multiImage: false
+        },
+        parameterDefinitions: expect.any(Array)
+      })
+
+      // 验证 Flux 模型也存在
+      const qwenModel = models.find(m => m.id === 'Qwen/Qwen-Image')
+      expect(qwenModel).toBeDefined()
+    })
+
+    test('should include correct parameters in model definition', () => {
+      const models = adapter.getModels()
+      const kolorsModel = models.find(m => m.id === 'Kwai-Kolors/Kolors')
+
+      expect(kolorsModel?.parameterDefinitions).toBeDefined()
+
+      // 验证 image_size 参数
+      const sizeParam = kolorsModel?.parameterDefinitions?.find(p => p.name === 'image_size')
+      expect(sizeParam).toBeDefined()
+      expect(sizeParam?.type).toBe('string')
+      expect(sizeParam?.allowedValues).toContain('1024x1024')
+
+      // 验证 num_inference_steps 参数
+      const stepsParam = kolorsModel?.parameterDefinitions?.find(p => p.name === 'num_inference_steps')
+      expect(stepsParam).toBeDefined()
+      expect(stepsParam?.type).toBe('integer')
+      expect(stepsParam?.defaultValue).toBe(20)
+
+      // 验证 guidance_scale 参数
+      const guidanceParam = kolorsModel?.parameterDefinitions?.find(p => p.name === 'guidance_scale')
+      expect(guidanceParam).toBeDefined()
+      expect(guidanceParam?.type).toBe('number')
+      expect(guidanceParam?.defaultValue).toBe(7.5)
+    })
   })
 
-  test('should get supported sizes', () => {
-    const adapter = new SiliconFlowImageAdapter()
-    const sizes = adapter.getSupportedSizes()
+  // Dynamic model fetching is not enabled via provider flag; adapter may still expose helper, skip tests here
 
-    expect(sizes).toEqual([
-      '1024x1024',
-      '960x1280',
-      '768x1024',
-      '720x1440',
-      '720x1280'
-    ])
-  })
+  // 连接验证已移除
 
-  test('should generate image with real API call', async () => {
-    // 跳过测试，除非设置了 API Key
-    const apiKey = process.env.VITE_SILICONFLOW_API_KEY
-    if (!apiKey) {
-      console.log('跳过 SiliconFlow 真实 API 测试：未设置 VITE_SILICONFLOW_API_KEY')
-      return
-    }
-
-    const adapter = new SiliconFlowImageAdapter()
-    const config: ImageModelConfig = {
-      name: 'SiliconFlow Kolors Test',
-      baseURL: 'https://api.siliconflow.cn/v1',
-      defaultModel: 'Kwai-Kolors/Kolors',
-      apiKey: apiKey,
-      enabled: true,
-      provider: 'siliconflow',
-      imgParams: {
-        size: '1024x1024',
-        steps: 20,
-        guidance: 7.5
-      },
-      capabilities: { edit: true, multiImage: false, asyncJob: false, streamingPreview: false }
-    }
-
-    const request: ImageRequest = {
-      prompt: '星际穿越，黑洞，黑洞里冲出一辆快支离破碎的复古列车，蒸汽朋克风格，科幻电影场景，高质量，细节丰富，8K分辨率，壮观震撼',
-      count: 1,
-      imgParams: {
-        size: '1024x1024',
-        steps: 20,
-        guidance: 7.5
+  describe('Image Generation', () => {
+    test('should generate image with valid configuration', async () => {
+      const config: ImageModelConfig = {
+        id: 'test-config',
+        name: 'Test SiliconFlow Config',
+        providerId: 'siliconflow',
+        modelId: 'Kolors',
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-api-key',
+          baseURL: 'https://api.siliconflow.cn/v1'
+        },
+        paramOverrides: {
+          image_size: '1024x1024',
+          num_inference_steps: 20,
+          guidance_scale: 7.5
+        }
       }
-    }
 
-    const startTime = Date.now()
-    const result = await adapter.generate(request, config)
-    const endTime = Date.now()
-    const duration = ((endTime - startTime) / 1000).toFixed(1)
+      const request: ImageRequest = {
+        prompt: '一个美丽的景色，高质量，细节丰富',
+        configId: config.id,
+        count: 1,
+        paramOverrides: {
+          outputMimeType: 'image/png'
+        }
+      }
 
-    console.log(`SiliconFlow 图像生成耗时: ${duration}秒`)
-    console.log('生成结果:', JSON.stringify(result, null, 2))
+      // Mock successful generation response
+      const mockGenerationResponse = {
+        images: [
+          {
+            url: 'https://example.com/generated-image.png',
+            b64: null,
+            mimeType: 'image/png'
+          }
+        ],
+        seed: 1234567890,
+        timings: {
+          inference: 2.5
+        }
+      }
 
-    expect(result).toBeDefined()
-    expect(result.data).toBeInstanceOf(Array)
-    expect(result.data.length).toBe(1)
-    expect(result.data[0]).toHaveProperty('url')
-    expect(typeof result.data[0].url).toBe('string')
-    expect(result.created).toBeGreaterThan(0)
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockGenerationResponse)
+      })
 
-    // 验证 URL 是否可访问
-    if (result.data[0].url) {
-      const response = await fetch(result.data[0].url, { method: 'HEAD' })
-      expect(response.ok).toBe(true)
-      console.log('图像 URL 可访问，状态码:', response.status)
-    }
+      const result = await adapter.generate(request, config)
+
+      expect(result).toBeDefined()
+      expect(result.images).toHaveLength(1)
+      expect(result.images[0]).toMatchObject({
+        url: expect.any(String),
+        mimeType: 'image/png'
+      })
+      expect(result.metadata).toBeDefined()
+      expect(result.metadata?.configId).toBe(config.id)
+      expect(result.metadata?.modelId).toBe(config.modelId)
+      expect(result.metadata?.seed).toBe(1234567890)
+    })
+
+    test('should handle generation failure', async () => {
+      const config: ImageModelConfig = {
+        id: 'test-config',
+        name: 'Test Config',
+        providerId: 'siliconflow',
+        modelId: 'Kolors',
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-api-key'
+        },
+        paramOverrides: {}
+      }
+
+      const request: ImageRequest = {
+        prompt: 'test prompt',
+        configId: config.id,
+        count: 1
+      }
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: () => Promise.resolve({
+          error: {
+            message: 'Invalid prompt'
+          }
+        })
+      })
+
+      await expect(adapter.generate(request, config)).rejects.toThrow()
+    })
+
+    test('should validate required parameters', async () => {
+      const config: ImageModelConfig = {
+        id: 'test-config',
+        name: 'Test Config',
+        providerId: 'siliconflow',
+        modelId: 'Kolors',
+        enabled: true,
+        connectionConfig: {
+          // Missing apiKey
+        },
+        paramOverrides: {}
+      }
+
+      const request: ImageRequest = {
+        prompt: 'test prompt',
+        configId: config.id,
+        count: 1
+      }
+
+      await expect(adapter.generate(request, config))
+        .rejects.toThrow(/Missing required parameter|API key/)
+    })
   })
 
-  test('should throw error for missing API key', async () => {
-    const adapter = new SiliconFlowImageAdapter()
-    const config: ImageModelConfig = {
-      name: 'Test Config',
-      baseURL: 'https://api.siliconflow.cn/v1',
-      defaultModel: 'Kwai-Kolors/Kolors',
-      apiKey: '', // 空的 API Key
-      enabled: true,
-      provider: 'siliconflow',
-      imgParams: {},
-      capabilities: { edit: true, multiImage: false, asyncJob: false, streamingPreview: false }
-    }
+  const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+  describe.skipIf(!RUN_REAL_API)('Real API Integration (when API key available)', () => {
+    test('should perform real API call when API key is provided', async () => {
+      const apiKey = process.env.VITE_SILICONFLOW_API_KEY
+      if (!apiKey) {
+        console.log('跳过 SiliconFlow 真实 API 测试：未设置 VITE_SILICONFLOW_API_KEY')
+        return
+      }
 
-    const request: ImageRequest = {
-      prompt: 'test',
-      count: 1
-    }
+      const config: ImageModelConfig = {
+        id: 'real-test-config',
+        name: 'Real SiliconFlow Test',
+        providerId: 'siliconflow',
+        modelId: 'Kolors',
+        enabled: true,
+        connectionConfig: {
+          apiKey: apiKey,
+          baseURL: 'https://api.siliconflow.cn/v1'
+        },
+        paramOverrides: {
+          image_size: '1024x1024',
+          num_inference_steps: 20,
+          guidance_scale: 7.5
+        }
+      }
 
-    await expect(adapter.generate(request, config)).rejects.toThrow('SiliconFlow: 缺少 API Key')
-  })
+      const request: ImageRequest = {
+        prompt: '星际穿越，黑洞，蒸汽朋克风格，科幻电影场景，高质量，8K分辨率',
+        configId: config.id,
+        count: 1
+      }
 
-  test('should throw error for missing default model', async () => {
-    const adapter = new SiliconFlowImageAdapter()
-    const config: ImageModelConfig = {
-      name: 'Test Config',
-      baseURL: 'https://api.siliconflow.cn/v1',
-      defaultModel: '', // 空的默认模型
-      apiKey: 'test-key',
-      enabled: true,
-      provider: 'siliconflow',
-      imgParams: {},
-      capabilities: { edit: true, multiImage: false, asyncJob: false, streamingPreview: false }
-    }
+      const startTime = Date.now()
+      const result = await adapter.generate(request, config)
+      const endTime = Date.now()
+      const duration = ((endTime - startTime) / 1000).toFixed(1)
 
-    const request: ImageRequest = {
-      prompt: 'test',
-      count: 1
-    }
+      console.log(`SiliconFlow 真实API生成耗时: ${duration}秒`)
 
-    await expect(adapter.generate(request, config)).rejects.toThrow('SiliconFlow: 缺少默认模型')
+      expect(result).toBeDefined()
+      expect(result.images).toHaveLength(1)
+      expect(result.images[0].url).toBeTruthy()
+      expect(result.metadata?.seed).toBeGreaterThan(0)
+
+      // 验证 URL 可访问性
+      if (result.images[0].url) {
+        const response = await fetch(result.images[0].url, { method: 'HEAD' })
+        expect(response.ok).toBe(true)
+        console.log('生成的图像 URL 可访问，状态码:', response.status)
+      }
+    }, 30000) // 30秒超时
   })
 })

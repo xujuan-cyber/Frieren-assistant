@@ -1,102 +1,168 @@
-// 与官方文档对齐：使用 @google/genai 的 GoogleGenAI 并通过 ai.models.generateContent 调用
-import { GoogleGenAI } from '@google/genai'
-import { IImageProviderAdapter, ImageModelConfig, ImageProgressHandlers, ImageRequest, ImageResult } from '../../image/types'
-import { APIError, RequestConfigError } from '../../llm/errors'
+import { GoogleGenAI, setDefaultBaseUrls } from '@google/genai'
+import { AbstractImageProviderAdapter } from './abstract-adapter'
+import type {
+  ImageProvider,
+  ImageModel,
+  ImageRequest,
+  ImageResult,
+  ImageModelConfig
+} from '../types'
 
-export class GeminiImageAdapter implements IImageProviderAdapter {
-  public readonly capabilities = {
-    edit: true,
-    multiImage: false,
-    asyncJob: false,
-    streamingPreview: false
+export class GeminiImageAdapter extends AbstractImageProviderAdapter {
+  getProvider(): ImageProvider {
+    return {
+      id: 'gemini',
+      name: 'Google Gemini',
+      description: 'Google Gemini 图像生成服务',
+      requiresApiKey: true,
+      defaultBaseURL: 'https://generativelanguage.googleapis.com',
+      supportsDynamicModels: false,
+      connectionSchema: {
+        required: ['apiKey'],
+        optional: ['useVercelProxy', 'useDockerProxy'],
+        fieldTypes: { apiKey: 'string', useVercelProxy: 'boolean', useDockerProxy: 'boolean' }
+      }
+    }
   }
 
-  async generate(request: ImageRequest, config: ImageModelConfig, handlers?: ImageProgressHandlers): Promise<ImageResult> {
-    if (!config.apiKey) throw new RequestConfigError('Gemini: 缺少 API Key')
-    if (!config.defaultModel) throw new RequestConfigError('Gemini: 缺少默认模型')
-    // 默认按 gemini-2.5-flash-image-preview 的逻辑调用；
-    // 非该模型也放行（可能由 Google 后续新增兼容），但给出提示便于排查兼容性。
-    if (config.defaultModel !== 'gemini-2.5-flash-image-preview') {
-      console.warn('[GeminiImageAdapter] 非推荐模型，仍按 2.5 flash image 预览逻辑调用:', config.defaultModel)
+  getModels(): ImageModel[] {
+    return [
+      {
+        id: 'gemini-2.5-flash-image-preview',
+        name: 'Gemini 2.5 Flash Image',
+        description: 'Google Gemini 2.5 Flash 图像生成模型，支持文生图、图生图和多图输入',
+        providerId: 'gemini',
+        capabilities: {
+          text2image: true,
+          image2image: true,
+          multiImage: true
+        },
+        parameterDefinitions: [],  // Gemini 不需要用户配置参数
+        defaultParameterValues: {
+          outputMimeType: 'image/png'
+        }
+      }
+    ]
+  }
+
+  protected getTestImageRequest(testType: 'text2image' | 'image2image'): Omit<ImageRequest, 'configId'> {
+    if (testType === 'text2image') {
+      return {
+        prompt: 'a simple red flower',
+        count: 1
+      }
     }
 
-    const ai = new GoogleGenAI({ apiKey: config.apiKey })
+    if (testType === 'image2image') {
+      return {
+        prompt: 'make this image more colorful',
+        inputImage: {
+          b64: AbstractImageProviderAdapter.TEST_IMAGE_BASE64.split(',')[1], // 去除data URL前缀
+          mimeType: 'image/png'
+        },
+        count: 1
+      }
+    }
 
-    const outputMime: 'image/png' | 'image/jpeg' = (request.imgParams?.outputMimeType as any) || 'image/png'
+    throw new Error(`Unsupported test type: ${testType}`)
+  }
 
-    // 构造 contents（与官方文档一致）：
-    // - 文生图：contents: string
-    // - 图生图：contents: [{ text }, { inlineData: { mimeType, data } }]
-    const contents: any = request.inputImage?.b64
-      ? [
-          { text: request.prompt },
-          { inlineData: { mimeType: request.inputImage.mimeType || outputMime, data: request.inputImage.b64 } }
-        ]
-      : request.prompt
+  protected getParameterDefinitions(_modelId: string): readonly any[] {
+    // 基础参数定义（如果需要的话）
+    return []
+  }
+
+  protected getDefaultParameterValues(_modelId: string): Record<string, unknown> {
+    return {
+      outputMimeType: 'image/png'
+    }
+  }
+
+  protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {
+    // 使用官方 GoogleGenAI SDK，按需设置代理后的基础地址（geminiUrl）
+    const finalBase = this.resolveBaseUrl(config, /*isStream*/ false)
+    if (finalBase) {
+      // 仅设置 geminiUrl，不设置 vertexUrl
+      setDefaultBaseUrls({ geminiUrl: finalBase })
+    }
+
+    const genAI = new GoogleGenAI({ apiKey: config.connectionConfig?.apiKey })
+
+    // 构建请求内容
+    let contents: any
+    if (request.inputImage) {
+      // 图生图：使用数组格式
+      contents = [
+        { text: request.prompt },
+        {
+          inlineData: {
+            mimeType: request.inputImage.mimeType || 'image/png',
+            data: request.inputImage.b64
+          }
+        }
+      ]
+    } else {
+      // 文生图：直接使用文本
+      contents = request.prompt
+    }
 
     try {
-      handlers?.onProgress?.('generating')
-
-      const res = await ai.models.generateContent({
-        model: config.defaultModel,
+      // 调用 Gemini API
+      const response = await genAI.models.generateContent({
+        model: config.modelId,
         contents
       })
 
-      // 检查是否被安全过滤阻止
-      const response = (res as any)
-      if (response?.candidates?.[0]?.finishReason === 'SAFETY') {
-        throw new APIError('Gemini: 内容被安全过滤器阻止，请调整提示词')
+      // 解析响应
+      const candidate = response.candidates?.[0]
+      if (!candidate) {
+        throw new Error('No response candidate received from Gemini')
       }
 
-      const parts: any[] = response?.candidates?.[0]?.content?.parts || []
+      const parts = candidate.content?.parts || []
+      const resultImages: any[] = []
+      let responseText: string | undefined
 
-      const images: { b64: string; mimeType?: string }[] = []
-      const notes: string[] = []
+      // 处理响应部分
+      for (const part of parts) {
+        if (part.text) {
+          responseText = part.text
+        } else if (part.inlineData) {
+          const imageData = part.inlineData.data
+          const mimeType = part.inlineData.mimeType || 'image/png'
 
-      for (const p of parts) {
-        if (p?.inlineData?.data) {
-          images.push({
-            b64: p.inlineData.data,
-            mimeType: p.inlineData.mimeType || outputMime
+          // 构建 data URL
+          const dataUrl = `data:${mimeType};base64,${imageData}`
+
+          resultImages.push({
+            b64: imageData,
+            mimeType,
+            url: dataUrl
           })
-        } else if (typeof p?.text === 'string' && p.text.trim()) {
-          notes.push(p.text.trim())
         }
       }
 
-      if (images.length === 0) {
-        // 提供更详细的错误信息
-        const finishReason = response?.candidates?.[0]?.finishReason
-        const errorMsg = finishReason
-          ? `未返回图片数据，结束原因: ${finishReason}`
-          : '未返回图片数据'
-        throw new APIError(`Gemini: ${errorMsg}`)
+      if (resultImages.length === 0) {
+        throw new Error('No image data received from Gemini')
       }
 
-      const result: ImageResult = {
-        images,
+      return {
+        images: resultImages,
+        text: responseText,
         metadata: {
-          model: config.defaultModel,
-          notes: notes.length ? notes : undefined,
-          finishReason: response?.candidates?.[0]?.finishReason
+          providerId: 'gemini',
+          modelId: config.modelId,
+          configId: config.id,
+          finishReason: candidate.finishReason,
+          usage: response.usageMetadata
         }
       }
-      handlers?.onComplete?.(result)
-      return result
-    } catch (err: any) {
-      const message = err?.message || String(err)
-      handlers?.onError?.(err instanceof Error ? err : new Error(message))
-
-      // 提供更友好的错误信息
-      if (message.includes('API_KEY')) {
-        throw new APIError('Gemini: API Key 无效或已过期')
-      } else if (message.includes('SAFETY')) {
-        throw new APIError('Gemini: 内容被安全过滤器阻止')
-      } else if (message.includes('QUOTA')) {
-        throw new APIError('Gemini: API 配额已用尽')
+    } catch (error) {
+      // 直接穿透错误，保持与其他适配器一致的错误处理
+      if (error instanceof Error) {
+        throw new Error(`Gemini API error: ${error.message}`)
       }
-
-      throw new APIError(`Gemini 调用失败: ${message}`)
+      throw new Error(`Gemini API error: ${String(error)}`)
     }
   }
 }

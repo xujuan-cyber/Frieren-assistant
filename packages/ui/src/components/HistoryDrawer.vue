@@ -55,6 +55,21 @@
                 >
                   {{ t('common.user') }}
                 </NTag>
+                <!-- 图像模式优化类型标签 -->
+                <NTag
+                  v-if="chain.rootRecord.type === 'text2imageOptimize'"
+                  type="success"
+                  size="small"
+                >
+                  {{ t('image.capability.text2image') }}
+                </NTag>
+                <NTag
+                  v-if="chain.rootRecord.type === 'image2imageOptimize'"
+                  type="warning"
+                  size="small"
+                >
+                  {{ t('image.capability.image2image') }}
+                </NTag>
               </NSpace>
               <NButton
                 @click="deleteChain(chain.chainId)"

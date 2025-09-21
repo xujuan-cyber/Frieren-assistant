@@ -54,8 +54,23 @@ src/
 │   │   ├── service.ts # LLM服务实现
 │   │   ├── types.ts   # 类型定义
 │   │   └── errors.ts  # 错误定义
-│   ├── model/         # 模型管理
+│   ├── model/         # 文本模型管理
 │   │   ├── manager.ts # 模型管理器
+│   │   ├── types.ts   # 类型定义
+│   │   └── defaults.ts# 默认配置
+│   ├── image/         # 图像服务（新增）
+│   │   ├── service.ts # 图像生成服务
+│   │   ├── types.ts   # 图像服务类型定义
+│   │   ├── electron-proxy.ts # Electron代理
+│   │   └── adapters/  # 图像提供商适配器
+│   │       ├── abstract-adapter.ts # 抽象适配器基类
+│   │       ├── registry.ts         # 适配器注册表
+│   │       ├── openai.ts          # OpenAI DALL-E适配器
+│   │       ├── gemini.ts          # Google Gemini适配器
+│   │       ├── siliconflow-adapter.ts # SiliconFlow适配器
+│   │       └── seedream.ts        # SeeDream适配器
+│   ├── image-model/   # 图像模型管理（新增）
+│   │   ├── manager.ts # 图像模型管理器
 │   │   ├── types.ts   # 类型定义
 │   │   └── defaults.ts# 默认配置
 │   ├── prompt/        # 提示词服务
@@ -65,6 +80,13 @@ src/
 │   ├── template/      # 模板服务
 │   │   ├── manager.ts # 模板管理器
 │   │   ├── types.ts   # 类型定义
+│   │   └── default-templates/ # 默认模板
+│   │       ├── image-optimize/ # 图像模板（新增）
+│   │       │   ├── text2image/ # 文生图模板
+│   │       │   ├── image2image/ # 图生图模板
+│   │       │   └── iterate/    # 图像迭代模板
+│   │       ├── basic/         # 基础模板
+│   │       └── context/       # 上下文模板
 │   └── history/       # 历史记录服务
 │       ├── manager.ts # 历史管理器
 │       └── types.ts   # 类型定义
@@ -102,12 +124,19 @@ tests/
 ```
 src/
 ├── components/        # Vue组件
-│   ├── PromptPanel.vue    # 提示词面板
-│   ├── ModelManager.vue   # 模型管理器
-│   ├── TemplateManager.vue# 模板管理器
-│   ├── InputPanel.vue     # 输入面板
-│   └── OutputPanel.vue    # 输出面板
+│   ├── PromptPanel.vue      # 提示词面板
+│   ├── ModelManager.vue     # 统一模型管理器（支持文本/图像模型切换）
+│   ├── ImageModelManager.vue# 图像模型专用管理组件
+│   ├── ImageModelEditModal.vue # 图像模型编辑弹窗
+│   ├── TemplateManager.vue  # 模板管理器
+│   ├── InputPanel.vue       # 输入面板
+│   ├── OutputPanel.vue      # 输出面板
+│   └── image-mode/         # 图像模式专用组件
+│       └── ImageWorkspace.vue # 图像工作区
 ├── composables/       # Vue组合式函数
+│   ├── useImageModelManager.ts # 图像模型管理composable
+│   ├── useImageGeneration.ts   # 图像生成composable
+│   └── useImageWorkspace.ts    # 图像工作区composable
 ├── services/          # 业务逻辑
 │   ├── llm/           # LLM服务
 │   ├── model/         # 模型配置
@@ -123,12 +152,35 @@ src/
 ```
 
 ### 3.2 组件目录详情 (packages/web/src/components/)
+
+#### 核心组件
 - `PromptPanel.vue` - 提示词输入和优化面板
 - `InputPanel.vue` - 输入面板组件
 - `OutputPanel.vue` - 输出面板组件
-- `ModelConfig.vue` - 模型配置组件
+- `TemplateManager.vue` - 模板管理器
 - `ThemeToggle.vue` - 主题切换组件
 - `LoadingSpinner.vue` - 加载动画组件
+
+#### 模型管理架构
+- `ModelManager.vue` - **统一模型管理器**
+  - 支持文本模型和图像模型的标签页切换
+  - 文本模型：直接在该组件内管理
+  - 图像模型：委托给 `ImageModelManager.vue` 组件处理
+  - 替代了原有的单一模型管理方案（`ModelManager.vue.bak`）
+
+- `ImageModelManager.vue` - **图像模型专用管理组件**
+  - 专门负责图像模型的列表展示、连接测试、启用/禁用等操作
+  - 与 `useImageModelManager` composable 配合使用
+  - 支持图像提供商（OpenAI DALL-E、Gemini、SiliconFlow等）的模型管理
+
+- `ImageModelEditModal.vue` - **图像模型编辑弹窗**
+  - 用于添加/编辑图像模型配置
+  - 提供商选择、模型选择、连接配置等表单功能
+
+#### 图像模式组件
+- `image-mode/ImageWorkspace.vue` - **图像工作区**
+  - 图像模式的主要工作界面
+  - 整合文生图、图生图、图像迭代等功能
 
 ### 3.3 测试目录 (packages/web/tests/)
 ```

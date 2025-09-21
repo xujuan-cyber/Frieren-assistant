@@ -8,6 +8,7 @@ export default {
     edit: 'Edit',
     copy: 'Copy',
     create: 'Create',
+    update: 'Update',
     search: 'Search',
     settings: 'Settings',
     language: 'Language',
@@ -78,7 +79,8 @@ export default {
     moveDown: 'Move Down',
     preview: 'Preview',
     import: 'Import',
-    export: 'Export'
+    export: 'Export',
+    next: 'Next'
   },
   actions: {
     copy: 'Copy',
@@ -373,6 +375,8 @@ export default {
   },
   modelManager: {
     title: 'Model Manager',
+    textModels: 'Text Models',
+    imageModels: 'Image Models',
     modelList: 'Model List',
     testConnection: 'Test Connection',
     editModel: 'Edit',
@@ -389,6 +393,7 @@ export default {
     useDockerProxy: 'Use Docker Proxy',
     useDockerProxyHint: 'Using Docker proxy can solve CORS issues, suitable for Docker deployment environments',
     addModel: 'Add',
+    addImageModel: 'Add Image Model',
 
     // Advanced Parameters
     advancedParameters: {
@@ -441,6 +446,7 @@ export default {
     disableFailed: 'Failed to disable model: {error}',
     deleteSuccess: 'Model deleted',
     deleteFailed: 'Failed to delete model: {error}',
+    toggleFailed: 'Toggle failed: {error}',
     fetchModelsSuccess: 'Successfully retrieved 1 model | Successfully retrieved {count} models',
     loadingModels: 'Loading model options...',
     noModelsAvailable: 'No models available',
@@ -909,6 +915,55 @@ export default {
     "tokens": {
       "unit": "tokens"
     }
+    ,
+    "size": {
+      "label": "Image Size",
+      "description": "Resolution/size of the generated image, e.g., 1024x1024"
+    },
+    "quality": {
+      "label": "Image Quality",
+      "description": "Quality level for generated image: auto (automatic), high (high quality), medium, low (low quality)"
+    },
+    "background": {
+      "label": "Background Transparency",
+      "description": "Set image background: auto (automatic), transparent, opaque"
+    },
+    "imageSize": {
+      "label": "Image Size",
+      "description": "Resolution/size of the generated image, e.g., 1024x1024"
+    },
+    "steps": {
+      "label": "Steps",
+      "description": "Diffusion/inference steps; more steps usually improve quality but take longer"
+    },
+    "guidance": {
+      "label": "Guidance Scale",
+      "description": "Strength to follow the prompt; higher values adhere more to the prompt"
+    },
+    "cfg": {
+      "label": "CFG Scale",
+      "description": "Classifier-Free Guidance scale for controlling prompt adherence (Qwen-Image only)"
+    },
+    "negativePrompt": {
+      "label": "Negative Prompt",
+      "description": "Content or styles you do not want in the image"
+    },
+    "responseFormat": {
+      "label": "Response Format",
+      "description": "Format of the returned image (URL or Base64)"
+    },
+    "watermark": {
+      "label": "Watermark",
+      "description": "Whether to add a watermark to the generated image"
+    },
+    "sequentialGeneration": {
+      "label": "Sequential Generation",
+      "description": "Control sequential image generation mode (for supported models)"
+    },
+    "seed": {
+      "label": "Seed",
+      "description": "Random seed for controlling generation results, same seed produces same output"
+    }
   },
   contextEditor: {
     // Variables tab (新增)
@@ -1180,6 +1235,10 @@ export default {
       testResult: 'Test Result',
       download: 'Download',
       copyBase64: 'Copy Base64',
+      copyText: 'Copy Text',
+      copySuccess: 'Copied successfully',
+      copyError: 'Copy failed',
+      textOutput: 'Text Output',
       noOriginalResult: 'No original result',
       noOptimizedResult: 'No optimized result',
       noGenerationResult: 'No generation result'
@@ -1192,6 +1251,132 @@ export default {
       fileRequirements: 'Supports PNG/JPEG formats, file size up to 10MB',
       uploadFailed: 'Upload failed',
       uploadSuccess: 'Upload successful'
+    }
+  },
+
+  // Image model manager configuration interface
+  image: {
+    capability: {
+      text2image: 'Text-to-Image',
+      image2image: 'Image-to-Image',
+      multiImage: 'Multi-image',
+      highResolution: 'High Resolution'
+    },
+    step: {
+      basic: 'Basic Information',
+      provider: 'Provider Selection',
+      connection: 'Connection Configuration',
+      model: 'Model Selection',
+      parameters: 'Parameter Settings'
+    },
+    config: {
+      basic: {
+        title: 'Basic Configuration'
+      },
+      name: {
+        label: 'Configuration Name',
+        placeholder: 'Please enter configuration name'
+      },
+      enabled: {
+        label: 'Enable Status'
+      },
+      updateSuccess: 'Configuration updated',
+      createSuccess: 'Configuration created',
+      saveFailed: 'Failed to save configuration',
+      loadFailed: 'Failed to load configurations'
+    },
+    provider: {
+      title: 'Provider Selection',
+      section: 'Provider Configuration',
+      label: 'Image Provider',
+      placeholder: 'Please select provider',
+      loadFailed: 'Failed to load providers'
+    },
+    connection: {
+      title: 'Connection Configuration',
+      test: 'Test Connection',
+      testing: 'Testing connection...',
+      testSuccess: 'Function test successful',
+      testFailed: 'Connection test failed',
+      testError: 'Connection test error',
+      functionTestTextToImage: 'Text-to-Image test',
+      functionTestImageToImage: 'Image-to-Image test',
+      testImagePreview: 'Test Image Preview',
+      downloadSuccess: 'Image downloaded successfully',
+      downloadFailed: 'Image download failed',
+      apiKey: {
+        label: 'API Key',
+        description: 'Authentication key',
+        placeholder: 'Enter API Key'
+      },
+      baseURL: {
+        label: 'API Base URL',
+        description: 'Base URL of the service endpoint',
+        placeholder: 'https://api.example.com/v1'
+      },
+      organization: {
+        label: 'Organization (optional)',
+        description: 'OpenAI organization ID if applicable',
+        placeholder: 'org_xxx'
+      },
+      useVercelProxy: {
+        label: 'Use Vercel Proxy',
+        description: 'Proxy requests via built-in /api/proxy to mitigate CORS issues',
+        placeholder: ''
+      },
+      useDockerProxy: {
+        label: 'Use Docker Proxy',
+        description: 'In Docker deployment, forward requests via in-container proxy',
+        placeholder: ''
+      },
+      validation: {
+        missing: 'Missing required fields: {fields}',
+        invalidType: '{field} should be {expected}, got {actual}'
+      }
+    },
+    model: {
+      section: 'Model Configuration',
+      label: 'Model',
+      placeholder: 'Please select model',
+      loading: 'Loading models...',
+      refreshTooltip: 'Refresh model list',
+      refreshDisabledTooltip: {
+        dynamicNotSupported: 'Current provider does not support dynamic model loading',
+        connectionRequired: 'Valid connection configuration required to refresh models'
+      },
+      refreshSuccess: 'Model list refreshed',
+      refreshError: 'Failed to refresh model list',
+      selectRequired: 'Please select a model to test',
+      count: '{count} models',
+      capabilities: 'Capabilities',
+      empty: 'No image model configurations',
+      addFirst: 'Add First Image Model',
+      staticLoaded: 'Static models loaded',
+      noStaticModels: 'No static models',
+      staticLoadFailed: 'Failed to load static models',
+      dynamicLoaded: 'Dynamic models loaded',
+      dynamicFailed: 'Failed to load dynamic models, fell back to static list',
+      connectionRequired: 'Please fill and validate connection first',
+      refreshFailed: 'Failed to refresh models'
+    },
+    parameters: {
+      noParameters: 'No configurable parameters for this model',
+      advancedConfig: 'Advanced Parameter Configuration',
+      advancedConfigDescription: 'Optional, used to override default model parameters'
+    },
+    params: {
+      size: {
+        label: 'Image Size',
+        description: 'Generated image resolution/size, e.g., 1024x1024'
+      },
+      quality: {
+        label: 'Image Quality',
+        description: 'Generated image quality level: auto (automatic), high (high quality), medium (medium), low (low quality)'
+      },
+      background: {
+        label: 'Background Transparency',
+        description: 'Set image background: auto (automatic), transparent (transparent), opaque (opaque)'
+      }
     }
   }
 };

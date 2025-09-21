@@ -61,15 +61,15 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     optimizedImageResult: null as ImageResult | null,
     currentImageResult: null as ImageResult | null,
 
-    // 版本管理
-    currentChainId: '',
-    currentVersions: [] as PromptRecordChain['versions'],
-    currentVersionId: '',
-
     // 上传状态
     uploadStatus: 'idle' as 'idle' | 'uploading' | 'success' | 'error',
     uploadProgress: 0
   })
+
+  // 🆕 创建历史管理专用的 ref，供全局历史刷新使用
+  const currentChainId = ref('')
+  const currentVersions = ref<PromptRecordChain['versions']>([])
+  const currentVersionId = ref('')
 
   // 模板管理器状态
   const templateManagerState = reactive({
@@ -95,6 +95,49 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   // 计算高级模式状态（图像模式暂不支持高级模式）
   const advancedModeEnabled = false
 
+  // 选中图像模型的能力（使用自包含配置数据）
+  const selectedImageModelCapabilities = computed(() => {
+    console.log('[selectedImageModelCapabilities] 调试信息:', {
+      selectedImageModelKey: state.selectedImageModelKey,
+      imageModelsCount: imageModels.value.length,
+      imageModels: imageModels.value.map(m => ({
+        id: m.id,
+        name: m.name,
+        capabilities: m.model?.capabilities || null
+      }))
+    })
+
+    if (!state.selectedImageModelKey) {
+      console.log('[selectedImageModelCapabilities] selectedImageModelKey 为空')
+      return null
+    }
+
+    const selectedConfig = imageModels.value.find(m => m.id === state.selectedImageModelKey)
+    console.log('[selectedImageModelCapabilities] 找到的配置:', selectedConfig)
+
+    const capabilities = selectedConfig?.model?.capabilities || null
+    console.log('[selectedImageModelCapabilities] 最终能力:', capabilities)
+
+    return capabilities
+  })
+
+  // 选中图像模型的Provider和Model信息
+  const selectedImageModelInfo = computed(() => {
+    if (!state.selectedImageModelKey) {
+      return null
+    }
+
+    const selectedConfig = imageModels.value.find(m => m.id === state.selectedImageModelKey)
+    if (!selectedConfig) {
+      return null
+    }
+
+    return {
+      provider: selectedConfig.provider?.name || selectedConfig.providerId || 'Unknown',
+      model: selectedConfig.model?.name || selectedConfig.modelId || 'Unknown'
+    }
+  })
+
   // 预览图像URL - 加强防护，确保不会因为undefined值而出错
   const previewImageUrl = computed(() => {
     if (!state.inputImageB64) return null
@@ -117,8 +160,8 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       // 加载图像模型
       await loadImageModels()
       imageModelOptions.value = imageModels.value.map((m) => ({
-        label: `${m.name} (${m.provider})`,
-        value: m.key
+        label: `${m.name} (${(m.provider?.name || m.providerId) || 'Unknown'} - ${(m.model?.name || m.modelId) || 'Unknown'})`,
+        value: m.id
       }))
 
       // 恢复保存的选择（包括模板选择）
@@ -139,14 +182,14 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     try {
       await loadImageModels()
       imageModelOptions.value = imageModels.value.map((m) => ({
-        label: `${m.name} (${m.provider})`,
-        value: m.key
+        label: `${m.name} (${(m.provider?.name || m.providerId) || 'Unknown'} - ${(m.model?.name || m.modelId) || 'Unknown'})`,
+        value: m.id
       }))
       // 若当前选择已不在可用列表，回退到第一个可用项
       const current = state.selectedImageModelKey
-      const exists = imageModels.value.some(m => m.key === current)
+      const exists = imageModels.value.some(m => m.id === current)
       if (!exists) {
-        state.selectedImageModelKey = imageModels.value[0]?.key || ''
+        state.selectedImageModelKey = imageModels.value[0]?.id || ''
         await saveSelections()
       }
     } catch (e) {
@@ -371,16 +414,18 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     }
   }
 
-  // 创建历史记录
+  // 创建历史记录 - 现在通过 usePromptHistory 的监听机制自动处理
   const createHistoryRecord = async () => {
-    if (!state.selectedTemplate || !historyManager.value) return
+    if (!state.selectedTemplate || !historyManager.value) {
+      return
+    }
 
     try {
       const recordData = {
         id: uuidv4(),
         originalPrompt: state.originalPrompt,
         optimizedPrompt: state.optimizedPrompt,
-        type: 'imageOptimize' as PromptRecordType,
+        type: templateType.value as PromptRecordType, // 直接使用已有的 templateType 计算属性
         modelKey: state.selectedTextModelKey,
         templateId: state.selectedTemplate.id,
         timestamp: Date.now(),
@@ -394,10 +439,14 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       }
 
       const newRecord = await historyManager.value.createNewChain(recordData)
-      
-      state.currentChainId = newRecord.chainId
-      state.currentVersions = newRecord.versions
-      state.currentVersionId = newRecord.currentRecord.id
+
+      // 🆕 更新历史管理 ref 会自动触发 usePromptHistory 的监听器，刷新全局历史
+      currentChainId.value = newRecord.chainId
+      currentVersions.value = newRecord.versions
+      currentVersionId.value = newRecord.currentRecord.id
+
+      // 广播全局历史刷新事件，触发 App 级历史抽屉刷新
+      window.dispatchEvent(new CustomEvent('prompt-optimizer:history-refresh'))
 
     } catch (error) {
       console.error('创建历史记录失败:', error)
@@ -417,12 +466,13 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
 
     const imageRequest: ImageRequest = {
       prompt: currentPrompt.value,
+      configId: state.selectedImageModelKey, // 使用选择的模型配置ID
       count: 1,
-      inputImage: state.inputImageB64 ? { 
-        b64: state.inputImageB64, 
-        mimeType: state.inputImageMime 
+      inputImage: state.inputImageB64 ? {
+        b64: state.inputImageB64,
+        mimeType: state.inputImageMime
       } : undefined,
-      imgParams: { outputMimeType: 'image/png' }
+      paramOverrides: { outputMimeType: 'image/png' }
     }
 
     try {
@@ -433,22 +483,22 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
             ...imageRequest,
             prompt: state.originalPrompt
           }
-          await generateImage(state.selectedImageModelKey, originalRequest)
+          await generateImage(originalRequest)
           state.originalImageResult = imageResult.value
         }
-        
+
         if (state.optimizedPrompt.trim()) {
           const optimizedRequest: ImageRequest = {
             ...imageRequest,
             prompt: state.optimizedPrompt
           }
-          await generateImage(state.selectedImageModelKey, optimizedRequest)
+          await generateImage(optimizedRequest)
           state.optimizedImageResult = imageResult.value
         }
       } else {
         // 单一模式：生成当前提示词图像
-        await generateImage(state.selectedImageModelKey, imageRequest)
-        // 单一模式下按基础模式语义展示“优化后的测试结果”
+        await generateImage(imageRequest)
+        // 单一模式下按基础模式语义展示"优化后的测试结果"
         if (state.optimizedPrompt.trim()) {
           state.optimizedImageResult = imageResult.value
         } else if (state.originalPrompt.trim()) {
@@ -458,7 +508,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
         // 兼容旧UI：仍保留 currentImageResult 赋值
         state.currentImageResult = imageResult.value
       }
-      
+
       toast.success('图像生成完成')
     } catch (error: any) {
       toast.error('生成失败：' + (error?.message || String(error)))
@@ -483,7 +533,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   // 切换版本
   const handleSwitchVersion = async (version: PromptRecordChain['versions'][number]) => {
     state.optimizedPrompt = version.optimizedPrompt
-    state.currentVersionId = version.id
+    currentVersionId.value = version.id
     await nextTick()
   }
 
@@ -553,17 +603,21 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
           },
           onComplete: async () => {
             try {
-              if (historyManager.value && state.currentChainId) {
+              if (historyManager.value && currentChainId.value) {
                 const updatedChain = await historyManager.value.addIteration({
-                  chainId: state.currentChainId,
+                  chainId: currentChainId.value,
                   originalPrompt: payload.originalPrompt,
                   optimizedPrompt: state.optimizedPrompt,
                   iterationNote: payload.iterateInput,
                   modelKey: state.selectedTextModelKey,
                   templateId: state.selectedIterateTemplate!.id
                 })
-                state.currentVersions = updatedChain.versions
-                state.currentVersionId = updatedChain.currentRecord.id
+                // 🆕 更新历史管理 ref 会自动触发 usePromptHistory 的监听器，刷新全局历史
+                currentVersions.value = updatedChain.versions
+                currentVersionId.value = updatedChain.currentRecord.id
+
+                // 广播全局历史刷新事件，触发 App 级历史抽屉刷新
+                window.dispatchEvent(new CustomEvent('prompt-optimizer:history-refresh'))
               } else {
                 await createHistoryRecord()
               }
@@ -631,9 +685,9 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       state.optimizedPrompt = historyData.optimizedPrompt || ''
       
       // 恢复版本信息
-      state.currentChainId = historyData.chainId || ''
-      state.currentVersions = historyData.versions || []
-      state.currentVersionId = historyData.currentVersionId || ''
+      currentChainId.value = historyData.chainId || ''
+      currentVersions.value = historyData.versions || []
+      currentVersionId.value = historyData.currentVersionId || ''
 
       // 恢复模型选择（如果历史记录中有保存）
       if (historyData.metadata) {
@@ -737,8 +791,9 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     originalImageResult: toRef(state, 'originalImageResult'),
     optimizedImageResult: toRef(state, 'optimizedImageResult'),
     currentImageResult: toRef(state, 'currentImageResult'),
-    currentVersions: toRef(state, 'currentVersions'),
-    currentVersionId: toRef(state, 'currentVersionId'),
+    // 🆕 使用历史管理专用的 ref
+    currentVersions,
+    currentVersionId,
     uploadStatus: toRef(state, 'uploadStatus'),
     uploadProgress: toRef(state, 'uploadProgress'),
 
@@ -750,6 +805,8 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     imageModelOptions,
     optimizationMode,
     advancedModeEnabled,
+    selectedImageModelCapabilities,
+    selectedImageModelInfo,
 
     // 图像生成状态
     isGenerating,

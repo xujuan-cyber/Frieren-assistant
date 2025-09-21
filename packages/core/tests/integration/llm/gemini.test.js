@@ -8,7 +8,9 @@ beforeAll(() => {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 });
 
-describe('Gemini API 测试', () => {
+const RUN_REAL_API = process.env.RUN_REAL_API === '1'
+
+describe.skipIf(!RUN_REAL_API)('Gemini API 测试', () => {
   // 跳过没有设置 API 密钥的测试
   const apiKey = process.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {

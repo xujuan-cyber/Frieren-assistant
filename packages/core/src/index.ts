@@ -25,6 +25,8 @@ export * from './services/llm/errors'
 
 // 导出图像服务相关类型
 export type {
+  ImageProvider,
+  ImageModel,
   ImageRequest,
   ImageResult,
   ImageProgressHandlers,

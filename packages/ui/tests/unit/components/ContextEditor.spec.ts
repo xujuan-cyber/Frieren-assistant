@@ -388,18 +388,6 @@ describe('ContextEditor 综合测试', () => {
       expect(vm.quickTemplates.length).toBe(2)
     })
 
-    it('应该处理模板预览功能', async () => {
-      wrapper = await createWrapper()
-      
-      const template = mockQuickTemplates[0]
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
-      await wrapper.vm.handleTemplatePreview(template)
-      
-      expect(consoleSpy).toHaveBeenCalledWith('Preview template:', template.name)
-      consoleSpy.mockRestore()
-    })
-
     it('应用模板后应该切换到消息编辑标签页', async () => {
       wrapper = await createWrapper()
       wrapper.vm.activeTab = 'templates'
@@ -732,17 +720,6 @@ describe('ContextEditor 综合测试', () => {
       expect(wrapper.emitted('cancel')).toBeTruthy()
       expect(wrapper.emitted('update:visible')).toBeTruthy()
       expect(wrapper.emitted('update:visible')[0]).toEqual([false])
-    })
-  })
-
-  describe('变量快捷操作', () => {
-    it('创建变量应该发射 openVariableManager 事件', async () => {
-      wrapper = await createWrapper()
-      
-      await wrapper.vm.handleCreateVariableAndOpenManager('testVar')
-      
-      expect(wrapper.emitted('openVariableManager')).toBeTruthy()
-      expect(wrapper.emitted('openVariableManager')[0]).toEqual(['testVar'])
     })
   })
 

@@ -77,21 +77,22 @@ interface EventAPI {
 
 // 图像生成API
 interface ImageAPI {
-  generate(request: any, modelKey: string): Promise<any>
+  generate(request: any): Promise<any>
+  validateRequest(request: any): Promise<any>
+  testConnection(config: any): Promise<any>
+  getDynamicModels(providerId: string, connectionConfig: any): Promise<any[]>
 }
 
 // 图像模型管理API
 interface ImageModelAPI {
   ensureInitialized(): Promise<void>
   isInitialized(): Promise<boolean>
-  getAllModels(): Promise<any[]>
-  getModel(key: string): Promise<any>
-  addModel(model: any): Promise<void>
-  updateModel(key: string, updates: any): Promise<void>
-  deleteModel(key: string): Promise<void>
-  enableModel(key: string): Promise<void>
-  disableModel(key: string): Promise<void>
-  getEnabledModels(): Promise<any[]>
+  getAllConfigs(): Promise<any[]>
+  getConfig(id: string): Promise<any>
+  addConfig(config: any): Promise<void>
+  updateConfig(id: string, updates: any): Promise<void>
+  deleteConfig(id: string): Promise<void>
+  getEnabledConfigs(): Promise<any[]>
   exportData(): Promise<any>
   importData(data: any): Promise<void>
   getDataType(): Promise<string>
