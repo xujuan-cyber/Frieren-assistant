@@ -75,7 +75,19 @@ const createThemeIcon = (themeId: string, isColored: boolean = false) => {
           d: 'M12 2L13.09 8.26L19 7L14.74 12L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12L5 7L10.91 8.26L12 2Z'
         })
       ])
-      
+
+    case 'classic':
+      return h('svg', {
+        class: `${baseClass}`,
+        style: isColored ? 'color: #b08968;' : undefined,
+        viewBox: '0 0 24 24',
+        fill: 'currentColor'
+      }, [
+        h('path', {
+          d: 'M12 3a9 9 0 011.8 17.823l-.3.06a1 1 0 01-.202.017H8.5a4.5 4.5 0 01-4.5-4.5v-3.13a1 1 0 01.21-.617l3.2-3.99A5 5 0 0112 3zm-.45 2.028a3 3 0 00-2.07 1.102l-3.2 3.99a2 2 0 00-.29.508V16.4A2.5 2.5 0 008.5 18.9h4.447A7 7 0 0011.55 5.028z'
+        })
+      ])
+
     case 'green':
       return h('svg', {
         class: `${baseClass}`,

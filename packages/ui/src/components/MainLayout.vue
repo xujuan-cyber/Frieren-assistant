@@ -1,13 +1,13 @@
 <template>
   <!-- 使用ToastUI包装整个布局以提供NMessageProvider -->
   <ToastUI>
-    <NLayout style="position: fixed; inset: 0; width: 100vw; height: 100vh; 
+    <NLayout style="position: fixed; inset: 0; width: 100vw; height: 100vh;
     max-height: 100vh;
-    overflow: hidden; display: flex;  min-height: 0;"
-    content-style="height: 100%; max-height: 100%; overflow: hidden; min-height: 0;"
+    overflow: hidden; display: flex; min-height: 0;"
+    content-style="height: 100%; max-height: 100%; min-height: 0; overflow: hidden;"
     >
 
-      <NFlex vertical style="position: fixed; inset: 0; width: 100vw; max-height: 100vh; height: 100vh">
+      <NFlex vertical style="position: fixed; inset: 0; width: 100vw; max-height: 100vh; height: 100vh; min-height: 0;">
       <!-- 顶部导航栏 -->
       <NLayoutHeader class="theme-header nav-header-enhanced">
         <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="false" :size="[16, 12]">
@@ -46,11 +46,12 @@
 
       <!-- 主要内容区域 - 严格控制在剩余空间内 -->
       <NLayoutContent has-sider
-        style="flex: 1; min-height: 0; max-height: 90vh; height: 90vh;"
-        content-style="height: 100%; max-height: 100%; overflow: hidden; min-height: 0;" 
+        style="flex: 1; min-height: 0; overflow: hidden;"
+        content-style="height: 100%; max-height: 100%; min-height: 0; box-sizing: border-box; padding: 24px clamp(16px, 2vw, 48px) 40px; display: flex; flex-direction: column; align-items: stretch; overflow: hidden;"
       >
-        <!-- content-style="height: 100%; max-height: 100%; overflow: hidden; min-height: 0;" -->
+        <div class="main-content-wrapper">
           <slot name="main"></slot>
+        </div>
       </NLayoutContent>
       </NFlex>
 
@@ -117,6 +118,22 @@ const logoSize = computed(() => {
 </script>
 
 <style>
+.main-content-wrapper {
+  width: 100%;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.main-content-wrapper > * {
+  flex: 1;
+  min-height: 0;
+}
+
 /* 增强导航栏样式 */
 .nav-header-enhanced {
   min-height: 64px !important;

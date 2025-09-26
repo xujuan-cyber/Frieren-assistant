@@ -618,6 +618,7 @@ export default {
     light: 'Light',
     dark: 'Dark',
     blue: 'Blue',
+    classic: 'Classic',
     green: 'Green',
     purple: 'Purple'
   },
