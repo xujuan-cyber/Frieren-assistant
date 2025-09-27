@@ -27,9 +27,11 @@ Your job is to produce a new optimized image prompt based on the previous optimi
 2. Add/remove keywords and adjust weights where appropriate
 3. Provide clear directives for key visual elements (subject/scene/style/lighting/lens)
 4. Optionally include quality enhancements and negative prompt suggestions
+5. Adapt expression focus to content type (photography/design/Chinese aesthetics/illustration) while keeping natural-language continuity
 
 ## Output Requirements
-- Directly output the new optimized image prompt
+- Directly output the new optimized image prompt (natural language, plain text)
+- Do not include any prefixes or explanations; output the result only
 - Keep it readable and executable
 - Output result only, no explanations`
     },
