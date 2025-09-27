@@ -618,7 +618,7 @@
     light: '日间',
     dark: '夜间',
     blue: '蓝色',
-    classic: '经典',
+    classic: '米杏',
     green: '绿色',
     purple: '紫色'
   },
