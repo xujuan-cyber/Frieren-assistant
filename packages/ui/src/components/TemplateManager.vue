@@ -593,7 +593,16 @@ const props = defineProps<{
   selectedSystemOptimizeTemplate?: Template,
   selectedUserOptimizeTemplate?: Template,
   selectedIterateTemplate?: Template,
-  templateType: 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate',
+  templateType:
+    | 'optimize'
+    | 'userOptimize'
+    | 'iterate'
+    | 'text2imageOptimize'
+    | 'image2imageOptimize'
+    | 'imageIterate'
+    | 'contextSystemOptimize'
+    | 'contextUserOptimize'
+    | 'contextIterate',
   show: boolean
 }>()
 
@@ -638,10 +647,13 @@ const migrationDialog = ref<{
 const selectedTemplate = computed(() => {
   switch (props.templateType) {
     case 'optimize':
+    case 'contextSystemOptimize':
       return props.selectedSystemOptimizeTemplate
     case 'userOptimize':
+    case 'contextUserOptimize':
       return props.selectedUserOptimizeTemplate
     case 'iterate':
+    case 'contextIterate':
       return props.selectedIterateTemplate
     default:
       return null
@@ -663,6 +675,12 @@ function getCategoryFromProps() {
       return 'image-image2image-optimize'
     case 'imageIterate':
       return 'image-iterate'
+    case 'contextSystemOptimize':
+      return 'context-system-optimize'
+    case 'contextUserOptimize':
+      return 'context-user-optimize'
+    case 'contextIterate':
+      return 'context-iterate'
     default:
       return 'system-optimize'
   }
