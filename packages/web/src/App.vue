@@ -128,13 +128,9 @@
                   <SelectWithConfig
                     v-model="modelManager.selectedOptimizeModel"
                     :options="textModelOptions"
-                    :getPrimary="(opt: any) => typeof opt.label === 'string' ? opt.label.replace(/\s*\(.*\)\s*$/, '') : ''"
-                    :getSecondary="(opt: any) => {
-                      const s = typeof opt.label === 'string' ? opt.label : ''
-                      const m = s.match(/\((.*)\)\s*$/)
-                      return m ? m[1] : ''
-                    }"
-                    :getValue="(opt: any) => opt.value"
+                    :getPrimary="OptionAccessors.getPrimary"
+                    :getSecondary="OptionAccessors.getSecondary"
+                    :getValue="OptionAccessors.getValue"
                     :placeholder="t('model.select.placeholder')"
                     size="medium"
                     :disabled="optimizer.isOptimizing"
@@ -149,10 +145,10 @@
                   <template v-if="services && services.templateManager">
                     <SelectWithConfig
                       v-model="selectedTemplateIdForSelect"
-                      :options="templateOptions as any"
-                      :getPrimary="(tpl: any) => tpl?.name || ''"
-                      :getSecondary="(tpl: any) => tpl?.metadata?.description || ''"
-                      :getValue="(tpl: any) => tpl?.id"
+                      :options="templateOptions"
+                      :getPrimary="OptionAccessors.getPrimary"
+                      :getSecondary="OptionAccessors.getSecondary"
+                      :getValue="OptionAccessors.getValue"
                       :placeholder="t('template.select')"
                       size="medium"
                       :disabled="optimizer.isOptimizing"
@@ -238,13 +234,9 @@
                 <SelectWithConfig
                   v-model="modelManager.selectedTestModel"
                   :options="textModelOptions"
-                  :getPrimary="(opt: any) => typeof opt.label === 'string' ? opt.label.replace(/\s*\(.*\)\s*$/, '') : ''"
-                  :getSecondary="(opt: any) => {
-                    const s = typeof opt.label === 'string' ? opt.label : ''
-                    const m = s.match(/\((.*)\)\s*$/)
-                    return m ? m[1] : ''
-                  }"
-                  :getValue="(opt: any) => opt.value"
+                  :getPrimary="OptionAccessors.getPrimary"
+                  :getSecondary="OptionAccessors.getSecondary"
+                  :getValue="OptionAccessors.getValue"
                   :placeholder="t('model.select.placeholder')"
                   size="medium"
                   filterable
@@ -396,8 +388,12 @@ hljs.registerLanguage('json', jsonLang)
     
     // Quick Template Manager
     quickTemplateManager,
+
+    // Data Transformation
+    DataTransformer, OptionAccessors,
   } from '@prompt-optimizer/ui'
 import type { IPromptService, Template, ModelConfig } from '@prompt-optimizer/core'
+import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/ui'
   
   // 1. 基础 composables
   // highlight.js for Naive NCode
@@ -758,8 +754,8 @@ import type { IPromptService, Template, ModelConfig } from '@prompt-optimizer/co
     }
   })
 
-  const templateOptions = ref<Template[]>([])
-  const textModelOptions = ref<Array<{ label: string; value: string; raw: ModelConfig & { key: string } }>>([])
+  const templateOptions = ref<TemplateSelectOption[]>([])
+  const textModelOptions = ref<ModelSelectOption[]>([])
 
   const handleOpenOptimizeTemplateManager = () => {
     const type = templateSelectType.value
@@ -780,17 +776,17 @@ import type { IPromptService, Template, ModelConfig } from '@prompt-optimizer/co
     const available = templateOptions.value
 
     if (current) {
-      const matched = available.find(t => t.id === current.id)
+      const matched = available.find(t => t.raw.id === current.id)
       if (matched) {
-        if (matched !== current) {
-          currentSelectedTemplate.value = matched
+        if (matched.raw !== current) {
+          currentSelectedTemplate.value = matched.raw
         }
         return
       }
     }
 
     if (available.length > 0) {
-      currentSelectedTemplate.value = available[0]
+      currentSelectedTemplate.value = available[0].raw
     } else {
       clearCurrentTemplateSelection()
     }
@@ -805,7 +801,7 @@ import type { IPromptService, Template, ModelConfig } from '@prompt-optimizer/co
 
     try {
       const list = await services.value.templateManager.listTemplatesByType(templateSelectType.value as any)
-      templateOptions.value = list || []
+      templateOptions.value = DataTransformer.templatesToSelectOptions(list || [])
     } catch (error) {
       console.warn('[App] Failed to refresh optimize templates:', error)
       templateOptions.value = []
@@ -826,14 +822,7 @@ import type { IPromptService, Template, ModelConfig } from '@prompt-optimizer/co
         await (manager as any).ensureInitialized()
       }
       const enabledModels = await manager.getEnabledModels()
-      textModelOptions.value = enabledModels.map((m: ModelConfig & { key: string }) => {
-        const providerName = (m as any)?.provider ?? (m as any)?.providerId ?? 'Unknown'
-        return {
-          label: `${m.name} (${providerName})`,
-          value: m.key,
-          raw: m
-        }
-      })
+      textModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
 
       const availableKeys = new Set(textModelOptions.value.map(opt => opt.value))
       const fallbackValue = textModelOptions.value[0]?.value || ''
@@ -856,16 +845,16 @@ import type { IPromptService, Template, ModelConfig } from '@prompt-optimizer/co
     get() {
       const current = currentSelectedTemplate.value
       if (!current) return ''
-      return templateOptions.value.some(t => t.id === current.id) ? current.id : ''
+      return templateOptions.value.some(t => t.raw.id === current.id) ? current.id : ''
     },
     set(id: string) {
       if (!id) {
         clearCurrentTemplateSelection()
         return
       }
-      const tpl = templateOptions.value.find(t => t.id === id)
+      const tpl = templateOptions.value.find(t => t.raw.id === id)
       if (tpl) {
-        currentSelectedTemplate.value = tpl
+        currentSelectedTemplate.value = tpl.raw
       }
     }
   })

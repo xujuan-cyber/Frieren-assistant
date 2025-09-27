@@ -169,3 +169,7 @@ export { quickTemplateManager } from './data/quickTemplates'
 // 导出图像模式组件与核心图像服务（转发 core 能力）
 export { default as ImageWorkspace } from './components/image-mode/ImageWorkspace.vue'
 export { ImageModelManager, createImageModelManager, ImageService, createImageService } from '@prompt-optimizer/core'
+
+// 导出数据转换工具和类型
+export { DataTransformer, OptionAccessors } from './utils/data-transformer'
+export type { SelectOption, ModelSelectOption, TemplateSelectOption } from './types/select-options'

@@ -108,10 +108,10 @@
                 <template v-if="services && services.templateManager">
                   <SelectWithConfig
                     v-model="selectedTemplateIdForSelect"
-                    :options="templateList as any"
-                    :getPrimary="(tpl: any) => tpl?.name || ''"
-                    :getSecondary="(tpl: any) => tpl?.metadata?.description || ''"
-                    :getValue="(tpl: any) => tpl?.id"
+                    :options="templateOptions as any"
+                    :getPrimary="OptionAccessors.getPrimary"
+                    :getSecondary="OptionAccessors.getSecondary"
+                    :getValue="OptionAccessors.getValue"
                     :placeholder="t('imageWorkspace.input.templatePlaceholder')"
                     size="medium"
                     :disabled="isOptimizing"
@@ -137,13 +137,9 @@
                   <SelectWithConfig
                     v-model="selectedTextModelKey"
                     :options="textModelOptions as any"
-                    :getPrimary="(opt: any) => typeof opt.label === 'string' ? (opt.label.replace(/\s*\(.*\)\s*$/, '')) : ''"
-                    :getSecondary="(opt: any) => {
-                      const s = typeof opt.label === 'string' ? opt.label : ''
-                      const m = s.match(/\((.*)\)\s*$/)
-                      return m ? m[1] : ''
-                    }"
-                    :getValue="(opt: any) => opt.value"
+                    :getPrimary="OptionAccessors.getPrimary"
+                    :getSecondary="OptionAccessors.getSecondary"
+                    :getValue="OptionAccessors.getValue"
                     :placeholder="t('imageWorkspace.input.modelPlaceholder')"
                     size="medium"
                     :disabled="isOptimizing"
@@ -158,13 +154,9 @@
                   <SelectWithConfig
                     v-model="selectedTextModelKey"
                     :options="textModelOptions as any"
-                    :getPrimary="(opt: any) => typeof opt.label === 'string' ? (opt.label.replace(/\s*\(.*\)\s*$/, '')) : ''"
-                    :getSecondary="(opt: any) => {
-                      const s = typeof opt.label === 'string' ? opt.label : ''
-                      const m = s.match(/\((.*)\)\s*$/)
-                      return m ? m[1] : ''
-                    }"
-                    :getValue="(opt: any) => opt.value"
+                    :getPrimary="OptionAccessors.getPrimary"
+                    :getSecondary="OptionAccessors.getSecondary"
+                    :getValue="OptionAccessors.getValue"
                     :placeholder="t('imageWorkspace.input.modelPlaceholder')"
                     size="medium"
                     :disabled="isOptimizing"
@@ -239,13 +231,9 @@
                   <SelectWithConfig
                     v-model="selectedImageModelKey"
                     :options="imageModelOptions as any"
-                    :getPrimary="(opt: any) => typeof opt.label === 'string' ? (opt.label.replace(/\s*\(.*\)\s*$/, '')) : ''"
-                    :getSecondary="(opt: any) => {
-                      const s = typeof opt.label === 'string' ? opt.label : ''
-                      const m = s.match(/\((.*)\)\s*$/)
-                      return m ? m[1] : ''
-                    }"
-                    :getValue="(opt: any) => opt.value"
+                    :getPrimary="OptionAccessors.getPrimary"
+                    :getSecondary="OptionAccessors.getSecondary"
+                    :getValue="OptionAccessors.getValue"
                     :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
                     style="min-width: 200px; max-width: 100%;"
                     :disabled="isGenerating"
@@ -260,13 +248,9 @@
                   <SelectWithConfig
                     v-model="selectedImageModelKey"
                     :options="imageModelOptions as any"
-                    :getPrimary="(opt: any) => typeof opt.label === 'string' ? (opt.label.replace(/\s*\(.*\)\s*$/, '')) : ''"
-                    :getSecondary="(opt: any) => {
-                      const s = typeof opt.label === 'string' ? opt.label : ''
-                      const m = s.match(/\((.*)\)\s*$/)
-                      return m ? m[1] : ''
-                    }"
-                    :getValue="(opt: any) => opt.value"
+                    :getPrimary="OptionAccessors.getPrimary"
+                    :getSecondary="OptionAccessors.getSecondary"
+                    :getValue="OptionAccessors.getValue"
                     :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
                     style="min-width: 200px; max-width: 100%;"
                     :disabled="isGenerating"
@@ -612,9 +596,11 @@ import TestResultSection from '../TestResultSection.vue'
 import SelectWithConfig from '../SelectWithConfig.vue'
 import ImageModeSelector, { type ImageMode } from './ImageModeSelector.vue'
 import { useImageWorkspace } from '../../composables/useImageWorkspace'
+import { DataTransformer, OptionAccessors } from '../../utils/data-transformer'
 import type { AppServices } from '../../types/services'
 import { useFullscreen } from '../../composables/useFullscreen'
 import FullscreenDialog from '../FullscreenDialog.vue'
+import type { TemplateSelectOption } from '../../types/select-options'
 
 // 国际化
 const { t } = useI18n()
@@ -691,23 +677,23 @@ const appOpenModelManager = inject<(tab?: 'text' | 'image') => void>('openModelM
   }
 
 // 模板列表（根据当前 image 模式的模板类型加载）
-const templateList = ref<any[]>([])
+const templateOptions = ref<TemplateSelectOption[]>([])
 
 const loadTemplateList = async () => {
   try {
     if (services?.value?.templateManager) {
       const list = await services.value.templateManager.listTemplatesByType(templateType.value as any)
-      templateList.value = list || []
+      templateOptions.value = DataTransformer.templatesToSelectOptions(list || [])
 
       // 注意：不要在这里执行模板重置逻辑，因为这会干扰模式切换时的模板恢复
       // 模板选择的逻辑应该完全由 useImageWorkspace 的 restoreTemplateSelection 处理
-      console.log('[ImageWorkspace] Template list loaded for type:', templateType.value, 'count:', templateList.value.length)
+      console.log('[ImageWorkspace] Template list loaded for type:', templateType.value, 'count:', templateOptions.value.length)
     } else {
-      templateList.value = []
+      templateOptions.value = []
     }
   } catch (e) {
     console.warn('[ImageWorkspace] Failed to load template list:', e)
-    templateList.value = []
+    templateOptions.value = []
   }
 }
 
@@ -735,7 +721,7 @@ const selectedTemplateIdForSelect = computed<string>({
     const id = selectedTemplate?.value?.id || ''
     if (!id) return ''
     // 仅当当前下拉列表中存在该模板时再返回，避免在列表尚未加载完成时出现短暂的失配导致清空
-    const existsInList = (templateList.value || []).some((t: any) => t?.id === id)
+    const existsInList = (templateOptions.value || []).some((opt) => opt.value === id)
     return existsInList ? id : ''
   },
   set(id: string) {
@@ -743,10 +729,10 @@ const selectedTemplateIdForSelect = computed<string>({
       (selectedTemplate as any).value = null
       return
     }
-    const tpl = (templateList.value || []).find((t: any) => t?.id === id) || null
-    ;(selectedTemplate as any).value = tpl
+    const option = (templateOptions.value || []).find((opt) => opt.value === id) || null
+    ;(selectedTemplate as any).value = option?.raw || null
     // 用户选择模板时立即保存到对应模式的存储键
-    if (tpl) {
+    if (option?.raw) {
       nextTick(() => {
         saveSelections()
       })

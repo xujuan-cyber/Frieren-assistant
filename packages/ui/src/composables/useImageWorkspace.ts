@@ -12,10 +12,11 @@ import type {
   OptimizationRequest,
   OptimizationMode,
   ImageRequest,
-  ImageResult
+  ImageResult,
+  IMAGE_MODE_KEYS
 } from '@prompt-optimizer/core'
-import { IMAGE_MODE_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
+import type { ModelSelectOption, SelectOption } from '../types/select-options'
 
 /**
  * 图像模式工作区 Hook
@@ -78,8 +79,8 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   })
 
   // 模型选项
-  const textModelOptions = ref<{ label: string; value: string }[]>([])
-  const imageModelOptions = ref<{ label: string; value: string }[]>([])
+  const textModelOptions = ref<ModelSelectOption[]>([])
+  const imageModelOptions = ref<SelectOption<any>[]>([])
 
   // 当前使用的提示词
   const currentPrompt = computed(() => state.optimizedPrompt || state.originalPrompt)
@@ -153,7 +154,10 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
         const textModels = await modelManager.value.getEnabledModels()
         textModelOptions.value = textModels.map(m => ({
           label: `${m.name} (${m.provider})`,
-          value: m.key
+          primary: m.name,
+          secondary: m.provider ?? 'Unknown',
+          value: m.key,
+          raw: m
         }))
       }
 
@@ -161,7 +165,10 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       await loadImageModels()
       imageModelOptions.value = imageModels.value.map((m) => ({
         label: `${m.name} (${(m.provider?.name || m.providerId) || 'Unknown'} - ${(m.model?.name || m.modelId) || 'Unknown'})`,
-        value: m.id
+        primary: m.name,
+        secondary: `${m.provider?.name || m.providerId || 'Unknown'} · ${m.model?.name || m.modelId || 'Unknown'}`,
+        value: m.id,
+        raw: m
       }))
 
       // 恢复保存的选择（包括模板选择）
@@ -183,7 +190,10 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       await loadImageModels()
       imageModelOptions.value = imageModels.value.map((m) => ({
         label: `${m.name} (${(m.provider?.name || m.providerId) || 'Unknown'} - ${(m.model?.name || m.modelId) || 'Unknown'})`,
-        value: m.id
+        primary: m.name,
+        secondary: `${m.provider?.name || m.providerId || 'Unknown'} · ${m.model?.name || m.modelId || 'Unknown'}`,
+        value: m.id,
+        raw: m
       }))
       // 若当前选择已不在可用列表，回退到第一个可用项
       const current = state.selectedImageModelKey
