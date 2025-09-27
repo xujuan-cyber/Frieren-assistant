@@ -279,7 +279,7 @@
         v-if="isReady"
         v-model:show="templateManagerState.showTemplates"
         :templateType="templateManagerState.currentType"
-        @close="() => templateManagerState.handleTemplateManagerClose(() => templateSelectRef?.refresh?.())"
+        @close="handleTemplateManagerClosed"
         @languageChanged="handleTemplateLanguageChanged"
       />
       <HistoryDrawerUI
@@ -929,6 +929,30 @@ hljs.registerLanguage('json', jsonLang)
 
   // 向子组件提供统一的 openTemplateManager 接口（图像模式复用）
   provide('openTemplateManager', openTemplateManager)
+
+  // 模板管理器关闭回调：刷新基础模式选择，同时通知图像模式刷新模板列表
+  const handleTemplateManagerClosed = () => {
+    try {
+      templateManagerState.handleTemplateManagerClose(() => templateSelectRef.value?.refresh?.())
+    } catch (e) {
+      console.warn('[App] Failed to run template manager close handler:', e)
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('image-workspace-refresh-templates'))
+    }
+  }
+
+  // 提供 openModelManager 接口，支持直接定位到文本/图像页签
+  const openModelManager = (tab: 'text' | 'image' = 'text') => {
+    modelManager.showConfig = true
+    // 等模态渲染后再切换页签
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('model-manager:set-tab', { detail: tab }))
+      }
+    }, 0)
+  }
+  provide('openModelManager', openModelManager)
 
   // 模型管理器关闭回调：同步刷新基础模式下拉，并通知图像模式刷新图像模型
   const handleModelManagerClosed = async () => {

@@ -41,7 +41,9 @@ export const TEMPLATE_SELECTION_KEYS = {
 export const IMAGE_MODE_KEYS = {
   SELECTED_TEXT_MODEL: 'app:image-mode:selected-text-model',
   SELECTED_IMAGE_MODEL: 'app:image-mode:selected-image-model',
-  SELECTED_TEMPLATE: 'app:image-mode:selected-template',
+  // 按模式分别存储模板选择
+  SELECTED_TEMPLATE_TEXT2IMAGE: 'app:image-mode:selected-template:text2image',
+  SELECTED_TEMPLATE_IMAGE2IMAGE: 'app:image-mode:selected-template:image2image',
   SELECTED_ITERATE_TEMPLATE: 'app:image-mode:selected-iterate-template',
   COMPARE_MODE_ENABLED: 'app:image-mode:compare-mode-enabled',
 } as const

@@ -677,7 +677,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, inject, provide } from 'vue'; // Added computed, inject and provide
+import { ref, onMounted, onUnmounted, watch, computed, inject, provide } from 'vue'; // Added computed, inject and provide
 import { useI18n } from 'vue-i18n';
 import {
   NModal, NScrollbar, NSpace, NCard, NText, NH4, NTag, NButton,
@@ -716,6 +716,18 @@ const close = () => {
 
 // 活动标签（文本/图像）
 const activeTab = ref('text')
+
+// 支持外部通过事件切换页签
+if (typeof window !== 'undefined') {
+  const tabHandler = (e: Event) => {
+    try {
+      const tab = (e as CustomEvent).detail
+      if (tab === 'text' || tab === 'image') activeTab.value = tab
+    } catch {}
+  }
+  onMounted(() => window.addEventListener('model-manager:set-tab', tabHandler))
+  onUnmounted(() => window.removeEventListener('model-manager:set-tab', tabHandler))
+}
 
 
 // 打开新增弹窗（根据活动标签）

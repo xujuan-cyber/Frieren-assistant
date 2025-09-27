@@ -221,19 +221,31 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     try {
       // 根据当前图像模式获取对应的模板
       const currentTemplateType = templateType.value
+      console.log('[restoreTemplateSelection] Current template type:', currentTemplateType)
       const templates = await templateManager.value.listTemplatesByType(currentTemplateType as any)
-      if (templates.length === 0) return
+      console.log('[restoreTemplateSelection] Available templates:', templates.map(t => ({ id: t.id, name: t.name })))
+      if (templates.length === 0) {
+        state.selectedTemplate = null
+        return
+      }
 
-      // 尝试恢复保存的模板
-      const savedTemplateId = await getPreference(IMAGE_MODE_KEYS.SELECTED_TEMPLATE, '')
+      // 尝试恢复保存的模板（从对应模式的存储键读取）
+      const perModeKey = currentTemplateType === 'text2imageOptimize'
+        ? IMAGE_MODE_KEYS.SELECTED_TEMPLATE_TEXT2IMAGE
+        : IMAGE_MODE_KEYS.SELECTED_TEMPLATE_IMAGE2IMAGE
+      console.log('[restoreTemplateSelection] Reading from storage key:', perModeKey)
+      const savedTemplateId = await getPreference(perModeKey, '')
+      console.log('[restoreTemplateSelection] Saved template ID:', savedTemplateId)
       let selectedTemplate: Template | null = null
 
       if (savedTemplateId) {
         selectedTemplate = templates.find(t => t.id === savedTemplateId) || null
+        console.log('[restoreTemplateSelection] Found saved template:', selectedTemplate?.name || 'not found')
       }
 
       // 如果没有保存的模板或找不到，使用默认模板
       if (!selectedTemplate) {
+        console.log('[restoreTemplateSelection] No saved template found, using default...')
         // 根据模板类型选择合适的默认模板
         if (currentTemplateType === 'text2imageOptimize') {
           selectedTemplate = templates.find(t => t.id === 'image-chinese-optimize') ||
@@ -248,14 +260,16 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
 
         // 保存默认选择
         if (selectedTemplate) {
-          await setPreference(IMAGE_MODE_KEYS.SELECTED_TEMPLATE, selectedTemplate.id)
+          console.log('[restoreTemplateSelection] Saving default template:', selectedTemplate.id, 'to key:', perModeKey)
+          await setPreference(perModeKey, selectedTemplate.id)
         }
       }
 
       state.selectedTemplate = selectedTemplate
-      console.log('[useImageWorkspace] Template restored:', selectedTemplate?.name, 'ID:', selectedTemplate?.id, 'Type:', currentTemplateType)
+      console.log('[restoreTemplateSelection] Final selected template:', selectedTemplate?.name, 'ID:', selectedTemplate?.id, 'Type:', currentTemplateType)
     } catch (error) {
       console.error('Failed to restore template selection:', error)
+      state.selectedTemplate = null
     }
   }
 
@@ -272,7 +286,11 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       await setPreference(IMAGE_MODE_KEYS.SELECTED_IMAGE_MODEL, state.selectedImageModelKey)
       await setPreference(IMAGE_MODE_KEYS.COMPARE_MODE_ENABLED, state.isCompareMode)
       if (state.selectedTemplate) {
-        await setPreference(IMAGE_MODE_KEYS.SELECTED_TEMPLATE, state.selectedTemplate.id)
+        const currentTemplateType = templateType.value
+        const perModeKey = currentTemplateType === 'text2imageOptimize'
+          ? IMAGE_MODE_KEYS.SELECTED_TEMPLATE_TEXT2IMAGE
+          : IMAGE_MODE_KEYS.SELECTED_TEMPLATE_IMAGE2IMAGE
+        await setPreference(perModeKey, state.selectedTemplate.id)
       }
       if (state.selectedIterateTemplate) {
         await setPreference(IMAGE_MODE_KEYS.SELECTED_ITERATE_TEMPLATE, state.selectedIterateTemplate.id)
@@ -734,24 +752,30 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   const handleImageModeChange = async (mode: 'text2image' | 'image2image') => {
     if (state.imageMode === mode) return
 
+    // 在切换前保存当前模式的模板选择
+    console.log('[handleImageModeChange] Before switch - Current mode:', state.imageMode, 'Current template:', state.selectedTemplate?.id, state.selectedTemplate?.name)
+    if (state.selectedTemplate) {
+      const currentTemplateType = templateType.value
+      const currentPerModeKey = currentTemplateType === 'text2imageOptimize'
+        ? IMAGE_MODE_KEYS.SELECTED_TEMPLATE_TEXT2IMAGE
+        : IMAGE_MODE_KEYS.SELECTED_TEMPLATE_IMAGE2IMAGE
+      console.log('[handleImageModeChange] Saving current template to key:', currentPerModeKey, 'template:', state.selectedTemplate.id)
+      await setPreference(currentPerModeKey, state.selectedTemplate.id)
+    }
+
     state.imageMode = mode
+    console.log('[handleImageModeChange] Switched to mode:', mode)
 
     // 如果切换到文生图模式，清除上传的图片
     if (mode === 'text2image' && state.inputImageB64) {
       state.inputImageB64 = null
-      // previewImageUrl 是计算属性，会自动根据 inputImageB64 的值更新
     }
 
-    // 重置模板选择，因为模板类型已变化
-    state.selectedTemplate = null
-
-    // 重新加载适合新模式的模板
+    // 恢复新模式的模板（restoreTemplateSelection 内部已处理所有逻辑）
+    console.log('[handleImageModeChange] About to restore template for new mode...')
     await restoreTemplateSelection()
 
-    // 保存选择
-    await saveSelections()
-
-    console.log('[useImageWorkspace] Image mode changed to:', mode)
+    console.log('[handleImageModeChange] After switch - New mode:', mode, 'Restored template:', state.selectedTemplate?.id, state.selectedTemplate?.name)
   }
 
 
@@ -820,6 +844,8 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     handleIteratePrompt,
     handleGenerateImage,
     handleImageModeChange,
+    // 暴露模板恢复方法，便于在外层在列表加载后再次对齐选择
+    restoreTemplateSelection,
     handleOpenTemplateManager,
     useOptimizedPrompt,
     copyOptimizedPrompt,
