@@ -57,8 +57,14 @@
     },
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
       ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
       "icon": "icons/app-icon.icns"

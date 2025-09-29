@@ -538,17 +538,20 @@ jobs:
 
           ### 📦 下载
           - **Windows**: \`PromptOptimizer-*-win-x64.exe\` (安装程序) 或 \`PromptOptimizer-*-win-x64.zip\` (便携版)
-          - **macOS**: \`PromptOptimizer-*-darwin-x64.dmg\` (安装程序) 或 \`PromptOptimizer-*-darwin-x64.zip\` (便携版)
+          - **macOS (Apple Silicon)**: \`PromptOptimizer-*-darwin-arm64.dmg\` (安装程序) 或 \`PromptOptimizer-*-darwin-arm64.zip\` (便携版)
+          - **macOS (Intel)**: \`PromptOptimizer-*-darwin-x64.dmg\` (安装程序) 或 \`PromptOptimizer-*-darwin-x64.zip\` (便携版)
           - **Linux**: \`PromptOptimizer-*-linux-x86_64.AppImage\` (便携版) 或 \`PromptOptimizer-*-linux-x64.zip\` (便携版)
 
           ### 🔧 安装说明
-          - **Windows**: 
+          - **Windows**:
             - **安装程序**: 下载 \`.exe\` 文件，双击运行安装向导
             - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer.exe\`
-          - **macOS**: 
+          - **macOS**:
+            - **Apple Silicon (M1/M2/M3)**: 下载 \`darwin-arm64\` 版本
+            - **Intel 芯片**: 下载 \`darwin-x64\` 版本
             - **安装程序**: 下载 \`.dmg\` 文件，双击挂载后拖拽到应用程序文件夹
             - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer.app\`
-          - **Linux**: 
+          - **Linux**:
             - **AppImage**: 下载 \`.AppImage\` 文件，添加执行权限后直接运行
             - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer\`
 
