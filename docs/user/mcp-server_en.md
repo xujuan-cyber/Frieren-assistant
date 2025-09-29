@@ -183,7 +183,25 @@ echo $VITE_OPENAI_API_KEY
 MCP_DEFAULT_MODEL_PROVIDER=openai  # not OpenAI
 ```
 
-#### 4. Claude Desktop Connection Failure
+#### 4. Docker Deployment 401 Authentication Error
+
+**Issue**: After enabling `ACCESS_PASSWORD` in Docker deployment, MCP Inspector connection fails with 401 error
+
+**Cause**: When password protection is enabled in Docker deployment, Nginx enables Basic authentication for all routes, including the `/mcp` route
+
+**Solutions**:
+- **Fixed (v1.4.0+)**: The `/mcp` route is now configured to bypass Basic authentication
+- **Workarounds for older versions**:
+  1. Don't set the `ACCESS_PASSWORD` environment variable
+  2. Use network isolation (e.g., internal network only)
+  3. Expose port 3000 directly: `docker run -p 3000:3000 ...`
+
+**Technical Details**:
+- The MCP protocol itself doesn't support HTTP Basic authentication
+- The new version adds `auth_basic off;` for the `/mcp` route in `docker/nginx.conf`
+- Web application access remains password-protected
+
+#### 5. Claude Desktop Connection Failure
 
 **Solution Steps**:
 1. Confirm MCP server is running

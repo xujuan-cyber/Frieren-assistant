@@ -183,7 +183,25 @@ echo $VITE_OPENAI_API_KEY
 MCP_DEFAULT_MODEL_PROVIDER=openai  # 不是 OpenAI
 ```
 
-#### 4. Claude Desktop 连接失败
+#### 4. Docker 部署时 401 认证错误
+
+**问题**: 使用 Docker 部署并启用了 `ACCESS_PASSWORD` 后，MCP Inspector 连接失败，返回 401 错误
+
+**原因**: Docker 部署启用密码保护后，Nginx 会对所有路由启用 Basic 认证，包括 `/mcp` 路由
+
+**解决方案**:
+- **已修复（v1.4.0+）**：`/mcp` 路由已配置为绕过 Basic 认证
+- **旧版本临时方案**：
+  1. 不设置 `ACCESS_PASSWORD` 环境变量
+  2. 或使用网络隔离（如仅在内网使用）
+  3. 或直接暴露 3000 端口：`docker run -p 3000:3000 ...`
+
+**技术说明**:
+- MCP 协议本身不支持 HTTP Basic 认证
+- 新版本在 `docker/nginx.conf` 中为 `/mcp` 路由添加了 `auth_basic off;`
+- Web 应用访问仍然受密码保护
+
+#### 5. Claude Desktop 连接失败
 
 **解决步骤**：
 1. 确认 MCP 服务器正在运行

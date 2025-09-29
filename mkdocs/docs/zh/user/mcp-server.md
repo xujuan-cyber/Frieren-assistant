@@ -137,8 +137,57 @@ npx @modelcontextprotocol/inspector
 
 ### 常见问题
 
-- 端口占用：更换端口或停止占用进程
-- API 密钥无效：检查是否配置了至少一个有效密钥
-- 模型提供商不匹配：校验 `MCP_DEFAULT_MODEL_PROVIDER`
-- Claude Desktop 连接失败：检查服务运行状态、URL、防火墙与日志
+#### 端口占用
+更换端口或停止占用进程
+
+```bash
+# Windows 查看端口占用
+netstat -ano | findstr :3000
+
+# 更换端口
+MCP_HTTP_PORT=3001 pnpm mcp:dev
+```
+
+#### API 密钥无效
+检查是否配置了至少一个有效密钥
+
+```bash
+# 确保至少配置一个有效的 API 密钥
+echo $VITE_OPENAI_API_KEY
+```
+
+#### 模型提供商不匹配
+校验 `MCP_DEFAULT_MODEL_PROVIDER`
+
+```bash
+# 确保提供商名称正确
+MCP_DEFAULT_MODEL_PROVIDER=openai  # 不是 OpenAI
+```
+
+#### Docker 部署时 401 认证错误
+
+**问题**: 使用 Docker 部署并启用了 `ACCESS_PASSWORD` 后，MCP Inspector 连接失败，返回 401 错误
+
+**原因**: Docker 部署启用密码保护后，Nginx 会对所有路由启用 Basic 认证，包括 `/mcp` 路由
+
+**解决方案**:
+- **已修复（v1.4.0+）**：`/mcp` 路由已配置为绕过 Basic 认证
+- **旧版本临时方案**：
+  1. 不设置 `ACCESS_PASSWORD` 环境变量
+  2. 或使用网络隔离（如仅在内网使用）
+  3. 或直接暴露 3000 端口：`docker run -p 3000:3000 ...`
+
+**技术说明**:
+- MCP 协议本身不支持 HTTP Basic 认证
+- 新版本在 `docker/nginx.conf` 中为 `/mcp` 路由添加了 `auth_basic off;`
+- Web 应用访问仍然受密码保护
+
+#### Claude Desktop 连接失败
+检查服务运行状态、URL、防火墙与日志
+
+**解决步骤**：
+1. 确认 MCP 服务器正在运行
+2. 检查 URL 是否正确
+3. 确认防火墙设置
+4. 查看 Claude Desktop 日志
 
