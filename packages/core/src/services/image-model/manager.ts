@@ -132,10 +132,18 @@ export class ImageModelManager implements IImageModelManager {
       this.storageKey,
       (current) => {
         const data = current || {}
+
+        // 强制删除：无论配置是否存在都尝试删除
+        // 这确保损坏的配置也能被清理
         if (!data[id]) {
-          throw new Error(`Configuration with id '${id}' does not exist`)
+          console.warn(`[ImageModelManager] Config ${id} not found in storage, but proceeding anyway`)
+          // 仍然返回原数据，因为确实没什么可删的
+          return data
         }
+
+        // 配置存在，正常删除
         const { [id]: removed, ...rest } = data
+        console.log(`[ImageModelManager] Successfully deleted config: ${id}`)
         return rest
       }
     )
@@ -146,25 +154,48 @@ export class ImageModelManager implements IImageModelManager {
     const data: Record<string, ImageModelConfig> = raw ? JSON.parse(raw) : {}
     const cfg = data[id]
     if (!cfg) return null
+
     // 轻量迁移兜底：返回前补齐缺失的 id，避免 UI 无法删除
-    // 说明：旧数据来自开发期，仅补 id 用于删除，不补 providerId/modelId/provider/model
     if (!(cfg as any).id) {
-      return { ...(cfg as any), id } as ImageModelConfig
+      ;(cfg as any).id = id
     }
-    return cfg
+
+    // 尝试修复损坏的配置，确保能够正常读取和删除
+    try {
+      return this.ensureSelfContained(cfg)
+    } catch (error) {
+      // 即使修复失败，也返回配置（已在ensureSelfContained中标记为disabled）
+      console.warn(`[ImageModelManager] Failed to fully repair config ${id}, but returning for deletion:`, error)
+      return cfg
+    }
   }
 
   async getAllConfigs(): Promise<ImageModelConfig[]> {
     const raw = await this.storage.getItem(this.storageKey)
     const data: Record<string, ImageModelConfig> = raw ? JSON.parse(raw) : {}
-    // 轻量迁移兜底：为缺失 id 的旧记录补齐 id（仅返回层面，不强制持久化）
-    // 说明：旧数据来自开发期，仅补 id 以便在界面上删除，无需补齐其它字段
+
+    // 轻量迁移兜底：为缺失 id 的旧记录补齐 id，并尝试修复损坏的配置
     return Object.entries(data).map(([key, cfg]) => {
-      if (cfg && typeof cfg === 'object' && !(cfg as any).id) {
-        return { ...(cfg as any), id: key } as ImageModelConfig
+      if (!cfg || typeof cfg !== 'object') {
+        return null
       }
-      return cfg
-    })
+
+      // 始终使用存储键作为公开的 id，保持删除等操作一致
+      ;(cfg as any).id = key
+
+      // 尝试修复配置，如果失败则返回占位配置（标记为disabled）
+      try {
+        return this.ensureSelfContained(cfg)
+      } catch (error) {
+        console.warn(`[ImageModelManager] Failed to repair config ${key}, returning placeholder:`, error)
+        // 返回最小占位配置，确保能在UI中显示和删除
+        return {
+          ...cfg,
+          id: key,
+          enabled: false
+        } as ImageModelConfig
+      }
+    }).filter((cfg): cfg is ImageModelConfig => cfg !== null)
   }
 
   async getEnabledConfigs(): Promise<ImageModelConfig[]> {
@@ -249,23 +280,54 @@ export class ImageModelManager implements IImageModelManager {
       return config
     }
 
-    // 获取provider和model信息
-    const adapter = this.registry.getAdapter(config.providerId)
-    const provider = adapter.getProvider()
+    try {
+      // 获取provider和model信息
+      const adapter = this.registry.getAdapter(config.providerId)
+      const provider = adapter.getProvider()
 
-    // 尝试从静态模型列表获取模型信息
-    let model = this.registry.getStaticModels(config.providerId).find(m => m.id === config.modelId)
+      // 尝试从静态模型列表获取模型信息
+      let model = this.registry.getStaticModels(config.providerId).find(m => m.id === config.modelId)
 
-    // 如果静态模型不存在，使用buildDefaultModel构建
-    if (!model) {
-      model = adapter.buildDefaultModel(config.modelId)
-    }
+      // 如果静态模型不存在，使用buildDefaultModel构建
+      if (!model) {
+        model = adapter.buildDefaultModel(config.modelId)
+      }
 
-    // 返回自包含配置
-    return {
-      ...config,
-      provider,
-      model
+      // 返回自包含配置
+      return {
+        ...config,
+        provider,
+        model
+      }
+    } catch (error) {
+      // 对于无法修复的旧配置，创建占位数据并禁用，允许用户查看和删除
+      console.warn(`[ImageModelManager] Cannot repair legacy config ${config.id}, marking as disabled:`, error)
+      return {
+        ...config,
+        enabled: false,
+        provider: {
+          id: config.providerId || 'unknown',
+          name: `Unknown Provider (${config.providerId || 'unknown'})`,
+          description: '此配置损坏，无法修复',
+          requiresApiKey: false,
+          supportsDynamicModels: false,
+          defaultBaseURL: '',
+          connectionSchema: { required: [], optional: [], fieldTypes: {} }
+        },
+        model: {
+          id: config.modelId || 'unknown',
+          name: `Unknown Model (${config.modelId || 'unknown'})`,
+          description: '此配置损坏，请删除后重新创建',
+          providerId: config.providerId || 'unknown',
+          capabilities: {
+            text2image: false,
+            image2image: false,
+            multiImage: false
+          },
+          parameterDefinitions: [],
+          defaultParameterValues: {}
+        }
+      } as ImageModelConfig
     }
   }
 
