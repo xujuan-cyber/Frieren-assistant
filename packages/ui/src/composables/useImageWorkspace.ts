@@ -12,9 +12,9 @@ import type {
   OptimizationRequest,
   OptimizationMode,
   ImageRequest,
-  ImageResult,
-  IMAGE_MODE_KEYS
+  ImageResult
 } from '@prompt-optimizer/core'
+import { IMAGE_MODE_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { ModelSelectOption, SelectOption } from '../types/select-options'
 
