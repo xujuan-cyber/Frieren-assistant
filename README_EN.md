@@ -58,8 +58,9 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 ### Image Generation Mode
 - 🖼️ **Text-to-Image (T2I)**: Generate images from text prompts
 - 🎨 **Image-to-Image (I2I)**: Transform and optimize images based on local files
-- 📐 **Flexible Configuration**: Generate 1-4 images with customizable dimensions and parameters
 - 🔌 **Multi-model Support**: Integrated with mainstream image generation models like Gemini, Seedream
+- ⚙️ **Model Parameters**: Support model-specific parameter configuration (size, style, etc.)
+- 📥 **Preview & Download**: Real-time preview of generated results with download support
 
 ### Advanced Testing Mode
 - 📊 **Context Variable Management**: Custom variables, batch replacement, variable preview
