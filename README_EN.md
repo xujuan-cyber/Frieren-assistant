@@ -357,22 +357,24 @@ For detailed project status, see [Project Status Document](docs/project-status.m
 #### Q3: How to solve CORS issues with commercial APIs (such as Nvidia's DS API, ByteDance's Volcano API)?
 **A**: These platforms typically have strict CORS restrictions. Recommended solutions:
 
-1. **Use Vercel Proxy** (Convenient solution)
-   - Use the online version: [prompt.always200.com](https://prompt.always200.com)
-   - Or deploy to your own Vercel platform
-   - Check "Use Vercel Proxy" option in model settings
-   - Request flow: Browser → Vercel → Model service provider
-   - For detailed steps, please refer to the [Vercel Deployment Guide](docs/user/deployment/vercel_en.md)
+1. **Use Desktop Application** (Most Recommended)
+   - Desktop app has no CORS restrictions as a native application
+   - Can directly connect to any API service, including locally deployed models
+   - Provides the most complete and stable feature experience
+   - Download from [GitHub Releases](https://github.com/linshenkx/prompt-optimizer/releases)
 
-2. **Use self-deployed API proxy service** (Reliable solution)
-   - Deploy open-source API aggregation/proxy tools like OneAPI
+2. **Use Docker Deployment** (Server-side solution)
+   - Docker deployment runs on the server side with no browser CORS restrictions
+   - Supports internal network environments, data stays within your network
+   - Request flow: Docker container → Model service provider
+
+3. **Use Self-deployed API Proxy Service** (Professional solution)
+   - Deploy open-source API aggregation/proxy tools like OneAPI, NewAPI
    - Configure as custom API endpoint in settings
    - Request flow: Browser → Proxy service → Model service provider
+   - Full control over security policies and access permissions
 
-#### Q4: What are the drawbacks or risks of using Vercel proxy?
-**A**: Using Vercel proxy may trigger risk control mechanisms of some model service providers. Some vendors may identify requests from Vercel as proxy behavior, thereby limiting or denying service. If you encounter this issue, we recommend using a self-deployed proxy service.
-
-#### Q5: I have correctly configured CORS policies for my local model (like Ollama), why can't I still connect using the online version?
+#### Q4: I have correctly configured CORS policies for my local model (like Ollama), why can't I still connect using the online version?
 **A**: This is caused by the browser's **Mixed Content security policy**. For security reasons, browsers block secure HTTPS pages (like the online version) from sending requests to insecure HTTP addresses (like your local Ollama service).
 
 **Solutions**:
