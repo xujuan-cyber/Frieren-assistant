@@ -200,25 +200,6 @@
                 />
               </NSpace>
               
-              <NCheckbox
-                v-if="vercelProxyAvailable"
-                v-model:checked="editingModel.useVercelProxy"
-                :label="t('modelManager.useVercelProxy')"
-              >
-                {{ t('modelManager.useVercelProxy') }}
-                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
-              </NCheckbox>
-              
-              <NCheckbox
-                v-if="dockerProxyAvailable"
-                v-model:checked="editingModel.useDockerProxy"
-                :label="t('modelManager.useDockerProxy')"
-              >
-                {{ t('modelManager.useDockerProxy') }}
-                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
-              </NCheckbox>
-
-              
               <!-- Advanced Parameters Section -->
               <NDivider style="margin: 20px 0;" />
               <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
@@ -468,25 +449,6 @@
                 @fetch-options="handleFetchNewModels"
               />
             </NSpace>
-            
-            <NCheckbox
-              v-if="vercelProxyAvailable"
-              v-model:checked="newModel.useVercelProxy"
-              :label="t('modelManager.useVercelProxy')"
-            >
-              {{ t('modelManager.useVercelProxy') }}
-              <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useVercelProxyHint')">?</NText>
-            </NCheckbox>
-            
-            <NCheckbox
-              v-if="dockerProxyAvailable"
-              v-model:checked="newModel.useDockerProxy"
-              :label="t('modelManager.useDockerProxy')"
-            >
-              {{ t('modelManager.useDockerProxy') }}
-              <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.useDockerProxyHint')">?</NText>
-            </NCheckbox>
-            
             <!-- Advanced Parameters Section FOR ADD MODEL -->
             <NDivider style="margin: 20px 0;" />
             <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
@@ -685,10 +647,6 @@ import {
 } from 'naive-ui';
 import {
   advancedParameterDefinitions,
-  checkVercelApiAvailability,
-  resetVercelStatusCache,
-  checkDockerApiAvailability,
-  resetDockerStatusCache,
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
@@ -764,11 +722,6 @@ const imageListRef = ref<any>(null)
 const modelOptions = ref([]);
 const isLoadingModels = ref(false);
 const testingConnections = ref({});
-// 是否支持Vercel代理
-const vercelProxyAvailable = ref(false);
-// 是否支持Docker代理
-const dockerProxyAvailable = ref(false);
-
 // For Advanced Parameters UI
 const selectedNewLLMParamId = ref(''); // Stores ID of param selected from dropdown
 const customLLMParam = ref({ key: '', value: '' });
@@ -784,39 +737,9 @@ const newModel = ref({
   baseURL: '',
   defaultModel: '',
   apiKey: '',
-  useVercelProxy: false,
-  useDockerProxy: false,
   provider: 'custom',
   llmParams: {}
 });
-
-// =============== 初始化和辅助函数 ===============
-// 检测Vercel代理是否可用
-const checkVercelProxy = async () => {
-  try {
-    // 使用core中的检测函数
-    const available = await checkVercelApiAvailability();
-    vercelProxyAvailable.value = available;
-    console.log('Vercel代理检测结果:', vercelProxyAvailable.value);
-  } catch (error) {
-    console.log('Vercel代理不可用:', error);
-    vercelProxyAvailable.value = false;
-  }
-};
-
-// 检测Docker代理是否可用
-const checkDockerProxy = async () => {
-  try {
-    // 使用core中的检测函数
-    const available = await checkDockerApiAvailability();
-    dockerProxyAvailable.value = available;
-    console.log('Docker代理检测结果:', dockerProxyAvailable.value);
-  } catch (error) {
-    console.log('Docker代理不可用:', error);
-    dockerProxyAvailable.value = false;
-  }
-};
-
 // 加载所有模型
 const loadModels = async () => {
   try {
@@ -958,8 +881,6 @@ const editModel = async (key) => {
       apiKey: maskedApiKey,
       displayMaskedKey: true,
       originalApiKey: model.apiKey,
-      useVercelProxy: model.useVercelProxy === undefined ? false : model.useVercelProxy, // Ensure default
-      useDockerProxy: model.useDockerProxy === undefined ? false : model.useDockerProxy, // Ensure default
       provider: model.provider || 'custom', // Ensure provider is set
       enabled: model.enabled,
       llmParams: model.llmParams ? JSON.parse(JSON.stringify(model.llmParams)) : {} // Deep copy llmParams
@@ -987,14 +908,6 @@ const handleModelFetchError = (error) => {
 
   if (errorMessage.includes('CROSS_ORIGIN_CONNECTION_FAILED:')) {
     userMessage = t('modelManager.errors.crossOriginConnectionFailed');
-    // 只在有可用代理时才建议使用代理
-    const availableProxies = [];
-    if (vercelProxyAvailable.value) availableProxies.push('Vercel代理');
-    if (dockerProxyAvailable.value) availableProxies.push('Docker代理');
-
-    if (availableProxies.length > 0) {
-      userMessage += t('modelManager.errors.proxyHint', { proxies: availableProxies.join('或') });
-    }
   } else if (errorMessage.includes('CONNECTION_FAILED:')) {
     userMessage = t('modelManager.errors.connectionFailed');
   } else if (errorMessage.includes('MISSING_V1_SUFFIX:')) {
@@ -1050,9 +963,7 @@ const handleFetchEditingModels = async () => {
     const customConfig = {
       baseURL: baseURL,
       apiKey: apiKey,
-      provider: editingModel.value.provider || 'custom',
-      useVercelProxy: editingModel.value.useVercelProxy,
-      useDockerProxy: editingModel.value.useDockerProxy
+      provider: editingModel.value.provider || 'custom'
     };
     
     // 确定要使用的 provider key（使用原始key或临时key）
@@ -1101,9 +1012,7 @@ const handleFetchNewModels = async () => {
     const customConfig = {
       baseURL: baseURL,
       apiKey: apiKey,
-      provider: currentProviderType.value || 'custom',
-      useVercelProxy: newModel.value.useVercelProxy,
-      useDockerProxy: newModel.value.useDockerProxy
+      provider: currentProviderType.value || 'custom'
     };
     
     // 获取模型列表
@@ -1156,8 +1065,6 @@ const saveEdit = async () => {
       models: modelOptions.value.length > 0
         ? modelOptions.value.map(opt => opt.value)
         : [editingModel.value.defaultModel],
-      useVercelProxy: editingModel.value.useVercelProxy,
-      useDockerProxy: editingModel.value.useDockerProxy,
       provider: editingModel.value.provider || 'custom',
       enabled: editingModel.value.enabled !== undefined
         ? editingModel.value.enabled
@@ -1201,8 +1108,6 @@ const addCustomModel = async () => {
       apiKey: newModel.value.apiKey,
       enabled: true,
       provider: currentProviderType.value || 'custom',
-      useVercelProxy: newModel.value.useVercelProxy,
-      useDockerProxy: newModel.value.useDockerProxy,
       llmParams: newModel.value.llmParams || {}
     }
 
@@ -1217,8 +1122,6 @@ const addCustomModel = async () => {
       baseURL: '',
       defaultModel: '',
       apiKey: '',
-      useVercelProxy: false,
-      useDockerProxy: false,
       provider: 'custom',
       llmParams: {}
     }
@@ -1466,8 +1369,6 @@ const handleImageModelSaved = () => {
 // 初始化
 onMounted(() => {
   loadModels();
-  checkVercelProxy();
-  checkDockerProxy();
   // 图像模型的加载由 ImageModelManager 组件处理
 });
 </script>

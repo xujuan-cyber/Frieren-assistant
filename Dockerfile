@@ -11,7 +11,7 @@ RUN pnpm run build
 RUN pnpm mcp:build
 
 FROM nginx:stable-alpine
-# 安装Node.js、htpasswd工具、dos2unix和supervisor
+# 安装htpasswd工具、dos2unix和supervisor
 RUN apk add --no-cache apache2-utils dos2unix supervisor nodejs npm gettext curl
 
 # 安装pnpm
@@ -29,9 +29,7 @@ COPY --from=build /app/packages/mcp-server/package.json /app/mcp-server/
 COPY --from=build /app/packages/mcp-server/preload-env.js /app/mcp-server/
 COPY --from=build /app/packages/mcp-server/preload-env.cjs /app/mcp-server/
 
-# 复制Node Proxy服务
-COPY --from=build /app/node-proxy /app/node-proxy
-# 复制构建后的包到正确位置
+# 复制构建后的包到正确位置（MCP服务器依赖）
 COPY --from=build /app/packages /app/packages
 # 复制必要的node_modules
 COPY --from=build /app/node_modules /app/node_modules

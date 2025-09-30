@@ -287,7 +287,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, inject, nextTick } from 'vue'
+import { computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NModal, NScrollbar, NSpace, NInput, NInputNumber,
@@ -296,13 +296,8 @@ import {
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/useImageModelManager'
 import { useToast } from '../composables/useToast'
-import type { IImageAdapterRegistry, ImageModelConfig } from '@prompt-optimizer/core'
-import {
-  checkVercelApiAvailability,
-  resetVercelStatusCache,
-  checkDockerApiAvailability,
-  resetDockerStatusCache,
-} from '@prompt-optimizer/core'
+import type { ImageModelConfig } from '@prompt-optimizer/core'
+
 
 const { t } = useI18n()
 const toast = useToast()
@@ -355,13 +350,6 @@ const {
   loadProviders,
 } = useImageModelManager()
 
-// 注入依赖
-const registry = inject<IImageAdapterRegistry>('imageRegistry') as unknown as IImageAdapterRegistry
-
-// 代理可用性状态
-const vercelProxyAvailable = ref(false)
-const dockerProxyAvailable = ref(false)
-
 // 计算属性
 const isEditing = computed(() => !!props.configId)
 
@@ -389,9 +377,6 @@ const connectionFields = computed(() => {
 
   // 处理必需字段
   for (const fieldName of schema.required) {
-    // 代理字段按可用性过滤
-    if (fieldName === 'useVercelProxy' && !vercelProxyAvailable.value) continue
-    if (fieldName === 'useDockerProxy' && !dockerProxyAvailable.value) continue
     fields.push({
       name: fieldName,
       required: true,
@@ -404,9 +389,6 @@ const connectionFields = computed(() => {
 
   // 处理可选字段
   for (const fieldName of schema.optional) {
-    // 代理字段按可用性过滤
-    if (fieldName === 'useVercelProxy' && !vercelProxyAvailable.value) continue
-    if (fieldName === 'useDockerProxy' && !dockerProxyAvailable.value) continue
     fields.push({
       name: fieldName,
       required: false,
@@ -475,39 +457,12 @@ const resetFormData = () => {
     providerId: '',
     modelId: '',
     enabled: true,
-    connectionConfig: {
-      useVercelProxy: false,
-      useDockerProxy: false
-    },
+    connectionConfig: {},
     paramOverrides: {}
   }
   connectionStatus.value = null
   testResult.value = null
   modelLoadingStatus.value = null
-}
-
-// 检测Vercel代理是否可用
-const checkVercelProxy = async () => {
-  try {
-    const available = await checkVercelApiAvailability()
-    console.log('[ImageModelEditModal] Vercel代理检测结果:', available)
-    vercelProxyAvailable.value = available
-  } catch (error) {
-    console.log('[ImageModelEditModal] Vercel代理不可用:', error)
-    vercelProxyAvailable.value = false
-  }
-}
-
-// 检测Docker代理是否可用
-const checkDockerProxy = async () => {
-  try {
-    const available = await checkDockerApiAvailability()
-    console.log('[ImageModelEditModal] Docker代理检测结果:', available)
-    dockerProxyAvailable.value = available
-  } catch (error) {
-    console.log('[ImageModelEditModal] Docker代理不可用:', error)
-    dockerProxyAvailable.value = false
-  }
 }
 
 const onProviderChange = async (providerId: string, autoSelectFirstModel?: boolean) => {
@@ -591,11 +546,6 @@ watch(() => props.show, async (newShow) => {
     console.log('[ImageModelEditModal] Modal opening, starting data preparation...')
     // 打开时准备数据
     try {
-      console.log('[ImageModelEditModal] Starting proxy detection...')
-      // 检测代理可用性
-      await Promise.all([checkVercelProxy(), checkDockerProxy()])
-      console.log('[ImageModelEditModal] Proxy detection completed')
-
       // 确保提供商数据最新（每次打开都刷新）
       await loadProviders()
       await loadConfigs()

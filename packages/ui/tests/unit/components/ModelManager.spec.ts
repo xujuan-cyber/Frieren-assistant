@@ -9,10 +9,6 @@ vi.mock('@prompt-optimizer/core', () => ({
   // of definitions with an "appliesToProviders" field.
   // For these tests we don't rely on its contents, so an empty array is fine.
   advancedParameterDefinitions: [],
-  checkVercelApiAvailability: vi.fn().mockResolvedValue(false),
-  resetVercelStatusCache: vi.fn(),
-  checkDockerApiAvailability: vi.fn().mockResolvedValue(false),
-  resetDockerStatusCache: vi.fn(),
   createImageAdapterRegistry: vi.fn().mockReturnValue({
     getAvailableProviders: vi.fn().mockReturnValue([
       {

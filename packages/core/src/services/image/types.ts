@@ -71,8 +71,6 @@ export interface ImageModelConfig {
   connectionConfig?: {
     apiKey?: string                      // API 密钥
     baseURL?: string                     // 覆盖默认 API 地址
-    useVercelProxy?: boolean             // 是否使用 Vercel 代理
-    useDockerProxy?: boolean             // 是否使用 Docker 代理
     [key: string]: any                   // 支持其他连接参数（如 organization, region 等）
   }
 

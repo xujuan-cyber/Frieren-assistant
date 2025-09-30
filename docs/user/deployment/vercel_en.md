@@ -117,7 +117,6 @@ Prompt Optimizer supports using Edge Runtime proxy to solve cross-origin issues 
 
 3. **"Use Vercel Proxy" option not displayed**
    - If using import deployment: check if you have cleared the root directory setting and redeployed
-   - Verify if the `/api/vercel-status` path is accessible (you can test by visiting `your-domain/api/vercel-status` in a browser)
    - Check if there are any Function-related error messages in the deployment logs
 
 4. **How to update a deployed project**

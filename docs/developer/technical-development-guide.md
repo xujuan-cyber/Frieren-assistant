@@ -834,53 +834,32 @@ const processedContent = computed(() => {
   - iOS Safari >= 14
   - Android Chrome >= 90
 
-## 跨域代理解决方案
+## 跨域问题处理
 
-为了解决在纯前端应用中调用第三方LLM API时可能遇到的跨域问题，我们实现了一个基于Vercel Edge Runtime的代理解决方案。
+### ⚠️ 代理功能已移除
 
-### 代理架构
+由于安全原因(SSRF漏洞风险，详见 [GitHub Issue #169](https://github.com/linshenkx/prompt-optimizer/issues/169))，我们已在v1.x版本中**完全移除**了Vercel和Docker内置代理功能。
 
-1. **API代理**：用于处理普通请求
-   - 路径：`/api/proxy`
-   - 功能：转发普通HTTP请求，处理CORS头
+### 推荐解决方案
 
-2. **流式代理**：用于处理流式请求
-   - 路径：`/api/stream`
-   - 功能：转发流式响应，保持连接直到流结束
+如遇跨域问题，请使用以下方案：
 
-### 工作原理
+1. **桌面版应用**(推荐)
+   - 无跨域限制
+   - 本地运行，更安全
+   - 支持所有LLM API
 
-1. 在生产环境中（非localhost），系统会自动检测是否需要使用代理
-2. 所有API请求（包括OpenAI）都可以使用代理，通过模型配置中的`useVercelProxy`选项控制
-3. 代理会保留原始请求的所有头信息和请求体
-4. 代理会添加必要的CORS头，允许浏览器接收响应
+2. **自建反向代理**
+   - 使用Nginx、Caddy等工具
+   - 完全控制安全策略
+   - 可参考 `docs/archives/122-docker-api-proxy/` 中的历史实现
 
-### 代码实现
+3. **LLM提供商自有代理**
+   - 某些提供商提供CORS友好的端点
+   - 查阅对应提供商文档
 
-核心代理逻辑位于：
-- `/api/proxy.js`：处理普通请求
-- `/api/stream.js`：处理流式请求
+### 历史说明
 
-环境检测逻辑位于：
-- `packages/core/src/utils/environment.ts`
+早期版本(v0.x)曾提供内置代理端点(`/api/proxy`, `/api/stream`)，但因安全审计发现SSRF风险已移除。历史实现可查看 `docs/archives/122-docker-api-proxy/implementation.md`
 
-### 使用方式
-
-对于开发者来说，这个功能是透明的，不需要额外配置。系统会自动检测Vercel环境并在模型配置中提供代理选项。
-
-在模型配置界面中，当检测到Vercel环境时，会显示"使用Vercel代理"的选项。您可以为每个模型单独配置是否启用代理功能。
-
-
-### 安全考虑
-
-1. 代理仅转发请求，不存储任何数据
-2. API密钥仍然由客户端直接发送，不经过中间服务器处理
-3. 所有请求都通过HTTPS加密传输
-
-### 限制
-
-1. Vercel Edge Functions有30秒的超时限制
-2. 有每月带宽和请求数量限制
-3. 首次请求可能有冷启动延迟
-
-最后更新：2025-01-15
+最后更新：2025-01-21

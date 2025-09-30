@@ -388,10 +388,6 @@
     defaultModel: '默认模型',
     clickToFetchModels: '点击箭头获取模型列表',
     apiKey: 'API密钥',
-    useVercelProxy: '使用Vercel代理',
-    useVercelProxyHint: '使用Vercel代理可以解决跨域问题，但可能触发某些提供商的风控，请谨慎使用',
-    useDockerProxy: '使用Docker代理',
-    useDockerProxyHint: '使用Docker代理可以解决跨域问题，适用于Docker部署环境',
     addModel: '添加',
     addImageModel: '添加图像模型',
 
@@ -462,8 +458,7 @@
       missingV1Suffix: 'API地址格式错误，OpenAI兼容API需要包含"/v1"后缀',
       invalidResponseFormat: 'API返回格式不兼容，请检查API服务是否为OpenAI兼容格式',
       emptyModelList: 'API返回空的模型列表，该服务可能没有可用模型',
-      apiError: 'API错误：{error}',
-      proxyHint: '，或尝试启用{proxies}'
+      apiError: 'API错误：{error}'
     },
 
     // 状态文本
@@ -479,8 +474,6 @@
     apiUrlAriaLabel: '模型API地址',
     defaultModelAriaLabel: '默认模型名称',
     apiKeyAriaLabel: 'API密钥',
-    useVercelProxyAriaLabel: '是否使用Vercel代理',
-    useDockerProxyAriaLabel: '是否使用Docker代理',
     cancelEditAriaLabel: '取消编辑模型',
     saveEditAriaLabel: '保存模型修改',
     cancelAddAriaLabel: '取消添加模型',
@@ -1319,16 +1312,6 @@
         label: '组织标识（可选）',
         description: 'OpenAI 组织 ID（如适用）',
         placeholder: 'org_xxx'
-      },
-      useVercelProxy: {
-        label: '使用 Vercel 代理',
-        description: '通过内置 /api/proxy 反向代理请求，缓解跨域问题',
-        placeholder: ''
-      },
-      useDockerProxy: {
-        label: '使用 Docker 代理',
-        description: '在 Docker 部署中通过容器内代理转发请求',
-        placeholder: ''
       },
       validation: {
         missing: '缺少必填字段：{fields}',

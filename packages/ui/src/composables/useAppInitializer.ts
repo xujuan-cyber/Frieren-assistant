@@ -24,9 +24,20 @@ import {
   createPreferenceService,
 } from '../'; // 从UI包的index导出所有核心模块
 import type { AppServices } from '../types/services';
-import { createImageModelManager, createImageService, createImageAdapterRegistry } from '@prompt-optimizer/core';
-import type { IImageModelManager, IImageService } from '@prompt-optimizer/core'
-import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager, IPreferenceService } from '@prompt-optimizer/core';
+import {
+  createImageModelManager,
+  createImageService,
+  createImageAdapterRegistry,
+  type IImageModelManager,
+  type IImageService,
+  type IModelManager,
+  type ITemplateManager,
+  type IHistoryManager,
+  type ILLMService,
+  type IPromptService,
+  type IDataManager,
+  type IPreferenceService
+} from '@prompt-optimizer/core';
 
 /**
  * 应用服务统一初始化器。
@@ -206,9 +217,6 @@ export function useAppInitializer(): {
           getDataType: () => historyManagerInstance.getDataType(),
           validateData: (data) => historyManagerInstance.validateData(data),
         };
-
-        // 预热跨域代理检测（以便适配器使用 /api/proxy 避免CORS）
-        try { const { checkVercelApiAvailability, checkDockerApiAvailability } = await import('@prompt-optimizer/core'); await checkVercelApiAvailability(); await checkDockerApiAvailability(); } catch {}
 
         // Services that depend on initialized managers
         console.log('[AppInitializer] 创建依赖其他管理器的服务...');

@@ -40,5 +40,4 @@
 ## 开发说明
 - 核心层：`ImageService` + 适配器（Gemini/Seedream/OpenAI），适配器注册表按 provider 路由。
 - UI：`ImageWorkspace.vue` 为图像模式工作区；通过 `useImageGeneration` 调用 `ImageService`。
-- 代理与网络：沿用现有 `useVercelProxy/useDockerProxy + getProxyUrl` 策略（Seedream REST）。
-
+- 代理与网络：现在仅支持直接访问模型提供商，如在浏览器环境遇到跨域限制，请改用桌面版或自行配置反向代理。

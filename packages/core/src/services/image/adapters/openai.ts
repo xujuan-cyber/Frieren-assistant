@@ -23,12 +23,10 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
       supportsDynamicModels: false,
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'useVercelProxy', 'useDockerProxy'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string',
-          useVercelProxy: 'boolean',
-          useDockerProxy: 'boolean'
+          baseURL: 'string'
         }
       }
     }

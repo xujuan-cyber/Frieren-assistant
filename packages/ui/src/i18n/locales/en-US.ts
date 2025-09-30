@@ -388,10 +388,6 @@ export default {
     defaultModel: 'Default Model',
     clickToFetchModels: 'Click arrow to fetch model list',
     apiKey: 'API Key',
-    useVercelProxy: 'Use Vercel Proxy',
-    useVercelProxyHint: 'Using Vercel proxy can solve CORS issues, but may trigger risk control from some providers. Please use with caution',
-    useDockerProxy: 'Use Docker Proxy',
-    useDockerProxyHint: 'Using Docker proxy can solve CORS issues, suitable for Docker deployment environments',
     addModel: 'Add',
     addImageModel: 'Add Image Model',
 
@@ -462,8 +458,7 @@ export default {
       missingV1Suffix: 'API URL format error. OpenAI-compatible APIs should include "/v1" suffix',
       invalidResponseFormat: 'API response format incompatible. Please check if API service uses OpenAI-compatible format',
       emptyModelList: 'API returned empty model list. This service may have no available models',
-      apiError: 'API error: {error}',
-      proxyHint: ', or try enabling {proxies}'
+      apiError: 'API error: {error}'
     },
 
     // Status Text
@@ -479,8 +474,6 @@ export default {
     apiUrlAriaLabel: 'Model API URL',
     defaultModelAriaLabel: 'Default model name',
     apiKeyAriaLabel: 'API key',
-    useVercelProxyAriaLabel: 'Use Vercel proxy',
-    useDockerProxyAriaLabel: 'Use Docker proxy',
     cancelEditAriaLabel: 'Cancel editing model',
     saveEditAriaLabel: 'Save model changes',
     cancelAddAriaLabel: 'Cancel adding model',
@@ -1319,16 +1312,6 @@ export default {
         label: 'Organization (optional)',
         description: 'OpenAI organization ID if applicable',
         placeholder: 'org_xxx'
-      },
-      useVercelProxy: {
-        label: 'Use Vercel Proxy',
-        description: 'Proxy requests via built-in /api/proxy to mitigate CORS issues',
-        placeholder: ''
-      },
-      useDockerProxy: {
-        label: 'Use Docker Proxy',
-        description: 'In Docker deployment, forward requests via in-container proxy',
-        placeholder: ''
       },
       validation: {
         missing: 'Missing required fields: {fields}',

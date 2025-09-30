@@ -117,7 +117,6 @@ Prompt Optimizer在Vercel部署时支持使用Edge Runtime代理解决跨域问�
 
 3. **"使用Vercel代理"选项未显示**
    - 如使用导入部署：检查是否已清空根目录设置并重新部署
-   - 验证`/api/vercel-status`路径是否可访问（可通过浏览器访问`你的域名/api/vercel-status`测试）
    - 查看部署日志中是否有关于Function的错误信息
 
 4. **如何更新已部署的项目**

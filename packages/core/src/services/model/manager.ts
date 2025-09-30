@@ -447,7 +447,6 @@ export class ModelManager implements IModelManager {
             provider: model.provider || existingModel.provider,
             enabled: model.enabled !== undefined ? model.enabled : existingModel.enabled, // 优先使用导入的启用状态
             ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
-            ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
             ...(model.llmParams !== undefined && { llmParams: model.llmParams })
           };
           await this.updateModel(model.key, mergedConfig);
@@ -462,7 +461,6 @@ export class ModelManager implements IModelManager {
             provider: model.provider || 'custom',
             enabled: model.enabled !== undefined ? model.enabled : false, // 使用导入的启用状态，默认为false
             ...(model.apiKey !== undefined && { apiKey: model.apiKey }),
-            ...(model.useVercelProxy !== undefined && { useVercelProxy: model.useVercelProxy }),
             ...(model.llmParams !== undefined && { llmParams: model.llmParams })
           };
           await this.addModel(model.key, newModelConfig);

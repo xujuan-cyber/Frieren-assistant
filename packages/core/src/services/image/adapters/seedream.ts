@@ -24,12 +24,10 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
       supportsDynamicModels: false,  // 不支持动态获取
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'useVercelProxy', 'useDockerProxy'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string',
-          useVercelProxy: 'boolean',
-          useDockerProxy: 'boolean'
+          baseURL: 'string'
         }
       }
     }

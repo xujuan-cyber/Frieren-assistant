@@ -19,8 +19,8 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
       supportsDynamicModels: false,
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['useVercelProxy', 'useDockerProxy'],
-        fieldTypes: { apiKey: 'string', useVercelProxy: 'boolean', useDockerProxy: 'boolean' }
+        optional: [],
+        fieldTypes: { apiKey: 'string' }
       }
     }
   }

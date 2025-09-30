@@ -7,7 +7,6 @@ import type {
   ImageModelConfig,
   ImageParameterDefinition
 } from '../types'
-import { getProxyUrl, isDocker, isVercel, isRunningInElectron } from '../../../utils/environment'
 
 /**
  * 抽象图像提供商适配器基类
@@ -74,42 +73,26 @@ export abstract class AbstractImageProviderAdapter implements IImageProviderAdap
     return base
   }
 
-  // 仅返回“基础地址”的最终结果（考虑代理）；用于 SDK 型（如 Gemini）
-  protected resolveBaseUrl(config: ImageModelConfig, isStream: boolean = false): string {
+  // 仅返回"基础地址"的最终结果（考虑代理）；用于 SDK 型（如 Gemini）
+  protected resolveBaseUrl(config: ImageModelConfig, _isStream: boolean = false): string {
     const rawBase = (config.connectionConfig?.baseURL || this.getProvider().defaultBaseURL || '').trim()
     if (!rawBase) return ''
     const normalizedBase = this.normalizeBaseUrl(rawBase)
     if (!normalizedBase) return ''
 
-    // Electron/Node 环境不走 Web 代理
-    if (typeof window === 'undefined' || isRunningInElectron()) return normalizedBase
-
-    const useVercel = !!config.connectionConfig?.useVercelProxy
-    const useDocker = !!config.connectionConfig?.useDockerProxy
-
-    if (useVercel && isVercel()) return getProxyUrl(normalizedBase, isStream)
-    if (useDocker && isDocker()) return getProxyUrl(normalizedBase, isStream)
     return normalizedBase
   }
 
-  // 返回“完整目标 URL”的最终结果；用于手写 fetch 型适配器
+  // 返回"完整目标 URL"的最终结果；用于手写 fetch 型适配器
   protected resolveEndpointUrl(
     config: ImageModelConfig,
     endpoint: string,
-    isStream: boolean = false
+    _isStream: boolean = false
   ): string {
     const base = this.normalizeBaseUrl((config.connectionConfig?.baseURL || this.getProvider().defaultBaseURL || '').trim())
     const ep = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
     const full = `${base}${ep}`
 
-    // Electron/Node 环境不走 Web 代理
-    if (typeof window === 'undefined' || isRunningInElectron()) return full
-
-    const useVercel = !!config.connectionConfig?.useVercelProxy
-    const useDocker = !!config.connectionConfig?.useDockerProxy
-
-    if (useVercel && isVercel()) return getProxyUrl(full, isStream)
-    if (useDocker && isDocker()) return getProxyUrl(full, isStream)
     return full
   }
 
