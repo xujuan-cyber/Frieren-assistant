@@ -96,5 +96,17 @@ export default {
 
 1. 在 `locales` 目录下创建对应的语言文件，如 `ja-JP.ts`
 2. 复制现有语言文件的结构，确保键名完全一致
-3. 更新语言切换组件，添加新语言选项
-4. 测试所有页面在新语言下的显示效果 
+3. 在 `packages/ui/src/plugins/i18n.ts` 中：
+   - 导入新语言文件
+   - 添加到 `SupportedLocale` 类型
+   - 添加到 `SUPPORTED_LOCALES` 数组
+   - 配置 fallback 规则
+   - 添加到 `messages` 对象
+4. 在 `packages/ui/src/components/LanguageSwitchDropdown.vue` 中添加新语言选项
+5. 测试所有页面在新语言下的显示效果
+
+## 当前支持的语言
+
+- **简体中文 (zh-CN)**: 默认语言，适用于中国大陆用户
+- **繁體中文 (zh-TW)**: 适用于台湾、香港等地区用户，基于简体中文翻译并适配港台用语习惯
+- **English (en-US)**: 英语，适用于国际用户 

@@ -1,14 +1,15 @@
 import { createI18n } from 'vue-i18n'
 import { ref, type App } from 'vue'
 import zhCN from '../i18n/locales/zh-CN'
+import zhTW from '../i18n/locales/zh-TW'
 import enUS from '../i18n/locales/en-US'
 import { getPreference, setPreference } from '../composables/usePreferenceManager'
 import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 // 定义支持的语言类型
-type SupportedLocale = 'zh-CN' | 'en-US'
-const SUPPORTED_LOCALES: SupportedLocale[] = ['zh-CN', 'en-US']
+type SupportedLocale = 'zh-CN' | 'zh-TW' | 'en-US'
+const SUPPORTED_LOCALES: SupportedLocale[] = ['zh-CN', 'zh-TW', 'en-US']
 
 // 服务引用
 const servicesRef = ref<AppServices | null>(null);
@@ -23,11 +24,13 @@ const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN' as SupportedLocale,
   fallbackLocale: {
+    'zh-TW': ['zh-CN', 'en-US'],
     'zh-CN': ['en-US'],
     'default': ['en-US']
   },
   messages: {
     'zh-CN': zhCN,
+    'zh-TW': zhTW,
     'en-US': enUS,
   }
 })
@@ -40,7 +43,9 @@ async function initializeLanguage() {
       return;
     }
 
-    const defaultLocale: SupportedLocale = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
+    const defaultLocale: SupportedLocale = navigator.language.startsWith('zh')
+      ? (navigator.language === 'zh-TW' || navigator.language === 'zh-HK' || navigator.language.includes('Hant') ? 'zh-TW' : 'zh-CN')
+      : 'en-US'
     const savedLanguage = await getPreference(servicesRef, UI_SETTINGS_KEYS.PREFERRED_LANGUAGE, defaultLocale);
 
     if (SUPPORTED_LOCALES.includes(savedLanguage as SupportedLocale)) {

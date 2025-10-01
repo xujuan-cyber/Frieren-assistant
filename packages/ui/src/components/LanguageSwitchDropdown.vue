@@ -80,6 +80,11 @@ const availableLanguages: LanguageOption[] = [
     locale: 'zh-CN'
   },
   {
+    key: 'zh-TW',
+    label: '繁體中文',
+    locale: 'zh-TW'
+  },
+  {
     key: 'en-US',
     label: 'English',
     locale: 'en-US'
