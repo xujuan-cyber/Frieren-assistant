@@ -146,20 +146,55 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     return `data:${mimeType};base64,${state.inputImageB64}`
   })
 
+  // 刷新文本模型及下拉选项，并校验当前选择
+  const refreshTextModels = async () => {
+    if (!modelManager.value) {
+      textModelOptions.value = []
+      state.selectedTextModelKey = ''
+      return
+    }
+
+    try {
+      const manager = modelManager.value
+      if (typeof (manager as any).ensureInitialized === 'function') {
+        await (manager as any).ensureInitialized()
+      }
+
+      const textModels = await manager.getEnabledModels()
+      textModelOptions.value = textModels.map(m => ({
+        label: `${m.name} (${m.provider})`,
+        primary: m.name,
+        secondary: m.provider ?? 'Unknown',
+        value: m.key,
+        raw: m
+      }))
+
+      const currentKey = state.selectedTextModelKey
+      const keys = new Set(textModels.map(m => m.key))
+      const fallback = textModels[0]?.key || ''
+
+      const needsFallback = (!currentKey && fallback) || (currentKey && !keys.has(currentKey))
+
+      if (needsFallback) {
+        state.selectedTextModelKey = fallback
+        if (fallback) {
+          await setPreference(IMAGE_MODE_KEYS.SELECTED_TEXT_MODEL, fallback)
+        }
+      }
+
+      if (!textModels.length) {
+        state.selectedTextModelKey = ''
+      }
+    } catch (error) {
+      console.error('[useImageWorkspace] Failed to refresh text models:', error)
+      textModelOptions.value = []
+    }
+  }
+
   // 初始化
   const initialize = async () => {
     try {
-      // 加载文本模型
-      if (modelManager.value) {
-        const textModels = await modelManager.value.getEnabledModels()
-        textModelOptions.value = textModels.map(m => ({
-          label: `${m.name} (${m.provider})`,
-          primary: m.name,
-          secondary: m.provider ?? 'Unknown',
-          value: m.key,
-          raw: m
-        }))
-      }
+      await refreshTextModels()
 
       // 加载图像模型
       await loadImageModels()
@@ -865,6 +900,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     copyImageFromResult,
     saveSelections,
     cleanup,
+    refreshTextModels,
     refreshImageModels,
     templateManagerState
   }

@@ -146,6 +146,7 @@
                     filterable
                     :show-config-action="true"
                     :show-empty-config-c-t-a="true"
+                    @focus="handleTextModelSelectFocus"
                     @update:modelValue="saveSelections"
                     @config="() => appOpenModelManager && appOpenModelManager('text')"
                   />
@@ -161,6 +162,7 @@
                     size="medium"
                     :disabled="isOptimizing"
                     filterable
+                    @focus="handleTextModelSelectFocus"
                     @update:modelValue="saveSelections"
                   />
                 </template>
@@ -659,6 +661,7 @@ const {
   downloadImageFromResult,
   saveSelections,
   cleanup,
+  refreshTextModels,
   refreshImageModels,
   restoreTemplateSelection
 } = useImageWorkspace(services)
@@ -786,6 +789,15 @@ const refreshIterateHandler = () => {
   promptPanelRef.value?.refreshIterateTemplateSelect?.()
 }
 
+// 文本模型刷新事件处理器（模型管理器关闭后同步刷新）
+const refreshTextModelsHandler = async () => {
+  try {
+    await refreshTextModels()
+  } catch (e) {
+    console.warn('[ImageWorkspace] Failed to refresh text models after manager close:', e)
+  }
+}
+
 // 图像模型刷新事件处理器（模型管理器关闭后同步刷新）
 const refreshImageModelsHandler = async () => {
   try {
@@ -811,6 +823,11 @@ const handleTemplateSelectFocus = async () => {
   await refreshTemplatesHandler()
 }
 
+// 文本模型下拉获得焦点时刷新，确保新建/编辑后的模型立即可用
+const handleTextModelSelectFocus = async () => {
+  await refreshTextModelsHandler()
+}
+
 onMounted(async () => {
   console.log('[ImageWorkspace] Starting initialization...')
   console.log('[ImageWorkspace] Services available:', !!services?.value)
@@ -824,6 +841,7 @@ onMounted(async () => {
   // 监听模板语言切换事件，刷新迭代模板选择
   if (typeof window !== 'undefined') {
     window.addEventListener('image-workspace-refresh-iterate-select', refreshIterateHandler)
+    window.addEventListener('image-workspace-refresh-text-models', refreshTextModelsHandler)
     window.addEventListener('image-workspace-refresh-image-models', refreshImageModelsHandler)
     window.addEventListener('image-workspace-refresh-templates', refreshTemplatesHandler)
   }
@@ -838,6 +856,7 @@ onUnmounted(() => {
   cleanup()
   if (typeof window !== 'undefined') {
     window.removeEventListener('image-workspace-refresh-iterate-select', refreshIterateHandler)
+    window.removeEventListener('image-workspace-refresh-text-models', refreshTextModelsHandler)
     window.removeEventListener('image-workspace-refresh-image-models', refreshImageModelsHandler)
     window.removeEventListener('image-workspace-refresh-templates', refreshTemplatesHandler)
   }

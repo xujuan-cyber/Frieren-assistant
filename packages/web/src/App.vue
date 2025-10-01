@@ -1116,6 +1116,7 @@ import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/
     await refreshTextModels()
     // 图像模式：广播刷新图像模型事件（ImageWorkspace 监听并执行刷新）
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('image-workspace-refresh-text-models'))
       window.dispatchEvent(new Event('image-workspace-refresh-image-models'))
     }
   }
