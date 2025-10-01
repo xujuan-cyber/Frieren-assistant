@@ -47,6 +47,8 @@ import { template as image_chinese_optimize } from './image-optimize/text2image/
 import { template as image_chinese_optimize_en } from './image-optimize/text2image/chinese-model-optimize_en';
 import { template as image_photography_optimize } from './image-optimize/text2image/photography-optimize';
 import { template as image_photography_optimize_en } from './image-optimize/text2image/photography-optimize_en';
+import { template as image_creative_text2image } from './image-optimize/text2image/creative-text2image';
+import { template as image_creative_text2image_en } from './image-optimize/text2image/creative-text2image_en';
 // 图生图
 import { template as image2image_optimize } from './image-optimize/image2image/image2image-optimize';
 import { template as image2image_optimize_en } from './image-optimize/image2image/image2image-optimize_en';
@@ -93,6 +95,8 @@ export const ALL_TEMPLATES = {
   image_chinese_optimize_en,
   image_photography_optimize,
   image_photography_optimize_en,
+  image_creative_text2image,
+  image_creative_text2image_en,
   // 图生图模板
   image2image_optimize,
   image2image_optimize_en,
