@@ -548,23 +548,20 @@ export class LLMService implements ILLMService {
         const reasoningContent = chunk.choices[0]?.delta?.reasoning_content || '';
         if (reasoningContent) {
           accumulatedReasoning += reasoningContent;
-          
+
           // 如果有推理回调，发送推理内容
           if (callbacks.onReasoningToken) {
             callbacks.onReasoningToken(reasoningContent);
           }
-          await new Promise(resolve => setTimeout(resolve, 10));
         }
 
         // 处理主要内容
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
           accumulatedContent += content;
-          
+
           // 使用流式think标签处理
           this.processStreamContentWithThinkTags(content, callbacks, thinkState);
-          
-          await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
 
@@ -641,7 +638,6 @@ export class LLMService implements ILLMService {
           if (callbacks.onReasoningToken) {
             callbacks.onReasoningToken(reasoningContent);
           }
-          await new Promise(resolve => setTimeout(resolve, 10));
         }
 
         // 🆕 处理工具调用
@@ -652,9 +648,9 @@ export class LLMService implements ILLMService {
               while (toolCalls.length <= toolCallDelta.index) {
                 toolCalls.push({ id: '', type: 'function' as const, function: { name: '', arguments: '' } });
               }
-              
+
               const currentToolCall = toolCalls[toolCallDelta.index];
-              
+
               if (toolCallDelta.id) currentToolCall.id = toolCallDelta.id;
               if (toolCallDelta.type) currentToolCall.type = toolCallDelta.type;
               if (toolCallDelta.function) {
@@ -664,9 +660,9 @@ export class LLMService implements ILLMService {
                 if (toolCallDelta.function.arguments) {
                   currentToolCall.function.arguments += toolCallDelta.function.arguments;
                 }
-                
+
                 // 当工具调用完整时，通知回调
-                if (currentToolCall.id && currentToolCall.function.name && 
+                if (currentToolCall.id && currentToolCall.function.name &&
                     toolCallDelta.function.arguments && callbacks.onToolCall) {
                   try {
                     JSON.parse(currentToolCall.function.arguments);
@@ -685,7 +681,6 @@ export class LLMService implements ILLMService {
         if (content) {
           accumulatedContent += content;
           this.processStreamContentWithThinkTags(content, callbacks, thinkState);
-          await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
 
@@ -769,8 +764,6 @@ export class LLMService implements ILLMService {
         if (text) {
           accumulatedContent += text;
           callbacks.onToken(text);
-          // 添加小延迟，让UI有时间更新
-          await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
 
@@ -865,8 +858,6 @@ export class LLMService implements ILLMService {
         if (text) {
           accumulatedContent += text;
           callbacks.onToken(text);
-          // 添加小延迟，让UI有时间更新
-          await new Promise(resolve => setTimeout(resolve, 10));
         }
 
         // 处理工具调用
@@ -881,9 +872,9 @@ export class LLMService implements ILLMService {
                 arguments: JSON.stringify(functionCall.args)
               }
             };
-            
+
             toolCalls.push(toolCall);
-            
+
             console.log('[Gemini] Tool call received:', toolCall);
             if (callbacks.onToolCall) {
               callbacks.onToolCall(toolCall);
