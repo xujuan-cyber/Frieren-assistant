@@ -24,6 +24,7 @@ const createTestI18n = () => createI18n({
   locale: 'zh-CN',
   messages: {
     'zh-CN': {},
+    'zh-TW': {},
     'en-US': {}
   }
 })
@@ -68,9 +69,10 @@ describe('LanguageSwitchDropdown', () => {
     it('应该包含正确的语言选项', () => {
       wrapper = createWrapper()
       const vm = wrapper.vm
-      expect(vm.availableLanguages).toHaveLength(2)
+      expect(vm.availableLanguages).toHaveLength(3)
       expect(vm.availableLanguages[0].key).toBe('zh-CN')
-      expect(vm.availableLanguages[1].key).toBe('en-US')
+      expect(vm.availableLanguages[1].key).toBe('zh-TW')
+      expect(vm.availableLanguages[2].key).toBe('en-US')
     })
 
     it('应该能够调用语言切换方法', async () => {
