@@ -71,21 +71,7 @@ export function useTemplateManager(
           toast.error('保存模板选择失败')
         })
 
-        // 只在明确要求时显示toast
-        if (showToast) {
-          let typeText = ''
-          if (type === 'optimize') {
-            typeText = t('common.optimize')
-          } else if (type === 'userOptimize') {
-            typeText = '用户提示词优化'
-          } else {
-            typeText = t('common.iterate')
-          }
-          toast.success(t('toast.success.templateSelected', {
-            type: typeText,
-            name: template.name
-          }))
-        }
+        // 不再显示toast提示，移除选择成功的冒泡提示
       }
     },
     openTemplateManager: (type: string) => {
@@ -171,17 +157,14 @@ export function useTemplateManager(
     }
   }, { immediate: true })
 
-  // 监听模板变化，自动保存到存储
+  // 监听模板变化，自动保存到存储（移除toast提示）
   watch(() => selectedOptimizeTemplate.value, async (newTemplate, oldTemplate) => {
     if (newTemplate && oldTemplate && newTemplate.id !== oldTemplate.id) {
       try {
         const mode = functionMode.value as FunctionMode
         const type = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
         await saveTemplateSelection(newTemplate, type as any)
-        toast.success(t('toast.success.templateSelected', {
-          type: t('common.optimize'),
-          name: newTemplate.name
-        }))
+        // 不再显示toast提示，移除选择成功的冒泡提示
       } catch (error) {
         console.error('[useTemplateManager] 保存系统优化模板失败:', error)
         toast.error('保存模板选择失败')
@@ -195,10 +178,7 @@ export function useTemplateManager(
         const mode = functionMode.value as FunctionMode
         const type = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
         await saveTemplateSelection(newTemplate, type as any)
-        toast.success(t('toast.success.templateSelected', {
-          type: '用户提示词优化',
-          name: newTemplate.name
-        }))
+        // 不再显示toast提示，移除选择成功的冒泡提示
       } catch (error) {
         console.error('[useTemplateManager] 保存用户优化模板失败:', error)
         toast.error('保存模板选择失败')
@@ -212,10 +192,7 @@ export function useTemplateManager(
         const mode = functionMode.value as FunctionMode
         const type = (mode === 'pro') ? 'contextIterate' : 'iterate'
         await saveTemplateSelection(newTemplate, type as any)
-        toast.success(t('toast.success.templateSelected', {
-          type: t('common.iterate'),
-          name: newTemplate.name
-        }))
+        // 不再显示toast提示，移除选择成功的冒泡提示
       } catch (error) {
         console.error('[useTemplateManager] 保存迭代模板失败:', error)
         toast.error('保存模板选择失败')
