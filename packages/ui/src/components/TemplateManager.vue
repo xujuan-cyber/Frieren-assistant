@@ -323,31 +323,47 @@
         </div>
         
         <!-- Simple Template Editor -->
-        <div v-if="!form.isAdvanced">
-          <label class="block text-sm font-medium mb-1.5">
-            {{ t('template.content') }}
-            <span class="text-xs ml-2 opacity-70">
-              {{ t('templateManager.simpleTemplateHint') }}
-            </span>
-          </label>
+        <NSpace v-if="!form.isAdvanced" vertical :size="8">
+          <NSpace justify="space-between" align="center">
+            <NText>
+              {{ t('template.content') }}
+              <NText depth="3" style="font-size: 12px; margin-left: 8px;">
+                {{ t('templateManager.simpleTemplateHint') }}
+              </NText>
+            </NText>
+            <NButton
+              v-if="!viewingTemplate"
+              size="tiny"
+              quaternary
+              @click="openFullscreenEditor('simple')"
+              :title="t('templateManager.fullscreenEdit')"
+            >
+              <template #icon>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                </svg>
+              </template>
+              {{ t('templateManager.fullscreen') }}
+            </NButton>
+          </NSpace>
           <NInput
             v-model:value="form.content"
             type="textarea"
             :placeholder="t('template.contentPlaceholder')"
-            :rows="15"
+            :autosize="{ minRows: 15, maxRows: 30 }"
             :readonly="!!viewingTemplate"
           />
-        </div>
+        </NSpace>
 
         <!-- Advanced Template Editor -->
-        <div v-else>
-          <div class="flex items-center justify-between mb-3">
-            <label class="block text-sm font-medium">
+        <NSpace v-else vertical :size="12">
+          <NSpace justify="space-between" align="center">
+            <NText>
               {{ t('templateManager.messageTemplates') }}
-              <span class="text-xs ml-2 opacity-70">
+              <NText depth="3" style="font-size: 12px; margin-left: 8px;">
                 {{ t('templateManager.advancedTemplateHint') }}
-              </span>
-            </label>
+              </NText>
+            </NText>
             <NButton
               v-if="!viewingTemplate"
               @click="addMessage"
@@ -361,7 +377,7 @@
               </template>
               {{ t('templateManager.addMessage') }}
             </NButton>
-          </div>
+          </NSpace>
 
           <!-- Message List -->
           <NScrollbar style="max-height: 500px;">
@@ -384,19 +400,35 @@
                       { label: t('templateManager.roleAssistant'), value: 'assistant' }
                     ]"
                   />
-                  
+
                   <!-- Message Content -->
-                  <NInput
-                    v-model:value="message.content"
-                    type="textarea"
-                    :placeholder="t('templateManager.messageContentPlaceholder')"
-                    :rows="3"
-                    :readonly="!!viewingTemplate"
-                    class="flex-1"
-                  />
-                  
+                  <NSpace vertical :size="4" style="flex: 1;">
+                    <NInput
+                      v-model:value="message.content"
+                      type="textarea"
+                      :placeholder="t('templateManager.messageContentPlaceholder')"
+                      :autosize="{ minRows: 3, maxRows: 20 }"
+                      :readonly="!!viewingTemplate"
+                    />
+                    <NButton
+                      v-if="!viewingTemplate"
+                      size="tiny"
+                      quaternary
+                      @click="openFullscreenEditor('advanced', index)"
+                      :title="t('templateManager.fullscreenEdit')"
+                      style="align-self: flex-end;"
+                    >
+                      <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                        </svg>
+                      </template>
+                      {{ t('templateManager.fullscreen') }}
+                    </NButton>
+                  </NSpace>
+
                   <!-- Message Controls -->
-                  <div v-if="!viewingTemplate" class="flex flex-col gap-1 flex-shrink-0">
+                  <NSpace v-if="!viewingTemplate" vertical :size="4" style="flex-shrink: 0;">
                     <NButton
                       quaternary
                       size="tiny"
@@ -433,12 +465,12 @@
                         </svg>
                       </template>
                     </NButton>
-                  </div>
+                  </NSpace>
                 </div>
               </NCard>
             </NSpace>
           </NScrollbar>
-        </div>
+        </NSpace>
         
         <!-- Template Preview -->
         <div v-if="form.isAdvanced && form.messages.length > 0">
@@ -553,17 +585,57 @@
         </NSpace>
       </template>
     </NModal>
+
+    <!-- Fullscreen Editor Modal -->
+    <NModal
+      :show="fullscreenEditor.show"
+      preset="card"
+      :style="{ width: '95vw', height: '90vh', maxWidth: '1400px' }"
+      :title="t('templateManager.fullscreenEdit')"
+      size="large"
+      :bordered="false"
+      :segmented="true"
+      @update:show="(value: boolean) => !value && closeFullscreenEditor()"
+    >
+      <NEl style="height: calc(90vh - 140px);">
+        <NInput
+          v-model:value="fullscreenEditor.content"
+          type="textarea"
+          :placeholder="fullscreenEditor.type === 'simple'
+            ? t('template.contentPlaceholder')
+            : t('templateManager.messageContentPlaceholder')"
+          style="height: 100%;"
+          :autosize="false"
+        />
+      </NEl>
+
+      <template #action>
+        <NSpace justify="space-between" style="width: 100%;">
+          <NText depth="3" style="font-size: 12px;">
+            {{ t('templateManager.characterCount', { count: fullscreenEditor.content.length }) }}
+          </NText>
+          <NSpace>
+            <NButton @click="closeFullscreenEditor()">
+              {{ t('common.cancel') }}
+            </NButton>
+            <NButton type="primary" @click="saveFullscreenEditor">
+              {{ t('common.save') }}
+            </NButton>
+          </NSpace>
+        </NSpace>
+      </template>
+    </NModal>
   </NModal>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { 
-  NModal, NCard, NTabs, NTabPane, NButton, NTag, NInput, NInputGroup, 
+import {
+  NModal, NCard, NTabs, NTabPane, NButton, NTag, NInput, NInputGroup,
   NSelect, NSpace, NText, NH3, NH4, NDivider, NScrollbar,
   NButtonGroup, NIcon, NCode, NSwitch, NMessageProvider,
-  NGrid, NGridItem
+  NGrid, NGridItem, NEl
 } from 'naive-ui'
 import { TemplateProcessor, type Template, type MessageTemplate } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
@@ -641,6 +713,18 @@ const migrationDialog = ref<{
   template: null,
   original: '',
   converted: []
+})
+
+const fullscreenEditor = ref<{
+  show: boolean
+  type: 'simple' | 'advanced'
+  messageIndex: number
+  content: string
+}>({
+  show: false,
+  type: 'simple',
+  messageIndex: -1,
+  content: ''
 })
 
 // 添加计算属性
@@ -981,6 +1065,36 @@ const applyMigration = async () => {
     console.error('Migration failed:', error)
     toast.error(t('templateManager.migrationFailed'))
   }
+}
+
+// 打开全屏编辑器
+const openFullscreenEditor = (type: 'simple' | 'advanced', messageIndex = -1) => {
+  fullscreenEditor.value = {
+    show: true,
+    type,
+    messageIndex,
+    content: type === 'simple' ? form.value.content : form.value.messages[messageIndex]?.content || ''
+  }
+}
+
+// 关闭全屏编辑器
+const closeFullscreenEditor = () => {
+  fullscreenEditor.value = {
+    show: false,
+    type: 'simple',
+    messageIndex: -1,
+    content: ''
+  }
+}
+
+// 保存全屏编辑器内容
+const saveFullscreenEditor = () => {
+  if (fullscreenEditor.value.type === 'simple') {
+    form.value.content = fullscreenEditor.value.content
+  } else if (fullscreenEditor.value.messageIndex >= 0) {
+    form.value.messages[fullscreenEditor.value.messageIndex].content = fullscreenEditor.value.content
+  }
+  closeFullscreenEditor()
 }
 
 // 提交表单

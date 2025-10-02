@@ -531,6 +531,11 @@
     // 预览
     preview: '预览',
 
+    // 全屏编辑
+    fullscreen: '全屏',
+    fullscreenEdit: '全屏编辑',
+    characterCount: '{count} 个字符',
+
     // 迁移
     convertToAdvanced: '转换为高级格式',
     migrationDescription: '将简单模板转换为高级消息格式，提供更灵活的控制能力。',

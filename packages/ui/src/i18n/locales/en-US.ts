@@ -531,6 +531,11 @@ export default {
     // Preview
     preview: 'Preview',
 
+    // Fullscreen Edit
+    fullscreen: 'Fullscreen',
+    fullscreenEdit: 'Fullscreen Edit',
+    characterCount: '{count} characters',
+
     // Migration
     convertToAdvanced: 'Convert to Advanced Format',
     migrationDescription: 'Convert simple template to advanced message format for more flexible control.',

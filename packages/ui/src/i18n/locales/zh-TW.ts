@@ -531,6 +531,11 @@ export default {
     // 預覽
     preview: '預覽',
 
+    // 全螢幕編輯
+    fullscreen: '全螢幕',
+    fullscreenEdit: '全螢幕編輯',
+    characterCount: '{count} 個字符',
+
     // 遷移
     convertToAdvanced: '轉換為進階格式',
     migrationDescription: '將簡單範本轉換為進階訊息格式，提供更靈活的控制能力。',
