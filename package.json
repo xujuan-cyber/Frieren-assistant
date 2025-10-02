@@ -39,7 +39,10 @@
     "mcp:start": "pnpm --filter @prompt-optimizer/mcp-server start",
     "mcp:test": "pnpm --filter @prompt-optimizer/mcp-server test",
     "lint": "pnpm -F @prompt-optimizer/ui lint",
-    "lint:fix": "pnpm -F @prompt-optimizer/ui lint:fix"
+    "lint:fix": "pnpm -F @prompt-optimizer/ui lint:fix",
+    "bmad:refresh": "bmad-method install -f -i codex",
+    "bmad:list": "bmad-method list:agents",
+    "bmad:validate": "bmad-method validate"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^6.0.3",
