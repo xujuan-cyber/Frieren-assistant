@@ -1,5 +1,5 @@
 <template>
-  <NModal 
+  <NModal
     v-model:show="localVisible"
     preset="card"
     :title="title"
@@ -10,15 +10,15 @@
     transform-origin="center"
     content-style="height: 100%; display: flex; flex-direction: column; min-height: 0;"
   >
-    <div class="fullscreen-content">
+    <NFlex vertical style="height: 100%; min-height: 0; overflow: auto;">
       <slot></slot>
-    </div>
+    </NFlex>
   </NModal>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NModal } from 'naive-ui'
+import { NModal, NFlex } from 'naive-ui'
 
 const props = defineProps({
   modelValue: {

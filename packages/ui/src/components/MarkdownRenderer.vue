@@ -1,9 +1,9 @@
 <template>
-    <NScrollbar v-if="!disableInternalScroll" :style="{ height: '100%' }" :bordered="false" content-style="padding: 0; height: 100%; display: flex; flex-direction: column;">
-      <div ref="markdownContainer" class="markdown-content" :style="{ height: '100%',maxHeight: '100%' }">
+    <NScrollbar v-if="!disableInternalScroll" style="height: 100%; max-height: 100%;" :bordered="false">
+      <div ref="markdownContainer" class="markdown-content markdown-content--scrollable">
       </div>
     </NScrollbar>
-    <div v-else ref="markdownContainer" class="markdown-content" :style="{ height: '100%',maxHeight: '100%' }">
+    <div v-else ref="markdownContainer" class="markdown-content" style="height: 100%; max-height: 100%; overflow-y: auto;">
     </div>
 </template>
 
@@ -287,10 +287,11 @@ onMounted(renderMarkdown);
   overflow-wrap: break-word;
   hyphens: auto;
   /* Pure Naive UI theme - remove custom CSS variables */
-  /* 填满容器并处理滚动 */
-  height: 100%;
-  overflow-y: auto;
   padding: 0.75rem; /* 提供合适的内边距，与其他组件保持一致 */
+}
+
+/* 当使用 NScrollbar 时，不需要自己的滚动条 */
+.markdown-content--scrollable {
   /* 隐藏滚动条但保持可滚动 */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */

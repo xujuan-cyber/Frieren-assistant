@@ -1,12 +1,12 @@
 <template>
-  <NCard 
+  <NCard
     :bordered="false"
     class="output-display-core h-full  max-height: 100% "
-    content-style="padding: 0; height: 100%; max-height: 100%;"
+    content-style="padding: 0; height: 100%; max-height: 100%; display: flex; flex-direction: column; overflow: hidden;"
   >
-    <NFlex vertical style="height: 100%;">
+    <NFlex vertical style="height: 100%; min-height: 0; overflow: hidden;">
       <!-- 统一顶层工具栏 -->
-      <NFlex v-if="hasToolbar" justify="space-between" align="center">
+      <NFlex v-if="hasToolbar" justify="space-between" align="center" style="flex: 0 0 auto;">
         <!-- 左侧：视图控制按钮组 -->
         <NButtonGroup>
           <NButton 
@@ -103,14 +103,14 @@
         </NCollapse>
       </NFlex>
       <!-- 主要内容区域 -->
-      <NFlex vertical style="flex: 1; min-height: 0; max-height: 100%;">
+      <NFlex vertical style="flex: 1; min-height: 0; max-height: 100%; overflow: hidden;">
         <!-- 对比模式 -->
-        <TextDiffUI v-if="internalViewMode === 'diff' && content && originalContent" 
+        <TextDiffUI v-if="internalViewMode === 'diff' && content && originalContent"
           :originalText="originalContent"
           :optimizedText="content"
           :compareResult="compareResult"
           class="w-full"
-          style="height: 100%;"
+          style="height: 100%; min-height: 0; overflow: auto;"
         />
 
         <!-- 原文模式 -->
@@ -121,21 +121,21 @@
           type="textarea"
           :placeholder="placeholder"
           :autosize="{ minRows: 10 }"
-          style="height: 100%;"
+          style="height: 100%; min-height: 0;"
         />
 
         <!-- 渲染模式（默认） -->
-        <NSpace v-else
-         style="height: 100%;max-height: 100%;"
-         item-style="height: 100%;max-height: 100%;"
-         :align="displayContent ? 'start' : 'center'"
-         :justify="displayContent ? 'start' : 'center'"
+        <NFlex v-else
+          vertical
+          :align="displayContent ? 'stretch' : 'center'"
+          :justify="displayContent ? 'start' : 'center'"
+          style="flex: 1; min-height: 0; overflow: hidden;"
         >
           <MarkdownRenderer
             v-if="displayContent"
             :content="displayContent"
             :streaming="streaming"
-            style="height: 100%;max-height: 100%;"
+            style="flex: 1; min-height: 0; overflow: auto;"
           />
           <NEmpty
             v-else-if="!loading && !streaming"
@@ -144,7 +144,7 @@
             style="height: 100%;"
           />
           <NText  v-else class="ml-2">{{ placeholder || t('common.loading') }}</NText>
-        </NSpace>
+        </NFlex>
       </NFlex>
   
     </NFlex>
