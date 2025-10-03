@@ -1,5 +1,5 @@
 import { watch, computed, reactive, nextTick, type Ref } from 'vue'
-import { MODEL_SELECTION_KEYS, type ModelConfig } from '@prompt-optimizer/core'
+import { MODEL_SELECTION_KEYS, type TextModelConfig } from '@prompt-optimizer/core'
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { usePreferences } from './usePreferenceManager'
@@ -12,7 +12,7 @@ export interface ModelManagerHooks {
   selectedTestModel: string
   handleModelManagerClose: () => void
   handleModelsUpdated: (modelKey: string) => void
-  handleModelSelect: (model: ModelConfig & { key: string }) => void
+  handleModelSelect: (model: TextModelConfig) => void
   initModelSelection: () => void
   loadModels: () => void
 }
@@ -59,14 +59,14 @@ export function useModelManager(
       // Handle other logic after model update if needed
       console.log(t('toast.info.modelUpdated'), modelKey)
     },
-    handleModelSelect: async (model: ModelConfig & { key: string }) => {
+    handleModelSelect: async (model: TextModelConfig) => {
       if (model) {
-        state.selectedOptimizeModel = model.key
-        state.selectedTestModel = model.key
-        
-        await saveModelSelection(model.key, 'optimize')
-        await saveModelSelection(model.key, 'test')
-        
+        state.selectedOptimizeModel = model.id
+        state.selectedTestModel = model.id
+
+        await saveModelSelection(model.id, 'optimize')
+        await saveModelSelection(model.id, 'test')
+
         toast.success(t('toast.success.modelSelected', { name: model.name }))
       }
     },
@@ -74,19 +74,19 @@ export function useModelManager(
       try {
         const allModels = await modelManager.value!.getAllModels()
         const enabledModels = allModels.filter(m => m.enabled)
-        const defaultModel = enabledModels[0]?.key
-  
+        const defaultModel = enabledModels[0]?.id
+
         if (enabledModels.length > 0) {
           const savedOptimizeModel = await getPreference(MODEL_SELECTION_KEYS.OPTIMIZE_MODEL, defaultModel)
-          state.selectedOptimizeModel = enabledModels.some(m => m.key === savedOptimizeModel)
+          state.selectedOptimizeModel = enabledModels.some(m => m.id === savedOptimizeModel)
             ? savedOptimizeModel
             : defaultModel
 
           const savedTestModel = await getPreference(MODEL_SELECTION_KEYS.TEST_MODEL, defaultModel)
-          state.selectedTestModel = enabledModels.some(m => m.key === savedTestModel)
+          state.selectedTestModel = enabledModels.some(m => m.id === savedTestModel)
             ? savedTestModel
             : defaultModel
-  
+
           await saveModelSelection(state.selectedOptimizeModel, 'optimize')
           await saveModelSelection(state.selectedTestModel, 'test')
         }
@@ -100,13 +100,13 @@ export function useModelManager(
         // Get latest enabled models list
         const allModels = await modelManager.value!.getAllModels()
         const enabledModels = allModels.filter((m: any) => m.enabled)
-        const defaultModel = enabledModels[0]?.key
-  
+        const defaultModel = enabledModels[0]?.id
+
         // Verify if current selected models are still available
-        if (!enabledModels.find((m: any) => m.key === state.selectedOptimizeModel)) {
+        if (!enabledModels.find((m: any) => m.id === state.selectedOptimizeModel)) {
           state.selectedOptimizeModel = defaultModel || ''
         }
-        if (!enabledModels.find((m: any) => m.key === state.selectedTestModel)) {
+        if (!enabledModels.find((m: any) => m.id === state.selectedTestModel)) {
           state.selectedTestModel = defaultModel || ''
         }
       } catch (error: any) {

@@ -1,17 +1,18 @@
 import { vi, describe, beforeEach, it, expect, afterEach } from 'vitest'
-import { 
-  createLLMService, 
+import {
+  createLLMService,
   createModelManager,
   createTemplateManager,
   createHistoryManager,
   PromptService,
-  ModelConfig,
   OptimizationRequest,
   OptimizationError,
   TestError,
   IStorageProvider,
   MemoryStorageProvider,
 } from '../../../src'
+import { TextModelConfig } from '../../../src/services/model/types'
+import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry'
 import { createTemplateLanguageService } from '../../../src/services/template/languageService'
 
 describe('PromptService', () => {
@@ -22,16 +23,7 @@ describe('PromptService', () => {
   let templateManager: any;
   let historyManager: any;
   let languageService: any;
-
-  const mockModelConfig: ModelConfig = {
-    name: 'test-model',
-    baseURL: 'https://test.api',
-    apiKey: 'test-key',
-    models: ['test-model'],
-    defaultModel: 'test-model',
-    enabled: true,
-    provider: 'openai'
-  };
+  let registry: TextAdapterRegistry;
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
@@ -40,11 +32,27 @@ describe('PromptService', () => {
     await storageProvider.clearAll();
 
     // Create all required services
+    registry = new TextAdapterRegistry();
     languageService = createTemplateLanguageService(storageProvider);
     templateManager = createTemplateManager(storageProvider, languageService);
     historyManager = createHistoryManager(storageProvider);
     modelManager = createModelManager(storageProvider);
     llmService = createLLMService(modelManager);
+
+    // Create TextModelConfig
+    const adapter = registry.getAdapter('openai');
+    const mockModelConfig: TextModelConfig = {
+      id: 'test-model',
+      name: 'test-model',
+      enabled: true,
+      providerMeta: adapter.getProvider(),
+      modelMeta: adapter.buildDefaultModel('test-model'),
+      connectionConfig: {
+        apiKey: 'test-key',
+        baseURL: 'https://test.api'
+      },
+      paramOverrides: {}
+    };
 
     // Initialize services
     await modelManager.addModel('test-model', mockModelConfig);

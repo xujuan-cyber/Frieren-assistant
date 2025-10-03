@@ -1,10 +1,10 @@
-import { ModelConfig } from './types';
+import { TextModelConfig } from './types';
 import { getEnvVar, clearCustomModelEnvCache } from '../../utils/environment';
-import { createStaticModels } from './static-models';
+import { createDefaultTextModels } from './text-model-defaults';
 import { generateDynamicModels } from './model-utils';
 
-// 获取环境变量并生成静态模型配置
-const staticModels: Record<string, ModelConfig> = createStaticModels({
+// 获取环境变量并生成静态模型配置（新格式 TextModelConfig）
+const staticModels: Record<string, TextModelConfig> = createDefaultTextModels({
   OPENAI_API_KEY: getEnvVar('VITE_OPENAI_API_KEY').trim(),
   GEMINI_API_KEY: getEnvVar('VITE_GEMINI_API_KEY').trim(),
   DEEPSEEK_API_KEY: getEnvVar('VITE_DEEPSEEK_API_KEY').trim(),
@@ -17,9 +17,10 @@ const staticModels: Record<string, ModelConfig> = createStaticModels({
 
 /**
  * 获取所有模型配置（包括静态和动态）
+ * @returns TextModelConfig格式的模型配置
  */
-export function getAllModels(): Record<string, ModelConfig> {
-  // 生成动态自定义模型
+export function getAllModels(): Record<string, TextModelConfig> {
+  // 生成动态自定义模型（现在返回 TextModelConfig 格式）
   const dynamicModels = generateDynamicModels();
 
   // 合并静态模型和动态模型

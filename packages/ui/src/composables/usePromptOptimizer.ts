@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n'
 
 import { v4 as uuidv4 } from 'uuid'
 import type {
-  ModelConfig,
   IModelManager,
   IHistoryManager,
   Template,

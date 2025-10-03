@@ -212,7 +212,7 @@ describe.skipIf(!RUN_REAL_API)('Real API Integration Tests', () => {
         models: ['deepseek-chat'],
         defaultModel: 'deepseek-chat',
         enabled: true,
-        provider: 'openai' as const // 使用OpenAI兼容格式
+        provider: 'deepseek' as const
       }
       await modelManager.addModel('test-deepseek', deepseekModel)
 

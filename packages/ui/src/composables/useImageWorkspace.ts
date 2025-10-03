@@ -162,16 +162,16 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
 
       const textModels = await manager.getEnabledModels()
       textModelOptions.value = textModels.map(m => ({
-        label: `${m.name} (${m.provider})`,
+        label: `${m.name} (${m.providerMeta.name})`,
         primary: m.name,
-        secondary: m.provider ?? 'Unknown',
-        value: m.key,
+        secondary: m.providerMeta.name ?? 'Unknown',
+        value: m.id,
         raw: m
       }))
 
       const currentKey = state.selectedTextModelKey
-      const keys = new Set(textModels.map(m => m.key))
-      const fallback = textModels[0]?.key || ''
+      const keys = new Set(textModels.map(m => m.id))
+      const fallback = textModels[0]?.id || ''
 
       const needsFallback = (!currentKey && fallback) || (currentKey && !keys.has(currentKey))
 

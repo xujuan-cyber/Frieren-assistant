@@ -1,4 +1,4 @@
-import type { ModelConfig, Template } from '@prompt-optimizer/core'
+import type { TextModelConfig, Template } from '@prompt-optimizer/core'
 import type { ModelSelectOption, TemplateSelectOption, SelectOption } from '../types/select-options'
 
 /**
@@ -11,14 +11,14 @@ export class DataTransformer {
    * @param models 模型配置数组
    * @returns 标准化的模型选择选项
    */
-  static modelsToSelectOptions(models: (ModelConfig & { key: string })[]): ModelSelectOption[] {
+  static modelsToSelectOptions(models: TextModelConfig[]): ModelSelectOption[] {
     return models.map(model => ({
       primary: model.name,
-      secondary: model.provider ?? (model as any)?.providerId ?? 'Unknown',
-      value: model.key,
+      secondary: model.providerMeta?.name ?? model.providerMeta?.id ?? 'Unknown',
+      value: model.id,
       raw: model,
       // 保持向后兼容性
-      label: `${model.name} (${model.provider ?? (model as any)?.providerId ?? 'Unknown'})`
+      label: `${model.name} (${model.providerMeta?.name ?? model.providerMeta?.id ?? 'Unknown'})`
     }))
   }
 
@@ -87,3 +87,4 @@ export const OptionAccessors = {
    */
   getValue: <T>(opt: SelectOption<T>): string => opt.value
 }
+

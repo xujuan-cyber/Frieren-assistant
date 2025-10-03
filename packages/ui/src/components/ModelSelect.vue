@@ -35,7 +35,7 @@ import { ref, computed, watch, onMounted, inject, h, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NSelect, NTag, NButton, NText, NSpace } from 'naive-ui'
 import type { AppServices } from '../types/services'
-import type { ModelConfig } from '@prompt-optimizer/core'
+import type { TextModelConfig } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
@@ -76,8 +76,10 @@ const getModelManager = computed(() => {
 })
 
 // 响应式数据存储
-const allModels = ref<Array<ModelConfig & { key: string }>>([])
-const enabledModels = ref<Array<ModelConfig & { key: string }>>([])
+const allModels = ref<TextModelConfig[]>([])
+const enabledModels = ref<TextModelConfig[]>([])
+
+const DEFAULT_MODEL_IDS = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow', 'custom']
 
 // 加载模型数据
 const loadModels = async () => {
@@ -92,12 +94,12 @@ const loadModels = async () => {
     await manager.ensureInitialized()
     allModels.value = await manager.getAllModels()
     enabledModels.value = await manager.getEnabledModels()
-    
+
     // 如果当前选中的模型不在启用列表中，尝试设置一个默认模型
-    if (props.modelValue && !enabledModels.value.find(m => m.key === props.modelValue)) {
-      const defaultModel = enabledModels.value.find(m => (m as any).isDefault) || enabledModels.value[0]
+    if (props.modelValue && !enabledModels.value.find(m => m.id === props.modelValue)) {
+      const defaultModel = enabledModels.value.find(m => DEFAULT_MODEL_IDS.includes(m.id)) || enabledModels.value[0]
       if (defaultModel) {
-        emit('update:modelValue', defaultModel.key)
+        emit('update:modelValue', defaultModel.id)
       }
     }
   } catch (error) {
@@ -113,9 +115,9 @@ const loadModels = async () => {
 const selectOptions = computed(() => {
   const modelOptions = enabledModels.value.map(model => ({
     label: model.name,
-    value: model.key,
+    value: model.id,
     model: model,
-    isDefault: (model as any)?.isDefault ?? false,
+    isDefault: DEFAULT_MODEL_IDS.includes(model.id),
     type: 'model'
   }))
   
@@ -138,7 +140,7 @@ const selectOptions = computed(() => {
 const selectValue = computed(() => {
   // 若没有可用模型或当前值无效，返回 null 以显示占位符
   if (!enabledModels.value.length) return null as unknown as string
-  const exists = enabledModels.value.some(m => m.key === props.modelValue)
+  const exists = enabledModels.value.some(m => m.id === props.modelValue)
   return exists ? props.modelValue : null as unknown as string
 })
 
@@ -178,10 +180,10 @@ defineExpose({
 watch(
   () => props.modelValue,
   async (newValue) => {
-    if (newValue && !enabledModels.value.find(m => m.key === newValue)) {
+    if (newValue && !enabledModels.value.find(m => m.id === newValue)) {
       await loadModels()
-      if (!enabledModels.value.find(m => m.key === newValue)) {
-        emit('update:modelValue', enabledModels.value[0]?.key || '')
+      if (!enabledModels.value.find(m => m.id === newValue)) {
+        emit('update:modelValue', enabledModels.value[0]?.id || '')
       }
     }
   }

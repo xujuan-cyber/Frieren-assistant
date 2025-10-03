@@ -10,6 +10,8 @@ import { createTemplateLanguageService } from '../../src/services/template/langu
 import { createModelManager } from '../../src/services/model/manager';
 import { IStorageProvider } from '../../src/services/storage/types';
 import { PromptRecord } from '../../src/services/history/types';
+import { TextModelConfig } from '../../src/services/model/types';
+import { TextAdapterRegistry } from '../../src/services/llm/adapters/registry';
 import { v4 as uuidv4 } from 'uuid';
 import {createPreferenceService} from "../../src";
 
@@ -396,42 +398,53 @@ describe('存储实现通用测试', () => {
         });
 
         it('应该能够添加和获取模型配置', async () => {
-          const config = {
+          const registry = new TextAdapterRegistry();
+          const adapter = registry.getAdapter('openai');
+          const config: TextModelConfig = {
+            id: 'test-model',
             name: 'Test Model',
-            baseURL: 'https://api.test.com',
-            models: ['test-model-1'],
-            defaultModel: 'test-model-1',
             enabled: false,
-            provider: 'test'
+            providerMeta: adapter.getProvider(),
+            modelMeta: adapter.buildDefaultModel('test-model-1'),
+            connectionConfig: {
+              apiKey: 'test-api-key',
+              baseURL: 'https://api.test.com'
+            },
+            paramOverrides: {}
           };
 
           await modelManager.addModel('test-model', config);
           const retrieved = await modelManager.getModel('test-model');
 
           expect(retrieved?.name).toBe('Test Model');
-          expect(retrieved?.baseURL).toBe('https://api.test.com');
+          expect(retrieved?.connectionConfig.baseURL).toBe('https://api.test.com');
         });
 
         it('应该能够启用和禁用模型', async () => {
-          const config = {
+          const registry = new TextAdapterRegistry();
+          const adapter = registry.getAdapter('openai');
+          const config: TextModelConfig = {
+            id: 'test-model',
             name: 'Test Model',
-            baseURL: 'https://api.test.com',
-            models: ['test-model-1'],
-            defaultModel: 'test-model-1',
             enabled: false,
-            provider: 'test',
-            apiKey: 'test-api-key'
+            providerMeta: adapter.getProvider(),
+            modelMeta: adapter.buildDefaultModel('test-model-1'),
+            connectionConfig: {
+              apiKey: 'test-api-key',
+              baseURL: 'https://api.test.com'
+            },
+            paramOverrides: {}
           };
 
           await modelManager.addModel('test-model', config);
           await modelManager.enableModel('test-model');
 
           const enabledModels = await modelManager.getEnabledModels();
-          expect(enabledModels.some(m => m.key === 'test-model')).toBe(true);
+          expect(enabledModels.some(m => m.id === 'test-model')).toBe(true);
 
           await modelManager.disableModel('test-model');
           const disabledModels = await modelManager.getEnabledModels();
-          expect(disabledModels.some(m => m.key === 'test-model')).toBe(false);
+          expect(disabledModels.some(m => m.id === 'test-model')).toBe(false);
         });
       });
     });

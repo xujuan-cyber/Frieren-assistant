@@ -423,6 +423,7 @@
     apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: '输入或选择模型名称',
     apiKeyPlaceholder: '请输入API密钥（可选）',
+    modelKeyRequired: '模型标识不能为空',
 
     // 确认信息
     deleteConfirm: '确定要删除此模型吗？此操作不可恢复。',

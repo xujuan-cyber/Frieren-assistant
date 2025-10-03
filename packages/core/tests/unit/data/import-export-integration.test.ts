@@ -6,7 +6,8 @@ import { HistoryManager } from '../../../src/services/history/manager';
 import { PreferenceService } from '../../../src/services/preference/service';
 import { TemplateLanguageService } from '../../../src/services/template/languageService';
 import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
-import { ModelConfig } from '../../../src/services/model/types';
+import { TextModelConfig } from '../../../src/services/model/types';
+import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
 import { Template } from '../../../src/services/template/types';
 import { PromptRecord } from '../../../src/services/history/types';
 import { ContextRepo } from '../../../src/services/context/types';
@@ -19,14 +20,16 @@ describe('DataManager Import/Export Integration', () => {
   let preferenceService: PreferenceService;
   let mockContextRepo: ContextRepo;
   let storageProvider: MemoryStorageProvider;
+  let registry: TextAdapterRegistry;
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
     await storageProvider.clearAll();
 
     // 创建真实的服务实例
+    registry = new TextAdapterRegistry();
     preferenceService = new PreferenceService(storageProvider);
-    modelManager = new ModelManager(storageProvider);
+    modelManager = new ModelManager(storageProvider, registry);
     await modelManager.ensureInitialized();
 
     const languageService = new TemplateLanguageService(storageProvider, preferenceService);
@@ -65,16 +68,20 @@ describe('DataManager Import/Export Integration', () => {
   describe('Full Import/Export Cycle', () => {
     it('should export and import all data correctly', async () => {
       // 1. 准备测试数据
-      
+
       // 添加模型
-      const testModel: ModelConfig = {
+      const adapter = registry.getAdapter('openai');
+      const testModel: TextModelConfig = {
+        id: 'test-model-key',
         name: 'Test Model',
-        baseURL: 'https://api.test.com/v1',
-        models: ['test-model'],
-        defaultModel: 'test-model',
-        provider: 'test',
         enabled: true,
-        apiKey: 'test-key'
+        providerMeta: adapter.getProvider(),
+        modelMeta: adapter.buildDefaultModel('test-model'),
+        connectionConfig: {
+          apiKey: 'test-key',
+          baseURL: 'https://api.test.com/v1'
+        },
+        paramOverrides: {}
       };
       await modelManager.addModel('test-model-key', testModel);
 
@@ -126,7 +133,7 @@ describe('DataManager Import/Export Integration', () => {
       expect(exportedData.data).toHaveProperty('userSettings');
 
       // 验证导出的具体内容
-      const exportedModel = exportedData.data.models.find((m: any) => m.key === 'test-model-key');
+      const exportedModel = exportedData.data.models.find((m: any) => m.id === 'test-model-key');
       expect(exportedModel).toBeDefined();
       expect(exportedModel.name).toBe('Test Model');
 

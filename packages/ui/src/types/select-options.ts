@@ -19,7 +19,7 @@ export interface SelectOption<T = unknown> {
  * 模型配置选项
  * 专用于模型选择器的类型定义
  */
-export interface ModelSelectOption extends SelectOption<import('@prompt-optimizer/core').ModelConfig & { key: string }> {
+export interface ModelSelectOption extends SelectOption<import('@prompt-optimizer/core').TextModelConfig> {
   /** 模型名称 */
   primary: string
   /** 提供商名称 */
@@ -27,7 +27,7 @@ export interface ModelSelectOption extends SelectOption<import('@prompt-optimize
   /** 模型键值 */
   value: string
   /** 原始模型配置 */
-  raw: import('@prompt-optimizer/core').ModelConfig & { key: string }
+  raw: import('@prompt-optimizer/core').TextModelConfig
 }
 
 /**
@@ -44,3 +44,4 @@ export interface TemplateSelectOption extends SelectOption<import('@prompt-optim
   /** 原始模板配置 */
   raw: import('@prompt-optimizer/core').Template
 }
+

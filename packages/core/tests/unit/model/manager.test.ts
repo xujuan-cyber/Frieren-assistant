@@ -1,37 +1,50 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ModelManager, createModelManager } from '../../../src/services/model/manager';
 import { IStorageProvider } from '../../../src/services/storage/types';
-import { ModelConfig } from '../../../src/services/model/types';
+import { TextModelConfig } from '../../../src/services/model/types';
 import { ModelConfigError } from '../../../src/services/llm/errors';
-import { defaultModels } from '../../../src/services/model/defaults';
 import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
-
-// Helper to create a deep copy of defaultModels for isolated tests
-const getCleanDefaultModels = () => JSON.parse(JSON.stringify(defaultModels));
+import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
+import { defaultModels } from '../../../src/services/model/defaults';
 
 describe('ModelManager', () => {
   let modelManager: ModelManager;
   let storageProvider: IStorageProvider;
+  let registry: TextAdapterRegistry;
 
-  const createModelConfig = (name: string, enabled = true, apiKey = 'test_api_key', models = ['model1', 'model2'], defaultModel = 'model1', provider = 'custom'): ModelConfig => ({
-    name,
-    baseURL: `http://localhost/${name}/v1`,
-    models,
-    defaultModel,
-    apiKey,
-    enabled,
-    provider,
-  });
+  const createTextModelConfig = (
+    id: string,
+    name: string,
+    enabled = true,
+    apiKey = 'test_api_key',
+    providerId = 'openai'
+  ): TextModelConfig => {
+    const adapter = registry.getAdapter(providerId);
+    const provider = adapter.getProvider();
+    const models = adapter.getModels();
+
+    return {
+      id,
+      name,
+      enabled,
+      providerMeta: provider,
+      modelMeta: models[0] || adapter.buildDefaultModel('test-model'),
+      connectionConfig: {
+        apiKey,
+        baseURL: provider.defaultBaseURL
+      },
+      paramOverrides: {}
+    };
+  };
 
   beforeEach(async () => {
     // 为每个测试创建一个新的、干净的内存存储实例
     storageProvider = new MemoryStorageProvider();
+    registry = new TextAdapterRegistry();
     // 清理存储状态
     await storageProvider.clearAll();
-    // 使用工厂函数创建 ModelManager 实例
-    modelManager = createModelManager(storageProvider);
-    // 确保在每个测试运行前，ModelManager 都已完全初始化
-    await modelManager.ensureInitialized();
+    // 使用工厂函数创建 ModelManager 实例,注入Registry
+    modelManager = new ModelManager(storageProvider, registry);
   });
 
   afterEach(async () => {
@@ -41,57 +54,56 @@ describe('ModelManager', () => {
 
   describe('addModel', () => {
     it('should add a new model and save', async () => {
-      const newModel = createModelConfig('NewModel');
+      const newModel = createTextModelConfig('newKey', 'NewModel');
       await modelManager.addModel('newKey', newModel);
-      
-      const allModels = await modelManager.getAllModels();
-      const addedModel = allModels.find(m => m.key === 'newKey');
-      expect(addedModel).toBeDefined();
-      expect(addedModel?.name).toBe('NewModel');
+
+      const result = await modelManager.getModel('newKey');
+      expect(result).toBeDefined();
+      expect(result?.name).toBe('NewModel');
     });
 
     it('should throw ModelConfigError when adding a model with an existing key', async () => {
-      const existingModel = createModelConfig('ExistingModel');
+      const existingModel = createTextModelConfig('existingKey', 'ExistingModel');
       await modelManager.addModel('existingKey', existingModel);
-      
-      await expect(modelManager.addModel('existingKey', createModelConfig('DuplicateKey')))
+
+      await expect(modelManager.addModel('existingKey', createTextModelConfig('existingKey', 'DuplicateKey')))
         .rejects.toThrow(ModelConfigError);
     });
 
     it('should throw ModelConfigError when adding a model with invalid config', async () => {
-      const invalidModel = { ...createModelConfig('Invalid'), name: '' };
-      
-      await expect(modelManager.addModel('invalidKey', invalidModel as ModelConfig))
+      const invalidModel = { ...createTextModelConfig('invalidKey', 'Invalid'), id: '' };
+
+      await expect(modelManager.addModel('invalidKey', invalidModel as TextModelConfig))
         .rejects.toThrow(ModelConfigError);
     });
   });
   
   describe('getAllModels', () => {
     it('should return all models including their keys', async () => {
-      const model = createModelConfig('TestModel');
+      const model = createTextModelConfig('testKey', 'TestModel');
       await modelManager.addModel('testKey', model);
-      
+
       const result = await modelManager.getAllModels();
-      expect(result.some(m => m.key === 'testKey')).toBe(true);
+      expect(result.some(m => m.id === 'testKey')).toBe(true);
     });
 
     it('should return default models after initialization', async () => {
       const result = await modelManager.getAllModels();
       // 检查是否包含默认模型
       expect(result.length).toBeGreaterThan(0);
-      
+
       // 检查是否包含一个已知的默认模型
       const defaultKeys = Object.keys(defaultModels);
       if (defaultKeys.length > 0) {
         const firstDefaultKey = defaultKeys[0];
-        expect(result.some(m => m.key === firstDefaultKey)).toBe(true);
+        expect(result.some(m => m.id === firstDefaultKey)).toBe(true);
       }
     });
   });
 
   describe('getModel', () => {
     it('should retrieve an existing model by key', async () => {
-      const model = createModelConfig('MyModel');
+      const model = createTextModelConfig('MyModel', 'MyModel');
       await modelManager.addModel('myKey', model);
       
       const result = await modelManager.getModel('myKey');
@@ -106,19 +118,21 @@ describe('ModelManager', () => {
 
   describe('updateModel', () => {
     it('should update an existing model and save', async () => {
-      const originalModel = createModelConfig('OriginalName');
+      const originalModel = createTextModelConfig('OriginalName', 'OriginalName');
       await modelManager.addModel('updateKey', originalModel);
       
-      const updates: Partial<ModelConfig> = { 
-        name: 'UpdatedName', 
-        apiKey: 'new_api_key' 
+      const updates: Partial<TextModelConfig> = {
+        name: 'UpdatedName',
+        connectionConfig: {
+          apiKey: 'new_api_key'
+        }
       };
       
       await modelManager.updateModel('updateKey', updates);
       
       const updatedModel = await modelManager.getModel('updateKey');
       expect(updatedModel?.name).toBe('UpdatedName');
-      expect(updatedModel?.apiKey).toBe('new_api_key');
+      expect(updatedModel?.connectionConfig.apiKey).toBe('new_api_key');
     });
 
     it('should throw ModelConfigError when updating a non-existent model', async () => {
@@ -129,7 +143,7 @@ describe('ModelManager', () => {
 
   describe('deleteModel', () => {
     it('should delete an existing model', async () => {
-      const model = createModelConfig('DeleteMe');
+      const model = createTextModelConfig('DeleteMe', 'DeleteMe');
       await modelManager.addModel('deleteKey', model);
       
       await modelManager.deleteModel('deleteKey');
@@ -146,7 +160,7 @@ describe('ModelManager', () => {
 
   describe('enableModel & disableModel', () => {
     it('should enable a disabled model', async () => {
-      const disabledModel = createModelConfig('DisabledModel', false);
+      const disabledModel = createTextModelConfig('DisabledModel', 'DisabledModel', false);
       await modelManager.addModel('disabledKey', disabledModel);
       
       await modelManager.enableModel('disabledKey');
@@ -156,7 +170,7 @@ describe('ModelManager', () => {
     });
 
     it('should disable an enabled model', async () => {
-      const enabledModel = createModelConfig('EnabledModel', true);
+      const enabledModel = createTextModelConfig('EnabledModel', 'EnabledModel', true);
       await modelManager.addModel('enabledKey', enabledModel);
       
       await modelManager.disableModel('enabledKey');
@@ -169,9 +183,9 @@ describe('ModelManager', () => {
   describe('getEnabledModels', () => {
     it('should return only enabled models', async () => {
       // The beforeEach hook now provides a clean, initialized modelManager for each test.
-      const enabledModel1 = createModelConfig('EnabledModel1', true);
-      const enabledModel2 = createModelConfig('EnabledModel2', true);
-      const disabledModel = createModelConfig('DisabledModel', false);
+      const enabledModel1 = createTextModelConfig('test-enabled-1', 'EnabledModel1', true);
+      const enabledModel2 = createTextModelConfig('test-enabled-2', 'EnabledModel2', true);
+      const disabledModel = createTextModelConfig('test-disabled', 'DisabledModel', false);
 
       // Add models to the manager instance for this test
       await modelManager.addModel('test-enabled-1', enabledModel1);
@@ -179,47 +193,47 @@ describe('ModelManager', () => {
       await modelManager.addModel('test-disabled', disabledModel);
 
       const enabledModels = await modelManager.getEnabledModels();
-      
+
       // Default models might also be enabled, so we check for at least 2
       expect(enabledModels.length).toBeGreaterThanOrEqual(2);
-      
+
       // Verify our specific enabled models are present
-      const enabledModel1Found = enabledModels.find(m => m.key === 'test-enabled-1');
-      const enabledModel2Found = enabledModels.find(m => m.key === 'test-enabled-2');
+      const enabledModel1Found = enabledModels.find(m => m.id === 'test-enabled-1');
+      const enabledModel2Found = enabledModels.find(m => m.id === 'test-enabled-2');
       expect(enabledModel1Found).toBeDefined();
       expect(enabledModel1Found?.name).toBe('EnabledModel1');
       expect(enabledModel2Found).toBeDefined();
-      
+
       // Verify our specific disabled model is not present
-      const disabledModelInResults = enabledModels.find(m => m.key === 'test-disabled');
+      const disabledModelInResults = enabledModels.find(m => m.id === 'test-disabled');
       expect(disabledModelInResults).toBeUndefined();
     });
   });
 
-  describe('llmParams deep copy', () => {
-    it('should deep copy llmParams to avoid reference sharing when adding models', async () => {
+  describe('paramOverrides deep copy', () => {
+    it('should deep copy paramOverrides to avoid reference sharing when adding models', async () => {
       const originalLlmParams = {
         temperature: 0.7,
         max_tokens: 4096
       };
       
-      const modelConfig = createModelConfig('TestModel', true, 'test_key', ['model1'], 'model1', 'openai');
-      modelConfig.llmParams = originalLlmParams;
+      const modelConfig = createTextModelConfig('TestModel', 'TestModel', true, 'test_key', 'openai');
+      modelConfig.paramOverrides = originalLlmParams;
 
       await modelManager.addModel('test-model', modelConfig);
       
-      // Modify the original llmParams
+      // Modify the original paramOverrides
       originalLlmParams.temperature = 0.9;
       originalLlmParams.max_tokens = 2048;
       
       // Get the stored model and verify it wasn't affected
       const storedModel = await modelManager.getModel('test-model');
-      expect(storedModel?.llmParams?.temperature).toBe(0.7);
-      expect(storedModel?.llmParams?.max_tokens).toBe(4096);
+      expect(storedModel?.paramOverrides?.temperature).toBe(0.7);
+      expect(storedModel?.paramOverrides?.max_tokens).toBe(4096);
     });
 
-    it('should deep copy llmParams when updating models', async () => {
-      const initialModel = createModelConfig('TestModel', true);
+    it('should deep copy paramOverrides when updating models', async () => {
+      const initialModel = createTextModelConfig('TestModel', 'TestModel', true);
       await modelManager.addModel('test-model', initialModel);
 
       const updateLlmParams = {
@@ -228,7 +242,7 @@ describe('ModelManager', () => {
       };
 
       await modelManager.updateModel('test-model', {
-        llmParams: updateLlmParams
+        paramOverrides: updateLlmParams
       });
 
       // Modify the original update params
@@ -237,26 +251,26 @@ describe('ModelManager', () => {
 
       // Get the stored model and verify it wasn't affected
       const storedModel = await modelManager.getModel('test-model');
-      expect(storedModel?.llmParams?.temperature).toBe(0.5);
-      expect(storedModel?.llmParams?.top_p).toBe(0.9);
+      expect(storedModel?.paramOverrides?.temperature).toBe(0.5);
+      expect(storedModel?.paramOverrides?.top_p).toBe(0.9);
     });
 
-    it('should handle undefined llmParams gracefully', async () => {
-      const modelConfig = createModelConfig('TestModel', true);
-      // Explicitly set llmParams to undefined
-      modelConfig.llmParams = undefined;
+    it('should handle undefined paramOverrides gracefully', async () => {
+      const modelConfig = createTextModelConfig('TestModel', 'TestModel', true);
+      // Explicitly set paramOverrides to undefined
+      modelConfig.paramOverrides = undefined;
 
       await modelManager.addModel('test-model', modelConfig);
       
       const storedModel = await modelManager.getModel('test-model');
-      expect(storedModel?.llmParams).toBeUndefined();
+      expect(storedModel?.paramOverrides).toBeUndefined();
     });
   });
 
-  describe('llmParams security validation', () => {
+  describe('paramOverrides security validation', () => {
     it('should reject dangerous parameters when adding models', async () => {
-      const modelWithDangerousParams = createModelConfig('DangerousModel', true, 'test_key', ['model1'], 'model1', 'openai');
-      modelWithDangerousParams.llmParams = {
+      const modelWithDangerousParams = createTextModelConfig('DangerousModel', 'DangerousModel', true, 'test_key', 'openai');
+      modelWithDangerousParams.paramOverrides = {
         temperature: 0.7,
         __proto__: { malicious: 'code' }, // Dangerous parameter
         constructor: function() { return 'hack'; } // Another dangerous parameter
@@ -267,8 +281,8 @@ describe('ModelManager', () => {
     });
 
     it('should reject invalid parameter types when adding models', async () => {
-      const modelWithInvalidTypes = createModelConfig('InvalidModel', true, 'test_key', ['model1'], 'model1', 'openai');
-      modelWithInvalidTypes.llmParams = {
+      const modelWithInvalidTypes = createTextModelConfig('InvalidModel', 'InvalidModel', true, 'test_key', 'openai');
+      modelWithInvalidTypes.paramOverrides = {
         temperature: 'invalid_string', // Should be number
         max_tokens: 1024.5 // Should be integer
       };
@@ -278,8 +292,8 @@ describe('ModelManager', () => {
     });
 
     it('should reject out-of-range parameters when adding models', async () => {
-      const modelWithOutOfRangeParams = createModelConfig('OutOfRangeModel', true, 'test_key', ['model1'], 'model1', 'openai');
-      modelWithOutOfRangeParams.llmParams = {
+      const modelWithOutOfRangeParams = createTextModelConfig('OutOfRangeModel', 'OutOfRangeModel', true, 'test_key', 'openai');
+      modelWithOutOfRangeParams.paramOverrides = {
         temperature: 5.0, // Exceeds maximum 2.0
         presence_penalty: -3.0 // Below minimum -2.0
       };
@@ -289,8 +303,8 @@ describe('ModelManager', () => {
     });
 
     it('should accept valid parameters when adding models', async () => {
-      const modelWithValidParams = createModelConfig('ValidModel', true, 'test_key', ['model1'], 'model1', 'openai');
-      modelWithValidParams.llmParams = {
+      const modelWithValidParams = createTextModelConfig('ValidModel', 'ValidModel', true, 'test_key', 'openai');
+      modelWithValidParams.paramOverrides = {
         temperature: 0.7,
         max_tokens: 2048,
         top_p: 0.9,
@@ -302,16 +316,16 @@ describe('ModelManager', () => {
         .resolves.not.toThrow();
       
       const storedModel = await modelManager.getModel('valid-model');
-      expect(storedModel?.llmParams).toEqual(modelWithValidParams.llmParams);
+      expect(storedModel?.paramOverrides).toEqual(modelWithValidParams.paramOverrides);
     });
 
-    it('should validate llmParams when updating models', async () => {
-      const initialModel = createModelConfig('TestModel', true, 'test_key', ['model1'], 'model1', 'openai');
+    it('should validate paramOverrides when updating models', async () => {
+      const initialModel = createTextModelConfig('TestModel', 'TestModel', true, 'test_key', 'openai');
       await modelManager.addModel('test-model', initialModel);
 
       // Try to update with dangerous parameters
       await expect(modelManager.updateModel('test-model', {
-        llmParams: {
+        paramOverrides: {
           temperature: 0.5,
           eval: 'malicious_code()' // Dangerous parameter
         }
@@ -319,8 +333,8 @@ describe('ModelManager', () => {
     });
 
     it('should validate provider-specific parameters', async () => {
-      const geminiModel = createModelConfig('GeminiModel', true, 'test_key', ['gemini-pro'], 'gemini-pro', 'gemini');
-      geminiModel.llmParams = {
+      const geminiModel = createTextModelConfig('GeminiModel', 'GeminiModel', true, 'test_key', 'gemini');
+      geminiModel.paramOverrides = {
         temperature: 0.8,
         maxOutputTokens: 2048,
         topK: 40,
@@ -332,7 +346,7 @@ describe('ModelManager', () => {
         .resolves.not.toThrow();
       
       const storedModel = await modelManager.getModel('gemini-model');
-      expect(storedModel?.llmParams).toEqual(geminiModel.llmParams);
+      expect(storedModel?.paramOverrides).toEqual(geminiModel.paramOverrides);
     });
   });
 });

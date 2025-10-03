@@ -9,6 +9,8 @@ import { createHistoryManager } from '../../src/services/history/manager'
 import { createPreferenceService } from '../../src/services/preference/service'
 import { Template } from '../../src/services/template/types'
 import { ContextRepo } from '../../src/services/context/types'
+import { TextModelConfig } from '../../src/services/model/types'
+import { TextAdapterRegistry } from '../../src/services/llm/adapters/registry'
 
 /**
  * 真实组件集成测试
@@ -22,10 +24,36 @@ describe('Real Components Integration Tests', () => {
   let dataManager: DataManager
   let promptService: PromptService
   let mockContextRepo: ContextRepo
+  let registry: TextAdapterRegistry
+
+  // 辅助函数：创建 TextModelConfig
+  const createTextModelConfig = (
+    id: string,
+    name: string,
+    providerId: string = 'openai'
+  ): TextModelConfig => {
+    const adapter = registry.getAdapter(providerId);
+    const provider = adapter.getProvider();
+    const models = adapter.getModels();
+
+    return {
+      id,
+      name,
+      enabled: true,
+      providerMeta: provider,
+      modelMeta: models[0] || adapter.buildDefaultModel('test-model'),
+      connectionConfig: {
+        apiKey: 'test-key',
+        baseURL: provider.defaultBaseURL
+      },
+      paramOverrides: {}
+    };
+  };
 
   beforeEach(async () => {
     // 清理存储，确保测试隔离
     storage = new LocalStorageProvider()
+    registry = new TextAdapterRegistry()
     modelManager = createModelManager(storage)
     historyManager = createHistoryManager(storage, modelManager)
     const preferenceService = createPreferenceService(storage)
@@ -66,31 +94,22 @@ describe('Real Components Integration Tests', () => {
 
   describe('真实存储层测试', () => {
     it('应该能正确保存和读取模型配置', async () => {
-      const testModel = {
-        name: 'Test Model',
-        baseURL: 'https://api.test.com',
-        apiKey: 'test-key',
-        models: ['test-1', 'test-2'],
-        defaultModel: 'test-1',
-        enabled: true,
-        provider: 'openai' as const
-      }
+      const testModel = createTextModelConfig('test-model', 'Test Model');
 
       // 清理存储，确保从空状态开始
       await storage.clearAll()
 
       // 添加模型
       await modelManager.addModel('test-model', testModel)
-      
+
       // 验证保存
       const saved = await modelManager.getModel('test-model')
       expect(saved).toBeDefined()
       expect(saved?.name).toBe('Test Model')
-      expect(saved?.models).toEqual(['test-1', 'test-2'])
 
-      // 验证在所有模型列表中（注意：真实环境可能有默认模型）
+      // 验证在所有模型列表中（注意：新架构返回数组且包含默认模型）
       const allModels = await modelManager.getAllModels()
-      const userModel = allModels.find(m => m.key === 'test-model')
+      const userModel = allModels.find(m => m.id === 'test-model')
       expect(userModel).toBeDefined()
       expect(userModel?.name).toBe('Test Model')
     })
@@ -173,15 +192,8 @@ describe('Real Components Integration Tests', () => {
       await storage.clearAll()
 
       // 1. 添加模型
-      const model = {
-        name: 'Test Model',
-        baseURL: 'https://api.test.com',
-        apiKey: 'test-key',
-        models: ['test-model'],
-        defaultModel: 'test-model',
-        enabled: true,
-        provider: 'openai' as const
-      }
+      // 1. 添加测试模型
+      const model = createTextModelConfig('test-model', 'Test Model');
       await modelManager.addModel('test-model', model)
 
       // 2. 添加用户模板（避免与内置模板冲突）
@@ -215,15 +227,7 @@ describe('Real Components Integration Tests', () => {
       await storage.clearAll()
 
       // 准备测试数据
-      const model = {
-        name: 'Export Test Model',
-        baseURL: 'https://export.test.com',
-        apiKey: 'export-key',
-        models: ['export-model'],
-        defaultModel: 'export-model',
-        enabled: true,
-        provider: 'openai' as const
-      }
+      const model = createTextModelConfig('export-model', 'Export Test Model');
       
       const template: Template = {
         id: 'user-export-template',
@@ -290,7 +294,7 @@ describe('Real Components Integration Tests', () => {
       expect(restoredTemplates.length).toBeGreaterThan(0)
       expect(restoredHistory.length).toBe(1)
       
-      const restoredModel = restoredModels.find(m => m.key === 'export-model')
+      const restoredModel = restoredModels.find(m => m.id === 'export-model')
       const restoredTemplate = restoredTemplates.find(t => t.id === 'user-export-template')
       expect(restoredModel).toBeDefined()
       expect(restoredTemplate).toBeDefined()
@@ -422,15 +426,7 @@ describe('Real Components Integration Tests', () => {
       await storage.clearAll()
 
       // 添加一些数据
-      await modelManager.addModel('test-model', {
-        name: 'Test Model',
-        baseURL: 'https://test.com',
-        apiKey: 'key',
-        models: ['model'],
-        defaultModel: 'model',
-        enabled: true,
-        provider: 'openai' as const
-      })
+      await modelManager.addModel('test-model', createTextModelConfig('test-model', 'Test Model'))
 
       // 模拟模板数据丢失
       await storage.removeItem('prompt_templates')

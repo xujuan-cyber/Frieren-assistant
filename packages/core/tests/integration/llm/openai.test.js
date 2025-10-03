@@ -107,7 +107,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai' // 所有兼容提供商都使用openai提供商类型
+        provider: modelConfig.key
       });
 
       const messages = [
@@ -141,7 +141,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai'
+        provider: modelConfig.key
       });
 
       const messages = [
@@ -176,7 +176,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai',
+        provider: modelConfig.key,
         llmParams: {
           temperature: 0.3,
           max_tokens: 100
@@ -215,7 +215,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai',
+        provider: modelConfig.key,
         llmParams: {
           temperature: 0.1,
           max_tokens: 100
@@ -292,7 +292,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai',
+        provider: modelConfig.key,
         llmParams: {
           temperature: 0.1,
           max_tokens: 2000
@@ -381,7 +381,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai',
+        provider: modelConfig.key,
         llmParams: {
           temperature: 0.3,
           max_tokens: 100
@@ -434,7 +434,7 @@ describe.skipIf(!RUN_REAL_API)('OpenAI API 真实连接测试', () => {
         baseURL: modelConfig.baseURL,
         defaultModel: modelConfig.defaultModel,
         enabled: true,
-        provider: 'openai',
+        provider: modelConfig.key,
         llmParams: {
           temperature: 0.1,
           max_tokens: 1500

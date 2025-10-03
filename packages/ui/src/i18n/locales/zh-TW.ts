@@ -423,6 +423,7 @@ export default {
     apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: '輸入或選擇模型名稱',
     apiKeyPlaceholder: '請輸入API金鑰（選填）',
+    modelKeyRequired: '模型標識不能為空',
 
     // 確認資訊
     deleteConfirm: '確定要刪除此模型嗎？此操作無法復原。',

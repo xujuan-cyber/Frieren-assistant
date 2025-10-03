@@ -423,6 +423,7 @@ export default {
     apiUrlPlaceholder: 'https://api.example.com/v1',
     defaultModelPlaceholder: 'Type or select a model name',
     apiKeyPlaceholder: 'Enter API key (optional)',
+    modelKeyRequired: 'Model key is required',
 
     // Confirmation
     deleteConfirm: 'Are you sure you want to delete this model? This action cannot be undone.',

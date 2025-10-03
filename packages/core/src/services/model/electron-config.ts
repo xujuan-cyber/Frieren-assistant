@@ -1,5 +1,5 @@
-import { ModelConfig } from './types';
-import { createStaticModels } from './static-models';
+import { TextModelConfig } from './types';
+import { createDefaultTextModels } from './text-model-defaults';
 import { generateDynamicModels } from './model-utils';
 
 /**
@@ -69,12 +69,13 @@ export class ElectronConfigManager {
 
   /**
    * 生成默认模型配置（基于同步的环境变量）
+   * @returns TextModelConfig 格式的模型配置
    */
-  generateDefaultModels(): Record<string, ModelConfig> {
+  generateDefaultModels(): Record<string, TextModelConfig> {
     const getEnv = (key: string) => this.getEnvVar(key);
 
-    // 使用共享的静态模型配置
-    const staticModels = createStaticModels({
+    // 使用共享的静态模型配置（TextModelConfig格式）
+    const staticModels = createDefaultTextModels({
       OPENAI_API_KEY: getEnv('VITE_OPENAI_API_KEY').trim(),
       GEMINI_API_KEY: getEnv('VITE_GEMINI_API_KEY').trim(),
       DEEPSEEK_API_KEY: getEnv('VITE_DEEPSEEK_API_KEY').trim(),
@@ -87,7 +88,7 @@ export class ElectronConfigManager {
 
 
 
-    // 生成动态自定义模型
+    // 生成动态自定义模型（TextModelConfig格式）
     const dynamicModels = generateDynamicModels();
 
     // 合并静态模型和动态模型

@@ -1,32 +1,41 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { 
-  LLMService, 
-  ModelManager, 
-  ModelConfig, 
-  APIError, 
+import {
+  LLMService,
+  ModelManager,
+  APIError,
   RequestConfigError,
-  Message 
+  Message
 } from '../../../src/index';
+import { TextModelConfig } from '../../../src/services/model/types';
+import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
 import { createMockStorage } from '../../mocks/mockStorage';
 
 describe('LLMService', () => {
   let service: LLMService;
   let modelManager: ModelManager;
-  
+  let registry: TextAdapterRegistry;
+
   beforeEach(() => {
     const mockStorage = createMockStorage();
-    modelManager = new ModelManager(mockStorage);
-    service = new LLMService(modelManager);
+    registry = new TextAdapterRegistry();
+    modelManager = new ModelManager(mockStorage, registry);
+    service = new LLMService(modelManager, registry);
   });
 
-  const mockModelConfig: ModelConfig = {
-    name: 'Test Model',
-    baseURL: 'https://api.test.com',
-    apiKey: 'test-key',
-    models: ['model-1'],
-    defaultModel: 'model-1',
-    enabled: true,
-    provider: 'openai'
+  const createMockModelConfig = (): TextModelConfig => {
+    const adapter = registry.getAdapter('openai');
+    return {
+      id: 'test-model',
+      name: 'Test Model',
+      enabled: true,
+      providerMeta: adapter.getProvider(),
+      modelMeta: adapter.buildDefaultModel('model-1'),
+      connectionConfig: {
+        apiKey: 'test-key',
+        baseURL: 'https://api.test.com'
+      },
+      paramOverrides: {}
+    };
   };
 
   const mockMessages: Message[] = [
@@ -36,27 +45,41 @@ describe('LLMService', () => {
 
   describe('validateModelConfig', () => {
     it('should throw error when model is disabled', () => {
-      const disabledConfig = { ...mockModelConfig, enabled: false };
+      const mockConfig = createMockModelConfig();
+      const disabledConfig = { ...mockConfig, enabled: false };
       expect(() => service['validateModelConfig'](disabledConfig))
         .toThrow('模型未启用');
     });
 
     it('should allow empty apiKey for services like Ollama', () => {
-      const configWithEmptyApiKey = { ...mockModelConfig, apiKey: '' };
+      const mockConfig = createMockModelConfig();
+      const configWithEmptyApiKey = {
+        ...mockConfig,
+        connectionConfig: { ...mockConfig.connectionConfig, apiKey: '' }
+      };
+      // 新架构下不在这里验证 apiKey，Adapter 会处理
       expect(() => service['validateModelConfig'](configWithEmptyApiKey))
         .not.toThrow();
     });
 
     it('should throw error when provider is missing', () => {
-      const invalidConfig = { ...mockModelConfig, provider: '' };
+      const mockConfig = createMockModelConfig();
+      const invalidConfig = {
+        ...mockConfig,
+        providerMeta: { ...mockConfig.providerMeta, id: '' }
+      };
       expect(() => service['validateModelConfig'](invalidConfig))
-        .toThrow('模型提供商不能为空');
+        .toThrow('模型提供商元数据不能为空');
     });
 
     it('should throw error when defaultModel is missing', () => {
-      const invalidConfig = { ...mockModelConfig, defaultModel: '' };
+      const mockConfig = createMockModelConfig();
+      const invalidConfig = {
+        ...mockConfig,
+        modelMeta: { ...mockConfig.modelMeta, id: '' }
+      };
       expect(() => service['validateModelConfig'](invalidConfig))
-        .toThrow('默认模型不能为空');
+        .toThrow('模型元数据不能为空');
     });
   });
 

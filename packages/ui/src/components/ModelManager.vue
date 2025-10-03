@@ -44,7 +44,7 @@
       <NSpace vertical :size="12">
           <NCard
             v-for="model in models"
-            :key="model.key"
+            :key="model.id"
             hoverable
             :style="{
               opacity: model.enabled ? 1 : 0.6
@@ -64,7 +64,7 @@
                     </NTag>
                   </NSpace>
                   <NText depth="3" style="font-size: 14px;">
-                    {{ model.model }}
+                    {{ model.modelMeta?.name || model.modelMeta?.id }}
                   </NText>
                 </NSpace>
               </NSpace>
@@ -73,11 +73,11 @@
             <template #header-extra>
               <NSpace @click.stop>
                 <NButton
-                  @click="testConnection(model.key)"
+                  @click="testConnection(model.id)"
                   size="small"
                   quaternary
-                  :disabled="isTestingConnectionFor(model.key)"
-                  :loading="isTestingConnectionFor(model.key)"
+                  :disabled="isTestingConnectionFor(model.id)"
+                  :loading="isTestingConnectionFor(model.id)"
                 >
                   <template #icon>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -86,7 +86,7 @@
                 </NButton>
                 
                 <NButton
-                  @click="editModel(model.key)"
+                  @click="editModel(model.id)"
                   size="small"
                   quaternary
                 >
@@ -99,7 +99,7 @@
                 </NButton>
                 
                 <NButton
-                  @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
+                  @click="model.enabled ? disableModel(model.id) : enableModel(model.id)"
                   size="small"
                   :type="model.enabled ? 'warning' : 'success'"
                   quaternary
@@ -112,8 +112,8 @@
                 </NButton>
                 
                 <NButton
-                  v-if="!isDefaultModel(model.key)"
-                  @click="handleDelete(model.key)"
+                  v-if="!isDefaultModel(model.id)"
+                  @click="handleDelete(model.id)"
                   size="small"
                   type="error"
                   quaternary
@@ -188,7 +188,7 @@
               <NSpace vertical :size="8">
                 <NText tag="label" strong>{{ t('modelManager.defaultModel') }}</NText>
                 <InputWithSelect
-                  v-model="editingModel.defaultModel"
+                  v-model="editingModel.modelId"
                   :options="modelOptions"
                   :is-loading="isLoadingModels"
                   :loading-text="t('modelManager.loadingModels')"
@@ -263,14 +263,14 @@
                 </NSpace>
                 </NCard>
                 
-                <NText v-if="Object.keys(currentLLMParams || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
-                  {{ t('modelManager.advancedParameters.noParamsConfigured') }}
-                </NText>
+              <NText v-if="Object.keys(currentParamOverrides || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
+                {{ t('modelManager.advancedParameters.noParamsConfigured') }}
+              </NText>
 
-                <!-- 参数显示 -->
-                <NSpace vertical :size="12">
-                  <NCard
-                    v-for="(value, key) in currentLLMParams"
+              <!-- 参数显示 -->
+              <NSpace vertical :size="12">
+                <NCard
+                  v-for="(value, key) in currentParamOverrides"
                     :key="key"
                     size="small"
                     embedded
@@ -308,9 +308,9 @@
                       <!-- Boolean 类型 -->
                       <NCheckbox
                         v-if="getParamMetadata(key)?.type === 'boolean'"
-                        v-model:checked="currentLLMParams[key]"
+                      v-model:checked="currentParamOverrides[key]"
                       >
-                        {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
+                      {{ currentParamOverrides[key] ? t('common.enabled') : t('common.disabled') }}
                       </NCheckbox>
                       
                       <!-- Number/Integer 类型 -->
@@ -318,13 +318,13 @@
                         v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')"
                         vertical :size="4"
                       >
-                        <NInputNumber
-                          v-model:value="currentLLMParams[key]"
+                      <NInputNumber
+                        v-model:value="currentParamOverrides[key]"
                           :min="getParamMetadata(key)?.minValue"
                           :max="getParamMetadata(key)?.maxValue"
                           :step="getParamMetadata(key)?.step"
                           :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
-                          :status="isParamInvalid(key, currentLLMParams[key]) ? 'error' : undefined"
+                        :status="isParamInvalid(key, currentParamOverrides[key]) ? 'error' : undefined"
                         />
                         
                         <NText
@@ -335,19 +335,19 @@
                           范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
                         </NText>
                         
-                        <NText
-                          v-if="isParamInvalid(key, currentLLMParams[key])"
+                      <NText
+                        v-if="isParamInvalid(key, currentParamOverrides[key])"
                           type="error"
                           style="font-size: 12px;"
                         >
-                          {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                        {{ getParamValidationMessage(key, currentParamOverrides[key]) }}
                         </NText>
                       </NSpace>
                       
                       <!-- String 类型 -->
                       <NSpace v-else vertical :size="4">
-                        <NInput
-                          v-model:value="currentLLMParams[key]"
+                      <NInput
+                        v-model:value="currentParamOverrides[key]"
                           :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')"
                         />
                         <NText
@@ -398,7 +398,7 @@
             <NSpace vertical :size="8">
               <NText tag="label" strong>{{ t('modelManager.modelKey') }}</NText>
               <NInput
-                v-model:value="newModel.key"
+                v-model:value="newModel.id"
                 :placeholder="t('modelManager.modelKeyPlaceholder')"
                 required
               />
@@ -437,8 +437,8 @@
             
             <NSpace vertical :size="8">
               <NText tag="label" strong>{{ t('modelManager.defaultModel') }}</NText>
-              <InputWithSelect
-                v-model="newModel.defaultModel"
+                <InputWithSelect
+                  v-model="newModel.modelId"
                 :options="modelOptions"
                 :is-loading="isLoadingModels"
                 :loading-text="t('modelManager.loadingModels')"
@@ -512,14 +512,14 @@
               </NSpace>
               </NCard>
               
-              <NText v-if="Object.keys(currentLLMParams || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
+              <NText v-if="Object.keys(currentParamOverrides || {}).length === 0" depth="3" style="font-size: 14px; margin-bottom: 12px;">
                 {{ t('modelManager.advancedParameters.noParamsConfigured') }}
               </NText>
 
               <!-- 参数显示 -->
               <NSpace vertical :size="12">
                 <NCard
-                  v-for="(value, key) in currentLLMParams"
+                  v-for="(value, key) in currentParamOverrides"
                   :key="key"
                   size="small"
                   embedded
@@ -557,9 +557,9 @@
                     <!-- Boolean 类型 -->
                     <NCheckbox
                       v-if="getParamMetadata(key)?.type === 'boolean'"
-                      v-model:checked="currentLLMParams[key]"
+                      v-model:checked="currentParamOverrides[key]"
                     >
-                      {{ currentLLMParams[key] ? t('common.enabled') : t('common.disabled') }}
+                      {{ currentParamOverrides[key] ? t('common.enabled') : t('common.disabled') }}
                     </NCheckbox>
                     
                     <!-- Number/Integer 类型 -->
@@ -568,12 +568,12 @@
                       vertical :size="4"
                     >
                       <NInputNumber
-                        v-model:value="currentLLMParams[key]"
+                        v-model:value="currentParamOverrides[key]"
                         :min="getParamMetadata(key)?.minValue"
                         :max="getParamMetadata(key)?.maxValue"
                         :step="getParamMetadata(key)?.step"
                         :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
-                        :status="isParamInvalid(key, currentLLMParams[key]) ? 'error' : undefined"
+                        :status="isParamInvalid(key, currentParamOverrides[key]) ? 'error' : undefined"
                       />
                       
                       <NText
@@ -585,18 +585,18 @@
                       </NText>
                       
                       <NText
-                        v-if="isParamInvalid(key, currentLLMParams[key])"
+                        v-if="isParamInvalid(key, currentParamOverrides[key])"
                         type="error"
                         style="font-size: 12px;"
                       >
-                        {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                        {{ getParamValidationMessage(key, currentParamOverrides[key]) }}
                       </NText>
                     </NSpace>
                     
                     <!-- String 类型 -->
                     <NSpace v-else vertical :size="4">
                       <NInput
-                        v-model:value="currentLLMParams[key]"
+                        v-model:value="currentParamOverrides[key]"
                         :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')"
                       />
                       <NText
@@ -647,6 +647,9 @@ import {
 } from 'naive-ui';
 import {
   advancedParameterDefinitions,
+  type TextModelConfig,
+  type TextModel,
+  type ModelOption,
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
@@ -657,6 +660,34 @@ import ImageModelEditModal from './ImageModelEditModal.vue'
 const { t } = useI18n()
 const toast = useToast();
 const emit = defineEmits(['modelsUpdated', 'close', 'select', 'update:show']);
+
+type TextConnectionConfig = Record<string, any>
+
+interface EditingTextModelForm {
+  originalId: string;
+  name: string;
+  enabled: boolean;
+  providerId: string;
+  modelId: string;
+  connectionConfig: TextConnectionConfig;
+  baseURL: string;
+  apiKey: string;
+  displayMaskedKey: boolean;
+  originalApiKey?: string;
+  paramOverrides: Record<string, unknown>;
+}
+
+interface NewTextModelForm {
+  id: string;
+  name: string;
+  providerId: string;
+  modelId: string;
+  connectionConfig: TextConnectionConfig;
+  baseURL: string;
+  apiKey: string;
+  defaultModel: string;
+  paramOverrides: Record<string, unknown>;
+}
 
 // 组件属性
 defineProps({
@@ -719,96 +750,104 @@ const showAddForm = ref(false);
 const showImageModelEdit = ref(false);
 const editingImageModelId = ref<string | undefined>(undefined);
 const imageListRef = ref<any>(null)
-const modelOptions = ref([]);
+const modelOptions = ref<ModelOption[]>([]);
 const isLoadingModels = ref(false);
-const testingConnections = ref({});
+const testingConnections = ref<Record<string, boolean>>({});
 // For Advanced Parameters UI
 const selectedNewLLMParamId = ref(''); // Stores ID of param selected from dropdown
 const customLLMParam = ref({ key: '', value: '' });
 
 // 数据状态
-const models = ref([]);
-const editingModel = ref(null);
+const models = ref<TextModelConfig[]>([]);
+const editingModel = ref<EditingTextModelForm | null>(null);
 
 // 表单状态
-const newModel = ref({
-  key: '',
+const newModel = ref<NewTextModelForm>({
+  id: '',
   name: '',
+  providerId: 'custom',
+  modelId: '',
+  connectionConfig: {
+    baseURL: '',
+    apiKey: ''
+  },
   baseURL: '',
-  defaultModel: '',
   apiKey: '',
-  provider: 'custom',
-  llmParams: {}
+  defaultModel: '',
+  paramOverrides: {}
 });
+const DEFAULT_TEXT_MODEL_IDS = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow', 'custom'] as const
+
 // 加载所有模型
 const loadModels = async () => {
   try {
-    // 强制刷新模型数据，使用异步调用
-    const allModels = await modelManager.getAllModels();
-    
-    // 使用深拷贝确保响应式更新
-    models.value = JSON.parse(JSON.stringify(allModels)).sort((a, b) => {
-      // 启用的模型排在前面
-      if (a.enabled !== b.enabled) {
-        return a.enabled ? -1 : 1;
-      }
-      // 默认模型排在前面
-      if (isDefaultModel(a.key) !== isDefaultModel(b.key)) {
-        return isDefaultModel(a.key) ? -1 : 1;
-      }
-      return 0;
-    });
-    
+    const allModels = await modelManager.getAllModels()
+
+    models.value = allModels
+      .map(model => ({ ...model }))
+      .sort((a, b) => {
+        if (a.enabled !== b.enabled) {
+          return a.enabled ? -1 : 1
+        }
+        const aDefault = isDefaultModel(a.id)
+        const bDefault = isDefaultModel(b.id)
+        if (aDefault !== bDefault) {
+          return aDefault ? -1 : 1
+        }
+        return a.name.localeCompare(b.name)
+      })
+
     console.log('处理后的模型列表:', models.value.map(m => ({
-      key: m.key,
+      id: m.id,
       name: m.name,
       enabled: m.enabled,
-      hasApiKey: !!m.apiKey
-    })));
-    
-    emit('modelsUpdated', models.value[0]?.key);
+      hasApiKey: !!m.connectionConfig?.apiKey,
+      provider: m.providerMeta?.name
+    })))
+
+    emit('modelsUpdated', models.value[0]?.id)
   } catch (error) {
-    console.error('加载模型列表失败:', error);
-    toast.error('加载模型列表失败');
+    console.error('加载模型列表失败:', error)
+    toast.error(t('toast.error.loadModelsFailed'))
   }
-};
+}
 
 // 判断是否为默认模型
-const isDefaultModel = (key) => {
-  return ['openai', 'gemini', 'deepseek', 'zhipu'].includes(key);
-};
+const isDefaultModel = (id: string) => {
+  return DEFAULT_TEXT_MODEL_IDS.includes(id as typeof DEFAULT_TEXT_MODEL_IDS[number])
+}
 
 // =============== 模型管理函数 ===============
 // 测试连接
-const isTestingConnectionFor = (key) => !!testingConnections.value[key];
-const testConnection = async (key) => {
-  if (isTestingConnectionFor(key)) return;
+const isTestingConnectionFor = (id: string) => !!testingConnections.value[id];
+const testConnection = async (id: string) => {
+  if (isTestingConnectionFor(id)) return;
   try {
-    testingConnections.value[key] = true;
-    const model = await modelManager.getModel(key);
+    testingConnections.value[id] = true;
+    const model = await modelManager.getModel(id);
     if (!model) throw new Error(t('modelManager.noModelsAvailable'));
 
     // 不再需要手动创建LLMService，使用注入的实例
-    await llmService.testConnection(key);
+    await llmService.testConnection(id);
     toast.success(t('modelManager.testSuccess', { provider: model.name }));
   } catch (error) {
     console.error('连接测试失败:', error);
-    const model = await modelManager.getModel(key);
-    const modelName = model?.name || key;
+    const model = await modelManager.getModel(id);
+    const modelName = model?.name || id;
     toast.error(t('modelManager.testFailed', {
       provider: modelName,
       error: error.message || 'Unknown error'
     }));
   } finally {
-    delete testingConnections.value[key];
+    delete testingConnections.value[id];
   }
 };
 
 // 处理删除
-const handleDelete = async (key) => {
+const handleDelete = async (id: string) => {
   if (confirm(t('modelManager.deleteConfirm'))) {
     try {
-      await modelManager.deleteModel(key)
+      await modelManager.deleteModel(id)
       await loadModels()
       toast.success(t('modelManager.deleteSuccess'))
     } catch (error) {
@@ -819,14 +858,14 @@ const handleDelete = async (key) => {
 };
 
 // 启用模型
-const enableModel = async (key) => {
+const enableModel = async (id: string) => {
   try {
-    const model = await modelManager.getModel(key)
+    const model = await modelManager.getModel(id)
     if (!model) throw new Error(t('modelManager.noModelsAvailable'))
 
-    await modelManager.enableModel(key)
+    await modelManager.enableModel(id)
     await loadModels()
-    emit('modelsUpdated', key)
+    emit('modelsUpdated', id)
     toast.success(t('modelManager.enableSuccess'))
   } catch (error) {
     console.error('启用模型失败:', error)
@@ -835,14 +874,14 @@ const enableModel = async (key) => {
 }
 
 // 禁用模型
-const disableModel = async (key) => {
+const disableModel = async (id: string) => {
   try {
-    const model = await modelManager.getModel(key)
+    const model = await modelManager.getModel(id)
     if (!model) throw new Error(t('modelManager.noModelsAvailable'))
 
-    await modelManager.disableModel(key)
+    await modelManager.disableModel(id)
     await loadModels()
-    emit('modelsUpdated', key)
+    emit('modelsUpdated', id)
     toast.success(t('modelManager.disableSuccess'))
   } catch (error) {
     console.error('禁用模型失败:', error)
@@ -853,47 +892,64 @@ const disableModel = async (key) => {
 
 // =============== 编辑相关函数 ===============
 // 编辑模型
-const editModel = async (key) => {
-  const model = await modelManager.getModel(key);
-  if (model) {
-    // 为API密钥创建加密显示文本
-    let maskedApiKey = '';
-    if (model.apiKey) {
-      // 显示密钥的前四位和后四位，中间用星号代替
-      const keyLength = model.apiKey.length;
-      if (keyLength <= 8) {
-        maskedApiKey = '*'.repeat(keyLength);
-      } else {
-        const visiblePart = 4;
-        const prefix = model.apiKey.substring(0, visiblePart);
-        const suffix = model.apiKey.substring(keyLength - visiblePart);
-        const maskedLength = keyLength - (visiblePart * 2);
-        maskedApiKey = `${prefix}${'*'.repeat(maskedLength)}${suffix}`;
-      }
-    }
-
-    // 创建临时配置对象
-    editingModel.value = {
-      originalKey: key, // 保存原始key
-      name: model.name,
-      baseURL: model.baseURL,
-      defaultModel: typeof model.defaultModel === 'string' ? model.defaultModel : (model.defaultModel?.value || model.defaultModel?.id || ''),
-      apiKey: maskedApiKey,
-      displayMaskedKey: true,
-      originalApiKey: model.apiKey,
-      provider: model.provider || 'custom', // Ensure provider is set
-      enabled: model.enabled,
-      llmParams: model.llmParams ? JSON.parse(JSON.stringify(model.llmParams)) : {} // Deep copy llmParams
-    };
-    
-    // 初始化模型选项
-    modelOptions.value = model.models && model.models.length > 0 
-      ? model.models.map(m => ({ value: m, label: m }))
-      : [{ value: model.defaultModel, label: model.defaultModel }];
-    
-    isEditing.value = true;
+const editModel = async (id: string) => {
+  const model = await modelManager.getModel(id)
+  if (!model) {
+    toast.error(t('modelManager.noModelsAvailable'))
+    return
   }
-};
+
+  const connectionConfig: TextConnectionConfig = { ...(model.connectionConfig ?? {}) }
+  const rawApiKey = connectionConfig.apiKey ?? ''
+  let maskedApiKey = ''
+
+  if (rawApiKey) {
+    const keyLength = rawApiKey.length
+    if (keyLength <= 8) {
+      maskedApiKey = '*'.repeat(keyLength)
+    } else {
+      const visiblePart = 4
+      const prefix = rawApiKey.substring(0, visiblePart)
+      const suffix = rawApiKey.substring(keyLength - visiblePart)
+      const maskedLength = keyLength - visiblePart * 2
+      maskedApiKey = `${prefix}${'*'.repeat(maskedLength)}${suffix}`
+    }
+  }
+
+  editingModel.value = {
+    originalId: model.id,
+    name: model.name,
+    enabled: model.enabled,
+    providerId: model.providerMeta?.id ?? 'custom',
+    modelId: model.modelMeta?.id ?? '',
+    connectionConfig,
+    baseURL: connectionConfig.baseURL ?? '',
+    apiKey: maskedApiKey || '',
+    displayMaskedKey: !!rawApiKey,
+    originalApiKey: rawApiKey || undefined,
+    paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {}
+  }
+
+  // 初始化模型选项
+  try {
+    const options = await llmService.fetchModelList(model.id, {
+      providerMeta: model.providerMeta,
+      modelMeta: model.modelMeta,
+      connectionConfig
+    })
+    modelOptions.value = options
+  } catch (error) {
+    console.warn('Failed to fetch model list, fallback to current model:', error)
+    modelOptions.value = [{ value: model.modelMeta.id, label: model.modelMeta.name || model.modelMeta.id }]
+  }
+
+  if (!editingModel.value.apiKey) {
+    editingModel.value.apiKey = ''
+    editingModel.value.displayMaskedKey = false
+  }
+
+  isEditing.value = true
+}
 
 
 // 公共错误处理函数
@@ -931,108 +987,89 @@ const handleModelFetchError = (error) => {
 };
 
 const handleFetchEditingModels = async () => {
-  if (!editingModel.value) {
-    return;
+  const form = editingModel.value
+  if (!form) {
+    return
   }
-  
-  isLoadingModels.value = true;
-  
+
+  isLoadingModels.value = true
+
   try {
-    // 获取要使用的配置
-    let apiKey = editingModel.value.apiKey;
-    const baseURL = editingModel.value.baseURL;
-    
-    // 如果是掩码密钥，使用原始密钥
-    if (editingModel.value.displayMaskedKey && editingModel.value.originalKey) {
-      const originalModel = await modelManager.getModel(editingModel.value.originalKey);
-      if (originalModel && originalModel.apiKey) {
-        apiKey = originalModel.apiKey;
-      }
-    }
-    
-    // 检查必要的参数 - API key允许为空
+    const baseURL = form.baseURL?.trim()
     if (!baseURL) {
-      toast.error(t('modelManager.needBaseUrl'));
-      return;
+      toast.error(t('modelManager.needBaseUrl'))
+      return
     }
-    
-    // 使用注入的 LLM 服务获取模型列表
-    // const llm = createLLMService(modelManager);
-    
-    // 构建自定义配置
-    const customConfig = {
-      baseURL: baseURL,
-      apiKey: apiKey,
-      provider: editingModel.value.provider || 'custom'
-    };
-    
-    // 确定要使用的 provider key（使用原始key或临时key）
-    const providerKey = editingModel.value.originalKey || editingModel.value.key;
-    
-    // 获取模型列表
-    const models = await llmService.fetchModelList(providerKey, customConfig);
-    
-    // 现在后端会在没有模型时直接抛出错误，所以这里只处理成功的情况
-    modelOptions.value = models;
-    toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
 
-    // 如果当前选择的模型不在列表中，默认选择第一个
-    if (models.length > 0 && !models.some(m => m.value === editingModel.value.defaultModel)) {
-      editingModel.value.defaultModel = models[0].value;
+    const apiKeyToUse = form.displayMaskedKey ? (form.originalApiKey ?? '') : form.apiKey
+
+    form.connectionConfig = {
+      ...form.connectionConfig,
+      baseURL,
+      apiKey: apiKeyToUse
+    }
+
+    const baseModel = await modelManager.getModel(form.originalId)
+
+    const models = await llmService.fetchModelList(form.originalId, {
+      connectionConfig: form.connectionConfig,
+      providerMeta: baseModel?.providerMeta,
+      modelMeta: baseModel?.modelMeta ? { ...baseModel.modelMeta, id: form.modelId } : undefined
+    } as Partial<TextModelConfig>)
+
+    modelOptions.value = models
+    toast.success(t('modelManager.fetchModelsSuccess', { count: models.length }))
+
+    if (models.length > 0 && !models.some(m => m.value === form.modelId)) {
+      form.modelId = models[0].value
     }
   } catch (error) {
-    // 使用公共错误处理函数
-    handleModelFetchError(error);
+    handleModelFetchError(error)
   } finally {
-    isLoadingModels.value = false;
+    isLoadingModels.value = false
   }
-};
+}
 const handleFetchNewModels = async () => {
-  if (!newModel.value) {
-    return;
-  }
-  
-  const apiKey = newModel.value.apiKey;
-  const baseURL = newModel.value.baseURL;
-  const provider = newModel.value.key || 'custom';
-  
-  // 检查必要的参数 - API key允许为空
-  if (!baseURL) {
-    toast.error(t('modelManager.needBaseUrl'));
-    return;
-  }
-  
-  isLoadingModels.value = true;
-  
-  try {
-    // 使用注入的 LLM 服务获取模型列表
-    // const llm = createLLMService(modelManager);
-    
-    // 构建自定义配置
-    const customConfig = {
-      baseURL: baseURL,
-      apiKey: apiKey,
-      provider: currentProviderType.value || 'custom'
-    };
-    
-    // 获取模型列表
-    const models = await llmService.fetchModelList(provider, customConfig);
-    
-    // 现在后端会在没有模型时直接抛出错误，所以这里只处理成功的情况
-    modelOptions.value = models;
-    toast.success(t('modelManager.fetchModelsSuccess', {count: models.length}));
+  const form = newModel.value
+  const baseURL = form.baseURL?.trim()
 
-    // 默认选择第一个模型
+  if (!baseURL) {
+    toast.error(t('modelManager.needBaseUrl'))
+    return
+  }
+
+  isLoadingModels.value = true
+
+  try {
+    const providerTemplateId = form.providerId || currentProviderType.value || 'custom'
+
+    form.connectionConfig = {
+      ...form.connectionConfig,
+      baseURL,
+      apiKey: form.apiKey
+    }
+
+    const baseModel = await modelManager.getModel(providerTemplateId)
+
+    const models = await llmService.fetchModelList(providerTemplateId, {
+      connectionConfig: form.connectionConfig,
+      providerMeta: baseModel?.providerMeta,
+      modelMeta: baseModel?.modelMeta
+    } as Partial<TextModelConfig>)
+
+    modelOptions.value = models
+    toast.success(t('modelManager.fetchModelsSuccess', { count: models.length }))
+
     if (models.length > 0) {
-      newModel.value.defaultModel = models[0].value;
+      form.modelId = models[0].value
+      form.defaultModel = models[0].value
     }
   } catch (error) {
-    // 使用公共错误处理函数
-    handleModelFetchError(error);
+    handleModelFetchError(error)
   } finally {
-    isLoadingModels.value = false;
+    isLoadingModels.value = false
   }
-};
+}
 
 // 取消编辑
 const cancelEdit = () => {
@@ -1046,117 +1083,164 @@ const cancelEdit = () => {
 // 保存编辑
 const saveEdit = async () => {
   try {
-    if (!editingModel.value || !editingModel.value.originalKey) {
-      throw new Error('编辑会话无效');
+    const form = editingModel.value
+    if (!form) {
+      throw new Error('编辑会话无效')
     }
-    
-    const originalKey = editingModel.value.originalKey;
-    
-    // 创建更新配置对象，ElectronProxy会自动处理序列化
-    const config = {
-      name: editingModel.value.name,
-      baseURL: editingModel.value.baseURL,
-      // 如果是掩码密钥，使用原始密钥；否则使用新输入的密钥
-      apiKey: editingModel.value.displayMaskedKey
-        ? editingModel.value.originalApiKey
-        : editingModel.value.apiKey,
-      defaultModel: editingModel.value.defaultModel,
-      // 确保models数组包含defaultModel，避免验证错误
-      models: modelOptions.value.length > 0
-        ? modelOptions.value.map(opt => opt.value)
-        : [editingModel.value.defaultModel],
-      provider: editingModel.value.provider || 'custom',
-      enabled: editingModel.value.enabled !== undefined
-        ? editingModel.value.enabled
-        : true,
-      llmParams: editingModel.value.llmParams || {}
-    };
-    
-    // 直接更新原始模型
-    await modelManager.updateModel(originalKey, config);
-    
-    // 重新加载模型列表
-    await loadModels();
-    
-    // 触发更新事件
-    emit('modelsUpdated', originalKey);
-    
-    // 清理临时状态
-    isEditing.value = false;
-    editingModel.value = null;
-    
-    toast.success(t('modelManager.updateSuccess'));
+
+    const existingConfig = await modelManager.getModel(form.originalId)
+    if (!existingConfig) {
+      throw new Error('模型不存在')
+    }
+
+    const connectionConfig: TextConnectionConfig = {
+      ...form.connectionConfig,
+      baseURL: form.baseURL?.trim() || existingConfig.connectionConfig?.baseURL
+    }
+
+    if (form.displayMaskedKey) {
+      if (form.originalApiKey) {
+        connectionConfig.apiKey = form.originalApiKey
+      } else {
+        delete connectionConfig.apiKey
+      }
+    } else if (form.apiKey) {
+      connectionConfig.apiKey = form.apiKey
+    } else {
+      delete connectionConfig.apiKey
+    }
+
+    const paramOverrides = { ...(form.paramOverrides || {}) }
+
+    let modelMeta: TextModel | undefined = existingConfig.modelMeta
+    if (form.modelId && form.modelId !== existingConfig.modelMeta.id) {
+      modelMeta = { ...existingConfig.modelMeta, id: form.modelId, name: form.modelId }
+    }
+
+    const updates: Partial<TextModelConfig> = {
+      name: form.name,
+      enabled: form.enabled,
+      connectionConfig,
+      paramOverrides,
+      modelMeta
+    }
+
+    await modelManager.updateModel(form.originalId, updates)
+
+    await loadModels()
+    emit('modelsUpdated', form.originalId)
+
+    isEditing.value = false
+    editingModel.value = null
+
+    toast.success(t('modelManager.updateSuccess'))
   } catch (error) {
-    console.error('更新模型失败:', error);
-    toast.error(t('modelManager.updateFailed', { error: error.message }));
+    console.error('更新模型失败:', error)
+    toast.error(t('modelManager.updateFailed', { error: error.message }))
   }
-};
+}
 
 // =============== 添加相关函数 ===============
 // 添加自定义模型
 const addCustomModel = async () => {
   try {
-    // ElectronProxy会自动处理序列化
-    const config = {
-      name: newModel.value.name,
-      baseURL: newModel.value.baseURL,
-      // 确保models数组包含defaultModel，避免验证错误
-      models: modelOptions.value.length > 0
-        ? modelOptions.value.map(opt => opt.value)
-        : [newModel.value.defaultModel],
-      defaultModel: newModel.value.defaultModel,
-      apiKey: newModel.value.apiKey,
-      enabled: true,
-      provider: currentProviderType.value || 'custom',
-      llmParams: newModel.value.llmParams || {}
+    const form = newModel.value
+
+    if (!form.id) {
+      toast.error(t('modelManager.modelKeyRequired'))
+      return
     }
 
-    await modelManager.addModel(newModel.value.key, config)
+    const templateId = form.providerId || currentProviderType.value || 'custom'
+    const template = await modelManager.getModel(templateId)
+
+    if (!template) {
+      throw new Error(`无法找到基础模型配置 ${templateId}`)
+    }
+
+    const connectionConfig: TextConnectionConfig = {
+      ...template.connectionConfig,
+      ...form.connectionConfig,
+      baseURL: form.baseURL?.trim() || template.connectionConfig?.baseURL,
+      apiKey: form.apiKey || template.connectionConfig?.apiKey
+    }
+
+    const paramOverrides = {
+      ...(template.paramOverrides ?? {}),
+      ...(form.paramOverrides ?? {})
+    }
+
+    const modelId = form.defaultModel || form.modelId || template.modelMeta.id
+
+    const newConfig: TextModelConfig = {
+      ...template,
+      id: form.id,
+      name: form.name,
+      enabled: true,
+      connectionConfig,
+      paramOverrides,
+      modelMeta: {
+        ...template.modelMeta,
+        id: modelId,
+        name: modelId
+      }
+    }
+
+    await modelManager.addModel(form.id, newConfig)
     await loadModels()
     showAddForm.value = false
-    // 修改这里，传递新添加的模型的 key
-    emit('modelsUpdated', newModel.value.key)
+    emit('modelsUpdated', form.id)
     newModel.value = {
-      key: '',
+      id: '',
       name: '',
+      providerId: 'custom',
+      modelId: '',
+      connectionConfig: {
+        baseURL: '',
+        apiKey: ''
+      },
       baseURL: '',
-      defaultModel: '',
       apiKey: '',
-      provider: 'custom',
-      llmParams: {}
+      defaultModel: '',
+      paramOverrides: {}
     }
-    toast.success('模型添加成功')
+    toast.success(t('modelManager.createSuccess'))
   } catch (error) {
     console.error('添加模型失败:', error)
-    toast.error(`添加模型失败: ${error.message}`)
+    toast.error(t('modelManager.createFailed', { error: error.message }))
   }
 };
 
 // =============== 监听器 ===============
 // 当编辑或创建表单打开/关闭时，重置状态
 watch(() => editingModel.value?.apiKey, (newValue) => {
-  if (editingModel.value && newValue) {
-    // 如果新输入的密钥不包含星号，标记为非掩码
-    editingModel.value.displayMaskedKey = newValue.includes('*');
+  if (!editingModel.value) return
+  const val = newValue ?? ''
+  const isMasked = !!val && val.includes('*')
+  editingModel.value.displayMaskedKey = isMasked
+
+  if (!isMasked) {
+    editingModel.value.connectionConfig.apiKey = val
+    editingModel.value.originalApiKey = val
+  }
+});
+
+watch(() => editingModel.value?.baseURL, (newValue) => {
+  if (editingModel.value) {
+    editingModel.value.connectionConfig.baseURL = newValue ?? ''
   }
 });
 
  // =============== Advanced Parameters Computed Properties ===============
- const currentLLMParams = computed(() => {
-   return isEditing.value ? (editingModel.value?.llmParams || {}) : newModel.value.llmParams;
+ const currentParamOverrides = computed(() => {
+   return isEditing.value ? (editingModel.value?.paramOverrides || {}) : newModel.value.paramOverrides;
  });
  
  const currentProviderType = computed(() => {
    if (isEditing.value) {
-     return editingModel.value?.provider || 'custom';
+     return editingModel.value?.providerId || 'custom';
    }
-   // For new models, derive from key if it matches a known provider, else default to 'custom'
-   // This helps in suggesting relevant advanced parameters early.
-   const knownProviders = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow'];
-   if (newModel.value.key && knownProviders.includes(newModel.value.key.toLowerCase())) {
-     return newModel.value.key.toLowerCase();
-   }
-   return newModel.value.provider || 'custom';
+   return newModel.value.providerId || 'custom';
  });
  
 const getParamMetadata = (paramName) => {
@@ -1178,7 +1262,7 @@ const getParamMetadata = (paramName) => {
 
 const availableLLMParamDefinitions = computed(() => {
   if (!advancedParameterDefinitions) return [];
-  const currentParams = currentLLMParams.value || {};
+  const currentParams = currentParamOverrides.value || {};
   const provider = currentProviderType.value || 'custom';
   
   return advancedParameterDefinitions.filter(def => 
@@ -1188,16 +1272,16 @@ const availableLLMParamDefinitions = computed(() => {
 });
 
 const removeLLMParam = (paramKey) => {
-  if (currentLLMParams.value) {
-    delete currentLLMParams.value[paramKey];
+  if (currentParamOverrides.value) {
+    delete currentParamOverrides.value[paramKey];
     // Vue 3 might need a bit more help for reactivity on nested objects if not using Vue.set or Vue.delete
-    // However, direct deletion and assignment for the whole llmParams object during save should be fine.
+    // However, direct deletion and assignment for the whole paramOverrides object during save should be fine.
     // For local reactivity within the form, this should work.
   }
 };
 
 const quickAddLLMParam = () => {
-  const paramsObject = currentLLMParams.value;
+  const paramsObject = currentParamOverrides.value;
   if (!paramsObject) return; // Should not happen if initialized correctly
 
   if (selectedNewLLMParamId.value === 'custom') {
@@ -1320,27 +1404,31 @@ const getParamValidationMessage = (paramName, value) => {
   return '';
 };
 
-watch(() => newModel.value.key, (newKey) => {
-  // If the key changes and implies a different provider type for a new model, 
-  // it might be good to reset llmParams or re-evaluate defaults.
-  // For simplicity now, we can reset if the key change might imply a different context.
-  // This is a basic reset; more sophisticated logic could merge common params if desired.
-  const knownProviders = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow'];
-  let newProvider = 'custom';
-  if (newKey && knownProviders.includes(newKey.toLowerCase())) {
-    newProvider = newKey.toLowerCase();
+watch(() => newModel.value.id, (newId) => {
+  const knownProviders = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow']
+  let inferredProvider = 'custom'
+  if (newId && knownProviders.includes(newId.toLowerCase())) {
+    inferredProvider = newId.toLowerCase()
   }
-  
-  if (newModel.value.provider !== newProvider) {
-     // If provider type effectively changes, reset llmParams.
-     // This helps if user types "openai", then changes mind to "gemini".
-     // The UI will then show relevant default params for "gemini".
-    newModel.value.llmParams = {};
-    newModel.value.provider = newProvider; // Update the provider field too
-  } else if (newModel.value.provider === 'custom' && newProvider === 'custom' && newModel.value.key !== '') {
-    // If still custom but key has changed, it's a new custom model, reset llmParams
-    newModel.value.llmParams = {};
+
+  if (newModel.value.providerId !== inferredProvider) {
+    newModel.value.paramOverrides = {}
+    newModel.value.providerId = inferredProvider
+  } else if (inferredProvider === 'custom' && newId) {
+    newModel.value.paramOverrides = {}
   }
+});
+
+watch(() => newModel.value.baseURL, (val) => {
+  newModel.value.connectionConfig.baseURL = val ?? ''
+});
+
+watch(() => newModel.value.apiKey, (val) => {
+  newModel.value.connectionConfig.apiKey = val ?? ''
+});
+
+watch(() => newModel.value.modelId, (val) => {
+  newModel.value.defaultModel = val || ''
 });
 
 

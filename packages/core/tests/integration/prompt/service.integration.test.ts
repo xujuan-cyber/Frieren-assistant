@@ -10,19 +10,22 @@ import { createTemplateLanguageService } from '../../../src/services/template/la
 import { createModelManager } from '../../../src/services/model/manager';
 import { createHistoryManager } from '../../../src/services/history/manager';
 import { Template, MessageTemplate } from '../../../src/services/template/types';
+import { TextModelConfig } from '../../../src/services/model/types';
+import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
 
 /**
  * PromptService集成测试 - 使用真实的Gemini API
  */
 describe('PromptService Integration Tests', () => {
   const hasGeminiKey = !!process.env.VITE_GEMINI_API_KEY;
-  
+
   let promptService: PromptService;
   let modelManager: ModelManager;
   let llmService: any;
   let templateManager: TemplateManager;
   let historyManager: HistoryManager;
   let storage: LocalStorageProvider;
+  let registry: TextAdapterRegistry;
 
   beforeAll(() => {
     console.log('Gemini API Key available:', hasGeminiKey);
@@ -34,13 +37,14 @@ describe('PromptService Integration Tests', () => {
   beforeEach(async () => {
     // 初始化存储和管理器
     storage = new LocalStorageProvider();
+    registry = new TextAdapterRegistry();
     modelManager = createModelManager(storage);
     llmService = createLLMService(modelManager);
-    
+
     const languageService = createTemplateLanguageService(storage);
     templateManager = createTemplateManager(storage, languageService);
 
-    
+
     historyManager = createHistoryManager(storage, modelManager);
 
     // 初始化服务
@@ -51,19 +55,23 @@ describe('PromptService Integration Tests', () => {
 
     // 只有在有API密钥时才添加模型
     if (hasGeminiKey) {
-      await modelManager.addModel('test-gemini', {
+      const adapter = registry.getAdapter('gemini');
+      const geminiConfig: TextModelConfig = {
+        id: 'test-gemini',
         name: 'Test Gemini Model',
-        provider: 'gemini',
-        apiKey: process.env.VITE_GEMINI_API_KEY!,
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        defaultModel: 'gemini-2.0-flash',
-        models: ['gemini-2.0-flash'],
         enabled: true,
-        llmParams: {
+        providerMeta: adapter.getProvider(),
+        modelMeta: adapter.getModels().find(m => m.id === 'gemini-2.0-flash-exp') || adapter.getModels()[0],
+        connectionConfig: {
+          apiKey: process.env.VITE_GEMINI_API_KEY!,
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta'
+        },
+        paramOverrides: {
           temperature: 0.7,
-          max_output_tokens: 1000
+          maxOutputTokens: 1000
         }
-      });
+      };
+      await modelManager.addModel('test-gemini', geminiConfig);
     }
   });
 

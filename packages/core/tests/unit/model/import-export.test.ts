@@ -1,15 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ModelManager } from '../../../src/services/model/manager';
-import { ModelConfig } from '../../../src/services/model/types';
+import { TextModelConfig } from '../../../src/services/model/types';
 import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
+import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
 
 describe('ModelManager Import/Export', () => {
   let modelManager: ModelManager;
   let storageProvider: MemoryStorageProvider;
+  let registry: TextAdapterRegistry;
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
-    modelManager = new ModelManager(storageProvider);
+    registry = new TextAdapterRegistry();
+    modelManager = new ModelManager(storageProvider, registry);
     await modelManager.ensureInitialized();
   });
 
@@ -20,14 +23,18 @@ describe('ModelManager Import/Export', () => {
   describe('exportData', () => {
     it('should export all models', async () => {
       // 添加一些测试模型
-      const testModel: ModelConfig = {
+      const adapter = registry.getAdapter('openai');
+      const testModel: TextModelConfig = {
+        id: 'test-model',
         name: 'Test Model',
-        baseURL: 'https://api.test.com/v1',
-        models: ['test-model-1', 'test-model-2'],
-        defaultModel: 'test-model-1',
-        provider: 'test-provider',
         enabled: true,
-        apiKey: 'test-key'
+        providerMeta: adapter.getProvider(),
+        modelMeta: adapter.buildDefaultModel('test-model-1'),
+        connectionConfig: {
+          apiKey: 'test-key',
+          baseURL: 'https://api.test.com/v1'
+        },
+        paramOverrides: {}
       };
 
       await modelManager.addModel('test-model', testModel);
@@ -40,7 +47,7 @@ describe('ModelManager Import/Export', () => {
       expect(exportedData.length).toBeGreaterThan(0);
 
       // 查找我们添加的测试模型
-      const exportedTestModel = exportedData.find(model => model.key === 'test-model');
+      const exportedTestModel = exportedData.find(model => model.id === 'test-model');
       expect(exportedTestModel).toBeDefined();
       expect(exportedTestModel?.name).toBe('Test Model');
       expect(exportedTestModel?.enabled).toBe(true);
@@ -48,10 +55,10 @@ describe('ModelManager Import/Export', () => {
 
     it('should include built-in models in export', async () => {
       const exportedData = await modelManager.exportData();
-      
+
       // 应该包含内置模型
-      const builtinModels = exportedData.filter(model => 
-        ['openai', 'anthropic', 'google', 'ollama'].includes(model.key)
+      const builtinModels = exportedData.filter(model =>
+        ['openai', 'anthropic', 'gemini'].includes(model.id)
       );
       expect(builtinModels.length).toBeGreaterThan(0);
     });
@@ -103,29 +110,35 @@ describe('ModelManager Import/Export', () => {
 
     it('should update existing models', async () => {
       // 先添加一个模型
-      const originalModel: ModelConfig = {
+      const adapter = registry.getAdapter('openai');
+      const originalModel: TextModelConfig = {
+        id: 'existing-model',
         name: 'Original Model',
-        baseURL: 'https://api.original.com/v1',
-        models: ['original'],
-        defaultModel: 'original',
-        provider: 'original-provider',
-        enabled: false
+        enabled: false,
+        providerMeta: adapter.getProvider(),
+        modelMeta: adapter.buildDefaultModel('original'),
+        connectionConfig: {
+          apiKey: 'original-key',
+          baseURL: 'https://api.original.com/v1'
+        },
+        paramOverrides: {}
       };
       await modelManager.addModel('existing-model', originalModel);
 
       // 导入更新的模型配置
-      const importData = [
-        {
-          key: 'existing-model',
-          name: 'Updated Model',
-          baseURL: 'https://api.updated.com/v1',
-          models: ['updated'],
-          defaultModel: 'updated',
-          provider: 'updated-provider',
-          enabled: true, // 更新启用状态
-          apiKey: 'new-api-key'
-        }
-      ];
+      const updatedConfig: TextModelConfig = {
+        id: 'existing-model',
+        name: 'Updated Model',
+        enabled: true, // 更新启用状态
+        providerMeta: adapter.getProvider(),
+        modelMeta: adapter.buildDefaultModel('updated'),
+        connectionConfig: {
+          apiKey: 'new-api-key',
+          baseURL: 'https://api.updated.com/v1'
+        },
+        paramOverrides: {}
+      };
+      const importData = [updatedConfig];
 
       await modelManager.importData(importData);
 
@@ -134,7 +147,7 @@ describe('ModelManager Import/Export', () => {
       expect(updatedModel).toBeDefined();
       expect(updatedModel?.name).toBe('Updated Model');
       expect(updatedModel?.enabled).toBe(true); // 应该使用导入的启用状态
-      expect(updatedModel?.apiKey).toBe('new-api-key');
+      expect(updatedModel?.connectionConfig.apiKey).toBe('new-api-key');
     });
 
     it('should prioritize imported enabled status', async () => {

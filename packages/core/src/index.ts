@@ -23,19 +23,6 @@ export { LLMService, createLLMService } from './services/llm/service'
 export { ElectronLLMProxy } from './services/llm/electron-proxy'
 export * from './services/llm/errors'
 
-// 导出图像服务相关类型
-export type {
-  ImageProvider,
-  ImageModel,
-  ImageRequest,
-  ImageResult,
-  ImageProgressHandlers,
-  ImageModelConfig,
-  IImageModelManager,
-  IImageProviderAdapter,
-  IImageAdapterRegistry
-} from './services/image/types'
-
 // 导出模型管理相关
 export { ModelManager, createModelManager } from './services/model/manager'
 export * from './services/model/types'
@@ -49,7 +36,21 @@ export { ImageModelManager, createImageModelManager } from './services/image-mod
 export { ImageService, createImageService } from './services/image/service'
 export { ImageAdapterRegistry as _ImageAdapterRegistry, createImageAdapterRegistry } from './services/image/adapters/registry'
 export { ElectronImageServiceProxy, ElectronImageModelManagerProxy } from './services/image/electron-proxy'
-export * from './services/image/types'
+// 导出图像服务类型,将 ConnectionSchema 重命名为 ImageConnectionSchema 避免与 model/types 中的 ConnectionSchema 冲突
+export type {
+  ImageProvider,
+  ImageModel,
+  ImageRequest,
+  ImageResult,
+  ImageProgressHandlers,
+  ImageModelConfig,
+  IImageModelManager,
+  IImageProviderAdapter,
+  IImageAdapterRegistry,
+  IImageService,
+  ConnectionSchema as ImageConnectionSchema,
+  ImageParameterDefinition
+} from './services/image/types'
 
 // 导出存储相关
 export * from './services/storage/types'

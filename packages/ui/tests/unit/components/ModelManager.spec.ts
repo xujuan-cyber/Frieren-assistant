@@ -72,18 +72,31 @@ const mockServices = {
       addModel: vi.fn().mockResolvedValue(undefined),
       updateModel: vi.fn().mockResolvedValue(undefined),
       getModel: vi.fn().mockResolvedValue({
-        key: 'test-model-1',
+        id: 'test-model-1',
         name: 'Test Model 1',
         enabled: true,
-        provider: 'openai',
-        baseURL: 'https://api.openai.com/v1',
-        apiKey: 'test-key',
-        defaultModel: 'gpt-3.5-turbo'
+        providerMeta: {
+          id: 'openai',
+          name: 'OpenAI'
+        },
+        modelMeta: {
+          id: 'gpt-3.5-turbo',
+          name: 'GPT-3.5 Turbo'
+        },
+        connectionConfig: {
+          baseURL: 'https://api.openai.com/v1',
+          apiKey: 'test-key'
+        },
+        paramOverrides: {}
       })
     },
     llmService: {
       // Mock LLM service methods if needed
-      testConnection: vi.fn().mockResolvedValue({ success: true })
+      testConnection: vi.fn().mockResolvedValue({ success: true }),
+      fetchModelList: vi.fn().mockResolvedValue([
+        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+        { value: 'gpt-4', label: 'GPT-4' }
+      ])
     },
     imageModelManager: {
       getAllModels: vi.fn().mockResolvedValue([

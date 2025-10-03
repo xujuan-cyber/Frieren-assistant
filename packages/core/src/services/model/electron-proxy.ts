@@ -1,4 +1,4 @@
-import { IModelManager, ModelConfig } from './types';
+import { IModelManager, TextModelConfig } from './types';
 import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 
 /**
@@ -28,22 +28,22 @@ export class ElectronModelManagerProxy implements IModelManager {
 
 
 
-  async getAllModels(): Promise<Array<ModelConfig & { key: string }>> {
+  async getAllModels(): Promise<TextModelConfig[]> {
     return this.electronAPI.model.getAllModels();
   }
 
-  async getModel(key: string): Promise<ModelConfig | undefined> {
+  async getModel(key: string): Promise<TextModelConfig | undefined> {
     const models = await this.getAllModels();
-    return models.find(m => m.key === key);
+    return models.find(m => m.id === key);
   }
 
-  async addModel(key: string, config: ModelConfig): Promise<void> {
+  async addModel(key: string, config: TextModelConfig): Promise<void> {
     // 自动序列化，防止Vue响应式对象IPC传递错误
-    const safeConfig = safeSerializeForIPC({ ...config, key });
-    await this.electronAPI.model.addModel(safeConfig);
+    const safeConfig = safeSerializeForIPC(config);
+    await this.electronAPI.model.addModel({ key, ...safeConfig });
   }
 
-  async updateModel(key: string, config: Partial<ModelConfig>): Promise<void> {
+  async updateModel(key: string, config: Partial<TextModelConfig>): Promise<void> {
     // 自动序列化，防止Vue响应式对象IPC传递错误
     const safeConfig = safeSerializeForIPC(config);
     await this.electronAPI.model.updateModel(key, safeConfig);
@@ -61,7 +61,7 @@ export class ElectronModelManagerProxy implements IModelManager {
     await this.updateModel(key, { enabled: false });
   }
 
-  async getEnabledModels(): Promise<Array<ModelConfig & { key: string }>> {
+  async getEnabledModels(): Promise<TextModelConfig[]> {
     return this.electronAPI.model.getEnabledModels();
   }
 
@@ -70,7 +70,7 @@ export class ElectronModelManagerProxy implements IModelManager {
   /**
    * 导出所有模型配置
    */
-  async exportData(): Promise<ModelConfig[]> {
+  async exportData(): Promise<TextModelConfig[]> {
     return (this.electronAPI as any).model.exportData();
   }
 
