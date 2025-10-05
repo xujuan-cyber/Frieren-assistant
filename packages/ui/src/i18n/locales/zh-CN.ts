@@ -465,6 +465,14 @@
     // 状态文本
     disabled: '已禁用',
 
+    // 模型能力标签
+    capabilities: {
+      tools: '工具调用',
+      reasoning: '推理模式',
+      streaming: '流式输出',
+      vision: '视觉理解'
+    },
+
     // 无障碍标签
     testConnectionAriaLabel: '测试连接到{name}',
     editModelAriaLabel: '编辑模型{name}',

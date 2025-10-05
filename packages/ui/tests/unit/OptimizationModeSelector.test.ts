@@ -21,6 +21,9 @@ describe('OptimizationModeSelector', () => {
 
   it('renders correctly with text content', () => {
     const wrapper = mount(OptimizationModeSelector, {
+      props: {
+        modelValue: 'system'
+      },
       global: {
         plugins: [i18n]
       }
@@ -29,4 +32,4 @@ describe('OptimizationModeSelector', () => {
     expect(wrapper.text()).toContain('System Prompt')
     expect(wrapper.text()).toContain('User Prompt')
   })
-}) 
+})

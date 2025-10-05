@@ -257,10 +257,10 @@ function createProviderMeta(providerId: string, legacy: ModelConfig): TextProvid
       }
     };
   } else {
-    // OpenAI 及兼容 API
+    // OpenAI 及兼容 API - 始终使用 'OpenAI' 作为 Provider 名称
     return {
       id: 'openai',
-      name: legacy.provider === 'openai' ? 'OpenAI' : legacy.name,
+      name: 'OpenAI',
       description: 'OpenAI GPT models and OpenAI-compatible APIs',
       requiresApiKey: true,
       defaultBaseURL: legacy.baseURL || 'https://api.openai.com/v1',

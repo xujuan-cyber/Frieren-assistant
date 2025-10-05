@@ -462,6 +462,14 @@ export default {
       apiError: 'API錯誤：{error}'
     },
 
+    // 模型能力標籤
+    capabilities: {
+      tools: '工具呼叫',
+      reasoning: '推理模式',
+      streaming: '串流輸出',
+      vision: '視覺理解'
+    },
+
     // 狀態文字
     disabled: '已停用',
 

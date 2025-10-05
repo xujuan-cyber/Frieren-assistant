@@ -11,7 +11,8 @@ import type {
   ContextRepo,
   IImageModelManager,
   IImageService,
-  IImageAdapterRegistry
+  IImageAdapterRegistry,
+  ITextAdapterRegistry
 } from '@prompt-optimizer/core'
 
 /**
@@ -28,6 +29,8 @@ export interface AppServices {
   preferenceService: IPreferenceService;
   compareService: ICompareService;
   contextRepo: ContextRepo;
+  // 文本模型适配器注册表（本地实例）
+  textAdapterRegistry?: ITextAdapterRegistry;
   // 图像相关（Web 优先，可选）
   imageModelManager?: IImageModelManager;
   imageService?: IImageService;

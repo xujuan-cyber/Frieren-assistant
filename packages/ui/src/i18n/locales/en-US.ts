@@ -462,6 +462,14 @@ export default {
       apiError: 'API error: {error}'
     },
 
+    // Model Capabilities
+    capabilities: {
+      tools: 'Tool Calling',
+      reasoning: 'Reasoning',
+      streaming: 'Streaming',
+      vision: 'Vision'
+    },
+
     // Status Text
     disabled: 'Disabled',
 

@@ -18,8 +18,22 @@ export * from './services/history/errors'
 export { ElectronHistoryManagerProxy } from './services/history/electron-proxy'
 
 // 导出LLM服务相关
-export type { ILLMService, Message, StreamHandlers, LLMResponse, ModelInfo, ModelOption } from './services/llm/types'
+export type {
+  ILLMService,
+  Message,
+  StreamHandlers,
+  LLMResponse,
+  ModelInfo,
+  ModelOption,
+  ITextAdapterRegistry,
+  ITextProviderAdapter,
+  TextProvider,
+  TextModel,
+  TextModelConfig,
+  ConnectionSchema
+} from './services/llm/types'
 export { LLMService, createLLMService } from './services/llm/service'
+export { TextAdapterRegistry, createTextAdapterRegistry } from './services/llm/adapters/registry'
 export { ElectronLLMProxy } from './services/llm/electron-proxy'
 export * from './services/llm/errors'
 

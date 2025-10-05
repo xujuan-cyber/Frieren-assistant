@@ -52,7 +52,8 @@
           >
             <template #header>
               <NSpace justify="space-between" align="center">
-                <NSpace vertical :size="4">
+                <NSpace vertical :size="2">
+                  <!-- 配置名称行 -->
                   <NSpace align="center">
                     <NText strong>{{ model.name }}</NText>
                     <NTag
@@ -63,9 +64,30 @@
                       {{ t('modelManager.disabled') }}
                     </NTag>
                   </NSpace>
-                  <NText depth="3" style="font-size: 14px;">
-                    {{ model.modelMeta?.name || model.modelMeta?.id }}
-                  </NText>
+
+                  <!-- 标签行：Provider、Model、能力标签合并 -->
+                  <NSpace :size="6">
+                    <!-- Provider 标签 -->
+                    <NTag size="small" type="info" :bordered="false">
+                      {{ model.providerMeta?.name || model.providerMeta?.id }}
+                    </NTag>
+
+                    <!-- Model 标签 -->
+                    <NTag size="small" type="primary" :bordered="false">
+                      {{ model.modelMeta?.name || model.modelMeta?.id }}
+                    </NTag>
+
+                    <!-- 能力标签 -->
+                    <NTag v-if="model.modelMeta?.capabilities?.supportsTools" size="small" type="success" :bordered="false">
+                      {{ t('modelManager.capabilities.tools') }}
+                    </NTag>
+                    <NTag v-if="model.modelMeta?.capabilities?.supportsReasoning" size="small" type="warning" :bordered="false">
+                      {{ t('modelManager.capabilities.reasoning') }}
+                    </NTag>
+                    <NTag v-if="model.modelMeta?.capabilities?.supportsStreaming" size="small" :bordered="false">
+                      {{ t('modelManager.capabilities.streaming') }}
+                    </NTag>
+                  </NSpace>
                 </NSpace>
               </NSpace>
             </template>
@@ -151,83 +173,113 @@
     @update:show="(value) => !value && cancelEdit()"
   >
     <NScrollbar v-if="editingModel" style="max-height: 75vh;">
-      <NSpace vertical :size="16">
-        <form @submit.prevent="saveEdit">
-          <NSpace vertical :size="16">
-            <NSpace vertical :size="8">
-              <NText tag="label" strong>{{ t('modelManager.displayName') }}</NText>
+      <form @submit.prevent="saveEdit">
+        <NForm label-placement="left" label-width="auto" size="small">
+          <!-- 基本信息区域 -->
+          <NFormItem :label="t('modelManager.displayName')">
+            <NInput
+              v-model:value="editingModel.name"
+              :placeholder="t('modelManager.displayNamePlaceholder')"
+              required
+            />
+          </NFormItem>
+
+          <!-- 提供商配置区域 -->
+          <NDivider style="margin: 12px 0 8px 0;" />
+          <NH4 style="margin: 0 0 12px 0; font-size: 14px;">提供商配置</NH4>
+
+          <!-- Provider 选择器 -->
+          <NFormItem label="提供商">
+            <NSelect
+              v-model:value="editingModel.providerId"
+              :options="providerOptions"
+              placeholder="选择提供商"
+              @update:value="handleProviderChange"
+              required
+            />
+          </NFormItem>
+
+          <!-- 动态连接配置字段 -->
+          <NFormItem v-for="field in connectionFields" :key="field.name" :label="field.name === 'apiKey' ? t('modelManager.apiKey') : (field.name === 'baseURL' ? t('modelManager.apiUrl') : field.name)">
+            <template v-if="field.name === 'baseURL'" #label>
+              <NSpace align="center" :size="4">
+                <span>{{ t('modelManager.apiUrl') }}</span>
+                <NText depth="3" :title="t('modelManager.apiUrlHint')" style="cursor: help;">?</NText>
+              </NSpace>
+            </template>
+
+            <template v-if="field.type === 'string'">
               <NInput
-                v-model:value="editingModel.name"
-                :placeholder="t('modelManager.displayNamePlaceholder')"
-                required
+                v-model:value="editingModel.connectionConfig[field.name]"
+                :type="field.name.toLowerCase().includes('key') ? 'password' : 'text'"
+                :placeholder="field.placeholder"
+                :required="field.required"
+                :autocomplete="field.name.toLowerCase().includes('key') ? 'off' : 'on'"
               />
-            </NSpace>
-              
-              <NSpace vertical :size="8">
-                <NText tag="label" strong>
-                  {{ t('modelManager.apiUrl') }}
-                  <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.apiUrlHint')">?</NText>
-                </NText>
-                <NInput
-                  v-model:value="editingModel.baseURL"
-                  :placeholder="t('modelManager.apiUrlPlaceholder')"
-                  required
-                />
-              </NSpace>
-              
-              <NSpace vertical :size="8">
-                <NText tag="label" strong>{{ t('modelManager.apiKey') }}</NText>
-                <NInput
-                  v-model:value="editingModel.apiKey"
-                  type="password"
-                  autocomplete="off"
-                  :placeholder="t('modelManager.apiKeyPlaceholder')"
-                />
-              </NSpace>
-              
-              <NSpace vertical :size="8">
-                <NText tag="label" strong>{{ t('modelManager.defaultModel') }}</NText>
-                <InputWithSelect
-                  v-model="editingModel.modelId"
-                  :options="modelOptions"
-                  :is-loading="isLoadingModels"
-                  :loading-text="t('modelManager.loadingModels')"
-                  :no-options-text="t('modelManager.noModelsAvailable')"
-                  :hint-text="t('modelManager.clickToFetchModels')"
-                  required
-                  :placeholder="t('modelManager.defaultModelPlaceholder')"
-                  @fetch-options="handleFetchEditingModels"
-                />
-              </NSpace>
-              
-              <!-- Advanced Parameters Section -->
-              <NDivider style="margin: 20px 0;" />
-              <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
-                <NSpace vertical :size="4">
-                  <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
-                  <NText depth="3" style="font-size: 12px;">
-                    {{ t('modelManager.advancedParameters.currentProvider') }}: 
-                    <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
-                    <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
-                    <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
-                  </NText>
-                </NSpace>
-                
-                <NSelect
-                  v-model:value="selectedNewLLMParamId"
-                  @update:value="handleQuickAddParam"
-                  style="width: 220px;"
-                  size="small"
-                  :options="[
-                    { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
-                    ...availableLLMParamDefinitions.map(paramDef => ({
-                      label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
-                      value: paramDef.id
-                    })),
-                    { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
-                  ]"
-                />
-              </NSpace>
+            </template>
+            <template v-else-if="field.type === 'number'">
+              <NInputNumber
+                v-model:value="editingModel.connectionConfig[field.name]"
+                :placeholder="field.placeholder"
+                :required="field.required"
+              />
+            </template>
+            <template v-else-if="field.type === 'boolean'">
+              <NCheckbox
+                v-model:checked="editingModel.connectionConfig[field.name]"
+              >
+                {{ field.name }}
+              </NCheckbox>
+            </template>
+          </NFormItem>
+
+          <!-- 模型配置区域 -->
+          <NDivider style="margin: 12px 0 8px 0;" />
+          <NH4 style="margin: 0 0 12px 0; font-size: 14px;">模型配置</NH4>
+
+          <NFormItem :label="t('modelManager.defaultModel')">
+            <InputWithSelect
+              v-model="editingModel.modelId"
+              :options="modelOptions"
+              :is-loading="isLoadingModels"
+              :loading-text="t('modelManager.loadingModels')"
+              :no-options-text="t('modelManager.noModelsAvailable')"
+              :hint-text="t('modelManager.clickToFetchModels')"
+              required
+              :placeholder="t('modelManager.defaultModelPlaceholder')"
+              @fetch-options="handleFetchEditingModels"
+            />
+          </NFormItem>
+        </NForm>
+
+        <!-- 高级参数配置区域（NForm 外部） -->
+        <NDivider style="margin: 12px 0 8px 0;" />
+        <NSpace justify="space-between" align="center" style="margin-bottom: 12px;">
+          <NSpace vertical :size="4">
+            <NH4 style="margin: 0; font-size: 14px;">{{ t('modelManager.advancedParameters.title') }}</NH4>
+            <NText depth="3" style="font-size: 12px;">
+              {{ t('modelManager.advancedParameters.currentProvider') }}:
+              <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
+              <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+              <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
+            </NText>
+          </NSpace>
+
+          <NSelect
+            v-model:value="selectedNewLLMParamId"
+            @update:value="handleQuickAddParam"
+            style="width: 220px;"
+            size="small"
+            :options="[
+              { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
+              ...availableLLMParamDefinitions.map(paramDef => ({
+                label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
+                value: paramDef.id
+              })),
+              { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
+            ]"
+          />
+        </NSpace>
                 
                 <!-- 自定义参数输入界面 -->
                 <NCard v-if="selectedNewLLMParamId === 'custom'" size="small" style="margin: 12px 0;">
@@ -361,10 +413,8 @@
                     </NSpace>
                   </NCard>
                 </NSpace>
-            </NSpace>
-          </form>
-        </NSpace>
-      </NScrollbar>
+      </form>
+    </NScrollbar>
       
       <template #action>
         <NSpace justify="end">
@@ -392,91 +442,122 @@
     :segmented="true"
     @update:show="(value) => !value && (showAddForm = false)"
   >
-      <NScrollbar style="max-height: 75vh;">
-        <form @submit.prevent="addCustomModel">
-          <NSpace vertical :size="16">
-            <NSpace vertical :size="8">
-              <NText tag="label" strong>{{ t('modelManager.modelKey') }}</NText>
-              <NInput
-                v-model:value="newModel.id"
-                :placeholder="t('modelManager.modelKeyPlaceholder')"
-                required
-              />
-            </NSpace>
-            
-            <NSpace vertical :size="8">
-              <NText tag="label" strong>{{ t('modelManager.displayName') }}</NText>
-              <NInput
-                v-model:value="newModel.name"
-                :placeholder="t('modelManager.displayNamePlaceholder')"
-                required
-              />
-            </NSpace>
-            
-            <NSpace vertical :size="8">
-              <NText tag="label" strong>
-                {{ t('modelManager.apiUrl') }}
-                <NText depth="3" style="margin-left: 4px;" :title="t('modelManager.apiUrlHint')">?</NText>
-              </NText>
-              <NInput
-                v-model:value="newModel.baseURL"
-                :placeholder="t('modelManager.apiUrlPlaceholder')"
-                required
-              />
-            </NSpace>
-            
-            <NSpace vertical :size="8">
-              <NText tag="label" strong>{{ t('modelManager.apiKey') }}</NText>
-              <NInput
-                v-model:value="newModel.apiKey"
-                type="password"
-                autocomplete="off"
-                :placeholder="t('modelManager.apiKeyPlaceholder')"
-              />
-            </NSpace>
-            
-            <NSpace vertical :size="8">
-              <NText tag="label" strong>{{ t('modelManager.defaultModel') }}</NText>
-                <InputWithSelect
-                  v-model="newModel.modelId"
-                :options="modelOptions"
-                :is-loading="isLoadingModels"
-                :loading-text="t('modelManager.loadingModels')"
-                :no-options-text="t('modelManager.noModelsAvailable')"
-                :hint-text="t('modelManager.clickToFetchModels')"
-                required
-                :placeholder="t('modelManager.defaultModelPlaceholder')"
-                @fetch-options="handleFetchNewModels"
-              />
-            </NSpace>
-            <!-- Advanced Parameters Section FOR ADD MODEL -->
-            <NDivider style="margin: 20px 0;" />
-            <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
-              <NSpace vertical :size="4">
-                <NH4 style="margin: 0;">{{ t('modelManager.advancedParameters.title') }}</NH4>
-                <NText depth="3" style="font-size: 12px;">
-                  {{ t('modelManager.advancedParameters.currentProvider') }}: 
-                  <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
-                  <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
-                  <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
-                </NText>
+    <NScrollbar style="max-height: 75vh;">
+      <form @submit.prevent="addCustomModel">
+        <NForm label-placement="left" label-width="auto" size="small">
+          <!-- 基本信息区域 -->
+          <NFormItem :label="t('modelManager.modelKey')">
+            <NInput
+              v-model:value="newModel.id"
+              :placeholder="t('modelManager.modelKeyPlaceholder')"
+              required
+            />
+          </NFormItem>
+
+          <NFormItem :label="t('modelManager.displayName')">
+            <NInput
+              v-model:value="newModel.name"
+              :placeholder="t('modelManager.displayNamePlaceholder')"
+              required
+            />
+          </NFormItem>
+
+          <!-- 提供商配置区域 -->
+          <NDivider style="margin: 12px 0 8px 0;" />
+          <NH4 style="margin: 0 0 12px 0; font-size: 14px;">提供商配置</NH4>
+
+          <!-- Provider 选择器 -->
+          <NFormItem label="提供商">
+            <NSelect
+              v-model:value="newModel.providerId"
+              :options="providerOptions"
+              placeholder="选择提供商"
+              @update:value="handleProviderChange"
+              required
+            />
+          </NFormItem>
+
+          <!-- 动态连接配置字段 -->
+          <NFormItem v-for="field in connectionFields" :key="field.name" :label="field.name === 'apiKey' ? t('modelManager.apiKey') : (field.name === 'baseURL' ? t('modelManager.apiUrl') : field.name)">
+            <template v-if="field.name === 'baseURL'" #label>
+              <NSpace align="center" :size="4">
+                <span>{{ t('modelManager.apiUrl') }}</span>
+                <NText depth="3" :title="t('modelManager.apiUrlHint')" style="cursor: help;">?</NText>
               </NSpace>
-              
-              <NSelect
-                v-model:value="selectedNewLLMParamId"
-                @update:value="handleQuickAddParam"
-                style="width: 220px;"
-                size="small"
-                :options="[
-                  { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
-                  ...availableLLMParamDefinitions.map(paramDef => ({
-                    label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
-                    value: paramDef.id
-                  })),
-                  { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
-                ]"
+            </template>
+
+            <template v-if="field.type === 'string'">
+              <NInput
+                v-model:value="newModel.connectionConfig[field.name]"
+                :type="field.name.toLowerCase().includes('key') ? 'password' : 'text'"
+                :placeholder="field.placeholder"
+                :required="field.required"
+                :autocomplete="field.name.toLowerCase().includes('key') ? 'off' : 'on'"
               />
-            </NSpace>
+            </template>
+            <template v-else-if="field.type === 'number'">
+              <NInputNumber
+                v-model:value="newModel.connectionConfig[field.name]"
+                :placeholder="field.placeholder"
+                :required="field.required"
+              />
+            </template>
+            <template v-else-if="field.type === 'boolean'">
+              <NCheckbox
+                v-model:checked="newModel.connectionConfig[field.name]"
+              >
+                {{ field.name }}
+              </NCheckbox>
+            </template>
+          </NFormItem>
+
+          <!-- 模型配置区域 -->
+          <NDivider style="margin: 12px 0 8px 0;" />
+          <NH4 style="margin: 0 0 12px 0; font-size: 14px;">模型配置</NH4>
+
+          <NFormItem :label="t('modelManager.defaultModel')">
+            <InputWithSelect
+              v-model="newModel.modelId"
+              :options="modelOptions"
+              :is-loading="isLoadingModels"
+              :loading-text="t('modelManager.loadingModels')"
+              :no-options-text="t('modelManager.noModelsAvailable')"
+              :hint-text="t('modelManager.clickToFetchModels')"
+              required
+              :placeholder="t('modelManager.defaultModelPlaceholder')"
+              @fetch-options="handleFetchNewModels"
+            />
+          </NFormItem>
+        </NForm>
+
+        <!-- 高级参数配置区域（NForm 外部） -->
+        <NDivider style="margin: 12px 0 8px 0;" />
+        <NSpace justify="space-between" align="center" style="margin-bottom: 12px;">
+          <NSpace vertical :size="4">
+            <NH4 style="margin: 0; font-size: 14px;">{{ t('modelManager.advancedParameters.title') }}</NH4>
+            <NText depth="3" style="font-size: 12px;">
+              {{ t('modelManager.advancedParameters.currentProvider') }}:
+              <NText strong>{{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}</NText>
+              <span v-if="availableLLMParamDefinitions.length > 0"> ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})</span>
+              <NText v-else type="warning"> ({{ t('modelManager.advancedParameters.noAvailableParams') }})</NText>
+            </NText>
+          </NSpace>
+
+          <NSelect
+            v-model:value="selectedNewLLMParamId"
+            @update:value="handleQuickAddParam"
+            style="width: 220px;"
+            size="small"
+            :options="[
+              { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
+              ...availableLLMParamDefinitions.map(paramDef => ({
+                label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
+                value: paramDef.id
+              })),
+              { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
+            ]"
+          />
+        </NSpace>
               
               <!-- 自定义参数输入界面 --FOR ADD MODEL-- -->
               <NCard v-if="selectedNewLLMParamId === 'custom'" size="small" style="margin: 12px 0;">
@@ -610,9 +691,8 @@
                   </NSpace>
                 </NCard>
               </NSpace>
-          </NSpace>
-        </form>
-      </NScrollbar>
+      </form>
+    </NScrollbar>
       
       <template #action>
         <NSpace justify="end">
@@ -643,13 +723,15 @@ import { ref, onMounted, onUnmounted, watch, computed, inject, provide } from 'v
 import { useI18n } from 'vue-i18n';
 import {
   NModal, NScrollbar, NSpace, NCard, NText, NH4, NTag, NButton,
-  NInput, NInputNumber, NCheckbox, NDivider, NSelect, NTabs, NTabPane
+  NInput, NInputNumber, NCheckbox, NDivider, NSelect, NTabs, NTabPane,
+  NForm, NFormItem
 } from 'naive-ui';
 import {
   advancedParameterDefinitions,
   type TextModelConfig,
   type TextModel,
   type ModelOption,
+  type TextProvider,
 } from '@prompt-optimizer/core';
 import { useToast } from '../composables/useToast';
 import InputWithSelect from './InputWithSelect.vue'
@@ -670,10 +752,8 @@ interface EditingTextModelForm {
   providerId: string;
   modelId: string;
   connectionConfig: TextConnectionConfig;
-  baseURL: string;
-  apiKey: string;
   displayMaskedKey: boolean;
-  originalApiKey?: string;
+  originalApiKey?: string;  // 保留用于遮罩处理
   paramOverrides: Record<string, unknown>;
 }
 
@@ -683,8 +763,6 @@ interface NewTextModelForm {
   providerId: string;
   modelId: string;
   connectionConfig: TextConnectionConfig;
-  baseURL: string;
-  apiKey: string;
   defaultModel: string;
   paramOverrides: Record<string, unknown>;
 }
@@ -721,7 +799,32 @@ if (typeof window !== 'undefined') {
 
 // 打开新增弹窗（根据活动标签）
 const openAddForActiveTab = () => {
-  if (activeTab.value === 'text') showAddForm.value = true
+  if (activeTab.value === 'text') {
+    // 重置表单并设置默认 Provider
+    if (textProviders.value.length > 0) {
+      const defaultProvider = textProviders.value[0]
+      selectedProviderId.value = defaultProvider.id
+      newModel.value.providerId = defaultProvider.id
+
+      // 设置默认连接配置
+      if (defaultProvider.defaultBaseURL) {
+        newModel.value.connectionConfig = {
+          baseURL: defaultProvider.defaultBaseURL
+        }
+      }
+
+      // 加载默认 Provider 的模型
+      if (textAdapterRegistry) {
+        textModels.value = textAdapterRegistry.getStaticModels(defaultProvider.id)
+        modelOptions.value = textModels.value.map(m => ({
+          value: m.id,
+          label: m.name || m.id
+        }))
+      }
+    }
+
+    showAddForm.value = true
+  }
   else if (activeTab.value === 'image') handleAddImageModel()
 }
 
@@ -736,6 +839,7 @@ const imageModelManager = services.value.imageModelManager;
 
 // 使用统一注入的单实例注册表
 const imageAdapterRegistry = services.value.imageAdapterRegistry;
+const textAdapterRegistry = services.value.textAdapterRegistry;
 
 // 为ImageModelManager组件提供必要的依赖
 provide('imageModelManager', imageModelManager);
@@ -760,19 +864,17 @@ const customLLMParam = ref({ key: '', value: '' });
 // 数据状态
 const models = ref<TextModelConfig[]>([]);
 const editingModel = ref<EditingTextModelForm | null>(null);
+const textProviders = ref<TextProvider[]>([]);
+const textModels = ref<any[]>([]);     // TextModel[]
+const selectedProviderId = ref('');
 
 // 表单状态
 const newModel = ref<NewTextModelForm>({
   id: '',
   name: '',
-  providerId: 'custom',
+  providerId: '',  // 将在 loadTextProviders 后设置
   modelId: '',
-  connectionConfig: {
-    baseURL: '',
-    apiKey: ''
-  },
-  baseURL: '',
-  apiKey: '',
+  connectionConfig: {},
   defaultModel: '',
   paramOverrides: {}
 });
@@ -807,8 +909,29 @@ const loadModels = async () => {
 
     emit('modelsUpdated', models.value[0]?.id)
   } catch (error) {
-    console.error('加载模型列表失败:', error)
-    toast.error(t('toast.error.loadModelsFailed'))
+    console.error('加载模型失败:', error)
+  }
+}
+
+// 加载所有文本模型 Providers
+const loadTextProviders = () => {
+  if (!textAdapterRegistry) {
+    console.warn('textAdapterRegistry 未初始化')
+    return
+  }
+
+  try {
+    textProviders.value = textAdapterRegistry.getAllProviders()
+    console.log('已加载文本模型 Providers:', textProviders.value.map(p => p.name))
+
+    // 初始化 newModel 的默认 provider
+    if (textProviders.value.length > 0 && !newModel.value.providerId) {
+      const defaultProvider = textProviders.value[0]
+      newModel.value.providerId = defaultProvider.id
+      selectedProviderId.value = defaultProvider.id
+    }
+  } catch (error) {
+    console.error('加载 Providers 失败:', error)
   }
 }
 
@@ -816,6 +939,56 @@ const loadModels = async () => {
 const isDefaultModel = (id: string) => {
   return DEFAULT_TEXT_MODEL_IDS.includes(id as typeof DEFAULT_TEXT_MODEL_IDS[number])
 }
+
+// =============== 计算属性 ===============
+// Provider 选项
+const providerOptions = computed(() => {
+  return textProviders.value.map(p => ({
+    label: p.name,
+    value: p.id,
+    disabled: false
+  }))
+})
+
+// 当前选中的 Provider
+const selectedProvider = computed(() => {
+  if (!selectedProviderId.value) return null
+  return textProviders.value.find(p => p.id === selectedProviderId.value)
+})
+
+// 动态连接字段
+const connectionFields = computed(() => {
+  if (!selectedProvider.value?.connectionSchema) return []
+
+  const schema = selectedProvider.value.connectionSchema
+  const fields: any[] = []
+
+  // 必需字段
+  for (const fieldName of schema.required) {
+    fields.push({
+      name: fieldName,
+      required: true,
+      type: schema.fieldTypes[fieldName] || 'string',
+      labelKey: `llm.connection.${fieldName}.label`,
+      descriptionKey: `llm.connection.${fieldName}.description`,
+      placeholder: fieldName === 'baseURL' ? selectedProvider.value.defaultBaseURL : ''
+    })
+  }
+
+  // 可选字段
+  for (const fieldName of schema.optional) {
+    fields.push({
+      name: fieldName,
+      required: false,
+      type: schema.fieldTypes[fieldName] || 'string',
+      labelKey: `llm.connection.${fieldName}.label`,
+      descriptionKey: `llm.connection.${fieldName}.description`,
+      placeholder: fieldName === 'baseURL' ? selectedProvider.value.defaultBaseURL : ''
+    })
+  }
+
+  return fields
+})
 
 // =============== 模型管理函数 ===============
 // 测试连接
@@ -900,6 +1073,8 @@ const editModel = async (id: string) => {
   }
 
   const connectionConfig: TextConnectionConfig = { ...(model.connectionConfig ?? {}) }
+
+  // 处理 apiKey 遮罩
   const rawApiKey = connectionConfig.apiKey ?? ''
   let maskedApiKey = ''
 
@@ -914,6 +1089,8 @@ const editModel = async (id: string) => {
       const maskedLength = keyLength - visiblePart * 2
       maskedApiKey = `${prefix}${'*'.repeat(maskedLength)}${suffix}`
     }
+    // 用遮罩后的密钥替换原始密钥
+    connectionConfig.apiKey = maskedApiKey
   }
 
   editingModel.value = {
@@ -923,19 +1100,21 @@ const editModel = async (id: string) => {
     providerId: model.providerMeta?.id ?? 'custom',
     modelId: model.modelMeta?.id ?? '',
     connectionConfig,
-    baseURL: connectionConfig.baseURL ?? '',
-    apiKey: maskedApiKey || '',
     displayMaskedKey: !!rawApiKey,
     originalApiKey: rawApiKey || undefined,
     paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {}
   }
 
+  // 设置选中的 Provider ID
+  selectedProviderId.value = editingModel.value.providerId
+
   // 初始化模型选项
   try {
+    // 使用原始的完整配置（包含真实的 API key）
     const options = await llmService.fetchModelList(model.id, {
       providerMeta: model.providerMeta,
       modelMeta: model.modelMeta,
-      connectionConfig
+      connectionConfig: model.connectionConfig  // 使用原始的 model.connectionConfig，而不是遮罩后的
     })
     modelOptions.value = options
   } catch (error) {
@@ -943,14 +1122,59 @@ const editModel = async (id: string) => {
     modelOptions.value = [{ value: model.modelMeta.id, label: model.modelMeta.name || model.modelMeta.id }]
   }
 
-  if (!editingModel.value.apiKey) {
-    editingModel.value.apiKey = ''
-    editingModel.value.displayMaskedKey = false
-  }
-
   isEditing.value = true
 }
 
+// Provider 切换处理
+const handleProviderChange = async (providerId: string) => {
+  selectedProviderId.value = providerId
+
+  // 加载该 Provider 的静态模型
+  if (textAdapterRegistry) {
+    try {
+      textModels.value = textAdapterRegistry.getStaticModels(providerId)
+
+      // 更新模型选项
+      modelOptions.value = textModels.value.map(m => ({
+        value: m.id,
+        label: m.name || m.id
+      }))
+
+      // 获取 Provider 信息
+      const provider = textProviders.value.find(p => p.id === providerId)
+
+      // 更新编辑表单
+      if (editingModel.value) {
+        editingModel.value.providerId = providerId
+        editingModel.value.modelId = ''
+
+        // 更新连接配置的 baseURL，保留其他字段
+        if (provider?.defaultBaseURL) {
+          if (!editingModel.value.connectionConfig) {
+            editingModel.value.connectionConfig = {}
+          }
+          editingModel.value.connectionConfig.baseURL = provider.defaultBaseURL
+        }
+      }
+
+      // 更新新增表单
+      if (showAddForm.value) {
+        newModel.value.providerId = providerId
+        newModel.value.modelId = ''
+
+        // 更新连接配置的 baseURL，保留其他字段
+        if (provider?.defaultBaseURL) {
+          if (!newModel.value.connectionConfig) {
+            newModel.value.connectionConfig = {}
+          }
+          newModel.value.connectionConfig.baseURL = provider.defaultBaseURL
+        }
+      }
+    } catch (error) {
+      console.error('加载 Provider 模型失败:', error)
+    }
+  }
+}
 
 // 公共错误处理函数
 const handleModelFetchError = (error) => {
@@ -995,26 +1219,64 @@ const handleFetchEditingModels = async () => {
   isLoadingModels.value = true
 
   try {
-    const baseURL = form.baseURL?.trim()
+    const baseURL = form.connectionConfig.baseURL?.trim()
     if (!baseURL) {
       toast.error(t('modelManager.needBaseUrl'))
       return
     }
 
-    const apiKeyToUse = form.displayMaskedKey ? (form.originalApiKey ?? '') : form.apiKey
+    // 始终使用 originalApiKey（真实的 API key），如果不存在则使用当前输入的值
+    const apiKeyToUse = form.originalApiKey || form.connectionConfig.apiKey || ''
 
-    form.connectionConfig = {
+    console.log('[ModelManager] Fetching models with:', {
+      originalApiKey: form.originalApiKey ? `${form.originalApiKey.substring(0, 10)}...` : 'undefined',
+      configApiKey: form.connectionConfig.apiKey ? `${form.connectionConfig.apiKey.substring(0, 10)}...` : 'undefined',
+      apiKeyToUse: apiKeyToUse ? `${apiKeyToUse.substring(0, 10)}...` : 'undefined',
+      providerId: form.providerId
+    })
+
+    // 创建临时配置对象用于 API 调用，不修改 form.connectionConfig（避免影响 UI 显示）
+    const tempConnectionConfig = {
       ...form.connectionConfig,
       baseURL,
       apiKey: apiKeyToUse
     }
 
-    const baseModel = await modelManager.getModel(form.originalId)
+    const existingConfig = await modelManager.getModel(form.originalId)
+    const providerTemplateId = form.providerId || existingConfig?.providerMeta?.id || form.originalId
 
-    const models = await llmService.fetchModelList(form.originalId, {
-      connectionConfig: form.connectionConfig,
-      providerMeta: baseModel?.providerMeta,
-      modelMeta: baseModel?.modelMeta ? { ...baseModel.modelMeta, id: form.modelId } : undefined
+    let providerMeta =
+      textProviders.value.find(p => p.id === providerTemplateId)
+      || existingConfig?.providerMeta
+
+    let modelMeta = existingConfig?.modelMeta
+
+    if (textAdapterRegistry && providerTemplateId) {
+      try {
+        const adapter = textAdapterRegistry.getAdapter(providerTemplateId)
+        if (!providerMeta) {
+          providerMeta = adapter.getProvider()
+        }
+
+        const staticModels = adapter.getModels()
+        if (form.modelId) {
+          modelMeta = staticModels.find(m => m.id === form.modelId) || modelMeta
+        }
+        if (!modelMeta) {
+          modelMeta = staticModels[0]
+        }
+        if (!modelMeta && form.modelId) {
+          modelMeta = adapter.buildDefaultModel(form.modelId)
+        }
+      } catch (error) {
+        console.warn(`[ModelManager] Failed to load metadata for provider ${providerTemplateId}`, error)
+      }
+    }
+
+    const models = await llmService.fetchModelList(providerTemplateId, {
+      connectionConfig: tempConnectionConfig,
+      providerMeta,
+      modelMeta: modelMeta ? { ...modelMeta, id: form.modelId || modelMeta.id } : undefined
     } as Partial<TextModelConfig>)
 
     modelOptions.value = models
@@ -1031,7 +1293,7 @@ const handleFetchEditingModels = async () => {
 }
 const handleFetchNewModels = async () => {
   const form = newModel.value
-  const baseURL = form.baseURL?.trim()
+  const baseURL = form.connectionConfig.baseURL?.trim()
 
   if (!baseURL) {
     toast.error(t('modelManager.needBaseUrl'))
@@ -1046,7 +1308,7 @@ const handleFetchNewModels = async () => {
     form.connectionConfig = {
       ...form.connectionConfig,
       baseURL,
-      apiKey: form.apiKey
+      apiKey: form.connectionConfig.apiKey
     }
 
     const baseModel = await modelManager.getModel(providerTemplateId)
@@ -1093,9 +1355,10 @@ const saveEdit = async () => {
       throw new Error('模型不存在')
     }
 
+    // 构建连接配置
     const connectionConfig: TextConnectionConfig = {
       ...form.connectionConfig,
-      baseURL: form.baseURL?.trim() || existingConfig.connectionConfig?.baseURL
+      baseURL: form.connectionConfig.baseURL?.trim() || existingConfig.connectionConfig?.baseURL
     }
 
     if (form.displayMaskedKey) {
@@ -1104,25 +1367,82 @@ const saveEdit = async () => {
       } else {
         delete connectionConfig.apiKey
       }
-    } else if (form.apiKey) {
-      connectionConfig.apiKey = form.apiKey
+    } else if (form.connectionConfig.apiKey) {
+      connectionConfig.apiKey = form.connectionConfig.apiKey
     } else {
       delete connectionConfig.apiKey
     }
 
     const paramOverrides = { ...(form.paramOverrides || {}) }
 
-    let modelMeta: TextModel | undefined = existingConfig.modelMeta
-    if (form.modelId && form.modelId !== existingConfig.modelMeta.id) {
-      modelMeta = { ...existingConfig.modelMeta, id: form.modelId, name: form.modelId }
+    // 根据当前选择的 providerId 获取最新的 Provider 元数据
+    let providerMeta = existingConfig.providerMeta
+    if (form.providerId !== existingConfig.providerMeta?.id && textAdapterRegistry) {
+      try {
+        const adapter = textAdapterRegistry.getAdapter(form.providerId)
+        providerMeta = adapter.getProvider()
+      } catch (error) {
+        console.warn(`无法获取 Provider ${form.providerId}，使用现有配置`, error)
+      }
+    }
+
+    // 根据当前选择的 modelId 构建 ModelMeta
+    let modelMeta: TextModel = existingConfig.modelMeta
+
+    // 如果 providerId 改变，需要从新 provider 获取模型元数据
+    if (form.providerId !== existingConfig.providerMeta?.id && textAdapterRegistry) {
+      try {
+        const adapter = textAdapterRegistry.getAdapter(form.providerId)
+        const staticModels = adapter.getModels()
+        const foundModel = staticModels.find(m => m.id === form.modelId)
+
+        if (foundModel) {
+          modelMeta = foundModel
+        } else {
+          // 如果在静态列表中找不到，创建一个新的 ModelMeta
+          modelMeta = {
+            ...existingConfig.modelMeta,
+            id: form.modelId,
+            name: form.modelId,
+            providerId: form.providerId
+          }
+        }
+      } catch (error) {
+        console.warn(`无法从 Provider ${form.providerId} 获取模型，使用默认配置`, error)
+        modelMeta = {
+          ...existingConfig.modelMeta,
+          id: form.modelId,
+          name: form.modelId,
+          providerId: form.providerId
+        }
+      }
+    } else if (form.modelId && form.modelId !== existingConfig.modelMeta.id && textAdapterRegistry) {
+      // providerId 没变，但 modelId 改变了，需要从当前 provider 获取新模型的完整元数据
+      try {
+        const adapter = textAdapterRegistry.getAdapter(form.providerId)
+        const staticModels = adapter.getModels()
+        const foundModel = staticModels.find(m => m.id === form.modelId)
+
+        if (foundModel) {
+          // 使用找到的完整模型元数据（包含 capabilities、parameterDefinitions 等）
+          modelMeta = foundModel
+        } else {
+          // 如果在静态列表中找不到，创建基础元数据
+          modelMeta = { ...existingConfig.modelMeta, id: form.modelId, name: form.modelId }
+        }
+      } catch (error) {
+        console.warn(`无法从 Provider ${form.providerId} 获取模型，使用默认配置`, error)
+        modelMeta = { ...existingConfig.modelMeta, id: form.modelId, name: form.modelId }
+      }
     }
 
     const updates: Partial<TextModelConfig> = {
       name: form.name,
       enabled: form.enabled,
+      providerMeta,
+      modelMeta,
       connectionConfig,
-      paramOverrides,
-      modelMeta
+      paramOverrides
     }
 
     await modelManager.updateModel(form.originalId, updates)
@@ -1151,39 +1471,61 @@ const addCustomModel = async () => {
       return
     }
 
-    const templateId = form.providerId || currentProviderType.value || 'custom'
-    const template = await modelManager.getModel(templateId)
+    // 从 registry 获取当前选择的 provider 信息
+    if (!textAdapterRegistry) {
+      throw new Error('textAdapterRegistry 未初始化')
+    }
 
-    if (!template) {
-      throw new Error(`无法找到基础模型配置 ${templateId}`)
+    let providerMeta: TextProvider
+    let modelMeta: TextModel
+
+    try {
+      const adapter = textAdapterRegistry.getAdapter(form.providerId)
+      providerMeta = adapter.getProvider()
+
+      // 尝试从静态模型列表中找到选择的模型
+      const staticModels = adapter.getModels()
+      const modelId = form.defaultModel || form.modelId
+      const foundModel = staticModels.find(m => m.id === modelId)
+
+      if (foundModel) {
+        // 使用完整的模型元数据（包含 capabilities、parameterDefinitions 等）
+        modelMeta = foundModel
+      } else {
+        // 如果找不到，创建基础的 modelMeta
+        modelMeta = {
+          id: modelId,
+          name: modelId,
+          description: `Custom model: ${modelId}`,
+          providerId: form.providerId,
+          capabilities: {
+            supportsStreaming: true,
+            supportsTools: false,
+            supportsReasoning: false
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`无法从 Provider ${form.providerId} 获取信息:`, error)
+      throw new Error(`无法找到 Provider ${form.providerId}`)
     }
 
     const connectionConfig: TextConnectionConfig = {
-      ...template.connectionConfig,
-      ...form.connectionConfig,
-      baseURL: form.baseURL?.trim() || template.connectionConfig?.baseURL,
-      apiKey: form.apiKey || template.connectionConfig?.apiKey
+      ...form.connectionConfig
     }
 
     const paramOverrides = {
-      ...(template.paramOverrides ?? {}),
       ...(form.paramOverrides ?? {})
     }
 
-    const modelId = form.defaultModel || form.modelId || template.modelMeta.id
-
     const newConfig: TextModelConfig = {
-      ...template,
       id: form.id,
       name: form.name,
       enabled: true,
+      providerMeta,
+      modelMeta,
       connectionConfig,
-      paramOverrides,
-      modelMeta: {
-        ...template.modelMeta,
-        id: modelId,
-        name: modelId
-      }
+      paramOverrides
     }
 
     await modelManager.addModel(form.id, newConfig)
@@ -1193,14 +1535,9 @@ const addCustomModel = async () => {
     newModel.value = {
       id: '',
       name: '',
-      providerId: 'custom',
+      providerId: textProviders.value[0]?.id || '',
       modelId: '',
-      connectionConfig: {
-        baseURL: '',
-        apiKey: ''
-      },
-      baseURL: '',
-      apiKey: '',
+      connectionConfig: {},
       defaultModel: '',
       paramOverrides: {}
     }
@@ -1213,21 +1550,14 @@ const addCustomModel = async () => {
 
 // =============== 监听器 ===============
 // 当编辑或创建表单打开/关闭时，重置状态
-watch(() => editingModel.value?.apiKey, (newValue) => {
+watch(() => editingModel.value?.connectionConfig.apiKey, (newValue) => {
   if (!editingModel.value) return
   const val = newValue ?? ''
   const isMasked = !!val && val.includes('*')
   editingModel.value.displayMaskedKey = isMasked
 
   if (!isMasked) {
-    editingModel.value.connectionConfig.apiKey = val
     editingModel.value.originalApiKey = val
-  }
-});
-
-watch(() => editingModel.value?.baseURL, (newValue) => {
-  if (editingModel.value) {
-    editingModel.value.connectionConfig.baseURL = newValue ?? ''
   }
 });
 
@@ -1404,29 +1734,6 @@ const getParamValidationMessage = (paramName, value) => {
   return '';
 };
 
-watch(() => newModel.value.id, (newId) => {
-  const knownProviders = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow']
-  let inferredProvider = 'custom'
-  if (newId && knownProviders.includes(newId.toLowerCase())) {
-    inferredProvider = newId.toLowerCase()
-  }
-
-  if (newModel.value.providerId !== inferredProvider) {
-    newModel.value.paramOverrides = {}
-    newModel.value.providerId = inferredProvider
-  } else if (inferredProvider === 'custom' && newId) {
-    newModel.value.paramOverrides = {}
-  }
-});
-
-watch(() => newModel.value.baseURL, (val) => {
-  newModel.value.connectionConfig.baseURL = val ?? ''
-});
-
-watch(() => newModel.value.apiKey, (val) => {
-  newModel.value.connectionConfig.apiKey = val ?? ''
-});
-
 watch(() => newModel.value.modelId, (val) => {
   newModel.value.defaultModel = val || ''
 });
@@ -1457,6 +1764,7 @@ const handleImageModelSaved = () => {
 // 初始化
 onMounted(() => {
   loadModels();
+  loadTextProviders();  // 加载文本模型 Providers
   // 图像模型的加载由 ImageModelManager 组件处理
 });
 </script>

@@ -14,6 +14,13 @@ vi.mock('vue-i18n', () => ({
 }))
 
 // Mock the useImageModelManager composable
+const mockLoadConfigs = vi.fn().mockResolvedValue(undefined)
+const mockInitialize = vi.fn(async () => {
+  await mockLoadConfigs()
+})
+const mockUpdateConfig = vi.fn().mockResolvedValue(undefined)
+const mockDeleteConfig = vi.fn().mockResolvedValue(undefined)
+
 vi.mock('../../../src/composables/useImageModelManager', () => ({
   useImageModelManager: () => ({
     providers: ref([
@@ -27,21 +34,33 @@ vi.mock('../../../src/composables/useImageModelManager', () => ({
       {
         id: 'gpt-image-1',
         name: 'GPT Image 1',
-        enabled: true
+        enabled: true,
+        model: {
+          id: 'gpt-image-1',
+          capabilities: {
+            text2image: true,
+            image2image: false
+          }
+        }
       }
     ]),
     models: ref([
       {
         id: 'gpt-image-1',
         name: 'GPT Image 1',
-        enabled: true
+        enabled: true,
+        capabilities: {
+          text2image: true,
+          image2image: false
+        }
       }
     ]),
     isLoading: ref(false),
     error: ref(null),
-    addModel: vi.fn().mockResolvedValue(undefined),
-    updateModel: vi.fn().mockResolvedValue(undefined),
-    deleteModel: vi.fn().mockResolvedValue(undefined),
+    initialize: mockInitialize,
+    loadConfigs: mockLoadConfigs,
+    updateConfig: mockUpdateConfig,
+    deleteConfig: mockDeleteConfig,
     testConnection: vi.fn().mockResolvedValue({ success: true }),
     enableModel: vi.fn().mockResolvedValue(undefined),
     disableModel: vi.fn().mockResolvedValue(undefined),
@@ -55,7 +74,25 @@ describe('ImageModelManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockInitialize.mockClear()
+    mockLoadConfigs.mockClear()
+    mockUpdateConfig.mockClear()
+    mockDeleteConfig.mockClear()
   })
+
+  const mockImageRegistry = {
+    getAvailableProviders: vi.fn().mockReturnValue([
+      {
+        value: 'openai',
+        label: 'OpenAI',
+        aliases: []
+      }
+    ])
+  }
+
+  const mockImageService = {
+    testConnection: vi.fn().mockResolvedValue({ success: true })
+  }
 
   const createWrapper = (props = {}) => {
     return mount(ImageModelManager, {
@@ -63,6 +100,10 @@ describe('ImageModelManager', () => {
         ...props
       },
       global: {
+        provide: {
+          imageRegistry: mockImageRegistry,
+          imageService: mockImageService
+        },
         stubs: {
           // Stub all NaiveUI components
           'n-card': { template: '<div><slot name="header" /><slot /></div>' },
@@ -88,12 +129,14 @@ describe('ImageModelManager', () => {
     it('应该正确渲染组件', () => {
       wrapper = createWrapper()
       expect(wrapper.vm).toBeDefined()
+      expect(mockInitialize).toHaveBeenCalled()
     })
 
     it('应该加载图像模型提供商', () => {
       wrapper = createWrapper()
       // 验证组件正常挂载即可，具体业务逻辑由 useImageModelManager 处理
       expect(wrapper.vm).toBeDefined()
+      expect(mockLoadConfigs).toHaveBeenCalled()
     })
   })
 })

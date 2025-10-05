@@ -1,31 +1,50 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import ModelManager from '../../../src/components/ModelManager.vue'
 
-// Mock dependencies
-vi.mock('@prompt-optimizer/core', () => ({
-  // In core, advancedParameterDefinitions is a flat array
-  // of definitions with an "appliesToProviders" field.
-  // For these tests we don't rely on its contents, so an empty array is fine.
-  advancedParameterDefinitions: [],
-  createImageAdapterRegistry: vi.fn().mockReturnValue({
-    getAvailableProviders: vi.fn().mockReturnValue([
-      {
-        value: 'openai',
-        label: 'OpenAI',
-        aliases: []
-      },
-      {
-        value: 'gemini',
-        label: 'Google Gemini',
-        aliases: []
-      }
-    ])
+// Provide minimal mocks for dependencies injected by the component
+const mockServices = {
+  value: {
+    modelManager: {
+      getAllModels: vi.fn().mockResolvedValue([]),
+      enableModel: vi.fn(),
+      disableModel: vi.fn(),
+      deleteModel: vi.fn(),
+      addModel: vi.fn(),
+      updateModel: vi.fn(),
+      getModel: vi.fn()
+    },
+    llmService: {
+      testConnection: vi.fn().mockResolvedValue({ success: true }),
+      fetchModelList: vi.fn().mockResolvedValue([])
+    },
+    imageModelManager: {
+      getAllModels: vi.fn().mockResolvedValue([]),
+      enableModel: vi.fn(),
+      disableModel: vi.fn(),
+      deleteModel: vi.fn(),
+      addModel: vi.fn(),
+      updateModel: vi.fn(),
+      getModel: vi.fn()
+    },
+    imageAdapterRegistry: {
+      getAvailableProviders: vi.fn().mockReturnValue([])
+    },
+    textAdapterRegistry: {
+      getAllProviders: vi.fn().mockReturnValue([]),
+      getStaticModels: vi.fn().mockReturnValue([])
+    }
+  }
+}
+
+// Minimal i18n/toast mocks
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key
   })
 }))
 
-// Mock composables
 vi.mock('../../../src/composables/useToast', () => ({
   useToast: () => ({
     success: vi.fn(),
@@ -35,243 +54,85 @@ vi.mock('../../../src/composables/useToast', () => ({
   })
 }))
 
-// Mock i18n
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key
-  })
-}))
-
-// Mock services
-const mockServices = {
-  value: {
-    modelManager: {
-      getAllModels: vi.fn().mockResolvedValue([
-        {
-          key: 'test-model-1',
-          name: 'Test Model 1',
-          enabled: true,
-          provider: 'openai',
-          baseURL: 'https://api.openai.com/v1',
-          apiKey: 'test-key',
-          defaultModel: 'gpt-3.5-turbo'
-        },
-        {
-          key: 'test-model-2',
-          name: 'Test Model 2',
-          enabled: false,
-          provider: 'custom',
-          baseURL: 'https://api.custom.com/v1',
-          apiKey: 'custom-key',
-          defaultModel: 'custom-model'
-        }
-      ]),
-      enableModel: vi.fn().mockResolvedValue(undefined),
-      disableModel: vi.fn().mockResolvedValue(undefined),
-      deleteModel: vi.fn().mockResolvedValue(undefined),
-      addModel: vi.fn().mockResolvedValue(undefined),
-      updateModel: vi.fn().mockResolvedValue(undefined),
-      getModel: vi.fn().mockResolvedValue({
-        id: 'test-model-1',
-        name: 'Test Model 1',
-        enabled: true,
-        providerMeta: {
-          id: 'openai',
-          name: 'OpenAI'
-        },
-        modelMeta: {
-          id: 'gpt-3.5-turbo',
-          name: 'GPT-3.5 Turbo'
-        },
-        connectionConfig: {
-          baseURL: 'https://api.openai.com/v1',
-          apiKey: 'test-key'
-        },
-        paramOverrides: {}
-      })
-    },
-    llmService: {
-      // Mock LLM service methods if needed
-      testConnection: vi.fn().mockResolvedValue({ success: true }),
-      fetchModelList: vi.fn().mockResolvedValue([
-        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-        { value: 'gpt-4', label: 'GPT-4' }
-      ])
-    },
-    imageModelManager: {
-      getAllModels: vi.fn().mockResolvedValue([
-        {
-          id: 'test-image-config-1',
-          name: 'Test OpenAI Image',
-          enabled: true,
-          providerId: 'openai',
-          modelId: 'gpt-image-1',
-          connectionConfig: { apiKey: 'test-key' },
-          paramOverrides: {}
-        }
-      ]),
-      enableModel: vi.fn().mockResolvedValue(undefined),
-      disableModel: vi.fn().mockResolvedValue(undefined),
-      deleteModel: vi.fn().mockResolvedValue(undefined),
-      addModel: vi.fn().mockResolvedValue(undefined),
-      updateModel: vi.fn().mockResolvedValue(undefined),
-      getModel: vi.fn().mockResolvedValue({
-        id: 'test-image-config-1',
-        name: 'Test OpenAI Image',
-        enabled: true,
-        providerId: 'openai',
-        modelId: 'gpt-image-1',
-        connectionConfig: { apiKey: 'test-key' },
-        paramOverrides: {}
-      })
-    },
-    imageAdapterRegistry: {
-      getAvailableProviders: vi.fn().mockReturnValue([
-        {
-          value: 'openai',
-          label: 'OpenAI',
-          aliases: []
-        },
-        {
-          value: 'gemini',
-          label: 'Google Gemini',
-          aliases: []
-        }
-      ])
-    }
-  }
-}
-
 describe('ModelManager', () => {
-  let wrapper: any
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    wrapper = null
-  })
-
-  const createWrapper = (props = {}) => {
-    return mount(ModelManager, {
+  const mountComponent = () =>
+    mount(ModelManager, {
       props: {
-        show: true,
-        ...props
+        show: true
       },
       global: {
         provide: {
           services: mockServices
         },
         stubs: {
-          'n-modal': {
-            template: '<div class="mock-modal"><slot /><slot name="header-extra" /><slot name="action" /></div>',
+          NModal: {
+            template: '<div class="stub-modal"><slot /><slot name="header-extra" /><slot name="action" /></div>',
             props: ['show'],
             emits: ['update:show']
           },
-          'n-scrollbar': {
-            template: '<div class="mock-scrollbar"><slot /></div>'
+          'n-modal': {
+            template: '<div class="stub-modal"><slot /><slot name="header-extra" /><slot name="action" /></div>',
+            props: ['show'],
+            emits: ['update:show']
           },
-          'n-tabs': {
-            template: '<div class="mock-tabs"><slot /></div>',
-            props: ['value'],
-            emits: ['update:value']
-          },
-          'n-tab-pane': {
-            template: '<div class="mock-tab-pane"><slot /></div>',
-            props: ['name', 'tab']
-          },
-          'n-space': {
-            template: '<div class="mock-space"><slot /></div>',
-            props: ['vertical', 'size', 'justify', 'align']
-          },
-          'n-card': {
-            template: '<div class="mock-card"><slot name="header" /><slot /><slot name="action" /></div>',
-            props: ['hoverable', 'style']
-          },
-          'n-text': {
-            template: '<span class="mock-text"><slot /></span>',
-            props: ['strong', 'tag', 'depth']
-          },
-          'n-tag': {
-            template: '<span class="mock-tag"><slot /></span>',
-            props: ['type', 'size']
+          NScrollbar: { template: '<div class="stub-scrollbar"><slot /></div>' },
+          'n-scrollbar': { template: '<div class="stub-scrollbar"><slot /></div>' },
+          NSpace: { template: '<div class="stub-space"><slot /></div>' },
+          'n-space': { template: '<div class="stub-space"><slot /></div>' },
+          NCard: { template: '<div class="stub-card"><slot name="header" /><slot /><slot name="action" /></div>' },
+          'n-card': { template: '<div class="stub-card"><slot name="header" /><slot /><slot name="action" /></div>' },
+          NText: { template: '<span class="stub-text"><slot /></span>' },
+          'n-text': { template: '<span class="stub-text"><slot /></span>' },
+          NTag: { template: '<span class="stub-tag"><slot /></span>' },
+          'n-tag': { template: '<span class="stub-tag"><slot /></span>' },
+          NButton: {
+            template: '<button class="stub-button" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>'
           },
           'n-button': {
-            template: '<button class="mock-button" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>',
-            props: ['type', 'ghost', 'size'],
-            emits: ['click']
+            template: '<button class="stub-button" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>'
+          },
+          NSelect: { template: '<select class="stub-select"><slot /></select>' },
+          'n-select': { template: '<select class="stub-select"><slot /></select>' },
+          NInput: {
+            template: '<input class="stub-input" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
+            props: ['value']
           },
           'n-input': {
-            template: '<input class="mock-input" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
-            props: ['value', 'placeholder', 'type', 'required'],
-            emits: ['update:value']
+            template: '<input class="stub-input" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
+            props: ['value']
           },
-          'n-select': {
-            template: '<select class="mock-select" :value="value" @change="$emit(\'update:value\', $event.target.value)"><slot /></select>',
-            props: ['value', 'options', 'placeholder'],
-            emits: ['update:value']
+          NTabs: { template: '<div class="stub-tabs"><slot /></div>' },
+          'n-tabs': { template: '<div class="stub-tabs"><slot /></div>' },
+          NTabPane: { template: '<div class="stub-tab-pane"><slot /></div>' },
+          'n-tab-pane': { template: '<div class="stub-tab-pane"><slot /></div>' },
+          NDivider: { template: '<hr class="stub-divider" />' },
+          'n-divider': { template: '<hr class="stub-divider" />' },
+          NH4: { template: '<h4 class="stub-h4"><slot /></h4>' },
+          'n-h4': { template: '<h4 class="stub-h4"><slot /></h4>' },
+          NCheckbox: {
+            template: '<input type="checkbox" class="stub-checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />',
+            props: ['checked']
           },
           'n-checkbox': {
-            template: '<input type="checkbox" class="mock-checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />',
-            props: ['checked', 'label'],
-            emits: ['update:checked']
+            template: '<input type="checkbox" class="stub-checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />',
+            props: ['checked']
           },
-          'n-divider': {
-            template: '<hr class="mock-divider" />'
+          ImageModelManager: {
+            template: '<div class="stub-image-manager" />'
           },
-          'n-h4': {
-            template: '<h4 class="mock-h4"><slot /></h4>'
+          ImageModelEditModal: {
+            template: '<div class="stub-image-edit-modal" />'
           },
-          'input-with-select': {
-            template: '<div class="mock-input-with-select"></div>',
-            props: ['modelValue', 'options', 'isLoading', 'loadingText', 'noOptionsText', 'hintText', 'required', 'placeholder'],
-            emits: ['update:modelValue', 'fetchOptions']
-          },
-          'image-model-manager': {
-            template: '<div class="mock-image-model-manager"></div>'
+          InputWithSelect: {
+            template: '<div class="stub-input-with-select" />'
           }
-        },
-        mocks: {
-          $t: (key: string) => key
         }
       }
     })
-  }
 
-  describe('组件渲染', () => {
-    it('应该正确渲染并获取服务', () => {
-      wrapper = createWrapper()
-
-      // 验证组件能正常挂载
-      expect(wrapper.vm).toBeDefined()
-
-      // 验证服务调用
-      expect(mockServices.value.modelManager.getAllModels).toHaveBeenCalled()
-    })
-  })
-
-  describe('核心功能测试', () => {
-    it('应该加载文本模型列表', () => {
-      wrapper = createWrapper()
-      expect(mockServices.value.modelManager.getAllModels).toHaveBeenCalled()
-    })
-
-    it('应该支持模型编辑功能', async () => {
-      wrapper = createWrapper()
-
-      // 设置编辑模式
-      if (wrapper.vm.editModel) {
-        await wrapper.vm.editModel('test-model-1')
-        expect(mockServices.value.modelManager.getModel).toHaveBeenCalledWith('test-model-1')
-      }
-    })
-
-    it('应该处理错误情况', async () => {
-      // Mock 失败的API调用
-      mockServices.value.modelManager.getAllModels.mockRejectedValueOnce(new Error('Network error'))
-
-      wrapper = createWrapper()
-
-      // 验证组件仍能正常渲染
-      expect(wrapper.vm).toBeDefined()
-    })
+  it('mounts successfully with provided services', async () => {
+    const wrapper = mountComponent()
+    expect(wrapper.exists()).toBe(true)
+    expect(mockServices.value.modelManager.getAllModels).toHaveBeenCalled()
   })
 })

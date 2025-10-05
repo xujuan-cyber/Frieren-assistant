@@ -28,8 +28,10 @@ import {
   createImageModelManager,
   createImageService,
   createImageAdapterRegistry,
+  createTextAdapterRegistry,
   type IImageModelManager,
   type IImageService,
+  type ITextAdapterRegistry,
   type IModelManager,
   type ITemplateManager,
   type IHistoryManager,
@@ -68,6 +70,7 @@ export function useAppInitializer(): {
       let imageModelManager: IImageModelManager | undefined;
       let imageService: IImageService | undefined;
       let imageAdapterRegistryInstance: ReturnType<typeof createImageAdapterRegistry> | undefined;
+      let textAdapterRegistryInstance: ITextAdapterRegistry | undefined;
 
       if (isRunningInElectron()) {
         console.log('[AppInitializer] 检测到Electron环境，等待API就绪...');
@@ -90,6 +93,10 @@ export function useAppInitializer(): {
         llmService = new ElectronLLMProxy();
         promptService = new ElectronPromptServiceProxy();
         preferenceService = new ElectronPreferenceServiceProxy();
+
+        // 文本模型适配器注册表（本地实例，不需要代理）
+        textAdapterRegistryInstance = createTextAdapterRegistry();
+
         // 图像相关（Electron 渲染进程代理）
         const { ElectronImageModelManagerProxy, ElectronImageServiceProxy } = await import('@prompt-optimizer/core')
         imageAdapterRegistryInstance = createImageAdapterRegistry();
@@ -119,6 +126,7 @@ export function useAppInitializer(): {
           preferenceService, // 使用从core包导入的ElectronPreferenceServiceProxy
           compareService, // 直接使用，无需代理
           contextRepo, // 使用Electron代理
+          textAdapterRegistry: textAdapterRegistryInstance,
           imageModelManager,
           imageService,
           imageAdapterRegistry: imageAdapterRegistryInstance,
@@ -137,6 +145,10 @@ export function useAppInitializer(): {
         
         // Services with no dependencies or only storage
         const modelManagerInstance = createModelManager(storageProvider);
+
+        // 文本模型适配器注册表（本地实例）
+        textAdapterRegistryInstance = createTextAdapterRegistry();
+
         // 图像模型管理器（独立存储空间）
         const imageAdapterRegistry = await import('@prompt-optimizer/core').then(m => m.createImageAdapterRegistry())
         imageAdapterRegistryInstance = imageAdapterRegistry
@@ -253,6 +265,7 @@ export function useAppInitializer(): {
           preferenceService, // 使用从core包导入的PreferenceService
           compareService, // 直接使用
           contextRepo, // 上下文仓库
+          textAdapterRegistry: textAdapterRegistryInstance,
           imageModelManager: imageModelManagerInstance,
           imageService,
           imageAdapterRegistry: imageAdapterRegistryInstance,
