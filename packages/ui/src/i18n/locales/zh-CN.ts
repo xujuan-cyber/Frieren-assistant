@@ -429,6 +429,7 @@
     deleteConfirm: '确定要删除此模型吗？此操作不可恢复。',
 
     // 操作结果
+    testing: '正在测试连接...',
     testSuccess: '{provider}连接测试成功',
     testFailed: '{provider}连接测试失败：{error}',
     updateSuccess: '更新成功',

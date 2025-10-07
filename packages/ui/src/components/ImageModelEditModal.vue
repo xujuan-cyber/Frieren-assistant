@@ -45,7 +45,7 @@
                 :type="field.name.toLowerCase().includes('key') ? 'password' : 'text'"
                 :placeholder="field.placeholder"
                 :required="field.required"
-                :autocomplete="field.name.toLowerCase().includes('key') ? 'off' : 'on'"
+                :autocomplete="field.name.toLowerCase().includes('key') ? 'new-password' : 'on'"
                 @update:value="onConnectionConfigChange"
               />
             </template>

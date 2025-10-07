@@ -85,6 +85,7 @@ declare module 'vue-i18n' {
       deleteConfirm: string;
 
       // Operation Results
+      testing: string;
       testSuccess: string;
       testFailed: string;
       updateSuccess: string;

@@ -429,6 +429,7 @@ export default {
     deleteConfirm: '確定要刪除此模型嗎？此操作無法復原。',
 
     // 操作結果
+    testing: '正在測試連線...',
     testSuccess: '{provider}連線測試成功',
     testFailed: '{provider}連線測試失敗：{error}',
     updateSuccess: '更新成功',

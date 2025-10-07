@@ -429,6 +429,7 @@ export default {
     deleteConfirm: 'Are you sure you want to delete this model? This action cannot be undone.',
 
     // Operation Results
+    testing: 'Testing connection...',
     testSuccess: 'Connection successful for {provider}!',
     testFailed: 'Connection failed for {provider}: {error}',
     updateSuccess: 'Update successful',
