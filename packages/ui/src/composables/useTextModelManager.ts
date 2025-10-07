@@ -371,7 +371,8 @@ export function useTextModelManager() {
         modelOptions.value.push({ value: form.value.modelId, label: form.value.modelId })
       }
 
-      await refreshModelOptions(false)
+      // 编辑时不自动刷新模型列表，避免不必要的网络请求和延迟
+      // 用户可以通过手动点击刷新按钮来获取最新模型列表
     } catch (error) {
       console.error('加载模型失败:', error)
       toast.error(t('modelManager.loadFailed'))
