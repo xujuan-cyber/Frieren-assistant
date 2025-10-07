@@ -331,7 +331,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NModal,
@@ -403,11 +403,15 @@ const isSaving = manager.isSaving
 
 const isEditing = computed(() => !!manager.editingModelId.value)
 
-const handleUpdateShow = (value: boolean) => {
+const handleUpdateShow = async (value: boolean) => {
+  emit('update:show', value)
+
+  // 只有在明确关闭时才重置表单状态
   if (!value) {
+    // 等待父组件处理状态变化后再重置表单
+    await nextTick()
     manager.resetFormState()
   }
-  emit('update:show', value)
 }
 
 const handleSubmit = async () => {

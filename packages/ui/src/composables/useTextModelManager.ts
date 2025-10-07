@@ -139,7 +139,18 @@ export function useTextModelManager() {
     )
   })
 
-  const canTestFormConnection = computed(() => !!editingModelId.value && !isTestingFormConnection.value)
+  const canTestFormConnection = computed(() => {
+    // 必须在编辑模式下
+    if (!editingModelId.value) return false
+    // 测试期间禁用
+    if (isTestingFormConnection.value) return false
+    // 必须有必需的连接配置
+    if (!isConnectionConfigured.value) return false
+    // 必须有模型名称
+    if (!form.value.name?.trim()) return false
+
+    return true
+  })
   const canRefreshModelOptions = computed(() => {
     return selectedProvider.value?.supportsDynamicModels && isConnectionConfigured.value && !isLoadingModelOptions.value
   })
@@ -334,7 +345,12 @@ export function useTextModelManager() {
     formReady.value = true
   }
 
-  const prepareForEdit = async (id: string) => {
+  const prepareForEdit = async (id: string, forceReload = true) => {
+    // 如果已经在编辑同一个模型且不强制重新加载，则跳过
+    if (!forceReload && editingModelId.value === id && formReady.value) {
+      return
+    }
+
     resetFormState()
     editingModelId.value = id
     await ensureProvidersLoaded()
@@ -546,13 +562,56 @@ export function useTextModelManager() {
   }
 
   const testFormConnection = async () => {
-    if (!editingModelId.value || isTestingFormConnection.value) return
+    // 使用 canTestFormConnection 的完整校验逻辑
+    if (!canTestFormConnection.value) return
+
     isTestingFormConnection.value = true
     formConnectionStatus.value = { type: 'info', message: t('modelManager.testing') }
+
     try {
-      await llmService.testConnection(editingModelId.value)
-      formConnectionStatus.value = { type: 'success', message: t('modelManager.testSuccess', { provider: form.value.name }) }
-      toast.success(t('modelManager.testSuccess', { provider: form.value.name }))
+      // 获取原始配置
+      const existingConfig = await modelManager.getModel(editingModelId.value)
+      if (!existingConfig) {
+        throw new Error('模型配置不存在')
+      }
+
+      // 创建临时测试配置，使用当前表单的参数覆盖
+      // 注意：如果 API Key 被脱敏显示，需要使用原始 Key
+      const connectionConfig = {
+        ...form.value.connectionConfig,
+        apiKey: form.value.displayMaskedKey && form.value.originalApiKey
+          ? form.value.originalApiKey
+          : form.value.connectionConfig.apiKey
+      }
+
+      const tempConfig: TextModelConfig = {
+        ...existingConfig,
+        id: `temp-test-${editingModelId.value}`,
+        name: form.value.name,
+        enabled: form.value.enabled,
+        providerMeta: { ...existingConfig.providerMeta },
+        modelMeta: { ...existingConfig.modelMeta },
+        connectionConfig,
+        paramOverrides: { ...(form.value.paramOverrides || {}) }
+      }
+
+      // 创建临时模型用于测试
+      await modelManager.addModel(tempConfig.id, tempConfig)
+
+      try {
+        // 测试临时模型
+        await llmService.testConnection(tempConfig.id)
+        formConnectionStatus.value = { type: 'success', message: t('modelManager.testSuccess', { provider: form.value.name }) }
+        toast.success(t('modelManager.testSuccess', { provider: form.value.name }))
+      } finally {
+        // 清理临时模型
+        try {
+          await modelManager.deleteModel(tempConfig.id)
+        } catch (cleanupError) {
+          console.warn('清理临时测试模型失败:', cleanupError)
+        }
+      }
+
     } catch (error: any) {
       console.error('连接测试失败:', error)
       formConnectionStatus.value = {

@@ -41,6 +41,11 @@ const handleModelUpdated = async (id?: string) => {
   if (targetId) {
     emit('modelsUpdated', targetId)
   }
+
+  // 保存成功后关闭模态框并重置表单状态
+  showEditModal.value = false
+  editingModelId.value = null
+  manager.resetFormState()
 }
 
 const handleTestConnection = async (id: string) => {
@@ -48,16 +53,27 @@ const handleTestConnection = async (id: string) => {
 }
 
 const handleEditModel = async (id: string) => {
-  await manager.prepareForEdit(id)
+  // 如果已经在编辑同一个模型且模态框已经打开，直接返回
+  if (editingModelId.value === id && showEditModal.value === true) {
+    return
+  }
+
+  // 如果切换到不同的模型，重置表单状态
+  if (editingModelId.value && editingModelId.value !== id) {
+    manager.resetFormState()
+  }
+
+  // 准备编辑模式（总是会执行，因为我们需要确保状态正确）
+  await manager.prepareForEdit(id, true)
   editingModelId.value = id
   showEditModal.value = true
 }
 
 const updateEditModalVisibility = (value: boolean) => {
   showEditModal.value = value
+  // 当模态框关闭时，重置编辑状态但不重置表单数据
   if (!value) {
     editingModelId.value = null
-    manager.resetFormState()
   }
 }
 

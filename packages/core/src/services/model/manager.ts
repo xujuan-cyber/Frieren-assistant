@@ -332,11 +332,11 @@ export class ModelManager implements IModelManager {
             ...existingTextModelConfig.connectionConfig,
             ...(config.connectionConfig || {})
           },
-          // Deep merge paramOverrides
-          paramOverrides: {
-            ...existingTextModelConfig.paramOverrides,
-            ...(config.paramOverrides || {})
-          }
+          // 处理 paramOverrides：如果明确传入了 paramOverrides，则直接替换而不是合并
+          // 这样可以确保用户删除的参数不会被错误地保留
+          paramOverrides: config.paramOverrides !== undefined
+            ? config.paramOverrides
+            : existingTextModelConfig.paramOverrides || {}
         };
 
         // 如果更新了关键字段，需要验证配置
