@@ -119,6 +119,15 @@ export function useTextModelManager() {
     return fields
   })
 
+  const isConnectionConfigured = computed(() => {
+    if (!selectedProvider.value?.connectionSchema) return true
+
+    const schema = selectedProvider.value.connectionSchema
+    const config = form.value.connectionConfig || {}
+
+    return schema.required.every(field => !!config[field])
+  })
+
   const availableLLMParamDefinitions = computed(() => {
     if (!advancedParameterDefinitions) return []
     const currentParams = currentParamOverrides.value || {}
@@ -131,7 +140,9 @@ export function useTextModelManager() {
   })
 
   const canTestFormConnection = computed(() => !!editingModelId.value && !isTestingFormConnection.value)
-  const canRefreshModelOptions = computed(() => !!selectedProvider.value && !isLoadingModelOptions.value)
+  const canRefreshModelOptions = computed(() => {
+    return selectedProvider.value?.supportsDynamicModels && isConnectionConfigured.value && !isLoadingModelOptions.value
+  })
 
   const modalTitle = computed(() => (editingModelId.value ? t('modelManager.editModel') : t('modelManager.addModel')))
 
@@ -180,7 +191,7 @@ export function useTextModelManager() {
     }
     try {
       const staticModels = textAdapterRegistry.getStaticModels(providerId)
-      modelOptions.value = staticModels.map(model => ({
+      modelOptions.value = staticModels.map((model: TextModel) => ({
         value: model.id,
         label: model.name || model.id
       }))
@@ -195,8 +206,8 @@ export function useTextModelManager() {
     try {
       const all = await modelManager.getAllModels()
       models.value = all
-        .map(model => ({ ...model }))
-        .sort((a, b) => {
+        .map((model: TextModelConfig) => ({ ...model }))
+        .sort((a: TextModelConfig, b: TextModelConfig) => {
           if (a.enabled !== b.enabled) {
             return a.enabled ? -1 : 1
           }
@@ -301,7 +312,7 @@ export function useTextModelManager() {
     if (providerMeta?.defaultBaseURL) {
       form.value.connectionConfig = {
         ...form.value.connectionConfig,
-        baseURL: form.value.connectionConfig.baseURL || providerMeta.defaultBaseURL
+        baseURL: providerMeta.defaultBaseURL
       }
     }
 
@@ -338,7 +349,7 @@ export function useTextModelManager() {
       const connectionConfig: TextConnectionConfig = { ...(model.connectionConfig ?? {}) }
       const rawApiKey = connectionConfig.apiKey ?? ''
       if (rawApiKey) {
-        connectionConfig.apiKey = maskApiKey(rawApiKey)
+        connectionConfig.apiKey = maskApiKey(String(rawApiKey))
       }
 
       form.value = {
@@ -351,8 +362,8 @@ export function useTextModelManager() {
         connectionConfig,
         paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {},
         displayMaskedKey: !!rawApiKey,
-        originalApiKey: rawApiKey || undefined,
-        defaultModel: model.modelMeta?.id ?? ''
+        originalApiKey: String(rawApiKey) || undefined,
+        defaultModel: String(model.modelMeta?.id ?? '')
       }
 
       setProvider(form.value.providerId, false)
@@ -372,7 +383,7 @@ export function useTextModelManager() {
   const refreshModelOptions = async (showSuccess = true) => {
     if (!form.value.providerId) return
 
-    const baseURL = form.value.connectionConfig.baseURL?.trim()
+    const baseURL = (form.value.connectionConfig.baseURL as string)?.trim()
     if (!baseURL) {
       toast.error(t('modelManager.needBaseUrl'))
       return
@@ -403,7 +414,7 @@ export function useTextModelManager() {
           }
           const staticModels = adapter.getModels()
           if (form.value.modelId) {
-            modelMeta = staticModels.find(m => m.id === form.value.modelId) || modelMeta
+            modelMeta = staticModels.find((m: TextModel) => m.id === form.value.modelId) || modelMeta
           }
           if (!modelMeta) {
             modelMeta = staticModels[0]
@@ -427,7 +438,7 @@ export function useTextModelManager() {
         toast.success(t('modelManager.fetchModelsSuccess', { count: fetchedModels.length }))
       }
 
-      if (fetchedModels.length > 0 && !fetchedModels.some(m => m.value === form.value.modelId)) {
+      if (fetchedModels.length > 0 && !fetchedModels.some((m: any) => m.value === form.value.modelId)) {
         form.value.modelId = fetchedModels[0].value
       }
     } catch (error: any) {
@@ -448,7 +459,7 @@ export function useTextModelManager() {
   const ensureModelMeta = (providerId: string, modelId: string, existing?: TextModel) => {
     const adapter = textAdapterRegistry.getAdapter(providerId)
     const staticModels = adapter.getModels()
-    const foundModel = staticModels.find(m => m.id === modelId)
+    const foundModel = staticModels.find((m: TextModel) => m.id === modelId)
     if (foundModel) {
       return foundModel
     }
@@ -467,7 +478,7 @@ export function useTextModelManager() {
 
     const connectionConfig: TextConnectionConfig = {
       ...form.value.connectionConfig,
-      baseURL: form.value.connectionConfig.baseURL?.trim() || existingConfig.connectionConfig?.baseURL
+      baseURL: (form.value.connectionConfig.baseURL as string)?.trim() || existingConfig.connectionConfig?.baseURL
     }
 
     if (form.value.displayMaskedKey) {
@@ -733,6 +744,7 @@ export function useTextModelManager() {
     isTestingFormConnection,
     canTestFormConnection,
     testFormConnection,
+    isConnectionConfigured,
     canRefreshModelOptions,
     handleQuickAddParam,
     handleCustomParamAdd,

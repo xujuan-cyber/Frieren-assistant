@@ -81,8 +81,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         description: 'Most powerful Claude model for complex tasks',
         providerId,
         capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
+                    supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 200000
         },
@@ -95,8 +94,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         description: 'Balanced Claude model for most tasks',
         providerId,
         capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
+                    supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 200000
         },
@@ -111,8 +109,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         description: 'Latest Claude 3.7 Sonnet model',
         providerId,
         capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
+                    supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 200000
         },
@@ -125,8 +122,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         description: 'Fast and affordable Claude model',
         providerId,
         capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
+                    supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 200000
         },

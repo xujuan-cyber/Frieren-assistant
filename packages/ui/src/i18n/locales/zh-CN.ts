@@ -382,6 +382,7 @@
     editModel: '编辑',
     deleteModel: '删除',
     displayName: '显示名称',
+    enabled: '启用',
     modelKey: '模型标识',
     apiUrl: 'API地址',
     apiUrlHint: '示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾',
@@ -470,7 +471,6 @@
     capabilities: {
       tools: '工具调用',
       reasoning: '推理模式',
-      streaming: '流式输出',
       vision: '视觉理解'
     },
 

@@ -32,7 +32,6 @@ describe('AnthropicAdapter', () => {
       description: 'Most intelligent Claude model',
       providerId: 'anthropic',
       capabilities: {
-        supportsStreaming: true,
         supportsTools: true,
         supportsReasoning: false,
         maxContextLength: 200000

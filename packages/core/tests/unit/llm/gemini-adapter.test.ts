@@ -34,7 +34,6 @@ describe('GeminiAdapter', () => {
       description: 'Latest Gemini model',
       providerId: 'gemini',
       capabilities: {
-        supportsStreaming: true,
         supportsTools: true,
         supportsReasoning: false,
         maxContextLength: 1000000

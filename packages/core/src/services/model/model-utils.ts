@@ -72,8 +72,7 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
     description: `Custom model: ${envConfig.model}`,
     providerId: 'openai',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: false,
+            supportsTools: false,
       supportsReasoning: false,
       maxContextLength: 4096
     },

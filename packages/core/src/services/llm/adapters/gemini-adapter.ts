@@ -37,11 +37,10 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
       supportsDynamicModels: false, // Gemini不支持动态模型获取
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'timeout'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string',
-          timeout: 'number'
+          baseURL: 'string'
         }
       }
     }
@@ -56,46 +55,17 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
 
     return [
       {
-        id: 'gemini-2.0-flash-exp',
-        name: 'Gemini 2.0 Flash (Experimental)',
-        description: 'Latest experimental Gemini 2.0 Flash model',
+        id: 'gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
+        description: 'Latest experimental Gemini 2.5 Flash model',
         providerId,
         capabilities: {
-          supportsStreaming: true,
           supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 1000000
         },
-        parameterDefinitions: this.getParameterDefinitions('gemini-2.0-flash-exp'),
-        defaultParameterValues: this.getDefaultParameterValues('gemini-2.0-flash-exp')
-      },
-      {
-        id: 'gemini-2.0-flash-thinking-exp-1219',
-        name: 'Gemini 2.0 Flash Thinking',
-        description: 'Gemini 2.0 Flash with extended thinking capabilities',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
-          supportsReasoning: true,
-          maxContextLength: 32000
-        },
-        parameterDefinitions: this.getParameterDefinitions('gemini-2.0-flash-thinking-exp-1219'),
-        defaultParameterValues: this.getDefaultParameterValues('gemini-2.0-flash-thinking-exp-1219')
-      },
-      {
-        id: 'gemini-exp-1206',
-        name: 'Gemini Experimental 1206',
-        description: 'Experimental Gemini model (December 6th)',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
-          supportsReasoning: false,
-          maxContextLength: 200000
-        },
-        parameterDefinitions: this.getParameterDefinitions('gemini-exp-1206'),
-        defaultParameterValues: this.getDefaultParameterValues('gemini-exp-1206')
+        parameterDefinitions: this.getParameterDefinitions('gemini-2.5-flash'),
+        defaultParameterValues: this.getDefaultParameterValues('gemini-2.5-flash')
       }
     ]
   }

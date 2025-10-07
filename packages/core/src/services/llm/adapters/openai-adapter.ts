@@ -38,12 +38,10 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
       supportsDynamicModels: true,
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'organization', 'timeout'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string',
-          organization: 'string',
-          timeout: 'number'
+          baseURL: 'string'
         }
       }
     }
@@ -58,94 +56,17 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     return [
       // GPT-4o 系列
       {
-        id: 'gpt-4o',
-        name: 'GPT-4o',
-        description: 'Latest GPT-4o model with vision capabilities',
+        id: 'gpt-5-2025-08-07',
+        name: 'GPT-5',
+        description: '',
         providerId,
         capabilities: {
-          supportsStreaming: true,
           supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 128000
         },
-        parameterDefinitions: this.getParameterDefinitions('gpt-4o'),
-        defaultParameterValues: this.getDefaultParameterValues('gpt-4o')
-      },
-      {
-        id: 'gpt-4o-mini',
-        name: 'GPT-4o Mini',
-        description: 'Affordable and intelligent small model for fast, lightweight tasks',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
-          supportsReasoning: false,
-          maxContextLength: 128000
-        },
-        parameterDefinitions: this.getParameterDefinitions('gpt-4o-mini'),
-        defaultParameterValues: this.getDefaultParameterValues('gpt-4o-mini')
-      },
-
-      // o1 系列（推理模型）
-      {
-        id: 'o1',
-        name: 'o1',
-        description: 'Advanced reasoning model for complex tasks',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: false,
-          supportsReasoning: true,
-          maxContextLength: 200000
-        },
-        parameterDefinitions: this.getParameterDefinitions('o1'),
-        defaultParameterValues: this.getDefaultParameterValues('o1')
-      },
-      {
-        id: 'o1-mini',
-        name: 'o1 Mini',
-        description: 'Faster and cheaper reasoning model for coding, math, and science',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: false,
-          supportsReasoning: true,
-          maxContextLength: 128000
-        },
-        parameterDefinitions: this.getParameterDefinitions('o1-mini'),
-        defaultParameterValues: this.getDefaultParameterValues('o1-mini')
-      },
-
-      // GPT-4 Turbo
-      {
-        id: 'gpt-4-turbo',
-        name: 'GPT-4 Turbo',
-        description: 'Latest GPT-4 Turbo model with vision capabilities',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
-          supportsReasoning: false,
-          maxContextLength: 128000
-        },
-        parameterDefinitions: this.getParameterDefinitions('gpt-4-turbo'),
-        defaultParameterValues: this.getDefaultParameterValues('gpt-4-turbo')
-      },
-
-      // GPT-3.5 Turbo
-      {
-        id: 'gpt-3.5-turbo',
-        name: 'GPT-3.5 Turbo',
-        description: 'Fast and affordable model for simple tasks',
-        providerId,
-        capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
-          supportsReasoning: false,
-          maxContextLength: 16385
-        },
-        parameterDefinitions: this.getParameterDefinitions('gpt-3.5-turbo'),
-        defaultParameterValues: this.getDefaultParameterValues('gpt-3.5-turbo')
+        parameterDefinitions: this.getParameterDefinitions('gpt-5-2025-08-07'),
+        defaultParameterValues: this.getDefaultParameterValues('gpt-5-2025-08-07')
       }
     ]
   }
@@ -158,11 +79,6 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
   public async getModelsAsync(config: TextModelConfig): Promise<TextModel[]> {
     // 验证baseURL以/v1结尾
     const baseURL = config.connectionConfig.baseURL || this.getProvider().defaultBaseURL
-    if (!/\/v1$/.test(baseURL)) {
-      throw new Error(
-        `MISSING_V1_SUFFIX: baseURL should end with "/v1" for OpenAI-compatible APIs. Current: ${baseURL}`
-      )
-    }
 
     const openai = this.createOpenAIInstance(config, false)
 

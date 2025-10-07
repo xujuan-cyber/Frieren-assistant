@@ -39,14 +39,7 @@
               >
                 {{ t('modelManager.capabilities.reasoning') }}
               </NTag>
-              <NTag
-                v-if="model.modelMeta?.capabilities?.supportsStreaming"
-                size="small"
-                :bordered="false"
-              >
-                {{ t('modelManager.capabilities.streaming') }}
-              </NTag>
-            </NSpace>
+                          </NSpace>
           </NSpace>
         </NSpace>
       </template>

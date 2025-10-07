@@ -364,7 +364,6 @@ describe('配置迁移集成测试', () => {
       expect(convertedConfig.modelMeta.id).toBe('unknown-gpt-model-xyz');
       expect(convertedConfig.modelMeta.providerId).toBe('openai');
       expect(convertedConfig.modelMeta.capabilities).toBeDefined();
-      expect(convertedConfig.modelMeta.capabilities.supportsStreaming).toBe(true);
     });
   });
 

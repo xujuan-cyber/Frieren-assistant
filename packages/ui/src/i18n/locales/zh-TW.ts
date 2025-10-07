@@ -382,6 +382,7 @@ export default {
     editModel: '編輯',
     deleteModel: '刪除',
     displayName: '顯示名稱',
+    enabled: '啟用',
     modelKey: '模型標識',
     apiUrl: 'API位址',
     apiUrlHint: '範例：https://api.example.com/v1；多數提供商位址通常以 /v1 結尾',
@@ -467,7 +468,6 @@ export default {
     capabilities: {
       tools: '工具呼叫',
       reasoning: '推理模式',
-      streaming: '串流輸出',
       vision: '視覺理解'
     },
 

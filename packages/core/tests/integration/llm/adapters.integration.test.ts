@@ -35,8 +35,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Fast and cost-effective model',
           providerId: 'openai',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 16000
           },
@@ -83,8 +82,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Fast and cost-effective model',
           providerId: 'openai',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 16000
           },
@@ -150,8 +148,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Fast and cost-effective model',
           providerId: 'openai',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 16000
           },
@@ -200,8 +197,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Latest Gemini model',
           providerId: 'gemini',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 1000000
           },
@@ -246,8 +242,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Latest Gemini model',
           providerId: 'gemini',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 1000000
           },
@@ -313,8 +308,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Most intelligent Claude model',
           providerId: 'anthropic',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 200000
           },
@@ -359,8 +353,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Most intelligent Claude model',
           providerId: 'anthropic',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 200000
           },
@@ -426,8 +419,7 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
           description: 'Fast and cost-effective model',
           providerId: 'openai',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 16000
           },

@@ -285,8 +285,7 @@ function createProviderMeta(providerId: string, legacy: ModelConfig): TextProvid
 function createModelMeta(modelId: string, providerId: string, legacy: ModelConfig): TextModel {
   // 默认的 capabilities
   const defaultCapabilities = {
-    supportsStreaming: true,
-    supportsTools: providerId !== 'gemini', // Gemini 工具支持可能不同
+        supportsTools: providerId !== 'gemini', // Gemini 工具支持可能不同
     supportsReasoning: modelId.includes('o1') || modelId.includes('reasoner') || modelId.includes('thinking'),
     maxContextLength: 4096
   };

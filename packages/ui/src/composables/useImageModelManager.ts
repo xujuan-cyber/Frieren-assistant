@@ -157,7 +157,17 @@ export function useImageModelManager() {
 
     if (!providerId) {
       models.value = []
+      configForm.value.connectionConfig = {}
       return
+    }
+
+    // 更新默认API地址
+    const providerMeta = providers.value.find(p => p.id === providerId)
+    if (providerMeta?.defaultBaseURL) {
+      configForm.value.connectionConfig = {
+        ...configForm.value.connectionConfig,
+        baseURL: providerMeta.defaultBaseURL
+      }
     }
 
     // 1. 立即显示静态模型（即时响应）

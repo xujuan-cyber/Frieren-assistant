@@ -40,8 +40,7 @@ export function createDefaultTextModels(envVars: {
     description: 'Affordable and intelligent small model for fast, lightweight tasks',
     providerId: 'openai',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: true,
+            supportsTools: true,
       supportsReasoning: false,
       maxContextLength: 128000
     },
@@ -149,8 +148,7 @@ export function createDefaultTextModels(envVars: {
     description: 'Latest Gemini 2.0 Flash model',
     providerId: 'gemini',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: true,
+            supportsTools: true,
       supportsReasoning: false,
       maxContextLength: 1000000
     },
@@ -185,8 +183,7 @@ export function createDefaultTextModels(envVars: {
     description: 'DeepSeek chat model via OpenAI-compatible API',
     providerId: 'deepseek',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: true,
+            supportsTools: true,
       supportsReasoning: false,
       maxContextLength: 64000
     },
@@ -212,8 +209,7 @@ export function createDefaultTextModels(envVars: {
     description: 'Qwen3-8B model via SiliconFlow',
     providerId: 'siliconflow',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: false,
+            supportsTools: false,
       supportsReasoning: false,
       maxContextLength: 8192
     },
@@ -238,8 +234,7 @@ export function createDefaultTextModels(envVars: {
     description: 'GLM-4 Flash model via Zhipu',
     providerId: 'zhipu',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: true,
+            supportsTools: true,
       supportsReasoning: false,
       maxContextLength: 128000
     },
@@ -264,8 +259,7 @@ export function createDefaultTextModels(envVars: {
     description: 'Custom model via OpenAI-compatible API',
     providerId: 'openai',
     capabilities: {
-      supportsStreaming: true,
-      supportsTools: false,
+            supportsTools: false,
       supportsReasoning: false,
       maxContextLength: 4096
     },

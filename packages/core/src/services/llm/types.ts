@@ -74,8 +74,6 @@ export interface TextModel {
   readonly providerId: string
   /** 模型能力定义 */
   readonly capabilities: {
-    /** 是否支持流式响应 */
-    supportsStreaming: boolean
     /** 是否支持工具调用 */
     supportsTools: boolean
     /** 是否支持推理内容（如 o1 系列） */

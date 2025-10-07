@@ -326,10 +326,9 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
       description: `Custom model ${modelId} for ${provider.name}`,
       providerId: provider.id,
       capabilities: {
-        supportsStreaming: true, // 默认支持流式
-        supportsTools: false, // 默认不支持工具
-        supportsReasoning: false, // 默认不支持推理
-        maxContextLength: 4096 // 默认上下文长度
+        supportsTools: true, // 默认支持工具
+        supportsReasoning: true, // 默认支持推理
+        maxContextLength: 128000 // 默认上下文长度
       },
       parameterDefinitions: this.getParameterDefinitions(modelId),
       defaultParameterValues: this.getDefaultParameterValues(modelId)

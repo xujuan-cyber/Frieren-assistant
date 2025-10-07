@@ -181,8 +181,7 @@ describe('TextAdapterRegistry', () => {
         description: 'Test',
         providerId: 'openai',
         capabilities: {
-          supportsStreaming: true,
-          supportsTools: true,
+                    supportsTools: true,
           supportsReasoning: false,
           maxContextLength: 128000
         },

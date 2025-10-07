@@ -36,7 +36,6 @@ describe('OpenAIAdapter', () => {
       description: 'Affordable and intelligent small model',
       providerId: 'openai',
       capabilities: {
-        supportsStreaming: true,
         supportsTools: true,
         supportsReasoning: false,
         maxContextLength: 128000
@@ -115,7 +114,6 @@ describe('OpenAIAdapter', () => {
       expect(gpt4oMini).toBeDefined();
       expect(gpt4oMini?.name).toBe('GPT-4o Mini');
       expect(gpt4oMini?.providerId).toBe('openai');
-      expect(gpt4oMini?.capabilities.supportsStreaming).toBe(true);
       expect(gpt4oMini?.capabilities.supportsTools).toBe(true);
     });
 
@@ -124,7 +122,6 @@ describe('OpenAIAdapter', () => {
 
       models.forEach(model => {
         expect(model.capabilities).toBeDefined();
-        expect(typeof model.capabilities.supportsStreaming).toBe('boolean');
         expect(typeof model.capabilities.supportsTools).toBe('boolean');
         expect(typeof model.capabilities.maxContextLength).toBe('number');
       });
@@ -140,7 +137,6 @@ describe('OpenAIAdapter', () => {
       expect(model.name).toBe(unknownModelId);
       expect(model.providerId).toBe('openai');
       expect(model.capabilities).toBeDefined();
-      expect(model.capabilities.supportsStreaming).toBe(true);
       expect(model.capabilities.maxContextLength).toBeGreaterThan(0);
     });
 

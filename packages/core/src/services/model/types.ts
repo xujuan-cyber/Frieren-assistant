@@ -33,7 +33,6 @@ export interface TextModel {
   readonly description?: string;
   readonly providerId: string;
   readonly capabilities: {
-    supportsStreaming: boolean;
     supportsTools: boolean;
     supportsReasoning?: boolean;
     maxContextLength?: number;

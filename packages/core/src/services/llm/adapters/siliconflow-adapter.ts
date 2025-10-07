@@ -16,7 +16,7 @@ const SILICONFLOW_STATIC_MODELS: ModelOverride[] = [
     description: 'Qwen3-8B model via SiliconFlow',
     capabilities: {
       supportsTools: false,
-      maxContextLength: 8192
+      maxContextLength: 128000
     }
   }
 ]
@@ -32,11 +32,10 @@ export class SiliconflowAdapter extends OpenAIAdapter {
       supportsDynamicModels: true,
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'timeout'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string',
-          timeout: 'number'
+          baseURL: 'string'
         }
       }
     }

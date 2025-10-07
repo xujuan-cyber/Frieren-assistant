@@ -55,8 +55,7 @@ describe('Config Conversion', () => {
           description: 'Test',
           providerId: 'openai',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 128000
           },
@@ -99,8 +98,7 @@ describe('Config Conversion', () => {
           description: 'Test',
           providerId: 'openai',
           capabilities: {
-            supportsStreaming: true,
-            supportsTools: true,
+                        supportsTools: true,
             supportsReasoning: false,
             maxContextLength: 128000
           },

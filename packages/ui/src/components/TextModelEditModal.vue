@@ -28,6 +28,10 @@
             />
           </NFormItem>
 
+          <NFormItem :label="t('modelManager.enabled')">
+            <NCheckbox v-model:checked="form.enabled">{{ t('modelManager.enabled') }}</NCheckbox>
+          </NFormItem>
+
           <NDivider style="margin: 12px 0 8px 0;" />
           <NH4 style="margin: 0 0 12px 0; font-size: 14px;">提供商配置</NH4>
 

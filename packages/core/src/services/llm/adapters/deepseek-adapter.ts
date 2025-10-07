@@ -16,7 +16,8 @@ const DEEPSEEK_STATIC_MODELS: ModelOverride[] = [
     description: 'DeepSeek chat model via OpenAI-compatible API',
     capabilities: {
       supportsTools: true,
-      maxContextLength: 64000
+      supportsReasoning: false,
+      maxContextLength: 128000
     }
   },
   {
@@ -25,7 +26,7 @@ const DEEPSEEK_STATIC_MODELS: ModelOverride[] = [
     description: 'DeepSeek reasoning model with step-by-step thinking outputs',
     capabilities: {
       supportsReasoning: true,
-      maxContextLength: 64000
+      maxContextLength: 128000
     }
   }
 ]
@@ -41,11 +42,10 @@ export class DeepseekAdapter extends OpenAIAdapter {
       supportsDynamicModels: true,
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'timeout'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string',
-          timeout: 'number'
+          baseURL: 'string'
         }
       }
     }

@@ -382,6 +382,7 @@ export default {
     editModel: 'Edit',
     deleteModel: 'Delete',
     displayName: 'Display Name',
+    enabled: 'Enabled',
     modelKey: 'Model Key',
     apiUrl: 'API URL',
     apiUrlHint: 'Example: https://api.example.com/v1; most providers use endpoints ending with /v1',
@@ -467,7 +468,6 @@ export default {
     capabilities: {
       tools: 'Tool Calling',
       reasoning: 'Reasoning',
-      streaming: 'Streaming',
       vision: 'Vision'
     },
 
