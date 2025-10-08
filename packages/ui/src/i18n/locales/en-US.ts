@@ -383,6 +383,7 @@ export default {
     deleteModel: 'Delete',
     displayName: 'Display Name',
     enabled: 'Enabled',
+    enabledStatus: 'Enable Status',
     modelKey: 'Model Key',
     apiUrl: 'API URL',
     apiUrlHint: 'Example: https://api.example.com/v1; most providers use endpoints ending with /v1',
@@ -1294,7 +1295,14 @@ export default {
         label: 'Configuration Name',
         placeholder: 'Please enter configuration name'
       },
+      displayName: {
+        label: 'Display Name',
+        placeholder: 'Please enter display name'
+      },
       enabled: {
+        label: 'Enable Status'
+      },
+      enabledStatus: {
         label: 'Enable Status'
       },
       updateSuccess: 'Configuration updated',

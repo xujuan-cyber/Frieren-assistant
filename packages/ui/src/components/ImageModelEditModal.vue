@@ -13,12 +13,12 @@
       <form @submit.prevent="save">
         <NForm label-placement="left" label-width="auto" size="small">
           <!-- 基本信息区域 -->
-          <NFormItem :label="t('image.config.name.label')">
-            <NInput v-model:value="configForm.name" :placeholder="t('image.config.name.placeholder')" required />
+          <NFormItem :label="t('image.config.displayName.label')">
+            <NInput v-model:value="configForm.name" :placeholder="t('image.config.displayName.placeholder')" required />
           </NFormItem>
 
-          <NFormItem :label="t('image.config.enabled.label')">
-            <NCheckbox v-model:checked="configForm.enabled">{{ t('image.config.enabled.label') }}</NCheckbox>
+          <NFormItem :label="t('image.config.enabledStatus.label')">
+            <NCheckbox v-model:checked="configForm.enabled"></NCheckbox>
           </NFormItem>
 
           <!-- 提供商配置区域 -->

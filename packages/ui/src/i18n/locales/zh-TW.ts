@@ -383,6 +383,7 @@ export default {
     deleteModel: '刪除',
     displayName: '顯示名稱',
     enabled: '啟用',
+    enabledStatus: '啟用狀態',
     modelKey: '模型標識',
     apiUrl: 'API位址',
     apiUrlHint: '範例：https://api.example.com/v1；多數提供商位址通常以 /v1 結尾',
@@ -1286,7 +1287,14 @@ export default {
         label: '配置名稱',
         placeholder: '請輸入配置名稱'
       },
+      displayName: {
+        label: '顯示名稱',
+        placeholder: '請輸入顯示名稱'
+      },
       enabled: {
+        label: '啟用狀態'
+      },
+      enabledStatus: {
         label: '啟用狀態'
       },
       updateSuccess: '配置已更新',

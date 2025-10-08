@@ -383,10 +383,12 @@
     deleteModel: '删除',
     displayName: '显示名称',
     enabled: '启用',
+    enabledStatus: '启用状态',
     modelKey: '模型标识',
     apiUrl: 'API地址',
     apiUrlHint: '示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾',
     defaultModel: '默认模型',
+    selectModel: '选择模型',
     clickToFetchModels: '点击箭头获取模型列表',
     apiKey: 'API密钥',
     addModel: '添加',
@@ -449,7 +451,6 @@
     fetchModelsSuccess: '成功获取 {count} 个模型',
     loadingModels: '正在加载模型选项...',
     noModelsAvailable: '没有可用模型',
-    selectModel: '选择一个模型',
     fetchModelsFailed: '获取模型列表失败：{error}',
     needApiKeyAndBaseUrl: '请先填写API地址和密钥',
     needBaseUrl: '请先填写API地址',
@@ -1294,7 +1295,14 @@
         label: '配置名称',
         placeholder: '请输入配置名称'
       },
+      displayName: {
+        label: '显示名称',
+        placeholder: '请输入显示名称'
+      },
       enabled: {
+        label: '启用状态'
+      },
+      enabledStatus: {
         label: '启用状态'
       },
       updateSuccess: '配置已更新',

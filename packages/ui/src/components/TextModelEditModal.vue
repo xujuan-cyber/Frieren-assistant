@@ -28,8 +28,8 @@
             />
           </NFormItem>
 
-          <NFormItem :label="t('modelManager.enabled')">
-            <NCheckbox v-model:checked="form.enabled">{{ t('modelManager.enabled') }}</NCheckbox>
+          <NFormItem :label="t('modelManager.enabledStatus')">
+            <NCheckbox v-model:checked="form.enabled"></NCheckbox>
           </NFormItem>
 
           <NDivider style="margin: 12px 0 8px 0;" />
@@ -84,7 +84,7 @@
           <NDivider style="margin: 12px 0 8px 0;" />
           <NH4 style="margin: 0 0 12px 0; font-size: 14px;">模型配置</NH4>
 
-          <NFormItem :label="t('modelManager.defaultModel')">
+          <NFormItem :label="t('modelManager.selectModel')">
             <NSpace align="center" style="width: 100%;">
               <NSelect
                 v-model:value="form.modelId"
