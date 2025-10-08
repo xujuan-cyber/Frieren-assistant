@@ -91,9 +91,10 @@
                 :options="modelOptions"
                 :loading="isLoadingModelOptions"
                 :placeholder="t('modelManager.defaultModelPlaceholder')"
-                style="flex: 1; min-width: 200px;"
+                style="flex: 1; min-width: 300px; max-width: 500px;"
                 clearable
                 filterable
+                :filter="(pattern, option) => option.label.toLowerCase().includes(pattern.toLowerCase()) || option.value.toLowerCase().includes(pattern.toLowerCase())"
                 tag
                 required
               />
