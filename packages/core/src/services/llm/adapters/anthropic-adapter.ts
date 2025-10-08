@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { AbstractTextProviderAdapter } from './abstract-adapter'
 import type {
   TextProvider,
@@ -10,35 +11,19 @@ import type {
   ToolDefinition
 } from '../types'
 
-const ANTHROPIC_API_VERSION = '2023-06-01'
-const DEFAULT_MAX_TOKENS = 1024
-
-interface AnthropicContentBlock {
-  type: string
-  text?: string
-}
-
-interface AnthropicResponse {
-  content: AnthropicContentBlock[]
-  model: string
-  stop_reason?: string | null
-  usage?: {
-    input_tokens?: number
-    output_tokens?: number
-  }
-}
+const DEFAULT_MAX_TOKENS = 4096
 
 /**
- * Anthropic API适配器实现
- * 支持Claude系列模型，基于HTTP调用实现
+ * Anthropic 官方 SDK 适配器实现
+ * 使用 @anthropic-ai/sdk 包提供官方支持
  *
  * 职责：
- * - 封装Anthropic HTTP API调用逻辑（非官方SDK）
+ * - 封装Anthropic官方SDK调用逻辑
  * - 处理Claude特定的消息格式和system指令
  * - 提供Claude模型静态列表
+ * - 支持真正的SSE流式响应
+ * - 支持工具调用
  * - 保留原始错误堆栈
- *
- * 注意：Anthropic不支持官方SDK在本项目中直接使用，因此采用fetch实现。
  */
 export class AnthropicAdapter extends AbstractTextProviderAdapter {
   // ===== Provider元数据 =====
@@ -50,17 +35,16 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     return {
       id: 'anthropic',
       name: 'Anthropic',
-      description: 'Anthropic Claude models',
+      description: 'Anthropic Claude models (Official SDK)',
       requiresApiKey: true,
-      defaultBaseURL: 'https://api.anthropic.com/v1',
+      defaultBaseURL: 'https://api.anthropic.com',
       supportsDynamicModels: false, // Anthropic不支持动态模型获取
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'timeout'],
+        optional: ['baseURL'],
         fieldTypes: {
           apiKey: 'string',
           baseURL: 'string',
-          timeout: 'number'
         }
       }
     }
@@ -175,8 +159,14 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         name: 'max_tokens',
         type: 'number',
         description: 'Maximum tokens to generate',
-        default: 4096,
+        default: DEFAULT_MAX_TOKENS,
         min: 1
+      },
+      {
+        name: 'thinking_budget_tokens',
+        type: 'number',
+        description: 'Extended thinking budget in tokens (requires ≥1024)',
+        min: 1024
       }
     ]
   }
@@ -195,54 +185,129 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
   // ===== 核心方法实现 =====
 
   /**
-   * 发送消息（结构化格式）
+   * 发送消息（使用官方 SDK）
    */
   protected async doSendMessage(
     messages: Message[],
     config: TextModelConfig
   ): Promise<LLMResponse> {
-    const result = await this.invokeAnthropic(messages, config)
+    const client = this.createClient(config)
 
-    const content = this.extractTextContent(result)
-
-    return {
-      content,
-      metadata: {
-        model: result.model,
-        finishReason: result.stop_reason || undefined
+    try {
+      const requestParams: any = {
+        model: config.modelMeta.id,
+        max_tokens: (config.paramOverrides?.max_tokens as number) || DEFAULT_MAX_TOKENS,
+        messages: this.convertMessages(messages),
+        temperature: config.paramOverrides?.temperature as number,
+        top_p: config.paramOverrides?.top_p as number,
+        top_k: config.paramOverrides?.top_k as number,
+        system: this.extractSystemMessage(messages)
       }
+
+      // 添加 Extended Thinking 配置
+      const thinkingBudget = config.paramOverrides?.thinking_budget_tokens as number | undefined
+      if (thinkingBudget !== undefined && thinkingBudget >= 1024) {
+        requestParams.thinking = {
+          type: 'enabled',
+          budget_tokens: thinkingBudget
+        }
+      }
+
+      const response = await client.messages.create(requestParams)
+
+      // 提取 thinking 内容
+      const reasoning = this.extractThinking(response)
+
+      return {
+        content: this.extractContent(response),
+        reasoning,
+        metadata: {
+          model: response.model,
+          finishReason: response.stop_reason || undefined,
+          tokens: response.usage ? (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0) : undefined
+        }
+      }
+    } catch (error) {
+      throw this.handleError(error)
     }
   }
 
   /**
-   * 发送流式消息（模拟流式，按句分段推送）
+   * 发送流式消息（真正的 SSE 流）
    */
   protected async doSendMessageStream(
     messages: Message[],
     config: TextModelConfig,
     callbacks: StreamHandlers
   ): Promise<void> {
-    try {
-      const response = await this.doSendMessage(messages, config)
+    const client = this.createClient(config)
+    const thinkState = { isInThinkMode: false, buffer: '' }
 
-      // 简单地按句号/换行切分内容，模拟流式响应
-      const chunks = response.content.split(/(?<=[。！？!?.])/)
-      for (const chunk of chunks) {
-        const text = chunk.trim()
-        if (text.length > 0) {
-          callbacks.onToken(text)
+    try {
+      const requestParams: any = {
+        model: config.modelMeta.id,
+        max_tokens: (config.paramOverrides?.max_tokens as number) || DEFAULT_MAX_TOKENS,
+        messages: this.convertMessages(messages),
+        temperature: config.paramOverrides?.temperature as number,
+        top_p: config.paramOverrides?.top_p as number,
+        system: this.extractSystemMessage(messages)
+      }
+
+      // 添加 Extended Thinking 配置
+      const thinkingBudget = config.paramOverrides?.thinking_budget_tokens as number | undefined
+      if (thinkingBudget !== undefined && thinkingBudget >= 1024) {
+        requestParams.thinking = {
+          type: 'enabled',
+          budget_tokens: thinkingBudget
         }
       }
 
-      callbacks.onComplete(response)
+      const stream = await client.messages.stream(requestParams)
+
+      let accumulatedReasoning = ''
+
+      // 监听原生 thinking 事件（Extended Thinking）
+      stream.on('thinking', (thinkingDelta) => {
+        accumulatedReasoning += thinkingDelta
+        if (callbacks.onReasoningToken) {
+          callbacks.onReasoningToken(thinkingDelta)
+        }
+      })
+
+      // 监听文本内容事件（同时支持 <think> 标签）
+      stream.on('text', (text) => {
+        this.processStreamContentWithThinkTags(text, callbacks, thinkState)
+      })
+
+      // 监听最终消息
+      stream.on('message', (message) => {
+        const response: LLMResponse = {
+          content: this.extractContent(message),
+          reasoning: accumulatedReasoning || undefined,
+          metadata: {
+            model: message.model,
+            finishReason: message.stop_reason || undefined,
+            tokens: message.usage ? (message.usage.input_tokens || 0) + (message.usage.output_tokens || 0) : undefined
+          }
+        }
+        callbacks.onComplete(response)
+      })
+
+      stream.on('error', (error) => {
+        callbacks.onError(error)
+      })
+
+      // 等待流完成
+      await stream.finalMessage()
     } catch (error) {
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)))
+      callbacks.onError(this.handleError(error))
       throw error
     }
   }
 
   /**
-   * 发送带工具调用的流式消息（当前无真实工具调用，复用doSendMessageStream逻辑）
+   * 发送带工具调用的流式消息
+   * 使用标准的 messages.stream API，手动处理工具调用
    */
   public async sendMessageStreamWithTools(
     messages: Message[],
@@ -250,116 +315,217 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     tools: ToolDefinition[],
     callbacks: StreamHandlers
   ): Promise<void> {
+    const client = this.createClient(config)
+    const thinkState = { isInThinkMode: false, buffer: '' }
+
     try {
-      const result = await this.invokeAnthropic(messages, config, tools)
-      const response: LLMResponse = {
-        content: this.extractTextContent(result),
-        metadata: {
-          model: result.model,
-          finishReason: result.stop_reason || undefined
+      const requestParams: any = {
+        model: config.modelMeta.id,
+        max_tokens: (config.paramOverrides?.max_tokens as number) || DEFAULT_MAX_TOKENS,
+        messages: this.convertMessages(messages),
+        tools: this.convertTools(tools),
+        temperature: config.paramOverrides?.temperature as number,
+        top_p: config.paramOverrides?.top_p as number,
+        system: this.extractSystemMessage(messages)
+      }
+
+      // 添加 Extended Thinking 配置
+      const thinkingBudget = config.paramOverrides?.thinking_budget_tokens as number | undefined
+      if (thinkingBudget !== undefined && thinkingBudget >= 1024) {
+        requestParams.thinking = {
+          type: 'enabled',
+          budget_tokens: thinkingBudget
         }
       }
 
-      for (const chunk of response.content.split(/(?<=[。！？!?.])/)) {
-        const text = chunk.trim()
-        if (text.length > 0) {
-          callbacks.onToken(text)
-        }
-      }
+      const stream = await client.messages.stream(requestParams)
 
-      callbacks.onComplete(response)
+      let accumulatedContent = ''
+      let accumulatedReasoning = ''
+      const toolCalls: any[] = []
+      let currentToolCallIndex = -1
+
+      // 监听原生 thinking 事件（Extended Thinking）
+      stream.on('thinking', (thinkingDelta) => {
+        accumulatedReasoning += thinkingDelta
+        if (callbacks.onReasoningToken) {
+          callbacks.onReasoningToken(thinkingDelta)
+        }
+      })
+
+      // 监听内容块开始事件
+      stream.on('contentBlockStart', (event) => {
+        if (event.content_block.type === 'tool_use') {
+          currentToolCallIndex++
+          toolCalls.push({
+            id: event.content_block.id,
+            type: 'function' as const,
+            function: {
+              name: event.content_block.name,
+              arguments: ''
+            }
+          })
+        }
+      })
+
+      // 监听内容块增量事件
+      stream.on('contentBlockDelta', (event) => {
+        if (event.delta.type === 'text_delta') {
+          // 处理文本内容
+          const text = event.delta.text || ''
+          accumulatedContent += text
+          this.processStreamContentWithThinkTags(text, callbacks, thinkState)
+        } else if (event.delta.type === 'input_json_delta') {
+          // 处理工具调用参数增量
+          if (currentToolCallIndex >= 0 && toolCalls[currentToolCallIndex]) {
+            toolCalls[currentToolCallIndex].function.arguments += event.delta.partial_json || ''
+            
+            // 尝试解析完整的 JSON，如果成功则触发回调
+            try {
+              JSON.parse(toolCalls[currentToolCallIndex].function.arguments)
+              if (callbacks.onToolCall) {
+                callbacks.onToolCall(toolCalls[currentToolCallIndex])
+              }
+            } catch {
+              // JSON 还不完整，继续累积
+            }
+          }
+        }
+      })
+
+      // 监听最终消息
+      stream.on('message', (message) => {
+        const response: LLMResponse = {
+          content: accumulatedContent,
+          reasoning: accumulatedReasoning || undefined,
+          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+          metadata: {
+            model: message.model,
+            finishReason: message.stop_reason || undefined,
+            tokens: message.usage ? (message.usage.input_tokens || 0) + (message.usage.output_tokens || 0) : undefined
+          }
+        }
+        callbacks.onComplete(response)
+      })
+
+      stream.on('error', (error) => {
+        callbacks.onError(error)
+      })
+
+      // 等待流完成
+      await stream.finalMessage()
     } catch (error) {
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)))
+      callbacks.onError(this.handleError(error))
       throw error
     }
   }
 
   // ===== 内部辅助方法 =====
 
-  private async invokeAnthropic(
-    messages: Message[],
-    config: TextModelConfig,
-    tools?: ToolDefinition[]
-  ): Promise<AnthropicResponse> {
-    const apiKey = config.connectionConfig?.apiKey || ''
-    if (!apiKey) {
-      throw new Error('[AnthropicAdapter] Missing API key')
+  /**
+   * 创建配置好的客户端实例
+   */
+  private createClient(config: TextModelConfig): Anthropic {
+    const options: any = {
+      apiKey: config.connectionConfig?.apiKey || '',
+      dangerouslyAllowBrowser: true // 根据实际环境配置
     }
 
-    const endpoint = this.buildEndpoint(config)
-    const payload = this.buildRequestPayload(messages, config, tools)
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': ANTHROPIC_API_VERSION
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-      const errorBody = await response.text()
-      throw new Error(`Anthropic API error (${response.status}): ${errorBody}`)
+    if (config.connectionConfig?.baseURL) {
+      // 规范化 baseURL：移除末尾的 /v1 后缀（SDK 会自动添加）
+      let baseURL = config.connectionConfig.baseURL
+      if (baseURL.endsWith('/v1')) {
+        baseURL = baseURL.slice(0, -3)
+      }
+      options.baseURL = baseURL
     }
 
-    return (await response.json()) as AnthropicResponse
+    if (config.connectionConfig?.timeout) {
+      options.timeout = config.connectionConfig.timeout
+    }
+
+    return new Anthropic(options)
   }
 
-  private buildEndpoint(config: TextModelConfig): string {
-    const base = config.connectionConfig?.baseURL || this.getProvider().defaultBaseURL
-    const normalized = base.replace(/\/?$/, '') // 去除末尾斜杠
-    return `${normalized}/messages`
-  }
-
-  private buildRequestPayload(
-    messages: Message[],
-    config: TextModelConfig,
-    tools?: ToolDefinition[]
-  ): Record<string, unknown> {
-    const systemMessages = messages.filter((msg) => msg.role === 'system')
-    const nonSystemMessages = messages.filter((msg) => msg.role !== 'system')
-
-    const anthropicMessages = nonSystemMessages.map((msg) => ({
-      role: msg.role,
-      content: msg.content
-    }))
-
-    const paramOverrides = config.paramOverrides || {}
-
-    const payload: Record<string, unknown> = {
-      model: config.modelMeta.id,
-      max_tokens: paramOverrides.max_tokens || DEFAULT_MAX_TOKENS,
-      messages: anthropicMessages,
-      temperature: paramOverrides.temperature,
-      top_p: paramOverrides.top_p
-    }
-
-    if (systemMessages.length > 0) {
-      payload.system = systemMessages.map((msg) => msg.content).join('\n')
-    }
-
-    if (tools && tools.length > 0) {
-      payload.tools = tools.map((tool) => ({
-        type: 'tool',
-        name: tool.function.name,
-        description: tool.function.description,
-        input_schema: tool.function.parameters ?? {}
+  /**
+   * 转换消息格式
+   */
+  private convertMessages(messages: Message[]) {
+    return messages
+      .filter(msg => msg.role !== 'system')
+      .map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content
       }))
-    }
-
-    return payload
   }
 
-  private extractTextContent(response: AnthropicResponse): string {
+  /**
+   * 提取系统消息
+   */
+  private extractSystemMessage(messages: Message[]): string | undefined {
+    const systemMessages = messages.filter(msg => msg.role === 'system')
+    return systemMessages.length > 0
+      ? systemMessages.map(msg => msg.content).join('\n')
+      : undefined
+  }
+
+  /**
+   * 提取响应内容
+   */
+  private extractContent(response: any): string {
     if (!response.content || response.content.length === 0) {
       return ''
     }
 
     return response.content
-      .filter((block) => block.type === 'text' && typeof block.text === 'string')
-      .map((block) => block.text as string)
+      .filter((block: any) => block.type === 'text')
+      .map((block: any) => block.text)
+      .join('')
+  }
+
+  /**
+   * 转换工具定义
+   */
+  private convertTools(tools: ToolDefinition[]) {
+    return tools.map(tool => ({
+      name: tool.function.name,
+      description: tool.function.description || '',
+      input_schema: {
+        type: 'object' as const,
+        properties: (tool.function.parameters as any)?.properties || {},
+        required: (tool.function.parameters as any)?.required || []
+      }
+    }))
+  }
+
+  /**
+   * 提取 thinking 内容（Extended Thinking）
+   */
+  private extractThinking(response: any): string | undefined {
+    if (!response.content || response.content.length === 0) {
+      return undefined
+    }
+
+    const thinkingBlocks = response.content.filter(
+      (block: any) => block.type === 'thinking'
+    )
+
+    if (thinkingBlocks.length === 0) {
+      return undefined
+    }
+
+    return thinkingBlocks
+      .map((block: any) => block.thinking)
       .join('\n')
+  }
+
+  /**
+   * 错误处理
+   */
+  private handleError(error: any): Error {
+    if (error.status) {
+      return new Error(`Anthropic API error (${error.status}): ${error.message}`)
+    }
+    return error instanceof Error ? error : new Error(String(error))
   }
 }
