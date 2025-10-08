@@ -101,6 +101,45 @@ describe('ModelManager', () => {
     });
   });
 
+  describe('initialization behavior', () => {
+    it('should not overwrite existing model metadata or connection settings when reinitialized', async () => {
+      const targetId = 'openai';
+      const existing = await modelManager.getModel(targetId);
+      expect(existing).toBeDefined();
+
+      const customProviderMeta = {
+        ...existing!.providerMeta,
+        name: 'Custom Provider Name'
+      };
+
+      const customModelMeta = {
+        ...existing!.modelMeta,
+        id: 'custom-openai-model',
+        name: 'Custom OpenAI Model'
+      };
+
+      const customBaseURL = 'https://custom-openai.example.com/v1';
+
+      await modelManager.updateModel(targetId, {
+        providerMeta: customProviderMeta,
+        modelMeta: customModelMeta,
+        connectionConfig: {
+          ...existing!.connectionConfig,
+          baseURL: customBaseURL
+        }
+      });
+
+      const secondRegistry = new TextAdapterRegistry();
+      const reloadedManager = new ModelManager(storageProvider, secondRegistry);
+      const reloaded = await reloadedManager.getModel(targetId);
+
+      expect(reloaded?.providerMeta.name).toBe('Custom Provider Name');
+      expect(reloaded?.modelMeta.id).toBe('custom-openai-model');
+      expect(reloaded?.modelMeta.name).toBe('Custom OpenAI Model');
+      expect(reloaded?.connectionConfig.baseURL).toBe(customBaseURL);
+    });
+  });
+
   describe('getModel', () => {
     it('should retrieve an existing model by key', async () => {
       const model = createTextModelConfig('MyModel', 'MyModel');

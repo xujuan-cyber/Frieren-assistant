@@ -569,33 +569,45 @@ export function useTextModelManager() {
     formConnectionStatus.value = { type: 'info', message: t('modelManager.testing') }
 
     try {
-      // 获取原始配置
-      const existingConfig = await modelManager.getModel(editingModelId.value)
+      const existingConfig = editingModelId.value ? await modelManager.getModel(editingModelId.value) : undefined
       if (!existingConfig) {
         throw new Error('模型配置不存在')
       }
 
-      // 创建临时测试配置，使用当前表单的参数覆盖
-      // 注意：如果 API Key 被脱敏显示，需要使用原始 Key
-      const connectionConfig = {
+      if (!form.value.providerId || !form.value.modelId) {
+        throw new Error('模型未选择')
+      }
+
+      const providerMeta = ensureProviderMeta(form.value.providerId, existingConfig.providerMeta)
+      const modelMeta = ensureModelMeta(form.value.providerId, form.value.modelId, existingConfig.modelMeta)
+
+      const baseURL = typeof form.value.connectionConfig?.baseURL === 'string'
+        ? form.value.connectionConfig.baseURL.trim()
+        : undefined
+
+      const connectionConfig: TextConnectionConfig = {
+        ...existingConfig.connectionConfig,
         ...form.value.connectionConfig,
+        baseURL: baseURL || existingConfig.connectionConfig?.baseURL,
         apiKey: form.value.displayMaskedKey && form.value.originalApiKey
           ? form.value.originalApiKey
           : form.value.connectionConfig.apiKey
       }
 
+      if (!connectionConfig.apiKey && existingConfig.connectionConfig?.apiKey) {
+        connectionConfig.apiKey = existingConfig.connectionConfig.apiKey
+      }
+
       const tempConfig: TextModelConfig = {
-        ...existingConfig,
-        id: `temp-test-${editingModelId.value}`,
+        id: `temp-test-${editingModelId.value}-${Date.now()}`,
         name: form.value.name,
         enabled: form.value.enabled,
-        providerMeta: { ...existingConfig.providerMeta },
-        modelMeta: { ...existingConfig.modelMeta },
+        providerMeta,
+        modelMeta,
         connectionConfig,
         paramOverrides: { ...(form.value.paramOverrides || {}) }
       }
 
-      // 创建临时模型用于测试
       await modelManager.addModel(tempConfig.id, tempConfig)
 
       try {

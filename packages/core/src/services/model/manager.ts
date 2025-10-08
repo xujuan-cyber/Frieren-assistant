@@ -107,25 +107,24 @@ export class ModelManager implements IModelManager {
               const existingModel = updatedModels[key];
 
               if (isTextModelConfig(existingModel)) {
-                // 已经是新格式，保留用户配置
-                const updatedModel = {
-                  ...defaultConfig,
-                  // 保留用户的启用状态和连接配置
-                  enabled: existingModel.enabled !== undefined ? existingModel.enabled : defaultConfig.enabled,
-                  connectionConfig: {
-                    ...defaultConfig.connectionConfig,
-                    ...(existingModel.connectionConfig || {})
-                  },
-                  paramOverrides: {
-                    ...defaultConfig.paramOverrides,
-                    ...(existingModel.paramOverrides || {})
-                  }
-                };
+                // 已经是新格式，保留用户配置，仅在缺失关键字段时补齐默认值
+                const updatedModel = { ...existingModel } as TextModelConfig;
+                let patched = false;
 
-                if (JSON.stringify(updatedModels[key]) !== JSON.stringify(updatedModel)) {
+                if (!updatedModel.providerMeta && defaultConfig.providerMeta) {
+                  updatedModel.providerMeta = defaultConfig.providerMeta;
+                  patched = true;
+                }
+
+                if (!updatedModel.modelMeta && defaultConfig.modelMeta) {
+                  updatedModel.modelMeta = defaultConfig.modelMeta;
+                  patched = true;
+                }
+
+                if (patched) {
                   updatedModels[key] = updatedModel;
                   hasUpdates = true;
-                  console.log(`[ModelManager] Updated default model: ${key}`);
+                  console.log(`[ModelManager] Patched missing metadata for model: ${key}`);
                 }
               } else if (isLegacyConfig(existingModel)) {
                 // 旧格式，尝试使用 Registry 转换为新格式
