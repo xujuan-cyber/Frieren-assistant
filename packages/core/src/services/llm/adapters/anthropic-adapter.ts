@@ -267,7 +267,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       let accumulatedReasoning = ''
 
       // 监听原生 thinking 事件（Extended Thinking）
-      stream.on('thinking', (thinkingDelta) => {
+      ;(stream as any).on('thinking', (thinkingDelta: string) => {
         accumulatedReasoning += thinkingDelta
         if (callbacks.onReasoningToken) {
           callbacks.onReasoningToken(thinkingDelta)
@@ -275,12 +275,12 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       })
 
       // 监听文本内容事件（同时支持 <think> 标签）
-      stream.on('text', (text) => {
+      ;(stream as any).on('text', (text: string) => {
         this.processStreamContentWithThinkTags(text, callbacks, thinkState)
       })
 
       // 监听最终消息
-      stream.on('message', (message) => {
+      ;(stream as any).on('message', (message: any) => {
         const response: LLMResponse = {
           content: this.extractContent(message),
           reasoning: accumulatedReasoning || undefined,
@@ -293,7 +293,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         callbacks.onComplete(response)
       })
 
-      stream.on('error', (error) => {
+      ;(stream as any).on('error', (error: any) => {
         callbacks.onError(error)
       })
 
@@ -346,7 +346,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       let currentToolCallIndex = -1
 
       // 监听原生 thinking 事件（Extended Thinking）
-      stream.on('thinking', (thinkingDelta) => {
+      ;(stream as any).on('thinking', (thinkingDelta: string) => {
         accumulatedReasoning += thinkingDelta
         if (callbacks.onReasoningToken) {
           callbacks.onReasoningToken(thinkingDelta)
@@ -354,14 +354,14 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       })
 
       // 监听内容块开始事件
-      stream.on('contentBlockStart', (event) => {
-        if (event.content_block.type === 'tool_use') {
+      ;(stream as any).on('contentBlockStart', (event: any) => {
+        if (event.contentBlock?.type === 'tool_use') {
           currentToolCallIndex++
           toolCalls.push({
-            id: event.content_block.id,
+            id: event.contentBlock.id,
             type: 'function' as const,
             function: {
-              name: event.content_block.name,
+              name: event.contentBlock.name,
               arguments: ''
             }
           })
@@ -369,17 +369,17 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       })
 
       // 监听内容块增量事件
-      stream.on('contentBlockDelta', (event) => {
-        if (event.delta.type === 'text_delta') {
+      ;(stream as any).on('contentBlockDelta', (event: any) => {
+        if (event.delta?.type === 'text_delta') {
           // 处理文本内容
           const text = event.delta.text || ''
           accumulatedContent += text
           this.processStreamContentWithThinkTags(text, callbacks, thinkState)
-        } else if (event.delta.type === 'input_json_delta') {
+        } else if (event.delta?.type === 'input_json_delta') {
           // 处理工具调用参数增量
           if (currentToolCallIndex >= 0 && toolCalls[currentToolCallIndex]) {
             toolCalls[currentToolCallIndex].function.arguments += event.delta.partial_json || ''
-            
+
             // 尝试解析完整的 JSON，如果成功则触发回调
             try {
               JSON.parse(toolCalls[currentToolCallIndex].function.arguments)
@@ -394,7 +394,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       })
 
       // 监听最终消息
-      stream.on('message', (message) => {
+      ;(stream as any).on('message', (message: any) => {
         const response: LLMResponse = {
           content: accumulatedContent,
           reasoning: accumulatedReasoning || undefined,
@@ -408,7 +408,7 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         callbacks.onComplete(response)
       })
 
-      stream.on('error', (error) => {
+      ;(stream as any).on('error', (error: any) => {
         callbacks.onError(error)
       })
 
