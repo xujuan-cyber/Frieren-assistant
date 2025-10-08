@@ -165,8 +165,8 @@ export function useImageModelManager() {
     const providerMeta = providers.value.find(p => p.id === providerId)
     if (providerMeta?.defaultBaseURL) {
       configForm.value.connectionConfig = {
-        ...configForm.value.connectionConfig,
-        baseURL: providerMeta.defaultBaseURL
+        baseURL: configForm.value.connectionConfig.baseURL || providerMeta.defaultBaseURL,
+        ...configForm.value.connectionConfig
       }
     }
 
