@@ -1,4 +1,4 @@
-import { GoogleGenAI, setDefaultBaseUrls } from '@google/genai'
+import { GoogleGenAI } from '@google/genai'
 import { AbstractImageProviderAdapter } from './abstract-adapter'
 import type {
   ImageProvider,
@@ -19,8 +19,11 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
       supportsDynamicModels: false,
       connectionSchema: {
         required: ['apiKey'],
-        optional: [],
-        fieldTypes: { apiKey: 'string' }
+        optional: ['baseURL'],
+        fieldTypes: {
+          apiKey: 'string',
+          baseURL: 'string'
+        }
       }
     }
   }
@@ -79,14 +82,17 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
   }
 
   protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {
-    // 使用官方 GoogleGenAI SDK，按需设置代理后的基础地址（geminiUrl）
-    const finalBase = this.resolveBaseUrl(config, /*isStream*/ false)
-    if (finalBase) {
-      // 仅设置 geminiUrl，不设置 vertexUrl
-      setDefaultBaseUrls({ geminiUrl: finalBase })
-    }
+    const rawBaseUrl = config.connectionConfig?.baseURL?.trim() || ''
+    const normalizedBaseUrl = rawBaseUrl ? this.normalizeBaseUrl(rawBaseUrl) : ''
 
-    const genAI = new GoogleGenAI({ apiKey: config.connectionConfig?.apiKey })
+    const genAI = normalizedBaseUrl
+      ? new GoogleGenAI({
+          apiKey: config.connectionConfig?.apiKey,
+          httpOptions: {
+            baseUrl: normalizedBaseUrl
+          }
+        })
+      : new GoogleGenAI({ apiKey: config.connectionConfig?.apiKey })
 
     // 构建请求内容
     let contents: any

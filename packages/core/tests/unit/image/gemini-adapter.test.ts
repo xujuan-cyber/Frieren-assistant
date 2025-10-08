@@ -19,6 +19,7 @@ describe('GeminiImageAdapter', () => {
       expect(provider.defaultBaseURL).toBe('https://generativelanguage.googleapis.com')
       expect(provider.supportsDynamicModels).toBe(false)
       expect(provider.connectionSchema?.required).toContain('apiKey')
+      expect(provider.connectionSchema?.optional).toContain('baseURL')
     })
   })
 
@@ -129,6 +130,8 @@ describe('GeminiImageAdapter', () => {
       const provider = adapter.getProvider()
       expect(provider.connectionSchema?.required).toContain('apiKey')
       expect(provider.connectionSchema?.fieldTypes.apiKey).toBe('string')
+      expect(provider.connectionSchema?.optional).toContain('baseURL')
+      expect(provider.connectionSchema?.fieldTypes.baseURL).toBe('string')
     })
   })
 
