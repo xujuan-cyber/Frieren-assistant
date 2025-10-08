@@ -30,7 +30,6 @@
     "vitest": "^3.0.2"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
     "@google/genai": "^1.0.0",
     "@types/mustache": "^4.2.5",
     "dexie": "^4.0.11",

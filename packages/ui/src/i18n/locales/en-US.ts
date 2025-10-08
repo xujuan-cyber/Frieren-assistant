@@ -921,6 +921,14 @@ export default {
       "label": "Stop Sequences",
       "description": "Custom strings that will stop output generation if encountered. Specify multiple sequences separated by commas."
     },
+    "thinkingBudget": {
+      "label": "Thinking Budget",
+      "description": "Maximum number of tokens allocated for the model's thinking process (Gemini 2.5+ only). Range: 1-8192 tokens."
+    },
+    "includeThoughts": {
+      "label": "Include Thoughts",
+      "description": "Whether to include the model's thinking process in the response (Gemini 2.5+ only). When enabled, you can see the model's reasoning steps."
+    },
     "tokens": {
       "unit": "tokens"
     }

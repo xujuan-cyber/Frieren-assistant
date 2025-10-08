@@ -922,6 +922,14 @@
       "label": "停止序列",
       "description": "遇到时将停止输出生成的自定义字符串。用逗号分隔多个序列。"
     },
+    "thinkingBudget": {
+      "label": "思考预算",
+      "description": "分配给模型思考过程的最大令牌数(仅 Gemini 2.5+)。范围：1-8192 令牌。"
+    },
+    "includeThoughts": {
+      "label": "包含思考过程",
+      "description": "是否在响应中包含模型的思考过程(仅 Gemini 2.5+)。启用后可以看到模型的推理步骤。"
+    },
     "tokens": {
       "unit": "令牌"
     }

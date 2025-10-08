@@ -157,6 +157,27 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     defaultValue: [], // Array of strings
     appliesToProviders: ["gemini"]
   },
+  {
+    id: "gemini_thinkingBudget",
+    name: "thinkingBudget",
+    labelKey: "params.thinkingBudget.label",
+    descriptionKey: "params.thinkingBudget.description",
+    type: "integer",
+    minValue: 1,
+    maxValue: 8192,
+    step: 1,
+    unitKey: "params.tokens.unit",
+    appliesToProviders: ["gemini"]
+  },
+  {
+    id: "gemini_includeThoughts",
+    name: "includeThoughts",
+    labelKey: "params.includeThoughts.label",
+    descriptionKey: "params.includeThoughts.description",
+    type: "boolean",
+    defaultValue: false,
+    appliesToProviders: ["gemini"]
+  },
   // Add more definitions as needed for other parameters and providers.
   // For example, Zhipu specific parameters, Groq, Anthropic etc.
 ];
