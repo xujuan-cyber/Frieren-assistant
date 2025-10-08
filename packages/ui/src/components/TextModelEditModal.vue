@@ -94,6 +94,7 @@
                 style="flex: 1; min-width: 200px;"
                 clearable
                 filterable
+                tag
                 required
               />
 
