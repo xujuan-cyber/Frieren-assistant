@@ -322,8 +322,8 @@ export function useTextModelManager() {
     const providerMeta = providers.value.find(p => p.id === providerId)
     if (providerMeta?.defaultBaseURL) {
       form.value.connectionConfig = {
-        ...form.value.connectionConfig,
-        baseURL: providerMeta.defaultBaseURL
+        baseURL: form.value.connectionConfig.baseURL || providerMeta.defaultBaseURL,
+        ...form.value.connectionConfig
       }
     }
 
@@ -411,8 +411,8 @@ export function useTextModelManager() {
     try {
       const providerTemplateId = form.value.providerId || currentProviderType.value || 'custom'
       const connectionConfig: TextConnectionConfig = {
-        ...form.value.connectionConfig,
         baseURL,
+        ...form.value.connectionConfig,
         apiKey: form.value.displayMaskedKey && form.value.originalApiKey
           ? form.value.originalApiKey
           : form.value.connectionConfig.apiKey
@@ -494,8 +494,8 @@ export function useTextModelManager() {
     }
 
     const connectionConfig: TextConnectionConfig = {
-      ...form.value.connectionConfig,
-      baseURL: (form.value.connectionConfig.baseURL as string)?.trim() || existingConfig.connectionConfig?.baseURL
+      baseURL: (form.value.connectionConfig.baseURL as string)?.trim() || existingConfig.connectionConfig?.baseURL,
+      ...form.value.connectionConfig
     }
 
     if (form.value.displayMaskedKey) {
@@ -586,16 +586,12 @@ export function useTextModelManager() {
         : undefined
 
       const connectionConfig: TextConnectionConfig = {
+        baseURL: baseURL || existingConfig.connectionConfig?.baseURL,
         ...existingConfig.connectionConfig,
         ...form.value.connectionConfig,
-        baseURL: baseURL || existingConfig.connectionConfig?.baseURL,
         apiKey: form.value.displayMaskedKey && form.value.originalApiKey
           ? form.value.originalApiKey
-          : form.value.connectionConfig.apiKey
-      }
-
-      if (!connectionConfig.apiKey && existingConfig.connectionConfig?.apiKey) {
-        connectionConfig.apiKey = existingConfig.connectionConfig.apiKey
+          : (form.value.connectionConfig.apiKey || existingConfig.connectionConfig?.apiKey)
       }
 
       const tempConfig: TextModelConfig = {
