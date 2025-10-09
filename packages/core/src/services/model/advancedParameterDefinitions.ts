@@ -163,7 +163,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     labelKey: "params.thinkingBudget.label",
     descriptionKey: "params.thinkingBudget.description",
     type: "integer",
-    minValue: 1,
+    minValue: 0,  // 允许0来禁用思考功能
     maxValue: 8192,
     step: 1,
     unitKey: "params.tokens.unit",

@@ -111,7 +111,7 @@ describe('GeminiAdapter', () => {
       const thinkingBudget = model.parameterDefinitions.find(p => p.name === 'thinkingBudget');
       expect(thinkingBudget).toBeDefined();
       expect(thinkingBudget?.type).toBe('number');
-      expect(thinkingBudget?.min).toBe(1);
+      expect(thinkingBudget?.min).toBe(0);  // 允许0来禁用思考功能
       expect(thinkingBudget?.max).toBe(8192);
       expect(thinkingBudget?.description).toContain('Gemini 2.5+');
 

@@ -31,9 +31,9 @@ describe('OpenAIAdapter', () => {
       }
     },
     modelMeta: {
-      id: 'gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      description: 'Affordable and intelligent small model',
+      id: 'gpt-5-2025-08-07',
+      name: 'GPT-5',
+      description: 'Latest GPT-5 model',
       providerId: 'openai',
       capabilities: {
         supportsTools: true,
@@ -109,12 +109,12 @@ describe('OpenAIAdapter', () => {
       expect(Array.isArray(models)).toBe(true);
       expect(models.length).toBeGreaterThan(0);
 
-      // 验证至少包含 GPT-4o Mini
-      const gpt4oMini = models.find(m => m.id === 'gpt-4o-mini');
-      expect(gpt4oMini).toBeDefined();
-      expect(gpt4oMini?.name).toBe('GPT-4o Mini');
-      expect(gpt4oMini?.providerId).toBe('openai');
-      expect(gpt4oMini?.capabilities.supportsTools).toBe(true);
+      // 验证至少包含 GPT-5
+      const gpt5 = models.find(m => m.id === 'gpt-5-2025-08-07');
+      expect(gpt5).toBeDefined();
+      expect(gpt5?.name).toBe('GPT-5');
+      expect(gpt5?.providerId).toBe('openai');
+      expect(gpt5?.capabilities.supportsTools).toBe(true);
     });
 
     it('should have capabilities for each model', () => {
@@ -159,7 +159,7 @@ describe('OpenAIAdapter', () => {
         id: 'chatcmpl-123',
         object: 'chat.completion',
         created: Date.now(),
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-2025-08-07',
         choices: [{
           index: 0,
           message: {
@@ -184,7 +184,7 @@ describe('OpenAIAdapter', () => {
       expect(response.content).toBe('Hello! How can I help you?');
       expect(response.reasoning).toBeUndefined();
       expect(response.metadata).toEqual({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-2025-08-07',
         finishReason: 'stop'
       });
     });

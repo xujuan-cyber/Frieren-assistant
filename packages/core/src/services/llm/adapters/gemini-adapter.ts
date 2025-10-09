@@ -59,7 +59,7 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
   }
 
   /**
-   * 获取静态模型列表（Gemini 2.0系列）
+   * 获取静态模型列表（Gemini 2.5系列）
    * 从service.ts的fetchGeminiModelsInfo参考 (L1099-1106)
    */
   public getModels(): TextModel[] {
@@ -101,8 +101,6 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
           : { apiKey }
       )
 
-      console.log('[GeminiAdapter] Fetching models from API...')
-
       const modelsPager = await genAI.models.list({
         config: {
           pageSize: 100 // 获取更多模型
@@ -129,8 +127,6 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
           defaultParameterValues: this.getDefaultParameterValues(model.name || '')
         })
       }
-
-      console.log(`[GeminiAdapter] Found ${dynamicModels.length} models supporting generateContent`)
 
       // 如果动态获取失败，返回静态列表
       return dynamicModels.length > 0 ? dynamicModels : this.getModels()
@@ -191,8 +187,8 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
       {
         name: 'thinkingBudget',
         type: 'number',
-        description: 'Thinking budget in tokens (Gemini 2.5+)',
-        min: 1,
+        description: 'Thinking budget in tokens (Gemini 2.5+). Set to 0 to disable thinking.',
+        min: 0,  // 允许0来禁用思考功能
         max: 8192
       },
       {
@@ -426,8 +422,6 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
       // 格式化消息
       const contents = this.formatMessages(conversationMessages)
 
-      console.log('[GeminiAdapter] Sending request to models.generateContent...')
-
       // 调用新版 API
       const response = await client.models.generateContent({
         model: config.modelMeta.id,
@@ -435,30 +429,47 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
         config: generationConfig
       })
 
-      // 提取思考内容（如果启用了 thinkingConfig）
+      // 提取文本内容和思考内容
+      let textContent = ''
       let reasoning: string | undefined
-      if (response.candidates?.[0]?.content?.parts) {
+
+      // 优先使用新版 SDK 推荐的 response.text 属性
+      if ((response as any).text) {
+        textContent = (response as any).text
+      } else if (response.candidates?.[0]?.content?.parts) {
+        // 回退到 parts 提取（用于旧版响应格式或特殊情况）
+        const contentParts: string[] = []
         const reasoningParts: string[] = []
+
         for (const part of response.candidates[0].content.parts) {
-          // Gemini 2.5+ 在 part.thought 中标记思考过程，文本位于 part.text
-          if ((part as any).thought) {
-            const rawThought = (part as any).text ?? (part as any).thought
-            if (rawThought !== undefined) {
-              const normalized = typeof rawThought === 'string'
-                ? rawThought
-                : JSON.stringify(rawThought)
-              reasoningParts.push(normalized)
+          // 提取文本内容
+          if ((part as any).text) {
+            const text = (part as any).text
+            // 如果这部分是思考过程，加到 reasoning，否则加到 content
+            if ((part as any).thought) {
+              reasoningParts.push(text)
+            } else {
+              contentParts.push(text)
             }
           }
         }
 
+        textContent = contentParts.join('')
         if (reasoningParts.length > 0) {
           reasoning = reasoningParts.join('')
+        }
+      } else if (response.candidates?.[0]?.content) {
+        // 最后尝试直接访问 content 字段
+        const content = response.candidates[0].content
+        if (typeof content === 'string') {
+          textContent = content
+        } else if ((content as any).text) {
+          textContent = (content as any).text
         }
       }
 
       return {
-        content: response.text || '',
+        content: textContent,
         reasoning,
         metadata: {
           model: config.modelMeta.id,
@@ -518,8 +529,6 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
       // 格式化消息
       const contents = this.formatMessages(conversationMessages)
 
-      console.log('[GeminiAdapter] Creating stream request...')
-
       // 调用新版流式 API
       const responseStream = await client.models.generateContentStream({
         model: config.modelMeta.id,
@@ -527,42 +536,43 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
         config: generationConfig
       })
 
-      console.log('[GeminiAdapter] Stream response received')
-
       let accumulatedContent = ''
       let accumulatedReasoning = ''
 
       // 遍历流式响应
       for await (const chunk of responseStream) {
-        const text = chunk.text
-        if (text) {
-          accumulatedContent += text
-          callbacks.onToken(text)
-        }
+        let emittedContentToken = false
 
-        // 提取思考内容（流式）
+        // 从 parts 中提取文本内容
         if (chunk.candidates?.[0]?.content?.parts) {
           for (const part of chunk.candidates[0].content.parts) {
+            const partText = (part as any).text
+            if (!partText) {
+              continue
+            }
+
             if ((part as any).thought) {
-              const rawThought = (part as any).text ?? (part as any).thought
-              if (rawThought !== undefined) {
-                const thoughtStr = typeof rawThought === 'string'
-                  ? rawThought
-                  : JSON.stringify(rawThought)
-
-                accumulatedReasoning += thoughtStr
-
-                // 如果有思考内容的回调，触发它
-                if (callbacks.onReasoningToken) {
-                  callbacks.onReasoningToken(thoughtStr)
-                }
+              // 这是思考内容
+              accumulatedReasoning += partText
+              if (callbacks.onReasoningToken) {
+                callbacks.onReasoningToken(partText)
               }
+            } else {
+              // 这是普通内容
+              emittedContentToken = true
+              accumulatedContent += partText
+              callbacks.onToken(partText)
             }
           }
         }
-      }
 
-      console.log('[GeminiAdapter] Stream completed')
+        // 如果 SDK 只提供 chunk.text，则回退到该字段
+        const chunkText = (chunk as any).text
+        if (chunkText && !emittedContentToken) {
+          accumulatedContent += chunkText
+          callbacks.onToken(chunkText)
+        }
+      }
 
       // 构建完整响应
       const response: LLMResponse = {
@@ -597,8 +607,6 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
     tools: ToolDefinition[],
     callbacks: StreamHandlers
   ): Promise<void> {
-    console.log('[GeminiAdapter] Sending stream request with tools, count:', tools.length)
-
     // 提取系统消息
     const systemMessages = messages.filter((msg) => msg.role === 'system')
     const systemInstruction =
@@ -634,16 +642,12 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
       // 格式化消息
       const contents = this.formatMessages(conversationMessages)
 
-      console.log('[GeminiAdapter] Creating stream request with tools...')
-
       // 调用新版流式 API
       const responseStream = await client.models.generateContentStream({
         model: config.modelMeta.id,
         contents,
         config: generationConfig
       })
-
-      console.log('[GeminiAdapter] Stream response with tools received')
 
       let accumulatedContent = ''
       let accumulatedReasoning = ''
@@ -687,8 +691,6 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
           }
         }
       }
-
-      console.log('[GeminiAdapter] Stream with tools completed, tool calls:', toolCalls.length)
 
       // 构建完整响应
       const response: LLMResponse = {

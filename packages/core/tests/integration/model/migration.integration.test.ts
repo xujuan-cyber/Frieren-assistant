@@ -23,8 +23,8 @@ describe('配置迁移集成测试', () => {
         provider: 'openai',
         baseURL: 'https://api.openai.com/v1',
         apiKey: 'test-openai-key',
-        models: ['gpt-4o-mini', 'gpt-3.5-turbo'],
-        defaultModel: 'gpt-4o-mini',
+        models: ['gpt-5-2025-08-07', 'gpt-3.5-turbo'],
+        defaultModel: 'gpt-5-2025-08-07',
         enabled: true,
         llmParams: {
           temperature: 0.7,
@@ -58,7 +58,7 @@ describe('配置迁移集成测试', () => {
       expect(convertedConfig.name).toBe('OpenAI');
       expect(convertedConfig.enabled).toBe(true);
       expect(convertedConfig.providerMeta.id).toBe('openai');
-      expect(convertedConfig.modelMeta.id).toBe('gpt-4o-mini');
+      expect(convertedConfig.modelMeta.id).toBe('gpt-5-2025-08-07');
       expect(convertedConfig.connectionConfig.apiKey).toBe('test-openai-key');
       expect(convertedConfig.connectionConfig.baseURL).toBe('https://api.openai.com/v1');
       expect(convertedConfig.paramOverrides.temperature).toBe(0.7);
@@ -200,8 +200,8 @@ describe('配置迁移集成测试', () => {
         provider: 'openai',
         baseURL: 'https://api.openai.com/v1',
         apiKey: 'test-key',
-        models: ['gpt-4o-mini'],
-        defaultModel: 'gpt-4o-mini',
+        models: ['gpt-5-2025-08-07'],
+        defaultModel: 'gpt-5-2025-08-07',
         enabled: true
       };
 
@@ -226,8 +226,8 @@ describe('配置迁移集成测试', () => {
         provider: 'openai',
         baseURL: 'https://api.openai.com/v1',
         apiKey: 'test-key',
-        models: ['gpt-4o-mini'],
-        defaultModel: 'gpt-4o-mini',
+        models: ['gpt-5-2025-08-07'],
+        defaultModel: 'gpt-5-2025-08-07',
         enabled: true
       };
 
@@ -269,8 +269,8 @@ describe('配置迁移集成测试', () => {
           provider: 'openai',
           baseURL: 'https://api.openai.com/v1',
           apiKey: 'openai-key',
-          models: ['gpt-4o-mini'],
-          defaultModel: 'gpt-4o-mini',
+          models: ['gpt-5-2025-08-07'],
+          defaultModel: 'gpt-5-2025-08-07',
           enabled: true
         } as ModelConfig,
         gemini: {
@@ -372,7 +372,7 @@ describe('配置迁移集成测试', () => {
   describe('新格式配置处理', () => {
     it('应该直接识别并保留新格式配置', async () => {
       const adapter = registry.getAdapter('openai');
-      const model = adapter.getModels().find(m => m.id === 'gpt-4o-mini')!;
+      const model = adapter.getModels().find(m => m.id === 'gpt-5-2025-08-07')!;
 
       const newConfig: TextModelConfig = {
         id: 'openai',

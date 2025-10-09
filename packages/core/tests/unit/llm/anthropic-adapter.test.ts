@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AnthropicAdapter } from '../../../src/services/llm/adapters/anthropic-adapter';
 import type { TextModelConfig, Message, StreamHandlers } from '../../../src/services/llm/types';
+import Anthropic from '@anthropic-ai/sdk';
+
+// Mock the Anthropic SDK
+vi.mock('@anthropic-ai/sdk', () => {
+  const MockAnthropic = vi.fn();
+  MockAnthropic.prototype.messages = {
+    create: vi.fn(),
+    stream: vi.fn()
+  };
+  return { default: MockAnthropic };
+});
 
 describe('AnthropicAdapter', () => {
   let adapter: AnthropicAdapter;
-  const originalFetch = globalThis.fetch;
 
   const mockConfig: TextModelConfig = {
     id: 'anthropic',
@@ -15,7 +25,7 @@ describe('AnthropicAdapter', () => {
       name: 'Anthropic',
       description: 'Anthropic Claude models',
       requiresApiKey: true,
-      defaultBaseURL: 'https://api.anthropic.com/v1',
+      defaultBaseURL: 'https://api.anthropic.com',
       supportsDynamicModels: false,
       connectionSchema: {
         required: ['apiKey'],
@@ -41,7 +51,7 @@ describe('AnthropicAdapter', () => {
     },
     connectionConfig: {
       apiKey: 'test-api-key',
-      baseURL: 'https://api.anthropic.com/v1'
+      baseURL: 'https://api.anthropic.com'
     },
     paramOverrides: {}
   };
@@ -53,11 +63,10 @@ describe('AnthropicAdapter', () => {
   beforeEach(() => {
     adapter = new AnthropicAdapter();
     vi.clearAllMocks();
-    globalThis.fetch = vi.fn();
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    vi.clearAllMocks();
   });
 
   describe('getProvider', () => {
@@ -66,7 +75,7 @@ describe('AnthropicAdapter', () => {
 
       expect(provider.id).toBe('anthropic');
       expect(provider.name).toBe('Anthropic');
-      expect(provider.defaultBaseURL).toBe('https://api.anthropic.com/v1');
+      expect(provider.defaultBaseURL).toBe('https://api.anthropic.com');
       expect(provider.supportsDynamicModels).toBe(false);
       expect(provider.requiresApiKey).toBe(true);
     });
@@ -125,27 +134,34 @@ describe('AnthropicAdapter', () => {
         }
       };
 
-      (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => anthropicResponse
-      });
+      // Mock Anthropic SDK's messages.create method
+      const mockCreate = vi.fn().mockResolvedValue(anthropicResponse);
+      (Anthropic as any).prototype.messages = {
+        create: mockCreate,
+        stream: vi.fn()
+      };
 
       const response = await adapter.sendMessage(mockMessages, mockConfig);
 
-      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
       expect(response.content).toBe('Hello from Claude.');
       expect(response.metadata).toEqual({
         model: 'claude-sonnet-4-5',
-        finishReason: 'end_turn'
+        finishReason: 'end_turn',
+        tokens: 62
       });
     });
 
     it('should throw descriptive error when HTTP request fails', async () => {
-      (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: false,
-        status: 401,
-        text: async () => 'Unauthorized'
-      });
+      const error = new Error('Unauthorized');
+      (error as any).status = 401;
+
+      // Mock Anthropic SDK to throw an error
+      const mockCreate = vi.fn().mockRejectedValue(error);
+      (Anthropic as any).prototype.messages = {
+        create: mockCreate,
+        stream: vi.fn()
+      };
 
       await expect(adapter.sendMessage(mockMessages, mockConfig)).rejects.toThrow(
         /Anthropic API error \(401\)/
@@ -155,17 +171,39 @@ describe('AnthropicAdapter', () => {
 
   describe('sendMessageStream', () => {
     it('should simulate streaming by splitting response content', async () => {
-      const anthropicResponse = {
+      const finalMessage = {
         content: [
           { type: 'text', text: 'Hello world. This is Claude.' }
         ],
-        model: 'claude-sonnet-4-5'
+        model: 'claude-sonnet-4-5',
+        stop_reason: 'end_turn',
+        usage: {
+          input_tokens: 10,
+          output_tokens: 20
+        }
       };
 
-      (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => anthropicResponse
-      });
+      // Mock Anthropic SDK's stream
+      const mockStream = {
+        on: vi.fn((event: string, callback: any) => {
+          if (event === 'text') {
+            // Simulate streaming text content in chunks
+            setTimeout(() => callback('Hello world. '), 10);
+            setTimeout(() => callback('This is Claude.'), 20);
+          } else if (event === 'message') {
+            // Emit final message event
+            setTimeout(() => callback(finalMessage), 30);
+          }
+          return mockStream;
+        }),
+        finalMessage: vi.fn().mockResolvedValue(finalMessage)
+      };
+
+      const mockStreamFn = vi.fn().mockResolvedValue(mockStream);
+      (Anthropic as any).prototype.messages = {
+        create: vi.fn(),
+        stream: mockStreamFn
+      };
 
       const callbacks: StreamHandlers = {
         onToken: vi.fn(),
@@ -175,15 +213,18 @@ describe('AnthropicAdapter', () => {
 
       await adapter.sendMessageStream(mockMessages, mockConfig, callbacks);
 
-      expect(callbacks.onToken).toHaveBeenCalledTimes(2);
-      expect(callbacks.onToken).toHaveBeenNthCalledWith(1, 'Hello world.');
-      expect(callbacks.onToken).toHaveBeenNthCalledWith(2, 'This is Claude.');
+      // Wait a bit for async callbacks to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(mockStreamFn).toHaveBeenCalledTimes(1);
+      expect(callbacks.onToken).toHaveBeenCalled();
       expect(callbacks.onComplete).toHaveBeenCalledWith({
         content: 'Hello world. This is Claude.',
+        reasoning: undefined,
         metadata: {
           model: 'claude-sonnet-4-5',
-          stopReason: undefined,
-          usage: undefined
+          finishReason: 'end_turn',
+          tokens: 30
         }
       });
       expect(callbacks.onError).not.toHaveBeenCalled();

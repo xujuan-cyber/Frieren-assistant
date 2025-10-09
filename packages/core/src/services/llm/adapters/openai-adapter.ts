@@ -54,11 +54,11 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     const providerId = 'openai'
 
     return [
-      // GPT-4o 系列
+      // GPT-5 系列
       {
         id: 'gpt-5-2025-08-07',
         name: 'GPT-5',
-        description: '',
+        description: 'Latest GPT-5 model',
         providerId,
         capabilities: {
           supportsTools: true,

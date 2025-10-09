@@ -144,7 +144,7 @@ function validateSingleParameter(
         message: `Parameter '${def.name}' value ${value} is less than minimum value ${def.minValue}`
       };
     }
-    
+
     if (def.maxValue !== undefined && value > def.maxValue) {
       return {
         isValid: false,

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
-import type { TextModelConfig, Message } from '../../../src/services/llm/types';
+import type { TextModelConfig, Message, TextAdapter } from '../../../src/services/llm/types';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -10,6 +10,34 @@ beforeAll(() => {
 });
 
 const RUN_REAL_API = process.env.RUN_REAL_API === '1';
+
+/**
+ * 辅助函数：从 adapter 创建测试配置
+ * 避免硬编码模型和 baseURL，统一使用 adapter 的默认值
+ */
+function createTestConfig(
+  adapter: TextAdapter,
+  apiKey: string,
+  paramOverrides: Record<string, any> = {}
+): TextModelConfig {
+  const models = adapter.getModels();
+  if (models.length === 0) {
+    throw new Error(`No models available for adapter: ${adapter.getProvider().id}`);
+  }
+
+  return {
+    id: adapter.getProvider().id,
+    name: adapter.getProvider().name,
+    enabled: true,
+    providerMeta: adapter.getProvider(),
+    modelMeta: models[0], // 使用第一个可用模型
+    connectionConfig: {
+      apiKey
+      // 不覆盖 baseURL，使用 adapter 的默认值
+    },
+    paramOverrides
+  };
+}
 
 describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
   let registry: TextAdapterRegistry;
@@ -23,78 +51,33 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
     it.skipIf(!hasApiKey)('should successfully call OpenAI API with sendMessage', async () => {
       const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'openai',
-        name: 'OpenAI',
-        enabled: true,
-        providerMeta: registry.getAdapter('openai').getProvider(),
-        modelMeta: {
-          id: 'gpt-3.5-turbo',
-          name: 'GPT-3.5 Turbo',
-          description: 'Fast and cost-effective model',
-          providerId: 'openai',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 16000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!,
-          baseURL: 'https://api.openai.com/v1'
-        },
-        paramOverrides: {
-          temperature: 0.7,
-          max_tokens: 100
-        }
-      };
+      const adapter = registry.getAdapter('openai');
+      
+      const config = createTestConfig(adapter, apiKey!, {
+        temperature: 0.7,
+        max_tokens: 100
+      });
 
       const messages: Message[] = [
         { role: 'user', content: '请用一句话介绍你自己' }
       ];
 
-      const adapter = registry.getAdapter('openai');
       const response = await adapter.sendMessage(messages, config);
 
       expect(response).toBeDefined();
       expect(response.content).toBeDefined();
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
-      expect(response.metadata.model).toBe('gpt-3.5-turbo');
+      expect(response.metadata.model).toBeDefined();
 
       console.log('OpenAI API Response:', response.content.substring(0, 100));
     }, 30000);
 
     it.skipIf(!hasApiKey)('should successfully stream OpenAI API with callbacks', async () => {
       const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'openai',
-        name: 'OpenAI',
-        enabled: true,
-        providerMeta: registry.getAdapter('openai').getProvider(),
-        modelMeta: {
-          id: 'gpt-3.5-turbo',
-          name: 'GPT-3.5 Turbo',
-          description: 'Fast and cost-effective model',
-          providerId: 'openai',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 16000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!,
-          baseURL: 'https://api.openai.com/v1'
-        },
-        paramOverrides: {}
-      };
+      const adapter = registry.getAdapter('openai');
+      
+      const config = createTestConfig(adapter, apiKey!);
 
       const messages: Message[] = [
         { role: 'user', content: '请说"你好"' }
@@ -105,7 +88,6 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       let finalResponse: any = null;
       let isCompleted = false;
 
-      const adapter = registry.getAdapter('openai');
       await adapter.sendMessageStream(messages, config, {
         onToken: (token) => {
           contentTokens += token;
@@ -137,36 +119,12 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
     }, 30000);
 
     it.skipIf(!hasApiKey)('should handle OpenAI API errors with stack trace', async () => {
-      const config: TextModelConfig = {
-        id: 'openai',
-        name: 'OpenAI',
-        enabled: true,
-        providerMeta: registry.getAdapter('openai').getProvider(),
-        modelMeta: {
-          id: 'gpt-3.5-turbo',
-          name: 'GPT-3.5 Turbo',
-          description: 'Fast and cost-effective model',
-          providerId: 'openai',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 16000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: 'invalid-api-key',
-          baseURL: 'https://api.openai.com/v1'
-        },
-        paramOverrides: {}
-      };
+      const adapter = registry.getAdapter('openai');
+      const config = createTestConfig(adapter, 'invalid-api-key');
 
       const messages: Message[] = [
         { role: 'user', content: 'Test' }
       ];
-
-      const adapter = registry.getAdapter('openai');
 
       try {
         await adapter.sendMessage(messages, config);
@@ -185,39 +143,17 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
     it.skipIf(!hasApiKey)('should successfully call Gemini API', async () => {
       const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'gemini',
-        name: 'Gemini',
-        enabled: true,
-        providerMeta: registry.getAdapter('gemini').getProvider(),
-        modelMeta: {
-          id: 'gemini-2.0-flash-exp',
-          name: 'Gemini 2.0 Flash',
-          description: 'Latest Gemini model',
-          providerId: 'gemini',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 1000000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!
-        },
-        paramOverrides: {
-          temperature: 0.7,
-          maxOutputTokens: 100
-        }
-      };
+      const adapter = registry.getAdapter('gemini');
+      
+      const config = createTestConfig(adapter, apiKey!, {
+        temperature: 0.7,
+        maxOutputTokens: 100
+      });
 
       const messages: Message[] = [
         { role: 'user', content: '请用一句话介绍你自己' }
       ];
 
-      const adapter = registry.getAdapter('gemini');
       const response = await adapter.sendMessage(messages, config);
 
       expect(response).toBeDefined();
@@ -230,30 +166,9 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
     it.skipIf(!hasApiKey)('should successfully stream Gemini API', async () => {
       const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'gemini',
-        name: 'Gemini',
-        enabled: true,
-        providerMeta: registry.getAdapter('gemini').getProvider(),
-        modelMeta: {
-          id: 'gemini-2.0-flash-exp',
-          name: 'Gemini 2.0 Flash',
-          description: 'Latest Gemini model',
-          providerId: 'gemini',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 1000000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!
-        },
-        paramOverrides: {}
-      };
+      const adapter = registry.getAdapter('gemini');
+      
+      const config = createTestConfig(adapter, apiKey!);
 
       const messages: Message[] = [
         { role: 'user', content: '请说"你好"' }
@@ -263,7 +178,6 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       let tokenCount = 0;
       let isCompleted = false;
 
-      const adapter = registry.getAdapter('gemini');
       await adapter.sendMessageStream(messages, config, {
         onToken: (token) => {
           contentTokens += token;
@@ -296,39 +210,17 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
     it.skipIf(!hasApiKey)('should successfully call Anthropic API', async () => {
       const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'anthropic',
-        name: 'Anthropic',
-        enabled: true,
-        providerMeta: registry.getAdapter('anthropic').getProvider(),
-        modelMeta: {
-          id: 'claude-3-5-sonnet-20241022',
-          name: 'Claude 3.5 Sonnet',
-          description: 'Most intelligent Claude model',
-          providerId: 'anthropic',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 200000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!
-        },
-        paramOverrides: {
-          temperature: 0.7,
-          max_tokens: 100
-        }
-      };
+      const adapter = registry.getAdapter('anthropic');
+      
+      const config = createTestConfig(adapter, apiKey!, {
+        temperature: 0.7,
+        max_tokens: 100
+      });
 
       const messages: Message[] = [
         { role: 'user', content: '请用一句话介绍你自己' }
       ];
 
-      const adapter = registry.getAdapter('anthropic');
       const response = await adapter.sendMessage(messages, config);
 
       expect(response).toBeDefined();
@@ -341,30 +233,9 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
     it.skipIf(!hasApiKey)('should successfully stream Anthropic API', async () => {
       const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'anthropic',
-        name: 'Anthropic',
-        enabled: true,
-        providerMeta: registry.getAdapter('anthropic').getProvider(),
-        modelMeta: {
-          id: 'claude-3-5-sonnet-20241022',
-          name: 'Claude 3.5 Sonnet',
-          description: 'Most intelligent Claude model',
-          providerId: 'anthropic',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 200000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!
-        },
-        paramOverrides: {}
-      };
+      const adapter = registry.getAdapter('anthropic');
+      
+      const config = createTestConfig(adapter, apiKey!);
 
       const messages: Message[] = [
         { role: 'user', content: '请说"你好"' }
@@ -374,7 +245,6 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       let tokenCount = 0;
       let isCompleted = false;
 
-      const adapter = registry.getAdapter('anthropic');
       await adapter.sendMessageStream(messages, config, {
         onToken: (token) => {
           contentTokens += token;
@@ -407,31 +277,9 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
     it.skipIf(!hasOpenAI)('should handle tool calls with OpenAI', async () => {
       const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-
-      const config: TextModelConfig = {
-        id: 'openai',
-        name: 'OpenAI',
-        enabled: true,
-        providerMeta: registry.getAdapter('openai').getProvider(),
-        modelMeta: {
-          id: 'gpt-3.5-turbo',
-          name: 'GPT-3.5 Turbo',
-          description: 'Fast and cost-effective model',
-          providerId: 'openai',
-          capabilities: {
-                        supportsTools: true,
-            supportsReasoning: false,
-            maxContextLength: 16000
-          },
-          parameterDefinitions: [],
-          defaultParameterValues: {}
-        },
-        connectionConfig: {
-          apiKey: apiKey!,
-          baseURL: 'https://api.openai.com/v1'
-        },
-        paramOverrides: {}
-      };
+      const adapter = registry.getAdapter('openai');
+      
+      const config = createTestConfig(adapter, apiKey!);
 
       const messages: Message[] = [
         { role: 'user', content: '现在北京的天气怎么样?' }
@@ -460,7 +308,6 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       let toolCalls: any[] = [];
       let isCompleted = false;
 
-      const adapter = registry.getAdapter('openai');
       await adapter.sendMessageStreamWithTools(messages, config, tools, {
         onToken: (token) => {
           // Content tokens

@@ -22,45 +22,29 @@ console.log('- apiKey exists:', !!apiKey)
 describe.skipIf(!RUN_REAL_API || !apiKey)('Gemini New SDK Integration Tests', () => {
   let adapter: GeminiAdapter
 
-  const createConfig = (modelId: string = 'gemini-2.5-flash'): TextModelConfig => ({
-    id: 'gemini-test',
-    name: 'Gemini Test',
-    enabled: true,
-    providerMeta: {
-      id: 'gemini',
-      name: 'Google Gemini',
-      description: 'Google Generative AI models',
-      requiresApiKey: true,
-      defaultBaseURL: 'https://generativelanguage.googleapis.com',
-      supportsDynamicModels: true,
-      connectionSchema: {
-        required: ['apiKey'],
-        optional: ['baseURL'],
-        fieldTypes: {
-          apiKey: 'string',
-          baseURL: 'string'
-        }
-      }
-    },
-    modelMeta: {
-      id: modelId,
-      name: 'Gemini Test Model',
-      description: 'Test model',
-      providerId: 'gemini',
-      capabilities: {
-        supportsTools: true,
-        supportsReasoning: false,
-        maxContextLength: 1000000
+  /**
+   * 辅助函数：创建测试配置
+   * 从 adapter 自动获取模型，避免硬编码
+   */
+  const createConfig = (paramOverrides: Record<string, any> = {}): TextModelConfig => {
+    const models = adapter.getModels()
+    if (models.length === 0) {
+      throw new Error('No models available from Gemini adapter')
+    }
+
+    return {
+      id: 'gemini-test',
+      name: 'Gemini Test',
+      enabled: true,
+      providerMeta: adapter.getProvider(),
+      modelMeta: models[0], // 使用第一个可用模型
+      connectionConfig: {
+        apiKey: apiKey!
+        // 不覆盖 baseURL，使用 adapter 的默认值
       },
-      parameterDefinitions: [],
-      defaultParameterValues: {}
-    },
-    connectionConfig: {
-      apiKey: apiKey!,
-      baseURL: 'https://generativelanguage.googleapis.com'
-    },
-    paramOverrides: {}
-  })
+      paramOverrides
+    }
+  }
 
   beforeAll(() => {
     adapter = new GeminiAdapter()
@@ -170,11 +154,10 @@ describe.skipIf(!RUN_REAL_API || !apiKey)('Gemini New SDK Integration Tests', ()
 
   describe('Parameters', () => {
     it('应该能够使用自定义参数', async () => {
-      const config = createConfig()
-      config.paramOverrides = {
+      const config = createConfig({
         temperature: 0.1,
         maxOutputTokens: 50
-      }
+      })
 
       const messages: Message[] = [
         { role: 'user', content: '说一个数字' }
@@ -258,12 +241,11 @@ describe.skipIf(!RUN_REAL_API || !apiKey)('Gemini New SDK Integration Tests', ()
 
   describe('Thinking/Reasoning', () => {
     it('应该能够捕获思考过程', async () => {
-      const config = createConfig()
-      config.paramOverrides = {
+      const config = createConfig({
         thinkingBudget: 2048,
         includeThoughts: true,
         temperature: 1.0
-      }
+      })
 
       const messages: Message[] = [
         {
@@ -292,11 +274,10 @@ describe.skipIf(!RUN_REAL_API || !apiKey)('Gemini New SDK Integration Tests', ()
     }, 30000)
 
     it('应该能够处理流式思考过程', async () => {
-      const config = createConfig()
-      config.paramOverrides = {
+      const config = createConfig({
         thinkingBudget: 2048,
         includeThoughts: true
-      }
+      })
 
       const messages: Message[] = [
         {

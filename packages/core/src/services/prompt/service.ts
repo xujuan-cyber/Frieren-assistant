@@ -346,16 +346,21 @@ export class PromptService implements IPromptService {
           onToken: callbacks.onToken,
           onReasoningToken: callbacks.onReasoningToken, // 支持推理内容流
           onComplete: async (response) => {
-            if (response) {
-              // 验证主要内容
-              this.validateResponse(response.content, request.targetPrompt);
+            try {
+              if (response) {
+                // 验证主要内容
+                this.validateResponse(response.content, request.targetPrompt);
 
-              // 注意：历史记录保存由UI层的historyManager.createNewChain方法处理
-              // 移除重复的saveOptimizationHistory调用以避免重复保存
+                // 注意：历史记录保存由UI层的historyManager.createNewChain方法处理
+                // 移除重复的saveOptimizationHistory调用以避免重复保存
+              }
+
+              // 调用原始完成回调，传递结构化响应
+              callbacks.onComplete(response);
+            } catch (error) {
+              // 如果验证失败，调用错误回调
+              callbacks.onError(error instanceof Error ? error : new Error(String(error)));
             }
-
-            // 调用原始完成回调，传递结构化响应
-            callbacks.onComplete(response);
           },
           onError: callbacks.onError
         }
@@ -417,14 +422,19 @@ export class PromptService implements IPromptService {
           onToken: handlers.onToken,
           onReasoningToken: handlers.onReasoningToken, // 支持推理内容流
           onComplete: async (response) => {
-            if (response) {
-              // 验证迭代结果
-              this.validateResponse(response.content, lastOptimizedPrompt);
+            try {
+              if (response) {
+                // 验证迭代结果
+                this.validateResponse(response.content, lastOptimizedPrompt);
+              }
+              
+              // 调用原始完成回调，传递结构化响应
+              // 注意：迭代历史记录由UI层的historyManager.addIteration方法处理
+              handlers.onComplete(response);
+            } catch (error) {
+              // 如果验证失败，调用错误回调
+              handlers.onError(error instanceof Error ? error : new Error(String(error)));
             }
-            
-            // 调用原始完成回调，传递结构化响应
-            // 注意：迭代历史记录由UI层的historyManager.addIteration方法处理
-            handlers.onComplete(response);
           },
           onError: handlers.onError
         }

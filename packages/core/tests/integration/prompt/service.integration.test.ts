@@ -18,6 +18,8 @@ import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry
  */
 describe('PromptService Integration Tests', () => {
   const hasGeminiKey = !!process.env.VITE_GEMINI_API_KEY;
+  const DELAY_BETWEEN_TESTS = 6000; // 1分钟延迟避免速率限制
+  const TEST_TIMEOUT = 120000; // 2分钟超时
 
   let promptService: PromptService;
   let modelManager: ModelManager;
@@ -26,6 +28,19 @@ describe('PromptService Integration Tests', () => {
   let historyManager: HistoryManager;
   let storage: LocalStorageProvider;
   let registry: TextAdapterRegistry;
+  let lastTestTime = 0;
+
+  // 在测试之间添加延迟以避免 API 速率限制
+  const delayBetweenTests = async () => {
+    const now = Date.now();
+    const timeSinceLastTest = now - lastTestTime;
+    if (lastTestTime > 0 && timeSinceLastTest < DELAY_BETWEEN_TESTS) {
+      const waitTime = DELAY_BETWEEN_TESTS - timeSinceLastTest;
+      console.log(`⏳ Waiting ${Math.round(waitTime / 1000)}s before next test to avoid rate limiting...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    lastTestTime = Date.now();
+  };
 
   beforeAll(() => {
     console.log('Gemini API Key available:', hasGeminiKey);
@@ -56,27 +71,38 @@ describe('PromptService Integration Tests', () => {
     // 只有在有API密钥时才添加模型
     if (hasGeminiKey) {
       const adapter = registry.getAdapter('gemini');
+      // 自动使用 adapter 提供的第一个可用模型，避免硬编码模型 ID
+      const availableModels = adapter.getModels();
+      if (availableModels.length === 0) {
+        throw new Error('No Gemini models available from adapter');
+      }
+      
       const geminiConfig: TextModelConfig = {
         id: 'test-gemini',
         name: 'Test Gemini Model',
         enabled: true,
         providerMeta: adapter.getProvider(),
-        modelMeta: adapter.getModels().find(m => m.id === 'gemini-2.0-flash-exp') || adapter.getModels()[0],
+        modelMeta: availableModels[0], // 使用第一个可用模型
         connectionConfig: {
-          apiKey: process.env.VITE_GEMINI_API_KEY!,
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta'
+          apiKey: process.env.VITE_GEMINI_API_KEY!
+          // 不覆盖 baseURL，使用 adapter 的默认值
         },
         paramOverrides: {
           temperature: 0.7,
-          maxOutputTokens: 1000
+          maxOutputTokens: 1000,
+          // 禁用 Gemini 2.5 的思考功能以获得稳定的测试结果
+          // 参考：https://ai.google.dev/gemini-api/docs/text-generation
+          thinkingBudget: 0
         }
       };
+
       await modelManager.addModel('test-gemini', geminiConfig);
     }
   });
 
   describe('optimizePrompt with different template formats', () => {
     it.runIf(hasGeminiKey)('should work with string-based templates', async () => {
+      await delayBetweenTests();
       const request = {
         optimizationMode: 'system' as const,
         targetPrompt: 'Write a simple greeting',
@@ -102,17 +128,18 @@ describe('PromptService Integration Tests', () => {
       const records = await historyManager.getRecords();
       expect(records.length).toBe(1);
       expect(records[0].type).toBe('optimize');
-    }, 30000);
+    }, TEST_TIMEOUT);
 
     it.runIf(hasGeminiKey)('should work with message-based templates', async () => {
-      // 添加一个消息模板
+      await delayBetweenTests();
+      // 添加一个消息模板 - 使用实际存在的变量
       const messageTemplate: Template = {
         id: 'test-message-template',
         name: 'Test Message Template',
         content: [
           {
             role: 'system',
-            content: 'You are a helpful assistant specializing in {{domain}}.'
+            content: 'You are a helpful AI assistant specialized in prompt optimization.'
           },
           {
             role: 'user',
@@ -148,7 +175,7 @@ describe('PromptService Integration Tests', () => {
 
       // 恢复spy
       getTemplateSpy.mockRestore();
-    }, 30000);
+    }, TEST_TIMEOUT);
 
     it.skipIf(!hasGeminiKey)('skip string-based templates test - no Gemini API key', () => {
       expect(true).toBe(true);
@@ -157,6 +184,34 @@ describe('PromptService Integration Tests', () => {
 
   describe('iteratePrompt with different template formats', () => {
     it.runIf(hasGeminiKey)('should work with string-based iterate templates', async () => {
+      await delayBetweenTests();
+      // 添加一个简单的迭代模板供测试使用
+      const simpleIterateTemplate: Template = {
+        id: 'simple-iterate-template',
+        name: 'Simple Iterate Template',
+        content: [
+          {
+            role: 'system',
+            content: 'You are an expert prompt optimizer.'
+          },
+          {
+            role: 'user',
+            content: 'Improve this prompt: {{lastOptimizedPrompt}}\n\nSuggestion: {{iterateInput}}'
+          }
+        ] as MessageTemplate[],
+        metadata: {
+          version: '1.0',
+          lastModified: Date.now(),
+          templateType: 'iterate',
+          language: 'zh' as const
+        }
+      };
+
+      await templateManager.saveTemplate(simpleIterateTemplate);
+
+      // 模拟getTemplate返回迭代模板
+      const getTemplateSpy = vi.spyOn(templateManager, 'getTemplate').mockReturnValue(simpleIterateTemplate);
+
       const result = await promptService.iteratePrompt(
         'Write a simple greeting',
         'Hello world',
@@ -167,6 +222,9 @@ describe('PromptService Integration Tests', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
+
+      // 恢复spy
+      getTemplateSpy.mockRestore();
 
       // 模拟UI层保存历史记录 - 对于迭代，需要先创建一个链，然后添加迭代
       const chain = await historyManager.createNewChain({
@@ -191,10 +249,11 @@ describe('PromptService Integration Tests', () => {
       const records = await historyManager.getRecords();
       expect(records.length).toBe(2); // 一个初始记录 + 一个迭代记录
       expect(records.find(r => r.type === 'iterate')).toBeDefined();
-    }, 30000);
+    }, TEST_TIMEOUT);
 
     it.runIf(hasGeminiKey)('should work with message-based iterate templates', async () => {
-      // 添加迭代模板
+      await delayBetweenTests();
+      // 添加迭代模板 - 合并为单个 user 消息
       const iterateTemplate: Template = {
         id: 'test-iterate-template',
         name: 'Test Iterate Template',
@@ -205,11 +264,7 @@ describe('PromptService Integration Tests', () => {
           },
           {
             role: 'user',
-            content: 'Original: {{originalPrompt}}'
-          },
-          {
-            role: 'user',
-            content: 'Improvement request: {{iterateInput}}'
+            content: 'Original prompt: {{originalPrompt}}\n\nLast optimized version: {{lastOptimizedPrompt}}\n\nImprovement request: {{iterateInput}}'
           }
         ] as MessageTemplate[],
         metadata: {
@@ -228,7 +283,7 @@ describe('PromptService Integration Tests', () => {
       const result = await promptService.iteratePrompt(
         'Write a simple greeting',
         'Hello world',
-        'Make it more creative',  
+        'Make it more creative',
         'test-gemini'
       );
 
@@ -241,7 +296,7 @@ describe('PromptService Integration Tests', () => {
 
       // 恢复spy
       getTemplateSpy.mockRestore();
-    }, 30000);
+    }, TEST_TIMEOUT);
 
     it.skipIf(!hasGeminiKey)('skip iterate templates test - no Gemini API key', () => {
       expect(true).toBe(true);
@@ -250,6 +305,7 @@ describe('PromptService Integration Tests', () => {
 
   describe('streaming methods', () => {
     it.runIf(hasGeminiKey)('should handle optimizePromptStream', async () => {
+      await delayBetweenTests();
       const tokens: string[] = [];
       let completed = false;
 
@@ -283,11 +339,39 @@ describe('PromptService Integration Tests', () => {
       // 验证接收到的内容
       const fullContent = tokens.join('');
       expect(fullContent.length).toBeGreaterThan(0);
-    }, 30000);
+    }, TEST_TIMEOUT);
 
     it.runIf(hasGeminiKey)('should handle iteratePromptStream with template objects', async () => {
+      await delayBetweenTests();
       const tokens: string[] = [];
       let completed = false;
+
+      // 添加流式迭代模板
+      const streamIterateTemplate: Template = {
+        id: 'stream-iterate-template',
+        name: 'Stream Iterate Template',
+        content: [
+          {
+            role: 'system',
+            content: 'You are a prompt refinement expert.'
+          },
+          {
+            role: 'user',
+            content: 'Original: {{originalPrompt}}\n\nCurrent version: {{lastOptimizedPrompt}}\n\nRefinement: {{iterateInput}}'
+          }
+        ] as MessageTemplate[],
+        metadata: {
+          version: '1.0',
+          lastModified: Date.now(),
+          templateType: 'iterate',
+          language: 'zh' as const
+        }
+      };
+
+      await templateManager.saveTemplate(streamIterateTemplate);
+
+      // 模拟getTemplate返回流式迭代模板
+      const getTemplateSpy = vi.spyOn(templateManager, 'getTemplate').mockReturnValue(streamIterateTemplate);
 
       // 使用Promise来确保onComplete被正确等待
       await new Promise<void>((resolve, reject) => {
@@ -316,7 +400,10 @@ describe('PromptService Integration Tests', () => {
       // 验证接收到的内容
       const fullContent = tokens.join('');
       expect(fullContent.length).toBeGreaterThan(0);
-    }, 30000);
+
+      // 恢复spy
+      getTemplateSpy.mockRestore();
+    }, TEST_TIMEOUT);
 
     it.skipIf(!hasGeminiKey)('skip streaming tests - no Gemini API key', () => {
       expect(true).toBe(true);

@@ -53,8 +53,8 @@ describe('架构重构回归测试', () => {
         provider: 'openai',
         baseURL: 'https://api.openai.com/v1',
         apiKey: 'test-key',
-        models: ['gpt-4o-mini'],
-        defaultModel: 'gpt-4o-mini',
+        models: ['gpt-5-2025-08-07'],
+        defaultModel: 'gpt-5-2025-08-07',
         enabled: true,
         llmParams: {
           temperature: 0.7
