@@ -3,7 +3,7 @@ import { IStorageProvider } from '../storage/types';
 import { StorageAdapter } from '../storage/adapter';
 import { defaultModels } from './defaults';
 import { ModelConfigError } from '../llm/errors';
-import { validateLLMParams } from './validation';
+import { validateOverrides } from './parameter-utils';
 import { ElectronConfigManager, isElectronRenderer } from './electron-config';
 import { CORE_SERVICE_KEYS } from '../../constants/storage-keys';
 import { ImportExportError } from '../../interfaces/import-export';
@@ -196,6 +196,33 @@ export class ModelManager implements IModelManager {
   }
 
   /**
+   * 迁移配置：合并 customParamOverrides 到 paramOverrides
+   * 用于向后兼容读取旧数据格式
+   */
+  private migrateConfig(config: TextModelConfig): TextModelConfig {
+    // 如果没有 customParamOverrides，直接返回
+    if (!config.customParamOverrides || Object.keys(config.customParamOverrides).length === 0) {
+      return config
+    }
+
+    // 添加迁移日志
+    console.warn(
+      `[ModelManager] Migrating customParamOverrides to paramOverrides for model '${config.id}'. ` +
+      `The 'customParamOverrides' field is deprecated and will be removed in v3.0.`
+    )
+
+    // 合并 customParamOverrides 到 paramOverrides
+    return {
+      ...config,
+      paramOverrides: {
+        ...(config.paramOverrides || {}),
+        ...(config.customParamOverrides || {})
+      }
+      // 保留 customParamOverrides 字段以防版本回退，但新代码不再使用
+    }
+  }
+
+  /**
    * 从存储获取模型配置，如果不存在则返回默认配置
    * 返回any类型以兼容新旧格式
    */
@@ -220,18 +247,23 @@ export class ModelManager implements IModelManager {
 
     // 转换为 TextModelConfig 数组
     return Object.entries(models).map(([key, config]) => {
+      let textConfig: TextModelConfig
+
       // 检查是否已经是新格式
       if (isTextModelConfig(config)) {
-        return config as TextModelConfig;
+        textConfig = config as TextModelConfig;
       }
-
       // 传统格式，转换为新格式
-      if (isLegacyConfig(config)) {
-        return convertLegacyToTextModelConfig(key, config);
+      else if (isLegacyConfig(config)) {
+        textConfig = convertLegacyToTextModelConfig(key, config);
+      }
+      // 未知格式，尝试转换
+      else {
+        textConfig = convertLegacyToTextModelConfig(key, config as ModelConfig);
       }
 
-      // 未知格式，尝试转换
-      return convertLegacyToTextModelConfig(key, config as ModelConfig);
+      // 读时迁移：合并 customParamOverrides 到 paramOverrides
+      return this.migrateConfig(textConfig)
     });
   }
 
@@ -247,18 +279,23 @@ export class ModelManager implements IModelManager {
       return undefined;
     }
 
+    let textConfig: TextModelConfig
+
     // 检查是否已经是新格式
     if (isTextModelConfig(config)) {
-      return config as TextModelConfig;
+      textConfig = config as TextModelConfig;
     }
-
     // 传统格式，转换为新格式
-    if (isLegacyConfig(config)) {
-      return convertLegacyToTextModelConfig(key, config);
+    else if (isLegacyConfig(config)) {
+      textConfig = convertLegacyToTextModelConfig(key, config);
+    }
+    // 未知格式，尝试转换
+    else {
+      textConfig = convertLegacyToTextModelConfig(key, config as ModelConfig);
     }
 
-    // 未知格式，尝试转换
-    return convertLegacyToTextModelConfig(key, config as ModelConfig);
+    // 读时迁移：合并 customParamOverrides 到 paramOverrides
+    return this.migrateConfig(textConfig)
   }
 
   /**
@@ -267,6 +304,12 @@ export class ModelManager implements IModelManager {
   async addModel(key: string, config: TextModelConfig): Promise<void> {
     await this.ensureInitialized();
     this.validateTextModelConfig(config);
+
+    // 保存时移除 customParamOverrides（已合并到 paramOverrides）
+    const toStore = {
+      ...config,
+      customParamOverrides: undefined
+    }
 
     await this.storage.updateData<Record<string, any>>(
       this.storageKey,
@@ -280,7 +323,7 @@ export class ModelManager implements IModelManager {
 
         return {
           ...models,
-          [key]: config // 直接存储 TextModelConfig
+          [key]: toStore // 存储清理后的配置
         };
       }
     );
@@ -350,10 +393,16 @@ export class ModelManager implements IModelManager {
           this.validateTextModelConfig(updatedConfig);
         }
 
+        // 保存时移除 customParamOverrides（已合并到 paramOverrides）
+        const toStore = {
+          ...updatedConfig,
+          customParamOverrides: undefined
+        }
+
         // 返回完整的模型数据，确保所有模型都被保留
         return {
           ...models,
-          [key]: updatedConfig
+          [key]: toStore
         };
       }
     );
@@ -480,22 +529,34 @@ export class ModelManager implements IModelManager {
       errors.push('Missing connection configuration (connectionConfig)');
     }
 
-    // Validate paramOverrides structure
+    // Validate paramOverrides & customParamOverrides structure
     if (config.paramOverrides !== undefined && (typeof config.paramOverrides !== 'object' || config.paramOverrides === null || Array.isArray(config.paramOverrides))) {
       errors.push('paramOverrides must be an object');
     }
+    if (config.customParamOverrides !== undefined && (typeof config.customParamOverrides !== 'object' || config.customParamOverrides === null || Array.isArray(config.customParamOverrides))) {
+      errors.push('customParamOverrides must be an object');
+    }
 
-    // Validate paramOverrides content for security and correctness
-    if (config.paramOverrides && typeof config.paramOverrides === 'object') {
-      const providerId = config.providerMeta?.id || 'openai'; // Default to openai provider for validation
-      const validation = validateLLMParams(config.paramOverrides as Record<string, any>, providerId);
+    // Validate overrides content using unified schema
+    const schema = config.modelMeta?.parameterDefinitions ?? [];
+    const validation = validateOverrides({
+      schema,
+      overrides: config.paramOverrides,
+      customOverrides: config.customParamOverrides,
+      allowUnknown: true
+    });
 
-      if (!validation.isValid) {
-        const paramErrors = validation.errors.map(error =>
-          `Parameter ${error.parameterName}: ${error.message}`
-        );
-        errors.push(...paramErrors);
-      }
+    if (validation.errors.length > 0) {
+      validation.errors.forEach((error) => {
+        errors.push(`Parameter ${error.parameterName}: ${error.message}`);
+      });
+    }
+
+    if (validation.warnings.length > 0) {
+      // warnings 不阻止保存，但在控制台提示
+      validation.warnings.forEach((warning) => {
+        console.warn(`[ModelManager] ${warning.message}`);
+      });
     }
 
     if (errors.length > 0) {

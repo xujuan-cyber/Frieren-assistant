@@ -2,12 +2,12 @@ import { ref, computed, inject, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from './useToast'
 import {
-  advancedParameterDefinitions,
   type ModelOption,
   type TextModel,
   type TextModelConfig,
   type TextProvider
 } from '@prompt-optimizer/core'
+import { useModelAdvancedParameters } from './useModelAdvancedParameters'
 
 type TextConnectionValue = string | number | boolean | undefined
 interface TextConnectionConfig {
@@ -26,6 +26,11 @@ interface TextModelForm {
   displayMaskedKey: boolean
   originalApiKey?: string
   defaultModel?: string
+}
+
+interface SetProviderOptions {
+  autoSelectFirstModel?: boolean
+  resetOverrides?: boolean
 }
 
 const DEFAULT_TEXT_MODEL_IDS = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow', 'custom'] as const
@@ -63,6 +68,7 @@ export function useTextModelManager() {
   })
 
   const editingModelId = ref<string | null>(null)
+  const editingModelMeta = ref<TextModel | null>(null)
   const formReady = ref(false)
   const isSaving = ref(false)
   const isTestingFormConnection = ref(false)
@@ -73,10 +79,6 @@ export function useTextModelManager() {
 
   const modelOptions = ref<ModelOption[]>([])
   const isLoadingModelOptions = ref(false)
-  const selectedNewLLMParamId = ref('')
-  const customLLMParam = ref({ key: '', value: '' })
-
-  const currentParamOverrides = computed(() => form.value.paramOverrides || {})
   const currentProviderType = computed(() => form.value.providerId || 'custom')
 
   const providerOptions = computed(() =>
@@ -91,6 +93,25 @@ export function useTextModelManager() {
     if (!form.value.providerId) return null
     return providers.value.find(p => p.id === form.value.providerId) || null
   })
+
+  // 简化后的接口:直接传入必要的参数
+  const advancedParameters = useModelAdvancedParameters({
+    mode: 'text',
+    registry: computed(() => textAdapterRegistry),
+    providerId: computed(() => form.value.providerId || ''),
+    modelId: computed(() => form.value.modelId || ''),
+    savedModelMeta: computed(() => editingModelMeta.value || undefined),
+    getParamOverrides: () => form.value.paramOverrides ?? {},
+    setParamOverrides: value => {
+      form.value.paramOverrides = { ...value }
+    }
+  })
+
+  const {
+    currentParameterDefinitions,
+    availableParameterCount,
+    updateParamOverrides
+  } = advancedParameters
 
   const connectionFields = computed(() => {
     if (!selectedProvider.value?.connectionSchema) return []
@@ -128,17 +149,6 @@ export function useTextModelManager() {
     return schema.required.every(field => !!config[field])
   })
 
-  const availableLLMParamDefinitions = computed(() => {
-    if (!advancedParameterDefinitions) return []
-    const currentParams = currentParamOverrides.value || {}
-    const provider = currentProviderType.value || 'custom'
-
-    return advancedParameterDefinitions.filter(def =>
-      def.appliesToProviders.includes(provider) &&
-      !Object.prototype.hasOwnProperty.call(currentParams, def.name)
-    )
-  })
-
   const canTestFormConnection = computed(() => {
     // 必须在编辑模式下
     if (!editingModelId.value) return false
@@ -173,10 +183,9 @@ export function useTextModelManager() {
       displayMaskedKey: false
     }
     editingModelId.value = null
+    editingModelMeta.value = null
     formReady.value = false
     modelOptions.value = []
-    selectedNewLLMParamId.value = ''
-    customLLMParam.value = { key: '', value: '' }
     formConnectionStatus.value = null
   }
 
@@ -307,9 +316,17 @@ export function useTextModelManager() {
     return `${prefix}${'*'.repeat(maskedLength)}${suffix}`
   }
 
-  const setProvider = (providerId: string, autoSelectFirstModel = true) => {
+  const setProvider = (providerId: string, options: SetProviderOptions = {}) => {
+    const {
+      autoSelectFirstModel = true,
+      resetOverrides = true
+    } = options
+
     form.value.providerId = providerId
     formConnectionStatus.value = null
+    if (resetOverrides) {
+      form.value.paramOverrides = {}
+    }
 
     if (!providerId) {
       form.value.connectionConfig = {}
@@ -339,7 +356,10 @@ export function useTextModelManager() {
     formReady.value = false
 
     if (providers.value.length > 0) {
-      setProvider(providers.value[0].id, true)
+      setProvider(providers.value[0].id, {
+        autoSelectFirstModel: true,
+        resetOverrides: true
+      })
     }
 
     formReady.value = true
@@ -347,11 +367,11 @@ export function useTextModelManager() {
 
   const prepareForEdit = async (id: string, forceReload = true) => {
     // 如果已经在编辑同一个模型且不强制重新加载，则跳过
-    if (!forceReload && editingModelId.value === id && formReady.value) {
-      return
-    }
+  if (!forceReload && editingModelId.value === id && formReady.value) {
+    return
+  }
 
-    resetFormState()
+  resetFormState()
     editingModelId.value = id
     await ensureProvidersLoaded()
     formReady.value = false
@@ -381,8 +401,12 @@ export function useTextModelManager() {
         originalApiKey: String(rawApiKey) || undefined,
         defaultModel: String(model.modelMeta?.id ?? '')
       }
+      editingModelMeta.value = model.modelMeta
 
-      setProvider(form.value.providerId, false)
+      setProvider(form.value.providerId, {
+        autoSelectFirstModel: false,
+        resetOverrides: false
+      })
       if (!modelOptions.value.some(option => option.value === form.value.modelId) && form.value.modelId) {
         modelOptions.value.push({ value: form.value.modelId, label: form.value.modelId })
       }
@@ -513,14 +537,14 @@ export function useTextModelManager() {
     const providerMeta = ensureProviderMeta(form.value.providerId, existingConfig.providerMeta)
     const modelMeta = ensureModelMeta(form.value.providerId, form.value.modelId, existingConfig.modelMeta)
 
-    const updates: Partial<TextModelConfig> = {
+    const updates = {
       name: form.value.name,
       enabled: form.value.enabled,
       providerMeta,
       modelMeta,
       connectionConfig,
       paramOverrides: { ...(form.value.paramOverrides || {}) }
-    }
+    } as Partial<TextModelConfig>
 
     await modelManager.updateModel(form.value.originalId, updates)
     return form.value.originalId
@@ -535,7 +559,7 @@ export function useTextModelManager() {
     const providerMeta = ensureProviderMeta(form.value.providerId)
     const modelMeta = ensureModelMeta(form.value.providerId, form.value.defaultModel || form.value.modelId)
 
-    const newConfig: TextModelConfig = {
+    const newConfig = {
       id: form.value.id,
       name: form.value.name,
       enabled: true,
@@ -543,7 +567,7 @@ export function useTextModelManager() {
       modelMeta,
       connectionConfig: { ...form.value.connectionConfig },
       paramOverrides: { ...(form.value.paramOverrides ?? {}) }
-    }
+    } as TextModelConfig
 
     await modelManager.addModel(form.value.id, newConfig)
     return form.value.id
@@ -594,7 +618,7 @@ export function useTextModelManager() {
           : (form.value.connectionConfig.apiKey || existingConfig.connectionConfig?.apiKey)
       }
 
-      const tempConfig: TextModelConfig = {
+      const tempConfig = {
         id: `temp-test-${editingModelId.value}-${Date.now()}`,
         name: form.value.name,
         enabled: form.value.enabled,
@@ -602,7 +626,7 @@ export function useTextModelManager() {
         modelMeta,
         connectionConfig,
         paramOverrides: { ...(form.value.paramOverrides || {}) }
-      }
+      } as TextModelConfig
 
       await modelManager.addModel(tempConfig.id, tempConfig)
 
@@ -632,130 +656,6 @@ export function useTextModelManager() {
     }
   }
 
-  const handleQuickAddParam = () => {
-    if (selectedNewLLMParamId.value !== 'custom') {
-      quickAddLLMParam()
-    }
-  }
-
-  const quickAddLLMParam = () => {
-    const paramsObject = currentParamOverrides.value
-    if (!paramsObject) return
-    if (selectedNewLLMParamId.value === 'custom') {
-      if (customLLMParam.value.key && !Object.prototype.hasOwnProperty.call(paramsObject, customLLMParam.value.key)) {
-        paramsObject[customLLMParam.value.key] = customLLMParam.value.value
-      }
-      customLLMParam.value = { key: '', value: '' }
-    } else {
-      const definition = advancedParameterDefinitions.find(def => def.id === selectedNewLLMParamId.value)
-      if (definition && !Object.prototype.hasOwnProperty.call(paramsObject, definition.name)) {
-        let val = definition.defaultValue
-        if (definition.type === 'boolean') {
-          val = val === undefined ? false : Boolean(val)
-        } else if (definition.type === 'integer' && val !== undefined) {
-          val = parseInt(String(val), 10)
-        } else if (definition.type === 'number' && val !== undefined) {
-          val = parseFloat(String(val))
-        } else if (definition.name === 'stopSequences') {
-          val = Array.isArray(val)
-            ? val
-            : typeof val === 'string' && val ? val.split(',').map(s => s.trim()).filter(Boolean) : []
-        }
-        paramsObject[definition.name] = val
-      }
-    }
-    selectedNewLLMParamId.value = ''
-  }
-
-  const handleCustomParamAdd = () => {
-    if (customLLMParam.value.key && customLLMParam.value.value) {
-      quickAddLLMParam()
-    }
-  }
-
-  const cancelCustomParam = () => {
-    selectedNewLLMParamId.value = ''
-    customLLMParam.value = { key: '', value: '' }
-  }
-
-  const removeLLMParam = (paramKey: string) => {
-    if (!form.value.paramOverrides) return
-    const overrides = { ...(form.value.paramOverrides as Record<string, unknown>) }
-    delete overrides[paramKey]
-    form.value.paramOverrides = overrides
-  }
-
-  const getParamMetadata = (paramName: string) => {
-    if (!advancedParameterDefinitions) return null
-    const provider = currentProviderType.value || 'custom'
-    const definition = advancedParameterDefinitions.find(
-      def => def.name === paramName && def.appliesToProviders.includes(provider)
-    )
-    if (definition) {
-      return {
-        ...definition,
-        label: definition.labelKey ? t(definition.labelKey) : definition.name,
-        description: definition.descriptionKey ? t(definition.descriptionKey) : `(${paramName})`,
-        unit: definition.unitKey ? t(definition.unitKey) : definition.unit || ''
-      }
-    }
-    return null
-  }
-
-  const isParamInvalid = (paramName: string, value: unknown) => {
-    const metadata = getParamMetadata(paramName)
-    if (!metadata) {
-      if (value === undefined || value === null || value === '') return false
-      const dangerousNames = ['eval', 'exec', 'script', '__proto__', 'constructor']
-      if (dangerousNames.some(dangerous => paramName.toLowerCase().includes(dangerous))) {
-        return true
-      }
-      return false
-    }
-    if (value === undefined || value === null || value === '') return false
-    if (metadata.type === 'number' || metadata.type === 'integer') {
-      const numValue = Number(value)
-      if (Number.isNaN(numValue)) return true
-      if (metadata.minValue !== undefined && numValue < metadata.minValue) return true
-      if (metadata.maxValue !== undefined && numValue > metadata.maxValue) return true
-      if (metadata.type === 'integer' && !Number.isInteger(numValue)) return true
-    }
-    return false
-  }
-
-  const getParamValidationMessage = (paramName: string, value: unknown) => {
-    const metadata = getParamMetadata(paramName)
-    if (!metadata) {
-      const dangerousNames = ['eval', 'exec', 'script', '__proto__', 'constructor']
-      if (dangerousNames.some(dangerous => paramName.toLowerCase().includes(dangerous))) {
-        return t('modelManager.advancedParameters.validation.dangerousParam')
-      }
-      return ''
-    }
-    if (metadata.type === 'number' || metadata.type === 'integer') {
-      const numValue = Number(value)
-      if (Number.isNaN(numValue)) {
-        return t('modelManager.advancedParameters.validation.invalidNumber', {
-          type: metadata.type === 'integer' ? t('common.integer') : t('common.number')
-        })
-      }
-      if (metadata.minValue !== undefined && numValue < metadata.minValue) {
-        return t('modelManager.advancedParameters.validation.belowMin', {
-          min: metadata.minValue
-        })
-      }
-      if (metadata.maxValue !== undefined && numValue > metadata.maxValue) {
-        return t('modelManager.advancedParameters.validation.aboveMax', {
-          max: metadata.maxValue
-        })
-      }
-      if (metadata.type === 'integer' && !Number.isInteger(numValue)) {
-        return t('modelManager.advancedParameters.validation.mustBeInteger')
-      }
-    }
-    return ''
-  }
-
   watch(() => form.value.connectionConfig.apiKey, (newValue) => {
     if (!editingModelId.value) return
     const val = newValue ?? ''
@@ -766,9 +666,14 @@ export function useTextModelManager() {
     }
   })
 
-  watch(() => form.value.modelId, (val) => {
-    form.value.defaultModel = val || ''
-  })
+  const onModelChange = (modelId: string) => {
+    form.value.modelId = modelId
+    form.value.defaultModel = modelId || ''
+
+    if (modelId && form.value.providerId) {
+      advancedParameters.applyDefaultsFromModel()
+    }
+  }
 
   return {
     // list state
@@ -798,12 +703,12 @@ export function useTextModelManager() {
     connectionFields,
     modelOptions,
     isLoadingModelOptions,
-    availableLLMParamDefinitions,
-    selectedNewLLMParamId,
-    customLLMParam,
-    currentParamOverrides,
+    currentParameterDefinitions,
+    availableParameterCount,
     currentProviderType,
     selectedProvider,
+    updateParamOverrides,
+    onModelChange,
     prepareForCreate,
     prepareForEdit,
     refreshModelOptions,
@@ -814,13 +719,6 @@ export function useTextModelManager() {
     testFormConnection,
     isConnectionConfigured,
     canRefreshModelOptions,
-    handleQuickAddParam,
-    handleCustomParamAdd,
-    cancelCustomParam,
-    removeLLMParam,
-    getParamMetadata,
-    isParamInvalid,
-    getParamValidationMessage,
     formConnectionStatus
   }
 }

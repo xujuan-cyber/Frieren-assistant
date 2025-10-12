@@ -1,3 +1,4 @@
+import type { UnifiedParameterDefinition } from '../model/parameter-schema'
 import { ModelConfig } from '../model/types';
 
 // === 核心架构类型（三层分离：Provider → Model → Configuration） ===
@@ -36,28 +37,7 @@ export interface TextProvider {
   readonly connectionSchema?: ConnectionSchema
 }
 
-/**
- * 参数定义类型
- * 用于定义模型支持的参数及其约束
- */
-export interface ParameterDefinition {
-  /** 参数名称 */
-  name: string
-  /** 参数类型 */
-  type: 'number' | 'string' | 'boolean' | 'array' | 'object'
-  /** 参数描述 */
-  description?: string
-  /** 默认值 */
-  default?: unknown
-  /** 最小值（数值类型） */
-  min?: number
-  /** 最大值（数值类型） */
-  max?: number
-  /** 枚举值（字符串类型） */
-  enum?: string[]
-  /** 是否必需 */
-  required?: boolean
-}
+export type ParameterDefinition = UnifiedParameterDefinition;
 
 /**
  * 文本模型静态定义（由适配器提供）

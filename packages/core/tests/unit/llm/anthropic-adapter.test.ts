@@ -88,9 +88,10 @@ describe('AnthropicAdapter', () => {
       expect(Array.isArray(models)).toBe(true);
       expect(models.length).toBeGreaterThan(0);
 
-      const claude35 = models.find(m => m.id.includes('claude-3-5'));
-      expect(claude35).toBeDefined();
-      expect(claude35?.providerId).toBe('anthropic');
+      // 更新为新的 Claude 4.0 模型
+      const claude4 = models.find(m => m.id.includes('claude-'));
+      expect(claude4).toBeDefined();
+      expect(claude4?.providerId).toBe('anthropic');
     });
   });
 

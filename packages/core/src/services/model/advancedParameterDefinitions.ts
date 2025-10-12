@@ -1,5 +1,19 @@
 // packages/core/src/services/model/advancedParameterDefinitions.ts
 
+/**
+ * 旧版参数定义系统（向后兼容）
+ *
+ * 注意：这个文件主要用于：
+ * 1. validation.ts 中验证旧版 llmParams 参数
+ * 2. 向后兼容旧版配置数据
+ *
+ * 新代码应该使用：
+ * - parameter-schema.ts 中的 UnifiedParameterDefinition
+ * - 各 Adapter 的 getParameterDefinitions() 方法
+ *
+ * 该文件将在 v3.0 中标记为 deprecated，在 v4.0 移除。
+ */
+
 export interface AdvancedParameterDefinition {
   id: string; // Unique ID across all definitions, e.g., "openai_temperature"
   name: string; // Actual parameter name used by the SDK, e.g., "temperature"
@@ -158,16 +172,16 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     appliesToProviders: ["gemini"]
   },
   {
-    id: "gemini_thinkingBudget",
-    name: "thinkingBudget",
-    labelKey: "params.thinkingBudget.label",
-    descriptionKey: "params.thinkingBudget.description",
-    type: "integer",
-    minValue: 0,  // 允许0来禁用思考功能
-    maxValue: 8192,
-    step: 1,
-    unitKey: "params.tokens.unit",
-    appliesToProviders: ["gemini"]
+  id: "gemini_thinkingBudget",
+  name: "thinkingBudget",
+  labelKey: "params.thinkingBudget.label",
+  descriptionKey: "params.thinkingBudget.description",
+  type: "number",
+  minValue: 0,  // 允许0来禁用思考功能
+  maxValue: 8192,
+  step: 1,
+  unitKey: "params.tokens.unit",
+  appliesToProviders: ["gemini"]
   },
   {
     id: "gemini_includeThoughts",

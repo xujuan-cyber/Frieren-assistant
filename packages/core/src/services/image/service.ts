@@ -1,6 +1,7 @@
 import { IImageModelManager, ImageRequest, ImageResult, IImageService, IImageAdapterRegistry, ImageModelConfig, ImageModel } from './types'
 import { createImageAdapterRegistry } from './adapters/registry'
 import { RequestConfigError } from '../llm/errors'
+import { mergeOverrides } from '../model/parameter-utils'
 
 export class ImageService implements IImageService {
   private readonly registry: IImageAdapterRegistry
@@ -94,10 +95,12 @@ export class ImageService implements IImageService {
 
     // 获取适配器
     const adapter = this.registry.getAdapter(config.providerId)
+    const runtimeConfig = this.prepareRuntimeConfig(config)
+    const runtimeRequest = this.prepareRuntimeRequest(request, runtimeConfig)
 
     try {
       // 调用适配器生成
-      const result = await adapter.generate(request, config)
+      const result = await adapter.generate(runtimeRequest, runtimeConfig)
 
       // 确保返回结果包含完整的元数据
       if (!result.metadata) {
@@ -125,17 +128,57 @@ export class ImageService implements IImageService {
   async testConnection(config: ImageModelConfig): Promise<ImageResult> {
     // 构造一个最小的请求（根据模型能力选择文本或图像测试）
     const adapter = this.registry.getAdapter(config.providerId)
+    const runtimeConfig = this.prepareRuntimeConfig(config)
     const caps = (config.model?.capabilities) || this.registry.getStaticModels(config.providerId).find(m => m.id === config.modelId)?.capabilities || { text2image: true }
     const testType: 'text2image' | 'image2image' = caps.text2image ? 'text2image' : 'image2image'
     const baseReq: any = (adapter as any).getTestImageRequest ? (adapter as any).getTestImageRequest(testType) : { prompt: 'hello', count: 1 }
     const request: ImageRequest = { ...baseReq, configId: config.id || 'test' }
+    const runtimeRequest = this.prepareRuntimeRequest(request, runtimeConfig)
     // 直接调用适配器，绕过 imageModelManager 的存储查找
-    return await adapter.generate(request, config)
+    return await adapter.generate(runtimeRequest, runtimeConfig)
   }
 
   // 新增：获取动态模型
   async getDynamicModels(providerId: string, connectionConfig: Record<string, any>): Promise<ImageModel[]> {
     return await this.registry.getDynamicModels(providerId, connectionConfig)
+  }
+
+  private prepareRuntimeConfig(config: ImageModelConfig): ImageModelConfig {
+    const schema = config.model?.parameterDefinitions ?? []
+
+    // 合并参数：支持旧格式的 customParamOverrides（向后兼容）
+    // 优先级：requestOverrides > customOverrides
+    const mergedOverrides = mergeOverrides({
+      schema,
+      includeDefaults: false,
+      customOverrides: config.customParamOverrides,  // 🔧 兼容旧格式：自定义参数
+      requestOverrides: config.paramOverrides        // 当前参数（包含内置 + 可能已合并的自定义）
+    })
+
+    return {
+      ...config,
+      paramOverrides: mergedOverrides
+    }
+  }
+
+  private prepareRuntimeRequest(request: ImageRequest, config: ImageModelConfig): ImageRequest {
+    const schema = config.model?.parameterDefinitions ?? []
+
+    // 请求级别的参数覆盖，同样需要考虑旧格式
+    const sanitized = mergeOverrides({
+      schema,
+      includeDefaults: false,
+      customOverrides: (request as any).customParamOverrides, // 兼容旧字段（向后兼容）
+      requestOverrides: request.paramOverrides
+    })
+
+    const normalizedOverrides =
+      Object.keys(sanitized).length > 0 ? sanitized : undefined
+
+    return {
+      ...request,
+      paramOverrides: normalizedOverrides
+    }
   }
 }
 

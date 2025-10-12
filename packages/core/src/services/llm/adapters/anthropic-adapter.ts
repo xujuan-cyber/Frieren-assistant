@@ -11,7 +11,10 @@ import type {
   ToolDefinition
 } from '../types'
 
-const DEFAULT_MAX_TOKENS = 4096
+// Anthropic 建议对于非流式请求使用较小的 max_tokens 值
+// 过大的值可能触发 "Streaming is required for operations that may take longer than 10 minutes" 错误
+// 参考: https://github.com/anthropics/anthropic-sdk-typescript#long-requests
+const DEFAULT_MAX_TOKENS = 8192
 
 /**
  * Anthropic 官方 SDK 适配器实现
@@ -84,34 +87,6 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
         },
         parameterDefinitions: this.getParameterDefinitions('claude-sonnet-4-20250514'),
         defaultParameterValues: this.getDefaultParameterValues('claude-sonnet-4-20250514')
-      },
-
-      // Claude 3.7/3.5 系列
-      {
-        id: 'claude-3-7-sonnet-latest',
-        name: 'Claude 3.7 Sonnet',
-        description: 'Latest Claude 3.7 Sonnet model',
-        providerId,
-        capabilities: {
-                    supportsTools: true,
-          supportsReasoning: false,
-          maxContextLength: 200000
-        },
-        parameterDefinitions: this.getParameterDefinitions('claude-3-7-sonnet-latest'),
-        defaultParameterValues: this.getDefaultParameterValues('claude-3-7-sonnet-latest')
-      },
-      {
-        id: 'claude-3-5-haiku-latest',
-        name: 'Claude 3.5 Haiku',
-        description: 'Fast and affordable Claude model',
-        providerId,
-        capabilities: {
-                    supportsTools: true,
-          supportsReasoning: false,
-          maxContextLength: 200000
-        },
-        parameterDefinitions: this.getParameterDefinitions('claude-3-5-haiku-latest'),
-        defaultParameterValues: this.getDefaultParameterValues('claude-3-5-haiku-latest')
       }
     ]
   }
@@ -135,51 +110,76 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     return [
       {
         name: 'temperature',
-        type: 'number',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         description: 'Sampling temperature (0-1)',
+        type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 1,
         min: 0,
-        max: 1
+        max: 1,
+        step: 0.1
       },
       {
         name: 'top_p',
-        type: 'number',
+        labelKey: 'params.top_p.label',
+        descriptionKey: 'params.top_p.description',
         description: 'Nucleus sampling parameter',
+        type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 1,
         min: 0,
-        max: 1
+        max: 1,
+        step: 0.01
       },
       {
         name: 'top_k',
-        type: 'number',
+        labelKey: 'params.top_k.label',
+        descriptionKey: 'params.top_k.description',
         description: 'Top-k sampling parameter',
-        min: 1
+        type: 'integer',
+        minValue: 1,
+        min: 1,
+        step: 1
       },
       {
         name: 'max_tokens',
-        type: 'number',
+        labelKey: 'params.max_tokens.label',
+        descriptionKey: 'params.max_tokens.description',
         description: 'Maximum tokens to generate',
+        type: 'integer',
+        defaultValue: DEFAULT_MAX_TOKENS,
         default: DEFAULT_MAX_TOKENS,
-        min: 1
+        minValue: 1,
+        min: 1,
+        unitKey: 'params.tokens.unit',
+        step: 1
       },
       {
         name: 'thinking_budget_tokens',
-        type: 'number',
+        labelKey: 'params.thinkingBudget.label',
+        descriptionKey: 'params.thinkingBudget.description',
         description: 'Extended thinking budget in tokens (requires ≥1024)',
-        min: 1024
+        type: 'integer',
+        minValue: 1024,
+        min: 1024,
+        unitKey: 'params.tokens.unit',
+        step: 1,
+        tags: ['advanced']
       }
     ]
   }
 
   /**
    * 获取默认参数值
+   * 返回空对象,让服务器使用官方默认值,避免客户端错误默认值影响效果
    */
   protected getDefaultParameterValues(_modelId: string): Record<string, unknown> {
-    return {
-      temperature: 1,
-      top_p: 1,
-      max_tokens: DEFAULT_MAX_TOKENS
-    }
+    return {}
   }
 
   // ===== 核心方法实现 =====
@@ -194,24 +194,51 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     const client = this.createClient(config)
 
     try {
+      // 提取已知参数和自定义参数
+      const {
+        max_tokens,
+        temperature,
+        top_p,
+        top_k,
+        thinking_budget_tokens,
+        ...otherParams // 其他参数（包括自定义参数）
+      } = (config.paramOverrides || {}) as any
+
       const requestParams: any = {
         model: config.modelMeta.id,
-        max_tokens: (config.paramOverrides?.max_tokens as number) || DEFAULT_MAX_TOKENS,
-        messages: this.convertMessages(messages),
-        temperature: config.paramOverrides?.temperature as number,
-        top_p: config.paramOverrides?.top_p as number,
-        top_k: config.paramOverrides?.top_k as number,
-        system: this.extractSystemMessage(messages)
+        messages: this.convertMessages(messages)
+      }
+
+      // 只在用户明确设置时才添加参数，避免使用客户端默认值
+      if (max_tokens !== undefined) {
+        requestParams.max_tokens = max_tokens
+      }
+      if (temperature !== undefined) {
+        requestParams.temperature = temperature
+      }
+      if (top_p !== undefined) {
+        requestParams.top_p = top_p
+      }
+      if (top_k !== undefined) {
+        requestParams.top_k = top_k
+      }
+
+      // 添加系统消息（如果有）
+      const systemMessage = this.extractSystemMessage(messages)
+      if (systemMessage) {
+        requestParams.system = systemMessage
       }
 
       // 添加 Extended Thinking 配置
-      const thinkingBudget = config.paramOverrides?.thinking_budget_tokens as number | undefined
-      if (thinkingBudget !== undefined && thinkingBudget >= 1024) {
+      if (thinking_budget_tokens !== undefined && thinking_budget_tokens >= 1024) {
         requestParams.thinking = {
           type: 'enabled',
-          budget_tokens: thinkingBudget
+          budget_tokens: thinking_budget_tokens
         }
       }
+
+      // 添加其他参数（包括自定义参数）
+      Object.assign(requestParams, otherParams)
 
       const response = await client.messages.create(requestParams)
 
@@ -244,23 +271,51 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     const thinkState = { isInThinkMode: false, buffer: '' }
 
     try {
+      // 提取已知参数和自定义参数
+      const {
+        max_tokens,
+        temperature,
+        top_p,
+        top_k,
+        thinking_budget_tokens,
+        ...otherParams // 其他参数（包括自定义参数）
+      } = (config.paramOverrides || {}) as any
+
       const requestParams: any = {
         model: config.modelMeta.id,
-        max_tokens: (config.paramOverrides?.max_tokens as number) || DEFAULT_MAX_TOKENS,
-        messages: this.convertMessages(messages),
-        temperature: config.paramOverrides?.temperature as number,
-        top_p: config.paramOverrides?.top_p as number,
-        system: this.extractSystemMessage(messages)
+        messages: this.convertMessages(messages)
+      }
+
+      // 只在用户明确设置时才添加参数，避免使用客户端默认值
+      if (max_tokens !== undefined) {
+        requestParams.max_tokens = max_tokens
+      }
+      if (temperature !== undefined) {
+        requestParams.temperature = temperature
+      }
+      if (top_p !== undefined) {
+        requestParams.top_p = top_p
+      }
+      if (top_k !== undefined) {
+        requestParams.top_k = top_k
+      }
+
+      // 添加系统消息（如果有）
+      const systemMessage = this.extractSystemMessage(messages)
+      if (systemMessage) {
+        requestParams.system = systemMessage
       }
 
       // 添加 Extended Thinking 配置
-      const thinkingBudget = config.paramOverrides?.thinking_budget_tokens as number | undefined
-      if (thinkingBudget !== undefined && thinkingBudget >= 1024) {
+      if (thinking_budget_tokens !== undefined && thinking_budget_tokens >= 1024) {
         requestParams.thinking = {
           type: 'enabled',
-          budget_tokens: thinkingBudget
+          budget_tokens: thinking_budget_tokens
         }
       }
+
+      // 添加其他参数（包括自定义参数）
+      Object.assign(requestParams, otherParams)
 
       const stream = await client.messages.stream(requestParams)
 
@@ -319,24 +374,52 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     const thinkState = { isInThinkMode: false, buffer: '' }
 
     try {
+      // 提取已知参数和自定义参数
+      const {
+        max_tokens,
+        temperature,
+        top_p,
+        top_k,
+        thinking_budget_tokens,
+        ...otherParams // 其他参数（包括自定义参数）
+      } = (config.paramOverrides || {}) as any
+
       const requestParams: any = {
         model: config.modelMeta.id,
-        max_tokens: (config.paramOverrides?.max_tokens as number) || DEFAULT_MAX_TOKENS,
         messages: this.convertMessages(messages),
-        tools: this.convertTools(tools),
-        temperature: config.paramOverrides?.temperature as number,
-        top_p: config.paramOverrides?.top_p as number,
-        system: this.extractSystemMessage(messages)
+        tools: this.convertTools(tools)
+      }
+
+      // 只在用户明确设置时才添加参数，避免使用客户端默认值
+      if (max_tokens !== undefined) {
+        requestParams.max_tokens = max_tokens
+      }
+      if (temperature !== undefined) {
+        requestParams.temperature = temperature
+      }
+      if (top_p !== undefined) {
+        requestParams.top_p = top_p
+      }
+      if (top_k !== undefined) {
+        requestParams.top_k = top_k
+      }
+
+      // 添加系统消息（如果有）
+      const systemMessage = this.extractSystemMessage(messages)
+      if (systemMessage) {
+        requestParams.system = systemMessage
       }
 
       // 添加 Extended Thinking 配置
-      const thinkingBudget = config.paramOverrides?.thinking_budget_tokens as number | undefined
-      if (thinkingBudget !== undefined && thinkingBudget >= 1024) {
+      if (thinking_budget_tokens !== undefined && thinking_budget_tokens >= 1024) {
         requestParams.thinking = {
           type: 'enabled',
-          budget_tokens: thinkingBudget
+          budget_tokens: thinking_budget_tokens
         }
       }
+
+      // 添加其他参数（包括自定义参数）
+      Object.assign(requestParams, otherParams)
 
       const stream = await client.messages.stream(requestParams)
 

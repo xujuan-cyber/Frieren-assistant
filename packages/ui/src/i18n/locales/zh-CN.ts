@@ -399,6 +399,7 @@
       title: '高级参数',
       noParamsConfigured: '未配置高级参数',
       customParam: '自定义',
+      advancedTag: '高级',
       add: '添加参数',
       select: '选择参数',
       selectTitle: '添加高级参数',
@@ -412,6 +413,9 @@
       availableParams: '个可选参数',
       noAvailableParams: '无可选参数',
       validation: {
+        customKeyRequired: '参数名称不能为空',
+        customValueRequired: '参数值不能为空',
+        duplicateParam: '参数已存在',
         dangerousParam: '此参数名称包含潜在危险字符，不允许使用',
         invalidNumber: '参数值必须是有效的{type}',
         belowMin: '参数值不能小于 {min}',
@@ -982,6 +986,22 @@
     "seed": {
       "label": "随机种子",
       "description": "用于控制生成结果的随机数种子，相同种子产生相同结果"
+    },
+    "max_completion_tokens": {
+      "label": "最大补全Token数",
+      "description": "在补全中生成的最大Token数量（推荐使用，替代 max_tokens）。范围：1-1,000,000。"
+    },
+    "logprobs": {
+      "label": "返回对数概率",
+      "description": "是否在响应中返回输出Token的对数概率信息。启用后可以看到模型对每个Token的置信度。"
+    },
+    "top_logprobs": {
+      "label": "Top对数概率数量",
+      "description": "返回每个Token位置上概率最高的N个备选Token及其对数概率。范围：0-20。需要先启用 logprobs。"
+    },
+    "n": {
+      "label": "生成数量",
+      "description": "为每个输入生成多少个补全结果。范围：1-128。注意：生成多个结果会消耗更多Token配额。"
     }
   },
   contextEditor: {

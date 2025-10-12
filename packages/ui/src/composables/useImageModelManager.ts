@@ -9,6 +9,7 @@ import type {
   IImageModelManager,
   IImageService
 } from '@prompt-optimizer/core'
+import { useModelAdvancedParameters } from './useModelAdvancedParameters'
 
 export function useImageModelManager() {
   const { t } = useI18n()
@@ -79,6 +80,35 @@ export function useImageModelManager() {
     models.value.find(m => m.id === selectedModelId.value)
   )
 
+  // 简化后的接口:直接传入必要的参数
+  const advancedParameters = useModelAdvancedParameters({
+    mode: 'image',
+    registry: computed(() => registry),
+    providerId: selectedProviderId,
+    modelId: selectedModelId,
+    savedModelMeta: computed(() => {
+      // 优先使用表单中已保存的模型元数据
+      const currentConfig = configForm.value as any
+      if (currentConfig?.model?.id === selectedModelId.value) {
+        return currentConfig.model
+      }
+      // 其次使用选中的模型
+      return selectedModel.value
+    }),
+    getParamOverrides: () => configForm.value.paramOverrides ?? {},
+    setParamOverrides: value => {
+      configForm.value.paramOverrides = { ...value }
+    }
+  })
+
+  const {
+    currentParameterDefinitions,
+    currentParamOverrides,
+    availableParameterCount,
+    updateParamOverrides,
+    applyDefaultsFromModel
+  } = advancedParameters
+
   // 额外的状态计算属性（提升用户体验）
   const hasStaticModels = computed(() => {
     if (!selectedProviderId.value) return false
@@ -140,12 +170,28 @@ export function useImageModelManager() {
   }
 
   // 提供商变更处理（按spec设计的渐进式体验）
-  const onProviderChange = async (providerId: string, autoSelectFirstModel: boolean = true) => {
+  const onProviderChange = async (
+    providerId: string,
+    options: boolean | { autoSelectFirstModel?: boolean; resetOverrides?: boolean } = true
+  ) => {
+    const normalized =
+      typeof options === 'boolean'
+        ? { autoSelectFirstModel: options, resetOverrides: options }
+        : {
+            autoSelectFirstModel: options.autoSelectFirstModel ?? true,
+            resetOverrides:
+              options.resetOverrides ?? (options.autoSelectFirstModel ?? true)
+          }
+
     selectedProviderId.value = providerId
     configForm.value.providerId = providerId
 
+    if (normalized.resetOverrides) {
+      configForm.value.paramOverrides = {}
+    }
+
     // 只有在需要自动选择时才重置模型ID
-    if (autoSelectFirstModel) {
+    if (normalized.autoSelectFirstModel) {
       selectedModelId.value = ''
       configForm.value.modelId = ''
     }
@@ -165,8 +211,8 @@ export function useImageModelManager() {
     const providerMeta = providers.value.find(p => p.id === providerId)
     if (providerMeta?.defaultBaseURL) {
       configForm.value.connectionConfig = {
-        baseURL: configForm.value.connectionConfig.baseURL || providerMeta.defaultBaseURL,
-        ...configForm.value.connectionConfig
+        baseURL: (configForm.value.connectionConfig?.baseURL) || providerMeta.defaultBaseURL,
+        ...(configForm.value.connectionConfig || {})
       }
     }
 
@@ -176,7 +222,7 @@ export function useImageModelManager() {
       models.value = staticModels
 
       // 只有在需要自动选择且当前没有选中模型时才自动选择第一个模型
-      if (autoSelectFirstModel && staticModels.length > 0) {
+      if (normalized.autoSelectFirstModel && staticModels.length > 0) {
         const firstModel = staticModels[0]
         selectedModelId.value = firstModel.id
         configForm.value.modelId = firstModel.id
@@ -504,10 +550,8 @@ export function useImageModelManager() {
     selectedModelId.value = modelId
     configForm.value.modelId = modelId
 
-    // 如果选择了模型，初始化参数覆盖为模型默认值
-    const model = models.value.find(m => m.id === modelId)
-    if (model && model.defaultParameterValues) {
-      configForm.value.paramOverrides = { ...model.defaultParameterValues }
+    if (modelId && selectedProviderId.value) {
+      applyDefaultsFromModel()
     }
   }
 
@@ -631,6 +675,9 @@ export function useImageModelManager() {
     supportsDynamicModels,
     isConnectionConfigured,
     canRefreshModels,
+    currentParameterDefinitions,
+    currentParamOverrides,
+    availableParameterCount,
 
     // 方法
     onProviderChange,
@@ -638,6 +685,7 @@ export function useImageModelManager() {
     testConnection,
     refreshModels,
     onModelChange,
+    updateParamOverrides,
     saveConfig,
     resetForm,
     initialize,

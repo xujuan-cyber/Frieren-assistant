@@ -1,5 +1,6 @@
 import type { ModelConfig, TextModelConfig, TextProvider, TextModel } from './types';
 import type { ITextAdapterRegistry } from '../llm/types';
+import { splitOverridesBySchema } from './parameter-utils';
 
 /**
  * 将传统 ModelConfig 转换为 TextModelConfig（使用 Registry 获取元数据）
@@ -59,6 +60,10 @@ export async function convertLegacyToTextModelConfigWithRegistry(
       modelMeta = adapter.buildDefaultModel(legacy.defaultModel);
     }
 
+    const schema = modelMeta.parameterDefinitions ?? [];
+    const legacyParams = legacy.llmParams || {};
+    const { builtIn, custom } = splitOverridesBySchema(schema, legacyParams);
+
     // 构建 TextModelConfig
     const textModelConfig: TextModelConfig = {
       id: key,
@@ -70,7 +75,8 @@ export async function convertLegacyToTextModelConfigWithRegistry(
         apiKey: legacy.apiKey,
         baseURL: legacy.baseURL
       },
-      paramOverrides: legacy.llmParams || {}
+      paramOverrides: builtIn,
+      customParamOverrides: custom
     };
 
     return textModelConfig;
@@ -145,6 +151,10 @@ export function convertLegacyToTextModelConfig(
   // 构建 Model 元数据
   const modelMeta: TextModel = createModelMeta(legacy.defaultModel, providerId, legacy);
 
+  const schema = modelMeta.parameterDefinitions ?? [];
+  const legacyParams = legacy.llmParams || {};
+  const { builtIn, custom } = splitOverridesBySchema(schema, legacyParams);
+
   // 构建 TextModelConfig
   const textModelConfig: TextModelConfig = {
     id: key,
@@ -156,7 +166,8 @@ export function convertLegacyToTextModelConfig(
       apiKey: legacy.apiKey,
       baseURL: legacy.baseURL
     },
-    paramOverrides: legacy.llmParams || {}
+    paramOverrides: builtIn,
+    customParamOverrides: custom
   };
 
   return textModelConfig;
@@ -335,35 +346,45 @@ function createParameterDefinitions(providerId: string): readonly any[] {
     return [
       {
         name: 'temperature',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         type: 'number',
-        description: 'Sampling temperature (0-2)',
-        default: 1,
-        min: 0,
-        max: 2
+        defaultValue: 1,
+        minValue: 0,
+        maxValue: 2,
+        step: 0.1
       },
       {
         name: 'maxOutputTokens',
-        type: 'number',
-        description: 'Maximum tokens to generate',
-        default: 8192,
-        min: 1
+        labelKey: 'params.maxOutputTokens.label',
+        descriptionKey: 'params.maxOutputTokens.description',
+        type: 'integer',
+        defaultValue: 8192,
+        minValue: 1,
+        unitKey: 'params.tokens.unit',
+        step: 1
       }
     ];
   } else {
     return [
       {
         name: 'temperature',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         type: 'number',
-        description: 'Sampling temperature (0-2)',
-        default: 1,
-        min: 0,
-        max: 2
+        defaultValue: 1,
+        minValue: 0,
+        maxValue: 2,
+        step: 0.1
       },
       {
         name: 'max_tokens',
-        type: 'number',
-        description: 'Maximum tokens to generate',
-        min: 1
+        labelKey: 'params.max_tokens.label',
+        descriptionKey: 'params.max_tokens.description',
+        type: 'integer',
+        minValue: 1,
+        unitKey: 'params.tokens.unit',
+        step: 1
       }
     ];
   }

@@ -1,4 +1,5 @@
 import { IImportExportable } from '../../interfaces/import-export';
+import type { UnifiedParameterDefinition } from './parameter-schema';
 
 // === 新架构核心类型 ===
 
@@ -44,16 +45,7 @@ export interface TextModel {
 /**
  * 模型参数定义
  */
-export interface ParameterDefinition {
-  name: string;
-  type: 'number' | 'string' | 'boolean' | 'array' | 'object';
-  description?: string;
-  default?: unknown;
-  min?: number;
-  max?: number;
-  enum?: string[];
-  required?: boolean;
-}
+export type ParameterDefinition = UnifiedParameterDefinition;
 
 /**
  * 新架构的文本模型配置
@@ -69,7 +61,13 @@ export interface TextModelConfig {
     baseURL?: string;
     [key: string]: any;
   };
-  paramOverrides?: Record<string, unknown>;
+  paramOverrides?: Record<string, unknown>; // 统一的参数覆盖（包含内置和自定义参数）
+  /**
+   * @deprecated 已废弃，将在 v3.0 移除
+   * 旧版本的自定义参数字段，现已合并到 paramOverrides
+   * 仅用于向后兼容读取旧数据，新代码不应使用此字段
+   */
+  customParamOverrides?: Record<string, unknown>;
 }
 
 /**
@@ -82,7 +80,13 @@ export interface StoredTextModelConfig {
   providerMeta: TextProvider;
   modelMeta: TextModel;
   connectionConfig: Record<string, any>;
-  paramOverrides?: Record<string, unknown>;
+  paramOverrides?: Record<string, unknown>; // 统一的参数覆盖（包含内置和自定义参数）
+  /**
+   * @deprecated 已废弃，将在 v3.0 移除
+   * 旧版本的自定义参数字段，现已合并到 paramOverrides
+   * 仅用于向后兼容读取旧数据，新代码不应使用此字段
+   */
+  customParamOverrides?: Record<string, unknown>;
 }
 
 // === 传统结构（兼容旧数据） ===

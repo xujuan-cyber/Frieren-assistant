@@ -1057,7 +1057,8 @@ const {
   announce,
   accessibilityClasses,
   isAccessibilityMode,
-  liveRegionMessage
+  liveRegionMessage,
+  announcements
 } = useAccessibility('ContextEditor')
 
 // 导入导出功能

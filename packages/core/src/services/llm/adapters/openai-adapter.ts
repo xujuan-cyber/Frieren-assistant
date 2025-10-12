@@ -132,60 +132,163 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
 
   /**
    * 获取参数定义
+   * 基于 OpenAI 官方文档: https://platform.openai.com/docs/api-reference/chat/create
    */
   protected getParameterDefinitions(_modelId: string): readonly ParameterDefinition[] {
     return [
       {
         name: 'temperature',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
+        description: 'Sampling temperature (0-2). Higher values make output more random.',
         type: 'number',
-        description: 'Sampling temperature (0-2)',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       },
       {
         name: 'top_p',
+        labelKey: 'params.top_p.label',
+        descriptionKey: 'params.top_p.description',
+        description: 'Nucleus sampling parameter (0-1). Alternative to temperature.',
         type: 'number',
-        description: 'Nucleus sampling parameter',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 1,
         min: 0,
-        max: 1
+        max: 1,
+        step: 0.01
+      },
+      {
+        name: 'max_completion_tokens',
+        labelKey: 'params.max_completion_tokens.label',
+        descriptionKey: 'params.max_completion_tokens.description',
+        description: 'Maximum tokens in completion (recommended over max_tokens)',
+        type: 'integer',
+        minValue: 1,
+        maxValue: 1000000,
+        min: 1,
+        max: 1000000,
+        step: 1,
+        unitKey: 'params.tokens.unit'
       },
       {
         name: 'max_tokens',
-        type: 'number',
-        description: 'Maximum tokens to generate',
-        min: 1
+        labelKey: 'params.max_tokens.label',
+        descriptionKey: 'params.max_tokens.description',
+        description: 'Deprecated: Use max_completion_tokens instead',
+        type: 'integer',
+        minValue: 1,
+        maxValue: 1000000,
+        min: 1,
+        max: 1000000,
+        step: 1,
+        unitKey: 'params.tokens.unit'
       },
       {
         name: 'presence_penalty',
+        labelKey: 'params.presence_penalty.label',
+        descriptionKey: 'params.presence_penalty.description',
+        description: 'Presence penalty (-2.0 to 2.0). Penalizes tokens based on presence.',
         type: 'number',
-        description: 'Presence penalty (-2 to 2)',
+        defaultValue: 0,
         default: 0,
+        minValue: -2,
+        maxValue: 2,
         min: -2,
-        max: 2
+        max: 2,
+        step: 0.1
       },
       {
         name: 'frequency_penalty',
+        labelKey: 'params.frequency_penalty.label',
+        descriptionKey: 'params.frequency_penalty.description',
+        description: 'Frequency penalty (-2.0 to 2.0). Penalizes tokens based on frequency.',
         type: 'number',
-        description: 'Frequency penalty (-2 to 2)',
+        defaultValue: 0,
         default: 0,
+        minValue: -2,
+        maxValue: 2,
         min: -2,
-        max: 2
+        max: 2,
+        step: 0.1
+      },
+      {
+        name: 'logprobs',
+        labelKey: 'params.logprobs.label',
+        descriptionKey: 'params.logprobs.description',
+        description: 'Return log probabilities of output tokens',
+        type: 'boolean',
+        defaultValue: false,
+        default: false
+      },
+      {
+        name: 'top_logprobs',
+        labelKey: 'params.top_logprobs.label',
+        descriptionKey: 'params.top_logprobs.description',
+        description: 'Number of most likely tokens to return (0-20)',
+        type: 'integer',
+        minValue: 0,
+        maxValue: 20,
+        min: 0,
+        max: 20,
+        step: 1
+      },
+      {
+        name: 'seed',
+        labelKey: 'params.seed.label',
+        descriptionKey: 'params.seed.description',
+        description: 'Seed for deterministic sampling (integer)',
+        type: 'integer',
+        minValue: 0,
+        maxValue: 2147483647,
+        min: 0,
+        max: 2147483647,
+        step: 1
+      },
+      {
+        name: 'n',
+        labelKey: 'params.n.label',
+        descriptionKey: 'params.n.description',
+        description: 'Number of completions to generate (default: 1)',
+        type: 'integer',
+        defaultValue: 1,
+        default: 1,
+        minValue: 1,
+        maxValue: 10,
+        min: 1,
+        max: 10,
+        step: 1
+      },
+      {
+        name: 'timeout',
+        labelKey: 'params.timeout.label',
+        descriptionKey: 'params.timeout.description_openai',
+        description: 'Client timeout in milliseconds (OpenAI SDK setting)',
+        type: 'integer',
+        defaultValue: 60000,
+        default: 60000,
+        minValue: 1000,
+        maxValue: 600000,
+        min: 1000,
+        max: 600000,
+        step: 1000,
+        unit: 'ms'
       }
     ]
   }
 
   /**
    * 获取默认参数值
+   * 返回空对象,让服务器使用官方默认值,避免客户端错误默认值影响效果
    */
   protected getDefaultParameterValues(_modelId: string): Record<string, unknown> {
-    return {
-      temperature: 1,
-      top_p: 1,
-      presence_penalty: 0,
-      frequency_penalty: 0
-    }
+    return {}
   }
 
   // ===== 错误检测辅助方法 =====

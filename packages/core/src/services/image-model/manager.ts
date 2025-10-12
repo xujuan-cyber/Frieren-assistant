@@ -92,14 +92,20 @@ export class ImageModelManager implements IImageModelManager {
     const completeConfig = this.ensureSelfContained(config)
     this.validateConfig(completeConfig)
 
+    // 保存时移除 customParamOverrides（已合并到 paramOverrides）
+    const toStore = {
+      ...completeConfig,
+      customParamOverrides: undefined
+    }
+
     await this.storage.updateData<Record<string, ImageModelConfig>>(
       this.storageKey,
       (current) => {
         const data = current || {}
-        if (data[completeConfig.id]) {
-          throw new Error(`Configuration with id '${completeConfig.id}' already exists`)
+        if (data[toStore.id]) {
+          throw new Error(`Configuration with id '${toStore.id}' already exists`)
         }
-        return { ...data, [completeConfig.id]: { ...completeConfig } }
+        return { ...data, [toStore.id]: toStore }
       }
     )
   }
@@ -122,7 +128,14 @@ export class ImageModelManager implements IImageModelManager {
         // 确保更新后的配置是自包含的
         const completeConfig = this.ensureSelfContained(updated)
         this.validateConfig(completeConfig)
-        return { ...data, [id]: completeConfig }
+
+        // 保存时移除 customParamOverrides（已合并到 paramOverrides）
+        const toStore = {
+          ...completeConfig,
+          customParamOverrides: undefined
+        }
+
+        return { ...data, [id]: toStore }
       }
     )
   }
@@ -160,13 +173,16 @@ export class ImageModelManager implements IImageModelManager {
       ;(cfg as any).id = id
     }
 
+    // 读时迁移：合并 customParamOverrides 到 paramOverrides
+    const migrated = this.migrateConfig(cfg)
+
     // 尝试修复损坏的配置，确保能够正常读取和删除
     try {
-      return this.ensureSelfContained(cfg)
+      return this.ensureSelfContained(migrated)
     } catch (error) {
       // 即使修复失败，也返回配置（已在ensureSelfContained中标记为disabled）
       console.warn(`[ImageModelManager] Failed to fully repair config ${id}, but returning for deletion:`, error)
-      return cfg
+      return migrated
     }
   }
 
@@ -183,14 +199,17 @@ export class ImageModelManager implements IImageModelManager {
       // 始终使用存储键作为公开的 id，保持删除等操作一致
       ;(cfg as any).id = key
 
+      // 读时迁移：合并 customParamOverrides 到 paramOverrides
+      const migrated = this.migrateConfig(cfg)
+
       // 尝试修复配置，如果失败则返回占位配置（标记为disabled）
       try {
-        return this.ensureSelfContained(cfg)
+        return this.ensureSelfContained(migrated)
       } catch (error) {
         console.warn(`[ImageModelManager] Failed to repair config ${key}, returning placeholder:`, error)
         // 返回最小占位配置，确保能在UI中显示和删除
         return {
-          ...cfg,
+          ...migrated,
           id: key,
           enabled: false
         } as ImageModelConfig
@@ -273,6 +292,27 @@ export class ImageModelManager implements IImageModelManager {
 
   // === 私有辅助方法 ===
 
+  /**
+   * 迁移配置：合并 customParamOverrides 到 paramOverrides
+   * 用于向后兼容读取旧数据格式
+   */
+  private migrateConfig(config: ImageModelConfig): ImageModelConfig {
+    // 如果没有 customParamOverrides，直接返回
+    if (!config.customParamOverrides || Object.keys(config.customParamOverrides).length === 0) {
+      return config
+    }
+
+    // 合并 customParamOverrides 到 paramOverrides
+    return {
+      ...config,
+      paramOverrides: {
+        ...(config.paramOverrides || {}),
+        ...(config.customParamOverrides || {})
+      }
+      // 保留 customParamOverrides 字段以防版本回退，但新代码不再使用
+    }
+  }
+
   // 确保配置是自包含的（包含完整的provider和model信息）
   private ensureSelfContained(config: ImageModelConfig): ImageModelConfig {
     // 如果已经有完整的自包含字段，直接返回
@@ -297,7 +337,8 @@ export class ImageModelManager implements IImageModelManager {
       return {
         ...config,
         provider,
-        model
+        model,
+        paramOverrides: config.paramOverrides ?? {}
       }
     } catch (error) {
       // 对于无法修复的旧配置，创建占位数据并禁用，允许用户查看和删除
@@ -326,7 +367,8 @@ export class ImageModelManager implements IImageModelManager {
           },
           parameterDefinitions: [],
           defaultParameterValues: {}
-        }
+        },
+        paramOverrides: config.paramOverrides ?? {}
       } as ImageModelConfig
     }
   }
@@ -370,6 +412,12 @@ export class ImageModelManager implements IImageModelManager {
     if (config.paramOverrides !== undefined) {
       if (typeof config.paramOverrides !== 'object' || config.paramOverrides === null) {
         errors.push('paramOverrides must be an object')
+      }
+    }
+
+    if (config.customParamOverrides !== undefined) {
+      if (typeof config.customParamOverrides !== 'object' || config.customParamOverrides === null) {
+        errors.push('customParamOverrides must be an object')
       }
     }
 

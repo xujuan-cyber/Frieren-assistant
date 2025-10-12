@@ -145,70 +145,112 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
     return [
       {
         name: 'temperature',
-        type: 'number',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         description: 'Sampling temperature (0-2)',
+        type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       },
       {
         name: 'topP',
-        type: 'number',
+        labelKey: 'params.top_p.label',
+        descriptionKey: 'params.top_p.description',
         description: 'Nucleus sampling parameter',
+        type: 'number',
+        defaultValue: 0.95,
         default: 0.95,
+        minValue: 0,
+        maxValue: 1,
         min: 0,
-        max: 1
+        max: 1,
+        step: 0.01
       },
       {
         name: 'topK',
-        type: 'number',
+        labelKey: 'params.top_k.label',
+        descriptionKey: 'params.top_k.description',
         description: 'Top-k sampling parameter',
-        min: 1
+        type: 'integer',
+        defaultValue: 1,
+        default: 1,
+        minValue: 1,
+        min: 1,
+        step: 1
       },
       {
         name: 'maxOutputTokens',
-        type: 'number',
+        labelKey: 'params.maxOutputTokens.label',
+        descriptionKey: 'params.maxOutputTokens.description',
         description: 'Maximum tokens to generate',
+        type: 'integer',
+        defaultValue: 8192,
         default: 8192,
-        min: 1
+        minValue: 1,
+        min: 1,
+        unitKey: 'params.tokens.unit',
+        step: 1
       },
       {
         name: 'candidateCount',
-        type: 'number',
+        labelKey: 'params.candidateCount.label',
+        descriptionKey: 'params.candidateCount.description',
         description: 'Number of response candidates',
+        type: 'integer',
+        defaultValue: 1,
         default: 1,
-        min: 1
+        minValue: 1,
+        maxValue: 8,
+        min: 1,
+        max: 8,
+        step: 1
       },
       {
         name: 'stopSequences',
-        type: 'array',
-        description: 'Stop sequences for generation'
+        labelKey: 'params.stopSequences.label',
+        descriptionKey: 'params.stopSequences.description',
+        description: 'Stop sequences for generation',
+        type: 'string',
+        defaultValue: [],
+        tags: ['string-array']
       },
       {
         name: 'thinkingBudget',
-        type: 'number',
+        labelKey: 'params.thinkingBudget.label',
+        descriptionKey: 'params.thinkingBudget.description',
         description: 'Thinking budget in tokens (Gemini 2.5+). Set to 0 to disable thinking.',
-        min: 0,  // 允许0来禁用思考功能
-        max: 8192
+        type: 'number',
+        defaultValue: 0,
+        default: 0,
+        minValue: 0,
+        maxValue: 8192,
+        min: 0,
+        max: 8192,
+        unitKey: 'params.tokens.unit',
+        step: 1
       },
       {
         name: 'includeThoughts',
+        labelKey: 'params.includeThoughts.label',
+        descriptionKey: 'params.includeThoughts.description',
+        description: 'Include thinking process in response (Gemini 2.5+)',
         type: 'boolean',
-        description: 'Include thinking process in response (Gemini 2.5+)'
+        defaultValue: false
       }
     ]
   }
 
   /**
    * 获取默认参数值
+   * 返回空对象,让服务器使用官方默认值,避免客户端错误默认值影响效果
    */
   protected getDefaultParameterValues(_modelId: string): Record<string, unknown> {
-    return {
-      temperature: 1,
-      topP: 0.95,
-      maxOutputTokens: 8192,
-      candidateCount: 1
-    }
+    return {}
   }
 
   // ===== SDK实例创建和配置构建 =====

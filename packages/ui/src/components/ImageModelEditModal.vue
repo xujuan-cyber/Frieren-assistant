@@ -83,10 +83,14 @@
                 style="flex: 1; min-width: 300px; max-width: 500px;"
                 clearable
                 filterable
-                :filter="(pattern, option) => option.label.toLowerCase().includes(pattern.toLowerCase()) || option.value.toLowerCase().includes(pattern.toLowerCase())"
+                :filter="(pattern, option) => {
+                  const label = typeof option.label === 'string' ? option.label : String(option.value)
+                  const value = String(option.value)
+                  return label.toLowerCase().includes(pattern.toLowerCase()) || value.toLowerCase().includes(pattern.toLowerCase())
+                }"
                 tag
                 required
-                @update:value="onModelChange"
+                @update:value="handleModelChange"
               />
 
               <NTooltip :disabled="canRefreshModels" :show-arrow="false">
@@ -131,95 +135,15 @@
             </NSpace>
           </NFormItem>
 
-          <!-- 高级参数配置区域（可折叠） - 优化为更紧凑的布局 -->
+          <!-- 高级参数配置区域 -->
           <NDivider style="margin: 12px 0 8px 0;" />
-          <NCollapse>
-            <NCollapseItem :title="t('image.parameters.advancedConfig')" name="advanced">
-              <template #header-extra>
-                <NText depth="3" style="font-size: 12px;">
-                  {{ t('image.parameters.advancedConfigDescription') }}
-                </NText>
-              </template>
-
-              <!-- 如果没有参数定义 -->
-              <NAlert v-if="!selectedModel?.parameterDefinitions || selectedModel.parameterDefinitions.length === 0" type="info" size="small">
-                {{ t('image.parameters.noParameters') }}
-              </NAlert>
-
-              <!-- 动态生成的参数表单 - 改为直列式 FormItem -->
-              <template v-else>
-                <NFormItem
-                  v-for="param in selectedModel.parameterDefinitions"
-                  :key="param.name"
-                  :label="getParameterLabel(param)"
-                >
-                  <template #label-extra>
-                    <NButton
-                      v-if="configForm.paramOverrides![param.name] !== undefined"
-                      @click="removeParameter(param.name)"
-                      size="tiny"
-                      quaternary
-                      circle
-                      type="error"
-                      style="margin-left: 8px;"
-                    >
-                      <template #icon>×</template>
-                    </NButton>
-                  </template>
-
-                  <!-- 枚举类型：下拉选择 -->
-                  <NSelect
-                    v-if="param.allowedValues && param.allowedValues.length > 0"
-                    v-model:value="configForm.paramOverrides![param.name] as string"
-                    :options="getParamSelectOptions(param)"
-                    :placeholder="getParameterPlaceholder(param)"
-                    clearable
-                    size="small"
-                  />
-
-                  <!-- 数值类型：数字输入 -->
-                  <NSpace v-else-if="param.type === 'number' || param.type === 'integer'" align="center">
-                    <NInputNumber
-                      v-model:value="configForm.paramOverrides![param.name] as number"
-                      :min="param.minValue"
-                      :max="param.maxValue"
-                      :step="param.step || (param.type === 'integer' ? 1 : 0.1)"
-                      :precision="param.type === 'integer' ? 0 : undefined"
-                      :placeholder="getParameterPlaceholder(param)"
-                      size="small"
-                      style="flex: 1;"
-                    />
-                    <NText v-if="param.unit || param.unitKey" depth="3" style="font-size: 12px;">
-                      {{ param.unitKey ? t(param.unitKey) : param.unit }}
-                    </NText>
-                  </NSpace>
-
-                  <!-- 布尔类型：复选框 -->
-                  <NCheckbox
-                    v-else-if="param.type === 'boolean'"
-                    v-model:checked="configForm.paramOverrides![param.name] as boolean"
-                  >
-                    {{ getParameterDescription(param) }}
-                  </NCheckbox>
-
-                  <!-- 字符串类型：文本输入 -->
-                  <NInput
-                    v-else
-                    v-model:value="configForm.paramOverrides![param.name] as string"
-                    :placeholder="getParameterPlaceholder(param)"
-                    size="small"
-                  />
-
-                  <!-- 参数描述 -->
-                  <template #feedback v-if="param.descriptionKey">
-                    <NText depth="3" style="font-size: 12px;">
-                      {{ t(param.descriptionKey) }}
-                    </NText>
-                  </template>
-                </NFormItem>
-              </template>
-            </NCollapseItem>
-          </NCollapse>
+          <ModelAdvancedSection
+            mode="image"
+            :provider-type="selectedProviderId"
+            :parameter-definitions="currentParameterDefinitions"
+            :param-overrides="configForm.paramOverrides"
+            @update:paramOverrides="updateParamOverrides"
+          />
         </NForm>
       </form>
     </NScrollbar>
@@ -293,11 +217,12 @@ import { useI18n } from 'vue-i18n'
 import {
   NModal, NScrollbar, NSpace, NInput, NInputNumber,
   NCheckbox, NSelect, NButton, NAlert, NCard, NTag, NIcon, NTooltip, NText,
-  NDivider, NH4, NCollapse, NCollapseItem, NForm, NFormItem, NImage
+  NDivider, NH4, NForm, NFormItem, NImage
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/useImageModelManager'
 import { useToast } from '../composables/useToast'
 import type { ImageModelConfig } from '@prompt-optimizer/core'
+import ModelAdvancedSection from './ModelAdvancedSection.vue'
 
 
 const { t } = useI18n()
@@ -337,6 +262,7 @@ const {
   // computed helpers
   selectedProvider,
   selectedModel,
+  currentParameterDefinitions,
   // (use local computed for UI gates)
 
   // methods
@@ -345,6 +271,7 @@ const {
   onModelChange,
   testConnection: handleTestConnection,
   refreshModels: handleRefreshModels,
+  updateParamOverrides,
   saveConfig,
   resetForm,
   loadConfigs,
@@ -472,13 +399,13 @@ const onProviderChange = async (providerId: string, autoSelectFirstModel?: boole
 
 const refreshModels = async () => {
   if (!canRefreshModels.value) return
-  
+
   modelLoadingStatus.value = { type: 'info', messageKey: 'image.model.loading' }
-  
+
   try {
     await handleRefreshModels()
-    modelLoadingStatus.value = { 
-      type: 'success', 
+    modelLoadingStatus.value = {
+      type: 'success',
       messageKey: 'image.model.refreshSuccess',
       count: models.value.length
     }
@@ -488,6 +415,20 @@ const refreshModels = async () => {
     toast.error(t('image.model.refreshError'))
   } finally {
     // composable 管理 isLoadingModels
+  }
+}
+
+// 处理模型变更（只在非编辑模式或用户主动切换时自动填充参数）
+const handleModelChange = (modelId: string) => {
+  // 如果在编辑模式，检查是否已经加载了参数
+  // 通过检查 configForm 是否有 id 来判断是初始加载还是用户主动切换
+  if (isEditing.value && configForm.value.id) {
+    // 编辑模式：只更新 modelId，不自动填充参数
+    selectedModelId.value = modelId
+    configForm.value.modelId = modelId
+  } else {
+    // 新建模式或初次加载：调用 onModelChange，会自动填充默认参数
+    onModelChange(modelId)
   }
 }
 
@@ -505,41 +446,6 @@ const save = async () => {
   }
 }
 
-// 参数相关辅助方法
-const getParameterLabel = (param: any) => {
-  return param.labelKey ? t(param.labelKey) : param.name
-}
-
-const getParameterDescription = (param: any) => {
-  return param.descriptionKey ? t(param.descriptionKey) : ''
-}
-
-const getParameterPlaceholder = (param: any) => {
-  if (param.defaultValue !== undefined) {
-    return String(param.defaultValue)
-  }
-  return param.name
-}
-
-const getParamSelectOptions = (param: any) => {
-  if (!param.allowedValues) return []
-
-  return param.allowedValues.map((value: string, index: number) => ({
-    label: param.allowedValueLabelKeys && param.allowedValueLabelKeys[index]
-      ? t(param.allowedValueLabelKeys[index])
-      : value,
-    value: value
-  }))
-}
-
-// 移除已覆盖的参数键
-const removeParameter = (name: string) => {
-  if (!configForm.value.paramOverrides) return
-  const next = { ...(configForm.value.paramOverrides as Record<string, any>) }
-  delete next[name]
-  configForm.value.paramOverrides = next
-}
-
 // 监听 props 变化
 watch(() => props.show, async (newShow) => {
   console.log('[ImageModelEditModal] props.show changed:', newShow)
@@ -555,6 +461,7 @@ watch(() => props.show, async (newShow) => {
         if (existing) {
           // 先填充表单数据，确保 connectionConfig 可用
           configForm.value = JSON.parse(JSON.stringify(existing)) as ImageModelConfig
+          configForm.value.paramOverrides = configForm.value.paramOverrides || {}
           selectedProviderId.value = existing.providerId
           selectedModelId.value = existing.modelId
           // 然后再调用 handleProviderChange，此时 connectionConfig 已经可用
@@ -598,6 +505,7 @@ watch(() => props.configId, async (newConfigId, oldConfigId) => {
       if (existing) {
         // 先填充表单数据，确保 connectionConfig 可用
         configForm.value = JSON.parse(JSON.stringify(existing)) as ImageModelConfig
+        configForm.value.paramOverrides = configForm.value.paramOverrides || {}
         selectedProviderId.value = existing.providerId
         selectedModelId.value = existing.modelId
         // 然后再调用 handleProviderChange，此时 connectionConfig 已经可用

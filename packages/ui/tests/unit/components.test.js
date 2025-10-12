@@ -2,12 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { ActionButtonUI, ContentCardUI } from '../../src'
+import zhCN from '../../src/i18n/locales/zh-CN'
 
 // 创建i18n实例（Vue 3不需要createLocalVue）
 const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
-  messages: {}
+  messages: {
+    'zh-CN': zhCN
+  }
 })
 
 describe('基础UI组件测试', () => {

@@ -6,6 +6,7 @@ import { isRunningInElectron } from '../../utils/environment';
 import { ElectronLLMProxy } from './electron-proxy';
 import type { ITextAdapterRegistry } from './types';
 import { TextAdapterRegistry } from './adapters/registry';
+import { mergeOverrides, splitOverridesBySchema } from '../model/parameter-utils';
 
 /**
  * LLM服务实现 - 基于 Adapter 架构
@@ -87,8 +88,10 @@ export class LLMService implements ILLMService {
       // 通过 Registry 获取 Adapter
       const adapter = this.registry.getAdapter(modelConfig.providerMeta.id);
 
+      const runtimeConfig = this.prepareRuntimeConfig(modelConfig);
+
       // 使用 Adapter 发送消息
-      return await adapter.sendMessage(messages, modelConfig);
+      return await adapter.sendMessage(messages, runtimeConfig);
 
     } catch (error: any) {
       if (error instanceof RequestConfigError || error instanceof APIError) {
@@ -136,8 +139,10 @@ export class LLMService implements ILLMService {
       // 通过 Registry 获取 Adapter
       const adapter = this.registry.getAdapter(modelConfig.providerMeta.id);
 
+      const runtimeConfig = this.prepareRuntimeConfig(modelConfig);
+
       // 使用 Adapter 发送流式消息
-      await adapter.sendMessageStream(messages, modelConfig, callbacks);
+      await adapter.sendMessageStream(messages, runtimeConfig, callbacks);
 
     } catch (error) {
       console.error('流式请求失败:', error);
@@ -181,8 +186,10 @@ export class LLMService implements ILLMService {
       // 通过 Registry 获取 Adapter
       const adapter = this.registry.getAdapter(modelConfig.providerMeta.id);
 
+      const runtimeConfig = this.prepareRuntimeConfig(modelConfig);
+
       // 使用 Adapter 发送带工具的流式消息
-      await adapter.sendMessageStreamWithTools(messages, modelConfig, tools, callbacks);
+      await adapter.sendMessageStreamWithTools(messages, runtimeConfig, tools, callbacks);
 
     } catch (error) {
       console.error('带工具的流式请求失败:', error);
@@ -257,6 +264,26 @@ export class LLMService implements ILLMService {
     }
   }
 
+  private prepareRuntimeConfig(modelConfig: TextModelConfig): TextModelConfig {
+    const schema = modelConfig.modelMeta?.parameterDefinitions ?? [];
+
+    // 合并参数：支持旧格式的 customParamOverrides（向后兼容）
+    // 优先级：requestOverrides > customOverrides
+    // requestOverrides 包含当前 paramOverrides（可能已合并或未合并）
+    // customOverrides 确保旧数据的自定义参数不丢失
+    const mergedOverrides = mergeOverrides({
+      schema,
+      includeDefaults: false,
+      customOverrides: modelConfig.customParamOverrides,  // 🔧 兼容旧格式：自定义参数
+      requestOverrides: modelConfig.paramOverrides        // 当前参数（包含内置 + 可能已合并的自定义）
+    });
+
+    return {
+      ...modelConfig,
+      paramOverrides: mergedOverrides
+    };
+  }
+
   /**
    * 构建用于获取模型列表的有效模型配置
    * 支持 TextModelConfig 与 传统 ModelConfig 两种输入结构
@@ -310,10 +337,17 @@ export class LLMService implements ILLMService {
       connectionConfig.baseURL = providerMeta.defaultBaseURL;
     }
 
-    const paramOverrides = {
+    const schema = modelMeta.parameterDefinitions ?? [];
+    const legacySplit = splitOverridesBySchema(schema, customLegacyConfig?.llmParams ?? {});
+    const combinedBuiltIn = {
       ...(baseConfig?.paramOverrides ?? {}),
       ...(customTextConfig?.paramOverrides ?? {}),
-      ...(customLegacyConfig?.llmParams ?? {})
+      ...legacySplit.builtIn
+    };
+    const combinedCustom = {
+      ...(baseConfig?.customParamOverrides ?? {}),
+      ...(customTextConfig?.customParamOverrides ?? {}),
+      ...legacySplit.custom
     };
 
     return {
@@ -323,7 +357,8 @@ export class LLMService implements ILLMService {
       providerMeta,
       modelMeta,
       connectionConfig,
-      paramOverrides
+      paramOverrides: combinedBuiltIn,
+      customParamOverrides: combinedCustom
     };
   }
 

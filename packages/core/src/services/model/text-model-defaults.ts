@@ -47,17 +47,28 @@ export function createDefaultTextModels(envVars: {
     parameterDefinitions: [
       {
         name: 'temperature',
-        type: 'number',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         description: 'Sampling temperature (0-2)',
+        type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       },
       {
         name: 'max_tokens',
-        type: 'number',
+        labelKey: 'params.max_tokens.label',
+        descriptionKey: 'params.max_tokens.description',
         description: 'Maximum tokens to generate',
-        min: 1
+        type: 'integer',
+        minValue: 1,
+        min: 1,
+        unitKey: 'params.tokens.unit',
+        step: 1
       }
     ],
     defaultParameterValues: {
@@ -155,18 +166,30 @@ export function createDefaultTextModels(envVars: {
     parameterDefinitions: [
       {
         name: 'temperature',
-        type: 'number',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         description: 'Sampling temperature (0-2)',
+        type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       },
       {
         name: 'maxOutputTokens',
-        type: 'number',
+        labelKey: 'params.maxOutputTokens.label',
+        descriptionKey: 'params.maxOutputTokens.description',
         description: 'Maximum tokens to generate',
+        type: 'integer',
+        defaultValue: 8192,
         default: 8192,
-        min: 1
+        minValue: 1,
+        min: 1,
+        unitKey: 'params.tokens.unit',
+        step: 1
       }
     ],
     defaultParameterValues: {
@@ -190,11 +213,17 @@ export function createDefaultTextModels(envVars: {
     parameterDefinitions: [
       {
         name: 'temperature',
-        type: 'number',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
         description: 'Sampling temperature',
+        type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       }
     ],
     defaultParameterValues: {
@@ -216,10 +245,17 @@ export function createDefaultTextModels(envVars: {
     parameterDefinitions: [
       {
         name: 'temperature',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
+        description: 'Sampling temperature',
         type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       }
     ],
     defaultParameterValues: {
@@ -241,10 +277,17 @@ export function createDefaultTextModels(envVars: {
     parameterDefinitions: [
       {
         name: 'temperature',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
+        description: 'Sampling temperature (0-1)',
         type: 'number',
+        defaultValue: 0.95,
         default: 0.95,
+        minValue: 0,
+        maxValue: 1,
         min: 0,
-        max: 1
+        max: 1,
+        step: 0.01
       }
     ],
     defaultParameterValues: {
@@ -266,10 +309,17 @@ export function createDefaultTextModels(envVars: {
     parameterDefinitions: [
       {
         name: 'temperature',
+        labelKey: 'params.temperature.label',
+        descriptionKey: 'params.temperature.description',
+        description: 'Sampling temperature (0-2)',
         type: 'number',
+        defaultValue: 1,
         default: 1,
+        minValue: 0,
+        maxValue: 2,
         min: 0,
-        max: 2
+        max: 2,
+        step: 0.1
       }
     ],
     defaultParameterValues: {
@@ -289,7 +339,8 @@ export function createDefaultTextModels(envVars: {
         apiKey: envVars.OPENAI_API_KEY,
         baseURL: 'https://api.openai.com/v1'
       },
-      paramOverrides: {}
+      paramOverrides: {},
+      customParamOverrides: {}
     },
     gemini: {
       id: 'gemini',
@@ -301,7 +352,8 @@ export function createDefaultTextModels(envVars: {
         apiKey: envVars.GEMINI_API_KEY,
         baseURL: 'https://generativelanguage.googleapis.com'
       },
-      paramOverrides: {}
+      paramOverrides: {},
+      customParamOverrides: {}
     },
     deepseek: {
       id: 'deepseek',
@@ -313,7 +365,8 @@ export function createDefaultTextModels(envVars: {
         apiKey: envVars.DEEPSEEK_API_KEY,
         baseURL: 'https://api.deepseek.com/v1'
       },
-      paramOverrides: {}
+      paramOverrides: {},
+      customParamOverrides: {}
     },
     siliconflow: {
       id: 'siliconflow',
@@ -325,7 +378,8 @@ export function createDefaultTextModels(envVars: {
         apiKey: envVars.SILICONFLOW_API_KEY,
         baseURL: 'https://api.siliconflow.cn/v1'
       },
-      paramOverrides: {}
+      paramOverrides: {},
+      customParamOverrides: {}
     },
     zhipu: {
       id: 'zhipu',
@@ -337,7 +391,8 @@ export function createDefaultTextModels(envVars: {
         apiKey: envVars.ZHIPU_API_KEY,
         baseURL: 'https://open.bigmodel.cn/api/paas/v4'
       },
-      paramOverrides: {}
+      paramOverrides: {},
+      customParamOverrides: {}
     },
     custom: {
       id: 'custom',
@@ -349,7 +404,8 @@ export function createDefaultTextModels(envVars: {
         apiKey: envVars.CUSTOM_API_KEY,
         baseURL: envVars.CUSTOM_API_BASE_URL || 'http://localhost:11434/v1'
       },
-      paramOverrides: {}
+      paramOverrides: {},
+      customParamOverrides: {}
     }
   };
 }

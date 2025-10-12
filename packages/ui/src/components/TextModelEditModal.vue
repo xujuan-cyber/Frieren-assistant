@@ -94,9 +94,14 @@
                 style="flex: 1; min-width: 300px; max-width: 500px;"
                 clearable
                 filterable
-                :filter="(pattern, option) => option.label.toLowerCase().includes(pattern.toLowerCase()) || option.value.toLowerCase().includes(pattern.toLowerCase())"
+                :filter="(pattern, option) => {
+                  const label = typeof option.label === 'string' ? option.label : String(option.value)
+                  const value = String(option.value)
+                  return label.toLowerCase().includes(pattern.toLowerCase()) || value.toLowerCase().includes(pattern.toLowerCase())
+                }"
                 tag
                 required
+                @update:value="handleModelChange"
               />
 
               <NTooltip :disabled="!canRefreshModelOptions" :show-arrow="false">
@@ -127,169 +132,13 @@
         </NForm>
 
         <NDivider style="margin: 12px 0 8px 0;" />
-        <NSpace justify="space-between" align="center" style="margin-bottom: 12px;">
-          <NSpace vertical :size="4">
-            <NH4 style="margin: 0; font-size: 14px;">{{ t('modelManager.advancedParameters.title') }}</NH4>
-            <NText depth="3" style="font-size: 12px;">
-              {{ t('modelManager.advancedParameters.currentProvider') }}:
-              <NText strong>
-                {{ currentProviderType === 'custom' ? t('modelManager.advancedParameters.customProvider') : currentProviderType.toUpperCase() }}
-              </NText>
-              <span v-if="availableLLMParamDefinitions.length > 0">
-                ({{ availableLLMParamDefinitions.length }}{{ t('modelManager.advancedParameters.availableParams') }})
-              </span>
-              <NText v-else type="warning">
-                ({{ t('modelManager.advancedParameters.noAvailableParams') }})
-              </NText>
-            </NText>
-          </NSpace>
-
-          <NSelect
-            v-model:value="selectedNewLLMParamId"
-            @update:value="handleQuickAddParam"
-            style="width: 220px;"
-            size="small"
-            :options="[
-              { label: t('modelManager.advancedParameters.select'), value: '', disabled: true },
-              ...availableLLMParamDefinitions.map(paramDef => ({
-                label: paramDef.labelKey ? t(paramDef.labelKey) : paramDef.name,
-                value: paramDef.id
-              })),
-              { label: t('modelManager.advancedParameters.custom'), value: 'custom' }
-            ]"
-          />
-        </NSpace>
-
-        <NCard v-if="selectedNewLLMParamId === 'custom'" size="small" style="margin: 12px 0;">
-          <template #header>
-            <NSpace justify="space-between" align="center">
-              <NText strong>{{ t('modelManager.advancedParameters.custom') }}</NText>
-              <NButton @click="cancelCustomParam" size="tiny" quaternary circle>×</NButton>
-            </NSpace>
-          </template>
-          <NSpace vertical :size="12">
-            <NSpace vertical :size="8">
-              <NText depth="3" style="font-size: 12px;">参数名称</NText>
-              <NInput
-                v-model:value="customLLMParam.key"
-                :placeholder="t('modelManager.advancedParameters.customKeyPlaceholder')"
-                size="small"
-              />
-            </NSpace>
-            <NSpace vertical :size="8">
-              <NText depth="3" style="font-size: 12px;">参数值</NText>
-              <NInput
-                v-model:value="customLLMParam.value"
-                :placeholder="t('modelManager.advancedParameters.customValuePlaceholder')"
-                size="small"
-              />
-            </NSpace>
-            <NSpace justify="end">
-              <NButton @click="cancelCustomParam" size="small">{{ t('common.cancel') }}</NButton>
-              <NButton
-                @click="handleCustomParamAdd"
-                type="primary"
-                size="small"
-                :disabled="!customLLMParam.key || !customLLMParam.value"
-              >
-                {{ t('common.add') }}
-              </NButton>
-            </NSpace>
-          </NSpace>
-        </NCard>
-
-        <NText
-          v-if="Object.keys(currentParamOverrides || {}).length === 0"
-          depth="3"
-          style="font-size: 14px; margin-bottom: 12px;"
-        >
-          {{ t('modelManager.advancedParameters.noParamsConfigured') }}
-        </NText>
-
-        <NSpace vertical :size="12">
-          <NCard
-            v-for="(value, key) in currentParamOverrides"
-            :key="key"
-            size="small"
-            embedded
-          >
-            <template #header>
-              <NSpace justify="space-between" align="center">
-                <NSpace align="center">
-                  <NText strong>{{ getParamMetadata(key)?.label || key }}</NText>
-                  <NTag v-if="!getParamMetadata(key)" type="info" size="small">
-                    {{ t('modelManager.advancedParameters.customParam') }}
-                  </NTag>
-                </NSpace>
-                <NButton
-                  @click="removeLLMParam(key)"
-                  size="tiny"
-                  type="error"
-                  quaternary
-                  circle
-                >
-                  ×
-                </NButton>
-              </NSpace>
-            </template>
-
-            <NSpace vertical :size="8">
-              <NText v-if="getParamMetadata(key)?.description" depth="3" style="font-size: 12px;">
-                {{ getParamMetadata(key)?.description }}
-              </NText>
-
-              <NCheckbox
-                v-if="getParamMetadata(key)?.type === 'boolean'"
-                v-model:checked="currentParamOverrides[key]"
-              >
-                {{ currentParamOverrides[key] ? t('common.enabled') : t('common.disabled') }}
-              </NCheckbox>
-
-              <NSpace
-                v-else-if="getParamMetadata(key)?.type === 'number' || (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')"
-                vertical
-                :size="4"
-              >
-                <NInputNumber
-                  v-model:value="currentParamOverrides[key] as number"
-                  :min="getParamMetadata(key)?.minValue"
-                  :max="getParamMetadata(key)?.maxValue"
-                  :step="getParamMetadata(key)?.step"
-                  :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
-                  :status="isParamInvalid(key, currentParamOverrides[key]) ? 'error' : undefined"
-                />
-                <NText
-                  v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined"
-                  depth="3"
-                  style="font-size: 12px;"
-                >
-                  范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
-                </NText>
-                <NText
-                  v-if="isParamInvalid(key, currentParamOverrides[key])"
-                  type="error"
-                  style="font-size: 12px;"
-                >
-                  {{ getParamValidationMessage(key, currentParamOverrides[key]) }}
-                </NText>
-              </NSpace>
-
-              <NSpace v-else vertical :size="4">
-                <NInput
-                  v-model:value="currentParamOverrides[key] as string"
-                  :placeholder="getParamMetadata(key)?.name === 'stopSequences' ? t('modelManager.advancedParameters.stopSequencesPlaceholder') : (getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : '')"
-                />
-                <NText
-                  v-if="getParamMetadata(key)?.name === 'stopSequences'"
-                  depth="3"
-                  style="font-size: 12px;"
-                >
-                  {{ t('modelManager.advancedParameters.stopSequencesPlaceholder') }}
-                </NText>
-              </NSpace>
-            </NSpace>
-          </NCard>
-        </NSpace>
+        <ModelAdvancedSection
+          mode="text"
+          :provider-type="currentProviderType"
+          :parameter-definitions="currentParameterDefinitions"
+          :param-overrides="form.paramOverrides"
+          @update:paramOverrides="updateParamOverrides"
+        />
       </form>
     </NScrollbar>
 
@@ -343,17 +192,17 @@ import {
   NH4,
   NInput,
   NInputNumber,
-  NSelect,
   NCheckbox,
+  NSelect,
   NSpace,
   NButton,
   NDivider,
   NText,
   NTag,
   NTooltip,
-  NCard,
   NSpin
 } from 'naive-ui'
+import ModelAdvancedSection from './ModelAdvancedSection.vue'
 import type { TextModelManager } from '../composables/useTextModelManager'
 
 const props = defineProps({
@@ -383,20 +232,12 @@ const isLoadingProviders = manager.isLoadingProviders
 const connectionFields = manager.connectionFields
 const modelOptions = manager.modelOptions
 const isLoadingModelOptions = manager.isLoadingModelOptions
-const availableLLMParamDefinitions = manager.availableLLMParamDefinitions
 const canRefreshModelOptions = manager.canRefreshModelOptions
 const refreshModelOptions = manager.refreshModelOptions
-const selectedNewLLMParamId = manager.selectedNewLLMParamId
-const handleQuickAddParam = manager.handleQuickAddParam
-const customLLMParam = manager.customLLMParam
-const cancelCustomParam = manager.cancelCustomParam
-const handleCustomParamAdd = manager.handleCustomParamAdd
-const currentParamOverrides = manager.currentParamOverrides
+const currentParameterDefinitions = manager.currentParameterDefinitions
+const updateParamOverrides = manager.updateParamOverrides
+const onModelChange = manager.onModelChange
 const currentProviderType = manager.currentProviderType
-const getParamMetadata = manager.getParamMetadata
-const removeLLMParam = manager.removeLLMParam
-const isParamInvalid = manager.isParamInvalid
-const getParamValidationMessage = manager.getParamValidationMessage
 const formConnectionStatus = manager.formConnectionStatus
 const testFormConnection = manager.testFormConnection
 const isTestingFormConnection = manager.isTestingFormConnection
@@ -426,7 +267,22 @@ const handleCancel = () => {
   handleUpdateShow(false)
 }
 
+// 处理模型变更（只在非编辑模式或用户主动切换时自动填充参数）
+const handleModelChange = (modelId: string) => {
+  if (isEditing.value && form.value.originalId) {
+    // 编辑模式：只更新 modelId，不自动填充参数
+    form.value.modelId = modelId
+    form.value.defaultModel = modelId || ''
+  } else {
+    // 新建模式：调用 onModelChange，会自动填充默认参数
+    onModelChange(modelId)
+  }
+}
+
 const onProviderChange = (providerId: string) => {
-  manager.selectProvider(providerId, !isEditing.value)
+  manager.selectProvider(providerId, {
+    autoSelectFirstModel: !isEditing.value,
+    resetOverrides: true
+  })
 }
 </script>

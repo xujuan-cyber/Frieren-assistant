@@ -46,7 +46,8 @@ export function getDefaultImageModels(registry: IImageAdapterRegistry): Record<s
       modelId,
       enabled,
       connectionConfig,
-      paramOverrides,
+      paramOverrides: paramOverrides ?? {},
+      customParamOverrides: {},
       provider,
       model
     }

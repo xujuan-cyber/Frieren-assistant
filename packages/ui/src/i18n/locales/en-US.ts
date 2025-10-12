@@ -398,6 +398,7 @@ export default {
       title: 'Advanced Parameters',
       noParamsConfigured: 'No advanced parameters configured',
       customParam: 'Custom',
+      advancedTag: 'Advanced',
       add: 'Add Parameter',
       select: 'Select a parameter',
       selectTitle: 'Add Advanced Parameter',
@@ -411,6 +412,9 @@ export default {
       availableParams: 'available parameters',
       noAvailableParams: 'no available parameters',
       validation: {
+        customKeyRequired: 'Parameter name is required',
+        customValueRequired: 'Parameter value is required',
+        duplicateParam: 'Parameter already exists',
         dangerousParam: 'This parameter is considered dangerous and is not allowed',
         invalidNumber: 'Must be a valid number',
         belowMin: 'Value cannot be less than {min}',
@@ -981,6 +985,22 @@ export default {
     "seed": {
       "label": "Seed",
       "description": "Random seed for controlling generation results, same seed produces same output"
+    },
+    "max_completion_tokens": {
+      "label": "Max Completion Tokens",
+      "description": "Maximum number of tokens to generate in the completion (recommended, replaces max_tokens). Range: 1-1,000,000."
+    },
+    "logprobs": {
+      "label": "Log Probabilities",
+      "description": "Whether to return log probabilities of output tokens in the response. When enabled, you can see the model's confidence for each token."
+    },
+    "top_logprobs": {
+      "label": "Top Log Probabilities Count",
+      "description": "Number of most likely tokens to return with log probabilities for each position. Range: 0-20. Requires logprobs to be enabled first."
+    },
+    "n": {
+      "label": "Number of Completions",
+      "description": "How many completion choices to generate for each input. Range: 1-128. Note: generating multiple results consumes more token quota."
     }
   },
   contextEditor: {

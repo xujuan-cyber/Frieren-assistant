@@ -127,14 +127,14 @@ describe('GeminiAdapter', () => {
 
       const defaultValues = model.defaultParameterValues || {};
 
-      // 验证基础参数有默认值
-      expect(defaultValues).toHaveProperty('temperature');
-      expect(defaultValues).toHaveProperty('topP');
-      expect(defaultValues).toHaveProperty('maxOutputTokens');
+      // 默认值现在返回空对象，让服务器使用官方默认值
+      // 这是为了避免客户端错误默认值影响效果
+      expect(defaultValues).toEqual({});
 
-      // 验证思考参数默认未启用
-      expect(defaultValues).not.toHaveProperty('thinkingBudget');
-      expect(defaultValues).not.toHaveProperty('includeThoughts');
+      // 验证参数定义中包含思考参数
+      const paramNames = model.parameterDefinitions.map(p => p.name);
+      expect(paramNames).toContain('thinkingBudget');
+      expect(paramNames).toContain('includeThoughts');
     });
   });
 

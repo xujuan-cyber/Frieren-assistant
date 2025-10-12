@@ -1,21 +1,12 @@
 import { IImportExportable } from '../../interfaces/import-export'
+import type { UnifiedParameterDefinition } from '../model/parameter-schema'
 
 // === 图像参数定义 ===
 
-export interface ImageParameterDefinition {
-  name: string                    // SDK 参数名，如 "size", "guidance_scale"
-  labelKey: string               // UI 文案 i18n key，如 "params.size.label"
-  descriptionKey: string         // UI 描述 i18n key，如 "params.size.description"
-  type: 'number' | 'integer' | 'boolean' | 'string'
-  defaultValue?: unknown
-  minValue?: number
-  maxValue?: number
-  step?: number
-  allowedValues?: string[]       // 枚举值，如 ["1024x1024", "768x1024"]
+export interface ImageParameterDefinition extends UnifiedParameterDefinition {
+  labelKey: string                // UI 文案 i18n key，如 "params.size.label"
+  descriptionKey: string          // UI 描述 i18n key，如 "params.size.description"
   allowedValueLabelKeys?: string[] // 枚举值的 i18n keys
-  unit?: string                  // 单位，如 "px", "steps"
-  unitKey?: string              // 单位的 i18n key
-  required?: boolean            // 是否必填
 }
 
 // === 核心架构类型（三层分离：Provider → Model → Configuration） ===
@@ -74,8 +65,15 @@ export interface ImageModelConfig {
     [key: string]: any                   // 支持其他连接参数（如 organization, region 等）
   }
 
-  // 参数覆盖（可选）
-  paramOverrides?: Record<string, unknown> // 覆盖模型默认参数
+  // 参数覆盖（统一字段）
+  paramOverrides?: Record<string, unknown> // 覆盖模型默认参数（包含内置和自定义参数）
+
+  /**
+   * @deprecated 已废弃，将在 v3.0 移除
+   * 旧版本的自定义参数字段，现已合并到 paramOverrides
+   * 仅用于向后兼容读取旧数据，新代码不应使用此字段
+   */
+  customParamOverrides?: Record<string, unknown>
 
   // 自包含数据（新增）
   provider: ImageProvider              // 完整的提供商信息副本
