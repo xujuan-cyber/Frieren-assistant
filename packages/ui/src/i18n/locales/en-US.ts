@@ -103,6 +103,133 @@ export default {
   },
   favorites: {
     title: 'My Favorites',
+    manager: {
+      title: 'Favorites Manager',
+      searchPlaceholder: 'Search favorites...',
+      allCategories: 'All Categories',
+      allTags: 'All Tags',
+      totalCount: '{count} items',
+      import: 'Import',
+      add: 'Add',
+      emptySearchResult: 'No matching favorites found',
+      emptyDescription: 'No favorites yet',
+      startOptimize: 'Start optimizing prompts',
+      importDialog: {
+        title: 'Import Favorites',
+        selectFile: 'Select JSON file',
+        uploadHint: 'Click or drag file to this area',
+        supportFormat: 'Supports .json files',
+        orPasteJson: 'Or paste exported favorites JSON',
+        pastePlaceholder: 'Paste favorites data...',
+        mergeStrategy: 'Merge Strategy',
+        skipDuplicate: 'Skip Duplicates',
+        overwriteDuplicate: 'Overwrite Duplicates',
+        createCopy: 'Create Copy',
+        cancel: 'Cancel',
+        import: 'Import',
+        importing: 'Importing...',
+        selectFileOrPaste: 'Please select a file or paste import data first',
+        importSuccess: 'Import completed: {imported} successful, {skipped} skipped',
+        importPartialFailed: 'Some favorites failed to import',
+        importFailed: 'Import failed',
+        readFileFailed: 'Failed to read file'
+      },
+      categoryManager: {
+        title: 'Category Manager'
+      },
+      actions: {
+        export: 'Export Favorites',
+        clear: 'Clear Favorites',
+        exportSuccess: 'Export successful',
+        exportFailed: 'Export failed',
+        clearConfirm: 'Are you sure you want to clear all favorites? This action cannot be undone.',
+        clearSuccess: 'Cleared successfully',
+        clearFailed: 'Clear failed',
+        deleteConfirm: 'Are you sure you want to delete favorite "{title}"? This action cannot be undone.',
+        deleteSuccess: 'Deleted successfully',
+        deleteFailed: 'Delete failed',
+        copySuccess: 'Copied to clipboard',
+        copyFailed: 'Copy failed',
+        copiedOptimized: 'Optimized prompt copied',
+        copiedReasoning: 'Reasoning content copied',
+        copiedAll: 'Content copied',
+        shareComingSoon: 'Share feature coming soon',
+        categoryManagementComingSoon: 'Category management coming in a future version'
+      },
+      preview: {
+        title: 'Favorite Details',
+        updatedAt: 'Updated {time}'
+      },
+      messages: {
+        unavailable: 'Favorites feature is temporarily unavailable, please try again later',
+        loadFailed: 'Failed to load favorites',
+        loadCategoryFailed: 'Failed to load categories',
+        managerNotInitialized: 'Favorites manager not initialized'
+      },
+      time: {
+        justNow: 'Just now',
+        minutesAgo: '{minutes} minutes ago',
+        hoursAgo: '{hours} hours ago',
+        yesterday: 'Yesterday',
+        daysAgo: '{days} days ago'
+      },
+      card: {
+        useCount: 'Use count',
+        copyContent: 'Copy content',
+        useNow: 'Use now',
+        edit: 'Edit',
+        delete: 'Delete',
+        cancel: 'Cancel',
+        deleteConfirm: 'Delete "{title}"?'
+      }
+    },
+    dialog: {
+      createTitle: 'Create Favorite',
+      editTitle: 'Edit Favorite',
+      saveTitle: 'Save to Favorites',
+      basicInfo: '📋 Basic Information',
+      contentTitle: '📝 Content',
+      titleLabel: 'Title',
+      titlePlaceholder: 'Name this prompt',
+      categoryLabel: 'Category',
+      categoryPlaceholder: 'Select category (optional)',
+      functionModeLabel: 'Function Mode',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Describe the purpose and characteristics of this prompt',
+      optimizationModeLabel: 'Optimization Mode',
+      optimizationModePlaceholder: 'Select optimization mode',
+      imageModeLabel: 'Image Mode',
+      imageModePlaceholder: 'Select image mode',
+      tagsLabel: 'Tags',
+      tagsPlaceholder: 'Enter tags and press Enter to add',
+      contentPlaceholder: 'Enter prompt content here...',
+      cancel: 'Cancel',
+      save: 'Save',
+      functionModes: {
+        basic: 'Basic',
+        context: 'Context',
+        image: 'Image'
+      },
+      optimizationModes: {
+        system: 'System Prompt',
+        user: 'User Prompt'
+      },
+      imageModes: {
+        text2image: 'Text-to-Image',
+        image2image: 'Image-to-Image'
+      },
+      validation: {
+        titleRequired: 'Title is required',
+        contentRequired: 'Content is required'
+      },
+      messages: {
+        editSuccess: 'Edit successful',
+        saveSuccess: 'Saved to favorites successfully',
+        saveFailed: 'Save failed',
+        editFailed: 'Edit failed',
+        unavailable: 'Favorites feature is temporarily unavailable, please try again later'
+      }
+    },
     categoryManager: {
       title: 'Category Manager',
       addRootCategory: 'Add Root Category',
@@ -134,6 +261,20 @@ export default {
       validation: {
         nameRequired: 'Please enter category name',
         nameLength: 'Category name length should be 1-50 characters'
+      },
+      defaultCategories: {
+        uncategorized: 'Uncategorized',
+        uncategorizedDesc: 'Default category',
+        systemPrompt: 'System Prompts',
+        systemPromptDesc: 'Optimized system prompts',
+        userPrompt: 'User Prompts',
+        userPromptDesc: 'Optimized user prompts',
+        creativeWriting: 'Creative Writing',
+        creativeWritingDesc: 'Creative writing related prompts',
+        programming: 'Programming',
+        programmingDesc: 'Programming and development related prompts',
+        businessAnalysis: 'Business Analysis',
+        businessAnalysisDesc: 'Business analysis related prompts'
       }
     }
   },

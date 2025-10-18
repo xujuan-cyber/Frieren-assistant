@@ -103,6 +103,133 @@
   },
   favorites: {
     title: '我的收藏',
+    manager: {
+      title: '收藏管理',
+      searchPlaceholder: '搜索收藏...',
+      allCategories: '全部分类',
+      allTags: '全部标签',
+      totalCount: '共 {count} 项',
+      import: '导入',
+      add: '添加',
+      emptySearchResult: '没有找到匹配的收藏',
+      emptyDescription: '还没有收藏任何提示词',
+      startOptimize: '开始优化提示词',
+      importDialog: {
+        title: '导入收藏',
+        selectFile: '选择 JSON 文件',
+        uploadHint: '点击或拖拽文件到此区域',
+        supportFormat: '支持 .json 文件',
+        orPasteJson: '或粘贴导出的收藏 JSON',
+        pastePlaceholder: '粘贴收藏数据...',
+        mergeStrategy: '合并策略',
+        skipDuplicate: '跳过重复',
+        overwriteDuplicate: '覆盖重复',
+        createCopy: '创建副本',
+        cancel: '取消',
+        import: '导入',
+        importing: '导入中...',
+        selectFileOrPaste: '请先选择文件或粘贴导入数据',
+        importSuccess: '导入完成：成功 {imported} 项，跳过 {skipped} 项',
+        importPartialFailed: '部分收藏导入失败',
+        importFailed: '导入失败',
+        readFileFailed: '读取文件失败'
+      },
+      categoryManager: {
+        title: '分类管理'
+      },
+      actions: {
+        export: '导出收藏',
+        clear: '清空收藏',
+        exportSuccess: '导出成功',
+        exportFailed: '导出失败',
+        clearConfirm: '确定要清空所有收藏吗？此操作不可恢复。',
+        clearSuccess: '清空成功',
+        clearFailed: '清空失败',
+        deleteConfirm: '确定要删除收藏 "{title}" 吗？此操作不可恢复。',
+        deleteSuccess: '删除成功',
+        deleteFailed: '删除失败',
+        copySuccess: '已复制到剪贴板',
+        copyFailed: '复制失败',
+        copiedOptimized: '已复制优化后的提示词',
+        copiedReasoning: '已复制推理内容',
+        copiedAll: '已复制内容',
+        shareComingSoon: '分享功能即将上线',
+        categoryManagementComingSoon: '分类管理功能将在后续版本提供'
+      },
+      preview: {
+        title: '收藏详情',
+        updatedAt: '更新于 {time}'
+      },
+      messages: {
+        unavailable: '收藏功能暂不可用，请稍后再试',
+        loadFailed: '加载收藏失败',
+        loadCategoryFailed: '加载分类失败',
+        managerNotInitialized: '收藏管理器未初始化'
+      },
+      time: {
+        justNow: '刚刚',
+        minutesAgo: '{minutes}分钟前',
+        hoursAgo: '{hours}小时前',
+        yesterday: '昨天',
+        daysAgo: '{days}天前'
+      },
+      card: {
+        useCount: '使用次数',
+        copyContent: '复制内容',
+        useNow: '立即使用',
+        edit: '编辑',
+        delete: '删除',
+        cancel: '取消',
+        deleteConfirm: '确定删除"{title}"吗？'
+      }
+    },
+    dialog: {
+      createTitle: '新建收藏',
+      editTitle: '编辑收藏',
+      saveTitle: '保存到收藏夹',
+      basicInfo: '📋 基础信息',
+      contentTitle: '📝 正文内容',
+      titleLabel: '标题',
+      titlePlaceholder: '为这个提示词起个名字',
+      categoryLabel: '分类',
+      categoryPlaceholder: '选择分类（可选）',
+      functionModeLabel: '功能模式',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '描述这个提示词的用途和特点',
+      optimizationModeLabel: '优化模式',
+      optimizationModePlaceholder: '选择优化模式',
+      imageModeLabel: '图像模式',
+      imageModePlaceholder: '选择图像模式',
+      tagsLabel: '标签',
+      tagsPlaceholder: '输入标签后按回车添加',
+      contentPlaceholder: '在这里输入提示词内容...',
+      cancel: '取消',
+      save: '保存',
+      functionModes: {
+        basic: '基础',
+        context: '上下文',
+        image: '图像'
+      },
+      optimizationModes: {
+        system: '系统提示词',
+        user: '用户提示词'
+      },
+      imageModes: {
+        text2image: '文生图',
+        image2image: '图生图'
+      },
+      validation: {
+        titleRequired: '标题不能为空',
+        contentRequired: '内容不能为空'
+      },
+      messages: {
+        editSuccess: '编辑成功',
+        saveSuccess: '保存到收藏夹成功',
+        saveFailed: '保存失败',
+        editFailed: '编辑失败',
+        unavailable: '收藏功能暂不可用,请稍后再试'
+      }
+    },
     categoryManager: {
       title: '分类管理',
       addRootCategory: '添加根分类',
@@ -134,6 +261,20 @@
       validation: {
         nameRequired: '请输入分类名称',
         nameLength: '分类名称长度应在 1-50 之间'
+      },
+      defaultCategories: {
+        uncategorized: '未分类',
+        uncategorizedDesc: '默认分类',
+        systemPrompt: '系统提示词',
+        systemPromptDesc: '优化后的系统提示词',
+        userPrompt: '用户提示词',
+        userPromptDesc: '优化后的用户提示词',
+        creativeWriting: '创意写作',
+        creativeWritingDesc: '创意写作相关的提示词',
+        programming: '编程开发',
+        programmingDesc: '编程开发相关的提示词',
+        businessAnalysis: '商业分析',
+        businessAnalysisDesc: '商业分析相关的提示词'
       }
     }
   },

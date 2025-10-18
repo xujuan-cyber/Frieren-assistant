@@ -103,6 +103,180 @@ export default {
   },
   favorites: {
     title: '我的收藏',
+    manager: {
+      title: '收藏管理',
+      searchPlaceholder: '搜尋收藏...',
+      allCategories: '全部分類',
+      allTags: '全部標籤',
+      totalCount: '共 {count} 項',
+      import: '匯入',
+      add: '新增',
+      emptySearchResult: '沒有找到相符的收藏',
+      emptyDescription: '還沒有收藏任何提示詞',
+      startOptimize: '開始優化提示詞',
+      importDialog: {
+        title: '匯入收藏',
+        selectFile: '選擇 JSON 檔案',
+        uploadHint: '點選或拖曳檔案到此區域',
+        supportFormat: '支援 .json 檔案',
+        orPasteJson: '或貼上匯出的收藏 JSON',
+        pastePlaceholder: '貼上收藏資料...',
+        mergeStrategy: '合併策略',
+        skipDuplicate: '跳過重複',
+        overwriteDuplicate: '覆蓋重複',
+        createCopy: '建立副本',
+        cancel: '取消',
+        import: '匯入',
+        importing: '匯入中...',
+        selectFileOrPaste: '請先選擇檔案或貼上匯入資料',
+        importSuccess: '匯入完成：成功 {imported} 項，跳過 {skipped} 項',
+        importPartialFailed: '部分收藏匯入失敗',
+        importFailed: '匯入失敗',
+        readFileFailed: '讀取檔案失敗'
+      },
+      categoryManager: {
+        title: '分類管理'
+      },
+      actions: {
+        export: '匯出收藏',
+        clear: '清空收藏',
+        exportSuccess: '匯出成功',
+        exportFailed: '匯出失敗',
+        clearConfirm: '確定要清空所有收藏嗎？此操作不可恢復。',
+        clearSuccess: '清空成功',
+        clearFailed: '清空失敗',
+        deleteConfirm: '確定要刪除收藏 "{title}" 嗎？此操作不可恢復。',
+        deleteSuccess: '刪除成功',
+        deleteFailed: '刪除失敗',
+        copySuccess: '已複製到剪貼簿',
+        copyFailed: '複製失敗',
+        copiedOptimized: '已複製優化後的提示詞',
+        copiedReasoning: '已複製推理內容',
+        copiedAll: '已複製內容',
+        shareComingSoon: '分享功能即將上線',
+        categoryManagementComingSoon: '分類管理功能將在後續版本提供'
+      },
+      preview: {
+        title: '收藏詳情',
+        updatedAt: '更新於 {time}'
+      },
+      messages: {
+        unavailable: '收藏功能暫不可用，請稍後再試',
+        loadFailed: '載入收藏失敗',
+        loadCategoryFailed: '載入分類失敗',
+        managerNotInitialized: '收藏管理器未初始化'
+      },
+      time: {
+        justNow: '剛剛',
+        minutesAgo: '{minutes}分鐘前',
+        hoursAgo: '{hours}小時前',
+        yesterday: '昨天',
+        daysAgo: '{days}天前'
+      },
+      card: {
+        useCount: '使用次數',
+        copyContent: '複製內容',
+        useNow: '立即使用',
+        edit: '編輯',
+        delete: '刪除',
+        cancel: '取消',
+        deleteConfirm: '確定刪除"{title}"嗎？'
+      }
+    },
+    dialog: {
+      createTitle: '新建收藏',
+      editTitle: '編輯收藏',
+      saveTitle: '儲存到收藏夾',
+      basicInfo: '📋 基礎資訊',
+      contentTitle: '📝 正文內容',
+      titleLabel: '標題',
+      titlePlaceholder: '為這個提示詞起個名字',
+      categoryLabel: '分類',
+      categoryPlaceholder: '選擇分類（可選）',
+      functionModeLabel: '功能模式',
+      descriptionLabel: '描述',
+      descriptionPlaceholder: '描述這個提示詞的用途和特點',
+      optimizationModeLabel: '優化模式',
+      optimizationModePlaceholder: '選擇優化模式',
+      imageModeLabel: '圖像模式',
+      imageModePlaceholder: '選擇圖像模式',
+      tagsLabel: '標籤',
+      tagsPlaceholder: '輸入標籤後按Enter新增',
+      contentPlaceholder: '在這裡輸入提示詞內容...',
+      cancel: '取消',
+      save: '儲存',
+      functionModes: {
+        basic: '基礎',
+        context: '情境',
+        image: '圖像'
+      },
+      optimizationModes: {
+        system: '系統提示詞',
+        user: '使用者提示詞'
+      },
+      imageModes: {
+        text2image: '文生圖',
+        image2image: '圖生圖'
+      },
+      validation: {
+        titleRequired: '標題不能為空',
+        contentRequired: '內容不能為空'
+      },
+      messages: {
+        editSuccess: '編輯成功',
+        saveSuccess: '儲存到收藏夾成功',
+        saveFailed: '儲存失敗',
+        editFailed: '編輯失敗',
+        unavailable: '收藏功能暫不可用，請稍後再試'
+      }
+    },
+    categoryManager: {
+      title: '分類管理',
+      addRootCategory: '新增根分類',
+      addSubCategory: '新增子分類',
+      expandAll: '全部展開',
+      collapseAll: '全部摺疊',
+      edit: '編輯',
+      delete: '刪除',
+      editCategory: '編輯分類',
+      addCategory: '新增分類',
+      categoryName: '分類名稱',
+      categoryNamePlaceholder: '請輸入分類名稱',
+      categoryDescription: '分類描述',
+      categoryDescriptionPlaceholder: '請輸入分類描述',
+      parentCategory: '父分類',
+      parentCategoryPlaceholder: '選擇父分類（不選則為根分類）',
+      categoryColor: '分類顏色',
+      confirmDelete: '確認刪除',
+      deleteWarning: '確定要刪除分類 <strong>{name}</strong> 嗎？',
+      deleteChildrenWarning: '警告：該分類下還有 {count} 個子分類，將一併刪除！',
+      deleteUsageWarning: '提示：該分類已被 {count} 個收藏使用，刪除後這些收藏將變為未分類。',
+      deleteSuccess: '刪除成功',
+      deleteFailed: '刪除失敗',
+      saveSuccess: '儲存成功',
+      addSuccess: '新增成功',
+      updateSuccess: '更新成功',
+      saveFailed: '儲存失敗',
+      loadFailed: '載入分類失敗',
+      validation: {
+        nameRequired: '請輸入分類名稱',
+        nameLength: '分類名稱長度應在 1-50 之間'
+      },
+      defaultCategories: {
+        uncategorized: '未分類',
+        uncategorizedDesc: '預設分類',
+        systemPrompt: '系統提示詞',
+        systemPromptDesc: '優化後的系統提示詞',
+        userPrompt: '使用者提示詞',
+        userPromptDesc: '優化後的使用者提示詞',
+        creativeWriting: '創意寫作',
+        creativeWritingDesc: '創意寫作相關的提示詞',
+        programming: '程式開發',
+        programmingDesc: '程式開發相關的提示詞',
+        businessAnalysis: '商業分析',
+        businessAnalysisDesc: '商業分析相關的提示詞'
+      }
+    }
   },
   promptOptimizer: {
     title: '提示詞優化器',
