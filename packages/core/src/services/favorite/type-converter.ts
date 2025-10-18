@@ -5,6 +5,19 @@ import type { TagStatistics } from './types';
  * 统一处理不同格式之间的标签数据转换
  */
 export class TagTypeConverter {
+  private static readonly collator = new Intl.Collator(
+    ['zh-Hans-u-co-pinyin', 'zh-Hans', 'zh', 'en'],
+    { sensitivity: 'accent', numeric: true }
+  );
+
+  private static compareNames(a: string, b: string): number {
+    try {
+      return TagTypeConverter.collator.compare(a, b);
+    } catch {
+      return a.localeCompare(b);
+    }
+  }
+
   /**
    * 将 API 返回的标签数据转换为 TagStatistics 格式
    * @param apiData API 返回的标签数据 { tag: string; count: number }[]
@@ -71,7 +84,7 @@ export class TagTypeConverter {
    * @returns 排序后的标签数据
    */
   static sortByName(tags: TagStatistics[]): TagStatistics[] {
-    return [...tags].sort((a, b) => a.name.localeCompare(b.name));
+    return [...tags].sort((a, b) => TagTypeConverter.compareNames(a.name, b.name));
   }
 
   /**
@@ -84,7 +97,14 @@ export class TagTypeConverter {
       if (b.count !== a.count) {
         return b.count - a.count;
       }
-      return a.name.localeCompare(b.name);
+      return TagTypeConverter.compareNames(a.name, b.name);
     });
+  }
+
+  /**
+   * 对外暴露名称排序规则，便于其他模块保持一致
+   */
+  static compareTagNames(a: string, b: string): number {
+    return TagTypeConverter.compareNames(a, b);
   }
 }

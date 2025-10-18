@@ -17,6 +17,7 @@ import {
   FavoriteImportExportError
 } from './errors';
 import { TypeMapper } from './type-mapper';
+import { TagTypeConverter } from './type-converter';
 
 /**
  * 收藏管理器实现
@@ -699,7 +700,7 @@ export class FavoriteManager implements IFavoriteManager {
           if (b.count !== a.count) {
             return b.count - a.count; // 按使用次数降序
           }
-          return a.tag.localeCompare(b.tag); // 相同次数按标签名升序
+          return TagTypeConverter.compareTagNames(a.tag, b.tag); // 相同次数按标签名升序
         });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -990,20 +991,24 @@ export class FavoriteManager implements IFavoriteManager {
     const result = { imported: 0, skipped: 0, errors: [] as string[] };
 
     try {
+      await this.ensureInitialized();
       const importData = JSON.parse(data);
 
       if (!importData.favorites || !Array.isArray(importData.favorites)) {
         throw new FavoriteValidationError('Invalid import data format');
       }
-      // 【新增】先导入分类（如果有）
+      // 预处理分类：避免重复获取
       if (importData.categories && Array.isArray(importData.categories)) {
+        const existingCategories = await this.getCategories();
+        const existingCategoryIds = new Set(existingCategories.map(c => c.id));
+        const existingCategoryNames = new Set(existingCategories.map(c => c.name));
+
         for (const category of importData.categories) {
+          if (!category || typeof category.name !== 'string') continue;
           try {
-            // 检查分类是否已存在（根据ID或名称）
-            const existingCategories = await this.getCategories();
-            const exists = existingCategories.some(
-              c => c.id === category.id || c.name === category.name
-            );
+            const exists =
+              (category.id && existingCategoryIds.has(category.id)) ||
+              existingCategoryNames.has(category.name);
 
             if (!exists) {
               await this.addCategory({
@@ -1012,88 +1017,193 @@ export class FavoriteManager implements IFavoriteManager {
                 color: category.color,
                 sortOrder: category.sortOrder
               });
+              existingCategoryNames.add(category.name);
             }
           } catch (error) {
-            // 分类导入失败,记录错误但继续
-            console.warn('Failed to import category:', category.name, error);
+            console.warn('Failed to import category:', category?.name, error);
           }
         }
       }
 
-
-      // 【新增】先导入独立标签（如果有）
-      if (importData.tags && Array.isArray(importData.tags)) {
-        for (const tag of importData.tags) {
-          try {
-            await this.addTag(tag);
-          } catch (error) {
-            // 标签已存在，跳过错误继续
+      // 预处理独立标签：一次性合并，避免重复刷新统计
+      if (importData.tags && Array.isArray(importData.tags) && importData.tags.length > 0) {
+        const tagsToMerge = new Set<string>();
+        importData.tags.forEach(tag => {
+          if (typeof tag === 'string' && tag.trim()) {
+            tagsToMerge.add(tag.trim());
           }
-        }
-      }
+        });
 
-      const existingFavorites = await this.getFavorites();
-      const existingContentSet = new Set(existingFavorites.map(f => f.content));
+        if (tagsToMerge.size > 0) {
+          await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
+            const tagsList = tags ? [...tags] : [];
+            const existing = new Set(tagsList.map(t => t.tag));
+            const now = Date.now();
 
-      for (const favorite of importData.favorites) {
-        try {
-          // 验证必填字段
-          if (!favorite.content?.trim()) {
-            throw new FavoriteValidationError('Import data contains favorite with empty content');
-          }
-
-          // 构建功能模式数据，兼容旧数据
-          const functionMode = favorite.functionMode || 'basic';
-          const optimizationMode = favorite.optimizationMode || (functionMode !== 'image' ? 'system' : undefined);
-          const imageSubMode = favorite.imageSubMode || (functionMode === 'image' ? 'text2image' : undefined);
-
-          // 验证功能模式分类的完整性
-          const mapping = { functionMode, optimizationMode, imageSubMode };
-          if (!TypeMapper.validateMapping(mapping)) {
-            throw new FavoriteValidationError(
-              `Invalid function mode in import data: functionMode=${functionMode}, optimizationMode=${optimizationMode}, imageSubMode=${imageSubMode}`
-            );
-          }
-
-          const favoriteData = {
-            title: favorite.title,
-            content: favorite.content,
-            description: favorite.description,
-            tags: favorite.tags || [],
-            category: categoryMapping[favorite.category] || favorite.category,
-            functionMode,
-            optimizationMode,
-            imageSubMode,
-            metadata: favorite.metadata
-          };
-
-          const exists = existingContentSet.has(favorite.content);
-
-          if (exists) {
-            if (mergeStrategy === 'skip') {
-              result.skipped++;
-              continue;
-            } else if (mergeStrategy === 'overwrite') {
-              // 找到现有收藏并更新
-              const existingFavorite = existingFavorites.find(f => f.content === favorite.content);
-              if (existingFavorite) {
-                await this.updateFavorite(existingFavorite.id, favoriteData);
-                result.imported++;
+            tagsToMerge.forEach(tag => {
+              if (!existing.has(tag)) {
+                tagsList.push({ tag, createdAt: now });
+                existing.add(tag);
               }
-            } else {
-              // merge策略，创建新收藏
-              await this.addFavorite(favoriteData);
-              result.imported++;
-            }
-          } else {
-            await this.addFavorite(favoriteData);
-            result.imported++;
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          result.errors.push(`Failed to import favorite: ${errorMessage}`);
+            });
+
+            return tagsList;
+          });
         }
       }
+
+      const parseTimestamp = (value: unknown, fallback: number): number => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          return value;
+        }
+        if (typeof value === 'string') {
+          const parsed = Date.parse(value);
+          if (!Number.isNaN(parsed)) {
+            return parsed;
+          }
+        }
+        return fallback;
+      };
+
+      const sanitizeTags = (rawTags: unknown): string[] => {
+        if (!Array.isArray(rawTags)) return [];
+        const tagSet = new Set<string>();
+        rawTags.forEach(tag => {
+          if (typeof tag === 'string' && tag.trim()) {
+            tagSet.add(tag.trim());
+          }
+        });
+        return Array.from(tagSet);
+      };
+
+      const baseTimestamp = Date.now();
+      let timestampOffset = 0;
+
+      await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
+        const favoritesList = favorites ? [...favorites] : [];
+        const existingFavoritesMap = new Map<string, FavoritePrompt>();
+        const existingIds = new Set<string>();
+        favoritesList.forEach(f => {
+          existingFavoritesMap.set(f.content, f);
+          existingIds.add(f.id);
+        });
+
+        const generateId = (preferredId?: unknown) => {
+          if (typeof preferredId === 'string' && preferredId.trim() && !existingIds.has(preferredId)) {
+            existingIds.add(preferredId);
+            return preferredId;
+          }
+          let newId = '';
+          do {
+            newId = `fav_${baseTimestamp + timestampOffset}_${Math.random().toString(36).slice(2, 11)}`;
+          } while (existingIds.has(newId));
+          existingIds.add(newId);
+          return newId;
+        };
+
+        const buildTitle = (title: unknown, content: string) => {
+          if (typeof title === 'string' && title.trim()) {
+            return title.trim();
+          }
+          const trimmed = content.trim();
+          return trimmed.length > 50 ? `${trimmed.slice(0, 50)}...` : trimmed;
+        };
+
+        const normalizeMetadata = (metadata: unknown) => {
+          if (metadata && typeof metadata === 'object') {
+            return metadata as Record<string, unknown>;
+          }
+          return undefined;
+        };
+
+        const favoritesToImport = Array.isArray(importData.favorites) ? importData.favorites : [];
+
+        favoritesToImport.forEach((favorite: any) => {
+          try {
+            if (!favorite || typeof favorite.content !== 'string' || !favorite.content.trim()) {
+              throw new FavoriteValidationError('Import data contains favorite with empty content');
+            }
+
+            const functionMode = favorite.functionMode || 'basic';
+            const optimizationMode =
+              favorite.optimizationMode ||
+              (functionMode !== 'image' ? 'system' : undefined);
+            const imageSubMode =
+              favorite.imageSubMode ||
+              (functionMode === 'image' ? 'text2image' : undefined);
+
+            const mapping = { functionMode, optimizationMode, imageSubMode };
+            if (!TypeMapper.validateMapping(mapping)) {
+              throw new FavoriteValidationError(
+                `Invalid function mode in import data: functionMode=${functionMode}, optimizationMode=${optimizationMode}, imageSubMode=${imageSubMode}`
+              );
+            }
+
+            const category = categoryMapping[favorite.category] || favorite.category;
+            const tags = sanitizeTags(favorite.tags);
+            const createdAt = parseTimestamp(favorite.createdAt, baseTimestamp + timestampOffset);
+            const updatedAt = parseTimestamp(favorite.updatedAt, createdAt);
+            const useCount = typeof favorite.useCount === 'number' && favorite.useCount >= 0
+              ? favorite.useCount
+              : 0;
+
+            const existingFavorite = existingFavoritesMap.get(favorite.content);
+
+            if (existingFavorite) {
+              if (mergeStrategy === 'skip') {
+                result.skipped++;
+                return;
+              }
+
+              if (mergeStrategy === 'overwrite') {
+                existingFavorite.title = buildTitle(favorite.title, favorite.content);
+                existingFavorite.content = favorite.content;
+                existingFavorite.description = typeof favorite.description === 'string'
+                  ? favorite.description
+                  : favorite.description ?? existingFavorite.description;
+                existingFavorite.tags = tags;
+                existingFavorite.category = category;
+                existingFavorite.functionMode = functionMode;
+                existingFavorite.optimizationMode = optimizationMode;
+                existingFavorite.imageSubMode = imageSubMode;
+                existingFavorite.metadata = normalizeMetadata(favorite.metadata);
+                existingFavorite.createdAt = parseTimestamp(favorite.createdAt, existingFavorite.createdAt);
+                existingFavorite.updatedAt = updatedAt;
+                existingFavorite.useCount = useCount;
+                result.imported++;
+                return;
+              }
+              // merge 策略 fallthrough 到新增逻辑
+            }
+
+            const id = generateId(favorite.id);
+            const newFavorite: FavoritePrompt = {
+              id,
+              title: buildTitle(favorite.title, favorite.content),
+              content: favorite.content,
+              description: typeof favorite.description === 'string' ? favorite.description : undefined,
+              category,
+              tags,
+              functionMode,
+              optimizationMode,
+              imageSubMode,
+              metadata: normalizeMetadata(favorite.metadata),
+              createdAt,
+              updatedAt,
+              useCount
+            };
+
+            favoritesList.push(newFavorite);
+            timestampOffset++;
+            result.imported++;
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            result.errors.push(`Failed to import favorite: ${errorMessage}`);
+          }
+        });
+
+        return favoritesList;
+      });
 
       await this.updateStats();
       return result;
