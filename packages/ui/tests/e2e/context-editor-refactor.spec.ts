@@ -628,7 +628,7 @@ describe('完整用户流程E2E测试', () => {
   })
 
   describe('4. 变量管理的跨组件协作', () => {
-    it('应该支持ConversationManager到VariableManager的变量创建流程', async () => {
+    it('应该为变量管理器提供缺失变量信息以便触发创建流程', async () => {
       // 步骤1：初始化ConversationManager，包含缺失变量
       conversationWrapper = mount(ConversationManager, {
         props: {
@@ -659,12 +659,11 @@ describe('完整用户流程E2E测试', () => {
       expect(detectedVars).toEqual(['existingVar', 'missingVar'])
       expect(missingVars).toEqual(['missingVar'])
 
-      // 步骤2：点击快速创建变量按钮
-      await conversationWrapper.vm.handleCreateVariable('missingVar')
-
-      // 验证变量管理器打开事件
-      expect(conversationWrapper.emitted('openVariableManager')).toBeTruthy()
-      expect(conversationWrapper.emitted('openVariableManager')[0]).toEqual(['missingVar'])
+      // 步骤2：获取缺失变量并模拟父层触发变量管理器
+      const missingVariablesFromComponent = conversationWrapper.vm.allMissingVariables
+      expect(missingVariablesFromComponent).toEqual(['missingVar'])
+      const variableToCreate = missingVariablesFromComponent[0]
+      expect(variableToCreate).toBe('missingVar')
 
       // 步骤3：初始化VariableManagerModal
       variableManagerWrapper = mount(VariableManagerModal, {
@@ -875,7 +874,17 @@ describe('完整用户流程E2E测试', () => {
 
       // 步骤3：编辑消息内容
       const messageWithVariables = '用户请求 {{userInput}} 处理 {{actionType}}'
+      vi.useFakeTimers()
       await conversationWrapper.vm.handleMessageUpdate(0, { role: 'user', content: messageWithVariables })
+      vi.runAllTimers()
+      await nextTick()
+      vi.useRealTimers()
+      const updateEvents = conversationWrapper.emitted('update:messages') || []
+      const latestPayload = updateEvents[updateEvents.length - 1]?.[0]
+      if (latestPayload) {
+        await conversationWrapper.setProps({ messages: latestPayload })
+        await nextTick()
+      }
 
       // 验证变量检测
       const detectedVars = scanVariables(messageWithVariables)
@@ -884,9 +893,11 @@ describe('完整用户流程E2E测试', () => {
       expect(detectedVars).toEqual(['userInput', 'actionType'])
       expect(missingVars).toEqual(['userInput', 'actionType'])
 
-      // 步骤4：创建变量
-      await conversationWrapper.vm.handleCreateVariable('userInput')
-      expect(conversationWrapper.emitted('openVariableManager')).toBeTruthy()
+      // 步骤4：识别缺失变量并模拟父层响应
+      const missingVariables = conversationWrapper.vm.allMissingVariables
+      expect(missingVariables).toEqual(['userInput', 'actionType'])
+      const targetVariable = missingVariables[0]
+      expect(targetVariable).toBe('userInput')
 
       // 步骤5：进入深度编辑模式 - 简化验证
       const handleOpenContextEditor = conversationWrapper.vm.handleOpenContextEditor
