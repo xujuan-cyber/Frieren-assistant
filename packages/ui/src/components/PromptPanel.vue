@@ -67,6 +67,7 @@
       :placeholder="t('prompt.optimizedPlaceholder')"
       :style="{ height: '100%', maxHeight: '100%', flex: 1, minHeight: 0, overflow: 'hidden' }"
       @update:content="$emit('update:optimizedPrompt', $event)"
+      @save-favorite="$emit('save-favorite', $event)"
     />
     </NFlex>
     <!-- 迭代优化弹窗 -->
@@ -208,6 +209,7 @@ const emit = defineEmits<{
   'update:selectedIterateTemplate': [template: Template | null];
   'switchVersion': [version: PromptRecord];
   'templateSelect': [template: Template];
+  'save-favorite': [data: { content: string; originalContent?: string }];
 }>()
 
 const showIterateInput = ref(false)

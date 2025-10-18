@@ -94,16 +94,20 @@ export default {
     history: '歷史紀錄',
     templates: '功能提示詞',
     dataManager: '資料管理',
+    favorites: '收藏',
     advancedMode: '進階模式',
     variableManager: '變數管理',
     basicMode: '基礎',
     contextMode: '情境',
     imageMode: '圖像',
   },
+  favorites: {
+    title: '我的收藏',
+  },
   promptOptimizer: {
     title: '提示詞優化器',
     inputPlaceholder: '請輸入需要優化的prompt...',
-    optimize: '開始優化 →',
+    optimize: '開始優化',
     history: '歷史紀錄',
     save: '儲存提示詞',
     share: '分享',
@@ -645,8 +649,8 @@ export default {
       help: ''
     },
     model: '測試模型',
-    startTest: '開始測試 →',
-    startCompare: '開始對比 →',
+    startTest: '開始測試',
+    startCompare: '開始對比',
     testing: '測試中...',
     toggleCompare: {
       enable: '開啟對比',

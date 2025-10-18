@@ -210,6 +210,7 @@
           @iterate="handleIteratePrompt"
           @openTemplateManager="onOpenTemplateManager"
           @switchVersion="handleSwitchVersion"
+          @save-favorite="handleSaveFavorite"
         />
       </NCard>
     </NFlex>
@@ -603,9 +604,13 @@ import type { AppServices } from '../../types/services'
 import { useFullscreen } from '../../composables/useFullscreen'
 import FullscreenDialog from '../FullscreenDialog.vue'
 import type { TemplateSelectOption } from '../../types/select-options'
+import { useToast } from '../../composables/useToast'
 
 // 国际化
 const { t } = useI18n()
+
+// Toast
+const toast = useToast()
 
 // 服务注入
 const services = inject<Ref<AppServices | null>>('services', ref(null))
@@ -669,9 +674,10 @@ const {
 // PromptPanel 引用，用于在语言切换后刷新迭代模板选择
 const promptPanelRef = ref<InstanceType<typeof PromptPanelUI> | null>(null)
 
-// 注入 App 层统一的 openTemplateManager / openModelManager 接口
+// 注入 App 层统一的 openTemplateManager / openModelManager / handleSaveFavorite 接口
 const appOpenTemplateManager = inject<(type?: 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate') => void>('openTemplateManager', null as any)
 const appOpenModelManager = inject<(tab?: 'text' | 'image') => void>('openModelManager', null as any)
+const appHandleSaveFavorite = inject<(data: { content: string; originalContent?: string }) => void>('handleSaveFavorite', null as any)
 
 // 将迭代类型映射为图像迭代，并调用 App 入口
   const onOpenTemplateManager = (type: 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate') => {
@@ -772,6 +778,17 @@ const clearUploadedImage = () => {
   handleUploadChange({ file: null, fileList: [] })
 }
 
+// 处理收藏保存请求 - 调用 App.vue 提供的统一接口
+const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
+  console.log('[ImageWorkspace] handleSaveFavorite triggered:', data)
+
+  if (appHandleSaveFavorite) {
+    appHandleSaveFavorite(data)
+  } else {
+    console.warn('[ImageWorkspace] handleSaveFavorite not available from App.vue')
+  }
+}
+
 // 复制图像文本输出
 const copyImageText = async (text: string) => {
   try {
@@ -781,6 +798,29 @@ const copyImageText = async (text: string) => {
     console.error('Failed to copy text:', error)
     toast.error(t('imageWorkspace.results.copyError'))
   }
+}
+
+// 处理收藏回填 - 从收藏夹恢复提示词到图像工作区
+const handleRestoreFavorite = (event: CustomEvent) => {
+  console.log('[ImageWorkspace] handleRestoreFavorite triggered:', event.detail)
+
+  const { content, imageSubMode, metadata } = event.detail
+
+  // 设置图像子模式
+  if (imageSubMode && (imageSubMode === 'text2image' || imageSubMode === 'image2image')) {
+    (imageMode as any).value = imageSubMode
+  }
+
+  // 设置原始提示词
+  originalPrompt.value = content
+
+  console.log('[ImageWorkspace] Favorite restored successfully')
+}
+
+// 🆕 在组件创建时立即注册收藏回填事件监听器（而不是等到 onMounted）
+if (typeof window !== 'undefined') {
+  window.addEventListener('image-workspace-restore-favorite', handleRestoreFavorite as any)
+  console.log('[ImageWorkspace] Favorite restore event listener registered immediately on component creation')
 }
 
 // 初始化
@@ -844,6 +884,7 @@ onMounted(async () => {
     window.addEventListener('image-workspace-refresh-text-models', refreshTextModelsHandler)
     window.addEventListener('image-workspace-refresh-image-models', refreshImageModelsHandler)
     window.addEventListener('image-workspace-refresh-templates', refreshTemplatesHandler)
+    // 注意：image-workspace-restore-favorite 事件监听器已在 script setup 级别注册，不需要在这里重复注册
   }
 
   // 加载模板列表
@@ -859,6 +900,7 @@ onUnmounted(() => {
     window.removeEventListener('image-workspace-refresh-text-models', refreshTextModelsHandler)
     window.removeEventListener('image-workspace-refresh-image-models', refreshImageModelsHandler)
     window.removeEventListener('image-workspace-refresh-templates', refreshTemplatesHandler)
+    window.removeEventListener('image-workspace-restore-favorite', handleRestoreFavorite as any)
   }
 })
 </script>

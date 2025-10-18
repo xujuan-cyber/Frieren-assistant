@@ -209,11 +209,6 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       // 恢复保存的选择（包括模板选择）
       await restoreSelections()
 
-      // 🆕 监听历史记录恢复事件
-      if (typeof window !== 'undefined') {
-        window.addEventListener('image-workspace-restore', handleHistoryRestore as EventListener)
-      }
-
     } catch (error) {
       console.error('Failed to initialize image workspace:', error)
     }
@@ -841,6 +836,12 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     if (typeof window !== 'undefined') {
       window.removeEventListener('image-workspace-restore', handleHistoryRestore as EventListener)
     }
+  }
+
+  // 🆕 在 composable 创建时立即注册事件监听器（在函数定义之后）
+  if (typeof window !== 'undefined') {
+    window.addEventListener('image-workspace-restore', handleHistoryRestore as EventListener)
+    console.log('[useImageWorkspace] Event listener registered immediately on composable creation')
   }
 
   return {

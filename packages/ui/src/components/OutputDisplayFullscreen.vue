@@ -40,7 +40,7 @@ interface Props {
   title?: string
   mode: 'readonly' | 'editable'
   reasoningMode?: 'show' | 'hide' | 'auto'
-  enabledActions?: ('fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning')[]
+  enabledActions?: ('fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite')[]
   streaming?: boolean
   loading?: boolean
   placeholder?: string
@@ -52,7 +52,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: '',
   mode: 'readonly',
   reasoningMode: 'auto',
-  enabledActions: () => ['diff', 'copy', 'edit', 'reasoning'],
+  enabledActions: () => ['diff', 'copy', 'edit', 'reasoning', 'favorite'],
   placeholder: ''
 })
 
@@ -92,7 +92,9 @@ const internalVisible = computed({
 })
 
 const coreEnabledActions = computed(() => {
-  return props.enabledActions?.filter(action => action !== 'fullscreen')
+  // 全屏界面不需要对比功能（用于新增/编辑/预览场景）
+  // 只保留 Markdown 渲染和原文显示
+  return props.enabledActions?.filter(action => action !== 'fullscreen' && action !== 'diff')
 })
 
 const internalContent = ref(props.content)

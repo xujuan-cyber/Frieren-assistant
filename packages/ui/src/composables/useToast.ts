@@ -16,7 +16,7 @@ export function setGlobalMessageApi(api: any) {
 export function useToast() {
   const getMessageApi = () => {
     if (!globalMessageApi) {
-      throw new Error('[useToast] NMessageProvider context not available. Ensure Toast component is properly initialized in the component tree.')
+      console.warn('[useToast] NMessageProvider context not available yet.')
     }
     return globalMessageApi
   }

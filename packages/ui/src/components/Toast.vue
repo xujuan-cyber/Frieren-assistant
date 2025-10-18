@@ -20,8 +20,9 @@ const MessageApiInitializer = defineComponent({
       try {
         const messageApi = useMessage()
         setGlobalMessageApi(messageApi)
+        console.log('[Toast] Message API initialized successfully')
       } catch (error) {
-        console.error('[Toast] Failed to initialize message API:', error)
+        console.warn('[Toast] Message API initialization failed (this is normal during SSR or when provider is not ready):', error)
       }
     })
     return () => h('div', { style: { display: 'none' } })

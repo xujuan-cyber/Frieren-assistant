@@ -64,6 +64,15 @@
             :round="true"
           />
           <ActionButtonUI
+            icon="⭐"
+            :text="$t('nav.favorites')"
+            @click="showFavoriteManager = true"
+            type="default"
+            size="medium"
+            :ghost="false"
+            :round="true"
+          />
+          <ActionButtonUI
             icon="💾"
             :text="$t('nav.dataManager')"
             @click="showDataManager = true"
@@ -72,7 +81,6 @@
             :ghost="false"
             :round="true"
           />
-          
           <!-- 辅助功能区 - 使用简化样式降低视觉权重 -->
           <ThemeToggleUI />
           <ActionButtonUI
@@ -202,6 +210,7 @@
                 @iterate="handleIteratePrompt"
                 @openTemplateManager="openTemplateManager"
                 @switchVersion="handleSwitchVersion"
+                @save-favorite="handleSaveFavorite"
               />
             </NCard>
           </NFlex>
@@ -315,7 +324,27 @@
         @deleteChain="promptHistory.handleDeleteChain"
       />
       <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
-      
+
+      <!-- 收藏管理对话框 -->
+      <FavoriteManagerUI
+        v-if="isReady"
+        :show="showFavoriteManager"
+        @update:show="(v: boolean) => { if (!v) showFavoriteManager = false }"
+        @optimize-prompt="handleFavoriteOptimizePrompt"
+        @use-favorite="handleUseFavorite"
+      />
+
+      <!-- 保存收藏对话框 -->
+      <SaveFavoriteDialog
+        v-if="isReady"
+        v-model:show="showSaveFavoriteDialog"
+        :content="saveFavoriteData?.content || ''"
+        :original-content="saveFavoriteData?.originalContent || ''"
+        :current-function-mode="functionMode"
+        :current-optimization-mode="selectedOptimizationMode"
+        @saved="handleSaveFavoriteComplete"
+      />
+
       <!-- 变量管理弹窗 -->
       <VariableManagerModal
         v-if="isReady"
@@ -339,8 +368,8 @@
         @cancel="showContextEditor = false"
         @open-variable-manager="handleOpenVariableManager"
       />
-  
-      <!-- 关键：使用NGlobalStyle同步全局样式到body，消除CSS依赖 -->
+
+      <!-- 关键:使用NGlobalStyle同步全局样式到body,消除CSS依赖 -->
       <NGlobalStyle />
   
       <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
@@ -349,9 +378,9 @@
   </template>
   
   <script setup lang="ts">
-  import { ref, watch, provide, computed, shallowRef, toRef, nextTick, onMounted } from 'vue'
+import { ref, watch, provide, computed, shallowRef, toRef, nextTick, onMounted } from 'vue'
   import { useI18n } from 'vue-i18n'
-  import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex, useMessage } from 'naive-ui'
+  import { NConfigProvider, NGlobalStyle, NButton, NText, NGrid, NGridItem, NCard, NFlex, NModal, NScrollbar, useMessage } from 'naive-ui'
 import hljs from 'highlight.js/lib/core'
 import jsonLang from 'highlight.js/lib/languages/json'
 hljs.registerLanguage('json', jsonLang)
@@ -362,7 +391,8 @@ hljs.registerLanguage('json', jsonLang)
     SelectWithConfig, TestAreaPanel, UpdaterIcon, VariableManagerModal,
     ImageWorkspace, FunctionModeSelector,
     ConversationManager, OutputDisplay, ContextEditor,
-  
+    FavoriteManagerUI, SaveFavoriteDialog,
+
     // Composables
     usePromptOptimizer,
     useToast,
@@ -377,15 +407,15 @@ hljs.registerLanguage('json', jsonLang)
     useResponsiveTestLayout,
     useTestModeConfig,
     useFunctionMode,
-  
+
     // i18n functions
     initializeI18nWithStorage,
     setI18nServices,
-  
+
     // Types from UI package
     type OptimizationMode,
     type ConversationMessage,
-    
+
     // Quick Template Manager
     quickTemplateManager,
 
@@ -427,9 +457,12 @@ import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/
   const promptService = shallowRef<IPromptService | null>(null)
   const selectedOptimizationMode = ref<OptimizationMode>('system')
   const showDataManager = ref(false)
-  const optimizeModelSelect = ref(null)
-  const testPanelRef = ref(null)
-  const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
+const showFavoriteManager = ref(false)
+const showSaveFavoriteDialog = ref(false)
+const saveFavoriteData = ref<{ content: string; originalContent?: string } | null>(null)
+const optimizeModelSelect = ref(null)
+const testPanelRef = ref(null)
+const promptPanelRef = ref<{ refreshIterateTemplateSelect?: () => void } | null>(null)
   
   // 高级模式状态
   const { functionMode, setFunctionMode } = useFunctionMode(services as any)
@@ -1080,7 +1113,7 @@ import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/
   // 向子组件提供统一的 openTemplateManager 接口（图像模式复用）
   provide('openTemplateManager', openTemplateManager)
 
-  // 模板管理器关闭回调：刷新基础模式选择，同时通知图像模式刷新模板列表
+  // 模板管理器关闭回调：刷新基础模式选择,同时通知图像模式刷新模板列表
   const handleTemplateManagerClosed = () => {
     try {
       templateManagerState.handleTemplateManagerClose(() => { refreshOptimizeTemplates() })
@@ -1129,10 +1162,13 @@ import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/
     // 🆕 扩展模式切换逻辑 - 支持图像模式
     if (rt === 'imageOptimize' || rt === 'contextImageOptimize' || rt === 'imageIterate' ||
         rt === 'text2imageOptimize' || rt === 'image2imageOptimize') {
-      // 切换到图像模式
-      await setFunctionMode('image')
-      useToast().info('已自动切换到图像模式')
-      
+      // 图像模式:只在不是图像模式时才切换
+      const needsSwitch = functionMode.value !== 'image'
+      if (needsSwitch) {
+        await setFunctionMode('image')
+        useToast().info('已自动切换到图像模式')
+      }
+
       // 🆕 图像模式专用数据回填逻辑
       // 等待模式切换完成后再回填数据
       await nextTick()
@@ -1151,16 +1187,17 @@ import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/
         chainId: chain.chainId,
         versions: chain.versions,
         currentVersionId: record.id,
-        imageMode: imageMode // 添加图像模式信息
+        imageMode: imageMode, // 添加图像模式信息
+        templateId: record.templateId || chain.rootRecord.templateId // 添加模板ID以便恢复模板选择
       }
-      
+
       // 触发图像工作区数据恢复事件
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('image-workspace-restore', {
           detail: imageHistoryData
         }))
       }
-      
+
       useToast().success('图像历史记录已恢复')
       return // 图像模式不需要调用原有的历史记录处理逻辑
     } else {
@@ -1350,6 +1387,97 @@ import type { ModelSelectOption, TemplateSelectOption } from '@prompt-optimizer/
   
   const handleTestAreaCompareToggle = () => {
     console.log('[App] Compare mode toggled:', isCompareMode.value)
+  }
+
+  // 处理收藏保存请求
+  const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
+    console.log('[App] handleSaveFavorite triggered:', data)
+
+    // 保存数据用于对话框预填充
+    saveFavoriteData.value = data
+
+    // 打开保存对话框
+    showSaveFavoriteDialog.value = true
+  }
+
+  // 处理保存完成
+  const handleSaveFavoriteComplete = () => {
+    console.log('[App] Favorite saved successfully')
+    // 关闭对话框已由组件内部处理
+    // 可选:刷新收藏列表或显示额外提示
+  }
+
+  // 向子组件提供统一的 handleSaveFavorite 接口（图像模式复用）
+  provide('handleSaveFavorite', handleSaveFavorite)
+
+const handleFavoriteOptimizePrompt = () => {
+    // 关闭收藏管理对话框
+    showFavoriteManager.value = false
+    // 滚动到优化区域
+    nextTick(() => {
+      const inputPanel = document.querySelector('[data-input-panel]')
+      if (inputPanel) {
+        inputPanel.scrollIntoView({ behavior: 'smooth' })
+      }
+    })
+  }
+
+  const handleUseFavorite = async (favorite: any) => {
+    // 智能模式切换逻辑,参考 handleHistoryReuse 的实现
+    const { functionMode: favFunctionMode, optimizationMode: favOptimizationMode, imageSubMode: favImageSubMode } = favorite
+
+    // 1. 切换功能模式
+    if (favFunctionMode === 'image') {
+      // 图像模式:只在不是图像模式时才切换
+      const needsSwitch = functionMode.value !== 'image'
+      if (needsSwitch) {
+        await setFunctionMode('image')
+        useToast().info('已自动切换到图像模式')
+      }
+
+      // 图像模式的数据回填逻辑
+      await nextTick()
+
+      // 触发图像工作区数据回填事件
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('image-workspace-restore-favorite', {
+          detail: {
+            content: favorite.content,
+            imageSubMode: favImageSubMode || 'text2image',
+            metadata: favorite.metadata
+          }
+        }))
+      }
+
+      useToast().success('收藏的图像提示词已加载')
+
+    } else {
+      // 基础模式或上下文模式
+
+      // 2. 切换优化模式
+      if (favOptimizationMode && favOptimizationMode !== selectedOptimizationMode.value) {
+        selectedOptimizationMode.value = favOptimizationMode
+        useToast().info(t('toast.info.optimizationModeAutoSwitched', {
+          mode: favOptimizationMode === 'system' ? t('common.system') : t('common.user')
+        }))
+      }
+
+      // 3. 切换功能模式(basic vs context)
+      const targetFunctionMode = favFunctionMode === 'context' ? 'pro' : 'basic'
+      if (targetFunctionMode !== functionMode.value) {
+        await setFunctionMode(targetFunctionMode)
+        useToast().info(`已自动切换到${targetFunctionMode === 'pro' ? '上下文' : '基础'}模式`)
+      }
+
+      // 4. 将收藏的提示词内容设置到输入框
+      optimizer.prompt = favorite.content
+    }
+
+    // 关闭收藏管理对话框
+    showFavoriteManager.value = false
+
+    // 显示成功提示
+    useToast().success('已将提示词加载到输入框')
   }
   </script>
   

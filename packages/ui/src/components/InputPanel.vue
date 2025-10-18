@@ -47,9 +47,9 @@
           <slot name="model-select"></slot>
         </NSpace>
       </NGridItem>
-      
+
       <!-- 提示词模板选择 -->
-      <NGridItem v-if="templateLabel" :span="12" :xs="24" :sm="12">
+      <NGridItem v-if="templateLabel" :span="11" :xs="24" :sm="11">
         <NSpace vertical :size="8">
           <NText :depth="2" style="font-size: 14px; font-weight: 500;">{{ templateLabel }}</NText>
           <slot name="template-select"></slot>
@@ -57,14 +57,14 @@
       </NGridItem>
 
       <!-- 控制按钮组 -->
-      <NGridItem :span="templateLabel ? 2 : 14" :xs="24" :sm="templateLabel ? 2 : 14">
+      <NGridItem :span="templateLabel ? 2 : 13" :xs="24" :sm="templateLabel ? 2 : 13">
         <NSpace vertical :size="8" align="end">
           <slot name="control-buttons"></slot>
         </NSpace>
       </NGridItem>
 
       <!-- 提交按钮 -->
-      <NGridItem :span="4" :xs="24" :sm="4">
+      <NGridItem :span="5" :xs="24" :sm="5">
         <NSpace vertical :size="8" align="end">
           <NButton
             type="primary"
@@ -73,7 +73,6 @@
             :loading="loading"
             :disabled="loading || disabled || !modelValue.trim()"
             block
-            round
           >
             {{ loading ? loadingText : buttonText }}
           </NButton>

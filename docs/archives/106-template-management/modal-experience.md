@@ -165,6 +165,277 @@ const handleBackdropClick = (event) => {
 
 ---
 
-**文档类型**: 经验总结  
-**适用范围**: Vue 模态框组件开发  
-**最后更新**: 2025-07-01
+**文档类型**: 经验总结
+**适用范围**: Vue 模态框组件开发
+**最后更新**: 2025-01-15
+
+---
+
+## ⚠️ Naive UI 嵌套 Modal 架构陷阱 (2025-01)
+
+### 问题场景
+
+在实现收藏夹管理功能时,需要三层 Modal 嵌套:
+1. **一级**: 收藏夹列表 (FavoriteManager)
+2. **二级**: 分类管理 (CategoryManager)
+3. **三级**: 新增/编辑分类对话框
+
+### 问题现象
+
+按照直觉实现后,出现严重的事件拦截问题:
+- 二级和三级 Modal **完全无法点击和编辑**
+- 按 **ESC 键会同时关闭所有 Modal**,而不是只关闭最上层
+- 所有操作似乎被一级 Modal 异常拦截处理
+
+### 根本原因分析
+
+#### ❌ 错误架构模式 (内容组件模式)
+
+```vue
+<!-- FavoriteManager.vue - 错误实现 -->
+<template>
+  <div class="favorite-manager">
+    <!-- 只是内容,没有 Modal 包装 -->
+
+    <!-- ❌ 子 Modal 嵌套在内容中 -->
+    <n-modal v-model:show="categoryManagerVisible">
+      <CategoryManager />
+    </n-modal>
+  </div>
+</template>
+
+<script>
+// ❌ 没有 show prop
+// ❌ 没有 update:show emit
+const emit = defineEmits(['optimize-prompt', 'use-favorite'])
+</script>
+```
+
+```vue
+<!-- App.vue - 错误调用方式 -->
+<NModal
+  v-model:show="showFavoriteManager"  <!-- ❌ 双向绑定导致事件拦截 -->
+  preset="card"
+  :title="$t('favorites.title')"
+>
+  <NScrollbar>
+    <FavoriteManagerUI />  <!-- 内容组件,没有独立管理能力 -->
+  </NScrollbar>
+</NModal>
+```
+
+**问题根源**:
+1. **双向绑定陷阱**: `v-model:show` 在父组件创建响应式连接,导致父 Modal 垄断所有事件
+2. **架构不一致**: FavoriteManager 是内容组件,却被当作 Modal 组件使用
+3. **层级管理失效**: 子 Modal 嵌套在内容中,无法独立管理 z-index 和焦点
+
+#### ✅ 正确架构模式 (完整 Modal 组件)
+
+参考项目中成熟稳定的 `ModelManager.vue`:
+
+```vue
+<!-- ModelManager.vue - 正确实现 -->
+<template>
+  <ToastUI>
+    <!-- ✅ 主 Modal 使用单向绑定 -->
+    <NModal
+      :show="show"
+      preset="card"
+      @update:show="(value) => !value && close()"
+    >
+      <NScrollbar>
+        <!-- 主内容 -->
+      </NScrollbar>
+    </NModal>
+
+    <!-- ✅ 子 Modal 在外层,独立管理 -->
+    <ImageModelEditModal
+      :show="showImageModelEdit"
+      @update:show="showImageModelEdit = $event"
+    />
+  </ToastUI>
+</template>
+
+<script setup>
+// ✅ 完整的 Modal 组件接口
+defineProps({ show: Boolean })
+const emit = defineEmits(['update:show', 'close'])
+const close = () => {
+  emit('update:show', false)
+  emit('close')
+}
+</script>
+```
+
+### 修复方案
+
+#### 1. 重构 FavoriteManager 为完整 Modal 组件
+
+```vue
+<!-- FavoriteManager.vue - 修复后 -->
+<template>
+  <ToastUI>
+    <!-- ✅ 包装主 Modal -->
+    <NModal
+      :show="show"
+      preset="card"
+      :style="{ width: '90vw', maxWidth: '1200px', maxHeight: '90vh' }"
+      title="收藏管理"
+      size="large"
+      :bordered="false"
+      :segmented="true"
+      @update:show="(value) => !value && close()"
+    >
+      <NScrollbar style="max-height: 75vh;">
+        <div class="favorite-manager-content">
+          <!-- 主内容 -->
+        </div>
+      </NScrollbar>
+    </NModal>
+
+    <!-- ✅ 子 Modal 移到外层,使用单向绑定 -->
+    <n-modal
+      :show="categoryManagerVisible"
+      preset="card"
+      title="分类管理"
+      :mask-closable="false"
+      :style="{ width: 'min(800px, 90vw)', height: 'min(600px, 80vh)' }"
+      @update:show="categoryManagerVisible = $event"
+    >
+      <CategoryManager @category-updated="handleCategoryUpdated" />
+    </n-modal>
+  </ToastUI>
+</template>
+
+<script setup lang="ts">
+import ToastUI from './Toast.vue'
+
+// ✅ 添加完整的 Modal 组件接口
+defineProps({
+  show: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits<{
+  'optimize-prompt': []
+  'use-favorite': [content: string]
+  'update:show': [value: boolean]
+  'close': []
+}>()
+
+const close = () => {
+  emit('update:show', false)
+  emit('close')
+}
+</script>
+
+<style scoped>
+/* ✅ 更新样式类名 */
+.favorite-manager-content {
+  @apply flex flex-col h-full;
+}
+</style>
+```
+
+#### 2. 更新 App.vue 调用方式
+
+```vue
+<!-- App.vue - 修复后 -->
+<!-- ✅ 直接使用完整的 Modal 组件 -->
+<FavoriteManagerUI
+  v-if="isReady"
+  :show="showFavoriteManager"
+  @update:show="(v: boolean) => { if (!v) showFavoriteManager = false }"
+  @optimize-prompt="handleFavoriteOptimizePrompt"
+  @use-favorite="handleUseFavorite"
+/>
+```
+
+### 关键技术要点
+
+#### 1. 单向数据流优于双向绑定
+
+```vue
+<!-- ✅ 推荐: 单向绑定 + 显式事件处理 -->
+<NModal :show="show" @update:show="(value) => !value && close()">
+
+<!-- ❌ 避免: 双向绑定导致事件拦截 -->
+<NModal v-model:show="show">
+```
+
+**原理**: 单向数据流切断父 Modal 对事件的垄断控制,让每个 Modal 层级独立响应用户操作。
+
+#### 2. Modal 层级独立管理
+
+```vue
+<ToastUI>
+  <!-- 一级 Modal -->
+  <NModal :show="showMain">...</NModal>
+
+  <!-- ✅ 二级 Modal 独立在外层 -->
+  <NModal :show="showChild" @update:show="showChild = $event">...</NModal>
+</ToastUI>
+```
+
+**不要嵌套在内容中**:
+```vue
+<!-- ❌ 错误: 子 Modal 嵌套在父 Modal 内容中 -->
+<NModal :show="showMain">
+  <div class="content">
+    <NModal :show="showChild">...</NModal>
+  </div>
+</NModal>
+```
+
+#### 3. 信任 UI 框架的自动管理
+
+Naive UI 会自动处理:
+- ✅ z-index 层级管理
+- ✅ 焦点陷阱 (focus trap)
+- ✅ ESC 键行为
+- ✅ 遮罩层点击
+
+**移除所有手动配置**:
+```vue
+<!-- ❌ 不要手动设置这些 -->
+<n-modal
+  :z-index="3100"
+  :auto-focus="false"
+  :trap-focus="false"
+>
+```
+
+### 验证效果
+
+修复后应实现:
+- ✅ 二级 Modal (分类管理) 可以正常点击和编辑
+- ✅ 三级 Modal (新增/编辑分类) 可以正常交互
+- ✅ ESC 键只关闭最上层 Modal
+- ✅ 每层 Modal 独立管理焦点,互不干扰
+
+### 架构检查清单
+
+在实现嵌套 Modal 时,确保:
+
+- [ ] **组件类型明确**: Modal 组件 vs 内容组件
+- [ ] **Props 完整**: 包含 `show` prop
+- [ ] **Events 完整**: emit `update:show` 和 `close`
+- [ ] **数据流模式**: 使用单向绑定而非双向绑定
+- [ ] **层级结构**: 子 Modal 在外层而非嵌套
+- [ ] **信任框架**: 移除手动 z-index/focus 管理
+- [ ] **参考范式**: 对照 ModelManager.vue 实现
+
+### 最佳实践总结
+
+1. **架构一致性**: 所有 Modal 管理组件都应采用相同的完整组件模式
+2. **单向数据流**: 避免 `v-model:show` 在复杂嵌套场景中的事件拦截问题
+3. **独立层级**: 子 Modal 必须在父 Modal 外层,保持独立管理
+4. **信任框架**: Naive UI 的自动管理机制足够智能,不需要手动干预
+5. **参考成熟实现**: 项目中的 ModelManager.vue 是标准范式
+
+### 相关案例
+
+- **ModelManager.vue** + **ImageModelEditModal.vue**: 标准的两层 Modal 实现
+- **FavoriteManager.vue** + **CategoryManager.vue**: 修复前后的对比案例

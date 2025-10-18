@@ -22,6 +22,7 @@ import {
   waitForElectronApi,
   ElectronPreferenceServiceProxy,
   createPreferenceService,
+  FavoriteManager,
 } from '../'; // 从UI包的index导出所有核心模块
 import type { AppServices } from '../types/services';
 import {
@@ -38,7 +39,8 @@ import {
   type ILLMService,
   type IPromptService,
   type IDataManager,
-  type IPreferenceService
+  type IPreferenceService,
+  type IFavoriteManager
 } from '@prompt-optimizer/core';
 
 /**
@@ -67,6 +69,7 @@ export function useAppInitializer(): {
       let llmService: ILLMService;
       let promptService: IPromptService;
       let preferenceService: IPreferenceService;
+      let favoriteManager: IFavoriteManager;
       let imageModelManager: IImageModelManager | undefined;
       let imageService: IImageService | undefined;
       let imageAdapterRegistryInstance: ReturnType<typeof createImageAdapterRegistry> | undefined;
@@ -115,6 +118,10 @@ export function useAppInitializer(): {
         // 使用 ElectronContextRepoProxy 代替临时方案
         const contextRepo = new ElectronContextRepoProxy();
 
+        // 创建收藏管理器代理
+        const { FavoriteManagerElectronProxy } = await import('@prompt-optimizer/core')
+        favoriteManager = new FavoriteManagerElectronProxy();
+
         services.value = {
           modelManager,
           templateManager,
@@ -126,6 +133,7 @@ export function useAppInitializer(): {
           preferenceService, // 使用从core包导入的ElectronPreferenceServiceProxy
           compareService, // 直接使用，无需代理
           contextRepo, // 使用Electron代理
+          favoriteManager, // 使用Electron代理
           textAdapterRegistry: textAdapterRegistryInstance,
           imageModelManager,
           imageService,
@@ -253,6 +261,9 @@ export function useAppInitializer(): {
         // 创建 DataManager（需要contextRepo）
         dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, preferenceService, contextRepo);
 
+        // 创建收藏管理器
+        favoriteManager = new FavoriteManager(storageProvider);
+
         // 将所有服务实例赋值给 services.value
         services.value = {
           modelManager: modelManagerAdapter, // 使用适配器
@@ -265,6 +276,7 @@ export function useAppInitializer(): {
           preferenceService, // 使用从core包导入的PreferenceService
           compareService, // 直接使用
           contextRepo, // 上下文仓库
+          favoriteManager, // 收藏管理器
           textAdapterRegistry: textAdapterRegistryInstance,
           imageModelManager: imageModelManagerInstance,
           imageService,

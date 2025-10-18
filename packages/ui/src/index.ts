@@ -69,6 +69,9 @@ export { default as FullscreenDialog } from './components/FullscreenDialog.vue'
 export { default as InputWithSelect } from './components/InputWithSelect.vue'
 export { default as MarkdownRenderer } from './components/MarkdownRenderer.vue'
 export { default as ToolCallDisplay } from './components/ToolCallDisplay.vue'
+export { default as FavoriteManagerUI } from './components/FavoriteManager.vue'
+export { default as CategoryManagerUI } from './components/CategoryManager.vue'
+export { default as SaveFavoriteDialog } from './components/SaveFavoriteDialog.vue'
 
 // 导出 Naive UI 组件 (解决组件解析问题)
 export { 
@@ -136,6 +139,8 @@ export {
     createCompareService,
     createContextRepo,
     ElectronContextRepoProxy,
+    FavoriteManager,
+    FavoriteManagerElectronProxy,
     isRunningInElectron,
     waitForElectronApi,
 } from '@prompt-optimizer/core'
@@ -156,7 +161,10 @@ export type {
     ContextRepo,
     ContextPackage,
     ContextBundle,
-    Template
+    Template,
+    IFavoriteManager,
+    FavoritePrompt,
+    FavoriteCategory
 } from '@prompt-optimizer/core'
 
 // 导出新增的类型和服务

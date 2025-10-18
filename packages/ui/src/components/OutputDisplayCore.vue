@@ -39,6 +39,19 @@
         <!-- 右侧：操作按钮 -->
         <NButtonGroup>
           <NButton
+            v-if="isActionEnabled('favorite')"
+            @click="handleFavorite"
+            size="small"
+            quaternary
+            circle
+          >
+            <template #icon>
+              <NIcon>
+                <Star />
+              </NIcon>
+            </template>
+          </NButton>
+          <NButton
             v-if="isActionEnabled('copy')"
             @click="handleCopy('content')"
             size="small"
@@ -152,21 +165,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, inject, onMounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NCard, NButton, NButtonGroup, NIcon, NCollapse, NCollapseItem,
-  NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace
+  NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace, useMessage
 } from 'naive-ui'
+import { useToast } from '../composables/useToast'
+import { Star, StarOff } from '@vicons/tabler'
 import { useClipboard } from '../composables/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
 import type { CompareResult, ICompareService } from '@prompt-optimizer/core'
+import type { AppServices } from '../types/services'
 
-type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning'
+type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
 
 const { t } = useI18n()
 const { copyText } = useClipboard()
+
+const message = useToast()
+
+// 服务注入
+const services = inject<Ref<AppServices | null> | null>('services', null)
+
+// 移除收藏状态管理(改由父组件处理)
 
 // 组件 Props
 interface Props {
@@ -200,7 +223,7 @@ const props = withDefaults(defineProps<Props>(), {
   reasoning: '',
   mode: 'readonly',
   reasoningMode: 'auto',
-  enabledActions: () => ['fullscreen', 'diff', 'copy', 'edit', 'reasoning'],
+  enabledActions: () => ['fullscreen', 'diff', 'copy', 'edit', 'reasoning', 'favorite'],
   height: '100%',
   placeholder: ''
 })
@@ -215,6 +238,7 @@ const emit = defineEmits<{
   'edit-end': []
   'reasoning-toggle': [expanded: boolean]
   'view-change': [mode: 'base' | 'diff']
+  'save-favorite': [data: { content: string; originalContent?: string }]
 }>()
 
 // 内部状态
@@ -421,6 +445,37 @@ const forceExitEditing = () => {
 const forceRefreshContent = () => {
   // V2版本中这个方法不再需要，但保留以确保向后兼容
 }
+
+// 收藏相关方法 - 触发保存对话框而不是直接保存
+const handleFavorite = () => {
+  if (!props.content) {
+    message.warning('没有内容可以收藏');
+    return;
+  }
+
+  // 触发保存收藏事件,由父组件打开保存对话框
+  emit('save-favorite', {
+    content: props.content,
+    originalContent: props.originalContent
+  });
+};
+
+// 组件挂载时设置初始视图模式
+onMounted(() => {
+  // 如果是可编辑模式，默认显示原文
+  if (props.mode === 'editable') {
+    internalViewMode.value = 'source';
+  }
+});
+
+// 监听 mode 变化，自动切换视图模式
+watch(() => props.mode, (newMode) => {
+  if (newMode === 'editable' && internalViewMode.value === 'render') {
+    internalViewMode.value = 'source';
+  } else if (newMode === 'readonly' && internalViewMode.value === 'source') {
+    internalViewMode.value = 'render';
+  }
+});
 
 defineExpose({ resetReasoningState, forceRefreshContent, forceExitEditing })
 </script>
