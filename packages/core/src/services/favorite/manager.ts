@@ -1028,7 +1028,7 @@ export class FavoriteManager implements IFavoriteManager {
       // 预处理独立标签：一次性合并，避免重复刷新统计
       if (importData.tags && Array.isArray(importData.tags) && importData.tags.length > 0) {
         const tagsToMerge = new Set<string>();
-        importData.tags.forEach(tag => {
+        importData.tags.forEach((tag: unknown) => {
           if (typeof tag === 'string' && tag.trim()) {
             tagsToMerge.add(tag.trim());
           }
@@ -1040,7 +1040,7 @@ export class FavoriteManager implements IFavoriteManager {
             const existing = new Set(tagsList.map(t => t.tag));
             const now = Date.now();
 
-            tagsToMerge.forEach(tag => {
+            tagsToMerge.forEach((tag: string) => {
               if (!existing.has(tag)) {
                 tagsList.push({ tag, createdAt: now });
                 existing.add(tag);
