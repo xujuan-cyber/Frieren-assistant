@@ -250,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, h, shallowRef, nextTick } from 'vue'
+import { ref, computed, watch, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NCard, NSpace, NText, NTag, NButton, NEmpty, NScrollbar,
@@ -259,7 +259,7 @@ import {
 import { usePerformanceMonitor } from '../composables/usePerformanceMonitor'
 import { useDebounceThrottle } from '../composables/useDebounceThrottle'
 import type { ConversationManagerProps, ConversationManagerEvents } from '../types/components'
-import type { ConversationMessage, OptimizationMode } from '@prompt-optimizer/core'
+import type { ConversationMessage } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 
@@ -423,24 +423,6 @@ const getRoleTagType = (role: string) => {
 }
 
 // 动态autosize配置（轻量化版本）
-const getAutosizeConfig = (content: string) => {
-  if (!content || typeof content !== 'string') {
-    return { minRows: 1, maxRows: 3 }
-  }
-
-  const lineCount = content.split('\n').length
-  const charLength = content.length
-
-  // 基于内容长度和换行数决定行数范围（轻量化算法）
-  if (charLength <= 50 && lineCount <= 1) {
-    return { minRows: 1, maxRows: 2 }
-  }
-  if (charLength <= 150 && lineCount <= 2) {
-    return { minRows: 2, maxRows: 4 }
-  }
-  
-  return { minRows: 2, maxRows: Math.min(8, Math.max(lineCount, 3)) }
-}
 
 // 获取单个消息的变量信息（与ContextEditor统一）
 const getMessageVariables = (content: string) => {
@@ -452,30 +434,9 @@ const getMessageVariables = (content: string) => {
   return { detected, missing }
 }
 
-// 变量处理的节流版本（用于频繁调用场景）
-const getMessageVariablesThrottled = throttle(getMessageVariables, 100)
 
-// 安全的变量获取函数，确保始终返回有效结构
-const safeGetMessageVariables = (content: string) => {
-  try {
-    const result = getMessageVariablesThrottled(content)
-    return result || { detected: [], missing: [] }
-  } catch (error) {
-    console.warn('[ConversationManager] Error in getMessageVariablesThrottled:', error)
-    return { detected: [], missing: [] }
-  }
-}
 
-// 保持向后兼容的便捷函数
-const getMessageMissingVariables = (content: string): string[] => {
-  return getMessageVariables(content).missing
-}
 
-// 处理变量创建 - 统一化接口，传递变量名给父组件
-const handleCreateVariable = (name: string) => {
-  // 发出变量管理器打开事件，传递要创建的变量名
-  emit('openVariableManager', name)
-}
 
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value

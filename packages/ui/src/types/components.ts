@@ -4,15 +4,12 @@
  */
 
 import type {
-  VariableDefinition,
   ConversationMessage,
   ToolDefinition,
   ToolCallResult,
-  ApplyToTestData,
   AdvancedTestResult,
   ContextEditorState,
   ComponentVisibility,
-  AdvancedModuleState,
   VariableImportOptions,
   VariableExportData
 } from '@prompt-optimizer/core'

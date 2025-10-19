@@ -101,7 +101,6 @@ import {
   NInput,
   NSelect,
   NDynamicTags,
-  NSwitch,
   NText,
   useMessage,
   type FormInst,
