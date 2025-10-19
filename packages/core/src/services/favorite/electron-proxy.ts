@@ -179,4 +179,12 @@ export class FavoriteManagerElectronProxy implements IFavoriteManager {
   async getCategoryUsage(categoryId: string): Promise<number> {
     return this.invokeMethod('getCategoryUsage', categoryId);
   }
+
+  async ensureDefaultCategories(defaultCategories: Array<{
+    name: string;
+    description?: string;
+    color: string;
+  }>): Promise<void> {
+    return this.invokeMethod('ensureDefaultCategories', defaultCategories);
+  }
 }

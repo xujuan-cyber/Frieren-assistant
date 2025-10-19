@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FavoriteManager } from '../../../src/services/favorite/manager';
 import type { IStorageProvider } from '../../../src/services/storage/types';
-import { FavoriteValidationError, FavoriteError } from '../../../src/services/favorite/errors';
+import { FavoriteValidationError } from '../../../src/services/favorite/errors';
 
 /**
  * 标签管理功能单元测试
@@ -61,9 +61,12 @@ describe('FavoriteManager - 标签管理', () => {
       await expect(manager.addTag('   ')).rejects.toThrow(FavoriteValidationError);
     });
 
-    it('应该拒绝重复的标签', async () => {
+    it('重复添加标签应该幂等', async () => {
       await manager.addTag('标签1');
-      await expect(manager.addTag('标签1')).rejects.toThrow(FavoriteError);
+      await expect(manager.addTag('标签1')).resolves.toBeUndefined();
+
+      const tags = await manager.getAllTags();
+      expect(tags.filter(tag => tag.tag === '标签1')).toHaveLength(1);
     });
 
     it('应该自动去除首尾空格', async () => {

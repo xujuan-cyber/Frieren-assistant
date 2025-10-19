@@ -40,6 +40,27 @@ function generateStreamId() {
   return `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+function createIpcError(payload) {
+  if (!payload) {
+    return new Error('Unknown IPC error');
+  }
+
+  if (typeof payload === 'string') {
+    return new Error(payload);
+  }
+
+  const error = new Error(payload.message || 'Unknown IPC error');
+  return Object.assign(error, payload);
+}
+
+async function invokeFavorite(channel, ...args) {
+  const result = await ipcRenderer.invoke(channel, ...args);
+  if (!result.success) {
+    throw createIpcError(result.error);
+  }
+  return result.data;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   // IPC event listeners
   on: (channel, callback) => {
@@ -561,6 +582,79 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error);
       }
       return result.data;
+    }
+  },
+
+  // Favorite Manager interface
+  favoriteManager: {
+    addFavorite: async (favorite) => {
+      return await invokeFavorite('favorite-addFavorite', favorite);
+    },
+    getFavorites: async (options) => {
+      return await invokeFavorite('favorite-getFavorites', options);
+    },
+    getFavorite: async (id) => {
+      return await invokeFavorite('favorite-getFavorite', id);
+    },
+    updateFavorite: async (id, updates) => {
+      await invokeFavorite('favorite-updateFavorite', id, updates);
+    },
+    deleteFavorite: async (id) => {
+      await invokeFavorite('favorite-deleteFavorite', id);
+    },
+    deleteFavorites: async (ids) => {
+      await invokeFavorite('favorite-deleteFavorites', ids);
+    },
+    incrementUseCount: async (id) => {
+      await invokeFavorite('favorite-incrementUseCount', id);
+    },
+    getCategories: async () => {
+      return await invokeFavorite('favorite-getCategories');
+    },
+    addCategory: async (category) => {
+      return await invokeFavorite('favorite-addCategory', category);
+    },
+    updateCategory: async (id, updates) => {
+      await invokeFavorite('favorite-updateCategory', id, updates);
+    },
+    deleteCategory: async (id) => {
+      return await invokeFavorite('favorite-deleteCategory', id);
+    },
+    getStats: async () => {
+      return await invokeFavorite('favorite-getStats');
+    },
+    searchFavorites: async (keyword, options) => {
+      return await invokeFavorite('favorite-searchFavorites', keyword, options);
+    },
+    exportFavorites: async (ids) => {
+      return await invokeFavorite('favorite-exportFavorites', ids);
+    },
+    importFavorites: async (data, options) => {
+      return await invokeFavorite('favorite-importFavorites', data, options);
+    },
+    getAllTags: async () => {
+      return await invokeFavorite('favorite-getAllTags');
+    },
+    addTag: async (tag) => {
+      await invokeFavorite('favorite-addTag', tag);
+    },
+    renameTag: async (oldTag, newTag) => {
+      return await invokeFavorite('favorite-renameTag', oldTag, newTag);
+    },
+    mergeTags: async (sourceTags, targetTag) => {
+      return await invokeFavorite('favorite-mergeTags', sourceTags, targetTag);
+    },
+    deleteTag: async (tag) => {
+      return await invokeFavorite('favorite-deleteTag', tag);
+    },
+    reorderCategories: async (categoryIds) => {
+      await invokeFavorite('favorite-reorderCategories', categoryIds);
+    },
+    getCategoryUsage: async (categoryId) => {
+      return await invokeFavorite('favorite-getCategoryUsage', categoryId);
+    },
+    ensureDefaultCategories: async (defaultCategories) => {
+      await invokeFavorite('favorite-ensureDefaultCategories', defaultCategories);
     }
   },
 

@@ -12,7 +12,6 @@ import {
   FavoriteCategoryNotFoundError,
   FavoriteValidationError,
   FavoriteStorageError,
-  FavoriteTagAlreadyExistsError,
   FavoriteMigrationError,
   FavoriteImportExportError
 } from './errors';
@@ -716,6 +715,8 @@ export class FavoriteManager implements IFavoriteManager {
       throw new FavoriteValidationError('Tag name cannot be empty');
     }
 
+    let added = false;
+
     try {
       await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
         const tagsList = tags || [];
@@ -723,7 +724,8 @@ export class FavoriteManager implements IFavoriteManager {
         // 检查是否已存在
         const existing = tagsList.find(t => t.tag === trimmedTag);
         if (existing) {
-          throw new FavoriteTagAlreadyExistsError(trimmedTag);
+          // 标签已存在，保持幂等，不再抛错
+          return tagsList;
         }
 
         const now = Date.now();
@@ -732,11 +734,14 @@ export class FavoriteManager implements IFavoriteManager {
           createdAt: now
         };
 
+        added = true;
         return [...tagsList, newTag];
       });
 
-      // 更新统计信息
-      await this.updateStats();
+      // 仅在新增标签时更新统计信息
+      if (added) {
+        await this.updateStats();
+      }
     } catch (error) {
       if (error instanceof FavoriteError) {
         throw error;

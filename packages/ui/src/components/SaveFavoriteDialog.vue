@@ -143,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, inject, type Ref } from 'vue';
+import { ref, reactive, computed, watch, inject, toRaw, type Ref } from 'vue';
 import {
   NModal,
   NCard,
@@ -315,11 +315,19 @@ const handleSave = async () => {
 
   saving.value = true;
   try {
-    // 【优化】保存收藏前，确保所有标签都存在于独立标签库中
-    // 这样可以保证：1. 标签统一管理 2. 导出时完整 3. 标签管理器能看到所有标签
+    // 【优化】保存收藏前，确保所有标签都存在于独立标签库中（仅对缺失项调用）
+    const existingTags = new Set<string>(
+      (await servicesValue.favoriteManager.getAllTags()).map(tagStat => tagStat.tag)
+    );
+
     for (const tag of formData.tags) {
+      if (existingTags.has(tag)) {
+        continue;
+      }
+
       try {
         await servicesValue.favoriteManager.addTag(tag);
+        existingTags.add(tag);
       } catch (error) {
         // 只忽略"标签已存在"错误，其他错误需要抛出
         if (error && typeof error === 'object' && 'code' in error && error.code !== 'TAG_ALREADY_EXISTS') {
@@ -330,40 +338,39 @@ const handleSave = async () => {
       }
     }
 
+    const sanitizedTags = Array.from(toRaw(formData.tags || [])).map(tag => String(tag));
+
+    const basePayload = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      content: formData.content.trim(),
+      category: formData.category,
+      tags: sanitizedTags,
+      functionMode: formData.functionMode,
+      optimizationMode: formData.optimizationMode,
+      imageSubMode: formData.imageSubMode
+    };
+
     if (props.mode === 'edit' && props.favorite) {
       // 编辑模式：更新现有收藏
       await servicesValue.favoriteManager.updateFavorite(props.favorite.id, {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        content: formData.content.trim(),
-        category: formData.category,
-        tags: formData.tags,
-        functionMode: formData.functionMode,
-        optimizationMode: formData.optimizationMode,
-        imageSubMode: formData.imageSubMode
+        ...basePayload
       });
       message.success(t('favorites.dialog.messages.editSuccess'));
     } else {
       // 创建模式或保存模式：添加新收藏
-      interface CreateFavoriteData {
-        title: string
-        description: string
-        content: string
-        category: string
-        tags: string[]
-        functionMode: 'basic' | 'context' | 'image'
-        optimizationMode: 'system' | 'user'
-      }
-
-      const favoriteData: CreateFavoriteData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        content: formData.content.trim(),
-        category: formData.category,
-        tags: formData.tags,
-        functionMode: formData.functionMode,
-        optimizationMode: formData.optimizationMode,
-        imageSubMode: formData.imageSubMode
+      const favoriteData: {
+        title: string;
+        description: string;
+        content: string;
+        category: string;
+        tags: string[];
+        functionMode: 'basic' | 'context' | 'image';
+        optimizationMode?: 'system' | 'user';
+        imageSubMode?: 'text2image' | 'image2image';
+        metadata?: Record<string, unknown>;
+      } = {
+        ...basePayload
       };
 
       // 如果是从优化器保存,添加元数据

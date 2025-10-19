@@ -194,4 +194,11 @@ export interface IFavoriteManager {
 
   /** 获取分类使用统计 */
   getCategoryUsage(categoryId: string): Promise<number>;
+
+  /** 确保默认分类存在（仅首次执行有效） */
+  ensureDefaultCategories(defaultCategories: Array<{
+    name: string;
+    description?: string;
+    color: string;
+  }>): Promise<void>;
 }
