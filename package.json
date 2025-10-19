@@ -25,6 +25,9 @@
     "dev:desktop:fresh": "npm-run-all clean pnpm-install dev:desktop",
     "dev:desktop:parallel": "concurrently -k -p \"[{name}]\" -n \"WEB,DESKTOP\" \"pnpm -F @prompt-optimizer/web dev\" \"pnpm -F @prompt-optimizer/desktop dev\"",
     "test": "pnpm -r test --run --passWithNoTests",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
     "clean": "npm-run-all clean:dist clean:vite",
     "clean:dist": "rimraf packages/core/dist packages/ui/dist packages/web/dist packages/extension/dist packages/desktop/dist packages/desktop/web-dist",
     "clean:vite": "rimraf packages/core/node_modules/.vite packages/ui/node_modules/.vite packages/web/node_modules/.vite packages/extension/node_modules/.vite",
@@ -46,6 +49,7 @@
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^6.0.3",
+    "@playwright/test": "^1.56.1",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^37.1.0",

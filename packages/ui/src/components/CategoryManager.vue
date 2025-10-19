@@ -137,7 +137,6 @@ import {
   NInput,
   NTreeSelect,
   NColorPicker,
-  NTag,
   NDropdown,
   type TreeOption,
   type FormInst,
@@ -509,7 +508,6 @@ onMounted(() => {
 });
 
 // 监听服务初始化
-import { watch } from 'vue';
 watch(() => services?.value?.favoriteManager, (favoriteManager) => {
   if (favoriteManager) {
     loadCategories();
