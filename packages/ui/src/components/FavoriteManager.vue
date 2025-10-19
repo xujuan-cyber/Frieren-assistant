@@ -222,6 +222,13 @@
       <CategoryManager @category-updated="handleCategoryUpdated" />
     </n-modal>
 
+    <!-- 标签管理 -->
+    <TagManager
+      :show="tagManagerVisible"
+      @update:show="tagManagerVisible = $event"
+      @updated="loadFavorites"
+    />
+
     <!-- 新建/编辑收藏对话框 -->
     <SaveFavoriteDialog
       :show="createState.visible"
@@ -261,6 +268,7 @@ import {
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/useToast';
+import { useFavoriteInitializer } from '../composables/useFavoriteInitializer';
 import ToastUI from './Toast.vue';
 
 const { t } = useI18n();
@@ -269,13 +277,16 @@ import OutputDisplayFullscreen from './OutputDisplayFullscreen.vue';
 import CategoryManager from './CategoryManager.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';
 import SaveFavoriteDialog from './SaveFavoriteDialog.vue';
+import TagManager from './TagManager.vue';
 import {
   Search,
   DotsVertical,
   Upload,
   Download,
   Trash,
-  Plus
+  Plus,
+  Tags,
+  Folder
 } from '@vicons/tabler';
 import type { FavoritePrompt, FavoriteCategory } from '@prompt-optimizer/core';
 import type { AppServices } from '../types/services';
@@ -303,6 +314,11 @@ const services = inject<Ref<AppServices | null> | null>('services', null);
 
 const message = useToast();
 
+// 初始化默认分类(仅在首次使用时创建)
+const { ensureDefaultCategories } = services?.value?.favoriteManager
+  ? useFavoriteInitializer(services.value.favoriteManager)
+  : { ensureDefaultCategories: async () => {} };
+
 // 响应式数据
 const loading = ref(false);
 const favorites = ref<FavoritePrompt[]>([]);
@@ -327,6 +343,7 @@ const createState = reactive({
 });
 const previewFavorite = ref<FavoritePrompt | null>(null);
 const categoryManagerVisible = ref(false);
+const tagManagerVisible = ref(false);
 
 // 响应式的视口宽度
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1280);
@@ -481,6 +498,19 @@ const pageSize = computed(() => {
 });
 
 const actionMenuOptions = computed(() => [
+  {
+    label: t('favorites.manager.actions.manageTags'),
+    key: 'manageTags',
+    icon: () => h(NIcon, null, { default: () => h(Tags) })
+  },
+  {
+    label: t('favorites.manager.actions.manageCategories'),
+    key: 'manageCategories',
+    icon: () => h(NIcon, null, { default: () => h(Folder) })
+  },
+  {
+    type: 'divider'
+  },
   {
     label: t('favorites.manager.actions.export'),
     key: 'export',
@@ -759,6 +789,12 @@ const handleUseFavorite = (favorite: FavoritePrompt) => {
 
 const handleActionMenuSelect = (key: string) => {
   switch (key) {
+    case 'manageTags':
+      tagManagerVisible.value = true;
+      break;
+    case 'manageCategories':
+      categoryManagerVisible.value = true;
+      break;
     case 'export':
       handleExportFavorites();
       break;
@@ -884,29 +920,32 @@ watch(() => editState.visible, (visible) => {
   }
 });
 
-onMounted(() => {
+// 窗口大小变化处理
+const handleResize = () => {
+  if (typeof window !== 'undefined') {
+    viewportWidth.value = window.innerWidth;
+  }
+};
+const debouncedResize = useDebounceFn(handleResize, 150);
+
+// 生命周期
+onMounted(async () => {
   if (services?.value?.favoriteManager) {
+    // 确保默认分类存在(仅在首次使用时创建)
+    await ensureDefaultCategories();
     loadFavorites();
     loadCategories();
   }
 
-  // 监听窗口大小变化
-  const handleResize = () => {
-    if (typeof window !== 'undefined') {
-      viewportWidth.value = window.innerWidth;
-    }
-  };
-  const debouncedResize = useDebounceFn(handleResize, 150);
-
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', debouncedResize);
   }
+});
 
-  onBeforeUnmount(() => {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', debouncedResize);
-    }
-  });
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', debouncedResize);
+  }
 });
 
 defineExpose({

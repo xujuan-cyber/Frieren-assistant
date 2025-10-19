@@ -85,6 +85,29 @@ export interface FavoriteStats {
 }
 
 /**
+ * 独立标签接口
+ */
+export interface FavoriteTag {
+  /** 标签名称 */
+  tag: string;
+  /** 创建时间 */
+  createdAt: number;
+}
+
+/**
+ * 标签统计信息接口
+ * 用于标签管理器展示标签使用情况
+ */
+export interface TagStatistics {
+  /** 标签名称 */
+  name: string;
+  /** 使用次数 */
+  count: number;
+  /** 最后使用时间（可选，暂未实现） */
+  lastUsed?: number;
+}
+
+/**
  * 收藏管理器接口
  */
 export interface IFavoriteManager {
@@ -127,7 +150,7 @@ export interface IFavoriteManager {
   updateCategory(id: string, updates: Partial<FavoriteCategory>): Promise<void>;
 
   /** 删除分类 */
-  deleteCategory(id: string): Promise<void>;
+  deleteCategory(id: string): Promise<number>;
 
   /** 获取统计信息 */
   getStats(): Promise<FavoriteStats>;
@@ -151,8 +174,11 @@ export interface IFavoriteManager {
     errors: string[];
   }>;
 
-  /** 获取所有标签及其使用统计 */
+  /** 获取所有标签及其使用统计（包含独立标签和使用中的标签） */
   getAllTags(): Promise<Array<{ tag: string; count: number }>>;
+
+  /** 添加独立标签 */
+  addTag(tag: string): Promise<void>;
 
   /** 重命名标签 */
   renameTag(oldTag: string, newTag: string): Promise<number>;
@@ -160,7 +186,7 @@ export interface IFavoriteManager {
   /** 合并多个标签为一个 */
   mergeTags(sourceTags: string[], targetTag: string): Promise<number>;
 
-  /** 删除标签 */
+  /** 删除标签（同时从独立标签和所有收藏项中删除） */
   deleteTag(tag: string): Promise<number>;
 
   /** 对分类进行重新排序 */

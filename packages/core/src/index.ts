@@ -147,6 +147,7 @@ export * from './services/context/constants'
 // 导出收藏管理相关
 export { FavoriteManager } from './services/favorite/manager'
 export { FavoriteManagerElectronProxy } from './services/favorite/electron-proxy'
+export { TagTypeConverter } from './services/favorite/type-converter'
 export * from './services/favorite/types'
 export * from './services/favorite/errors'
 

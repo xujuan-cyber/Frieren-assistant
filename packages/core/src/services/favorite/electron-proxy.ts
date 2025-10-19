@@ -5,7 +5,12 @@ import {
   FavoriteAlreadyExistsError,
   FavoriteCategoryNotFoundError,
   FavoriteValidationError,
-  FavoriteStorageError
+  FavoriteStorageError,
+  FavoriteTagAlreadyExistsError,
+  FavoriteTagNotFoundError,
+  FavoriteTagError,
+  FavoriteMigrationError,
+  FavoriteImportExportError
 } from './errors';
 
 declare const window: {
@@ -47,6 +52,23 @@ export class FavoriteManagerElectronProxy implements IFavoriteManager {
       }
       if (error.code === 'STORAGE_ERROR') {
         throw new FavoriteStorageError(error.message || '');
+      }
+      // 标签相关错误
+      if (error.code === 'TAG_ALREADY_EXISTS') {
+        throw new FavoriteTagAlreadyExistsError(error.tag || '');
+      }
+      if (error.code === 'TAG_NOT_FOUND') {
+        throw new FavoriteTagNotFoundError(error.tag || '');
+      }
+      if (error.code === 'TAG_ERROR') {
+        throw new FavoriteTagError(error.message || '', error.code);
+      }
+      // 数据迁移和导入导出错误
+      if (error.code === 'MIGRATION_ERROR') {
+        throw new FavoriteMigrationError(error.message || '', error.cause);
+      }
+      if (error.code === 'IMPORT_EXPORT_ERROR') {
+        throw new FavoriteImportExportError(error.message || '', error.cause, error.details);
       }
       throw new FavoriteError(error.message || '未知错误');
     }
@@ -100,7 +122,7 @@ export class FavoriteManagerElectronProxy implements IFavoriteManager {
     return this.invokeMethod('updateCategory', id, updates);
   }
 
-  async deleteCategory(id: string): Promise<void> {
+  async deleteCategory(id: string): Promise<number> {
     return this.invokeMethod('deleteCategory', id);
   }
 
@@ -132,6 +154,10 @@ export class FavoriteManagerElectronProxy implements IFavoriteManager {
 
   async getAllTags(): Promise<Array<{ tag: string; count: number }>> {
     return this.invokeMethod('getAllTags');
+  }
+
+  async addTag(tag: string): Promise<void> {
+    return this.invokeMethod('addTag', tag);
   }
 
   async renameTag(oldTag: string, newTag: string): Promise<number> {

@@ -1,4 +1,21 @@
-﻿export default {
+﻿const favoriteCategoriesMessages = {
+  default: {
+    uncategorized: '未分类',
+    uncategorizedDesc: '默认分类',
+    creativeWriting: '创意写作',
+    creativeWritingDesc: '创意写作相关的提示词',
+    programming: '编程开发',
+    programmingDesc: '编程开发相关的提示词',
+    businessAnalysis: '商业分析',
+    businessAnalysisDesc: '商业分析相关的提示词',
+    learning: '学习研究',
+    learningDesc: '学习研究相关的提示词',
+    dailyAssistant: '日常助手',
+    dailyAssistantDesc: '日常生活助手类提示词'
+  }
+};
+
+export default {
   common: {
     loading: '加载中...',
     save: '保存',
@@ -103,6 +120,7 @@
   },
   favorites: {
     title: '我的收藏',
+    categories: favoriteCategoriesMessages,
     manager: {
       title: '收藏管理',
       searchPlaceholder: '搜索收藏...',
@@ -138,6 +156,8 @@
         title: '分类管理'
       },
       actions: {
+        manageTags: '管理标签',
+        manageCategories: '管理分类',
         export: '导出收藏',
         clear: '清空收藏',
         exportSuccess: '导出成功',
@@ -180,7 +200,77 @@
         edit: '编辑',
         delete: '删除',
         cancel: '取消',
-        deleteConfirm: '确定删除"{title}"吗？'
+        deleteConfirm: '确定删除"{title}"吗？',
+        functionMode: {
+          basic: '基础',
+          context: '上下文',
+          image: '图像'
+        },
+        optimizationMode: {
+          system: '系统',
+          user: '用户'
+        },
+        imageSubMode: {
+          text2image: '文生图',
+          image2image: '图生图'
+        }
+      },
+      categories: favoriteCategoriesMessages,
+      tagManager: {
+        title: '标签管理',
+        searchPlaceholder: '搜索标签...',
+        totalTags: '共 {count} 个标签',
+        add: '新增标签',
+        tagName: '标签名',
+        useCount: '使用次数',
+        actions: '操作',
+        rename: '重命名',
+        merge: '合并',
+        mergeTooltip: '将当前标签合并到目标标签中',
+        delete: '删除',
+        close: '关闭',
+        addDialog: {
+          title: '新增标签',
+          tagName: '标签名称',
+          tagNamePlaceholder: '输入标签名称',
+          emptyWarning: '标签名不能为空',
+          existWarning: '标签已存在',
+          confirm: '确认',
+          cancel: '取消'
+        },
+        renameDialog: {
+          title: '重命名标签',
+          oldName: '原标签名',
+          newName: '新标签名',
+          newNamePlaceholder: '输入新的标签名',
+          currentName: '当前标签名：{name}',
+          emptyWarning: '标签名不能为空',
+          confirm: '确认',
+          cancel: '取消'
+        },
+        mergeDialog: {
+          title: '合并标签',
+          sourceName: '源标签',
+          targetName: '合并到',
+          targetPlaceholder: '选择目标标签',
+          sourceTag: '源标签：{name}',
+          selectTargetWarning: '请选择目标标签',
+          confirm: '确认合并',
+          cancel: '取消',
+          warning: '合并后，"{source}" 标签将被删除，所有使用该标签的收藏将改用 "{target}" 标签'
+        },
+        deleteConfirm: '确定删除标签 "{name}"？这将从 {count} 个收藏中移除该标签。',
+        messages: {
+          loadFailed: '加载标签列表失败',
+          addSuccess: '标签添加成功',
+          addFailed: '标签添加失败',
+          renameSuccess: '标签重命名成功',
+          renameFailed: '标签重命名失败',
+          mergeSuccess: '标签合并成功',
+          mergeFailed: '标签合并失败',
+          deleteSuccess: '标签删除成功',
+          deleteFailed: '标签删除失败'
+        }
       }
     },
     dialog: {

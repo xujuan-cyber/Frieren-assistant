@@ -84,11 +84,31 @@
 
             <!-- 标签(跨越两列) -->
             <n-form-item :label="t('favorites.dialog.tagsLabel')">
-              <n-dynamic-tags
-                v-model:value="formData.tags"
-                :max="10"
-                :placeholder="t('favorites.dialog.tagsPlaceholder')"
-              />
+              <div style="width: 100%;">
+                <!-- 已选标签显示 -->
+                <n-space v-if="formData.tags.length > 0" :size="[8, 8]" style="margin-bottom: 8px;">
+                  <n-tag
+                    v-for="(tag, index) in formData.tags"
+                    :key="tag"
+                    closable
+                    @close="handleRemoveTag(index)"
+                    type="info"
+                  >
+                    {{ tag }}
+                  </n-tag>
+                </n-space>
+
+                <!-- 标签输入自动完成 -->
+                <n-auto-complete
+                  v-model:value="tagInputValue"
+                  :options="tagSuggestions"
+                  :placeholder="t('favorites.dialog.tagsPlaceholder')"
+                  :get-show="() => tagInputValue.length > 0 || tagSuggestions.length > 0"
+                  clearable
+                  @select="handleSelectTag"
+                  @keydown.enter="handleAddTag"
+                />
+              </div>
             </n-form-item>
           </n-form>
         </n-card>
@@ -131,7 +151,8 @@ import {
   NFormItem,
   NInput,
   NSelect,
-  NDynamicTags,
+  NAutoComplete,
+  NTag,
   NButton,
   NSpace,
   NScrollbar,
@@ -141,11 +162,13 @@ import {
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/useToast';
+import { useTagSuggestions } from '../composables/useTagSuggestions';
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';
 import type { AppServices } from '../types/services';
 
 const { t } = useI18n();
+const { filterTags, loadTags } = useTagSuggestions();
 
 interface Props {
   /** 是否显示对话框 */
@@ -182,6 +205,16 @@ const services = inject<Ref<AppServices | null>>('services');
 const message = useToast();
 
 const saving = ref(false);
+
+// 标签输入和建议
+const tagInputValue = ref('');
+const tagSuggestions = computed(() => {
+  const suggestions = filterTags(tagInputValue.value, formData.tags);
+  return suggestions.map(s => ({
+    label: s.label,
+    value: s.value
+  }));
+});
 
 // 对话框标题
 const dialogTitle = computed(() => {
@@ -234,6 +267,27 @@ const handleFunctionModeChange = (mode: 'basic' | 'context' | 'image') => {
   }
 };
 
+// 标签管理函数
+const handleRemoveTag = (index: number) => {
+  formData.tags.splice(index, 1);
+};
+
+const handleSelectTag = (value: string) => {
+  if (value && !formData.tags.includes(value) && formData.tags.length < 10) {
+    formData.tags.push(value);
+    tagInputValue.value = '';
+  }
+};
+
+const handleAddTag = (e: KeyboardEvent) => {
+  e.preventDefault();
+  const trimmedValue = tagInputValue.value.trim();
+  if (trimmedValue && !formData.tags.includes(trimmedValue) && formData.tags.length < 10) {
+    formData.tags.push(trimmedValue);
+    tagInputValue.value = '';
+  }
+};
+
 // 关闭对话框
 const handleClose = () => {
   emit('update:show', false);
@@ -260,6 +314,21 @@ const handleSave = async () => {
 
   saving.value = true;
   try {
+    // 【优化】保存收藏前，确保所有标签都存在于独立标签库中
+    // 这样可以保证：1. 标签统一管理 2. 导出时完整 3. 标签管理器能看到所有标签
+    for (const tag of formData.tags) {
+      try {
+        await servicesValue.favoriteManager.addTag(tag);
+      } catch (error: any) {
+        // 只忽略"标签已存在"错误，其他错误需要抛出
+        if (error?.code !== 'TAG_ALREADY_EXISTS') {
+          console.error('添加标签到独立库失败:', error);
+          throw error;
+        }
+        // 标签已存在，这是正常情况，继续处理
+      }
+    }
+
     if (props.mode === 'edit' && props.favorite) {
       // 编辑模式：更新现有收藏
       await servicesValue.favoriteManager.updateFavorite(props.favorite.id, {
@@ -308,8 +377,11 @@ const handleSave = async () => {
 };
 
 // 监听对话框显示,初始化表单
-watch(() => props.show, (newShow) => {
+watch(() => props.show, async (newShow) => {
   if (newShow) {
+    // 加载标签建议
+    await loadTags();
+
     if (props.mode === 'create') {
       // 新建模式: 重置为空表单
       formData.title = '';

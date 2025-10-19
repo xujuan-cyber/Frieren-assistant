@@ -1,4 +1,12 @@
 export * from './types';
 export * from './errors';
 export * from './manager';
-export type { FavoritePrompt, FavoriteCategory, FavoriteStats, IFavoriteManager } from './types';
+export * from './type-converter';
+export type {
+  FavoritePrompt,
+  FavoriteCategory,
+  FavoriteStats,
+  FavoriteTag,
+  TagStatistics,
+  IFavoriteManager
+} from './types';

@@ -3,6 +3,7 @@ import type {
   FavoritePrompt,
   FavoriteCategory,
   FavoriteStats,
+  FavoriteTag,
   IFavoriteManager
 } from './types';
 import {
@@ -10,7 +11,10 @@ import {
   FavoriteNotFoundError,
   FavoriteCategoryNotFoundError,
   FavoriteValidationError,
-  FavoriteStorageError
+  FavoriteStorageError,
+  FavoriteTagAlreadyExistsError,
+  FavoriteMigrationError,
+  FavoriteImportExportError
 } from './errors';
 import { TypeMapper } from './type-mapper';
 
@@ -21,7 +25,8 @@ export class FavoriteManager implements IFavoriteManager {
   private readonly STORAGE_KEYS = {
     FAVORITES: 'favorites',
     CATEGORIES: 'favorite_categories',
-    STATS: 'favorite_stats'
+    STATS: 'favorite_stats',
+    TAGS: 'favorite_tags'
   } as const;
 
   private initPromise: Promise<void>;
@@ -48,7 +53,8 @@ export class FavoriteManager implements IFavoriteManager {
 
     try {
       this.initState = 'initializing';
-      await this.initializeDefaultCategories();
+      // ❌ 移除自动创建默认分类 - 改由 UI 层调用 ensureDefaultCategories
+      // await this.initializeDefaultCategories();
       await this.migrateLegacyData();
       this.initialized = true;
       this.initState = 'initialized';
@@ -119,91 +125,61 @@ export class FavoriteManager implements IFavoriteManager {
       if (migrated) {
         // 迁移后更新统计信息
         await this.updateStats();
+        console.info('[FavoriteManager] 数据迁移完成，已更新收藏项格式');
       }
     } catch (error) {
-      console.warn('[FavoriteManager] 旧数据迁移失败:', error);
-      // 迁移失败不应该阻止服务初始化
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const migrationError = new FavoriteMigrationError(
+        `Legacy data migration failed: ${errorMessage}`,
+        error instanceof Error ? error : undefined
+      );
+      console.warn('[FavoriteManager]', migrationError);
+      // 迁移失败不应该阻止服务初始化，仅记录警告
     }
   }
 
   /**
-   * 初始化默认分类
+   * 确保默认分类存在(仅首次)
+   * 由 UI 层调用,传入国际化后的分类配置
    *
-   * 💡 **架构说明**:
-   * 此方法在初始化期间被调用,现在可以安全地调用公共方法。
-   * `ensureInitialized()` 会检测初始化状态,在初始化期间直接返回,避免死锁。
+   * @param defaultCategories 默认分类配置数组
    */
-  private async initializeDefaultCategories(): Promise<void> {
+  async ensureDefaultCategories(
+    defaultCategories: Array<{
+      name: string;
+      description?: string;
+      color: string;
+    }>
+  ): Promise<void> {
+    await this.ensureInitialized();
+
     try {
-      // ✅ 现在可以安全调用公共方法,ensureInitialized() 会智能跳过等待
+      // ✅ 检查是否已初始化过默认分类
+      const hasInitialized = await this.storageProvider.getItem('favorite_categories_initialized');
+      if (hasInitialized === 'true') {
+        return; // 已经初始化过,即使用户删光了也不再自动创建
+      }
+
+      // ✅ 检查是否已有分类
       const existingCategories = await this.getCategories();
 
       if (existingCategories.length === 0) {
-        // ✅ 创建默认分类 - 可以安全调用 addCategory()
-        const now = Date.now();
-        const defaultCategories: FavoriteCategory[] = [
-          {
-            id: `cat_${now}_${Math.random().toString(36).substr(2, 9)}`,
-            name: '未分类',
-            description: '默认分类',
-            color: '#6B7280',
-            sortOrder: 0,
-            createdAt: now
-          },
-          {
-            id: `cat_${now + 1}_${Math.random().toString(36).substr(2, 9)}`,
-            name: '系统提示词',
-            description: '优化后的系统提示词',
-            color: '#3B82F6',
-            sortOrder: 1,
-            createdAt: now + 1
-          },
-          {
-            id: `cat_${now + 2}_${Math.random().toString(36).substr(2, 9)}`,
-            name: '用户提示词',
-            description: '优化后的用户提示词',
-            color: '#10B981',
-            sortOrder: 2,
-            createdAt: now + 2
-          },
-          {
-            id: `cat_${now + 3}_${Math.random().toString(36).substr(2, 9)}`,
-            name: '创意写作',
-            description: '创意写作相关的提示词',
-            color: '#8B5CF6',
-            sortOrder: 3,
-            createdAt: now + 3
-          },
-          {
-            id: `cat_${now + 4}_${Math.random().toString(36).substr(2, 9)}`,
-            name: '编程开发',
-            description: '编程开发相关的提示词',
-            color: '#F59E0B',
-            sortOrder: 4,
-            createdAt: now + 4
-          },
-          {
-            id: `cat_${now + 5}_${Math.random().toString(36).substr(2, 9)}`,
-            name: '商业分析',
-            description: '商业分析相关的提示词',
-            color: '#EF4444',
-            sortOrder: 5,
-            createdAt: now + 5
-          }
-        ];
-
-        // ✅ 批量添加默认分类 - 使用公共方法
-        for (const category of defaultCategories) {
+        // ✅ 首次使用,创建默认分类
+        for (let i = 0; i < defaultCategories.length; i++) {
+          const category = defaultCategories[i];
           await this.addCategory({
             name: category.name,
             description: category.description,
             color: category.color,
-            sortOrder: category.sortOrder
+            sortOrder: i
           });
         }
+
+        // ✅ 标记已初始化
+        await this.storageProvider.setItem('favorite_categories_initialized', 'true');
       }
     } catch (error) {
-      console.warn('初始化默认分类失败:', error);
+      console.warn('[FavoriteManager] 确保默认分类失败:', error);
     }
   }
 
@@ -212,24 +188,24 @@ export class FavoriteManager implements IFavoriteManager {
 
     // 验证输入
     if (!favorite.content?.trim()) {
-      throw new FavoriteValidationError('提示词内容不能为空');
+      throw new FavoriteValidationError('Prompt content cannot be empty');
     }
 
     // 验证 functionMode 必填
     if (!favorite.functionMode) {
-      throw new FavoriteValidationError('功能模式 (functionMode) 不能为空');
+      throw new FavoriteValidationError('Function mode (functionMode) cannot be empty');
     }
 
     // 验证功能模式分类的完整性
     if (favorite.functionMode === 'basic' || favorite.functionMode === 'context') {
       if (!favorite.optimizationMode) {
-        throw new FavoriteValidationError(`${favorite.functionMode} 模式必须指定 optimizationMode`);
+        throw new FavoriteValidationError(`${favorite.functionMode} mode must specify optimizationMode`);
       }
     }
 
     if (favorite.functionMode === 'image') {
       if (!favorite.imageSubMode) {
-        throw new FavoriteValidationError('image 模式必须指定 imageSubMode');
+        throw new FavoriteValidationError('Image mode must specify imageSubMode');
       }
     }
 
@@ -271,7 +247,7 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`添加收藏失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to add favorite: ${errorMessage}`);
     }
   }
 
@@ -342,7 +318,7 @@ export class FavoriteManager implements IFavoriteManager {
       return favoritesList;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`获取收藏列表失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to get favorites: ${errorMessage}`);
     }
   }
 
@@ -361,7 +337,7 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`获取收藏详情失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to get favorite details: ${errorMessage}`);
     }
   }
 
@@ -391,7 +367,7 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`更新收藏失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to update favorite: ${errorMessage}`);
     }
   }
 
@@ -415,7 +391,7 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`删除收藏失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to delete favorite: ${errorMessage}`);
     }
   }
 
@@ -425,7 +401,7 @@ export class FavoriteManager implements IFavoriteManager {
         const favoritesList = favorites || [];
         const deletedCount = favoritesList.filter(f => ids.includes(f.id)).length;
         if (deletedCount === 0) {
-          throw new FavoriteNotFoundError('未找到要删除的收藏项');
+          throw new FavoriteNotFoundError('Favorite to delete not found');
         }
 
         return favoritesList.filter(f => !ids.includes(f.id));
@@ -437,7 +413,7 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`批量删除收藏失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to batch delete favorites: ${errorMessage}`);
     }
   }
 
@@ -458,7 +434,7 @@ export class FavoriteManager implements IFavoriteManager {
       return categories ? JSON.parse(categories) : [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`获取分类列表失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to get categories: ${errorMessage}`);
     }
   }
 
@@ -466,7 +442,7 @@ export class FavoriteManager implements IFavoriteManager {
     await this.ensureInitialized();
 
     if (!category.name?.trim()) {
-      throw new FavoriteValidationError('分类名称不能为空');
+      throw new FavoriteValidationError('Category name cannot be empty');
     }
 
     const now = Date.now();
@@ -485,7 +461,7 @@ export class FavoriteManager implements IFavoriteManager {
         // 检查是否已存在同名分类
         const existing = categoriesList.find(c => c.name === category.name);
         if (existing) {
-          throw new FavoriteError(`分类已存在: ${category.name}`, 'CATEGORY_ALREADY_EXISTS');
+          throw new FavoriteError(`Category already exists: ${category.name}`, 'CATEGORY_ALREADY_EXISTS');
         }
         return [...categoriesList, newCategory];
       });
@@ -496,7 +472,7 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`添加分类失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to add category: ${errorMessage}`);
     }
   }
 
@@ -521,18 +497,34 @@ export class FavoriteManager implements IFavoriteManager {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`更新分类失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to update category: ${errorMessage}`);
     }
   }
 
-  async deleteCategory(id: string): Promise<void> {
+  /**
+   * 删除分类
+   * 会自动清空该分类下所有收藏的分类字段
+   *
+   * @param id 分类ID
+   * @returns 受影响的收藏数量
+   */
+  async deleteCategory(id: string): Promise<number> {
+    await this.ensureInitialized();
+
     try {
-      // 检查是否有收藏项使用此分类
-      const favoritesInCategory = await this.getFavorites({ categoryId: id });
-      if (favoritesInCategory.length > 0) {
-        throw new FavoriteValidationError(`无法删除分类，还有 ${favoritesInCategory.length} 个收藏项使用此分类`);
+      // ✅ 获取该分类下的所有收藏
+      const allFavorites = await this.getFavorites();
+      const favoritesInCategory = allFavorites.filter(f => f.category === id);
+
+      // ✅ 清空这些收藏的分类字段(不依赖"未分类"是否存在)
+      for (const favorite of favoritesInCategory) {
+        await this.updateFavorite(favorite.id, {
+          ...favorite,
+          category: undefined // 清空分类
+        });
       }
 
+      // ✅ 删除分类
       await this.storageProvider.updateData(this.STORAGE_KEYS.CATEGORIES, (categories: FavoriteCategory[] | null) => {
         const categoriesList = categories || [];
         const index = categoriesList.findIndex(c => c.id === id);
@@ -542,12 +534,14 @@ export class FavoriteManager implements IFavoriteManager {
 
         return categoriesList.filter(c => c.id !== id);
       });
+
+      return favoritesInCategory.length;
     } catch (error) {
       if (error instanceof FavoriteError) {
         throw error;
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`删除分类失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to delete category: ${errorMessage}`);
     }
   }
 
@@ -562,7 +556,7 @@ export class FavoriteManager implements IFavoriteManager {
       return await this.updateStats();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`获取统计信息失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to get statistics: ${errorMessage}`);
     }
   }
 
@@ -617,6 +611,21 @@ export class FavoriteManager implements IFavoriteManager {
     });
   }
 
+  /**
+   * 获取独立标签库中的所有标签名称
+   * @private
+   */
+  private async getAllIndependentTags(): Promise<string[]> {
+    try {
+      const storedTags = await this.storageProvider.getItem(this.STORAGE_KEYS.TAGS);
+      const independentTags: FavoriteTag[] = storedTags ? JSON.parse(storedTags) : [];
+      return independentTags.map(t => t.tag);
+    } catch (error) {
+      console.warn('获取独立标签失败:', error);
+      return [];
+    }
+  }
+
   async exportFavorites(ids?: string[]): Promise<string> {
     try {
       let favorites: FavoritePrompt[];
@@ -628,44 +637,120 @@ export class FavoriteManager implements IFavoriteManager {
       }
 
       const categories = await this.getCategories();
+      const tags = await this.getAllIndependentTags();
 
       const exportData = {
         version: '1.0',
         exportDate: new Date().toISOString(),
         favorites,
-        categories
+        categories,
+        tags  // 导出独立标签库（包含所有标签：使用中的 + 预创建的）
       };
 
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`导出收藏失败: ${errorMessage}`);
+      throw new FavoriteImportExportError(
+        `Failed to export favorites: ${errorMessage}`,
+        error instanceof Error ? error : undefined
+      );
     }
+  }
+
+  /**
+   * 计算标签使用统计
+   * @private
+   * @returns 包含标签名和使用次数的 Map
+   */
+  private async computeTagCounts(): Promise<Map<string, number>> {
+    // 1. 获取独立标签
+    const storedTags = await this.storageProvider.getItem(this.STORAGE_KEYS.TAGS);
+    const independentTags: FavoriteTag[] = storedTags ? JSON.parse(storedTags) : [];
+
+    // 2. 统计收藏项中使用的标签
+    const favorites = await this.getFavorites();
+    const tagCounts = new Map<string, number>();
+
+    favorites.forEach(favorite => {
+      favorite.tags.forEach(tag => {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+      });
+    });
+
+    // 3. 合并独立标签和使用中的标签
+    // 独立标签如果未被使用，count 为 0
+    independentTags.forEach(({ tag }) => {
+      if (!tagCounts.has(tag)) {
+        tagCounts.set(tag, 0);
+      }
+    });
+
+    return tagCounts;
   }
 
   async getAllTags(): Promise<Array<{ tag: string; count: number }>> {
     try {
-      const favorites = await this.getFavorites();
-      const tagCounts = new Map<string, number>();
+      const tagCounts = await this.computeTagCounts();
 
-      favorites.forEach(favorite => {
-        favorite.tags.forEach(tag => {
-          tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-        });
-      });
-
+      // 返回排序后的结果（使用次数降序，相同次数按标签名升序）
       return Array.from(tagCounts.entries())
         .map(([tag, count]) => ({ tag, count }))
-        .sort((a, b) => b.count - a.count); // 按使用次数降序
+        .sort((a, b) => {
+          if (b.count !== a.count) {
+            return b.count - a.count; // 按使用次数降序
+          }
+          return a.tag.localeCompare(b.tag); // 相同次数按标签名升序
+        });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`获取标签列表失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to get tags: ${errorMessage}`);
+    }
+  }
+
+  async addTag(tag: string): Promise<void> {
+    await this.ensureInitialized();
+
+    const trimmedTag = tag.trim();
+    if (!trimmedTag) {
+      throw new FavoriteValidationError('Tag name cannot be empty');
+    }
+
+    try {
+      await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
+        const tagsList = tags || [];
+
+        // 检查是否已存在
+        const existing = tagsList.find(t => t.tag === trimmedTag);
+        if (existing) {
+          throw new FavoriteTagAlreadyExistsError(trimmedTag);
+        }
+
+        const now = Date.now();
+        const newTag: FavoriteTag = {
+          tag: trimmedTag,
+          createdAt: now
+        };
+
+        return [...tagsList, newTag];
+      });
+
+      // 更新统计信息
+      await this.updateStats();
+    } catch (error) {
+      if (error instanceof FavoriteError) {
+        throw error;
+      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new FavoriteStorageError(
+        `Failed to add tag: ${errorMessage}`,
+        error instanceof Error ? error : undefined
+      );
     }
   }
 
   async renameTag(oldTag: string, newTag: string): Promise<number> {
     if (!oldTag || !newTag) {
-      throw new FavoriteValidationError('标签名不能为空');
+      throw new FavoriteValidationError('Tag name cannot be empty');
     }
 
     if (oldTag === newTag) {
@@ -673,8 +758,21 @@ export class FavoriteManager implements IFavoriteManager {
     }
 
     let affectedCount = 0;
+    let oldTagExistedInIndependentLib = false;
 
     try {
+      // 1. 更新独立标签库:删除旧标签,记录是否存在
+      await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
+        const tagsList = tags || [];
+
+        // 检查旧标签是否存在
+        oldTagExistedInIndependentLib = tagsList.some(t => t.tag === oldTag);
+
+        // 删除旧标签
+        return tagsList.filter(t => t.tag !== oldTag);
+      });
+
+      // 2. 更新收藏列表中的标签
       await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
         const favoritesList = favorites || [];
 
@@ -695,26 +793,64 @@ export class FavoriteManager implements IFavoriteManager {
         return favoritesList;
       });
 
+      // 3. 只有当旧标签存在于独立库或被收藏使用时,才添加新标签到独立库
+      if (oldTagExistedInIndependentLib || affectedCount > 0) {
+        await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
+          const tagsList = tags || [];
+
+          // 添加新标签(如果不存在)
+          const hasNewTag = tagsList.some(t => t.tag === newTag);
+          if (!hasNewTag) {
+            tagsList.push({
+              tag: newTag,
+              createdAt: Date.now()
+            });
+          }
+
+          return tagsList;
+        });
+      }
+
       await this.updateStats();
       return affectedCount;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`重命名标签失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to rename tag: ${errorMessage}`);
     }
   }
 
   async mergeTags(sourceTags: string[], targetTag: string): Promise<number> {
     if (!sourceTags || sourceTags.length === 0) {
-      throw new FavoriteValidationError('源标签列表不能为空');
+      throw new FavoriteValidationError('Source tag list cannot be empty');
     }
 
     if (!targetTag) {
-      throw new FavoriteValidationError('目标标签不能为空');
+      throw new FavoriteValidationError('Target tag cannot be empty');
     }
 
     let affectedCount = 0;
 
     try {
+      // 1. 更新独立标签库:删除所有源标签,确保目标标签存在
+      await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
+        const tagsList = tags || [];
+
+        // 删除所有源标签
+        const filteredTags = tagsList.filter(t => !sourceTags.includes(t.tag));
+
+        // 确保目标标签存在
+        const hasTargetTag = filteredTags.some(t => t.tag === targetTag);
+        if (!hasTargetTag) {
+          filteredTags.push({
+            tag: targetTag,
+            createdAt: Date.now()
+          });
+        }
+
+        return filteredTags;
+      });
+
+      // 2. 更新收藏列表中的标签
       await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
         const favoritesList = favorites || [];
 
@@ -747,18 +883,25 @@ export class FavoriteManager implements IFavoriteManager {
       return affectedCount;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`合并标签失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to merge tags: ${errorMessage}`);
     }
   }
 
   async deleteTag(tag: string): Promise<number> {
     if (!tag) {
-      throw new FavoriteValidationError('标签名不能为空');
+      throw new FavoriteValidationError('Tag name cannot be empty');
     }
 
     let affectedCount = 0;
 
     try {
+      // 1. 从独立标签中删除
+      await this.storageProvider.updateData(this.STORAGE_KEYS.TAGS, (tags: FavoriteTag[] | null) => {
+        const tagsList = tags || [];
+        return tagsList.filter(t => t.tag !== tag);
+      });
+
+      // 2. 从所有收藏项中删除
       await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
         const favoritesList = favorites || [];
 
@@ -778,13 +921,13 @@ export class FavoriteManager implements IFavoriteManager {
       return affectedCount;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`删除标签失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to delete tag: ${errorMessage}`);
     }
   }
 
   async reorderCategories(categoryIds: string[]): Promise<void> {
     if (!categoryIds || categoryIds.length === 0) {
-      throw new FavoriteValidationError('分类ID列表不能为空');
+      throw new FavoriteValidationError('Category ID list cannot be empty');
     }
 
     try {
@@ -820,7 +963,7 @@ export class FavoriteManager implements IFavoriteManager {
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`重新排序分类失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to reorder categories: ${errorMessage}`);
     }
   }
 
@@ -830,7 +973,7 @@ export class FavoriteManager implements IFavoriteManager {
       return favorites.length;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`获取分类使用统计失败: ${errorMessage}`);
+      throw new FavoriteStorageError(`Failed to get category usage: ${errorMessage}`);
     }
   }
 
@@ -850,7 +993,43 @@ export class FavoriteManager implements IFavoriteManager {
       const importData = JSON.parse(data);
 
       if (!importData.favorites || !Array.isArray(importData.favorites)) {
-        throw new FavoriteValidationError('导入数据格式无效');
+        throw new FavoriteValidationError('Invalid import data format');
+      }
+      // 【新增】先导入分类（如果有）
+      if (importData.categories && Array.isArray(importData.categories)) {
+        for (const category of importData.categories) {
+          try {
+            // 检查分类是否已存在（根据ID或名称）
+            const existingCategories = await this.getCategories();
+            const exists = existingCategories.some(
+              c => c.id === category.id || c.name === category.name
+            );
+
+            if (!exists) {
+              await this.addCategory({
+                name: category.name,
+                description: category.description,
+                color: category.color,
+                sortOrder: category.sortOrder
+              });
+            }
+          } catch (error) {
+            // 分类导入失败,记录错误但继续
+            console.warn('Failed to import category:', category.name, error);
+          }
+        }
+      }
+
+
+      // 【新增】先导入独立标签（如果有）
+      if (importData.tags && Array.isArray(importData.tags)) {
+        for (const tag of importData.tags) {
+          try {
+            await this.addTag(tag);
+          } catch (error) {
+            // 标签已存在，跳过错误继续
+          }
+        }
       }
 
       const existingFavorites = await this.getFavorites();
@@ -860,7 +1039,7 @@ export class FavoriteManager implements IFavoriteManager {
         try {
           // 验证必填字段
           if (!favorite.content?.trim()) {
-            throw new FavoriteValidationError('导入数据中存在空内容的收藏项');
+            throw new FavoriteValidationError('Import data contains favorite with empty content');
           }
 
           // 构建功能模式数据，兼容旧数据
@@ -872,7 +1051,7 @@ export class FavoriteManager implements IFavoriteManager {
           const mapping = { functionMode, optimizationMode, imageSubMode };
           if (!TypeMapper.validateMapping(mapping)) {
             throw new FavoriteValidationError(
-              `导入数据中存在无效的功能模式分类: functionMode=${functionMode}, optimizationMode=${optimizationMode}, imageSubMode=${imageSubMode}`
+              `Invalid function mode in import data: functionMode=${functionMode}, optimizationMode=${optimizationMode}, imageSubMode=${imageSubMode}`
             );
           }
 
@@ -912,7 +1091,7 @@ export class FavoriteManager implements IFavoriteManager {
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          result.errors.push(`导入收藏失败: ${errorMessage}`);
+          result.errors.push(`Failed to import favorite: ${errorMessage}`);
         }
       }
 
@@ -920,7 +1099,11 @@ export class FavoriteManager implements IFavoriteManager {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new FavoriteStorageError(`导入收藏失败: ${errorMessage}`);
+      throw new FavoriteImportExportError(
+        `Failed to import favorites: ${errorMessage}`,
+        error instanceof Error ? error : undefined,
+        result.errors.length > 0 ? result.errors : undefined
+      );
     }
   }
 }

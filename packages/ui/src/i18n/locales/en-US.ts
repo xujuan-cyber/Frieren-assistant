@@ -1,3 +1,20 @@
+const favoriteCategoriesMessages = {
+  default: {
+    uncategorized: 'Uncategorized',
+    uncategorizedDesc: 'Default category',
+    creativeWriting: 'Creative Writing',
+    creativeWritingDesc: 'Creative writing prompts',
+    programming: 'Programming',
+    programmingDesc: 'Programming and development prompts',
+    businessAnalysis: 'Business Analysis',
+    businessAnalysisDesc: 'Business analysis prompts',
+    learning: 'Learning & Research',
+    learningDesc: 'Learning and research prompts',
+    dailyAssistant: 'Daily Assistant',
+    dailyAssistantDesc: 'Daily life assistant prompts'
+  }
+};
+
 export default {
   common: {
     loading: 'Loading...',
@@ -103,6 +120,7 @@ export default {
   },
   favorites: {
     title: 'My Favorites',
+    categories: favoriteCategoriesMessages,
     manager: {
       title: 'Favorites Manager',
       searchPlaceholder: 'Search favorites...',
@@ -138,6 +156,8 @@ export default {
         title: 'Category Manager'
       },
       actions: {
+        manageTags: 'Manage Tags',
+        manageCategories: 'Manage Categories',
         export: 'Export Favorites',
         clear: 'Clear Favorites',
         exportSuccess: 'Export successful',
@@ -180,7 +200,77 @@ export default {
         edit: 'Edit',
         delete: 'Delete',
         cancel: 'Cancel',
-        deleteConfirm: 'Delete "{title}"?'
+        deleteConfirm: 'Delete "{title}"?',
+        functionMode: {
+          basic: 'Basic',
+          context: 'Context',
+          image: 'Image'
+        },
+        optimizationMode: {
+          system: 'System',
+          user: 'User'
+        },
+        imageSubMode: {
+          text2image: 'Text-to-Image',
+          image2image: 'Image-to-Image'
+        }
+      },
+      categories: favoriteCategoriesMessages,
+      tagManager: {
+        title: 'Tag Manager',
+        searchPlaceholder: 'Search tags...',
+        totalTags: 'Total {count} tags',
+        add: 'Add Tag',
+        tagName: 'Tag Name',
+        useCount: 'Use Count',
+        actions: 'Actions',
+        rename: 'Rename',
+        merge: 'Merge',
+        mergeTooltip: 'Merge current tag into target tag',
+        delete: 'Delete',
+        close: 'Close',
+        addDialog: {
+          title: 'Add Tag',
+          tagName: 'Tag Name',
+          tagNamePlaceholder: 'Enter tag name',
+          emptyWarning: 'Tag name cannot be empty',
+          existWarning: 'Tag already exists',
+          confirm: 'Confirm',
+          cancel: 'Cancel'
+        },
+        renameDialog: {
+          title: 'Rename Tag',
+          oldName: 'Original Name',
+          newName: 'New Name',
+          newNamePlaceholder: 'Enter new tag name',
+          currentName: 'Current tag name: {name}',
+          emptyWarning: 'Tag name cannot be empty',
+          confirm: 'Confirm',
+          cancel: 'Cancel'
+        },
+        mergeDialog: {
+          title: 'Merge Tags',
+          sourceName: 'Source Tag',
+          targetName: 'Merge Into',
+          targetPlaceholder: 'Select target tag',
+          sourceTag: 'Source tag: {name}',
+          selectTargetWarning: 'Please select target tag',
+          confirm: 'Confirm Merge',
+          cancel: 'Cancel',
+          warning: 'After merging, "{source}" tag will be deleted, and all favorites using this tag will use "{target}" tag instead'
+        },
+        deleteConfirm: 'Are you sure you want to delete tag "{name}"? This will remove the tag from {count} favorites.',
+        messages: {
+          loadFailed: 'Failed to load tag list',
+          addSuccess: 'Tag added successfully',
+          addFailed: 'Failed to add tag',
+          renameSuccess: 'Tag renamed successfully',
+          renameFailed: 'Failed to rename tag',
+          mergeSuccess: 'Tags merged successfully',
+          mergeFailed: 'Failed to merge tags',
+          deleteSuccess: 'Tag deleted successfully',
+          deleteFailed: 'Failed to delete tag'
+        }
       }
     },
     dialog: {

@@ -1,3 +1,20 @@
+const favoriteCategoriesMessages = {
+  default: {
+    uncategorized: '未分類',
+    uncategorizedDesc: '預設分類',
+    creativeWriting: '創意寫作',
+    creativeWritingDesc: '創意寫作相關的提示詞',
+    programming: '程式開發',
+    programmingDesc: '程式開發相關的提示詞',
+    businessAnalysis: '商業分析',
+    businessAnalysisDesc: '商業分析相關的提示詞',
+    learning: '學習研究',
+    learningDesc: '學習研究相關的提示詞',
+    dailyAssistant: '日常助手',
+    dailyAssistantDesc: '日常生活助手類提示詞'
+  }
+};
+
 export default {
   common: {
     loading: '載入中...',
@@ -103,6 +120,7 @@ export default {
   },
   favorites: {
     title: '我的收藏',
+    categories: favoriteCategoriesMessages,
     manager: {
       title: '收藏管理',
       searchPlaceholder: '搜尋收藏...',
@@ -138,6 +156,8 @@ export default {
         title: '分類管理'
       },
       actions: {
+        manageTags: '管理標籤',
+        manageCategories: '管理分類',
         export: '匯出收藏',
         clear: '清空收藏',
         exportSuccess: '匯出成功',
@@ -180,7 +200,77 @@ export default {
         edit: '編輯',
         delete: '刪除',
         cancel: '取消',
-        deleteConfirm: '確定刪除"{title}"嗎？'
+        deleteConfirm: '確定刪除"{title}"嗎？',
+        functionMode: {
+          basic: '基礎',
+          context: '情境',
+          image: '圖像'
+        },
+        optimizationMode: {
+          system: '系統',
+          user: '使用者'
+        },
+        imageSubMode: {
+          text2image: '文生圖',
+          image2image: '圖生圖'
+        }
+      },
+      categories: favoriteCategoriesMessages,
+      tagManager: {
+        title: '標籤管理',
+        searchPlaceholder: '搜尋標籤...',
+        totalTags: '共 {count} 個標籤',
+        add: '新增標籤',
+        tagName: '標籤名稱',
+        useCount: '使用次數',
+        actions: '操作',
+        rename: '重新命名',
+        merge: '合併',
+        mergeTooltip: '將目前標籤合併到目標標籤中',
+        delete: '刪除',
+        close: '關閉',
+        addDialog: {
+          title: '新增標籤',
+          tagName: '標籤名稱',
+          tagNamePlaceholder: '輸入標籤名稱',
+          emptyWarning: '標籤名稱不能為空',
+          existWarning: '標籤已存在',
+          confirm: '確認',
+          cancel: '取消'
+        },
+        renameDialog: {
+          title: '重新命名標籤',
+          oldName: '原標籤名稱',
+          newName: '新標籤名稱',
+          newNamePlaceholder: '輸入新的標籤名稱',
+          currentName: '目前標籤名稱：{name}',
+          emptyWarning: '標籤名稱不能為空',
+          confirm: '確認',
+          cancel: '取消'
+        },
+        mergeDialog: {
+          title: '合併標籤',
+          sourceName: '源標籤',
+          targetName: '合併到',
+          targetPlaceholder: '選擇目標標籤',
+          sourceTag: '源標籤：{name}',
+          selectTargetWarning: '請選擇目標標籤',
+          confirm: '確認合併',
+          cancel: '取消',
+          warning: '合併後，"{source}" 標籤將被刪除，所有使用該標籤的收藏將改用 "{target}" 標籤'
+        },
+        deleteConfirm: '確定刪除標籤 "{name}"？這將從 {count} 個收藏中移除該標籤。',
+        messages: {
+          loadFailed: '載入標籤清單失敗',
+          addSuccess: '標籤新增成功',
+          addFailed: '標籤新增失敗',
+          renameSuccess: '標籤重新命名成功',
+          renameFailed: '標籤重新命名失敗',
+          mergeSuccess: '標籤合併成功',
+          mergeFailed: '標籤合併失敗',
+          deleteSuccess: '標籤刪除成功',
+          deleteFailed: '標籤刪除失敗'
+        }
       }
     },
     dialog: {

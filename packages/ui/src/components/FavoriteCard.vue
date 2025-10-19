@@ -14,19 +14,54 @@
         <NEllipsis style="flex: 1; min-width: 0; font-weight: 600; font-size: 14px;">
           {{ favorite.title }}
         </NEllipsis>
-        <div style="flex-shrink: 0; max-width: 120px; overflow: hidden;">
+        <NSpace :size="4" style="flex-shrink: 1; min-width: 0;" :wrap="false">
+          <!-- 功能模式标签 -->
           <NTag
-            v-if="category"
-            :color="{ color: category.color, textColor: 'white' }"
+            :type="getFunctionModeTagType(favorite.functionMode)"
             size="small"
             :bordered="false"
-            style="max-width: 100%;"
+            style="flex-shrink: 0;"
           >
-            <NEllipsis style="max-width: 100px;">
-              {{ category.name }}
-            </NEllipsis>
+            {{ t(`favorites.manager.card.functionMode.${favorite.functionMode}`) }}
           </NTag>
-        </div>
+
+          <!-- 子模式标签 (优化模式或图像模式) -->
+          <NTag
+            v-if="favorite.optimizationMode || favorite.imageSubMode"
+            :type="getSubModeTagType(favorite)"
+            size="small"
+            :bordered="false"
+            style="flex-shrink: 0;"
+          >
+            {{ getSubModeLabel(favorite) }}
+          </NTag>
+
+          <!-- 分类标签：可收缩 -->
+          <NTooltip
+            v-if="category"
+            trigger="hover"
+            :overlay-style="tooltipOverlayStyle"
+            :content-style="tooltipContentStyle"
+            :theme-overrides="tooltipThemeOverrides"
+            placement="bottom"
+            to="body"
+            :flip="true"
+          >
+            <template #trigger>
+              <NTag
+                :color="{ color: category.color, textColor: 'white' }"
+                size="small"
+                :bordered="false"
+                style="max-width: 80px; flex-shrink: 1; min-width: 0;"
+              >
+                <NEllipsis style="max-width: 68px;">
+                  {{ category.name }}
+                </NEllipsis>
+              </NTag>
+            </template>
+            {{ category.name }}
+          </NTooltip>
+        </NSpace>
       </NSpace>
     </template>
 
@@ -491,6 +526,38 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', debouncedResize);
   }
 });
+
+// 功能模式标签类型映射
+const getFunctionModeTagType = (mode: string): 'default' | 'info' | 'success' => {
+  const typeMap: Record<string, 'default' | 'info' | 'success'> = {
+    basic: 'default',
+    context: 'info',
+    image: 'success'
+  };
+  return typeMap[mode] || 'default';
+};
+
+// 子模式标签类型映射
+const getSubModeTagType = (favorite: FavoritePrompt): 'warning' | 'error' | 'success' | 'info' | 'default' => {
+  if (favorite.optimizationMode) {
+    return favorite.optimizationMode === 'system' ? 'warning' : 'error';
+  }
+  if (favorite.imageSubMode) {
+    return favorite.imageSubMode === 'text2image' ? 'success' : 'info';
+  }
+  return 'default';
+};
+
+// 获取子模式标签文本
+const getSubModeLabel = (favorite: FavoritePrompt): string => {
+  if (favorite.optimizationMode) {
+    return t(`favorites.manager.card.optimizationMode.${favorite.optimizationMode}`);
+  }
+  if (favorite.imageSubMode) {
+    return t(`favorites.manager.card.imageSubMode.${favorite.imageSubMode}`);
+  }
+  return '';
+};
 
 const formatDate = (timestamp: number) => {
   const date = new Date(timestamp);
