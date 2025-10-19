@@ -7,7 +7,8 @@ import { ref, computed } from 'vue'
 import type { 
   StandardPromptData,
   ConversionResult,
-  VariableSuggestion
+  VariableSuggestion,
+  ConversationMessage
 } from '../types'
 import {
   PromptDataConverter,
@@ -55,7 +56,7 @@ export function useContextEditor() {
   })
 
   // 数据转换方法
-  const convertFromLangFuse = (langfuseData: any): ConversionResult<StandardPromptData> => {
+  const convertFromLangFuse = (langfuseData: unknown): ConversionResult<StandardPromptData> => {
     try {
       isLoading.value = true
       error.value = null
@@ -80,7 +81,7 @@ export function useContextEditor() {
     }
   }
 
-  const convertFromOpenAI = (openaiData: any): ConversionResult<StandardPromptData> => {
+  const convertFromOpenAI = (openaiData: unknown): ConversionResult<StandardPromptData> => {
     try {
       isLoading.value = true
       error.value = null
@@ -106,7 +107,7 @@ export function useContextEditor() {
   }
 
   // 智能导入（自动检测格式）
-  const smartImport = (data: any): ConversionResult<StandardPromptData> => {
+  const smartImport = (data: unknown): ConversionResult<StandardPromptData> => {
     try {
       isLoading.value = true
       error.value = null
@@ -122,7 +123,7 @@ export function useContextEditor() {
           result = converter.fromOpenAI(data)
           break
         case 'conversation':
-          result = converter.fromConversationMessages(data)
+          result = converter.fromConversationMessages(data as Array<Partial<ConversationMessage>>)
           break
         default:
           result = { success: false, error: `不支持的数据格式: ${format}` }

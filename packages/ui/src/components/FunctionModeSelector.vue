@@ -42,7 +42,7 @@ interface Emits {
   (e: 'change', value: 'basic' | 'pro' | 'image'): void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 /**

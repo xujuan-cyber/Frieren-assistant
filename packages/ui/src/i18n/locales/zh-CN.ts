@@ -558,7 +558,8 @@ export default {
     roles: {
       system: '系统',
       user: '用户',
-      assistant: '助手'
+      assistant: '助手',
+      tool: '工具'
     },
     templates: {
       simple: '简单对话',
@@ -595,6 +596,7 @@ export default {
       system: '请输入系统消息（定义AI行为和上下文）...',
       user: '请输入用户消息（您的输入或问题）...',
       assistant: '请输入助手消息（AI回应）...',
+      tool: '请输入工具调用结果或函数输出...',
       default: '请输入消息内容...'
     },
     

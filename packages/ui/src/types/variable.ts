@@ -4,8 +4,18 @@
 
 // 统一的消息结构
 export interface ConversationMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;  // 可包含变量语法 {{variableName}}
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  content: string  // 可包含变量语法 {{variableName}}
+  name?: string
+  tool_calls?: {
+    id: string
+    type: 'function'
+    function: {
+      name: string
+      arguments: string
+    }
+  }[]
+  tool_call_id?: string
 }
 
 // 自定义会话测试请求
@@ -42,7 +52,7 @@ export interface IVariableManager {
   listVariables(): Record<string, string>;
   
   // 变量解析（预定义 + 自定义）
-  resolveAllVariables(context?: any): Record<string, string>;
+  resolveAllVariables(context?: Record<string, unknown>): Record<string, string>;
   
   // 验证
   validateVariableName(name: string): boolean;

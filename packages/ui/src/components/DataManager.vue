@@ -454,7 +454,7 @@ const handleContextImportFromFile = async (file: File) => {
     const content = await file.text()
     
     // 解析JSON数据
-    let importData: any
+    let importData: unknown
     try {
       importData = JSON.parse(content)
     } catch (parseError) {
@@ -516,7 +516,7 @@ const handleContextImportFromClipboard = async () => {
     }
     
     // 解析JSON数据
-    let importData: any
+    let importData: unknown
     try {
       importData = JSON.parse(clipboardContent)
     } catch (parseError) {

@@ -101,14 +101,12 @@ import {
   NInput,
   NSelect,
   NDynamicTags,
-  NText,
-  useMessage,
   type FormInst,
   type FormRules
 } from 'naive-ui';
 import { useToast } from '../composables/useToast';
 import { StarFilled, StarOutline } from '@vicons/tabler';
-import type { FavoritePrompt, FavoriteCategory } from '@prompt-optimizer/core';
+import type { FavoriteCategory } from '@prompt-optimizer/core';
 import type { AppServices } from '../types/services';
 
 interface Props {
@@ -295,9 +293,10 @@ const handleSaveFavorite = async () => {
 
     message.success('添加到收藏成功');
     emit('favorited', id);
-  } catch (error: any) {
+  } catch (error) {
     console.error('添加收藏失败:', error);
-    message.error(`添加收藏失败: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`添加收藏失败: ${errorMessage}`);
   } finally {
     loading.value = false;
   }
@@ -321,9 +320,10 @@ const handleRemoveFavorite = async () => {
 
     message.success('取消收藏成功');
     emit('unfavorited');
-  } catch (error: any) {
+  } catch (error) {
     console.error('取消收藏失败:', error);
-    message.error(`取消收藏失败: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`取消收藏失败: ${errorMessage}`);
   }
 };
 

@@ -263,8 +263,7 @@ import {
   NGrid,
   NGridItem,
   type UploadFileInfo,
-  type UploadChangeParam,
-  type TreeSelectOption
+  type UploadChangeParam
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/useToast';
@@ -384,33 +383,7 @@ const paginatedFavorites = computed(() => {
   return filteredFavorites.value.slice(start, end);
 });
 
-const categoryOptions = computed(() => {
-  return [
-    { label: t('favorites.manager.allCategories'), value: '' },
-    ...categories.value.map(cat => ({
-      label: cat.name,
-      value: cat.id
-    }))
-  ];
-});
 
-// 树状分类选项（用于 TreeSelect）
-const categoryTreeOptions = computed<TreeSelectOption[]>(() => {
-  const buildTree = (parentId?: string): TreeSelectOption[] => {
-    return categories.value
-      .filter(cat => cat.parentId === parentId)
-      .map(cat => ({
-        label: cat.name,
-        key: cat.id,
-        children: buildTree(cat.id)
-      }));
-  };
-
-  return [
-    { label: t('favorites.manager.allCategories'), key: '' },
-    ...buildTree(undefined)
-  ];
-});
 
 // 获取分类及其所有子分类的ID列表
 const getCategoryWithDescendants = (categoryId: string): string[] => {
@@ -576,9 +549,6 @@ const tryCopyToClipboard = async (text: string, successMessage: string) => {
   }
 };
 
-const handleOpenCategoryManager = () => {
-  categoryManagerVisible.value = true;
-};
 
 const handleCategoryUpdated = async () => {
   await loadCategories();
@@ -625,8 +595,9 @@ const handleImportConfirm = async () => {
     if (file) {
       try {
         payload = await readFileAsText(file);
-      } catch (error: any) {
-        message.error(`${t('favorites.manager.importDialog.readFileFailed')}: ${error?.message || '未知错误'}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        message.error(`${t('favorites.manager.importDialog.readFileFailed')}: ${errorMessage}`);
         return;
       }
     }
@@ -648,8 +619,9 @@ const handleImportConfirm = async () => {
     }
     await loadFavorites();
     closeImportDialog();
-  } catch (error: any) {
-    message.error(`${t('favorites.manager.importDialog.importFailed')}: ${error?.message || '未知错误'}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.manager.importDialog.importFailed')}: ${errorMessage}`);
   } finally {
     importState.importing = false;
   }
@@ -700,9 +672,10 @@ const loadFavorites = async () => {
       const updated = data.find(item => item.id === previewFavorite.value?.id);
       previewFavorite.value = updated ? { ...updated } : null;
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('加载收藏失败:', error);
-    message.error(`${t('favorites.manager.messages.loadFailed')}: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.manager.messages.loadFailed')}: ${errorMessage}`);
   } finally {
     loading.value = false;
   }
@@ -718,9 +691,10 @@ const loadCategories = async () => {
 
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
-  } catch (error: any) {
+  } catch (error) {
     console.error('加载分类失败:', error);
-    message.error(`${t('favorites.manager.messages.loadCategoryFailed')}: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.manager.messages.loadCategoryFailed')}: ${errorMessage}`);
   }
 };
 
@@ -764,8 +738,9 @@ const handleDeleteFavorite = (favorite: FavoritePrompt) => {
       } else {
         message.warning(t('favorites.manager.messages.unavailable'));
       }
-    } catch (error: any) {
-      message.error(`${t('favorites.manager.actions.deleteFailed')}: ${error.message || '未知错误'}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      message.error(`${t('favorites.manager.actions.deleteFailed')}: ${errorMessage}`);
     }
   })();
   if (previewFavorite.value?.id === favorite.id) {
@@ -818,8 +793,9 @@ const handleActionMenuSelect = (key: string) => {
           } else {
             message.warning(t('favorites.manager.messages.unavailable'));
           }
-        } catch (error: any) {
-          message.error(`${t('favorites.manager.actions.clearFailed')}: ${error.message || '未知错误'}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : '未知错误';
+          message.error(`${t('favorites.manager.actions.clearFailed')}: ${errorMessage}`);
         }
       })();
       break;
@@ -845,8 +821,9 @@ const handleExportFavorites = async () => {
     } else {
       message.warning(t('favorites.manager.messages.unavailable'));
     }
-  } catch (error: any) {
-    message.error(`${t('favorites.manager.actions.exportFailed')}: ${error.message || '未知错误'}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.manager.actions.exportFailed')}: ${errorMessage}`);
   }
 };
 

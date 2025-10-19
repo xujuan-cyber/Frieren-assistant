@@ -139,14 +139,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NSpace, NCard, NText, NTag, NButton, NEmpty, NImage
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/useImageModelManager'
 import { useToast } from '../composables/useToast'
-import type { IImageAdapterRegistry, IImageModelManager, IImageService } from '@prompt-optimizer/core'
+import type { IImageService } from '@prompt-optimizer/core'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -164,7 +164,6 @@ const {
 } = useImageModelManager()
 
 // 注入依赖
-const registry = inject<IImageAdapterRegistry>('imageRegistry') as unknown as IImageAdapterRegistry
 const imageService = inject<IImageService>('imageService') as unknown as IImageService
 
 // 状态管理
@@ -179,15 +178,10 @@ const testResults = ref<Record<string, {
   testType: 'text2image' | 'image2image'
 }>>({})
 
-// 辅助方法（简化后，主要用于连接测试）
-const getProviderName = (config: any) => {
-  return config.provider?.name || config.providerId || '-'
-}
-
 const isTestingConnectionFor = (configId: string) => !!testingConnections.value[configId]
 
 // 辅助函数：根据模型能力选择测试类型
-const selectTestType = (model: any): 'text2image' | 'image2image' => {
+const selectTestType = (model: { capabilities?: string[] }): 'text2image' | 'image2image' => {
   const { text2image, image2image } = model.capabilities || {}
 
   if (text2image && !image2image) {
@@ -235,7 +229,7 @@ const testConnection = async (configId: string) => {
     const testType = selectTestType(config.model)
 
     // 通过统一服务执行测试（Electron 下经 IPC 走主进程；Web 下本地执行）
-    const result = await imageService.testConnection(config as any)
+    const result = await imageService.testConnection(config as unknown)
 
     // 测试成功
     testResults.value[configId] = {
@@ -255,15 +249,15 @@ const testConnection = async (configId: string) => {
       testType: 'text2image' // 默认值
     }
 
-    toast.error(`${t('image.connection.testError')}: ${(error as any)?.message || String(error)}`)
+    toast.error(`${t('image.connection.testError')}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     delete testingConnections.value[configId]
   }
 }
 
-const toggleConfig = async (config: any) => {
+const toggleConfig = async (config: { id: string; enabled: boolean }) => {
   try {
-    await updateConfig(config.id, { enabled: !config.enabled } as any)
+    await updateConfig(config.id, { enabled: !config.enabled } as { enabled: boolean })
     await loadConfigs()
     toast.success(config.enabled ? t('modelManager.disableSuccess') : t('modelManager.enableSuccess'))
   } catch (error) {
@@ -299,7 +293,9 @@ defineExpose({
   refresh: async () => {
     try {
       await loadConfigs()
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }
 })
 </script>

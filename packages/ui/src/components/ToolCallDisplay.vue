@@ -172,7 +172,7 @@ const formatArguments = (args: string | object) => {
   return JSON.stringify(args, null, 2)
 }
 
-const formatResult = (result: any) => {
+const formatResult = (result: string | Record<string, unknown> | Array<unknown>) => {
   if (typeof result === 'string') {
     return result
   }

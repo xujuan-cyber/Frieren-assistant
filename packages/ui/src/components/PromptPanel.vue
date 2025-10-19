@@ -215,7 +215,7 @@ const emit = defineEmits<{
 const showIterateInput = ref(false)
 const iterateInput = ref('')
 const templateType = computed<'iterate' | 'contextIterate' | 'imageIterate'>(() => {
-  return (props.iterateTemplateType as any) || (props.advancedModeEnabled ? 'contextIterate' : 'iterate')
+  return (props.iterateTemplateType as 'iterate' | 'contextIterate' | 'imageIterate') || (props.advancedModeEnabled ? 'contextIterate' : 'iterate')
 })
 
 const outputDisplayRef = ref<InstanceType<typeof OutputDisplay> | null>(null);
@@ -251,12 +251,12 @@ const previousVersionText = computed(() => {
   }
 })
 
-// 获取当前版本号
-const getCurrentVersionNumber = () => {
-  if (!props.versions || props.versions.length === 0) return 0
-  const currentVersion = props.versions.find(v => v.id === props.currentVersionId)
-  return currentVersion ? currentVersion.version : 1
-}
+// 获取当前版本号（保留用于未来功能）
+// const getCurrentVersionNumber = () => {
+//   if (!props.versions || props.versions.length === 0) return 0
+//   const currentVersion = props.versions.find(v => v.id === props.currentVersionId)
+//   return currentVersion ? currentVersion.version : 1
+// }
 
 const handleIterate = () => {
   if (!props.selectedIterateTemplate) {

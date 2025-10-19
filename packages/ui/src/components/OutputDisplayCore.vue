@@ -165,18 +165,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, inject, onMounted, type Ref } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NCard, NButton, NButtonGroup, NIcon, NCollapse, NCollapseItem,
-  NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace, useMessage
+  NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace
 } from 'naive-ui'
 import { useToast } from '../composables/useToast'
-import { Star, StarOff } from '@vicons/tabler'
+import { Star } from '@vicons/tabler'
 import { useClipboard } from '../composables/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
-import type { CompareResult, ICompareService } from '@prompt-optimizer/core'
+import type { CompareResult } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
@@ -186,8 +186,8 @@ const { copyText } = useClipboard()
 
 const message = useToast()
 
-// 服务注入
-const services = inject<Ref<AppServices | null> | null>('services', null)
+// 服务注入（当前未使用，保留用于未来扩展）
+// const services = inject<Ref<AppServices | null> | null>('services', null)
 
 // 移除收藏状态管理(改由父组件处理)
 

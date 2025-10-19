@@ -28,8 +28,20 @@ export interface ToolDefinition {
  * 统一的消息结构
  */
 export interface ConversationMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;  // 可包含变量语法 {{variableName}}
+  /**
+   * 函数调用名称（assistant消息）
+   */
+  name?: string;
+  /**
+   * 函数调用列表（assistant消息）
+   */
+  tool_calls?: ToolCall[];
+  /**
+   * 工具调用ID（tool消息）
+   */
+  tool_call_id?: string;
 }
 
 /**

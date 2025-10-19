@@ -8,6 +8,7 @@ import {
   type TextProvider
 } from '@prompt-optimizer/core'
 import { useModelAdvancedParameters } from './useModelAdvancedParameters'
+import type { AppServices } from '../types/services'
 
 type TextConnectionValue = string | number | boolean | undefined
 interface TextConnectionConfig {
@@ -39,7 +40,7 @@ export function useTextModelManager() {
   const { t } = useI18n()
   const toast = useToast()
 
-  const services = inject<any>('services')
+  const services = inject<AppServices>('services')
   if (!services) {
     throw new Error('Services not provided!')
   }
@@ -256,13 +257,14 @@ export function useTextModelManager() {
       }
       await llmService.testConnection(id)
       toast.success(t('modelManager.testSuccess', { provider: model.name }))
-    } catch (error: any) {
+    } catch (error) {
       console.error('连接测试失败:', error)
       const model = await modelManager.getModel(id)
       const modelName = model?.name || id
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast.error(t('modelManager.testFailed', {
         provider: modelName,
-        error: error?.message || 'Unknown error'
+        error: errorMessage
       }))
     } finally {
       delete testingConnections.value[id]
@@ -276,7 +278,7 @@ export function useTextModelManager() {
       await modelManager.enableModel(id)
       await loadModels()
       toast.success(t('modelManager.enableSuccess'))
-    } catch (error: any) {
+    } catch (error) {
       console.error('启用模型失败:', error)
       toast.error(t('modelManager.enableFailed', { error: error.message }))
     }
@@ -289,7 +291,7 @@ export function useTextModelManager() {
       await modelManager.disableModel(id)
       await loadModels()
       toast.success(t('modelManager.disableSuccess'))
-    } catch (error: any) {
+    } catch (error) {
       console.error('禁用模型失败:', error)
       toast.error(t('modelManager.disableFailed', { error: error.message }))
     }
@@ -300,7 +302,7 @@ export function useTextModelManager() {
       await modelManager.deleteModel(id)
       await loadModels()
       toast.success(t('modelManager.deleteSuccess'))
-    } catch (error: any) {
+    } catch (error) {
       console.error('删除模型失败:', error)
       toast.error(t('modelManager.deleteFailed', { error: error.message }))
     }
@@ -479,12 +481,12 @@ export function useTextModelManager() {
         toast.success(t('modelManager.fetchModelsSuccess', { count: fetchedModels.length }))
       }
 
-      if (fetchedModels.length > 0 && !fetchedModels.some((m: any) => m.value === form.value.modelId)) {
+      if (fetchedModels.length > 0 && !fetchedModels.some((m: { value: string }) => m.value === form.value.modelId)) {
         form.value.modelId = fetchedModels[0].value
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('获取模型列表失败:', error)
-      toast.error(error?.message || t('modelManager.loadFailed'))
+      toast.error(error instanceof Error ? error.message : 'Unknown error' || t('modelManager.loadFailed'))
       modelOptions.value = []
     } finally {
       isLoadingModelOptions.value = false
@@ -497,7 +499,7 @@ export function useTextModelManager() {
     return adapter.getProvider()
   }
 
-  const ensureModelMeta = (providerId: string, modelId: string, existing?: TextModel) => {
+  const ensureModelMeta = (providerId: string, modelId: string, _existing?: TextModel) => {
     const adapter = textAdapterRegistry.getAdapter(providerId)
     const staticModels = adapter.getModels()
     const foundModel = staticModels.find((m: TextModel) => m.id === modelId)
@@ -644,13 +646,13 @@ export function useTextModelManager() {
         }
       }
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('连接测试失败:', error)
       formConnectionStatus.value = {
         type: 'error',
-        message: t('modelManager.testFailed', { provider: form.value.name, error: error?.message || 'Unknown error' })
+        message: t('modelManager.testFailed', { provider: form.value.name, error: error instanceof Error ? error.message : 'Unknown error' || 'Unknown error' })
       }
-      toast.error(t('modelManager.testFailed', { provider: form.value.name, error: error?.message || 'Unknown error' }))
+      toast.error(t('modelManager.testFailed', { provider: form.value.name, error: error instanceof Error ? error.message : 'Unknown error' || 'Unknown error' }))
     } finally {
       isTestingFormConnection.value = false
     }

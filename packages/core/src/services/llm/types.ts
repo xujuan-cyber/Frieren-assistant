@@ -132,14 +132,17 @@ export interface ToolDefinition {
 /**
  * 消息角色类型
  */
-export type MessageRole = 'system' | 'user' | 'assistant';
+export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
 /**
  * 消息类型
  */
 export interface Message {
-  role: 'system' | 'user' | 'assistant';
+  role: MessageRole;
   content: string;
+  name?: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
 }
 
 /**

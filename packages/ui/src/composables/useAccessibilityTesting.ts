@@ -1,4 +1,4 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 
 export interface TestRuleResult {
   passed: boolean
@@ -287,15 +287,15 @@ export function useAccessibilityTesting() {
   
   // 运行单个测试规则
   const runRule = (
-    rule: typeof testRules[keyof typeof testRules], 
+    rule: typeof testRules[keyof typeof testRules],
     elements: HTMLElement[],
-    context: any = {}
+    context: Record<string, unknown> = {}
   ): AccessibilityIssue[] => {
     const issues: AccessibilityIssue[] = []
     
     elements.forEach(element => {
       try {
-        const result = rule.test(element as any, context)
+        const result = rule.test(element, context)
         if (!result.passed) {
           const ruleResult = result as TestRuleResult
           issues.push({
@@ -337,7 +337,7 @@ export function useAccessibilityTesting() {
     try {
       const scope = getTestScope(options.scope)
       const issues: AccessibilityIssue[] = []
-      const context: any = {}
+      const context: Record<string, unknown> = {}
       
       // 选择要运行的规则
       const rulesToRun = Object.entries(testRules).filter(([ruleName, rule]) => {

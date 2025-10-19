@@ -267,7 +267,7 @@ const { t } = useI18n()
 const { recordUpdate } = usePerformanceMonitor('ConversationManager')
 
 // 防抖节流
-const { debounce, throttle, batchExecute } = useDebounceThrottle()
+const { debounce, batchExecute } = useDebounceThrottle()
 
 // Props 和 Events
 const props = withDefaults(defineProps<ConversationManagerProps>(), {
@@ -319,7 +319,7 @@ const inputSize = computed(() => {
 })
 
 const contentStyle = computed(() => {
-  const style: Record<string, any> = {}
+  const style: Record<string, string | number> = {}
   if (props.maxHeight && !isCollapsed.value) {
     style.maxHeight = `${props.maxHeight}px`
   }
@@ -354,7 +354,8 @@ const allMissingVariables = computed(() => {
 const roleOptions = computed(() => [
   { label: t('conversation.roles.system'), key: 'system' },
   { label: t('conversation.roles.user'), key: 'user' },
-  { label: t('conversation.roles.assistant'), key: 'assistant' }
+  { label: t('conversation.roles.assistant'), key: 'assistant' },
+  { label: t('conversation.roles.tool'), key: 'tool' }
 ])
 
 // 添加消息的下拉菜单选项
@@ -409,30 +410,37 @@ const addMessageOptions = computed(() => [
         d: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
       })
     ])
+  },
+  {
+    label: t('conversation.roles.tool'),
+    key: 'tool',
+    icon: () => h('svg', {
+      width: 14, height: 14, viewBox: '0 0 24 24',
+      fill: 'none', stroke: 'currentColor'
+    }, [
+      h('path', {
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'stroke-width': '2',
+        d: 'M15.232 5.232a3 3 0 11-4.242 4.242L4.5 16H3v-1.5l6.232-6.232a3 3 0 114.242-4.242l3.536 3.536a1 1 0 010 1.414l-2.121 2.121a1 1 0 01-1.414 0l-1.414-1.414'
+      })
+    ])
   }
 ])
 
 // 工具函数
-const getRoleTagType = (role: string) => {
+const getRoleTagType = (role: ConversationMessage['role']) => {
   const typeMap = {
-    'system': 'info',
-    'user': 'success',
-    'assistant': 'primary'
+    system: 'info',
+    user: 'success',
+    assistant: 'primary',
+    tool: 'warning'
   } as const
-  return typeMap[role as keyof typeof typeMap] || 'default'
+  return typeMap[role] || 'default'
 }
 
 // 动态autosize配置（轻量化版本）
 
-// 获取单个消息的变量信息（与ContextEditor统一）
-const getMessageVariables = (content: string) => {
-  if (!content || typeof content !== 'string') return { detected: [], missing: [] }
-  
-  const detected = props.scanVariables(content) || []
-  const available = props.availableVariables || {}
-  const missing = detected.filter(varName => available[varName] === undefined)
-  return { detected, missing }
-}
 
 
 
@@ -474,9 +482,9 @@ const handleAddMessage = () => {
   handleAddMessageWithRole('user')
 }
 
-const handleAddMessageWithRole = (role: string) => {
+const handleAddMessageWithRole = (role: ConversationMessage['role']) => {
   const newMessage: ConversationMessage = {
-    role: role as 'system' | 'user' | 'assistant',
+    role,
     content: ''
   }
 
@@ -490,7 +498,7 @@ const handleOpenContextEditor = () => {
 }
 
 // 角色切换
-const handleRoleSelect = (index: number, role: 'system' | 'user' | 'assistant') => {
+const handleRoleSelect = (index: number, role: ConversationMessage['role']) => {
   const current = props.messages[index]
   if (!current || current.role === role) return
   const updated: ConversationMessage = { ...current, role }

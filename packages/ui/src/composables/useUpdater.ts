@@ -32,8 +32,19 @@ export interface UpdaterState {
   isPrereleaseVersionIgnored: boolean
 }
 
+// 更新器实例类型
+interface UpdaterInstance {
+  checkForUpdates: () => void
+  downloadUpdate: () => void
+  installUpdate: () => void
+  state: 'idle' | 'checking' | 'available' | 'downloading' | 'error'
+  versionInfo: any
+  releaseNotes: string
+  downloadProgress: number
+}
+
 // 全局单例状态，确保所有组件共享同一个状态
-let globalUpdaterInstance: any = null
+let globalUpdaterInstance: UpdaterInstance | null = null
 
 export function useUpdater() {
   // 如果已有实例，直接返回
@@ -83,7 +94,7 @@ export function useUpdater() {
 
   // Electron环境的实际实现
   const services = inject('services') as any // 类型断言，避免TypeScript错误
-  const { getPreference, setPreference } = usePreferences(services)
+  const { setPreference } = usePreferences(services)
   const { t } = useI18n()
 
   // 直接使用 window.electronAPI，简单直接
@@ -116,11 +127,11 @@ export function useUpdater() {
 
   // IPC事件监听器引用，用于清理
   let updateAvailableListener: ((info: UpdateInfo) => void) | null = null
-  let updateNotAvailableListener: ((info: any) => void) | null = null
+  let updateNotAvailableListener: ((info: { version?: string; reason?: string }) => void) | null = null
   let downloadProgressListener: ((progress: DownloadProgress) => void) | null = null
   let updateDownloadedListener: ((info: UpdateInfo) => void) | null = null
-  let updateErrorListener: ((error: any) => void) | null = null
-  let downloadStartedListener: ((info: any) => void) | null = null
+  let updateErrorListener: ((error: { message?: string; code?: string }) => void) | null = null
+  let downloadStartedListener: ((info: { total?: number; transferred?: number }) => void) | null = null
 
   // 检查两种版本的内部函数
   const checkBothVersions = async () => {
@@ -822,7 +833,7 @@ export function useUpdater() {
     window.electronAPI.on('update-available-info', updateAvailableListener)
 
     // 无更新可用 - 现在主要用于日志，实际逻辑在请求-响应中处理
-    updateNotAvailableListener = (info: any) => {
+    updateNotAvailableListener = (info: { version?: string; reason?: string }) => {
       console.log('[useUpdater] No update available (from auto-check):', info)
       // 注意：不再在这里更新UI状态，避免与请求-响应模式冲突
     }
@@ -849,7 +860,7 @@ export function useUpdater() {
     window.electronAPI.on('update-downloaded', updateDownloadedListener)
 
     // 更新错误（包括下载错误）
-    updateErrorListener = (error: any) => {
+    updateErrorListener = (error: { message?: string; code?: string }) => {
       console.error('[useUpdater] Update error:', error)
 
       // 简单处理：重置下载状态，保持更新信息让用户重试
@@ -878,7 +889,7 @@ export function useUpdater() {
     window.electronAPI.on('update-error', updateErrorListener)
 
     // 下载开始事件 - 立即同步UI状态
-    downloadStartedListener = (info: any) => {
+    downloadStartedListener = (info: { versionType?: string; version?: string }) => {
       console.log('[useUpdater] Download started:', info)
       // 立即设置下载状态，确保UI响应
       state.isDownloading = true

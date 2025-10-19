@@ -144,7 +144,7 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
         throw new RequestConfigError('Each message must have role and content')
       }
 
-      if (!['system', 'user', 'assistant'].includes(msg.role)) {
+      if (!['system', 'user', 'assistant', 'tool'].includes(msg.role)) {
         throw new RequestConfigError(`Invalid message role: ${msg.role}`)
       }
 

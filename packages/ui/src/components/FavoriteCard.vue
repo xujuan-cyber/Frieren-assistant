@@ -279,7 +279,6 @@ import {
   Copy,
   PlayerPlay,
   Eye,
-  Star,
   Edit,
   Trash
 } from '@vicons/tabler';
@@ -296,12 +295,9 @@ interface Props {
   cardHeight?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  isSelected: false,
-  cardHeight: 240
-});
+defineProps<Props>()
 
-const emit = defineEmits<{
+defineEmits<{
   'select': [favorite: FavoritePrompt];
   'edit': [favorite: FavoritePrompt];
   'copy': [favorite: FavoritePrompt];

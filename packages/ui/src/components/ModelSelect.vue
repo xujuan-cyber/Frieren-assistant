@@ -31,9 +31,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject, h, type Ref } from 'vue'
+import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NSelect, NTag, NButton, NText, NSpace } from 'naive-ui'
+import { NSelect, NButton, NText, NSpace } from 'naive-ui'
 import type { AppServices } from '../types/services'
 import type { TextModelConfig } from '@prompt-optimizer/core'
 

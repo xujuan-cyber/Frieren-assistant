@@ -14,7 +14,7 @@ export function useDebounceThrottle() {
    * @param immediate 是否立即执行
    * @param key 唯一标识符
    */
-  const debounce = <T extends (...args: any[]) => any>(
+  const debounce = <T extends (...args: unknown[]) => unknown>(
     fn: T,
     delay: number = 300,
     immediate: boolean = false,
@@ -48,7 +48,7 @@ export function useDebounceThrottle() {
    * @param delay 节流间隔（毫秒）
    * @param key 唯一标识符
    */
-  const throttle = <T extends (...args: any[]) => any>(
+  const throttle = <T extends (...args: unknown[]) => unknown>(
     fn: T,
     delay: number = 100,
     key: string = 'default'
@@ -69,7 +69,7 @@ export function useDebounceThrottle() {
    * requestAnimationFrame 节流
    * 适用于动画和频繁的DOM更新
    */
-  const rafThrottle = <T extends (...args: any[]) => any>(
+  const rafThrottle = <T extends (...args: unknown[]) => unknown>(
     fn: T,
     key: string = 'default'
   ) => {
@@ -135,7 +135,7 @@ export function useDebounceThrottle() {
   /**
    * 智能防抖 - 根据输入频率自动调整延迟时间
    */
-  const smartDebounce = <T extends (...args: any[]) => any>(
+  const smartDebounce = <T extends (...args: unknown[]) => unknown>(
     fn: T,
     minDelay: number = 100,
     maxDelay: number = 1000,
@@ -175,7 +175,7 @@ export function useDebounceThrottle() {
   /**
    * 批处理执行 - 收集一段时间内的所有调用，然后批量执行
    */
-  const batchExecute = <T extends any[]>(
+  const batchExecute = <T extends unknown[]>(
     fn: (batch: T[]) => void,
     delay: number = 100,
     key: string = 'default'

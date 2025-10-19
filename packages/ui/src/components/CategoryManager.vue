@@ -405,9 +405,10 @@ const handleConfirmDelete = async () => {
     message.success(t('favorites.categoryManager.deleteSuccess'));
     await loadCategories();
     emit('category-updated');
-  } catch (error: any) {
+  } catch (error) {
     console.error('删除分类失败:', error);
-    message.error(`${t('favorites.categoryManager.deleteFailed')}: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.categoryManager.deleteFailed')}: ${errorMessage}`);
   } finally {
     deleteDialogVisible.value = false;
     deletingCategory.value = null;
@@ -454,9 +455,10 @@ const handleSaveCategory = async () => {
     editDialogVisible.value = false;
     await loadCategories();
     emit('category-updated');
-  } catch (error: any) {
+  } catch (error) {
     console.error('保存分类失败:', error);
-    message.error(`${t('favorites.categoryManager.saveFailed')}: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.categoryManager.saveFailed')}: ${errorMessage}`);
   } finally {
     saving.value = false;
   }
@@ -497,9 +499,10 @@ const loadCategories = async () => {
 
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
-  } catch (error: any) {
+  } catch (error) {
     console.error('加载分类失败:', error);
-    message.error(`${t('favorites.categoryManager.loadFailed')}: ${error.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t('favorites.categoryManager.loadFailed')}: ${errorMessage}`);
   }
 };
 

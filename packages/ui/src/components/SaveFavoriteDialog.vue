@@ -166,6 +166,7 @@ import { useTagSuggestions } from '../composables/useTagSuggestions';
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';
 import type { AppServices } from '../types/services';
+import type { FavoritePrompt } from '@prompt-optimizer/core';
 
 const { t } = useI18n();
 const { filterTags, loadTags } = useTagSuggestions();
@@ -184,7 +185,7 @@ interface Props {
   /** 当前优化模式(用于从优化器保存时预填充) */
   currentOptimizationMode?: 'system' | 'user'
   /** 要编辑的收藏(仅用于 edit 模式) */
-  favorite?: any
+  favorite?: FavoritePrompt
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -319,9 +320,9 @@ const handleSave = async () => {
     for (const tag of formData.tags) {
       try {
         await servicesValue.favoriteManager.addTag(tag);
-      } catch (error: any) {
+      } catch (error) {
         // 只忽略"标签已存在"错误，其他错误需要抛出
-        if (error?.code !== 'TAG_ALREADY_EXISTS') {
+        if (error && typeof error === 'object' && 'code' in error && error.code !== 'TAG_ALREADY_EXISTS') {
           console.error('添加标签到独立库失败:', error);
           throw error;
         }
@@ -344,7 +345,17 @@ const handleSave = async () => {
       message.success(t('favorites.dialog.messages.editSuccess'));
     } else {
       // 创建模式或保存模式：添加新收藏
-      const favoriteData: any = {
+      interface CreateFavoriteData {
+        title: string
+        description: string
+        content: string
+        category: string
+        tags: string[]
+        functionMode: 'basic' | 'context' | 'image'
+        optimizationMode: 'system' | 'user'
+      }
+
+      const favoriteData: CreateFavoriteData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         content: formData.content.trim(),
@@ -368,9 +379,10 @@ const handleSave = async () => {
 
     emit('saved');
     emit('update:show', false);
-  } catch (error: any) {
+  } catch (error) {
     const failedKey = props.mode === 'edit' ? 'favorites.dialog.messages.editFailed' : 'favorites.dialog.messages.saveFailed';
-    message.error(`${t(failedKey)}: ${error?.message || '未知错误'}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    message.error(`${t(failedKey)}: ${errorMessage}`);
   } finally {
     saving.value = false;
   }

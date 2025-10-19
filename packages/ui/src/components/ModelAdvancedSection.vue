@@ -112,8 +112,7 @@ import {
   useMessage,
   createDiscreteApi
 } from 'naive-ui'
-import type { MessageApiInjection } from 'naive-ui'
-import type { UnifiedParameterDefinition } from '@prompt-optimizer/core'
+import type { MessageApiInjection, UnifiedParameterDefinition } from '@prompt-optimizer/core'
 import { isSafeCustomKey } from '@prompt-optimizer/core'
 import ModelParameterEditor from './ModelParameterEditor.vue'
 

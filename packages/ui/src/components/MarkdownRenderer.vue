@@ -84,8 +84,6 @@ const addLanguageLabels = () => {
     const preElements = markdownContainer.value.querySelectorAll('pre');
     if (!preElements.length) return;
     
-    // 使用DocumentFragment减少重排次数
-    const fragment = document.createDocumentFragment();
     const processedPres = new Set();
     
     preElements.forEach(pre => {

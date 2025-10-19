@@ -5,16 +5,16 @@ import { usePreferences } from './usePreferenceManager'
 import { useImageGeneration } from './useImageGeneration'
 import { v4 as uuidv4 } from 'uuid'
 
-import type {
-  Template,
-  PromptRecordChain,
-  PromptRecordType,
-  OptimizationRequest,
-  OptimizationMode,
-  ImageRequest,
-  ImageResult
+import {
+  IMAGE_MODE_KEYS,
+  type Template,
+  type PromptRecordChain,
+  type PromptRecordType,
+  type OptimizationRequest,
+  type OptimizationMode,
+  type ImageRequest,
+  type ImageResult
 } from '@prompt-optimizer/core'
-import { IMAGE_MODE_KEYS } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { ModelSelectOption, SelectOption } from '../types/select-options'
 

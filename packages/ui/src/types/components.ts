@@ -290,7 +290,7 @@ export interface AdvancedModuleConfig {
 /**
  * 组件通信数据格式
  */
-export interface ComponentMessage<T = any> {
+export interface ComponentMessage<T = unknown> {
   /** 消息类型 */
   type: string
   /** 消息负载 */
@@ -312,7 +312,7 @@ export interface ComponentError {
   /** 错误消息 */
   message: string
   /** 错误详情 */
-  details?: any
+  details?: unknown
   /** 发生错误的组件 */
   component: string
   /** 错误时间 */

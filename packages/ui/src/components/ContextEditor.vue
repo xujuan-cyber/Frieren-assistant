@@ -116,7 +116,7 @@
                     :size="cardSize"
                     embedded
                     :class="{ 'focused-card': focusedIndex === index }"
-                    :ref="(el: any) => setMessageRef(index, el)"
+                    :ref="(el: HTMLElement | null) => setMessageRef(index, el)"
                   >
                     <template #header>
                       <NSpace justify="space-between" align="center">
@@ -1040,7 +1040,8 @@ import { useContextEditor } from '../composables/useContextEditor'
 import { quickTemplateManager, type QuickTemplateDefinition } from '../data/quickTemplates'
 import type { ContextEditorProps, ContextEditorEvents } from '../types/components'
 import type { ContextEditorState, ConversationMessage, ToolDefinition } from '@prompt-optimizer/core'
-import { PREDEFINED_VARIABLES } from '../types/variable'
+import type { StandardPromptData } from '../types'
+import { PREDEFINED_VARIABLES, type PredefinedVariable } from '../types/variable'
 
 const { t, locale } = useI18n()
 
@@ -1178,7 +1179,7 @@ const globalCustomVariableCount = computed(() => {
   const available = props.availableVariables || {}
   let count = 0
   for (const name of Object.keys(available)) {
-    if (!PREDEFINED_VARIABLES.includes(name as any)) {
+    if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
       count++
     }
   }
@@ -1188,7 +1189,8 @@ const globalCustomVariableCount = computed(() => {
 const roleOptions = computed(() => [
   { label: t('conversation.roles.system'), value: 'system' },
   { label: t('conversation.roles.user'), value: 'user' },
-  { label: t('conversation.roles.assistant'), value: 'assistant' }
+  { label: t('conversation.roles.assistant'), value: 'assistant' },
+  { label: t('conversation.roles.tool'), value: 'tool' }
 ])
 
 // 快速模板管理 - 根据优化模式和语言获取
@@ -1202,21 +1204,61 @@ const finalVars = computed(() => {
   const result = { ...props.availableVariables }
   // 合并上下文变量，并过滤掉预定义变量名的覆盖
   Object.entries(localState.value.variables).forEach(([name, value]) => {
-    if (!PREDEFINED_VARIABLES.includes(name as any)) {
+    if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
       result[name] = value
     }
   })
   return result
 })
 
-// 变量表格数据
+// 变量表格数据类型定义
+interface VariableTableRow {
+  key: string
+  name: string
+  value: string
+  fullValue: string
+  source: 'context' | 'global' | 'predefined'
+  status: 'active' | 'overridden' | 'missing'
+  readonly: boolean
+}
+
+const normalizeMessage = (msg: Partial<ConversationMessage>): ConversationMessage => {
+  const normalizedRole = (msg.role ?? 'user') as ConversationMessage['role']
+
+  let content = ''
+  if (typeof msg.content === 'string') {
+    content = msg.content
+  } else if (msg.content != null) {
+    try {
+      content = typeof msg.content === 'object'
+        ? JSON.stringify(msg.content)
+        : String(msg.content)
+    } catch {
+      content = String(msg.content)
+    }
+  }
+
+  const normalized: ConversationMessage = {
+    role: normalizedRole,
+    content
+  }
+
+  if (typeof msg.name === 'string') normalized.name = msg.name
+  if (Array.isArray(msg.tool_calls)) {
+    normalized.tool_calls = msg.tool_calls as ConversationMessage['tool_calls']
+  }
+  if (typeof msg.tool_call_id === 'string') normalized.tool_call_id = msg.tool_call_id
+
+  return normalized
+}
+
 const variableTableData = computed(() => {
-  const data = []
+  const data: VariableTableRow[] = []
   
   // 添加全局变量（只读显示）
   if (props.availableVariables) {
     Object.entries(props.availableVariables).forEach(([name, value]) => {
-      if (!PREDEFINED_VARIABLES.includes(name as any)) {
+      if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
         data.push({
           key: `global-${name}`,
           name,
@@ -1232,7 +1274,7 @@ const variableTableData = computed(() => {
   
   // 添加上下文变量
   Object.entries(localState.value.variables).forEach(([name, value]) => {
-    if (!PREDEFINED_VARIABLES.includes(name as any)) {
+    if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
       data.push({
         key: `override-${name}`,
         name,
@@ -1254,7 +1296,7 @@ const variableColumns = computed((): DataTableColumns => [
     title: t('contextEditor.variableName'),
     key: 'name',
     width: 140,
-    render: (row: any) => {
+    render: (row: VariableTableRow) => {
       return h(NTag, {
         size: 'small',
         type: row.source === 'context' ? 'primary' : 'default',
@@ -1268,7 +1310,7 @@ const variableColumns = computed((): DataTableColumns => [
     ellipsis: {
       tooltip: true
     },
-    render: (row: any) => {
+    render: (row: VariableTableRow) => {
       return h(NText, {
         depth: row.readonly ? 3 : 1,
         style: { 
@@ -1283,7 +1325,7 @@ const variableColumns = computed((): DataTableColumns => [
     title: t('contextEditor.variableSource'),
     key: 'source',
     width: 80,
-    render: (row: any) => {
+    render: (row: VariableTableRow) => {
       const typeMap = {
         global: { type: 'info', text: t('contextEditor.variableSourceLabels.global') },
         context: { type: 'warning', text: t('contextEditor.variableSourceLabels.context') }
@@ -1299,7 +1341,7 @@ const variableColumns = computed((): DataTableColumns => [
     title: t('contextEditor.variableStatus'),
     key: 'status',
     width: 80,
-    render: (row: any) => {
+    render: (row: VariableTableRow) => {
       const statusMap = {
         active: { type: 'success', text: t('contextEditor.variableStatusLabels.active') },
         overridden: { type: 'default', text: t('contextEditor.variableStatusLabels.overridden') }
@@ -1315,7 +1357,7 @@ const variableColumns = computed((): DataTableColumns => [
     title: t('common.actions'),
     key: 'actions',
     width: 120,
-    render: (row: any) => {
+    render: (row: VariableTableRow) => {
       const actions = []
       
       if (!row.readonly) {
@@ -1395,6 +1437,8 @@ const getPlaceholderText = (role: string) => {
       return t('conversation.placeholders.user')
     case 'assistant':
       return t('conversation.placeholders.assistant')
+    case 'tool':
+      return t('conversation.placeholders.tool')
     default:
       return t('conversation.placeholders.default')
   }
@@ -1408,6 +1452,8 @@ const getRoleLabel = (role: string) => {
       return t('conversation.roles.user') || '用户'
     case 'assistant':
       return t('conversation.roles.assistant') || '助手'
+    case 'tool':
+      return t('conversation.roles.tool') || '工具'
     default:
       return role
   }
@@ -1581,8 +1627,8 @@ const syncParametersJsonFromTool = (tool: ToolDefinition | null) => {
   try {
     parametersJson.value = JSON.stringify(tool.function?.parameters ?? defaultParametersObject, null, 2)
     jsonError.value = ''
-  } catch (e: any) {
-    jsonError.value = e?.message || 'JSON stringify error'
+  } catch (e) {
+    jsonError.value = e instanceof Error ? e.message : 'JSON stringify error'
   }
 }
 
@@ -1676,8 +1722,8 @@ const saveTool = () => {
     handleStateChange()
     announce(t('common.save'), 'polite')
     closeToolEditor()
-  } catch (e: any) {
-    jsonError.value = e?.message || t('contextEditor.invalidJson')
+  } catch (e) {
+    jsonError.value = e instanceof Error ? e.message : t('contextEditor.invalidJson')
   }
 }
 
@@ -1781,7 +1827,7 @@ const saveVariable = () => {
   }
   
   // 检查是否是预定义变量名
-  if (PREDEFINED_VARIABLES.includes(name as any)) {
+  if (PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
     announce(t('contextEditor.predefinedVariableError'), 'assertive')
     return
   }
@@ -1872,10 +1918,12 @@ const importFormats = [
   { id: 'langfuse', name: 'LangFuse', description: 'LangFuse 追踪数据格式' }
 ]
 
+type ExportFormat = 'standard' | 'openai' | 'template'
+
 const exportFormats = [
-  { id: 'standard', name: '标准格式', description: '内部标准数据格式' },
-  { id: 'openai', name: 'OpenAI', description: 'OpenAI API 兼容格式' },
-  { id: 'template', name: '模板格式', description: '可复用的模板格式' }
+  { id: 'standard' as ExportFormat, name: '标准格式', description: '内部标准数据格式' },
+  { id: 'openai' as ExportFormat, name: 'OpenAI', description: 'OpenAI API 兼容格式' },
+  { id: 'template' as ExportFormat, name: '模板格式', description: '可复用的模板格式' }
 ]
 
 const handleFileUpload = async (event: Event) => {
@@ -1891,10 +1939,7 @@ const handleFileUpload = async (event: Event) => {
     if (success && contextEditor.currentData.value) {
       // 将导入的数据同步到本地状态
       const data = contextEditor.currentData.value
-      localState.value.messages = (data.messages || []).map(msg => ({
-        role: msg.role || 'user',
-        content: msg.content || ''
-      }))
+      localState.value.messages = (data.messages || []).map(msg => normalizeMessage(msg))
       localState.value.variables = data.metadata?.variables || {}
       localState.value.tools = data.tools || []
       
@@ -1943,15 +1988,9 @@ const handleImportSubmit = async () => {
       case 'conversation':
         // 直接设置为对话格式
         if (Array.isArray(jsonData)) {
-          localState.value.messages = jsonData.map(msg => ({
-            role: msg.role || 'user',
-            content: msg.content || ''
-          }))
+          localState.value.messages = jsonData.map((msg: Partial<ConversationMessage>) => normalizeMessage(msg))
         } else if (jsonData.messages && Array.isArray(jsonData.messages)) {
-          localState.value.messages = jsonData.messages.map(msg => ({
-            role: msg.role || 'user',
-            content: msg.content || ''
-          }))
+          localState.value.messages = jsonData.messages.map((msg: Partial<ConversationMessage>) => normalizeMessage(msg))
           localState.value.variables = jsonData.metadata?.variables || jsonData.variables || {}
           localState.value.tools = jsonData.tools || []
         } else {
@@ -1974,10 +2013,7 @@ const handleImportSubmit = async () => {
     if (result && result.success && contextEditor.currentData.value) {
       // 将导入的数据同步到本地状态
       const data = contextEditor.currentData.value
-      localState.value.messages = (data.messages || []).map(msg => ({
-        role: msg.role || 'user',
-        content: msg.content || ''
-      }))
+      localState.value.messages = (data.messages || []).map(msg => normalizeMessage(msg))
       localState.value.variables = data.metadata?.variables || {}
       localState.value.tools = data.tools || []
       
@@ -2004,7 +2040,7 @@ const handleExportToFile = () => {
     loading.value = true
     
     // 准备导出数据 - 转换为 StandardPromptData 格式
-    const exportData: any = {
+    const exportData: StandardPromptData = {
       messages: localState.value.messages.map(msg => ({
         role: msg.role,
         content: msg.content,
@@ -2018,7 +2054,8 @@ const handleExportToFile = () => {
         variables: localState.value.variables,
         exportTime: new Date().toISOString(),
         version: '1.0',
-        source: 'context_editor'
+        source: 'manual',
+        origin: 'context_editor'
       }
     }
 
@@ -2027,7 +2064,7 @@ const handleExportToFile = () => {
     
     // 执行导出
     const success = contextEditor.exportToFile(
-      selectedExportFormat.value as any,
+      selectedExportFormat.value as ExportFormat,
       `context-export-${Date.now()}`
     )
     
@@ -2052,7 +2089,7 @@ const handleExportToClipboard = async () => {
     loading.value = true
     
     // 准备导出数据 - 转换为 StandardPromptData 格式
-    const exportData: any = {
+    const exportData: StandardPromptData = {
       messages: localState.value.messages.map(msg => ({
         role: msg.role,
         content: msg.content,
@@ -2066,7 +2103,8 @@ const handleExportToClipboard = async () => {
         variables: localState.value.variables,
         exportTime: new Date().toISOString(),
         version: '1.0',
-        source: 'context_editor'
+        source: 'manual',
+        origin: 'context_editor'
       }
     }
 
@@ -2074,7 +2112,7 @@ const handleExportToClipboard = async () => {
     contextEditor.setData(exportData)
     
     // 执行导出到剪贴板
-    const success = await contextEditor.exportToClipboard(selectedExportFormat.value as any)
+    const success = await contextEditor.exportToClipboard(selectedExportFormat.value as ExportFormat)
     
     if (success) {
       showExportDialog.value = false

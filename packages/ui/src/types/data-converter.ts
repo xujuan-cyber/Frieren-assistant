@@ -27,7 +27,7 @@ export interface DataConverter {
    */
   fromConversationMessages(
     messages: ConversationMessage[], 
-    metadata?: any
+    metadata?: unknown
   ): ConversionResult<StandardPromptData>
 
   /**
@@ -46,7 +46,7 @@ export interface DataConverter {
   /**
    * 验证数据格式是否有效
    */
-  validate(data: any, format: 'standard' | 'langfuse' | 'openai' | 'conversation'): ConversionResult<boolean>
+  validate(data: unknown, format: 'standard' | 'langfuse' | 'openai' | 'conversation'): ConversionResult<boolean>
 }
 
 // 变量提取器接口
@@ -127,7 +127,7 @@ export interface DataImportExport {
   /**
    * 自动检测数据格式
    */
-  detectFormat(data: any): 'langfuse' | 'openai' | 'conversation' | 'unknown'
+  detectFormat(data: unknown): 'langfuse' | 'openai' | 'conversation' | 'unknown'
 }
 
 // 模板化相关接口
@@ -142,7 +142,7 @@ export interface TemplateProcessor {
       name: string
       type: 'string' | 'number' | 'boolean' | 'object' | 'array'
       description?: string
-      defaultValue?: any
+      defaultValue?: unknown
       required?: boolean
     }>
   }

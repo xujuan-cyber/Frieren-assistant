@@ -205,7 +205,7 @@ import {
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
 import type { TextModelManager } from '../composables/useTextModelManager'
 
-const props = defineProps({
+const { show, configId } = defineProps({
   show: {
     type: Boolean,
     default: false

@@ -98,7 +98,7 @@ const coreEnabledActions = computed(() => {
 })
 
 const internalContent = ref(props.content)
-const isFullscreenReasoningExpanded = ref(true)
+// const isFullscreenReasoningExpanded = ref(true)  // 保留用于未来扩展
 
 watch(() => props.content, (newVal) => {
   internalContent.value = newVal

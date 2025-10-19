@@ -6,7 +6,7 @@
  */
 
 // 基础响应类型
-interface ElectronResponse<T = any> {
+interface ElectronResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -21,7 +21,7 @@ interface AppAPI {
 
 // 更新器相关API - 简单直接的类型定义
 interface UpdaterAPI {
-  checkUpdate(): Promise<any>
+  checkUpdate(): Promise<unknown>
   checkAllVersions(): Promise<{
     currentVersion: string
     stable?: {
@@ -70,33 +70,33 @@ interface ShellAPI {
 
 // 事件监听API
 interface EventAPI {
-  on(channel: string, listener: (...args: any[]) => void): void
-  off(channel: string, listener: (...args: any[]) => void): void
-  once(channel: string, listener: (...args: any[]) => void): void
+  on(channel: string, listener: (...args: unknown[]) => void): void
+  off(channel: string, listener: (...args: unknown[]) => void): void
+  once(channel: string, listener: (...args: unknown[]) => void): void
 }
 
 // 图像生成API
 interface ImageAPI {
-  generate(request: any): Promise<any>
-  validateRequest(request: any): Promise<any>
-  testConnection(config: any): Promise<any>
-  getDynamicModels(providerId: string, connectionConfig: any): Promise<any[]>
+  generate(request: unknown): Promise<unknown>
+  validateRequest(request: unknown): Promise<unknown>
+  testConnection(config: unknown): Promise<unknown>
+  getDynamicModels(providerId: string, connectionConfig: unknown): Promise<unknown[]>
 }
 
 // 图像模型管理API
 interface ImageModelAPI {
   ensureInitialized(): Promise<void>
   isInitialized(): Promise<boolean>
-  getAllConfigs(): Promise<any[]>
-  getConfig(id: string): Promise<any>
-  addConfig(config: any): Promise<void>
-  updateConfig(id: string, updates: any): Promise<void>
+  getAllConfigs(): Promise<unknown[]>
+  getConfig(id: string): Promise<unknown>
+  addConfig(config: unknown): Promise<void>
+  updateConfig(id: string, updates: unknown): Promise<void>
   deleteConfig(id: string): Promise<void>
-  getEnabledConfigs(): Promise<any[]>
-  exportData(): Promise<any>
-  importData(data: any): Promise<void>
+  getEnabledConfigs(): Promise<unknown[]>
+  exportData(): Promise<unknown>
+  importData(data: unknown): Promise<void>
   getDataType(): Promise<string>
-  validateData(data: any): Promise<boolean>
+  validateData(data: unknown): Promise<boolean>
 }
 
 // 完整的ElectronAPI接口
@@ -120,7 +120,7 @@ declare global {
   // 扩展Error接口，支持自定义属性
   interface Error {
     detailedMessage?: string
-    originalError?: any
+    originalError?: unknown
     code?: string
   }
 }

@@ -108,7 +108,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NSpace, NGrid, NFlex } from 'naive-ui'
+import { NFlex } from 'naive-ui'
 import type { OptimizationMode, AdvancedTestResult, ToolCallResult } from '@prompt-optimizer/core'
 import { useResponsive } from '../composables/useResponsive'
 import { usePerformanceMonitor } from '../composables/usePerformanceMonitor'
@@ -123,8 +123,8 @@ const { t } = useI18n()
 // 性能监控
 const {
   recordUpdate,
-  getPerformanceReport,
-  performanceGrade
+  getPerformanceReport
+  // performanceGrade  // 保留用于性能监控
 } = usePerformanceMonitor('TestAreaPanel')
 
 // 防抖节流
@@ -134,10 +134,10 @@ const { debounce, throttle } = useDebounceThrottle()
 const {
   shouldUseVerticalLayout,
   shouldUseCompactMode,
-  spaceSize,
+  // spaceSize,  // 保留用于响应式布局
   buttonSize,
-  inputSize,
-  gridConfig
+  inputSize
+  // gridConfig  // 保留用于网格布局
 } = useResponsive()
 
 interface Props {
@@ -198,7 +198,7 @@ const emit = defineEmits<{
   'open-variable-manager': []
   'open-context-editor': []
   'variable-change': [name: string, value: string]
-  'context-change': [messages: any[], variables: Record<string, string>]
+  'context-change': [messages: ConversationMessage[], variables: Record<string, string>]
   // 工具调用事件
   'tool-call': [toolCall: ToolCallResult, testType: 'original' | 'optimized']
   'tool-calls-updated': [toolCalls: ToolCallResult[], testType: 'original' | 'optimized']

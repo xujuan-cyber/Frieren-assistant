@@ -125,7 +125,7 @@ const loadCategories = async () => {
 
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
-  } catch (error: any) {
+  } catch (error) {
     console.error('加载分类失败:', error);
   }
 };

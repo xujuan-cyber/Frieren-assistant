@@ -35,7 +35,7 @@ export class LLMService implements ILLMService {
       if (!msg.role || !msg.content) {
         throw new RequestConfigError('消息格式无效: 缺少必要字段');
       }
-      if (!['system', 'user', 'assistant'].includes(msg.role)) {
+      if (!['system', 'user', 'assistant', 'tool'].includes(msg.role)) {
         throw new RequestConfigError(`不支持的消息类型: ${msg.role}`);
       }
       if (typeof msg.content !== 'string') {

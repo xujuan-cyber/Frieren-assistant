@@ -173,7 +173,7 @@ import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NText, NSpace } from 'naive-ui'
 import type { TextModelConfig } from '@prompt-optimizer/core'
 
-const props = defineProps({
+const { models, isTestingConnectionFor, isDefaultModel } = defineProps({
   models: {
     type: Array as PropType<TextModelConfig[]>,
     default: () => []

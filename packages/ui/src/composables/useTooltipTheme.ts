@@ -1,7 +1,5 @@
-import { computed } from 'vue';
-import type { CSSProperties } from 'vue';
-import { useThemeVars } from 'naive-ui';
-import type { TooltipProps } from 'naive-ui';
+import { computed, type CSSProperties } from 'vue';
+import { useThemeVars, type TooltipProps } from 'naive-ui';
 
 type TooltipThemeOverrides = NonNullable<TooltipProps['themeOverrides']>;
 

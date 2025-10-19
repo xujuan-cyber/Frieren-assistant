@@ -138,7 +138,7 @@ const formRules: FormRules = {
       trigger: ['input', 'blur']
     },
     {
-      validator: (rule: any, value: string) => {
+      validator: (rule: { trigger?: string; validator?: Function }, value: string) => {
         if (value && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value.trim())) {
           return new Error(t('variables.editor.errors.nameInvalid'))
         }
@@ -147,7 +147,7 @@ const formRules: FormRules = {
       trigger: ['input', 'blur']
     },
     {
-      validator: (rule: any, value: string) => {
+      validator: (rule: { trigger?: string; validator?: Function }, value: string) => {
         const predefinedNames = ['originalPrompt', 'lastOptimizedPrompt', 'iterateInput', 'currentPrompt', 'userQuestion', 'conversationContext', 'toolsContext']
         if (value && predefinedNames.includes(value.trim())) {
           return new Error(t('variables.editor.errors.namePredefined'))
@@ -157,7 +157,7 @@ const formRules: FormRules = {
       trigger: ['input', 'blur']
     },
     {
-      validator: (rule: any, value: string) => {
+      validator: (rule: { trigger?: string; validator?: Function }, value: string) => {
         const existingNames = props.existingNames.filter(n => 
           isEditing.value ? n !== props.variable?.name : true
         )
@@ -176,7 +176,7 @@ const formRules: FormRules = {
       trigger: ['input', 'blur']
     },
     {
-      validator: (rule: any, value: string) => {
+      validator: (rule: { trigger?: string; validator?: Function }, value: string) => {
         if (value && value.trim().length > 5000) {
           return new Error(t('variables.editor.errors.valueTooLong'))
         }

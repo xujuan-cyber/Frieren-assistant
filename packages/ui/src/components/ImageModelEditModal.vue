@@ -216,7 +216,7 @@ import { computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NModal, NScrollbar, NSpace, NInput, NInputNumber,
-  NCheckbox, NSelect, NButton, NAlert, NCard, NTag, NIcon, NTooltip, NText,
+  NCheckbox, NSelect, NButton, NTag, NTooltip, NText,
   NDivider, NH4, NForm, NFormItem, NImage
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/useImageModelManager'
@@ -273,7 +273,6 @@ const {
   refreshModels: handleRefreshModels,
   updateParamOverrides,
   saveConfig,
-  resetForm,
   loadConfigs,
   loadProviders,
 } = useImageModelManager()
@@ -301,7 +300,17 @@ const connectionFields = computed(() => {
   if (!selectedProvider.value?.connectionSchema) return []
 
   const schema = selectedProvider.value.connectionSchema
-  const fields: any[] = []
+
+  interface ConnectionField {
+    name: string
+    required: boolean
+    type: string
+    labelKey: string
+    descriptionKey: string
+    placeholder: string
+  }
+
+  const fields: ConnectionField[] = []
 
   // 处理必需字段
   for (const fieldName of schema.required) {
@@ -496,7 +505,7 @@ watch(() => props.show, async (newShow) => {
 })
 
 // 单独监听 configId 变化，处理动态更新的情况
-watch(() => props.configId, async (newConfigId, oldConfigId) => {
+watch(() => props.configId, async (newConfigId) => {
   // 只有在弹窗已经打开的情况下才处理
   if (props.show && newConfigId) {
     try {

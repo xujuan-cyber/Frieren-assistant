@@ -255,11 +255,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { PropType } from 'vue'
+import { computed, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMessage, createDiscreteApi, NAlert, NButton, NCheckbox, NForm, NFormItem, NInput, NInputNumber, NSelect, NSpace, NTag, NText } from 'naive-ui'
-import type { MessageApiInjection } from 'naive-ui'
+import { useMessage, createDiscreteApi, NAlert, NButton, NCheckbox, NForm, NFormItem, NInput, NInputNumber, NSelect, NSpace, NTag, NText, type MessageApiInjection } from 'naive-ui'
 import type { UnifiedParameterDefinition } from '@prompt-optimizer/core'
 
 const props = defineProps({
@@ -517,27 +515,27 @@ function resolveMessageApi(): MessageApiInjection {
       destroy: () => {}
     })
     return {
-      create: (...args: any[]) => {
+      create: (...args: unknown[]) => {
         console.info('[Message]', ...args)
         return stub()
       },
-      info: (...args: any[]) => {
+      info: (...args: unknown[]) => {
         console.info(...args)
         return stub()
       },
-      success: (...args: any[]) => {
+      success: (...args: unknown[]) => {
         console.log(...args)
         return stub()
       },
-      warning: (...args: any[]) => {
+      warning: (...args: unknown[]) => {
         console.warn(...args)
         return stub()
       },
-      error: (...args: any[]) => {
+      error: (...args: unknown[]) => {
         console.error(...args)
         return stub()
       },
-      loading: (...args: any[]) => {
+      loading: (...args: unknown[]) => {
         console.log(...args)
         return stub()
       },

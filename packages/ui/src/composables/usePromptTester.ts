@@ -81,9 +81,9 @@ export function usePromptTester(
             }
           }
         )
-      } catch (error: any) {
+      } catch (error) {
         console.error(t('toast.error.testFailed'), error)
-        state.testError = error.message || t('toast.error.testProcessError')
+        state.testError = error instanceof Error ? error.message : t('toast.error.testProcessError')
       } finally {
         state.isTesting = false
       }
@@ -121,9 +121,9 @@ export function usePromptTester(
             }
           }
         )
-      } catch (error: any) {
+      } catch (error) {
         console.error(t('toast.error.testFailed'), error)
-        state.testError = error.message || t('toast.error.testProcessError')
+        state.testError = error instanceof Error ? error.message : t('toast.error.testProcessError')
       } finally {
         state.isTesting = false
       }

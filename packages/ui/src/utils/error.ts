@@ -4,7 +4,7 @@ export class AppError extends Error {
   constructor(
     message: string,
     public code: string = 'UNKNOWN_ERROR',
-    public details?: Record<string, any>
+    public details?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'AppError'

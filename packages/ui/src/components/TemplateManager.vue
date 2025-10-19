@@ -632,17 +632,16 @@
 import { ref, onMounted, computed, watch, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  NModal, NCard, NTabs, NTabPane, NButton, NTag, NInput, NInputGroup,
-  NSelect, NSpace, NText, NH3, NH4, NDivider, NScrollbar,
-  NButtonGroup, NIcon, NCode, NSwitch, NMessageProvider,
+  NModal, NCard, NButton, NTag, NInput,
+  NSelect, NSpace, NText, NH3, NH4, NScrollbar,
+  NCode,
   NGrid, NGridItem, NEl
 } from 'naive-ui'
-import { TemplateProcessor, type Template, type MessageTemplate } from '@prompt-optimizer/core'
+import { TemplateProcessor, type Template, type MessageTemplate, type ITemplateManager, TemplateLanguageService } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import BuiltinTemplateLanguageSwitch from './BuiltinTemplateLanguageSwitch.vue'
 import { syntaxGuideContent } from '../docs/syntax-guide'
-import type { ITemplateManager, TemplateLanguageService } from '@prompt-optimizer/core'
 import { i18n } from '../plugins/i18n'
 
 const { t } = useI18n()
@@ -659,7 +658,7 @@ if (!services?.value) {
 }
 
 const getTemplateManager = computed(() => services.value!.templateManager)
-const getTemplateLanguageService = computed(() => services.value!.templateLanguageService)
+// const getTemplateLanguageService = computed(() => services.value!.templateLanguageService)  // 保留用于未来扩展
 
 const props = defineProps<{
   selectedSystemOptimizeTemplate?: Template,
@@ -982,7 +981,7 @@ const initializeTextareaHeight = (textarea: HTMLTextAreaElement) => {
     const maxHeight = 280
     
     // 设置为auto以获取内容实际高度
-    const originalHeight = textarea.style.height
+    // const originalHeight = textarea.style.height  // 保留用于可能的需要
     textarea.style.height = 'auto'
     const scrollHeight = textarea.scrollHeight
     
@@ -1182,59 +1181,34 @@ const confirmDelete = async (templateId: string) => {
   }
 }
 
-// 导出提示词
-const exportTemplate = async (templateId: string) => {
-  try {
-    const templateJson = await getTemplateManager.value.exportTemplate(templateId);
-    const blob = new Blob([templateJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `template-${templateId}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success(t('template.success.exported'));
-  } catch (error) {
-    console.error('导出提示词失败:', error);
-    toast.error(t('template.error.exportFailed'));
-  }
-}
+// 导出提示词（保留用于未来功能）
+// const exportTemplate = async (templateId: string) => {
+//   try {
+//     const templateJson = await getTemplateManager.value.exportTemplate(templateId);
+//     const blob = new Blob([templateJson], { type: 'application/json' });
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `template-${templateId}.json`;
+//     document.body.appendChild(a);
+//     a.click();
+//     document.body.removeChild(a);
+//     URL.revokeObjectURL(url);
+//     toast.success(t('template.success.exported'));
+//   } catch (error) {
+//     console.error('导出提示词失败:', error);
+//     toast.error(t('template.error.exportFailed'));
+//   }
+// }
 
-// 导入提示词
-const fileInput = ref<HTMLInputElement | null>(null)
-const handleFileImport = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-
-  try {
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      try {
-        if (e.target?.result && typeof e.target.result === 'string') {
-          await getTemplateManager.value.importTemplate(e.target.result)
-        } else {
-          // 让失败不再静默，明确地抛出错误
-          throw new Error('Failed to read file content as string.')
-        }
-        await loadTemplates()
-        toast.success(t('template.success.imported'))
-        if (target) {
-          target.value = ''
-        }
-      } catch (error) {
-        console.error('导入提示词失败:', error)
-        toast.error(t('template.error.importFailed'))
-      }
-    }
-    reader.readAsText(file)
-  } catch (error) {
-    console.error('读取文件失败:', error)
-    toast.error(t('template.error.readFailed'))
-  }
-}
+// 导入提示词功能（暂时移除，保留用于未来功能）
+// const fileInput = ref<HTMLInputElement | null>(null)
+// const handleFileImport = (event: Event) => {
+//   const target = event.target as HTMLInputElement
+//   const file = target.files?.[0]
+//   if (!file) return
+//   // ... 函数实现暂时移除
+// }
 
 // 复制内置提示词
 const copyTemplate = (template: Template) => {
@@ -1339,7 +1313,7 @@ const syntaxGuideMarkdown = computed(() => {
   }
 
 // 监听 props.templateType 变化，更新当前分类
-watch(() => props.templateType, (newTemplateType) => {
+watch(() => props.templateType, () => {
   currentCategory.value = getCategoryFromProps()
 }, { immediate: true })
 

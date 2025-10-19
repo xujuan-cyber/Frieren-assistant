@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 interface VirtualScrollItem {
   id: string | number
   height?: number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface VirtualScrollOptions {

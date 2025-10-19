@@ -127,8 +127,7 @@ import { Search, Edit, Trash, GitMerge } from '@vicons/tabler';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/useToast';
 import type { AppServices } from '../types/services';
-import type { TagStatistics } from '@prompt-optimizer/core';
-import { TagTypeConverter } from '@prompt-optimizer/core';
+import type { TagStatistics, TagTypeConverter } from '@prompt-optimizer/core';
 
 const { t } = useI18n();
 
@@ -288,8 +287,8 @@ const loadTags = async () => {
     const tags = await servicesValue.favoriteManager.getAllTags();
     // 使用统一的类型转换器转换数据格式
     allTags.value = TagTypeConverter.toTagStatistics(tags);
-  } catch (error: any) {
-    message.error(t('favorites.manager.tagManager.messages.loadFailed') + `: ${error?.message || '未知错误'}`);
+  } catch (error: unknown) {
+    message.error(t('favorites.manager.tagManager.messages.loadFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
   } finally {
     loading.value = false;
   }
@@ -329,8 +328,8 @@ const handleAddConfirm = async () => {
     message.success(t('favorites.manager.tagManager.messages.addSuccess'));
     showAddDialog.value = false;
     return true;
-  } catch (error: any) {
-    message.error(t('favorites.manager.tagManager.messages.addFailed') + `: ${error?.message || '未知错误'}`);
+  } catch (error: unknown) {
+    message.error(t('favorites.manager.tagManager.messages.addFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
     return false;
   }
 };
@@ -366,8 +365,8 @@ const handleRenameConfirm = async () => {
     emit('updated');
     showRenameDialog.value = false;
     return true;
-  } catch (error: any) {
-    message.error(t('favorites.manager.tagManager.messages.renameFailed') + `: ${error?.message || '未知错误'}`);
+  } catch (error: unknown) {
+    message.error(t('favorites.manager.tagManager.messages.renameFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
     return false;
   }
 };
@@ -393,8 +392,8 @@ const handleMergeConfirm = async () => {
     emit('updated');
     showMergeDialog.value = false;
     return true;
-  } catch (error: any) {
-    message.error(t('favorites.manager.tagManager.messages.mergeFailed') + `: ${error?.message || '未知错误'}`);
+  } catch (error: unknown) {
+    message.error(t('favorites.manager.tagManager.messages.mergeFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
     return false;
   }
 };
@@ -411,8 +410,8 @@ const handleDelete = async (tag: TagStatistics) => {
     message.success(t('favorites.manager.tagManager.messages.deleteSuccess'));
     await loadTags();
     emit('updated');
-  } catch (error: any) {
-    message.error(t('favorites.manager.tagManager.messages.deleteFailed') + `: ${error?.message || '未知错误'}`);
+  } catch (error: unknown) {
+    message.error(t('favorites.manager.tagManager.messages.deleteFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
   }
 };
 

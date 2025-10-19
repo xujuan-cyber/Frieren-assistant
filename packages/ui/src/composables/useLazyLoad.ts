@@ -7,6 +7,26 @@ interface LazyLoadOptions {
   once?: boolean
 }
 
+interface LazyCallbackFunction {
+  (element: Element, entry: IntersectionObserverEntry): void
+}
+
+interface LazyErrorCallbackFunction {
+  (error: unknown, element: Element, entry: IntersectionObserverEntry): void
+}
+
+interface LazyComponentFunction {
+  (): Promise<unknown>
+}
+
+interface LazyComponentLoadCallbackFunction {
+  (component: unknown): void
+}
+
+interface LazyComponentErrorCallbackFunction {
+  (error: unknown): void
+}
+
 /**
  * 懒加载 Composable
  * 优化图片和组件的加载性能
@@ -36,8 +56,8 @@ export function useLazyLoad(options: LazyLoadOptions = {}) {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const element = entry.target
-            const callback = (element as any).__lazyCallback
-            const errorCallback = (element as any).__lazyErrorCallback
+            const callback = (element as Element & { __lazyCallback?: LazyCallbackFunction }).__lazyCallback
+            const errorCallback = (element as Element & { __lazyErrorCallback?: LazyErrorCallbackFunction }).__lazyErrorCallback
 
             try {
               if (callback) {
@@ -94,8 +114,8 @@ export function useLazyLoad(options: LazyLoadOptions = {}) {
    */
   const observe = (
     element: Element,
-    callback?: (element: Element, entry: IntersectionObserverEntry) => void,
-    errorCallback?: (error: any, element: Element, entry: IntersectionObserverEntry) => void
+    callback?: LazyCallbackFunction,
+    errorCallback?: LazyErrorCallbackFunction
   ) => {
     if (!element || observedElements.value.has(element)) {
       return
@@ -121,10 +141,10 @@ export function useLazyLoad(options: LazyLoadOptions = {}) {
 
     // 保存回调函数
     if (callback) {
-      (element as any).__lazyCallback = callback
+      (element as Element & { __lazyCallback?: LazyCallbackFunction }).__lazyCallback = callback
     }
     if (errorCallback) {
-      (element as any).__lazyErrorCallback = errorCallback
+      (element as Element & { __lazyErrorCallback?: LazyErrorCallbackFunction }).__lazyErrorCallback = errorCallback
     }
 
     observer.value.observe(element)
@@ -140,8 +160,8 @@ export function useLazyLoad(options: LazyLoadOptions = {}) {
       observedElements.value.delete(element)
       
       // 清理回调函数
-      delete (element as any).__lazyCallback
-      delete (element as any).__lazyErrorCallback
+      delete (element as Element & { __lazyCallback?: LazyCallbackFunction }).__lazyCallback
+      delete (element as Element & { __lazyErrorCallback?: LazyErrorCallbackFunction }).__lazyErrorCallback
     }
   }
 
@@ -240,9 +260,9 @@ export function useLazyLoad(options: LazyLoadOptions = {}) {
    */
   const lazyComponent = (
     element: Element,
-    loadComponent: () => Promise<any>,
-    onLoad?: (component: any) => void,
-    onError?: (error: any) => void
+    loadComponent: LazyComponentFunction,
+    onLoad?: LazyComponentLoadCallbackFunction,
+    onError?: LazyComponentErrorCallbackFunction
   ) => {
     element.classList.add('lazy-loading')
 

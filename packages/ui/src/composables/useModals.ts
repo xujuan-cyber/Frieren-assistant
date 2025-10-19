@@ -12,10 +12,14 @@ import type { AppServices } from '../types/services'
  * @param initTemplateSelection 初始化模板选择的函数
  * @returns 模态框管理相关方法和状态
  */
+interface ModelSelectRef {
+  refresh: () => void
+}
+
 export function useModals(
   services: Ref<AppServices | null>,
-  optimizeModelSelect: Ref<any>,
-  testModelSelect: Ref<any>,
+  optimizeModelSelect: Ref<ModelSelectRef | null>,
+  testModelSelect: Ref<ModelSelectRef | null>,
   loadModels: () => Promise<void>,
   initTemplateSelection: () => Promise<void>
 ) {

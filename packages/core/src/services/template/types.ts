@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { IImportExportable } from '../../interfaces/import-export';
 import type { BuiltinTemplateLanguage } from './languageService';
+import type { ToolCall } from '../prompt/types';
 
 /**
  * 提示词元数据
@@ -19,8 +20,11 @@ export interface TemplateMetadata {
  * 消息模板定义
  */
 export interface MessageTemplate {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  name?: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
 }
 
 /**
@@ -100,7 +104,7 @@ export interface ITemplateManager extends IImportExportable {
  * 消息模板验证Schema
  */
 export const messageTemplateSchema = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
+  role: z.enum(['system', 'user', 'assistant', 'tool']),
   content: z.string().min(1)
 });
 

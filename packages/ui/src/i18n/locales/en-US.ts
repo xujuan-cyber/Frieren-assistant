@@ -559,7 +559,8 @@ export default {
     roles: {
       system: 'System',
       user: 'User',
-      assistant: 'Assistant'
+      assistant: 'Assistant',
+      tool: 'Tool'
     },
     templates: {
       simple: 'Simple Chat',
@@ -595,6 +596,7 @@ export default {
       system: 'Enter system message (defines AI behavior and context)...',
       user: 'Enter user message (your input or question)...',
       assistant: 'Enter assistant message (AI response)...',
+      tool: 'Enter tool result or function output...',
       default: 'Enter message content...'
     },
     

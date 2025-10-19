@@ -8,7 +8,8 @@ import type {
   OpenAIRequest,
   ConversionResult,
   StandardMessage,
-  ConversationMessage
+  ConversationMessage,
+  ToolDefinition
 } from '../types'
 
 export class PromptDataConverter implements DataConverter {
@@ -19,90 +20,163 @@ export class PromptDataConverter implements DataConverter {
    * 2. LangFuse官方导出: [{"id":"","input":[消息列表]}]
    * 3. 工具调用消息分离处理
    */
-  fromLangFuse(langfuseData: any): ConversionResult<StandardPromptData> {
+  fromLangFuse(langfuseData: unknown): ConversionResult<StandardPromptData> {
     try {
-      let messages: any[] = []
-      const extractedTools: any[] = []
-      let metadata: any = {}
+      const extractedTools: ToolDefinition[] = []
+      let metadata: Record<string, unknown> = {}
+      let messages: unknown[] | undefined
 
-      // 智能识别LangFuse数据结构层级
-      if (Array.isArray(langfuseData)) {
-        // 情况1: 直接是消息数组 [{"role":"","content":""}]
-        if (langfuseData.length > 0 && langfuseData[0].role) {
-          messages = langfuseData
+      const ensureRecord = (value: unknown): Record<string, unknown> | undefined => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          return value as Record<string, unknown>
         }
-        // 情况2: LangFuse官方导出格式 [{"id":"","input":[消息列表]}]
-        else if (langfuseData.length > 0 && langfuseData[0].input) {
-          const firstRecord = langfuseData[0]
-          messages = firstRecord.input.messages || firstRecord.input || []
-          
-          // 提取元数据
-          metadata = {
-            langfuse_trace_id: firstRecord.id,
-            timestamp: firstRecord.timestamp,
-            ...firstRecord.metadata
+        return undefined
+      }
+
+      if (Array.isArray(langfuseData)) {
+        if (langfuseData.length === 0) {
+          return {
+            success: false,
+            error: 'Invalid LangFuse data: empty array'
           }
         }
-        else {
+
+        const firstRecord = ensureRecord(langfuseData[0])
+        if (firstRecord && typeof firstRecord.role === 'string') {
+          messages = langfuseData
+        } else if (firstRecord && firstRecord.input !== undefined) {
+          const input = firstRecord.input
+          const inputRecord = ensureRecord(input)
+          if (Array.isArray(input)) {
+            messages = input as unknown[]
+          } else if (inputRecord && Array.isArray(inputRecord.messages)) {
+            messages = inputRecord.messages as unknown[]
+          } else {
+            messages = []
+          }
+
+          metadata = {
+            ...metadata,
+            langfuse_trace_id: firstRecord.id,
+            timestamp: firstRecord.timestamp,
+            ...(ensureRecord(firstRecord.metadata) ?? {})
+          }
+        } else {
           return {
             success: false,
             error: 'Invalid LangFuse data: unrecognized array structure'
           }
         }
-      }
-      // 情况3: 单个LangFuse trace对象
-      else if (langfuseData.input) {
-        messages = langfuseData.input.messages || langfuseData.input || []
-        metadata = {
-          langfuse_trace_id: langfuseData.id,
-          timestamp: langfuseData.timestamp,
-          ...langfuseData.metadata
+      } else {
+        const record = ensureRecord(langfuseData)
+        if (record && record.input !== undefined) {
+          const input = record.input
+          const inputRecord = ensureRecord(input)
+
+          if (Array.isArray(input)) {
+            messages = input as unknown[]
+          } else if (inputRecord && Array.isArray(inputRecord.messages)) {
+            messages = inputRecord.messages as unknown[]
+          } else {
+            messages = []
+          }
+
+          metadata = {
+            ...metadata,
+            langfuse_trace_id: record.id,
+            timestamp: record.timestamp,
+            ...(ensureRecord(record.metadata) ?? {})
+          }
         }
       }
-      else {
+
+      if (!messages) {
         return {
           success: false,
           error: 'Invalid LangFuse data: missing input or messages'
         }
       }
 
-      // 分离工具调用消息和普通对话消息
-      const conversationMessages: any[] = []
-      
-      for (const msg of messages) {
-        if (msg.role === 'tool') {
-          // 工具消息：提取工具定义
-          if (msg.content?.type === 'function' && msg.content?.function) {
+      const standardMessages: StandardMessage[] = []
+
+      for (const raw of messages) {
+        const messageRecord = ensureRecord(raw)
+        if (!messageRecord) {
+          continue
+        }
+
+        const role = messageRecord.role
+        if (typeof role !== 'string' || !['system', 'user', 'assistant', 'tool'].includes(role)) {
+          continue
+        }
+
+        const rawContent = messageRecord.content
+        let content = ''
+        if (typeof rawContent === 'string') {
+          content = rawContent
+        } else if (rawContent != null) {
+          try {
+            content = JSON.stringify(rawContent)
+          } catch {
+            content = String(rawContent)
+          }
+        }
+
+        const standardMessage: StandardMessage = {
+          role,
+          content
+        }
+
+        if (typeof messageRecord.name === 'string') {
+          standardMessage.name = messageRecord.name
+        }
+        if (Array.isArray(messageRecord.tool_calls)) {
+          standardMessage.tool_calls = messageRecord.tool_calls as StandardMessage['tool_calls']
+        }
+        if (typeof messageRecord.tool_call_id === 'string') {
+          standardMessage.tool_call_id = messageRecord.tool_call_id
+        }
+
+        if (role === 'tool') {
+          const contentRecord = ensureRecord(rawContent)
+          const functionPayload = contentRecord?.function
+          if (contentRecord?.type === 'function' && ensureRecord(functionPayload)) {
             extractedTools.push({
               type: 'function',
-              function: msg.content.function
+              function: functionPayload as ToolDefinition['function']
             })
           }
-        } else {
-          // 普通对话消息
-          conversationMessages.push({
-            role: msg.role,
-            content: msg.content,
-            name: msg.name,
-            tool_calls: msg.tool_calls,
-            tool_call_id: msg.tool_call_id
-          })
         }
+
+        standardMessages.push(standardMessage)
+      }
+
+      const getMetadataString = (key: string): string | undefined => {
+        const value = metadata[key]
+        if (typeof value === 'string') {
+          return value
+        }
+        return value != null ? String(value) : undefined
+      }
+
+      const getMetadataNumber = (key: string): number | undefined => {
+        const value = metadata[key]
+        return typeof value === 'number' ? value : undefined
       }
 
       const standardData: StandardPromptData = {
-        messages: conversationMessages,
-        model: metadata?.model,
-        temperature: metadata?.temperature,
+        messages: standardMessages,
+        model: getMetadataString('model'),
+        temperature: getMetadataNumber('temperature'),
         tools: extractedTools.length > 0 ? extractedTools : undefined,
         metadata: {
           source: 'langfuse',
           template_info: {
-            name: metadata?.name
+            name: getMetadataString('name')
           },
-          timestamp: metadata?.timestamp,
-          langfuse_trace_id: metadata?.langfuse_trace_id,
-          usage: metadata?.usage,
+          timestamp: getMetadataString('timestamp'),
+          langfuse_trace_id: getMetadataString('langfuse_trace_id'),
+          usage: metadata['usage'],
           extracted_tools_count: extractedTools.length
         }
       }
@@ -164,8 +238,8 @@ export class PromptDataConverter implements DataConverter {
    * 从会话消息格式转换为标准格式
    */
   fromConversationMessages(
-    messages: ConversationMessage[], 
-    metadata?: any
+    messages: Array<Partial<ConversationMessage>>, 
+    metadata?: Record<string, unknown>
   ): ConversionResult<StandardPromptData> {
     try {
       if (!messages || !Array.isArray(messages)) {
@@ -175,17 +249,51 @@ export class PromptDataConverter implements DataConverter {
         }
       }
 
-      const standardMessages: StandardMessage[] = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }))
+      const standardMessages: StandardMessage[] = messages.map(rawMessage => {
+        const normalizedRole = ['system', 'user', 'assistant', 'tool'].includes(rawMessage.role as string)
+          ? (rawMessage.role as ConversationMessage['role'])
+          : 'user'
+
+        let content = ''
+        const rawContent = rawMessage.content
+        if (typeof rawContent === 'string') {
+          content = rawContent
+        } else if (rawContent != null) {
+          try {
+            content = typeof rawContent === 'object'
+              ? JSON.stringify(rawContent)
+              : String(rawContent)
+          } catch {
+            content = String(rawContent)
+          }
+        }
+
+        const standardMessage: StandardMessage = {
+          role: normalizedRole,
+          content
+        }
+
+        if (typeof rawMessage.name === 'string') {
+          standardMessage.name = rawMessage.name
+        }
+
+        if (Array.isArray(rawMessage.tool_calls)) {
+          standardMessage.tool_calls = rawMessage.tool_calls as StandardMessage['tool_calls']
+        }
+
+        if (typeof rawMessage.tool_call_id === 'string') {
+          standardMessage.tool_call_id = rawMessage.tool_call_id
+        }
+
+        return standardMessage
+      })
 
       const standardData: StandardPromptData = {
         messages: standardMessages,
         metadata: {
           source: 'conversation',
           timestamp: new Date().toISOString(),
-          ...metadata
+          ...(metadata ?? {})
         }
       }
 
@@ -262,19 +370,33 @@ export class PromptDataConverter implements DataConverter {
         }
       }
 
-      const conversationMessages: ConversationMessage[] = data.messages
-        .filter(msg => ['system', 'user', 'assistant'].includes(msg.role))
-        .map(msg => ({
-          role: msg.role as 'system' | 'user' | 'assistant',
-          content: msg.content
-        }))
-
+      const conversationMessages: ConversationMessage[] = []
       const warnings: string[] = []
-      const originalLength = data.messages.length
-      const filteredLength = conversationMessages.length
 
-      if (originalLength > filteredLength) {
-        warnings.push(`Filtered out ${originalLength - filteredLength} tool messages that are not supported in conversation format`)
+      for (const msg of data.messages) {
+        if (!['system', 'user', 'assistant', 'tool'].includes(msg.role)) {
+          warnings.push(`Filtered out message with unsupported role: ${msg.role}`)
+          continue
+        }
+
+        const conversationMessage: ConversationMessage = {
+          role: msg.role as ConversationMessage['role'],
+          content: msg.content
+        }
+
+        if (typeof msg.name === 'string') {
+          conversationMessage.name = msg.name
+        }
+
+        if (Array.isArray(msg.tool_calls)) {
+          conversationMessage.tool_calls = msg.tool_calls
+        }
+
+        if (typeof msg.tool_call_id === 'string') {
+          conversationMessage.tool_call_id = msg.tool_call_id
+        }
+
+        conversationMessages.push(conversationMessage)
       }
 
       return {
@@ -387,7 +509,7 @@ export class PromptDataConverter implements DataConverter {
     }
 
     for (const [index, message] of data.entries()) {
-      if (!message.role || !['system', 'user', 'assistant'].includes(message.role)) {
+      if (!message.role || !['system', 'user', 'assistant', 'tool'].includes(message.role)) {
         return { success: false, error: `Invalid role in conversation message ${index}` }
       }
       if (typeof message.content !== 'string') {

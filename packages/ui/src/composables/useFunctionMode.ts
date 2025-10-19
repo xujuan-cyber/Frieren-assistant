@@ -49,7 +49,11 @@ export function useFunctionMode(services: Ref<AppServices | null>): UseFunctionM
         }
       } catch (e) {
         // 读取失败则保持默认 'basic'，并尝试持久化
-        try { await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic') } catch {}
+        try {
+          await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
+        } catch {
+          // 忽略设置失败错误
+        }
       } finally {
         singleton!.initialized = true
         singleton!.initializing = null
