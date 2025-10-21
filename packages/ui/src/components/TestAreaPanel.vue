@@ -594,23 +594,19 @@ const detectedVariables = computed(() => {
     return Array.from(variables);
 });
 
-// 🔧 用户在测试区域的临时输入（用于覆盖已有变量值）
-const userInputValues = ref<Record<string, string>>({});
-
 // 预览面板显示状态
 const showPreviewSection = ref(false);
 
-// 🆕 三层变量合并（按优先级：全局 < 会话 < 内置 < 用户临时输入）
+// 三层变量合并（按优先级：全局 < 会话 < 内置）
 const mergedVariables = computed(() => {
     return {
         ...props.globalVariables, // 优先级 1: 全局自定义变量
-        ...props.contextVariables, // 优先级 2: 会话级自定义变量
+        ...props.contextVariables, // 优先级 2: 会话级自定义变量（包含测试区输入）
         ...props.predefinedVariables, // 优先级 3: 内置预定义变量
-        ...userInputValues.value, // 优先级 4: 用户在测试区的临时输入（最高）
     };
 });
 
-// 🆕 实际使用的变量值（合并后的结果）
+// 实际使用的变量值（合并后的结果）
 const variableValues = computed(() => mergedVariables.value);
 
 // 是否显示变量表单：有变量且不在测试运行中
@@ -681,13 +677,8 @@ const finalPreview = computed(() => {
     return result;
 });
 
-// 🆕 获取变量的显示值（优先显示用户输入，否则显示来自上下文/全局的值）
+// 获取变量的显示值（从合并后的变量中获取）
 const getVariableDisplayValue = (varName: string): string => {
-    // 优先返回用户的临时输入
-    if (userInputValues.value[varName]) {
-        return userInputValues.value[varName];
-    }
-    // 否则返回来自三层变量的值
     return mergedVariables.value[varName] || "";
 };
 
@@ -719,13 +710,8 @@ const getVariablePlaceholder = (varName: string): string => {
 watch(
     detectedVariables,
     (newVars) => {
-        // 清理不再存在的变量的用户输入
-        const varSet = new Set(newVars);
-        for (const key of Object.keys(userInputValues.value)) {
-            if (!varSet.has(key)) {
-                delete userInputValues.value[key];
-            }
-        }
+        // 变量列表变化时，可以执行清理逻辑（如果需要）
+        // 由于我们不再使用 userInputValues，这里暂时留空
     },
     { immediate: true },
 );
@@ -742,20 +728,16 @@ const handleShowPreview = () => {
 };
 
 const handleVariableValueChange = (varName: string, value: string) => {
-    // 存储到用户临时输入中
-    if (value && value.trim()) {
-        userInputValues.value[varName] = value;
-    } else {
-        // 如果清空，删除用户输入，回退到三层变量的值
-        delete userInputValues.value[varName];
-    }
+    // 直接通过 emit 同步到会话级变量
     emit("variable-change", varName, value);
     recordUpdate();
 };
 
 const handleClearAllVariables = () => {
-    // 清空所有用户临时输入
-    userInputValues.value = {};
+    // 清空所有检测到的变量
+    detectedVariables.value.forEach((varName) => {
+        emit("variable-change", varName, "");
+    });
     recordUpdate();
 };
 
@@ -764,9 +746,11 @@ const getVariableValues = () => {
     return { ...mergedVariables.value };
 };
 
-// 设置用户临时输入值（外部调用）
+// 设置变量值（外部调用）- 通过 emit 同步到会话变量
 const setVariableValues = (values: Record<string, string>) => {
-    userInputValues.value = { ...values };
+    for (const [name, value] of Object.entries(values)) {
+        emit("variable-change", name, value);
+    }
 };
 
 // 移除未使用的 props 变化防抖处理，避免多余复杂度

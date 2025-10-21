@@ -40,7 +40,9 @@ import {
   type IPromptService,
   type IDataManager,
   type IPreferenceService,
-  type IFavoriteManager
+  type IFavoriteManager,
+  type ContextMode,
+  DEFAULT_CONTEXT_MODE
 } from '@prompt-optimizer/core';
 
 /**
@@ -122,6 +124,18 @@ export function useAppInitializer(): {
         const { FavoriteManagerElectronProxy } = await import('@prompt-optimizer/core')
         favoriteManager = new FavoriteManagerElectronProxy();
 
+        // 🆕 读取当前上下文的模式
+        console.log('[AppInitializer] 读取当前上下文模式...');
+        const contextMode = ref<ContextMode>(DEFAULT_CONTEXT_MODE);
+        try {
+          const currentId = await contextRepo.getCurrentId();
+          const currentContext = await contextRepo.get(currentId);
+          contextMode.value = currentContext.mode || DEFAULT_CONTEXT_MODE;
+          console.log('[AppInitializer] 当前上下文模式:', contextMode.value);
+        } catch (err) {
+          console.warn('[AppInitializer] 读取上下文模式失败，使用默认值:', err);
+        }
+
         services.value = {
           modelManager,
           templateManager,
@@ -134,6 +148,7 @@ export function useAppInitializer(): {
           compareService, // 直接使用，无需代理
           contextRepo, // 使用Electron代理
           favoriteManager, // 使用Electron代理
+          contextMode, // 🆕 上下文模式
           textAdapterRegistry: textAdapterRegistryInstance,
           imageModelManager,
           imageService,
@@ -264,6 +279,18 @@ export function useAppInitializer(): {
         // 创建收藏管理器
         favoriteManager = new FavoriteManager(storageProvider);
 
+        // 🆕 读取当前上下文的模式
+        console.log('[AppInitializer] 读取当前上下文模式...');
+        const contextMode = ref<ContextMode>(DEFAULT_CONTEXT_MODE);
+        try {
+          const currentId = await contextRepo.getCurrentId();
+          const currentContext = await contextRepo.get(currentId);
+          contextMode.value = currentContext.mode || DEFAULT_CONTEXT_MODE;
+          console.log('[AppInitializer] 当前上下文模式:', contextMode.value);
+        } catch (err) {
+          console.warn('[AppInitializer] 读取上下文模式失败，使用默认值:', err);
+        }
+
         // 将所有服务实例赋值给 services.value
         services.value = {
           modelManager: modelManagerAdapter, // 使用适配器
@@ -277,6 +304,7 @@ export function useAppInitializer(): {
           compareService, // 直接使用
           contextRepo, // 上下文仓库
           favoriteManager, // 收藏管理器
+          contextMode, // 🆕 上下文模式
           textAdapterRegistry: textAdapterRegistryInstance,
           imageModelManager: imageModelManagerInstance,
           imageService,

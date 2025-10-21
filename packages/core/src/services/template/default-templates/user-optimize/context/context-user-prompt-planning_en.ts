@@ -26,8 +26,14 @@ export const template: Template = {
 - Use non-tool substitutes for checks/data.
 {{/toolsContext}}
 
+Variable Placeholder Handling (CRITICAL)
+- The original prompt may contain variable placeholders in double-curly-brace format
+- These placeholders represent variables that will be substituted in later stages - they MUST be preserved in the optimized prompt
+- You may add structured annotations around placeholders (e.g., XML tags, markdown formatting), but DO NOT delete or replace the placeholders themselves
+
 Output Requirements
 - Plan must cover: stages/milestones, per-stage I/O & acceptance, risks and rollbacks; never execute tasks nor explain.
+- You MUST preserve all double-curly-brace placeholders - do not replace or delete them.
 ` },
     { role: 'user', content: `Original user prompt:
 {{originalPrompt}}

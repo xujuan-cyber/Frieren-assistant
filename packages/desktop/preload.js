@@ -923,8 +923,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return result.data;
     },
 
-    duplicate: async (id) => {
-      const result = await ipcRenderer.invoke('context-duplicate', id);
+    duplicate: async (id, options) => {
+      const result = await ipcRenderer.invoke('context-duplicate', id, options);
       if (!result.success) {
         throw new Error(result.error);
       }

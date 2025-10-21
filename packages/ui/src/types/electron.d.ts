@@ -1,9 +1,18 @@
 /**
  * Electron API 类型定义
- * 
+ *
  * 仅用于UI包，定义通过 contextBridge 暴露给渲染进程的 Electron API 类型
  * 保持与 desktop/preload.js 中的实际实现同步
  */
+
+import type {
+  ContextPackage,
+  ContextListItem,
+  ContextBundle,
+  ImportMode,
+  ImportResult,
+  ContextMode
+} from '@prompt-optimizer/core'
 
 // 基础响应类型
 interface ElectronResponse<T = unknown> {
@@ -99,6 +108,26 @@ interface ImageModelAPI {
   validateData(data: unknown): Promise<boolean>
 }
 
+// 上下文管理API
+interface ContextAPI {
+  list(): Promise<ContextListItem[]>
+  getCurrentId(): Promise<string>
+  setCurrentId(id: string): Promise<void>
+  get(id: string): Promise<ContextPackage>
+  create(meta?: { title?: string; mode?: ContextMode }): Promise<string>
+  duplicate(id: string, options?: { mode?: ContextMode }): Promise<string>
+  rename(id: string, title: string): Promise<void>
+  save(ctx: ContextPackage): Promise<void>
+  update(id: string, patch: Partial<ContextPackage>): Promise<void>
+  remove(id: string): Promise<void>
+  exportAll(): Promise<ContextBundle>
+  importAll(bundle: ContextBundle, mode: ImportMode): Promise<ImportResult>
+  exportData(): Promise<ContextBundle>
+  importData(data: unknown): Promise<void>
+  getDataType(): Promise<string>
+  validateData(data: unknown): Promise<boolean>
+}
+
 // 完整的ElectronAPI接口
 interface ElectronAPI {
   app: AppAPI
@@ -106,6 +135,7 @@ interface ElectronAPI {
   shell: ShellAPI
   image: ImageAPI
   imageModel: ImageModelAPI
+  context: ContextAPI
   on: EventAPI['on']
   off: EventAPI['off']
   once: EventAPI['once']
@@ -166,6 +196,7 @@ export type {
   EventAPI,
   ImageAPI,
   ImageModelAPI,
+  ContextAPI,
   ElectronAPI,
   DownloadProgress,
   UpdateInfo,

@@ -58,6 +58,8 @@ export interface OptimizationRequest {
   targetPrompt: string;           // 待优化的提示词
   templateId?: string;
   modelKey: string;
+  // 🆕 上下文模式（用于变量替换策略）
+  contextMode?: import('../context/types').ContextMode;
   // 新增：高级模式上下文（可选，保持向后兼容）
   advancedContext?: {
     variables?: Record<string, string>;          // 自定义变量
@@ -74,6 +76,8 @@ export interface CustomConversationRequest {
   messages: ConversationMessage[];               // 使用相同的消息结构
   variables: Record<string, string>;            // 包含预定义+自定义变量
   tools?: ToolDefinition[];                     // 🆕 工具定义支持
+  // 🆕 上下文模式（用于变量替换策略）
+  contextMode?: import('../context/types').ContextMode;
 }
 
 /**

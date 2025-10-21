@@ -32,6 +32,23 @@
 
           <!-- 右侧：操作按钮 -->
           <NSpace align="center" :size="8" class="flex-shrink-0">
+            <!-- 预览按钮 -->
+            <NButton
+              v-if="showPreview && optimizedPrompt"
+              @click="$emit('open-preview')"
+              type="tertiary"
+              size="small"
+              ghost
+            >
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </template>
+              {{ t('common.preview') }}
+            </NButton>
+            <!-- 继续优化按钮 -->
             <NButton
               v-if="optimizedPrompt"
               @click="handleIterate"
@@ -199,6 +216,11 @@ const props = defineProps({
   iterateTemplateType: {
     type: String as () => 'iterate' | 'contextIterate' | 'imageIterate',
     default: undefined
+  },
+  // 是否显示预览按钮
+  showPreview: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -210,6 +232,7 @@ const emit = defineEmits<{
   'switchVersion': [version: PromptRecord];
   'templateSelect': [template: Template];
   'save-favorite': [data: { content: string; originalContent?: string }];
+  'open-preview': [];
 }>()
 
 const showIterateInput = ref(false)

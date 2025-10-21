@@ -1,25 +1,25 @@
-import type { IPreferenceService } from './types';
-import type { IStorageProvider } from '../storage/types';
-import { ImportExportError } from '../../interfaces/import-export';
+import type { IPreferenceService } from "./types";
+import type { IStorageProvider } from "../storage/types";
+import { ImportExportError } from "../../interfaces/import-export";
 
 // 需要导出的UI配置键 - 白名单验证
 const UI_SETTINGS_KEYS = [
-  'app:settings:ui:theme-id',
-  'app:settings:ui:preferred-language',
-  'app:settings:ui:builtin-template-language',
-  'app:selected-optimize-model',
-  'app:selected-test-model',
-  'app:selected-optimize-template', // 系统优化模板
-  'app:selected-user-optimize-template', // 用户优化模板
-  'app:selected-iterate-template' // 迭代模板
+  "app:settings:ui:theme-id",
+  "app:settings:ui:preferred-language",
+  "app:settings:ui:builtin-template-language",
+  "app:selected-optimize-model",
+  "app:selected-test-model",
+  "app:selected-optimize-template", // 系统优化模板
+  "app:selected-user-optimize-template", // 用户优化模板
+  "app:selected-iterate-template", // 迭代模板
 ] as const;
 
 // 旧版本键名映射表 - 用于兼容性处理
 const LEGACY_KEY_MAPPING: Record<string, string> = {
   // 旧版本的简短键名 -> 新版本的完整键名
-  'theme-id': 'app:settings:ui:theme-id',
-  'preferred-language': 'app:settings:ui:preferred-language',
-  'builtin-template-language': 'app:settings:ui:builtin-template-language',
+  "theme-id": "app:settings:ui:theme-id",
+  "preferred-language": "app:settings:ui:preferred-language",
+  "builtin-template-language": "app:settings:ui:builtin-template-language",
   // 其他键名保持不变，因为它们已经有正确的前缀
 };
 
@@ -38,29 +38,33 @@ const normalizeSettingKey = (key: string): string => {
 const isValidSettingKey = (key: string): boolean => {
   // 先标准化键名，再验证
   const normalizedKey = normalizeSettingKey(key);
-  return UI_SETTINGS_KEYS.includes(normalizedKey as any) &&
-         normalizedKey.length <= 50 &&
-         normalizedKey.length > 0 &&
-         !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(normalizedKey); // 排除危险字符和控制字符
+  return (
+    UI_SETTINGS_KEYS.includes(normalizedKey as any) &&
+    normalizedKey.length <= 50 &&
+    normalizedKey.length > 0 &&
+    !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(normalizedKey)
+  ); // 排除危险字符和控制字符
 };
 
 /**
  * 验证UI配置值是否安全
  */
 const isValidSettingValue = (value: any): value is string => {
-  return typeof value === 'string' &&
-         value.length <= 1000 && // 限制值的长度
-         !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/.test(value); // 排除控制字符
+  return (
+    typeof value === "string" &&
+    value.length <= 1000 && // 限制值的长度
+    !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/.test(value)
+  ); // 排除控制字符
 };
 
 /**
  * 基于IStorageProvider的偏好设置服务实现
  */
 export class PreferenceService implements IPreferenceService {
-  private readonly PREFIX = 'pref:';
+  private readonly PREFIX = "pref:";
   private keyCache: Set<string> = new Set();
   private storageProvider: IStorageProvider;
-  
+
   constructor(storageProvider: IStorageProvider) {
     this.storageProvider = storageProvider;
   }
@@ -75,6 +79,7 @@ export class PreferenceService implements IPreferenceService {
     try {
       const prefKey = this.getPrefKey(key);
       const storedValue = await this.storageProvider.getItem(prefKey);
+
       if (storedValue === null) {
         return defaultValue;
       }
@@ -82,7 +87,10 @@ export class PreferenceService implements IPreferenceService {
       this.keyCache.add(key);
       return JSON.parse(storedValue) as T;
     } catch (error) {
-      console.error(`[PreferenceService] Error getting preference for key "${key}":`, error);
+      console.error(
+        `[PreferenceService] Error getting preference for key "${key}":`,
+        error,
+      );
       throw new Error(`Failed to get preference: ${error}`);
     }
   }
@@ -96,11 +104,15 @@ export class PreferenceService implements IPreferenceService {
     try {
       const prefKey = this.getPrefKey(key);
       const stringValue = JSON.stringify(value);
+
       await this.storageProvider.setItem(prefKey, stringValue);
       // 将键添加到缓存中
       this.keyCache.add(key);
     } catch (error) {
-      console.error(`[PreferenceService] Error setting preference for key "${key}":`, error);
+      console.error(
+        `[PreferenceService] Error setting preference for key "${key}":`,
+        error,
+      );
       throw new Error(`Failed to set preference: ${error}`);
     }
   }
@@ -116,7 +128,10 @@ export class PreferenceService implements IPreferenceService {
       // 从缓存中移除键
       this.keyCache.delete(key);
     } catch (error) {
-      console.error(`[PreferenceService] Error deleting preference for key "${key}":`, error);
+      console.error(
+        `[PreferenceService] Error deleting preference for key "${key}":`,
+        error,
+      );
       throw new Error(`Failed to delete preference: ${error}`);
     }
   }
@@ -142,7 +157,7 @@ export class PreferenceService implements IPreferenceService {
       }
       this.keyCache.clear();
     } catch (error) {
-      console.error('[PreferenceService] Error clearing preferences:', error);
+      console.error("[PreferenceService] Error clearing preferences:", error);
       throw new Error(`Failed to clear preferences: ${error}`);
     }
   }
@@ -163,14 +178,20 @@ export class PreferenceService implements IPreferenceService {
             result[key] = String(value);
           }
         } catch (error) {
-          console.warn(`[PreferenceService] Failed to get preference for key "${key}":`, error);
+          console.warn(
+            `[PreferenceService] Failed to get preference for key "${key}":`,
+            error,
+          );
           // 继续处理其他键，不因单个键失败而中断
         }
       }
 
       return result;
     } catch (error) {
-      console.error('[PreferenceService] Error getting all preferences:', error);
+      console.error(
+        "[PreferenceService] Error getting all preferences:",
+        error,
+      );
       throw new Error(`Failed to get all preferences: ${error}`);
     }
   }
@@ -185,9 +206,9 @@ export class PreferenceService implements IPreferenceService {
       return await this.getAll();
     } catch (error) {
       throw new ImportExportError(
-        'Failed to export preference data',
+        "Failed to export preference data",
         await this.getDataType(),
-        error as Error
+        error as Error,
       );
     }
   }
@@ -197,7 +218,9 @@ export class PreferenceService implements IPreferenceService {
    */
   async importData(data: any): Promise<void> {
     if (!(await this.validateData(data))) {
-      throw new Error('Invalid preference data format: data must be an object with string key-value pairs');
+      throw new Error(
+        "Invalid preference data format: data must be an object with string key-value pairs",
+      );
     }
 
     const preferences = data as Record<string, string>;
@@ -213,7 +236,9 @@ export class PreferenceService implements IPreferenceService {
 
         // 验证值是否安全
         if (!isValidSettingValue(value)) {
-          console.warn(`Skipping invalid UI configuration value ${key}: type=${typeof value}`);
+          console.warn(
+            `Skipping invalid UI configuration value ${key}: type=${typeof value}`,
+          );
           continue;
         }
 
@@ -224,7 +249,9 @@ export class PreferenceService implements IPreferenceService {
 
         // 如果键名被转换了，显示转换信息
         if (normalizedKey !== key) {
-          console.log(`Imported UI configuration (legacy key converted): ${key} -> ${normalizedKey} = ${value}`);
+          console.log(
+            `Imported UI configuration (legacy key converted): ${key} -> ${normalizedKey} = ${value}`,
+          );
         } else {
           console.log(`Imported UI configuration: ${normalizedKey} = ${value}`);
         }
@@ -244,20 +271,23 @@ export class PreferenceService implements IPreferenceService {
    * 获取数据类型标识
    */
   async getDataType(): Promise<string> {
-    return 'userSettings';
+    return "userSettings";
   }
 
   /**
    * 验证偏好设置数据格式
    */
   async validateData(data: any): Promise<boolean> {
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    if (typeof data !== "object" || data === null || Array.isArray(data)) {
       return false;
     }
 
-    return Object.entries(data).every(([key, value]) =>
-      typeof key === 'string' &&
-      (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+    return Object.entries(data).every(
+      ([key, value]) =>
+        typeof key === "string" &&
+        (typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"),
     );
   }
 
@@ -277,6 +307,8 @@ export class PreferenceService implements IPreferenceService {
  * @param storageProvider 存储提供器
  * @returns 偏好设置服务实例
  */
-export function createPreferenceService(storageProvider: IStorageProvider): IPreferenceService {
+export function createPreferenceService(
+  storageProvider: IStorageProvider,
+): IPreferenceService {
   return new PreferenceService(storageProvider);
-} 
+}

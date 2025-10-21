@@ -83,6 +83,8 @@ export interface ConversationManagerProps extends BaseComponentProps {
   availableVariables: Record<string, string>
   /** 优化模式（用于模板分类） */
   optimizationMode?: 'system' | 'user'
+  /** 上下文模式（用于控制UI行为） */
+  contextMode?: import('@prompt-optimizer/core').ContextMode
   /** 变量扫描函数（标准化注入） */
   scanVariables?: (content: string) => string[]
   /** 变量替换函数（标准化注入） */
@@ -132,6 +134,8 @@ export interface ContextEditorProps extends BaseComponentProps {
   tools?: ToolDefinition[]
   /** 优化模式（用于模板分类） */
   optimizationMode?: 'system' | 'user'
+  /** 上下文模式（用于控制UI行为） */
+  contextMode?: import('@prompt-optimizer/core').ContextMode
   /** 变量扫描函数（标准化注入） */
   scanVariables: (content: string) => string[]
   /** 变量替换函数（标准化注入） */
@@ -144,6 +148,8 @@ export interface ContextEditorProps extends BaseComponentProps {
   width?: number | string
   /** 弹窗高度 */
   height?: number | string
+  /** 默认激活的标签页 */
+  defaultTab?: 'messages' | 'variables' | 'tools'
 }
 
 export interface ContextEditorEvents extends BaseComponentEvents {

@@ -1,12 +1,40 @@
 /**
  * Electron环境下ContextRepo的渲染进程代理
- * 
+ *
  * 通过IPC与主进程的ContextRepo实例通信，
  * 遵循项目现有的三层架构模式：Renderer代理 → Preload桥接 → 主进程IPC处理
  */
 
-import type { ContextRepo, ContextPackage, ContextBundle, ImportMode, ContextListItem, ImportResult } from './types';
+import type { ContextRepo, ContextPackage, ContextBundle, ImportMode, ContextListItem, ImportResult, ContextMode } from './types';
 import { safeSerializeForIPC } from '../../utils/ipc-serialization';
+
+// 为window.electronAPI提供完整的类型定义，以确保类型安全
+interface ElectronAPI {
+  context: {
+    list: () => Promise<ContextListItem[]>;
+    getCurrentId: () => Promise<string>;
+    setCurrentId: (id: string) => Promise<void>;
+    get: (id: string) => Promise<ContextPackage>;
+    create: (meta?: { title?: string; mode?: ContextMode }) => Promise<string>;
+    duplicate: (id: string, options?: { mode?: ContextMode }) => Promise<string>;
+    rename: (id: string, title: string) => Promise<void>;
+    save: (ctx: ContextPackage) => Promise<void>;
+    update: (id: string, patch: Partial<ContextPackage>) => Promise<void>;
+    remove: (id: string) => Promise<void>;
+    exportAll: () => Promise<ContextBundle>;
+    importAll: (bundle: ContextBundle, mode: ImportMode) => Promise<ImportResult>;
+    exportData: () => Promise<ContextBundle>;
+    importData: (data: any) => Promise<void>;
+    getDataType: () => Promise<string>;
+    validateData: (data: any) => Promise<boolean>;
+  };
+  // 添加其他服务的定义以避免编译错误
+  [key: string]: any;
+}
+
+declare const window: {
+  electronAPI: ElectronAPI;
+};
 
 export class ElectronContextRepoProxy implements ContextRepo {
   private get api() {
@@ -34,12 +62,12 @@ export class ElectronContextRepoProxy implements ContextRepo {
   }
 
   // === 内容管理 ===
-  async create(meta?: { title?: string }): Promise<string> {
+  async create(meta?: { title?: string; mode?: import('./types').ContextMode }): Promise<string> {
     return this.api.create(meta);
   }
 
-  async duplicate(id: string): Promise<string> {
-    return this.api.duplicate(id);
+  async duplicate(id: string, options?: { mode?: import('./types').ContextMode }): Promise<string> {
+    return this.api.duplicate(id, options);
   }
 
   async rename(id: string, title: string): Promise<void> {

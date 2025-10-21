@@ -2,8 +2,13 @@
  * 上下文服务相关常量定义
  */
 
+import type { ContextMode } from './types';
+
 // 存储键
 export const CONTEXT_STORE_KEY = 'ctx:store' as const;
+
+// 默认上下文模式
+export const DEFAULT_CONTEXT_MODE: ContextMode = 'system' as const;
 
 // 预定义变量列表（与UI包保持一致）
 // 这些变量名不允许在上下文变量覆盖中使用

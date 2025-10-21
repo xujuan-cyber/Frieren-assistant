@@ -1416,9 +1416,10 @@ function setupIPC() {
     }
   });
 
-  ipcMain.handle('context-duplicate', async (event, id) => {
+  ipcMain.handle('context-duplicate', async (event, id, options) => {
     try {
-      const result = await contextRepo.duplicate(id);
+      const safeOptions = options ? safeSerialize(options) : undefined;
+      const result = await contextRepo.duplicate(id, safeOptions);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);

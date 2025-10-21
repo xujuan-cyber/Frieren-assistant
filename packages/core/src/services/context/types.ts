@@ -12,6 +12,13 @@ import type { IImportExportable } from '../../interfaces/import-export';
 import type { ConversationMessage, ToolDefinition } from '../prompt/types';
 
 /**
+ * 上下文模式
+ * - system: 系统模式，保留完整的消息编辑能力
+ * - user: 用户模式，聚焦于变量与工具管理
+ */
+export type ContextMode = 'system' | 'user';
+
+/**
  * 上下文数据包
  * 包含一个完整上下文的所有信息：消息、变量覆盖、工具等
  */
@@ -20,6 +27,8 @@ export interface ContextPackage {
   id: string;
   /** 上下文标题 */
   title: string;
+  /** 上下文模式 */
+  mode: ContextMode;
   /** 数据版本，用于未来兼容性 */
   version?: string;
   /** 创建时间（ISO字符串） */
@@ -136,18 +145,19 @@ export interface ContextRepo extends IImportExportable {
   // === 内容管理 ===
   /**
    * 创建新的上下文
-   * @param meta 可选的元数据（标题等）
+   * @param meta 可选的元数据（标题、模式等）
    * @returns 新创建的上下文ID
    */
-  create(meta?: { title?: string }): Promise<string>;
+  create(meta?: { title?: string; mode?: ContextMode }): Promise<string>;
 
   /**
    * 复制现有上下文
    * @param id 要复制的上下文ID
+   * @param options 可选配置，包括模式
    * @returns 新创建的上下文ID
    * @throws 如果源ID不存在则抛出错误
    */
-  duplicate(id: string): Promise<string>;
+  duplicate(id: string, options?: { mode?: ContextMode }): Promise<string>;
 
   /**
    * 重命名上下文

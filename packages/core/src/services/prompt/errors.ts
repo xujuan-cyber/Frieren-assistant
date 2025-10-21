@@ -4,7 +4,7 @@
 export class PromptError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'PromptError';
+    this.name = "PromptError";
   }
 }
 
@@ -14,10 +14,10 @@ export class PromptError extends Error {
 export class OptimizationError extends PromptError {
   constructor(
     message: string,
-    public originalPrompt: string
+    public originalPrompt: string,
   ) {
     super(message);
-    this.name = 'OptimizationError';
+    this.name = "OptimizationError";
   }
 }
 
@@ -28,10 +28,10 @@ export class IterationError extends PromptError {
   constructor(
     message: string,
     public originalPrompt: string,
-    public iterateInput: string
+    public iterateInput: string,
   ) {
     super(message);
-    this.name = 'IterationError';
+    this.name = "IterationError";
   }
 }
 
@@ -42,10 +42,10 @@ export class TestError extends PromptError {
   constructor(
     message: string,
     public prompt: string,
-    public testInput: string
+    public testInput: string,
   ) {
     super(message);
-    this.name = 'TestError';
+    this.name = "TestError";
   }
 }
 
@@ -55,9 +55,9 @@ export class TestError extends PromptError {
 export class ServiceDependencyError extends PromptError {
   constructor(
     message: string,
-    public serviceName: string
+    public serviceName: string,
   ) {
     super(message);
-    this.name = 'ServiceDependencyError';
+    this.name = "ServiceDependencyError";
   }
-} 
+}

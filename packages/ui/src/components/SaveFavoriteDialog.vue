@@ -3,13 +3,14 @@
     :show="show"
     preset="card"
     :title="dialogTitle"
-    :style="{ width: 'min(90vw, 1200px)', height: 'min(85vh, 900px)' }"
+    :style="{ width: 'min(90vw, 1200px)' }"
     :mask-closable="false"
     @update:show="handleClose"
+    content-style="padding: 0; display: flex; flex-direction: column; height: min(75vh, 800px); overflow: hidden;"
   >
-    <n-scrollbar style="max-height: calc(85vh - 150px);">
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <!-- 基础信息面板 -->
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px; height: 100%; overflow: hidden;">
+      <!-- 基础信息面板（可滚动） -->
+      <div style="flex: 0 0 auto; max-height: 350px; overflow-y: auto;">
         <n-card :title="t('favorites.dialog.basicInfo')" :bordered="false" :segmented="{ content: true }" size="small">
           <n-form label-placement="left" :label-width="80">
             <n-grid :cols="2" :x-gap="16">
@@ -112,24 +113,26 @@
             </n-form-item>
           </n-form>
         </n-card>
+      </div>
 
-        <!-- 正文内容区域 -->
-        <div>
-          <n-divider style="margin: 0 0 12px 0;">
-            <span style="font-weight: 600;">{{ t('favorites.dialog.contentTitle') }}</span>
-            <span style="color: #ff4d4f; margin-left: 4px;">*</span>
-          </n-divider>
+      <!-- 正文内容区域（占据剩余空间） -->
+      <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+        <n-divider style="margin: 0 0 12px 0; flex: 0 0 auto;">
+          <span style="font-weight: 600;">{{ t('favorites.dialog.contentTitle') }}</span>
+          <span style="color: #ff4d4f; margin-left: 4px;">*</span>
+        </n-divider>
+        <div style="flex: 1; min-height: 0; overflow: hidden;">
           <OutputDisplayCore
             :content="formData.content"
             mode="editable"
             :enabled-actions="['copy', 'edit']"
-            height="400px"
+            height="100%"
             :placeholder="t('favorites.dialog.contentPlaceholder')"
             @update:content="formData.content = $event"
           />
         </div>
       </div>
-    </n-scrollbar>
+    </div>
 
     <template #action>
       <n-space justify="end">

@@ -24,7 +24,8 @@ import {
   PREDEFINED_VARIABLES,
   DEFAULT_CONTEXT_CONFIG,
   CONTEXT_STORE_VERSION,
-  CONTEXT_UI_LABELS
+  CONTEXT_UI_LABELS,
+  DEFAULT_CONTEXT_MODE
 } from './constants';
 
 /**
@@ -108,6 +109,7 @@ export class ContextRepoImpl implements ContextRepo {
       const defaultContext: ContextPackage = {
         id: DEFAULT_CONTEXT_CONFIG.id,
         title: DEFAULT_CONTEXT_CONFIG.title,
+        mode: DEFAULT_CONTEXT_MODE,
         version: DEFAULT_CONTEXT_CONFIG.version,
         createdAt: now,
         updatedAt: now,
@@ -134,10 +136,27 @@ export class ContextRepoImpl implements ContextRepo {
 
     try {
       const doc = JSON.parse(data) as ContextStoreDoc;
-      
+
       // 基础验证
       if (!doc.currentId || !doc.contexts || typeof doc.contexts !== 'object') {
         throw new Error('Invalid document structure');
+      }
+
+      // 迁移逻辑：为旧文档的上下文补写 mode 字段
+      let migrated = false;
+      for (const ctx of Object.values(doc.contexts)) {
+        if (!ctx.mode) {
+          ctx.mode = DEFAULT_CONTEXT_MODE;
+          migrated = true;
+        }
+      }
+
+      // 如果有迁移，需要保存回存储
+      if (migrated) {
+        await this.storage.setItem(CONTEXT_STORE_KEY, JSON.stringify(doc));
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[ContextRepo] Migrated contexts to add mode field');
+        }
       }
 
       // 确保currentId对应的上下文存在
@@ -178,6 +197,7 @@ export class ContextRepoImpl implements ContextRepo {
           const defaultContext: ContextPackage = {
             id: DEFAULT_CONTEXT_CONFIG.id,
             title: DEFAULT_CONTEXT_CONFIG.title,
+            mode: DEFAULT_CONTEXT_MODE,
             version: DEFAULT_CONTEXT_CONFIG.version,
             createdAt: now,
             updatedAt: now,
@@ -253,13 +273,14 @@ export class ContextRepoImpl implements ContextRepo {
     return { ...context };
   }
 
-  async create(meta?: { title?: string }): Promise<string> {
+  async create(meta?: { title?: string; mode?: import('./types').ContextMode }): Promise<string> {
     const id = generateId();
     const now = getCurrentISOTime();
-    
+
     const newContext: ContextPackage = {
       id,
       title: meta?.title || `${CONTEXT_UI_LABELS.DEFAULT_TITLE_TEMPLATE} ${new Date().toLocaleDateString()}`,
+      mode: meta?.mode || DEFAULT_CONTEXT_MODE,
       version: DEFAULT_CONTEXT_CONFIG.version,
       createdAt: now,
       updatedAt: now,
@@ -279,18 +300,19 @@ export class ContextRepoImpl implements ContextRepo {
     return id;
   }
 
-  async duplicate(id: string): Promise<string> {
+  async duplicate(id: string, options?: { mode?: import('./types').ContextMode }): Promise<string> {
     const originalCtx = await this.get(id); // 会抛出错误如果不存在
     const newId = generateId();
     const now = getCurrentISOTime();
 
     // 复制时也需要清理变量
     const [sanitizedVariables] = sanitizeVariables(originalCtx.variables);
-    
+
     const newContext: ContextPackage = {
       ...originalCtx,
       id: newId,
       title: `${originalCtx.title} ${CONTEXT_UI_LABELS.DUPLICATE_SUFFIX}`,
+      mode: options?.mode || originalCtx.mode || DEFAULT_CONTEXT_MODE,
       variables: sanitizedVariables,
       createdAt: now,
       updatedAt: now
@@ -327,6 +349,7 @@ export class ContextRepoImpl implements ContextRepo {
     
     const contextToSave: ContextPackage = {
       ...ctx,
+      mode: ctx.mode || DEFAULT_CONTEXT_MODE,
       variables: sanitizedVariables,
       updatedAt: getCurrentISOTime()
     };
@@ -372,6 +395,7 @@ export class ContextRepoImpl implements ContextRepo {
       
       // 合并安全的更新字段
       Object.assign(context, safeUpdate, {
+        mode: patch.mode ?? context.mode ?? DEFAULT_CONTEXT_MODE,
         variables: sanitizedVariables || context.variables,
         updatedAt: getMonotonicISO(context.updatedAt)
       });
@@ -471,6 +495,7 @@ export class ContextRepoImpl implements ContextRepo {
 
               const contextToImport: ContextPackage = {
                 ...ctx,
+                mode: ctx.mode || DEFAULT_CONTEXT_MODE,
                 variables: sanitizedVariables,
                 updatedAt: now
               };
@@ -506,6 +531,7 @@ export class ContextRepoImpl implements ContextRepo {
               const contextToImport: ContextPackage = {
                 ...ctx,
                 id: finalId,
+                mode: ctx.mode || DEFAULT_CONTEXT_MODE,
                 variables: sanitizedVariables,
                 updatedAt: now
               };
@@ -535,6 +561,7 @@ export class ContextRepoImpl implements ContextRepo {
 
                 doc.contexts[ctx.id] = {
                   ...ctx,
+                  mode: ctx.mode || existingCtx.mode || DEFAULT_CONTEXT_MODE,
                   variables: mergedVariables,
                   updatedAt: now
                 };
@@ -542,6 +569,7 @@ export class ContextRepoImpl implements ContextRepo {
                 // 新ID：直接添加
                 doc.contexts[ctx.id] = {
                   ...ctx,
+                  mode: ctx.mode || DEFAULT_CONTEXT_MODE,
                   variables: sanitizedVariables,
                   updatedAt: now
                 };

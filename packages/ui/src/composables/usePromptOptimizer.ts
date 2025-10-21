@@ -27,13 +27,15 @@ type PromptChain = PromptRecordChain
  * @param selectedOptimizationMode 优化模式
  * @param selectedOptimizeModel 优化模型选择
  * @param selectedTestModel 测试模型选择
+ * @param contextMode 上下文模式（用于变量替换策略）
  * @returns 提示词优化器接口
  */
 export function usePromptOptimizer(
   services: Ref<AppServices | null>,
   selectedOptimizationMode?: Ref<OptimizationMode>,    // 优化模式
   selectedOptimizeModel?: Ref<string>,                 // 优化模型选择
-  selectedTestModel?: Ref<string>                      // 测试模型选择
+  selectedTestModel?: Ref<string>,                     // 测试模型选择
+  contextMode?: Ref<import('@prompt-optimizer/core').ContextMode>  // 上下文模式
 ) {
   // 如果没有传入参数，抛出错误而不是使用默认值
   if (!selectedOptimizationMode) {
@@ -109,7 +111,8 @@ export function usePromptOptimizer(
         optimizationMode: optimizationMode.value,
         targetPrompt: state.prompt,
         templateId: currentTemplate.id,
-        modelKey: optimizeModel.value
+        modelKey: optimizeModel.value,
+        contextMode: contextMode?.value  // 传递上下文模式
       }
 
       // 使用重构后的优化API
@@ -217,6 +220,7 @@ export function usePromptOptimizer(
         targetPrompt: state.prompt,
         templateId: currentTemplate.id,
         modelKey: optimizeModel.value,
+        contextMode: contextMode?.value,  // 传递上下文模式
         // 关键：添加高级上下文
         advancedContext: {
           variables: advancedContext.variables,
