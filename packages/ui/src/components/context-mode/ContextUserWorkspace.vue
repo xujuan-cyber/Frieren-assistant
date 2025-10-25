@@ -18,47 +18,6 @@
                 height: '100%',
             }"
         >
-            <!-- 上下文模式快捷操作 (用户模式：全局变量 + 会话变量 + 工具管理) -->
-            <NCard :style="{ flexShrink: 0 }" size="small">
-                <NFlex align="center" :wrap="false" :size="12">
-                    <NButton
-                        size="small"
-                        type="default"
-                        @click="emit('open-global-variables')"
-                        :title="t('contextMode.actions.globalVariables')"
-                    >
-                        <template #icon>
-                            <span>📊</span>
-                        </template>
-                        {{ t("contextMode.actions.globalVariables") }}
-                    </NButton>
-
-                    <NButton
-                        size="small"
-                        type="default"
-                        @click="emit('open-context-variables')"
-                        :title="t('contextMode.actions.contextVariables')"
-                    >
-                        <template #icon>
-                            <span>📝</span>
-                        </template>
-                        {{ t("contextMode.actions.contextVariables") }}
-                    </NButton>
-
-                    <NButton
-                        size="small"
-                        type="default"
-                        @click="emit('open-tool-manager')"
-                        :title="t('contextMode.actions.tools')"
-                    >
-                        <template #icon>
-                            <span>🔧</span>
-                        </template>
-                        {{ t("contextMode.actions.tools") }}
-                    </NButton>
-                </NFlex>
-            </NCard>
-
             <!-- 提示词输入面板 -->
             <NCard
                 :style="{
