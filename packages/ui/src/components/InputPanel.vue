@@ -80,7 +80,11 @@
             :existing-global-variables="existingGlobalVariables"
             :existing-temporary-variables="existingTemporaryVariables"
             :predefined-variables="predefinedVariables"
+            :global-variable-values="globalVariableValues"
+            :temporary-variable-values="temporaryVariableValues"
+            :predefined-variable-values="predefinedVariableValues"
             @variable-extracted="handleVariableExtracted"
+            @add-missing-variable="handleAddMissingVariable"
         />
 
         <!-- 原生输入框 (不支持变量提取) -->
@@ -222,6 +226,12 @@ interface Props {
     existingTemporaryVariables?: string[];
     /** 🆕 系统预定义变量名列表 */
     predefinedVariables?: string[];
+    /** 🆕 全局变量名到变量值的映射 */
+    globalVariableValues?: Record<string, string>;
+    /** 🆕 临时变量名到变量值的映射 */
+    temporaryVariableValues?: Record<string, string>;
+    /** 🆕 预定义变量名到变量值的映射 */
+    predefinedVariableValues?: Record<string, string>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -234,6 +244,9 @@ const props = withDefaults(defineProps<Props>(), {
     existingGlobalVariables: () => [],
     existingTemporaryVariables: () => [],
     predefinedVariables: () => [],
+    globalVariableValues: () => ({}),
+    temporaryVariableValues: () => ({}),
+    predefinedVariableValues: () => ({}),
 });
 
 const emit = defineEmits<{
@@ -250,6 +263,8 @@ const emit = defineEmits<{
             variableType: "global" | "temporary";
         },
     ];
+    /** 🆕 添加缺失变量事件 */
+    "add-missing-variable": [varName: string];
 }>();
 
 // 使用全屏组合函数
@@ -265,5 +280,10 @@ const handleVariableExtracted = (data: {
     variableType: "global" | "temporary";
 }) => {
     emit("variable-extracted", data);
+};
+
+// 处理添加缺失变量事件
+const handleAddMissingVariable = (varName: string) => {
+    emit("add-missing-variable", varName);
 };
 </script>

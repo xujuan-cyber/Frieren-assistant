@@ -514,6 +514,8 @@ const emit = defineEmits<{
         toolCalls: ToolCallResult[],
         testType: "original" | "optimized",
     ];
+    "temporary-variable-remove": [name: string];
+    "temporary-variables-clear": [];
 }>();
 
 // 内部状态管理 - 去除防抖，保证输入即时响应
@@ -867,6 +869,7 @@ const handleVariableValueChange = (varName: string, value: string) => {
 const handleClearAllVariables = () => {
     // 清空测试区临时变量
     testVariables.value = {};
+    emit("temporary-variables-clear");
     message.success(t("test.variables.clearSuccess"));
     recordUpdate();
 };
@@ -931,11 +934,10 @@ const handleAddVariable = () => {
     }
 
     const name = newVariableName.value.trim();
-    testVariables.value[name] = {
-        value: newVariableValue.value,
-        timestamp: Date.now(),
-    };
-
+    handleVariableValueChange(name, newVariableValue.value);
+    if (testVariables.value[name]) {
+        testVariables.value[name].timestamp = Date.now();
+    }
     message.success(t("test.variables.addSuccess"));
 
     // 重置对话框
@@ -944,13 +946,14 @@ const handleAddVariable = () => {
     newVariableNameError.value = "";
     showAddVariableDialog.value = false;
 
-    recordUpdate();
     return true;
 };
 
 // 🆕 删除变量
 const handleDeleteVariable = (varName: string) => {
     delete testVariables.value[varName];
+    emit("temporary-variable-remove", varName);
+    emit("variable-change", varName, "");
     message.success(
         t("test.variables.deleteSuccess", { name: varName })
     );

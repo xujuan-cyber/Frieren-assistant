@@ -1029,6 +1029,17 @@ export default {
     invalidVariables: "變數資料無效",
     getVariablesFailed: "取得變數失敗",
   },
+  variableDetection: {
+    missingVariable: "該變數尚未定義",
+    addToTemporary: "新增到臨時變數",
+    addSuccess: "已新增變數 {name} 到臨時變數",
+    sourceGlobal: "全域變數",
+    sourceTemporary: "臨時變數",
+    sourcePredefined: "預定義變數",
+    autoCompleteHint: "輸入 {{ 查看可用變數",
+    emptyValue: "(空)",
+    valuePreview: "值: {value}"
+  },
   template: {
     noDescription: "暫無描述",
     configure: "配置提示詞",

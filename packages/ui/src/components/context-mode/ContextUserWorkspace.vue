@@ -44,7 +44,11 @@
                     :existing-global-variables="existingGlobalVariableNames"
                     :existing-temporary-variables="existingTemporaryVariableNames"
                     :predefined-variables="predefinedVariableNames"
+                    :global-variable-values="globalVariableValues"
+                    :temporary-variable-values="temporaryVariableValues"
+                    :predefined-variable-values="predefinedVariableValues"
                     @variable-extracted="handleVariableExtracted"
+                    @add-missing-variable="handleAddMissingVariable"
                 >
                     <!-- 模型选择插槽 -->
                     <template #model-select>
@@ -182,14 +186,13 @@
                     @compare-toggle="emit('compare-toggle')"
                     @open-variable-manager="emit('open-variable-manager')"
                     @open-preview="emit('open-test-preview')"
-                    @variable-change="
-                        (name: string, value: string) =>
-                            emit('variable-change', name, value)
-                    "
+                    @variable-change="handleTestVariableChange"
                     @save-to-global="
                         (name: string, value: string) =>
                             emit('save-to-global', name, value)
                     "
+                    @temporary-variable-remove="handleTestVariableRemove"
+                    @temporary-variables-clear="handleClearTemporaryVariables"
                 >
                     <!-- 模型选择插槽 -->
                     <template #model-select>
@@ -411,6 +414,15 @@ const existingTemporaryVariableNames = computed(() => Object.keys(temporaryVaria
 /** 预定义变量名列表 (用于变量名重复检测) */
 const predefinedVariableNames = computed(() => Object.keys(props.predefinedVariables));
 
+/** 全局变量名到值的映射 (用于补全展示) */
+const globalVariableValues = computed(() => ({ ...props.globalVariables }));
+
+/** 临时变量名到值的映射 (用于补全展示) */
+const temporaryVariableValues = computed(() => ({ ...temporaryVariables.value }));
+
+/** 预定义变量名到值的映射 (用于补全展示) */
+const predefinedVariableValues = computed(() => ({ ...props.predefinedVariables }));
+
 // ========================
 // 组件引用
 // ========================
@@ -457,6 +469,58 @@ const handleVariableExtracted = (data: {
 
     // 同时触发变量提取事件,通知父组件
     emit("variable-extracted", data);
+};
+
+/**
+ * 🆕 处理添加缺失变量事件
+ *
+ * 当用户在输入框中悬停在缺失变量上并点击"添加到临时变量"时触发
+ *
+ * 工作流程:
+ * 1. 将变量添加到临时变量列表,初始值为空字符串
+ * 2. 显示成功提示
+ *
+ * @param varName 变量名
+ */
+const handleAddMissingVariable = (varName: string) => {
+    // 添加到临时变量,值为空
+    temporaryVariables.value[varName] = "";
+
+    // 显示成功提示 (在 VariableAwareInput 中已经显示过了,这里不重复)
+    // window.$message?.success(
+    //     t("variableDetection.addSuccess", { name: varName })
+    // );
+};
+
+/**
+ * 🆕 同步测试区域对临时变量的修改
+ *
+ * 作用:
+ * - 确保测试区域新增/编辑的变量能够参与左侧输入框的缺失变量检测
+ * - 向父组件转发事件,保持既有对外接口不变
+ */
+const handleTestVariableChange = (name: string, value: string) => {
+    temporaryVariables.value[name] = value;
+    emit("variable-change", name, value);
+};
+
+/**
+ * 🆕 测试区域移除临时变量时的处理
+ */
+const handleTestVariableRemove = (name: string) => {
+    if (Object.prototype.hasOwnProperty.call(temporaryVariables.value, name)) {
+        delete temporaryVariables.value[name];
+    }
+    emit("variable-change", name, "");
+};
+
+/**
+ * 🆕 清空测试区域临时变量时的处理
+ */
+const handleClearTemporaryVariables = () => {
+    const removedNames = Object.keys(temporaryVariables.value);
+    temporaryVariables.value = {};
+    removedNames.forEach((name) => emit("variable-change", name, ""));
 };
 
 /**

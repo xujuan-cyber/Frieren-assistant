@@ -4,6 +4,44 @@
  */
 
 import { vi } from 'vitest'
+import { config } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
+import zhCN from '../src/i18n/locales/zh-CN'
+import zhTW from '../src/i18n/locales/zh-TW'
+import enUS from '../src/i18n/locales/en-US'
+
+// 创建测试用的 i18n 实例
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  fallbackLocale: 'en-US',
+  messages: {
+    'zh-CN': zhCN,
+    'zh-TW': zhTW,
+    'en-US': enUS,
+  }
+})
+
+// 配置 Vue Test Utils 全局插件
+config.global.plugins = [i18n]
+
+// 配置 Naive UI 全局插件
+// 为了避免在每个测试中都需要手动配置 Naive UI,我们在全局设置中配置它
+config.global.stubs = {
+  // 保留 Teleport 以支持 Naive UI 的弹窗组件
+  Teleport: true
+}
+
+// 创建全局消息 API mock (Naive UI 依赖)
+if (typeof window !== 'undefined') {
+  (window as any).$message = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn()
+  }
+}
 
 // Mock navigator.clipboard API (JSDOM doesn't provide this)
 Object.assign(navigator, {

@@ -1034,6 +1034,17 @@ export default {
     invalidVariables: "变量数据无效",
     getVariablesFailed: "获取变量失败",
   },
+  variableDetection: {
+    missingVariable: "该变量尚未定义",
+    addToTemporary: "添加到临时变量",
+    addSuccess: "已添加变量 {name} 到临时变量",
+    sourceGlobal: "全局变量",
+    sourceTemporary: "临时变量",
+    sourcePredefined: "预定义变量",
+    autoCompleteHint: "输入 {{ 查看可用变量",
+    emptyValue: "(空)",
+    valuePreview: "值: {value}"
+  },
   template: {
     noDescription: "暂无描述",
     configure: "配置提示词",

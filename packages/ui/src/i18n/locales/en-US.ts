@@ -1065,6 +1065,17 @@ export default {
     invalidVariables: "Invalid variable data",
     getVariablesFailed: "Failed to get variables",
   },
+  variableDetection: {
+    missingVariable: "This variable is not defined",
+    addToTemporary: "Add to temporary variables",
+    addSuccess: "Variable {name} added to temporary variables",
+    sourceGlobal: "Global variable",
+    sourceTemporary: "Temporary variable",
+    sourcePredefined: "Predefined variable",
+    autoCompleteHint: "Type {{ to see available variables",
+    emptyValue: "(empty)",
+    valuePreview: "Value: {value}"
+  },
   template: {
     noDescription: "No Description",
     configure: "Configure Template",
