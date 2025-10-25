@@ -12,7 +12,12 @@ export default defineConfig({
     // 包含的文件模式
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     // 排除的文件模式
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.{idea,git,cache,output,temp}/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/tests/e2e/**', // 排除 Playwright E2E 测试
+    ],
     // 全局测试设置
     globals: true,
     // 测试覆盖率配置

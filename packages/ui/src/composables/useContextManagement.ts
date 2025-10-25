@@ -4,13 +4,13 @@
  */
 
 import { ref, computed, watch, type Ref } from "vue";
-import { useToast } from "@prompt-optimizer/ui";
-import { quickTemplateManager } from "@prompt-optimizer/ui";
+import { useToast } from "./useToast";
+import { quickTemplateManager } from "../data/quickTemplates";
 import type {
   ConversationMessage,
   OptimizationMode,
 } from "@prompt-optimizer/core";
-import type { AppServices } from "@prompt-optimizer/ui";
+import type { AppServices } from "../types/services";
 
 export interface ContextManagementOptions {
   services: Ref<AppServices | null>;
@@ -58,11 +58,6 @@ export function useContextManagement(options: ContextManagementOptions) {
   // 上下文持久化状态
   const currentContextId = ref<string | null>(null);
   const contextRepo = computed(() => services.value?.contextRepo);
-
-  // 当前上下文的会话级变量
-  const currentContextVariables = computed(() => {
-    return contextEditorState.value.variables || {};
-  });
 
   // 内置预定义变量
   const predefinedVariables = computed(() => {
@@ -228,30 +223,12 @@ export function useContextManagement(options: ContextManagementOptions) {
       }
     }
 
-    // 从 contextRepo 读取真正的上下文变量
-    let contextVariables: Record<string, string> = {};
-    if (contextRepo.value && currentContextId.value) {
-      try {
-        const context = await contextRepo.value.get(currentContextId.value);
-        contextVariables = context?.variables || {};
-        console.log(
-          "[useContextManagement] Loaded context variables from contextRepo:",
-          Object.keys(contextVariables),
-        );
-      } catch (error) {
-        console.warn(
-          "[useContextManagement] Failed to load context variables:",
-          error,
-        );
-      }
-    }
-
     // 设置初始状态
     contextEditorState.value = {
       messages: messages || [...optimizationContext.value],
-      variables: contextVariables,
+      variables: {}, // 不再使用会话变量
       tools: [...optimizationContextTools.value],
-      showVariablePreview: true,
+      showVariablePreview: false, // 不再显示变量预览
       showToolManager: contextMode.value === "user",
       mode: "edit",
     };
@@ -343,28 +320,7 @@ export function useContextManagement(options: ContextManagementOptions) {
     }
   };
 
-  // ==================== 会话变量管理 ====================
-
-  // 更新会话级变量
-  const updateContextVariable = async (name: string, value: string) => {
-    const updatedVariables = {
-      ...contextEditorState.value.variables,
-    };
-
-    if (value && value.trim()) {
-      updatedVariables[name] = value;
-    } else {
-      delete updatedVariables[name];
-    }
-
-    contextEditorState.value = {
-      ...contextEditorState.value,
-      variables: updatedVariables,
-    };
-
-    // 持久化
-    await persistContextUpdate({ variables: updatedVariables });
-  };
+  // 会话变量管理已移除 - 现在使用测试区临时变量
 
   // ==================== 返回 ====================
 
@@ -376,7 +332,6 @@ export function useContextManagement(options: ContextManagementOptions) {
     isContextLoaded,
     currentContextId,
     contextRepo,
-    currentContextVariables,
     predefinedVariables,
 
     // 方法
@@ -386,6 +341,5 @@ export function useContextManagement(options: ContextManagementOptions) {
     handleContextEditorSave,
     handleContextEditorStateUpdate,
     handleContextModeChange,
-    updateContextVariable,
   };
 }

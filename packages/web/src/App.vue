@@ -129,6 +129,7 @@
                     <template v-if="functionMode === 'pro'">
                         <!-- 上下文-系统模式 -->
                         <ContextSystemWorkspace
+                            ref="systemWorkspaceRef"
                             v-if="contextMode === 'system'"
                             :prompt="optimizer.prompt"
                             @update:prompt="optimizer.prompt = $event"
@@ -161,7 +162,6 @@
                             :global-variables="
                                 variableManager?.allVariables?.value || {}
                             "
-                            :context-variables="currentContextVariables"
                             :predefined-variables="predefinedVariables"
                             :available-variables="
                                 variableManager?.variableManager.value?.resolveAllVariables() ||
@@ -198,9 +198,6 @@
                             @switch-version="handleSwitchVersion"
                             @save-favorite="handleSaveFavorite"
                             @open-global-variables="openVariableManager()"
-                            @open-context-variables="
-                                handleOpenContextEditor('variables')
-                            "
                             @open-variable-manager="handleOpenVariableManager"
                             @open-context-editor="handleOpenContextEditor"
                             @open-template-manager="openTemplateManager"
@@ -313,6 +310,7 @@
 
                         <!-- 上下文-用户模式 -->
                         <ContextUserWorkspace
+                            ref="userWorkspaceRef"
                             v-else-if="contextMode === 'user'"
                             :prompt="optimizer.prompt"
                             @update:prompt="optimizer.prompt = $event"
@@ -340,10 +338,10 @@
                             :global-variables="
                                 variableManager?.allVariables?.value || {}
                             "
-                            :context-variables="currentContextVariables"
                             :predefined-variables="predefinedVariables"
                             :services="services"
                             @variable-change="handleTestPanelVariableChange"
+                            @save-to-global="handleSaveToGlobal"
                             :input-mode="
                                 responsiveLayout.recommendedInputMode.value
                             "
@@ -368,9 +366,6 @@
                             @switch-version="handleSwitchVersion"
                             @save-favorite="handleSaveFavorite"
                             @open-global-variables="openVariableManager()"
-                            @open-context-variables="
-                                handleOpenContextEditor('variables')
-                            "
                             @open-tool-manager="
                                 handleOpenContextEditor('tools')
                             "
@@ -700,7 +695,6 @@
                                         variableManager?.allVariables?.value ||
                                         {}
                                     "
-                                    :context-variables="currentContextVariables"
                                     :predefined-variables="predefinedVariables"
                                     v-model:test-content="testContent"
                                     v-model:is-compare-mode="isCompareMode"
@@ -1025,6 +1019,8 @@ import {
     useProSubMode,
     useImageSubMode,
     usePromptPreview,
+    usePromptTester,
+    useContextManagement,
 
     // i18n functions
     initializeI18nWithStorage,
@@ -1051,14 +1047,11 @@ import type {
     TemplateSelectOption,
 } from "@prompt-optimizer/ui";
 
-// Local composables
-import { useContextManagement } from "./composables/useContextManagement";
-
 // 1. 基础 composables
 // highlight.js for Naive NCode
 const hljsInstance = hljs;
 const { t } = useI18n();
-// 移除全局toast实例，改为在需要时本地调用
+const toast = useToast();
 
 // 2. 初始化应用服务
 const { services, isInitializing } = useAppInitializer();
@@ -1098,6 +1091,8 @@ const saveFavoriteData = ref<{
 } | null>(null);
 const optimizeModelSelect = ref(null);
 const testPanelRef = ref(null);
+const systemWorkspaceRef = ref(null);
+const userWorkspaceRef = ref(null);
 const promptPanelRef = ref<{
     refreshIterateTemplateSelect?: () => void;
 } | null>(null);
@@ -1152,24 +1147,6 @@ const handleModeSelect = async (mode: "basic" | "pro" | "image") => {
 // 测试内容状态 - 新增
 const testContent = ref("");
 const isCompareMode = ref(true);
-
-// 测试结果状态管理
-const testResults = ref({
-    // 原始提示词结果
-    originalResult: "",
-    originalReasoning: "",
-    isTestingOriginal: false,
-
-    // 优化提示词结果
-    optimizedResult: "",
-    optimizedReasoning: "",
-    isTestingOptimized: false,
-
-    // 单一结果模式
-    singleResult: "",
-    singleReasoning: "",
-    isTestingSingle: false,
-});
 
 // 响应式布局和模式配置 - 新增
 const responsiveLayout = useResponsiveTestLayout();
@@ -1314,24 +1291,48 @@ const contextManagement = useContextManagement({
 // 从 contextManagement 提取其他状态和方法 (contextMode 除外,已在前面声明)
 const optimizationContext = contextManagement.optimizationContext;
 const optimizationContextTools = contextManagement.optimizationContextTools;
-const isContextLoaded = contextManagement.isContextLoaded;
-const currentContextId = contextManagement.currentContextId;
-const contextRepo = contextManagement.contextRepo;
-const currentContextVariables = contextManagement.currentContextVariables;
 const predefinedVariables = contextManagement.predefinedVariables;
 const initializeContextPersistence =
     contextManagement.initializeContextPersistence;
-const persistContextUpdate = contextManagement.persistContextUpdate;
 const handleOpenContextEditor = contextManagement.handleOpenContextEditor;
 const handleContextEditorSave = contextManagement.handleContextEditorSave;
 const handleContextEditorStateUpdate =
     contextManagement.handleContextEditorStateUpdate;
 const handleContextModeChange = contextManagement.handleContextModeChange;
-const updateContextVariable = contextManagement.updateContextVariable;
 
-// 处理测试面板的变量变化，同步到会话级变量
+// 🆕 提示词测试管理（支持变量注入、上下文、工具调用）
+const promptTester = usePromptTester(
+    services as any,
+    toRef(modelManager, 'selectedTestModel'),
+    selectedOptimizationMode,
+    advancedModeEnabled,
+    optimizationContext,
+    optimizationContextTools,
+    variableManager
+);
+
+// 测试结果引用（从 promptTester 获取）
+const testResults = computed(() => promptTester.testResults);
+
+// 处理测试面板的变量变化（现在测试变量由TestAreaPanel自己管理，不需要同步到会话）
 const handleTestPanelVariableChange = async (name: string, value: string) => {
-    await updateContextVariable(name, value);
+    // 测试变量现在只在TestAreaPanel内部管理，不需要外部同步
+};
+
+// 🆕 处理保存测试变量到全局
+const handleSaveToGlobal = async (name: string, value: string) => {
+    if (!variableManager) {
+        console.warn("[App] variableManager not ready");
+        return;
+    }
+
+    try {
+        variableManager.updateVariable(name, value);
+        toast.success(t('test.variables.savedToGlobal', { name }));
+    } catch (error) {
+        console.error("[App] Failed to save variable to global:", error);
+        toast.error(t('test.error.saveToGlobalFailed', { name }));
+    }
 };
 
 // 同步 contextManagement 中的 contextMode 到我们的 contextMode ref
@@ -2051,178 +2052,16 @@ const promptInputPlaceholder = computed(() => {
 });
 
 // 真实测试处理函数
-const handleTestAreaTest = async () => {
-    if (!services.value?.promptService) {
-        useToast().error("服务未初始化，请稍后重试");
-        return;
-    }
-
-    if (!modelManager.selectedTestModel) {
-        useToast().error("请先选择测试模型");
-        return;
-    }
-
-    console.log("[App] Starting real test with content:", testContent.value);
-
-    if (isCompareMode.value) {
-        // 对比模式：测试原始和优化提示词
-        await Promise.all([
-            testPromptWithType("original"),
-            testPromptWithType("optimized"),
-        ]);
-    } else {
-        // 单一模式：只测试优化后的提示词
-        await testPromptWithType("optimized");
-    }
-};
-
-// 测试特定类型的提示词（复用会话上下文 + 变量 + 工具）
-const testPromptWithType = async (type: "original" | "optimized") => {
-    const isOriginal = type === "original";
-    const prompt = isOriginal ? optimizer.prompt : optimizer.optimizedPrompt;
-
-    if (!prompt) {
-        useToast().error(
-            isOriginal ? "请先输入原始提示词" : "请先生成优化后的提示词",
-        );
-        return;
-    }
-
-    // 设置测试状态
-    if (isOriginal) {
-        testResults.value.isTestingOriginal = true;
-        testResults.value.originalResult = "";
-        testResults.value.originalReasoning = "";
-    } else {
-        testResults.value.isTestingOptimized = true;
-        testResults.value.optimizedResult = "";
-        testResults.value.optimizedReasoning = "";
-    }
-
-    // 清除对应类型的工具调用数据
-    testPanelRef.value?.clearToolCalls?.(isOriginal ? "original" : "optimized");
-
-    try {
-        const streamHandler = {
-            onToken: (token: string) => {
-                if (isOriginal) {
-                    testResults.value.originalResult += token;
-                } else {
-                    testResults.value.optimizedResult += token;
-                }
-            },
-            onReasoningToken: (reasoningToken: string) => {
-                if (isOriginal) {
-                    testResults.value.originalReasoning += reasoningToken;
-                } else {
-                    testResults.value.optimizedReasoning += reasoningToken;
-                }
-            },
-            onComplete: () => {
-                console.log(`[App] ${type} test completed`);
-            },
-            onError: (err: Error) => {
-                const errorMessage = err.message || t("test.error.failed");
-                console.error(`[App] ${type} test failed:`, errorMessage);
-                useToast().error(
-                    `${type === "original" ? "原始" : "优化"}提示词测试失败: ${errorMessage}`,
-                );
-            },
-        };
-
-        // 统一构造对话与变量，尽量复用上下文
-        let systemPrompt = "";
-        let userPrompt = "";
-
-        if (selectedOptimizationMode.value === "user") {
-            // 用户提示词模式：提示词作为用户输入
-            systemPrompt = "";
-            userPrompt = prompt;
-        } else {
-            // 系统提示词模式：提示词作为系统消息
-            systemPrompt = prompt;
-            userPrompt =
-                testContent.value ||
-                "请按照你的角色设定，展示你的能力并与我互动。";
-        }
-
-        const hasConversationContext =
-            selectedOptimizationMode.value === "system" &&
-            advancedModeEnabled.value &&
-            (optimizationContext.value?.length || 0) > 0;
-        const hasTools =
-            advancedModeEnabled.value &&
-            (optimizationContextTools.value?.length || 0) > 0;
-
-        // 变量：合并变量库 + 当前提示词/问题（用于会话模板中的占位符）
-        // 按优先级合并: 全局自定义变量 < 会话级变量 < 预定义变量
-        const baseVars =
-            (variableManager?.variableManager.value?.resolveAllVariables() ||
-                {}) as Record<string, string>;
-        const variables = {
-            ...baseVars,
-            ...currentContextVariables.value, // 会话级变量（包含测试面板输入）
-            currentPrompt: prompt,
-            userQuestion: userPrompt,
-        };
-
-        // 对话构造逻辑：
-        // - 系统模式 + 有会话上下文：使用会话上下文（因为系统提示词本身就是多轮对话场景）
-        // - 用户模式：无论是否有会话上下文，都直接发送优化后的提示词作为用户消息
-        //   （因为用户提示词优化的目标是生成可直接使用的单条用户消息）
-        const messages =
-            selectedOptimizationMode.value === "system" &&
-            hasConversationContext
-                ? optimizationContext.value.map((m) => ({
-                      role: m.role,
-                      content: m.content,
-                  }))
-                : [
-                      ...(systemPrompt
-                          ? [{ role: "system", content: systemPrompt }]
-                          : []),
-                      { role: "user", content: userPrompt },
-                  ];
-
-        // 统一使用自定义会话测试，以便支持上下文与工具
-        await services.value.promptService.testCustomConversationStream(
-            {
-                modelKey: modelManager.selectedTestModel,
-                messages,
-                variables,
-                tools: hasTools ? optimizationContextTools.value : [],
-            },
-            {
-                ...streamHandler,
-                onToolCall: (toolCall: any) => {
-                    if (!hasTools) return;
-                    console.log(
-                        `[App] ${type} test tool call received:`,
-                        toolCall,
-                    );
-                    const toolCallResult = {
-                        toolCall: toolCall,
-                        status: "success" as const,
-                        timestamp: new Date(),
-                    };
-                    testPanelRef.value?.handleToolCall?.(toolCallResult, type);
-                },
-            },
-        );
-    } catch (error: any) {
-        console.error(`[App] ${type} test error:`, error);
-        const errorMessage = error.message || t("test.error.failed");
-        useToast().error(
-            `${type === "original" ? "原始" : "优化"}提示词测试失败: ${errorMessage}`,
-        );
-    } finally {
-        // 重置测试状态
-        if (isOriginal) {
-            testResults.value.isTestingOriginal = false;
-        } else {
-            testResults.value.isTestingOptimized = false;
-        }
-    }
+const handleTestAreaTest = async (testVariables?: Record<string, string>) => {
+    // 调用 promptTester 的 executeTest 方法
+    await promptTester.executeTest(
+        optimizer.prompt,
+        optimizer.optimizedPrompt,
+        testContent.value,
+        isCompareMode.value,
+        testVariables,
+        testPanelRef.value
+    );
 };
 
 const handleTestAreaCompareToggle = () => {

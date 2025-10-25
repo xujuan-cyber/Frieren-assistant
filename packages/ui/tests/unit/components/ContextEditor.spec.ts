@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
-import ContextEditor from '../../../src/components/ContextEditor.vue'
+import ContextEditor from '../../../src/components/context-mode/ContextEditor.vue'
 
 // Mock quickTemplateManager using factory function 
 vi.mock('../../../src/data/quickTemplates', () => {

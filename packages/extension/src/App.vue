@@ -20,10 +20,34 @@
 
                 <!-- Core Navigation Slot -->
                 <template #core-nav>
-                    <FunctionModeSelector
-                        :modelValue="functionMode"
-                        @update:modelValue="handleModeSelect"
-                    />
+                    <NSpace :size="12" align="center">
+                        <!-- 功能模式选择器 -->
+                        <FunctionModeSelector
+                            :modelValue="functionMode"
+                            @update:modelValue="handleModeSelect"
+                        />
+
+                        <!-- 子模式选择器 - 基础模式 -->
+                        <OptimizationModeSelectorUI
+                            v-if="functionMode === 'basic'"
+                            :modelValue="basicSubMode"
+                            @change="handleBasicSubModeChange"
+                        />
+
+                        <!-- 子模式选择器 - 上下文模式 -->
+                        <OptimizationModeSelectorUI
+                            v-if="functionMode === 'pro'"
+                            :modelValue="proSubMode"
+                            @change="handleProSubModeChange"
+                        />
+
+                        <!-- 子模式选择器 - 图像模式 -->
+                        <ImageModeSelector
+                            v-if="functionMode === 'image'"
+                            :modelValue="imageSubMode"
+                            @change="handleImageSubModeChange"
+                        />
+                    </NSpace>
                 </template>
 
                 <!-- Actions Slot -->
@@ -57,6 +81,15 @@
                         :round="true"
                     />
                     <ActionButtonUI
+                        icon="⭐"
+                        :text="$t('nav.favorites')"
+                        @click="showFavoriteManager = true"
+                        type="default"
+                        size="medium"
+                        :ghost="false"
+                        :round="true"
+                    />
+                    <ActionButtonUI
                         icon="💾"
                         :text="$t('nav.dataManager')"
                         @click="showDataManager = true"
@@ -65,7 +98,6 @@
                         :ghost="false"
                         :round="true"
                     />
-
                     <!-- 辅助功能区 - 使用简化样式降低视觉权重 -->
                     <ThemeToggleUI />
                     <ActionButtonUI
@@ -93,8 +125,362 @@
                     <UpdaterIcon />
                 </template>
                 <template #main>
-                    <!-- 非图像模式：沿用现有布局 -->
-                    <template v-if="functionMode !== 'image'">
+                    <!-- 上下文模式：根据模式使用不同的独立组件 -->
+                    <template v-if="functionMode === 'pro'">
+                        <!-- 上下文-系统模式 -->
+                        <ContextSystemWorkspace
+                            ref="systemWorkspaceRef"
+                            v-if="contextMode === 'system'"
+                            :prompt="optimizer.prompt"
+                            @update:prompt="optimizer.prompt = $event"
+                            :optimized-prompt="optimizer.optimizedPrompt"
+                            @update:optimizedPrompt="
+                                optimizer.optimizedPrompt = $event
+                            "
+                            :optimized-reasoning="optimizer.optimizedReasoning"
+                            :optimization-mode="selectedOptimizationMode"
+                            :is-optimizing="optimizer.isOptimizing"
+                            :is-iterating="optimizer.isIterating"
+                            :is-test-running="false"
+                            :versions="optimizer.currentVersions"
+                            :current-version-id="optimizer.currentVersionId"
+                            :selected-iterate-template="
+                                optimizer.selectedIterateTemplate
+                            "
+                            @update:selectedIterateTemplate="
+                                optimizer.selectedIterateTemplate = $event
+                            "
+                            :optimization-context="optimizationContext"
+                            @update:optimizationContext="
+                                optimizationContext = $event
+                            "
+                            :tool-count="optimizationContextTools.length"
+                            :test-content="testContent"
+                            @update:testContent="testContent = $event"
+                            :is-compare-mode="isCompareMode"
+                            @update:isCompareMode="isCompareMode = $event"
+                            :global-variables="
+                                variableManager?.allVariables?.value || {}
+                            "
+                            :predefined-variables="predefinedVariables"
+                            :available-variables="
+                                variableManager?.variableManager.value?.resolveAllVariables() ||
+                                {}
+                            "
+                            :scan-variables="
+                                (content) =>
+                                    variableManager?.variableManager.value?.scanVariablesInContent(
+                                        content,
+                                    ) || []
+                            "
+                            :services="services"
+                            :input-mode="
+                                responsiveLayout.recommendedInputMode.value
+                            "
+                            :control-bar-layout="
+                                responsiveLayout.recommendedControlBarLayout
+                                    .value
+                            "
+                            :button-size="
+                                responsiveLayout.smartButtonSize.value
+                            "
+                            :conversation-max-height="
+                                responsiveLayout.responsiveHeights.value
+                                    .conversationMax
+                            "
+                            :result-vertical-layout="
+                                responsiveLayout.isMobile.value
+                            "
+                            @optimize="handleOptimizePrompt"
+                            @iterate="handleIteratePrompt"
+                            @test="handleTestAreaTest"
+                            @compare-toggle="handleTestAreaCompareToggle"
+                            @switch-version="handleSwitchVersion"
+                            @save-favorite="handleSaveFavorite"
+                            @open-global-variables="openVariableManager()"
+                            @open-variable-manager="handleOpenVariableManager"
+                            @open-context-editor="handleOpenContextEditor"
+                            @open-template-manager="openTemplateManager"
+                            @config-model="modelManager.showConfig = true"
+                            @open-input-preview="handleOpenInputPreview"
+                            @open-prompt-preview="handleOpenPromptPreview"
+                            @open-test-preview="showPreviewPanel = true"
+                        >
+                            <!-- 优化模型选择插槽 -->
+                            <template #optimize-model-select>
+                                <SelectWithConfig
+                                    v-model="modelManager.selectedOptimizeModel"
+                                    :options="textModelOptions"
+                                    :getPrimary="OptionAccessors.getPrimary"
+                                    :getSecondary="OptionAccessors.getSecondary"
+                                    :getValue="OptionAccessors.getValue"
+                                    :placeholder="t('model.select.placeholder')"
+                                    size="medium"
+                                    :disabled="optimizer.isOptimizing"
+                                    filterable
+                                    :show-config-action="true"
+                                    :show-empty-config-c-t-a="true"
+                                    @focus="refreshTextModels"
+                                    @config="modelManager.showConfig = true"
+                                />
+                            </template>
+
+                            <!-- 模板选择插槽 -->
+                            <template #template-select>
+                                <template
+                                    v-if="services && services.templateManager"
+                                >
+                                    <SelectWithConfig
+                                        v-model="selectedTemplateIdForSelect"
+                                        :options="templateOptions"
+                                        :getPrimary="OptionAccessors.getPrimary"
+                                        :getSecondary="
+                                            OptionAccessors.getSecondary
+                                        "
+                                        :getValue="OptionAccessors.getValue"
+                                        :placeholder="t('template.select')"
+                                        size="medium"
+                                        :disabled="optimizer.isOptimizing"
+                                        filterable
+                                        :show-config-action="true"
+                                        :show-empty-config-c-t-a="true"
+                                        @focus="refreshOptimizeTemplates"
+                                        @config="
+                                            handleOpenOptimizeTemplateManager
+                                        "
+                                    />
+                                </template>
+                                <NText v-else depth="3" class="p-2 text-sm">
+                                    {{ t("template.loading") || "加载中..." }}
+                                </NText>
+                            </template>
+
+                            <!-- 测试模型选择插槽 -->
+                            <template #test-model-select>
+                                <SelectWithConfig
+                                    v-model="modelManager.selectedTestModel"
+                                    :options="textModelOptions"
+                                    :getPrimary="OptionAccessors.getPrimary"
+                                    :getSecondary="OptionAccessors.getSecondary"
+                                    :getValue="OptionAccessors.getValue"
+                                    :placeholder="t('model.select.placeholder')"
+                                    size="medium"
+                                    filterable
+                                    :show-config-action="true"
+                                    :show-empty-config-c-t-a="true"
+                                    @focus="refreshTextModels"
+                                    @config="modelManager.showConfig = true"
+                                />
+                            </template>
+
+                            <!-- 测试结果插槽 -->
+                            <template #original-result>
+                                <OutputDisplay
+                                    :content="testResults.originalResult"
+                                    :reasoning="testResults.originalReasoning"
+                                    :streaming="testResults.isTestingOriginal"
+                                    :enableDiff="false"
+                                    mode="readonly"
+                                    :style="{ height: '100%', minHeight: '0' }"
+                                />
+                            </template>
+
+                            <template #optimized-result>
+                                <OutputDisplay
+                                    :content="testResults.optimizedResult"
+                                    :reasoning="testResults.optimizedReasoning"
+                                    :streaming="testResults.isTestingOptimized"
+                                    :enableDiff="false"
+                                    mode="readonly"
+                                    :style="{ height: '100%', minHeight: '0' }"
+                                />
+                            </template>
+
+                            <template #single-result>
+                                <OutputDisplay
+                                    :content="testResults.optimizedResult"
+                                    :reasoning="testResults.optimizedReasoning"
+                                    :streaming="testResults.isTestingOptimized"
+                                    :enableDiff="false"
+                                    mode="readonly"
+                                    :style="{ height: '100%', minHeight: '0' }"
+                                />
+                            </template>
+                        </ContextSystemWorkspace>
+
+                        <!-- 上下文-用户模式 -->
+                        <ContextUserWorkspace
+                            ref="userWorkspaceRef"
+                            v-else-if="contextMode === 'user'"
+                            :prompt="optimizer.prompt"
+                            @update:prompt="optimizer.prompt = $event"
+                            :optimized-prompt="optimizer.optimizedPrompt"
+                            @update:optimizedPrompt="
+                                optimizer.optimizedPrompt = $event
+                            "
+                            :optimized-reasoning="optimizer.optimizedReasoning"
+                            :optimization-mode="selectedOptimizationMode"
+                            :is-optimizing="optimizer.isOptimizing"
+                            :is-iterating="optimizer.isIterating"
+                            :is-test-running="false"
+                            :versions="optimizer.currentVersions"
+                            :current-version-id="optimizer.currentVersionId"
+                            :selected-iterate-template="
+                                optimizer.selectedIterateTemplate
+                            "
+                            @update:selectedIterateTemplate="
+                                optimizer.selectedIterateTemplate = $event
+                            "
+                            :test-content="testContent"
+                            @update:testContent="testContent = $event"
+                            :is-compare-mode="isCompareMode"
+                            @update:isCompareMode="isCompareMode = $event"
+                            :global-variables="
+                                variableManager?.allVariables?.value || {}
+                            "
+                            :predefined-variables="predefinedVariables"
+                            :services="services"
+                            @variable-change="handleTestPanelVariableChange"
+                            @save-to-global="handleSaveToGlobal"
+                            :input-mode="
+                                responsiveLayout.recommendedInputMode.value
+                            "
+                            :control-bar-layout="
+                                responsiveLayout.recommendedControlBarLayout
+                                    .value
+                            "
+                            :button-size="
+                                responsiveLayout.smartButtonSize.value
+                            "
+                            :conversation-max-height="
+                                responsiveLayout.responsiveHeights.value
+                                    .conversationMax
+                            "
+                            :result-vertical-layout="
+                                responsiveLayout.isMobile.value
+                            "
+                            @optimize="handleOptimizePrompt"
+                            @iterate="handleIteratePrompt"
+                            @test="handleTestAreaTest"
+                            @compare-toggle="handleTestAreaCompareToggle"
+                            @switch-version="handleSwitchVersion"
+                            @save-favorite="handleSaveFavorite"
+                            @open-global-variables="openVariableManager()"
+                            @open-tool-manager="
+                                handleOpenContextEditor('tools')
+                            "
+                            @open-variable-manager="handleOpenVariableManager"
+                            @open-template-manager="openTemplateManager"
+                            @config-model="modelManager.showConfig = true"
+                            @open-input-preview="handleOpenInputPreview"
+                            @open-prompt-preview="handleOpenPromptPreview"
+                            @open-test-preview="showPreviewPanel = true"
+                        >
+                            <!-- 优化模型选择插槽 -->
+                            <template #optimize-model-select>
+                                <SelectWithConfig
+                                    v-model="modelManager.selectedOptimizeModel"
+                                    :options="textModelOptions"
+                                    :getPrimary="OptionAccessors.getPrimary"
+                                    :getSecondary="OptionAccessors.getSecondary"
+                                    :getValue="OptionAccessors.getValue"
+                                    :placeholder="t('model.select.placeholder')"
+                                    size="medium"
+                                    :disabled="optimizer.isOptimizing"
+                                    filterable
+                                    :show-config-action="true"
+                                    :show-empty-config-c-t-a="true"
+                                    @focus="refreshTextModels"
+                                    @config="modelManager.showConfig = true"
+                                />
+                            </template>
+
+                            <!-- 模板选择插槽 -->
+                            <template #template-select>
+                                <template
+                                    v-if="services && services.templateManager"
+                                >
+                                    <SelectWithConfig
+                                        v-model="selectedTemplateIdForSelect"
+                                        :options="templateOptions"
+                                        :getPrimary="OptionAccessors.getPrimary"
+                                        :getSecondary="
+                                            OptionAccessors.getSecondary
+                                        "
+                                        :getValue="OptionAccessors.getValue"
+                                        :placeholder="t('template.select')"
+                                        size="medium"
+                                        :disabled="optimizer.isOptimizing"
+                                        filterable
+                                        :show-config-action="true"
+                                        :show-empty-config-c-t-a="true"
+                                        @focus="refreshOptimizeTemplates"
+                                        @config="
+                                            handleOpenOptimizeTemplateManager
+                                        "
+                                    />
+                                </template>
+                                <NText v-else depth="3" class="p-2 text-sm">
+                                    {{ t("template.loading") || "加载中..." }}
+                                </NText>
+                            </template>
+
+                            <!-- 测试模型选择插槽 -->
+                            <template #test-model-select>
+                                <SelectWithConfig
+                                    v-model="modelManager.selectedTestModel"
+                                    :options="textModelOptions"
+                                    :getPrimary="OptionAccessors.getPrimary"
+                                    :getSecondary="OptionAccessors.getSecondary"
+                                    :getValue="OptionAccessors.getValue"
+                                    :placeholder="t('model.select.placeholder')"
+                                    size="medium"
+                                    filterable
+                                    :show-config-action="true"
+                                    :show-empty-config-c-t-a="true"
+                                    @focus="refreshTextModels"
+                                    @config="modelManager.showConfig = true"
+                                />
+                            </template>
+
+                            <!-- 测试结果插槽 -->
+                            <template #original-result>
+                                <OutputDisplay
+                                    :content="testResults.originalResult"
+                                    :reasoning="testResults.originalReasoning"
+                                    :streaming="testResults.isTestingOriginal"
+                                    :enableDiff="false"
+                                    mode="readonly"
+                                    :style="{ height: '100%', minHeight: '0' }"
+                                />
+                            </template>
+
+                            <template #optimized-result>
+                                <OutputDisplay
+                                    :content="testResults.optimizedResult"
+                                    :reasoning="testResults.optimizedReasoning"
+                                    :streaming="testResults.isTestingOptimized"
+                                    :enableDiff="false"
+                                    mode="readonly"
+                                    :style="{ height: '100%', minHeight: '0' }"
+                                />
+                            </template>
+
+                            <template #single-result>
+                                <OutputDisplay
+                                    :content="testResults.optimizedResult"
+                                    :reasoning="testResults.optimizedReasoning"
+                                    :streaming="testResults.isTestingOptimized"
+                                    :enableDiff="false"
+                                    mode="readonly"
+                                    :style="{ height: '100%', minHeight: '0' }"
+                                />
+                            </template>
+                        </ContextUserWorkspace>
+                    </template>
+
+                    <!-- 基础模式：保持原有布局 -->
+                    <template v-else-if="functionMode === 'basic'">
                         <!-- Main Content - 使用 Naive UI NGrid 实现响应式水平左右布局 class="h-full min-h-0 overflow-hidden max-height=100%" -->
                         <NFlex
                             justify="space-between"
@@ -115,30 +501,6 @@
                                     height: '100%',
                                 }"
                             >
-                                <!-- 🆕 上下文模式快捷操作 - 仅在上下文功能模式下显示 -->
-                                <NCard
-                                    v-if="functionMode === 'pro'"
-                                    :style="{ flexShrink: 0 }"
-                                    size="small"
-                                >
-                                    <ContextModeActions
-                                        :contextMode="contextMode"
-                                        @open-global-variables="
-                                            openVariableManager
-                                        "
-                                        @open-context-variables="
-                                            () =>
-                                                handleOpenContextEditor(
-                                                    'variables',
-                                                )
-                                        "
-                                        @open-tool-manager="
-                                            () =>
-                                                handleOpenContextEditor('tools')
-                                        "
-                                    />
-                                </NCard>
-
                                 <!-- 组件 A: InputPanelUI -->
                                 <NCard
                                     :style="{
@@ -165,23 +527,13 @@
                                         :loading-text="$t('common.loading')"
                                         :loading="optimizer.isOptimizing"
                                         :disabled="optimizer.isOptimizing"
-                                        :show-preview="functionMode === 'pro'"
+                                        :show-preview="false"
                                         @submit="handleOptimizePrompt"
                                         @configModel="
                                             modelManager.showConfig = true
                                         "
                                         @open-preview="handleOpenInputPreview"
                                     >
-                                        <template #optimization-mode-selector>
-                                            <OptimizationModeSelectorUI
-                                                v-model="
-                                                    selectedOptimizationMode
-                                                "
-                                                @change="
-                                                    handleOptimizationModeChange
-                                                "
-                                            />
-                                        </template>
                                         <template #model-select>
                                             <SelectWithConfig
                                                 v-model="
@@ -270,46 +622,7 @@
                                     </InputPanelUI>
                                 </NCard>
 
-                                <!-- 组件 B: ConversationManager (上下文功能模式的系统优化下显示) -->
-                                <NCard
-                                    v-show="
-                                        functionMode === 'pro' &&
-                                        contextMode === 'system'
-                                    "
-                                    :style="{ flexShrink: 0, overflow: 'auto' }"
-                                    content-style="padding: 0;"
-                                >
-                                    <ConversationManager
-                                        v-model:messages="optimizationContext"
-                                        :available-variables="
-                                            variableManager?.variableManager.value?.resolveAllVariables() ||
-                                            {}
-                                        "
-                                        :scan-variables="
-                                            (content) =>
-                                                variableManager?.variableManager.value?.scanVariablesInContent(
-                                                    content,
-                                                ) || []
-                                        "
-                                        :optimization-mode="
-                                            selectedOptimizationMode
-                                        "
-                                        :context-mode="contextMode"
-                                        :tool-count="
-                                            optimizationContextTools.length
-                                        "
-                                        @open-variable-manager="
-                                            handleOpenVariableManager
-                                        "
-                                        @open-context-editor="
-                                            handleOpenContextEditor
-                                        "
-                                        :collapsible="true"
-                                        :max-height="300"
-                                    />
-                                </NCard>
-
-                                <!-- 组件 C: PromptPanelUI -->
+                                <!-- 组件 B: PromptPanelUI -->
                                 <NCard
                                     :style="{
                                         flex: 1,
@@ -346,12 +659,13 @@
                                         :advanced-mode-enabled="
                                             advancedModeEnabled
                                         "
-                                        :show-preview="functionMode === 'pro'"
+                                        :show-preview="false"
                                         @iterate="handleIteratePrompt"
                                         @openTemplateManager="
                                             openTemplateManager
                                         "
                                         @switchVersion="handleSwitchVersion"
+                                        @save-favorite="handleSaveFavorite"
                                         @open-preview="handleOpenPromptPreview"
                                     />
                                 </NCard>
@@ -381,7 +695,6 @@
                                         variableManager?.allVariables?.value ||
                                         {}
                                     "
-                                    :context-variables="currentContextVariables"
                                     :predefined-variables="predefinedVariables"
                                     v-model:test-content="testContent"
                                     v-model:is-compare-mode="isCompareMode"
@@ -410,7 +723,9 @@
                                     @compare-toggle="
                                         handleTestAreaCompareToggle
                                     "
-                                    @open-variable-manager="openVariableManager"
+                                    @open-variable-manager="
+                                        handleOpenVariableManager
+                                    "
                                     @open-preview="showPreviewPanel = true"
                                 >
                                     <!-- 模型选择插槽 -->
@@ -545,6 +860,30 @@
                 @imported="handleDataImported"
             />
 
+            <!-- 收藏管理对话框 -->
+            <FavoriteManagerUI
+                v-if="isReady"
+                :show="showFavoriteManager"
+                @update:show="
+                    (v: boolean) => {
+                        if (!v) showFavoriteManager = false;
+                    }
+                "
+                @optimize-prompt="handleFavoriteOptimizePrompt"
+                @use-favorite="handleUseFavorite"
+            />
+
+            <!-- 保存收藏对话框 -->
+            <SaveFavoriteDialog
+                v-if="isReady"
+                v-model:show="showSaveFavoriteDialog"
+                :content="saveFavoriteData?.content || ''"
+                :original-content="saveFavoriteData?.originalContent || ''"
+                :current-function-mode="functionMode"
+                :current-optimization-mode="selectedOptimizationMode"
+                @saved="handleSaveFavoriteComplete"
+            />
+
             <!-- 变量管理弹窗 -->
             <VariableManagerModal
                 v-if="isReady"
@@ -595,7 +934,7 @@
                 :renderPhase="renderPhase"
             />
 
-            <!-- 关键：使用NGlobalStyle同步全局样式到body，消除CSS依赖 -->
+            <!-- 关键:使用NGlobalStyle同步全局样式到body,消除CSS依赖 -->
             <NGlobalStyle />
 
             <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
@@ -624,6 +963,9 @@ import {
     NGridItem,
     NCard,
     NFlex,
+    NModal,
+    NScrollbar,
+    NSpace,
     useMessage,
 } from "naive-ui";
 import hljs from "highlight.js/lib/core";
@@ -647,12 +989,17 @@ import {
     UpdaterIcon,
     VariableManagerModal,
     ImageWorkspace,
+    ImageModeSelector,
     FunctionModeSelector,
     ConversationManager,
     OutputDisplay,
     ContextEditor,
+    FavoriteManagerUI,
+    SaveFavoriteDialog,
     ContextModeActions,
     PromptPreviewPanel,
+    ContextSystemWorkspace,
+    ContextUserWorkspace,
 
     // Composables
     usePromptOptimizer,
@@ -668,7 +1015,12 @@ import {
     useResponsiveTestLayout,
     useTestModeConfig,
     useFunctionMode,
+    useBasicSubMode,
+    useProSubMode,
+    useImageSubMode,
     usePromptPreview,
+    usePromptTester,
+    useContextManagement,
 
     // i18n functions
     initializeI18nWithStorage,
@@ -699,7 +1051,7 @@ import type {
 // highlight.js for Naive NCode
 const hljsInstance = hljs;
 const { t } = useI18n();
-// 移除全局toast实例，改为在需要时本地调用
+const toast = useToast();
 
 // 2. 初始化应用服务
 const { services, isInitializing } = useAppInitializer();
@@ -731,14 +1083,28 @@ const isReady = computed(() => !!services.value && !isInitializing.value);
 const promptService = shallowRef<IPromptService | null>(null);
 const selectedOptimizationMode = ref<OptimizationMode>("system");
 const showDataManager = ref(false);
+const showFavoriteManager = ref(false);
+const showSaveFavoriteDialog = ref(false);
+const saveFavoriteData = ref<{
+    content: string;
+    originalContent?: string;
+} | null>(null);
 const optimizeModelSelect = ref(null);
 const testPanelRef = ref(null);
+const systemWorkspaceRef = ref(null);
+const userWorkspaceRef = ref(null);
 const promptPanelRef = ref<{
     refreshIterateTemplateSelect?: () => void;
 } | null>(null);
 
 // 高级模式状态
 const { functionMode, setFunctionMode } = useFunctionMode(services as any);
+
+// 三种功能模式的子模式持久化（独立存储）
+const { basicSubMode, setBasicSubMode } = useBasicSubMode(services as any);
+const { proSubMode, setProSubMode } = useProSubMode(services as any);
+const { imageSubMode, setImageSubMode } = useImageSubMode(services as any);
+
 const advancedModeEnabled = computed({
     get: () => functionMode.value === "pro",
     set: (val: boolean) => {
@@ -749,29 +1115,38 @@ const advancedModeEnabled = computed({
 // 处理功能模式变化
 const handleModeSelect = async (mode: "basic" | "pro" | "image") => {
     await setFunctionMode(mode);
+
+    // 恢复各功能模式独立的子模式状态
+    if (mode === "basic") {
+        const { ensureInitialized } = useBasicSubMode(services as any);
+        await ensureInitialized();
+        selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
+        console.log(
+            `[App] 切换到基础模式，已恢复子模式: ${basicSubMode.value}`,
+        );
+    } else if (mode === "pro") {
+        const { ensureInitialized } = useProSubMode(services as any);
+        await ensureInitialized();
+        selectedOptimizationMode.value = proSubMode.value as OptimizationMode;
+        // 同步到 contextMode（关键！否则界面不会切换）
+        await handleContextModeChange(
+            proSubMode.value as import("@prompt-optimizer/core").ContextMode,
+        );
+        console.log(
+            `[App] 切换到上下文模式，已恢复子模式: ${proSubMode.value}`,
+        );
+    } else if (mode === "image") {
+        const { ensureInitialized } = useImageSubMode(services as any);
+        await ensureInitialized();
+        console.log(
+            `[App] 切换到图像模式，已恢复子模式: ${imageSubMode.value}`,
+        );
+    }
 };
 
 // 测试内容状态 - 新增
 const testContent = ref("");
 const isCompareMode = ref(true);
-
-// 测试结果状态管理
-const testResults = ref({
-    // 原始提示词结果
-    originalResult: "",
-    originalReasoning: "",
-    isTestingOriginal: false,
-
-    // 优化提示词结果
-    optimizedResult: "",
-    optimizedReasoning: "",
-    isTestingOptimized: false,
-
-    // 单一结果模式
-    singleResult: "",
-    singleReasoning: "",
-    isTestingSingle: false,
-});
 
 // 响应式布局和模式配置 - 新增
 const responsiveLayout = useResponsiveTestLayout();
@@ -790,6 +1165,9 @@ if (typeof window !== "undefined") {
 // 变量管理状态
 const showVariableManager = ref(false);
 const focusVariableName = ref<string | undefined>(undefined);
+
+// 上下文模式 - 需要在模板中使用,所以提前声明
+const contextMode = ref<import("@prompt-optimizer/core").ContextMode>("system");
 
 // 上下文编辑器状态
 const showContextEditor = ref(false);
@@ -817,25 +1195,9 @@ const promptPreviewVariables = computed(() => {
         ...(contextEditorState.value.variables || {}),
     };
 });
-// 🔧 使用 ref + watch 确保响应式追踪正确工作
-const contextMode = ref<import("@prompt-optimizer/core").ContextMode>("user");
-const renderPhase = ref<"optimize" | "test">("optimize"); // 默认为 optimize 阶段
 
-// 监听 services 中的 contextMode 变化并同步到本地 ref
-// 注意：services.value.contextMode 已经被 Vue reactive 系统 unwrap 了
-watch(
-    () => services.value?.contextMode,
-    (newMode) => {
-        if (newMode !== undefined) {
-            contextMode.value = newMode;
-            console.log(
-                "[Extension] contextMode watch triggered, new value:",
-                newMode,
-            );
-        }
-    },
-    { immediate: true },
-);
+// 渲染阶段（用于预览）
+const renderPhase = ref<"optimize" | "test">("optimize");
 
 const promptPreview = usePromptPreview(
     promptPreviewContent,
@@ -844,80 +1206,21 @@ const promptPreview = usePromptPreview(
     renderPhase,
 );
 
-// 优化阶段上下文状态
-const optimizationContext = ref<ConversationMessage[]>([]);
-const optimizationContextTools = ref<any[]>([]); // 🆕 添加工具状态
-// 标记是否已从持久化仓库加载过上下文（用于区分 null vs [] 语义）
-const isContextLoaded = ref(false);
+// 预览处理函数
+const handleOpenInputPreview = () => {
+    promptPreviewContent.value = optimizer.prompt || "";
+    renderPhase.value = "test"; // 使用 test 模式，替换所有变量
+    showPreviewPanel.value = true;
+};
+
+const handleOpenPromptPreview = () => {
+    promptPreviewContent.value = optimizer.optimizedPrompt || "";
+    renderPhase.value = "test"; // 使用 test 模式，替换所有变量
+    showPreviewPanel.value = true;
+};
 
 // 变量管理器实例
 const variableManager = useVariableManager(services as any);
-
-// 上下文持久化状态
-const currentContextId = ref<string | null>(null);
-const contextRepo = computed(() => services.value?.contextRepo);
-
-// 初始化上下文持久化
-const initializeContextPersistence = async () => {
-    if (!contextRepo.value) return;
-
-    try {
-        // 获取当前上下文ID
-        currentContextId.value = await contextRepo.value.getCurrentId();
-
-        if (currentContextId.value) {
-            // 加载当前上下文
-            const context = await contextRepo.value.get(currentContextId.value);
-            if (context) {
-                optimizationContext.value = [...context.messages];
-                optimizationContextTools.value = [...(context.tools || [])];
-
-                // 🆕 同步上下文变量到 contextEditorState，使预览功能可以访问
-                // 注意：这不会污染全局变量库，只是让预览功能能够获取上下文变量
-                contextEditorState.value = {
-                    ...contextEditorState.value,
-                    messages: [...context.messages],
-                    variables: context.variables || {},
-                    tools: [...(context.tools || [])],
-                };
-                console.log(
-                    "[App] Initialized context variables from persistence:",
-                    Object.keys(context.variables || {}),
-                );
-            }
-        }
-    } catch (error) {
-        console.warn("[App] Failed to initialize context persistence:", error);
-    } finally {
-        // 无论成功失败，都认为已完成一次初始化尝试
-        isContextLoaded.value = true;
-    }
-};
-
-// 持久化上下文更新（轻度节流）
-let persistContextUpdateTimer: NodeJS.Timeout | null = null;
-const persistContextUpdate = async (patch: {
-    messages?: ConversationMessage[];
-    variables?: Record<string, string>;
-    tools?: any[];
-}) => {
-    if (!contextRepo.value || !currentContextId.value) return;
-
-    // 清除之前的定时器
-    if (persistContextUpdateTimer) {
-        clearTimeout(persistContextUpdateTimer);
-    }
-
-    // 设置新的节流定时器（300ms延迟）
-    persistContextUpdateTimer = setTimeout(async () => {
-        try {
-            await contextRepo.value!.update(currentContextId.value!, patch);
-            console.log("[App] Context persisted to storage");
-        } catch (error) {
-            console.warn("[App] Failed to persist context update:", error);
-        }
-    }, 300);
-};
 
 const templateSelectType = computed<
     | "optimize"
@@ -954,166 +1257,7 @@ const handleOpenVariableManager = (variableName?: string) => {
     showVariableManager.value = true;
 };
 
-// 打开输入提示词预览
-const handleOpenInputPreview = () => {
-    promptPreviewContent.value = optimizer.prompt || "";
-    renderPhase.value = "test"; // 使用 test 模式，替换所有变量
-    showPreviewPanel.value = true;
-};
-
-// 打开优化后提示词预览
-const handleOpenPromptPreview = () => {
-    promptPreviewContent.value = optimizer.optimizedPrompt || "";
-    renderPhase.value = "test"; // 使用 test 模式，替换所有变量
-    showPreviewPanel.value = true;
-};
-
-// 打开上下文编辑器
-const handleOpenContextEditor = async (
-    messagesOrTab?: ConversationMessage[] | "messages" | "variables" | "tools",
-    variables?: Record<string, string>,
-) => {
-    // 参数类型判断
-    let messages: ConversationMessage[] | undefined;
-    let defaultTab: "messages" | "variables" | "tools" = "messages";
-
-    if (typeof messagesOrTab === "string") {
-        // 如果第一个参数是字符串，则是 defaultTab
-        defaultTab = messagesOrTab;
-        messages = undefined;
-    } else {
-        // 否则是 messages 数组
-        messages = messagesOrTab;
-    }
-
-    // 设置默认标签页
-    contextEditorDefaultTab.value = defaultTab;
-    // 确保全局变量已加载并刷新（避免初次为空）
-    try {
-        await variableManager?.refresh?.();
-    } catch (e) {
-        console.warn(
-            "[App] Variable manager refresh failed (non-blocking):",
-            e,
-        );
-    }
-    // 若首次加载（未完成持久化加载）且高级模式开启且当前无会话消息，按模式灌入默认模板
-    if (
-        advancedModeEnabled.value &&
-        !isContextLoaded.value &&
-        (!optimizationContext.value || optimizationContext.value.length === 0)
-    ) {
-        try {
-            const defaultTemplate = quickTemplateManager.getTemplate(
-                selectedOptimizationMode.value,
-                "default",
-            );
-            if (defaultTemplate?.messages?.length) {
-                optimizationContext.value = [...defaultTemplate.messages];
-                console.log(
-                    `[App] Auto-filled default template for ${selectedOptimizationMode.value} on first open of ContextEditor`,
-                );
-            }
-        } catch (e) {
-            console.warn(
-                "[App] Failed to auto-fill default template on editor open:",
-                e,
-            );
-        }
-    }
-    // 🔧 修复：从 contextRepo 读取真正的上下文变量，避免全局变量污染
-    let contextVariables: Record<string, string> = {};
-
-    if (contextRepo.value && currentContextId.value) {
-        try {
-            const context = await contextRepo.value.get(currentContextId.value);
-            contextVariables = context?.variables || {};
-            console.log(
-                "[App] Loaded context variables from contextRepo:",
-                Object.keys(contextVariables),
-            );
-        } catch (error) {
-            console.warn("[App] Failed to load context variables:", error);
-        }
-    }
-
-    // 设置初始状态 - 只使用上下文本身的变量
-    contextEditorState.value = {
-        messages: messages || [...optimizationContext.value],
-        variables: contextVariables, // 🚫 不再使用传入的全局变量
-        tools: [...optimizationContextTools.value], // 🆕 传递现有工具状态
-        showVariablePreview: true,
-        showToolManager: contextMode.value === "user", // 🔧 用户模式下显示工具管理器
-        mode: "edit",
-    };
-    showContextEditor.value = true;
-};
-
-// 处理上下文编辑器保存
-const handleContextEditorSave = async (context: {
-    messages: ConversationMessage[];
-    variables: Record<string, string>;
-    tools: any[];
-}) => {
-    // 更新优化上下文
-    optimizationContext.value = [...context.messages];
-    optimizationContextTools.value = [...context.tools]; // 🆕 保存工具状态
-
-    // 🚫 移除全局变量更新 - 上下文变量不应污染全局变量库
-    // 上下文变量应该只存在于上下文中，通过 persistContextUpdate 持久化到 contextRepo
-
-    // 持久化到contextRepo
-    await persistContextUpdate({
-        messages: context.messages,
-        variables: context.variables,
-        tools: context.tools,
-    });
-
-    // 关闭编辑器
-    showContextEditor.value = false;
-
-    // 显示成功提示
-    useToast().success("上下文已更新");
-};
-
-// 处理上下文编辑器实时状态更新
-const handleContextEditorStateUpdate = async (state: {
-    messages: ConversationMessage[];
-    variables: Record<string, string>;
-    tools: any[];
-}) => {
-    // 实时同步状态到contextEditorState
-    contextEditorState.value = { ...contextEditorState.value, ...state };
-
-    // 实时更新优化上下文（保持轻量级Manager的数据同步）
-    optimizationContext.value = [...state.messages];
-    optimizationContextTools.value = [...(state.tools || [])]; // 🆕 同步工具状态
-
-    // 🚫 移除全局变量更新 - 上下文变量不应污染全局变量库
-    // 上下文变量应该只存在于上下文中，通过 persistContextUpdate 持久化到 contextRepo
-
-    // 实时持久化（节流处理在persistContextUpdate中处理）
-    await persistContextUpdate({
-        messages: state.messages,
-        variables: state.variables,
-        tools: state.tools,
-    });
-
-    console.log(
-        "[App] Context editor state synchronized and persisted in real-time",
-    );
-};
-
-// 监听主界面上下文管理器（ConversationManager）的消息变更，自动持久化
-watch(
-    optimizationContext,
-    async (newMessages) => {
-        // 避免与全屏编辑器重复持久化（全屏编辑器已有专属持久化逻辑）
-        if (showContextEditor.value) return;
-        await persistContextUpdate({ messages: newMessages });
-    },
-    { deep: true },
-);
+// 上下文管理将在初始化 optimizer 后通过 useContextManagement 提供
 
 // 6. 在顶层调用所有 Composables
 // 模型选择器引用管理
@@ -1129,7 +1273,88 @@ const optimizer = usePromptOptimizer(
     selectedOptimizationMode,
     toRef(modelManager, "selectedOptimizeModel"),
     toRef(modelManager, "selectedTestModel"),
-    contextMode, // 传递上下文模式
+    contextMode, // 使用提前声明的 contextMode
+);
+
+// 上下文管理
+const contextManagement = useContextManagement({
+    services,
+    selectedOptimizationMode,
+    advancedModeEnabled,
+    showContextEditor,
+    contextEditorDefaultTab,
+    contextEditorState,
+    variableManager,
+    optimizer,
+});
+
+// 从 contextManagement 提取其他状态和方法 (contextMode 除外,已在前面声明)
+const optimizationContext = contextManagement.optimizationContext;
+const optimizationContextTools = contextManagement.optimizationContextTools;
+const isContextLoaded = contextManagement.isContextLoaded;
+const currentContextId = contextManagement.currentContextId;
+const contextRepo = contextManagement.contextRepo;
+const predefinedVariables = contextManagement.predefinedVariables;
+const initializeContextPersistence =
+    contextManagement.initializeContextPersistence;
+const persistContextUpdate = contextManagement.persistContextUpdate;
+const handleOpenContextEditor = contextManagement.handleOpenContextEditor;
+const handleContextEditorSave = contextManagement.handleContextEditorSave;
+const handleContextEditorStateUpdate =
+    contextManagement.handleContextEditorStateUpdate;
+const handleContextModeChange = contextManagement.handleContextModeChange;
+
+// 🆕 提示词测试管理（支持变量注入、上下文、工具调用）
+const promptTester = usePromptTester(
+    services as any,
+    toRef(modelManager, 'selectedTestModel'),
+    selectedOptimizationMode,
+    advancedModeEnabled,
+    optimizationContext,
+    optimizationContextTools,
+    variableManager
+);
+
+// 测试结果引用（从 promptTester 获取）
+const testResults = computed(() => promptTester.testResults);
+
+// 处理测试面板的变量变化（现在测试变量由TestAreaPanel自己管理，不需要同步到会话）
+const handleTestPanelVariableChange = async (name: string, value: string) => {
+    // 测试变量现在只在TestAreaPanel内部管理，不需要外部同步
+    console.log("[App] Variable change ignored (handled by TestAreaPanel):", name, value);
+};
+
+// 🆕 处理保存测试变量到全局
+const handleSaveToGlobal = async (name: string, value: string) => {
+    if (!variableManager) {
+        console.warn("[App] variableManager not ready");
+        return;
+    }
+
+    try {
+        variableManager.updateVariable(name, value);
+        toast.success(t('test.variables.savedToGlobal', { name }));
+    } catch (error) {
+        console.error("[App] Failed to save variable to global:", error);
+        toast.error(t('test.error.saveToGlobalFailed', { name }));
+    }
+};
+
+// 同步 contextManagement 中的 contextMode 到我们的 contextMode ref
+watch(
+    contextManagement.contextMode,
+    async (newMode) => {
+        contextMode.value = newMode;
+
+        // Phase 1: 当 contextMode 变化时，如果在上下文模式下，持久化子模式
+        if (functionMode.value === "pro") {
+            await setProSubMode(
+                newMode as import("@prompt-optimizer/core").ProSubMode,
+            );
+            selectedOptimizationMode.value = newMode as OptimizationMode;
+        }
+    },
+    { immediate: true },
 );
 
 // 提示词历史
@@ -1263,8 +1488,9 @@ const refreshTextModels = async () => {
             textModelOptions.value.map((opt) => opt.value),
         );
         const fallbackValue = textModelOptions.value[0]?.value || "";
+        const selectionReady = modelManager.isModelSelectionReady;
 
-        if (fallbackValue) {
+        if (fallbackValue && selectionReady) {
             if (!availableKeys.has(modelManager.selectedOptimizeModel)) {
                 modelManager.selectedOptimizeModel = fallbackValue;
             }
@@ -1342,6 +1568,30 @@ watch(services, async (newServices) => {
 
     // 确保功能模式已初始化（默认 basic）
     // useFunctionMode 内部已处理默认值与持久化
+
+    // Phase 1: 初始化各功能模式的子模式持久化
+    // 根据当前功能模式，从存储恢复对应的子模式选择
+    if (functionMode.value === "basic") {
+        const { ensureInitialized } = useBasicSubMode(services as any);
+        await ensureInitialized();
+        // 同步到 selectedOptimizationMode 以保持兼容性
+        selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
+        console.log(`[App] 基础模式子模式已恢复: ${basicSubMode.value}`);
+    } else if (functionMode.value === "pro") {
+        const { ensureInitialized } = useProSubMode(services as any);
+        await ensureInitialized();
+        // 同步到 selectedOptimizationMode 以保持兼容性
+        selectedOptimizationMode.value = proSubMode.value as OptimizationMode;
+        // 同步到 contextMode（关键！否则界面不会切换）
+        await handleContextModeChange(
+            proSubMode.value as import("@prompt-optimizer/core").ContextMode,
+        );
+        console.log(`[App] 上下文模式子模式已恢复: ${proSubMode.value}`);
+    } else if (functionMode.value === "image") {
+        const { ensureInitialized } = useImageSubMode(services as any);
+        await ensureInitialized();
+        console.log(`[App] 图像模式子模式已恢复: ${imageSubMode.value}`);
+    }
 
     console.log("All services and composables initialized.");
 
@@ -1552,55 +1802,55 @@ const openTemplateManager = (
 };
 
 // 处理优化模式变更
-const handleOptimizationModeChange = async (mode: OptimizationMode) => {
-    selectedOptimizationMode.value = mode;
+// 基础模式子模式变更处理器
+const handleBasicSubModeChange = async (mode: OptimizationMode) => {
+    await setBasicSubMode(
+        mode as import("@prompt-optimizer/core").BasicSubMode,
+    );
+    selectedOptimizationMode.value = mode; // 保持兼容性
+    console.log(`[App] 基础模式子模式已切换并持久化: ${mode}`);
+};
+
+// 上下文模式子模式变更处理器
+const handleProSubModeChange = async (mode: OptimizationMode) => {
+    await setProSubMode(mode as import("@prompt-optimizer/core").ProSubMode);
+    selectedOptimizationMode.value = mode; // 保持兼容性
 
     // 🔧 同步更新 contextMode，确保两者一致（避免重复调用）
-    // 注意：services.value.contextMode 已经被 Vue reactive 系统 unwrap 了
-    if (services.value?.contextMode !== mode) {
+    if (services.value?.contextMode.value !== mode) {
         await handleContextModeChange(
             mode as import("@prompt-optimizer/core").ContextMode,
         );
     }
+    console.log(`[App] 上下文模式子模式已切换并持久化: ${mode}`);
 };
 
-// 🆕 处理上下文模式切换
-const handleContextModeChange = async (
-    mode: import("@prompt-optimizer/core").ContextMode,
+// 图像模式子模式变更处理器
+const handleImageSubModeChange = async (
+    mode: import("@prompt-optimizer/core").ImageSubMode,
 ) => {
-    if (!services.value) {
-        console.warn(
-            "[Extension] Cannot change context mode: services not ready",
+    await setImageSubMode(mode);
+    console.log(`[App] 图像模式子模式已切换并持久化: ${mode}`);
+
+    // 通知 ImageWorkspace 更新
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(
+            new CustomEvent("image-submode-changed", {
+                detail: { mode },
+            }),
         );
-        return;
     }
+};
 
-    try {
-        // 直接赋值（Vue reactive 系统已经 unwrap 了 ref）
-        services.value.contextMode = mode;
-
-        // 注意：不需要在这里同步 selectedOptimizationMode
-        // 因为调用者 handleOptimizationModeChange 已经设置了
-
-        console.log("[Extension] Context mode changed to:", mode);
-
-        // 尝试持久化（如果条件允许）
-        if (contextRepo.value && currentContextId.value) {
-            await contextRepo.value.update(currentContextId.value, { mode });
-            console.log("[Extension] Context mode persisted to storage");
-        } else {
-            console.warn(
-                "[Extension] Context persistence skipped: contextRepo or currentContextId not available",
-            );
-        }
-
-        useToast().success(
-            `已切换到${mode === "system" ? "系统提示词" : "用户提示词"}模式`,
-        );
-    } catch (error) {
-        console.error("[Extension] Failed to persist context mode:", error);
-        // 即使持久化失败，UI 状态已经更新，所以不回滚
-        useToast().warning("模式已切换，但保存失败");
+// 🗑️ 废弃的统一处理器（保留兼容性）
+const handleOptimizationModeChange = async (mode: OptimizationMode) => {
+    console.warn(
+        "[App] handleOptimizationModeChange 已废弃，请使用各模式独立的处理器",
+    );
+    if (functionMode.value === "basic") {
+        await handleBasicSubModeChange(mode);
+    } else if (functionMode.value === "pro") {
+        await handleProSubModeChange(mode);
     }
 };
 
@@ -1627,7 +1877,7 @@ const handleTemplateLanguageChanged = (newLanguage: string) => {
 // 向子组件提供统一的 openTemplateManager 接口（图像模式复用）
 provide("openTemplateManager", openTemplateManager);
 
-// 模板管理器关闭回调：刷新基础模式选择，同时通知图像模式刷新模板列表
+// 模板管理器关闭回调：刷新基础模式选择,同时通知图像模式刷新模板列表
 const handleTemplateManagerClosed = () => {
     try {
         templateManagerState.handleTemplateManagerClose(() => {
@@ -1693,9 +1943,12 @@ const handleHistoryReuse = async (context: {
         rt === "text2imageOptimize" ||
         rt === "image2imageOptimize"
     ) {
-        // 切换到图像模式
-        await setFunctionMode("image");
-        useToast().info("已自动切换到图像模式");
+        // 图像模式:只在不是图像模式时才切换
+        const needsSwitch = functionMode.value !== "image";
+        if (needsSwitch) {
+            await setFunctionMode("image");
+            useToast().info("已自动切换到图像模式");
+        }
 
         // 🆕 图像模式专用数据回填逻辑
         // 等待模式切换完成后再回填数据
@@ -1720,6 +1973,7 @@ const handleHistoryReuse = async (context: {
             versions: chain.versions,
             currentVersionId: record.id,
             imageMode: imageMode, // 添加图像模式信息
+            templateId: record.templateId || chain.rootRecord.templateId, // 添加模板ID以便恢复模板选择
         };
 
         // 触发图像工作区数据恢复事件
@@ -1749,6 +2003,23 @@ const handleHistoryReuse = async (context: {
         // 如果目标模式与当前模式不同，自动切换
         if (targetMode !== selectedOptimizationMode.value) {
             selectedOptimizationMode.value = targetMode;
+
+            // 根据功能模式分别处理子模式的持久化
+            if (functionMode.value === "basic") {
+                // 基础模式：持久化子模式选择
+                await setBasicSubMode(
+                    targetMode as import("@prompt-optimizer/core").BasicSubMode,
+                );
+            } else if (functionMode.value === "pro") {
+                // 上下文模式：持久化子模式并同步 contextMode
+                await setProSubMode(
+                    targetMode as import("@prompt-optimizer/core").ProSubMode,
+                );
+                await handleContextModeChange(
+                    targetMode as import("@prompt-optimizer/core").ContextMode,
+                );
+            }
+
             useToast().info(
                 t("toast.info.optimizationModeAutoSwitched", {
                     mode:
@@ -1785,189 +2056,166 @@ const promptInputPlaceholder = computed(() => {
         : t("promptOptimizer.userPromptPlaceholder");
 });
 
-// 🆕 当前上下文的会话级变量
-const currentContextVariables = computed(() => {
-    return contextEditorState.value.variables || {};
-});
-
-// 🆕 内置预定义变量
-const predefinedVariables = computed(() => {
-    return {
-        originalPrompt: optimizer.prompt || "",
-        lastOptimizedPrompt: optimizer.optimizedPrompt || "",
-        // 可根据需要添加更多内置变量
-    };
-});
-
 // 真实测试处理函数
-const handleTestAreaTest = async () => {
-    if (!services.value?.promptService) {
-        useToast().error("服务未初始化，请稍后重试");
-        return;
-    }
-
-    if (!modelManager.selectedTestModel) {
-        useToast().error("请先选择测试模型");
-        return;
-    }
-
-    console.log("[App] Starting real test with content:", testContent.value);
-
-    if (isCompareMode.value) {
-        // 对比模式：测试原始和优化提示词
-        await Promise.all([
-            testPromptWithType("original"),
-            testPromptWithType("optimized"),
-        ]);
-    } else {
-        // 单一模式：只测试优化后的提示词
-        await testPromptWithType("optimized");
-    }
-};
-
-// 测试特定类型的提示词（复用会话上下文 + 变量 + 工具）
-const testPromptWithType = async (type: "original" | "optimized") => {
-    const isOriginal = type === "original";
-    const prompt = isOriginal ? optimizer.prompt : optimizer.optimizedPrompt;
-
-    if (!prompt) {
-        useToast().error(
-            isOriginal ? "请先输入原始提示词" : "请先生成优化后的提示词",
-        );
-        return;
-    }
-
-    // 设置测试状态
-    if (isOriginal) {
-        testResults.value.isTestingOriginal = true;
-        testResults.value.originalResult = "";
-        testResults.value.originalReasoning = "";
-    } else {
-        testResults.value.isTestingOptimized = true;
-        testResults.value.optimizedResult = "";
-        testResults.value.optimizedReasoning = "";
-    }
-
-    // 清除对应类型的工具调用数据
-    testPanelRef.value?.clearToolCalls?.(isOriginal ? "original" : "optimized");
-
-    try {
-        const streamHandler = {
-            onToken: (token: string) => {
-                if (isOriginal) {
-                    testResults.value.originalResult += token;
-                } else {
-                    testResults.value.optimizedResult += token;
-                }
-            },
-            onReasoningToken: (reasoningToken: string) => {
-                if (isOriginal) {
-                    testResults.value.originalReasoning += reasoningToken;
-                } else {
-                    testResults.value.optimizedReasoning += reasoningToken;
-                }
-            },
-            onComplete: () => {
-                console.log(`[App] ${type} test completed`);
-            },
-            onError: (err: Error) => {
-                const errorMessage = err.message || t("test.error.failed");
-                console.error(`[App] ${type} test failed:`, errorMessage);
-                useToast().error(
-                    `${type === "original" ? "原始" : "优化"}提示词测试失败: ${errorMessage}`,
-                );
-            },
-        };
-
-        // 统一构造对话与变量，尽量复用上下文
-        let systemPrompt = "";
-        let userPrompt = "";
-
-        if (selectedOptimizationMode.value === "user") {
-            // 用户提示词模式：提示词作为用户输入
-            systemPrompt = "";
-            userPrompt = prompt;
-        } else {
-            // 系统提示词模式：提示词作为系统消息，测试内容作为用户输入
-            systemPrompt = prompt;
-            userPrompt =
-                testContent.value ||
-                "请按照你的角色设定，展示你的能力并与我互动。";
-        }
-
-        const hasConversationContext =
-            advancedModeEnabled.value &&
-            (optimizationContext.value?.length || 0) > 0;
-        const hasTools =
-            advancedModeEnabled.value &&
-            (optimizationContextTools.value?.length || 0) > 0;
-
-        // 变量：合并变量库 + 当前提示词/问题（用于会话模板中的占位符）
-        const baseVars =
-            (variableManager?.variableManager.value?.resolveAllVariables() ||
-                {}) as Record<string, string>;
-        const variables = {
-            ...baseVars,
-            currentPrompt: prompt,
-            userQuestion: userPrompt,
-        };
-
-        // 对话：优先复用会话上下文；若无上下文则回退到 system+user 组合
-        const messages = hasConversationContext
-            ? optimizationContext.value.map((m) => ({
-                  role: m.role,
-                  content: m.content,
-              }))
-            : [
-                  ...(systemPrompt
-                      ? [{ role: "system", content: systemPrompt }]
-                      : []),
-                  { role: "user", content: userPrompt },
-              ];
-
-        // 统一使用自定义会话测试，以便支持上下文与工具
-        await services.value.promptService.testCustomConversationStream(
-            {
-                modelKey: modelManager.selectedTestModel,
-                messages,
-                variables,
-                tools: hasTools ? optimizationContextTools.value : [],
-            },
-            {
-                ...streamHandler,
-                onToolCall: (toolCall: any) => {
-                    if (!hasTools) return;
-                    console.log(
-                        `[App] ${type} test tool call received:`,
-                        toolCall,
-                    );
-                    const toolCallResult = {
-                        toolCall: toolCall,
-                        status: "success" as const,
-                        timestamp: new Date(),
-                    };
-                    testPanelRef.value?.handleToolCall?.(toolCallResult, type);
-                },
-            },
-        );
-    } catch (error: any) {
-        console.error(`[App] ${type} test error:`, error);
-        const errorMessage = error.message || t("test.error.failed");
-        useToast().error(
-            `${type === "original" ? "原始" : "优化"}提示词测试失败: ${errorMessage}`,
-        );
-    } finally {
-        // 重置测试状态
-        if (isOriginal) {
-            testResults.value.isTestingOriginal = false;
-        } else {
-            testResults.value.isTestingOptimized = false;
-        }
-    }
+const handleTestAreaTest = async (testVariables?: Record<string, string>) => {
+    // 调用 promptTester 的 executeTest 方法
+    await promptTester.executeTest(
+        optimizer.prompt,
+        optimizer.optimizedPrompt,
+        testContent.value,
+        isCompareMode.value,
+        testVariables,
+        testPanelRef.value
+    );
 };
 
 const handleTestAreaCompareToggle = () => {
     console.log("[App] Compare mode toggled:", isCompareMode.value);
+};
+
+// 处理收藏保存请求
+const handleSaveFavorite = (data: {
+    content: string;
+    originalContent?: string;
+}) => {
+    console.log("[App] handleSaveFavorite triggered:", data);
+
+    // 保存数据用于对话框预填充
+    saveFavoriteData.value = data;
+
+    // 打开保存对话框
+    showSaveFavoriteDialog.value = true;
+};
+
+// 处理保存完成
+const handleSaveFavoriteComplete = () => {
+    console.log("[App] Favorite saved successfully");
+    // 关闭对话框已由组件内部处理
+    // 可选:刷新收藏列表或显示额外提示
+};
+
+// 向子组件提供统一的 handleSaveFavorite 接口（图像模式复用）
+provide("handleSaveFavorite", handleSaveFavorite);
+
+const handleFavoriteOptimizePrompt = () => {
+    // 关闭收藏管理对话框
+    showFavoriteManager.value = false;
+    // 滚动到优化区域
+    nextTick(() => {
+        const inputPanel = document.querySelector("[data-input-panel]");
+        if (inputPanel) {
+            inputPanel.scrollIntoView({ behavior: "smooth" });
+        }
+    });
+};
+
+const handleUseFavorite = async (favorite: any) => {
+    // 智能模式切换逻辑,参考 handleHistoryReuse 的实现
+    const {
+        functionMode: favFunctionMode,
+        optimizationMode: favOptimizationMode,
+        imageSubMode: favImageSubMode,
+    } = favorite;
+
+    // 1. 切换功能模式
+    if (favFunctionMode === "image") {
+        // 图像模式:只在不是图像模式时才切换
+        const needsSwitch = functionMode.value !== "image";
+        if (needsSwitch) {
+            await setFunctionMode("image");
+            useToast().info("已自动切换到图像模式");
+        }
+
+        // 图像模式的数据回填逻辑
+        await nextTick();
+
+        // 触发图像工作区数据回填事件
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(
+                new CustomEvent("image-workspace-restore-favorite", {
+                    detail: {
+                        content: favorite.content,
+                        imageSubMode: favImageSubMode || "text2image",
+                        metadata: favorite.metadata,
+                    },
+                }),
+            );
+        }
+
+        useToast().success("收藏的图像提示词已加载");
+    } else {
+        // 基础模式或上下文模式
+
+        // 2. 切换优化模式
+        if (
+            favOptimizationMode &&
+            favOptimizationMode !== selectedOptimizationMode.value
+        ) {
+            selectedOptimizationMode.value = favOptimizationMode;
+
+            // 根据功能模式分别处理子模式的持久化
+            if (functionMode.value === "basic") {
+                // 基础模式：持久化子模式选择
+                await setBasicSubMode(
+                    favOptimizationMode as import("@prompt-optimizer/core").BasicSubMode,
+                );
+            } else if (functionMode.value === "pro") {
+                // 上下文模式：持久化子模式并同步 contextMode
+                await setProSubMode(
+                    favOptimizationMode as import("@prompt-optimizer/core").ProSubMode,
+                );
+                await handleContextModeChange(
+                    favOptimizationMode as import("@prompt-optimizer/core").ContextMode,
+                );
+            }
+
+            useToast().info(
+                t("toast.info.optimizationModeAutoSwitched", {
+                    mode:
+                        favOptimizationMode === "system"
+                            ? t("common.system")
+                            : t("common.user"),
+                }),
+            );
+        }
+
+        // 3. 切换功能模式(basic vs context)
+        const targetFunctionMode =
+            favFunctionMode === "context" ? "pro" : "basic";
+        if (targetFunctionMode !== functionMode.value) {
+            await setFunctionMode(targetFunctionMode);
+            useToast().info(
+                `已自动切换到${targetFunctionMode === "pro" ? "上下文" : "基础"}模式`,
+            );
+
+            // 功能模式切换后，如果有优化模式信息，确保同步各自的子模式持久化
+            if (favOptimizationMode) {
+                if (targetFunctionMode === "basic") {
+                    // 基础模式：持久化子模式选择
+                    await setBasicSubMode(
+                        favOptimizationMode as import("@prompt-optimizer/core").BasicSubMode,
+                    );
+                } else if (targetFunctionMode === "pro") {
+                    // 上下文模式：持久化子模式并同步 contextMode
+                    await setProSubMode(
+                        favOptimizationMode as import("@prompt-optimizer/core").ProSubMode,
+                    );
+                    await handleContextModeChange(
+                        favOptimizationMode as import("@prompt-optimizer/core").ContextMode,
+                    );
+                }
+            }
+        }
+
+        // 4. 将收藏的提示词内容设置到输入框
+        optimizer.prompt = favorite.content;
+    }
+
+    // 关闭收藏管理对话框
+    showFavoriteManager.value = false;
+
+    // 显示成功提示
+    useToast().success("已将提示词加载到输入框");
 };
 </script>
 

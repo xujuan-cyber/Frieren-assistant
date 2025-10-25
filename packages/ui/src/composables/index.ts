@@ -8,6 +8,7 @@ export * from "./useModelManager";
 export * from "./useHistoryManager";
 export * from "./useModelSelectRefs";
 export * from "./useVariableManager";
+export * from "./useContextManagement";
 export * from "./useAutoScroll";
 export * from "./useClipboard";
 export * from "./useFullscreen";

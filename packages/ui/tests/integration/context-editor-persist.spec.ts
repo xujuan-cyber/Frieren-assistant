@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
-import ContextEditor from '../../src/components/ContextEditor.vue'
+import ContextEditor from '../../src/components/context-mode/ContextEditor.vue'
 import { createContextRepo, MemoryStorageProvider } from '@prompt-optimizer/core'
 import type { ContextRepo } from '@prompt-optimizer/core'
 

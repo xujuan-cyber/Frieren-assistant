@@ -3,9 +3,9 @@ import { mount, VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 // 组件导入
-import ConversationManager from '../../src/components/ConversationManager.vue'
-import ContextEditor from '../../src/components/ContextEditor.vue'
-import VariableManagerModal from '../../src/components/VariableManagerModal.vue'
+import ConversationManager from '../../src/components/context-mode/ConversationManager.vue'
+import ContextEditor from '../../src/components/context-mode/ContextEditor.vue'
+import VariableManagerModal from '../../src/components/variable/VariableManagerModal.vue'
 
 // Mock Naive UI 组件 - 简化版本用于E2E测试
 vi.mock('naive-ui', () => ({

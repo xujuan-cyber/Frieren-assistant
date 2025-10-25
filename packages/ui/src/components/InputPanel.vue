@@ -70,8 +70,22 @@
             </NFlex>
         </NFlex>
 
-        <!-- 输入框 -->
+        <!-- 输入框 - 使用变量感知输入框 (支持变量提取) -->
+        <VariableAwareInput
+            v-if="enableVariableExtraction"
+            :model-value="modelValue"
+            @update:model-value="$emit('update:modelValue', $event)"
+            :placeholder="placeholder"
+            :autosize="{ minRows: 4, maxRows: 12 }"
+            :existing-global-variables="existingGlobalVariables"
+            :existing-temporary-variables="existingTemporaryVariables"
+            :predefined-variables="predefinedVariables"
+            @variable-extracted="handleVariableExtracted"
+        />
+
+        <!-- 原生输入框 (不支持变量提取) -->
         <NInput
+            v-else
             :value="modelValue"
             @update:value="$emit('update:modelValue', $event)"
             type="textarea"
@@ -164,19 +178,50 @@ import {
 } from "naive-ui";
 import { useFullscreen } from "../composables/useFullscreen";
 import FullscreenDialog from "./FullscreenDialog.vue";
+import { VariableAwareInput } from "./variable-extraction";
+
+/**
+ * 输入面板组件
+ *
+ * 功能：
+ * 1. 提供输入框用于用户输入内容
+ * 2. 支持全屏编辑模式
+ * 3. 支持变量提取功能 (可选)
+ * 4. 提供模型选择、模板选择等控制面板
+ */
 
 interface Props {
+    /** 输入框的值 */
     modelValue: string;
+    /** 选中的模型 */
     selectedModel: string;
+    /** 面板标题 */
     label: string;
+    /** 占位符文本 */
     placeholder?: string;
+    /** 模型选择标签 */
     modelLabel: string;
+    /** 模板选择标签 */
     templateLabel?: string;
+    /** 提交按钮文本 */
     buttonText: string;
+    /** 加载中文本 */
     loadingText: string;
+    /** 是否正在加载 */
     loading?: boolean;
+    /** 是否禁用 */
     disabled?: boolean;
+    /** 是否显示预览按钮 */
     showPreview?: boolean;
+
+    /** 🆕 是否启用变量提取功能 */
+    enableVariableExtraction?: boolean;
+    /** 🆕 已存在的全局变量名列表 */
+    existingGlobalVariables?: string[];
+    /** 🆕 已存在的临时变量名列表 */
+    existingTemporaryVariables?: string[];
+    /** 🆕 系统预定义变量名列表 */
+    predefinedVariables?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -185,6 +230,10 @@ const props = withDefaults(defineProps<Props>(), {
     loading: false,
     disabled: false,
     showPreview: false,
+    enableVariableExtraction: false,
+    existingGlobalVariables: () => [],
+    existingTemporaryVariables: () => [],
+    predefinedVariables: () => [],
 });
 
 const emit = defineEmits<{
@@ -193,6 +242,14 @@ const emit = defineEmits<{
     submit: [];
     configModel: [];
     "open-preview": [];
+    /** 🆕 变量提取事件 */
+    "variable-extracted": [
+        data: {
+            variableName: string;
+            variableValue: string;
+            variableType: "global" | "temporary";
+        },
+    ];
 }>();
 
 // 使用全屏组合函数
@@ -200,4 +257,13 @@ const { isFullscreen, fullscreenValue, openFullscreen } = useFullscreen(
     computed(() => props.modelValue),
     (value) => emit("update:modelValue", value),
 );
+
+// 处理变量提取事件
+const handleVariableExtracted = (data: {
+    variableName: string;
+    variableValue: string;
+    variableType: "global" | "temporary";
+}) => {
+    emit("variable-extracted", data);
+};
 </script>

@@ -28,8 +28,7 @@
                 <template #header-extra>
                     <NSpace :size="8">
                         <NTag :bordered="false" type="info" size="small">
-                            {{ detectedVariables.length }}
-                            {{ t("test.variables.variablesCount") }}
+                            {{ t("test.variables.tempCount", { count: displayVariables.length }) }}
                         </NTag>
                         <NButton
                             size="small"
@@ -44,7 +43,7 @@
                 <NSpace vertical :size="12">
                     <!-- 变量输入项 -->
                     <div
-                        v-for="varName in detectedVariables"
+                        v-for="varName in displayVariables"
                         :key="varName"
                         :style="{
                             display: 'flex',
@@ -55,6 +54,15 @@
                         <NTag
                             size="small"
                             :bordered="false"
+                            :type="
+                                getVariableSource(varName) === 'predefined'
+                                    ? 'success'
+                                    : getVariableSource(varName) === 'test'
+                                      ? 'warning'
+                                      : getVariableSource(varName) === 'global'
+                                        ? 'default'
+                                        : 'default'
+                            "
                             :style="{ minWidth: '120px', flexShrink: 0 }"
                         >
                             <span v-text="`{{${varName}}}`"></span>
@@ -68,17 +76,44 @@
                                 handleVariableValueChange(varName, $event)
                             "
                         />
+                        <!-- 🆕 删除按钮 (仅临时变量显示) -->
+                        <NButton
+                            v-if="getVariableSource(varName) === 'test'"
+                            size="small"
+                            quaternary
+                            @click="handleDeleteVariable(varName)"
+                            :title="t('test.variables.delete')"
+                        >
+                            🗑️
+                        </NButton>
+                        <!-- 🆕 保存到全局按钮 (仅测试变量显示) -->
+                        <NButton
+                            v-if="getVariableSource(varName) === 'test'"
+                            size="small"
+                            quaternary
+                            @click="handleSaveToGlobal(varName)"
+                            :title="t('test.variables.saveToGlobal')"
+                        >
+                            💾
+                        </NButton>
                     </div>
 
                     <!-- 无变量提示 -->
                     <NEmpty
-                        v-if="detectedVariables.length === 0"
+                        v-if="displayVariables.length === 0"
                         :description="t('test.variables.noVariables')"
                         size="small"
                     />
 
                     <!-- 操作按钮 -->
                     <NSpace :size="8" justify="end">
+                        <!-- 🆕 添加变量按钮 -->
+                        <NButton
+                            size="small"
+                            @click="showAddVariableDialog = true"
+                        >
+                            {{ t("test.variables.addVariable") }}
+                        </NButton>
                         <NButton
                             size="small"
                             @click="handleOpenVariableManager"
@@ -212,6 +247,44 @@
             </NCard>
         </div>
 
+        <!-- 🆕 添加变量对话框 -->
+        <NModal
+            v-model:show="showAddVariableDialog"
+            preset="dialog"
+            :title="t('test.variables.addVariable')"
+            :positive-text="t('common.confirm')"
+            :negative-text="t('common.cancel')"
+            :on-positive-click="handleAddVariable"
+            :mask-closable="false"
+        >
+            <NSpace vertical :size="12" style="margin-top: 16px;">
+                <NFormItem
+                    :label="t('variableExtraction.variableName')"
+                    :validation-status="
+                        newVariableNameError ? 'error' : undefined
+                    "
+                    :feedback="newVariableNameError"
+                >
+                    <NInput
+                        v-model:value="newVariableName"
+                        :placeholder="
+                            t('variableExtraction.variableNamePlaceholder')
+                        "
+                        @input="validateNewVariableName"
+                    />
+                </NFormItem>
+
+                <NFormItem :label="t('variableExtraction.variableValue')">
+                    <NInput
+                        v-model:value="newVariableValue"
+                        :placeholder="
+                            t('variableExtraction.variableValuePlaceholder')
+                        "
+                    />
+                </NFormItem>
+            </NSpace>
+        </NModal>
+
         <!-- 控制工具栏 -->
         <div :style="{ flexShrink: 0 }">
             <TestControlBar
@@ -312,6 +385,7 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
+    useMessage,
     NFlex,
     NCard,
     NAlert,
@@ -321,6 +395,8 @@ import {
     NInput,
     NEmpty,
     NText,
+    NModal,
+    NFormItem,
 } from "naive-ui";
 import type {
     OptimizationMode,
@@ -336,6 +412,7 @@ import TestResultSection from "./TestResultSection.vue";
 import ToolCallDisplay from "./ToolCallDisplay.vue";
 
 const { t } = useI18n();
+const message = useMessage();
 
 // 性能监控
 const {
@@ -368,10 +445,10 @@ interface Props {
     optimizedPrompt?: string; // 优化后的提示词（用于变量检测）
     isCompareMode?: boolean;
 
-    // 🆕 三层变量体系
+    // 🆕 两层变量体系 (简化)
     globalVariables?: Record<string, string>; // 全局自定义变量
-    contextVariables?: Record<string, string>; // 会话级自定义变量
     predefinedVariables?: Record<string, string>; // 内置预定义变量
+    temporaryVariables?: Record<string, string>; // 🆕 临时变量 (从InputPanel提取的变量)
 
     // 功能开关
     enableCompareMode?: boolean;
@@ -411,20 +488,22 @@ const props = withDefaults(defineProps<Props>(), {
     optimizedResultTitle: "",
     singleResultTitle: "",
     globalVariables: () => ({}),
-    contextVariables: () => ({}),
     predefinedVariables: () => ({}),
+    temporaryVariables: () => ({}),
 });
 
 const emit = defineEmits<{
     "update:testContent": [value: string];
     "update:isCompareMode": [value: boolean];
-    test: [];
+    test: [testVariables: Record<string, string>]; // 🆕 传递测试变量
     "compare-toggle": [];
     // 高级功能事件
     "open-variable-manager": [];
     "open-context-editor": [];
     "open-preview": []; // 打开预览面板
     "variable-change": [name: string, value: string];
+    "save-to-global": [name: string, value: string]; // 🆕 保存测试变量到全局
+    "get-test-variables": []; // 🆕 请求获取测试变量（用于测试执行）
     "context-change": [
         messages: ConversationMessage[],
         variables: Record<string, string>,
@@ -546,7 +625,9 @@ const handleCompareToggle = () => {
 
 const handleTest = throttle(
     () => {
-        emit("test");
+        // 🆕 获取并传递测试变量
+        const testVars = getVariableValues();
+        emit("test", testVars);
         recordUpdate();
     },
     200,
@@ -597,11 +678,52 @@ const detectedVariables = computed(() => {
 // 预览面板显示状态
 const showPreviewSection = ref(false);
 
-// 三层变量合并（按优先级：全局 < 会话 < 内置）
+// 🆕 添加变量对话框状态
+const showAddVariableDialog = ref(false);
+const newVariableName = ref("");
+const newVariableValue = ref("");
+const newVariableNameError = ref("");
+
+// 🧪 测试区临时变量 (仅内存,刷新丢失) - 新增功能
+// 数据结构: { 变量名: { value: 值, timestamp: 时间戳 } }
+interface TestVariable {
+    value: string;
+    timestamp: number;
+}
+
+const testVariables = ref<Record<string, TestVariable>>({});
+
+// 监听 props.temporaryVariables 变化,同步到内部状态
+watch(
+    () => props.temporaryVariables,
+    (newVars) => {
+        // 合并新的临时变量,为新变量添加时间戳
+        for (const [name, value] of Object.entries(newVars)) {
+            if (!testVariables.value[name]) {
+                testVariables.value[name] = {
+                    value,
+                    timestamp: Date.now(),
+                };
+            } else {
+                // 更新现有变量的值,保留时间戳
+                testVariables.value[name].value = value;
+            }
+        }
+    },
+    { deep: true, immediate: true }
+);
+
+// 三层变量合并（按优先级：全局 < 测试 < 内置）
 const mergedVariables = computed(() => {
+    // 将 testVariables 转换为 { name: value } 格式
+    const testVarsFlat: Record<string, string> = {};
+    for (const [name, data] of Object.entries(testVariables.value)) {
+        testVarsFlat[name] = data.value;
+    }
+
     return {
         ...props.globalVariables, // 优先级 1: 全局自定义变量
-        ...props.contextVariables, // 优先级 2: 会话级自定义变量（包含测试区输入）
+        ...testVarsFlat, // 优先级 2: 测试区临时变量
         ...props.predefinedVariables, // 优先级 3: 内置预定义变量
     };
 });
@@ -609,9 +731,23 @@ const mergedVariables = computed(() => {
 // 实际使用的变量值（合并后的结果）
 const variableValues = computed(() => mergedVariables.value);
 
-// 是否显示变量表单：有变量且不在测试运行中
+// 🆕 按时间排序的临时变量列表 (最新的在最前面)
+const sortedTestVariables = computed(() => {
+    const entries = Object.entries(testVariables.value);
+    return entries
+        .sort((a, b) => b[1].timestamp - a[1].timestamp) // 降序排列
+        .map(([name]) => name);
+});
+
+// 🆕 实际显示的变量列表 = 临时变量 (不再依赖 detectedVariables)
+const displayVariables = computed(() => {
+    return sortedTestVariables.value;
+});
+
+// 是否显示变量表单：默认显示（除非在测试运行中）
 const showVariableForm = computed(() => {
-    return detectedVariables.value.length > 0 && !props.isTestRunning;
+    // 改为默认显示，不再依赖检测到的变量数量
+    return !props.isTestRunning;
 });
 
 // 区分内置变量和自定义变量
@@ -684,17 +820,11 @@ const getVariableDisplayValue = (varName: string): string => {
 
 // 🆕 获取变量的占位符提示（显示变量来源）
 const getVariablePlaceholder = (varName: string): string => {
-    // 如果有来自上下文/全局的值，提示来源
+    // 如果有来自全局/内置的值，提示来源
     if (props.predefinedVariables?.[varName]) {
         return (
             t("test.variables.inputPlaceholder") +
             ` (${t("variables.source.predefined")})`
-        );
-    }
-    if (props.contextVariables?.[varName]) {
-        return (
-            t("test.variables.inputPlaceholder") +
-            ` (${t("variables.source.context")})`
         );
     }
     if (props.globalVariables?.[varName]) {
@@ -706,15 +836,7 @@ const getVariablePlaceholder = (varName: string): string => {
     return t("test.variables.inputPlaceholder");
 };
 
-// 监听检测到的变量变化，清理不再需要的用户输入
-watch(
-    detectedVariables,
-    (newVars) => {
-        // 变量列表变化时，可以执行清理逻辑（如果需要）
-        // 由于我们不再使用 userInputValues，这里暂时留空
-    },
-    { immediate: true },
-);
+// 变量列表变化时的清理逻辑已不再需要（不再使用 userInputValues）
 
 // 事件处理函数
 const handleOpenVariableManager = () => {
@@ -728,16 +850,110 @@ const handleShowPreview = () => {
 };
 
 const handleVariableValueChange = (varName: string, value: string) => {
-    // 直接通过 emit 同步到会话级变量
+    // 🧪 更新测试区临时变量
+    if (testVariables.value[varName]) {
+        testVariables.value[varName].value = value;
+    } else {
+        // 如果变量不存在,创建新变量
+        testVariables.value[varName] = {
+            value,
+            timestamp: Date.now(),
+        };
+    }
     emit("variable-change", varName, value);
     recordUpdate();
 };
 
 const handleClearAllVariables = () => {
-    // 清空所有检测到的变量
-    detectedVariables.value.forEach((varName) => {
-        emit("variable-change", varName, "");
-    });
+    // 清空测试区临时变量
+    testVariables.value = {};
+    message.success(t("test.variables.clearSuccess"));
+    recordUpdate();
+};
+
+// 🆕 保存测试变量到全局
+const handleSaveToGlobal = (varName: string) => {
+    const varData = testVariables.value[varName];
+    if (!varData || !varData.value.trim()) {
+        message.warning(t("test.variables.emptyValueWarning"));
+        return;
+    }
+
+    emit("save-to-global", varName, varData.value);
+    message.success(t("test.variables.savedToGlobal"));
+    recordUpdate();
+};
+
+// 🆕 验证新变量名
+const validateNewVariableName = () => {
+    const name = newVariableName.value.trim();
+
+    if (!name) {
+        newVariableNameError.value = "";
+        return false;
+    }
+
+    // 验证规则1: 不能以数字开头
+    if (/^\d/.test(name)) {
+        newVariableNameError.value = t(
+            "variableExtraction.validation.noNumberStart"
+        );
+        return false;
+    }
+
+    // 验证规则2: 只能包含中文、英文、数字、下划线
+    if (!/^[\u4e00-\u9fa5a-zA-Z_][\u4e00-\u9fa5a-zA-Z0-9_]*$/.test(name)) {
+        newVariableNameError.value = t(
+            "variableExtraction.validation.invalidCharacters"
+        );
+        return false;
+    }
+
+    // 验证规则3: 不能与已有变量重名
+    if (testVariables.value[name]) {
+        newVariableNameError.value = t(
+            "variableExtraction.validation.duplicateVariable"
+        );
+        return false;
+    }
+
+    newVariableNameError.value = "";
+    return true;
+};
+
+// 🆕 添加新变量
+const handleAddVariable = () => {
+    if (!validateNewVariableName()) {
+        if (!newVariableName.value.trim()) {
+            message.warning(t("test.variables.nameRequired"));
+        }
+        return false;
+    }
+
+    const name = newVariableName.value.trim();
+    testVariables.value[name] = {
+        value: newVariableValue.value,
+        timestamp: Date.now(),
+    };
+
+    message.success(t("test.variables.addSuccess"));
+
+    // 重置对话框
+    newVariableName.value = "";
+    newVariableValue.value = "";
+    newVariableNameError.value = "";
+    showAddVariableDialog.value = false;
+
+    recordUpdate();
+    return true;
+};
+
+// 🆕 删除变量
+const handleDeleteVariable = (varName: string) => {
+    delete testVariables.value[varName];
+    message.success(
+        t("test.variables.deleteSuccess", { name: varName })
+    );
     recordUpdate();
 };
 
@@ -751,6 +967,14 @@ const setVariableValues = (values: Record<string, string>) => {
     for (const [name, value] of Object.entries(values)) {
         emit("variable-change", name, value);
     }
+};
+
+// 🧪 获取变量来源 (简化)
+const getVariableSource = (varName: string): "predefined" | "test" | "global" | "empty" => {
+    if (props.predefinedVariables?.[varName]) return "predefined";
+    if (testVariables.value[varName]) return "test";
+    if (props.globalVariables?.[varName]) return "global";
+    return "empty";
 };
 
 // 移除未使用的 props 变化防抖处理，避免多余复杂度

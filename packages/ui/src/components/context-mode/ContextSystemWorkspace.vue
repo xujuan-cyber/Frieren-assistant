@@ -146,17 +146,6 @@
                                 $t("contextMode.actions.globalVariables")
                             }}</span>
                         </NButton>
-                        <NButton
-                            size="small"
-                            quaternary
-                            @click="emit('open-context-variables')"
-                            :title="$t('contextMode.actions.contextVariables')"
-                        >
-                            <template #icon><span>📝</span></template>
-                            <span v-if="!isMobile">{{
-                                $t("contextMode.actions.contextVariables")
-                            }}</span>
-                        </NButton>
                     </NFlex>
                 </NFlex>
             </NCard>
@@ -167,12 +156,12 @@
                 content-style="height: 100%; max-height: 100%; overflow: hidden;"
             >
                 <TestAreaPanel
+                    ref="testAreaPanelRef"
                     :optimization-mode="optimizationMode"
                     context-mode="system"
                     :optimized-prompt="optimizedPrompt"
                     :is-test-running="isTestRunning"
                     :global-variables="globalVariables"
-                    :context-variables="contextVariables"
                     :predefined-variables="predefinedVariables"
                     :testContent="testContent"
                     @update:testContent="emit('update:testContent', $event)"
@@ -186,10 +175,16 @@
                     :conversation-max-height="conversationMaxHeight"
                     :show-original-result="true"
                     :result-vertical-layout="resultVerticalLayout"
-                    @test="emit('test')"
+                    @test="handleTestWithVariables"
                     @compare-toggle="emit('compare-toggle')"
                     @open-variable-manager="emit('open-variable-manager')"
                     @open-preview="emit('open-test-preview')"
+                    @variable-change="
+                        (name: string, value: string) => emit('variable-change', name, value)
+                    "
+                    @save-to-global="
+                        (name: string, value: string) => emit('save-to-global', name, value)
+                    "
                 >
                     <!-- 模型选择插槽 -->
                     <template #model-select>
@@ -215,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { NCard, NFlex, NButton, NText, NTag } from "naive-ui";
 import { useBreakpoints } from "@vueuse/core";
@@ -261,7 +256,6 @@ interface Props {
 
     // 变量数据
     globalVariables: Record<string, string>;
-    contextVariables: Record<string, string>;
     predefinedVariables: Record<string, string>;
     availableVariables: Record<string, string>;
     scanVariables: (content: string) => string[];
@@ -300,14 +294,13 @@ const emit = defineEmits<{
     // 操作事件
     optimize: [];
     iterate: [payload: any];
-    test: [];
+    test: [testVariables: Record<string, string>]; // 🆕 传递测试变量
     "compare-toggle": [];
     "switch-version": [versionId: any];
     "save-favorite": [data: any];
 
     // 打开面板/管理器
     "open-global-variables": [];
-    "open-context-variables": [];
     "open-variable-manager": [];
     "open-context-editor": [tab?: string];
     "open-template-manager": [type?: string];
@@ -317,7 +310,23 @@ const emit = defineEmits<{
     "open-input-preview": [];
     "open-prompt-preview": [];
     "open-test-preview": [];
+
+    // 变量管理
+    "variable-change": [name: string, value: string];
+    "save-to-global": [name: string, value: string];
 }>();
 
 const { t } = useI18n();
+
+// 🆕 TestAreaPanel 引用
+const testAreaPanelRef = ref<any>(null);
+
+// 🆕 处理测试事件并获取测试变量
+const handleTestWithVariables = async () => {
+    // 从 ref 获取测试变量
+    const testVariables = testAreaPanelRef.value?.getVariableValues?.() || {};
+
+    // 触发测试事件，传递测试变量给 App.vue
+    emit('test', testVariables);
+};
 </script>

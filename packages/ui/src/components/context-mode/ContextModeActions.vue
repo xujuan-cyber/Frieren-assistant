@@ -14,19 +14,6 @@
       {{ $t('contextMode.actions.globalVariables') }}
     </NButton>
 
-    <!-- 会话变量 - 两种模式都显示 -->
-    <NButton
-      size="small"
-      type="default"
-      @click="$emit('open-context-variables')"
-      :title="$t('contextMode.actions.contextVariables')"
-    >
-      <template #icon>
-        <span>📝</span>
-      </template>
-      {{ $t('contextMode.actions.contextVariables') }}
-    </NButton>
-
     <!-- 工具管理 - 仅用户模式显示 -->
     <NButton
       v-if="contextMode === 'user'"
@@ -53,7 +40,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'open-global-variables': []
-  'open-context-variables': []
   'open-tool-manager': []
 }>()
 </script>

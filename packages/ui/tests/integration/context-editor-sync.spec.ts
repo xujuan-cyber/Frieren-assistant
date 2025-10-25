@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi, beforeAll, afterAll } from 'vites
 import { mount, VueWrapper } from '@vue/test-utils'
 import { ref, nextTick, reactive } from 'vue'
 import { createApp } from 'vue'
-import ConversationManager from '../../src/components/ConversationManager.vue'
-import ContextEditor from '../../src/components/ContextEditor.vue'
+import ConversationManager from '../../src/components/context-mode/ConversationManager.vue'
+import ContextEditor from '../../src/components/context-mode/ContextEditor.vue'
 
 // Mock Naive UI 组件
 vi.mock('naive-ui', () => ({
