@@ -72,9 +72,6 @@
                     @configModel="emit('config-model')"
                     @open-preview="emit('open-input-preview')"
                 >
-                    <template #optimization-mode-selector>
-                        <slot name="optimization-mode-selector"></slot>
-                    </template>
                     <template #model-select>
                         <slot name="optimize-model-select"></slot>
                     </template>
@@ -144,70 +141,126 @@
         </NFlex>
 
         <!-- 右侧：测试区域 -->
-        <NCard
+        <NFlex
+            vertical
             :style="{
                 flex: 1,
                 overflow: 'auto',
                 height: '100%',
+                gap: '12px',
             }"
-            content-style="height: 100%; max-height: 100%; overflow: hidden;"
         >
-            <TestAreaPanel
-                :optimization-mode="optimizationMode"
-                context-mode="system"
-                :optimized-prompt="optimizedPrompt"
-                :is-test-running="isTestRunning"
-                :global-variables="globalVariables"
-                :context-variables="contextVariables"
-                :predefined-variables="predefinedVariables"
-                :testContent="testContent"
-                @update:testContent="emit('update:testContent', $event)"
-                :isCompareMode="isCompareMode"
-                @update:isCompareMode="emit('update:isCompareMode', $event)"
-                :enable-compare-mode="true"
-                :enable-fullscreen="true"
-                :input-mode="inputMode"
-                :control-bar-layout="controlBarLayout"
-                :button-size="buttonSize"
-                :conversation-max-height="conversationMaxHeight"
-                :show-original-result="true"
-                :result-vertical-layout="resultVerticalLayout"
-                @test="emit('test')"
-                @compare-toggle="emit('compare-toggle')"
-                @open-variable-manager="emit('open-variable-manager')"
-                @open-preview="emit('open-test-preview')"
+            <!-- 测试区域操作栏 -->
+            <NCard size="small" :style="{ flexShrink: 0 }">
+                <NFlex justify="space-between" align="center">
+                    <!-- 左侧：区域标识 -->
+                    <NFlex align="center" :size="8">
+                        <NText strong>{{ $t("test.areaTitle") }}</NText>
+                        <NTag type="info" size="small">
+                            <template #icon><span>⚙️</span></template>
+                            {{ $t("contextMode.system.label") }}
+                        </NTag>
+                    </NFlex>
+
+                    <!-- 右侧：快捷操作按钮 -->
+                    <NFlex :size="8">
+                        <NButton
+                            size="small"
+                            quaternary
+                            @click="emit('open-global-variables')"
+                            :title="$t('contextMode.actions.globalVariables')"
+                        >
+                            <template #icon><span>📊</span></template>
+                            <span v-if="!isMobile">{{
+                                $t("contextMode.actions.globalVariables")
+                            }}</span>
+                        </NButton>
+                        <NButton
+                            size="small"
+                            quaternary
+                            @click="emit('open-context-variables')"
+                            :title="$t('contextMode.actions.contextVariables')"
+                        >
+                            <template #icon><span>📝</span></template>
+                            <span v-if="!isMobile">{{
+                                $t("contextMode.actions.contextVariables")
+                            }}</span>
+                        </NButton>
+                    </NFlex>
+                </NFlex>
+            </NCard>
+
+            <!-- 测试区域主内容 -->
+            <NCard
+                :style="{ flex: 1, overflow: 'auto' }"
+                content-style="height: 100%; max-height: 100%; overflow: hidden;"
             >
-                <!-- 模型选择插槽 -->
-                <template #model-select>
-                    <slot name="test-model-select"></slot>
-                </template>
+                <TestAreaPanel
+                    :optimization-mode="optimizationMode"
+                    context-mode="system"
+                    :optimized-prompt="optimizedPrompt"
+                    :is-test-running="isTestRunning"
+                    :global-variables="globalVariables"
+                    :context-variables="contextVariables"
+                    :predefined-variables="predefinedVariables"
+                    :testContent="testContent"
+                    @update:testContent="emit('update:testContent', $event)"
+                    :isCompareMode="isCompareMode"
+                    @update:isCompareMode="emit('update:isCompareMode', $event)"
+                    :enable-compare-mode="true"
+                    :enable-fullscreen="true"
+                    :input-mode="inputMode"
+                    :control-bar-layout="controlBarLayout"
+                    :button-size="buttonSize"
+                    :conversation-max-height="conversationMaxHeight"
+                    :show-original-result="true"
+                    :result-vertical-layout="resultVerticalLayout"
+                    @test="emit('test')"
+                    @compare-toggle="emit('compare-toggle')"
+                    @open-variable-manager="emit('open-variable-manager')"
+                    @open-preview="emit('open-test-preview')"
+                >
+                    <!-- 模型选择插槽 -->
+                    <template #model-select>
+                        <slot name="test-model-select"></slot>
+                    </template>
 
-                <!-- 结果显示插槽 -->
-                <template #original-result>
-                    <slot name="original-result"></slot>
-                </template>
+                    <!-- 结果显示插槽 -->
+                    <template #original-result>
+                        <slot name="original-result"></slot>
+                    </template>
 
-                <template #optimized-result>
-                    <slot name="optimized-result"></slot>
-                </template>
+                    <template #optimized-result>
+                        <slot name="optimized-result"></slot>
+                    </template>
 
-                <template #single-result>
-                    <slot name="single-result"></slot>
-                </template>
-            </TestAreaPanel>
-        </NCard>
+                    <template #single-result>
+                        <slot name="single-result"></slot>
+                    </template>
+                </TestAreaPanel>
+            </NCard>
+        </NFlex>
     </NFlex>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { NCard, NFlex, NButton } from "naive-ui";
+import { NCard, NFlex, NButton, NText, NTag } from "naive-ui";
+import { useBreakpoints } from "@vueuse/core";
 import InputPanelUI from "../InputPanel.vue";
 import PromptPanelUI from "../PromptPanel.vue";
 import TestAreaPanel from "../TestAreaPanel.vue";
 import ConversationManager from "./ConversationManager.vue";
 import type { OptimizationMode, ConversationMessage } from "../../types";
 import type { IServices } from "@prompt-optimizer/core";
+
+// 响应式断点
+const breakpoints = useBreakpoints({
+    mobile: 640,
+    tablet: 1024,
+});
+const isMobile = breakpoints.smaller("mobile");
 
 // Props 定义 (移除 contextMode，因为固定为 system)
 interface Props {

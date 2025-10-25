@@ -133,6 +133,7 @@ export default {
       globalVariables: "Global Variables",
       contextVariables: "Context Variables",
       tools: "Tool Management",
+      toolManager: "Tool Management",
     },
     preview: {
       title: "Preview",
@@ -991,6 +992,7 @@ export default {
   },
   test: {
     title: "Test",
+    areaTitle: "Test Area",
     content: "Test Content",
     placeholder: "Enter content to test...",
     modes: {

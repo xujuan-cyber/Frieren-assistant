@@ -20,10 +20,34 @@
 
                 <!-- Core Navigation Slot -->
                 <template #core-nav>
-                    <FunctionModeSelector
-                        :modelValue="functionMode"
-                        @update:modelValue="handleModeSelect"
-                    />
+                    <NSpace :size="12" align="center">
+                        <!-- 功能模式选择器 -->
+                        <FunctionModeSelector
+                            :modelValue="functionMode"
+                            @update:modelValue="handleModeSelect"
+                        />
+
+                        <!-- 子模式选择器 - 基础模式 -->
+                        <OptimizationModeSelectorUI
+                            v-if="functionMode === 'basic'"
+                            :modelValue="basicSubMode"
+                            @change="handleBasicSubModeChange"
+                        />
+
+                        <!-- 子模式选择器 - 上下文模式 -->
+                        <OptimizationModeSelectorUI
+                            v-if="functionMode === 'pro'"
+                            :modelValue="proSubMode"
+                            @change="handleProSubModeChange"
+                        />
+
+                        <!-- 子模式选择器 - 图像模式 -->
+                        <ImageModeSelector
+                            v-if="functionMode === 'image'"
+                            :modelValue="imageSubMode"
+                            @change="handleImageSubModeChange"
+                        />
+                    </NSpace>
                 </template>
 
                 <!-- Actions Slot -->
@@ -185,14 +209,6 @@
                             @open-prompt-preview="handleOpenPromptPreview"
                             @open-test-preview="showPreviewPanel = true"
                         >
-                            <!-- 优化模式选择器插槽 -->
-                            <template #optimization-mode-selector>
-                                <OptimizationModeSelectorUI
-                                    v-model="selectedOptimizationMode"
-                                    @change="handleOptimizationModeChange"
-                                />
-                            </template>
-
                             <!-- 优化模型选择插槽 -->
                             <template #optimize-model-select>
                                 <SelectWithConfig
@@ -365,14 +381,6 @@
                             @open-prompt-preview="handleOpenPromptPreview"
                             @open-test-preview="showPreviewPanel = true"
                         >
-                            <!-- 优化模式选择器插槽 -->
-                            <template #optimization-mode-selector>
-                                <OptimizationModeSelectorUI
-                                    v-model="selectedOptimizationMode"
-                                    @change="handleOptimizationModeChange"
-                                />
-                            </template>
-
                             <!-- 优化模型选择插槽 -->
                             <template #optimize-model-select>
                                 <SelectWithConfig
@@ -531,16 +539,6 @@
                                         "
                                         @open-preview="handleOpenInputPreview"
                                     >
-                                        <template #optimization-mode-selector>
-                                            <OptimizationModeSelectorUI
-                                                v-model="
-                                                    selectedOptimizationMode
-                                                "
-                                                @change="
-                                                    handleOptimizationModeChange
-                                                "
-                                            />
-                                        </template>
                                         <template #model-select>
                                             <SelectWithConfig
                                                 v-model="
@@ -973,6 +971,7 @@ import {
     NFlex,
     NModal,
     NScrollbar,
+    NSpace,
     useMessage,
 } from "naive-ui";
 import hljs from "highlight.js/lib/core";
@@ -996,6 +995,7 @@ import {
     UpdaterIcon,
     VariableManagerModal,
     ImageWorkspace,
+    ImageModeSelector,
     FunctionModeSelector,
     ConversationManager,
     OutputDisplay,
@@ -1021,6 +1021,9 @@ import {
     useResponsiveTestLayout,
     useTestModeConfig,
     useFunctionMode,
+    useBasicSubMode,
+    useProSubMode,
+    useImageSubMode,
     usePromptPreview,
 
     // i18n functions
@@ -1101,6 +1104,12 @@ const promptPanelRef = ref<{
 
 // 高级模式状态
 const { functionMode, setFunctionMode } = useFunctionMode(services as any);
+
+// 三种功能模式的子模式持久化（独立存储）
+const { basicSubMode, setBasicSubMode } = useBasicSubMode(services as any);
+const { proSubMode, setProSubMode } = useProSubMode(services as any);
+const { imageSubMode, setImageSubMode } = useImageSubMode(services as any);
+
 const advancedModeEnabled = computed({
     get: () => functionMode.value === "pro",
     set: (val: boolean) => {
@@ -1111,6 +1120,33 @@ const advancedModeEnabled = computed({
 // 处理功能模式变化
 const handleModeSelect = async (mode: "basic" | "pro" | "image") => {
     await setFunctionMode(mode);
+
+    // 恢复各功能模式独立的子模式状态
+    if (mode === "basic") {
+        const { ensureInitialized } = useBasicSubMode(services as any);
+        await ensureInitialized();
+        selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
+        console.log(
+            `[App] 切换到基础模式，已恢复子模式: ${basicSubMode.value}`,
+        );
+    } else if (mode === "pro") {
+        const { ensureInitialized } = useProSubMode(services as any);
+        await ensureInitialized();
+        selectedOptimizationMode.value = proSubMode.value as OptimizationMode;
+        // 同步到 contextMode（关键！否则界面不会切换）
+        await handleContextModeChange(
+            proSubMode.value as import("@prompt-optimizer/core").ContextMode,
+        );
+        console.log(
+            `[App] 切换到上下文模式，已恢复子模式: ${proSubMode.value}`,
+        );
+    } else if (mode === "image") {
+        const { ensureInitialized } = useImageSubMode(services as any);
+        await ensureInitialized();
+        console.log(
+            `[App] 切换到图像模式，已恢复子模式: ${imageSubMode.value}`,
+        );
+    }
 };
 
 // 测试内容状态 - 新增
@@ -1301,8 +1337,16 @@ const handleTestPanelVariableChange = async (name: string, value: string) => {
 // 同步 contextManagement 中的 contextMode 到我们的 contextMode ref
 watch(
     contextManagement.contextMode,
-    (newMode) => {
+    async (newMode) => {
         contextMode.value = newMode;
+
+        // Phase 1: 当 contextMode 变化时，如果在上下文模式下，持久化子模式
+        if (functionMode.value === "pro") {
+            await setProSubMode(
+                newMode as import("@prompt-optimizer/core").ProSubMode,
+            );
+            selectedOptimizationMode.value = newMode as OptimizationMode;
+        }
     },
     { immediate: true },
 );
@@ -1434,7 +1478,9 @@ const refreshTextModels = async () => {
         textModelOptions.value =
             DataTransformer.modelsToSelectOptions(enabledModels);
 
-        const availableKeys = new Set(textModelOptions.value.map((opt) => opt.value));
+        const availableKeys = new Set(
+            textModelOptions.value.map((opt) => opt.value),
+        );
         const fallbackValue = textModelOptions.value[0]?.value || "";
         const selectionReady = modelManager.isModelSelectionReady;
 
@@ -1516,6 +1562,30 @@ watch(services, async (newServices) => {
 
     // 确保功能模式已初始化（默认 basic）
     // useFunctionMode 内部已处理默认值与持久化
+
+    // Phase 1: 初始化各功能模式的子模式持久化
+    // 根据当前功能模式，从存储恢复对应的子模式选择
+    if (functionMode.value === "basic") {
+        const { ensureInitialized } = useBasicSubMode(services as any);
+        await ensureInitialized();
+        // 同步到 selectedOptimizationMode 以保持兼容性
+        selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
+        console.log(`[App] 基础模式子模式已恢复: ${basicSubMode.value}`);
+    } else if (functionMode.value === "pro") {
+        const { ensureInitialized } = useProSubMode(services as any);
+        await ensureInitialized();
+        // 同步到 selectedOptimizationMode 以保持兼容性
+        selectedOptimizationMode.value = proSubMode.value as OptimizationMode;
+        // 同步到 contextMode（关键！否则界面不会切换）
+        await handleContextModeChange(
+            proSubMode.value as import("@prompt-optimizer/core").ContextMode,
+        );
+        console.log(`[App] 上下文模式子模式已恢复: ${proSubMode.value}`);
+    } else if (functionMode.value === "image") {
+        const { ensureInitialized } = useImageSubMode(services as any);
+        await ensureInitialized();
+        console.log(`[App] 图像模式子模式已恢复: ${imageSubMode.value}`);
+    }
 
     console.log("All services and composables initialized.");
 
@@ -1726,14 +1796,55 @@ const openTemplateManager = (
 };
 
 // 处理优化模式变更
-const handleOptimizationModeChange = async (mode: OptimizationMode) => {
-    selectedOptimizationMode.value = mode;
+// 基础模式子模式变更处理器
+const handleBasicSubModeChange = async (mode: OptimizationMode) => {
+    await setBasicSubMode(
+        mode as import("@prompt-optimizer/core").BasicSubMode,
+    );
+    selectedOptimizationMode.value = mode; // 保持兼容性
+    console.log(`[App] 基础模式子模式已切换并持久化: ${mode}`);
+};
+
+// 上下文模式子模式变更处理器
+const handleProSubModeChange = async (mode: OptimizationMode) => {
+    await setProSubMode(mode as import("@prompt-optimizer/core").ProSubMode);
+    selectedOptimizationMode.value = mode; // 保持兼容性
 
     // 🔧 同步更新 contextMode，确保两者一致（避免重复调用）
     if (services.value?.contextMode.value !== mode) {
         await handleContextModeChange(
             mode as import("@prompt-optimizer/core").ContextMode,
         );
+    }
+    console.log(`[App] 上下文模式子模式已切换并持久化: ${mode}`);
+};
+
+// 图像模式子模式变更处理器
+const handleImageSubModeChange = async (
+    mode: import("@prompt-optimizer/core").ImageSubMode,
+) => {
+    await setImageSubMode(mode);
+    console.log(`[App] 图像模式子模式已切换并持久化: ${mode}`);
+
+    // 通知 ImageWorkspace 更新
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(
+            new CustomEvent("image-submode-changed", {
+                detail: { mode },
+            }),
+        );
+    }
+};
+
+// 🗑️ 废弃的统一处理器（保留兼容性）
+const handleOptimizationModeChange = async (mode: OptimizationMode) => {
+    console.warn(
+        "[App] handleOptimizationModeChange 已废弃，请使用各模式独立的处理器",
+    );
+    if (functionMode.value === "basic") {
+        await handleBasicSubModeChange(mode);
+    } else if (functionMode.value === "pro") {
+        await handleProSubModeChange(mode);
     }
 };
 
@@ -1886,6 +1997,23 @@ const handleHistoryReuse = async (context: {
         // 如果目标模式与当前模式不同，自动切换
         if (targetMode !== selectedOptimizationMode.value) {
             selectedOptimizationMode.value = targetMode;
+
+            // 根据功能模式分别处理子模式的持久化
+            if (functionMode.value === "basic") {
+                // 基础模式：持久化子模式选择
+                await setBasicSubMode(
+                    targetMode as import("@prompt-optimizer/core").BasicSubMode,
+                );
+            } else if (functionMode.value === "pro") {
+                // 上下文模式：持久化子模式并同步 contextMode
+                await setProSubMode(
+                    targetMode as import("@prompt-optimizer/core").ProSubMode,
+                );
+                await handleContextModeChange(
+                    targetMode as import("@prompt-optimizer/core").ContextMode,
+                );
+            }
+
             useToast().info(
                 t("toast.info.optimizationModeAutoSwitched", {
                     mode:
@@ -2180,6 +2308,23 @@ const handleUseFavorite = async (favorite: any) => {
             favOptimizationMode !== selectedOptimizationMode.value
         ) {
             selectedOptimizationMode.value = favOptimizationMode;
+
+            // 根据功能模式分别处理子模式的持久化
+            if (functionMode.value === "basic") {
+                // 基础模式：持久化子模式选择
+                await setBasicSubMode(
+                    favOptimizationMode as import("@prompt-optimizer/core").BasicSubMode,
+                );
+            } else if (functionMode.value === "pro") {
+                // 上下文模式：持久化子模式并同步 contextMode
+                await setProSubMode(
+                    favOptimizationMode as import("@prompt-optimizer/core").ProSubMode,
+                );
+                await handleContextModeChange(
+                    favOptimizationMode as import("@prompt-optimizer/core").ContextMode,
+                );
+            }
+
             useToast().info(
                 t("toast.info.optimizationModeAutoSwitched", {
                     mode:
@@ -2198,6 +2343,24 @@ const handleUseFavorite = async (favorite: any) => {
             useToast().info(
                 `已自动切换到${targetFunctionMode === "pro" ? "上下文" : "基础"}模式`,
             );
+
+            // 功能模式切换后，如果有优化模式信息，确保同步各自的子模式持久化
+            if (favOptimizationMode) {
+                if (targetFunctionMode === "basic") {
+                    // 基础模式：持久化子模式选择
+                    await setBasicSubMode(
+                        favOptimizationMode as import("@prompt-optimizer/core").BasicSubMode,
+                    );
+                } else if (targetFunctionMode === "pro") {
+                    // 上下文模式：持久化子模式并同步 contextMode
+                    await setProSubMode(
+                        favOptimizationMode as import("@prompt-optimizer/core").ProSubMode,
+                    );
+                    await handleContextModeChange(
+                        favOptimizationMode as import("@prompt-optimizer/core").ContextMode,
+                    );
+                }
+            }
         }
 
         // 4. 将收藏的提示词内容设置到输入框

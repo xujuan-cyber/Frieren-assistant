@@ -131,6 +131,7 @@ export default {
       globalVariables: "全局变量",
       contextVariables: "会话变量",
       tools: "工具管理",
+      toolManager: "工具管理",
     },
     preview: {
       title: "预览",
@@ -959,6 +960,7 @@ export default {
   },
   test: {
     title: "测试",
+    areaTitle: "测试区域",
     content: "测试内容",
     placeholder: "请输入要测试的内容...",
     modes: {

@@ -1,12 +1,12 @@
-import { PromptRecord } from '../history/types';
-import { StreamHandlers } from '../llm/types';
+import { PromptRecord } from "../history/types";
+import { StreamHandlers } from "../llm/types";
 
 /**
  * 工具调用相关类型
  */
 export interface ToolCall {
   id: string;
-  type: 'function';
+  type: "function";
   function: {
     name: string;
     arguments: string;
@@ -20,7 +20,7 @@ export interface FunctionDefinition {
 }
 
 export interface ToolDefinition {
-  type: 'function';
+  type: "function";
   function: FunctionDefinition;
 }
 
@@ -28,8 +28,8 @@ export interface ToolDefinition {
  * 统一的消息结构
  */
 export interface ConversationMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;  // 可包含变量语法 {{variableName}}
+  role: "system" | "user" | "assistant" | "tool";
+  content: string; // 可包含变量语法 {{variableName}}
   /**
    * 函数调用名称（assistant消息）
    */
@@ -48,23 +48,31 @@ export interface ConversationMessage {
  * 优化模式枚举
  * 用于区分不同的提示词优化类型
  */
-export type OptimizationMode = 'system' | 'user';
+export type OptimizationMode = "system" | "user";
+
+/**
+ * 子模式类型定义（三种功能模式独立）
+ * 用于持久化各功能模式下的子模式选择
+ */
+export type BasicSubMode = "system" | "user"; // 基础模式
+export type ProSubMode = "system" | "user"; // 上下文模式
+export type ImageSubMode = "text2image" | "image2image"; // 图像模式
 
 /**
  * 优化请求接口
  */
 export interface OptimizationRequest {
   optimizationMode: OptimizationMode;
-  targetPrompt: string;           // 待优化的提示词
+  targetPrompt: string; // 待优化的提示词
   templateId?: string;
   modelKey: string;
   // 🆕 上下文模式（用于变量替换策略）
-  contextMode?: import('../context/types').ContextMode;
+  contextMode?: import("../context/types").ContextMode;
   // 新增：高级模式上下文（可选，保持向后兼容）
   advancedContext?: {
-    variables?: Record<string, string>;          // 自定义变量
-    messages?: ConversationMessage[];            // 自定义会话消息
-    tools?: ToolDefinition[];                    // 🆕 工具定义支持
+    variables?: Record<string, string>; // 自定义变量
+    messages?: ConversationMessage[]; // 自定义会话消息
+    tools?: ToolDefinition[]; // 🆕 工具定义支持
   };
 }
 
@@ -73,11 +81,11 @@ export interface OptimizationRequest {
  */
 export interface CustomConversationRequest {
   modelKey: string;
-  messages: ConversationMessage[];               // 使用相同的消息结构
-  variables: Record<string, string>;            // 包含预定义+自定义变量
-  tools?: ToolDefinition[];                     // 🆕 工具定义支持
+  messages: ConversationMessage[]; // 使用相同的消息结构
+  variables: Record<string, string>; // 包含预定义+自定义变量
+  tools?: ToolDefinition[]; // 🆕 工具定义支持
   // 🆕 上下文模式（用于变量替换策略）
-  contextMode?: import('../context/types').ContextMode;
+  contextMode?: import("../context/types").ContextMode;
 }
 
 /**
@@ -86,33 +94,33 @@ export interface CustomConversationRequest {
 export interface IPromptService {
   /** 优化提示词 - 支持提示词类型和增强功能 */
   optimizePrompt(request: OptimizationRequest): Promise<string>;
-  
+
   /** 迭代优化提示词 */
   iteratePrompt(
     originalPrompt: string,
     lastOptimizedPrompt: string,
     iterateInput: string,
     modelKey: string,
-    templateId?: string
+    templateId?: string,
   ): Promise<string>;
-  
+
   /** 测试提示词 - 支持可选系统提示词 */
   testPrompt(
     systemPrompt: string,
     userPrompt: string,
-    modelKey: string
+    modelKey: string,
   ): Promise<string>;
-  
+
   /** 获取历史记录 */
   getHistory(): Promise<PromptRecord[]>;
-  
+
   /** 获取迭代链 */
   getIterationChain(recordId: string): Promise<PromptRecord[]>;
 
   /** 优化提示词（流式）- 支持提示词类型和增强功能 */
   optimizePromptStream(
     request: OptimizationRequest,
-    callbacks: StreamHandlers
+    callbacks: StreamHandlers,
   ): Promise<void>;
 
   /** 迭代优化提示词（流式） */
@@ -122,7 +130,7 @@ export interface IPromptService {
     iterateInput: string,
     modelKey: string,
     handlers: StreamHandlers,
-    templateId: string
+    templateId: string,
   ): Promise<void>;
 
   /** 测试提示词（流式）- 支持可选系统提示词 */
@@ -130,14 +138,14 @@ export interface IPromptService {
     systemPrompt: string,
     userPrompt: string,
     modelKey: string,
-    callbacks: StreamHandlers
+    callbacks: StreamHandlers,
   ): Promise<void>;
 
   /** 自定义会话测试（流式）- 高级模式功能 */
   testCustomConversationStream(
     request: CustomConversationRequest,
-    callbacks: StreamHandlers
+    callbacks: StreamHandlers,
   ): Promise<void>;
 }
 
-export type { StreamHandlers }; 
+export type { StreamHandlers };
