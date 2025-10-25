@@ -7,6 +7,7 @@ import {
   type DecorationSet
 } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
+import type { ThemeCommonVars } from 'naive-ui'
 import { autocompletion, CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
 import type { DetectedVariable } from './useVariableDetection'
 
@@ -175,7 +176,7 @@ export function missingVariableTooltip(
   labels: VariableDetectionLabels,
   theme: MissingVariableTooltipTheme = {}
 ) {
-  return hoverTooltip((view, pos, side) => {
+  return hoverTooltip((view, pos, _side) => {
     // 获取当前位置的元素
     const { node } = view.domAtPos(pos)
     const element = node instanceof Element ? node : node.parentElement
@@ -280,7 +281,7 @@ export function missingVariableTooltip(
 /**
  * 主题扩展 - 适配 Naive UI 主题
  */
-export function createThemeExtension(themeVars: any) {
+export function createThemeExtension(themeVars: ThemeCommonVars) {
   return EditorView.theme({
     '&': {
       backgroundColor: themeVars.cardColor,

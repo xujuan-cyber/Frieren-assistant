@@ -1,4 +1,5 @@
-import type { Ref } from 'vue';
+import { type Ref } from 'vue'
+
 import type { AppServices } from '../types/services';
 
 /**

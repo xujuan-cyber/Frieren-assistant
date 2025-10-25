@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+
 import type { ResponsiveConfig } from '../types/components'
 
 /**

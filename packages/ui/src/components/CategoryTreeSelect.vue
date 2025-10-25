@@ -37,7 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, inject, type Ref } from 'vue';
+import { ref, computed, watch, inject, type Ref } from 'vue'
+
 import { NTreeSelect, NButton, NIcon, NModal, type TreeSelectOption } from 'naive-ui';
 import { Folder } from '@vicons/tabler';
 import { useI18n } from 'vue-i18n';

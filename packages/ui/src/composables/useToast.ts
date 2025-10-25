@@ -1,3 +1,5 @@
+import type { MessageApiInjection, MessageOptions, MessageReactive } from 'naive-ui'
+
 export interface Toast {
   id: number
   message: string
@@ -5,28 +7,33 @@ export interface Toast {
 }
 
 // 全局消息API实例 - 在NMessageProvider上下文中初始化
-let globalMessageApi: any = null
+let globalMessageApi: MessageApiInjection | null = null
 
 // 设置全局消息API（在Toast组件中调用）
-export function setGlobalMessageApi(api: any) {
+export function setGlobalMessageApi(api: MessageApiInjection) {
   globalMessageApi = api
   console.log('[useToast] Global message API set successfully')
 }
 
 export function useToast() {
-  const getMessageApi = () => {
+  const getMessageApi = (): MessageApiInjection | null => {
     if (!globalMessageApi) {
       console.warn('[useToast] NMessageProvider context not available yet.')
     }
     return globalMessageApi
   }
 
-  const add = (content: string, type: Toast['type'] = 'info', duration: number = 3000) => {
+  const add = (
+    content: string,
+    type: Toast['type'] = 'info',
+    duration: number = 3000
+  ): MessageReactive | undefined => {
     const message = getMessageApi()
+    if (!message) return undefined
 
-    const options = {
-      content,
+    const options: MessageOptions = {
       duration,
+      content,
       closable: true,
       keepAliveOnHover: true
     }
@@ -44,10 +51,10 @@ export function useToast() {
     }
   }
 
-  const remove = (id: any) => {
+  const remove = (messageReactive?: MessageReactive) => {
     // Naive UI消息实例可以直接调用destroy方法
-    if (id && typeof id.destroy === 'function') {
-      id.destroy()
+    if (messageReactive && typeof messageReactive.destroy === 'function') {
+      messageReactive.destroy()
     }
   }
 
@@ -64,6 +71,6 @@ export function useToast() {
     info,
     warning,
     // 向后兼容
-    toasts: [], // Naive UI不需要维护toasts数组
+    toasts: [] as never[], // Naive UI不需要维护toasts数组
   }
 }

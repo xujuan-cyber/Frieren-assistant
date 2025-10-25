@@ -952,6 +952,7 @@ import {
     toRef,
     nextTick,
     onMounted,
+    type Ref,
 } from "vue";
 import { useI18n } from "vue-i18n";
 import {
@@ -1045,6 +1046,7 @@ import type {
 import type {
     ModelSelectOption,
     TemplateSelectOption,
+    TestAreaPanelInstance,
 } from "@prompt-optimizer/ui";
 
 // 1. 基础 composables
@@ -1090,9 +1092,13 @@ const saveFavoriteData = ref<{
     originalContent?: string;
 } | null>(null);
 const optimizeModelSelect = ref(null);
-const testPanelRef = ref(null);
-const systemWorkspaceRef = ref(null);
-const userWorkspaceRef = ref(null);
+type ContextWorkspaceExpose = {
+    testAreaPanelRef?: Ref<TestAreaPanelInstance | null>;
+};
+
+const testPanelRef = ref<TestAreaPanelInstance | null>(null);
+const systemWorkspaceRef = ref<ContextWorkspaceExpose | null>(null);
+const userWorkspaceRef = ref<ContextWorkspaceExpose | null>(null);
 const promptPanelRef = ref<{
     refreshIterateTemplateSelect?: () => void;
 } | null>(null);
@@ -2051,6 +2057,23 @@ const promptInputPlaceholder = computed(() => {
         : t("promptOptimizer.userPromptPlaceholder");
 });
 
+const getActiveTestPanelInstance = (): TestAreaPanelInstance | null => {
+    if (functionMode.value === "pro") {
+        if (contextMode.value === "system") {
+            return (
+                systemWorkspaceRef.value?.testAreaPanelRef?.value ?? null
+            );
+        }
+        return userWorkspaceRef.value?.testAreaPanelRef?.value ?? null;
+    }
+
+    if (functionMode.value === "basic") {
+        return testPanelRef.value;
+    }
+
+    return null;
+};
+
 // 真实测试处理函数
 const handleTestAreaTest = async (testVariables?: Record<string, string>) => {
     // 调用 promptTester 的 executeTest 方法
@@ -2060,7 +2083,7 @@ const handleTestAreaTest = async (testVariables?: Record<string, string>) => {
         testContent.value,
         isCompareMode.value,
         testVariables,
-        testPanelRef.value
+        getActiveTestPanelInstance()
     );
 };
 

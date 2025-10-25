@@ -1,9 +1,13 @@
 import { reactive, type Ref } from 'vue'
+
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
-import type { OptimizationMode } from '@prompt-optimizer/core'
+import { getErrorMessage } from '../utils/error'
+import type { OptimizationMode, ToolDefinition, ToolCall, ToolCallResult } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import type { ConversationMessage } from '../types/variable'
+import type { VariableManagerHooks } from './useVariableManager'
+import type { TestAreaPanelInstance } from '../components/types/test-area'
 
 /**
  * 高级提示词测试 Hook
@@ -24,8 +28,8 @@ export function usePromptTester(
   selectedOptimizationMode: Ref<OptimizationMode>,
   advancedModeEnabled: Ref<boolean>,
   optimizationContext: Ref<ConversationMessage[]>,
-  optimizationContextTools: Ref<any[]>,
-  variableManager: any
+  optimizationContextTools: Ref<ToolDefinition[]>,
+  variableManager: VariableManagerHooks | null
 ) {
   const toast = useToast()
   const { t } = useI18n()
@@ -61,7 +65,7 @@ export function usePromptTester(
       testContent: string,
       isCompareMode: boolean,
       testVariables?: Record<string, string>,
-      testPanelRef?: any
+      testPanelRef?: TestAreaPanelInstance | null
     ) => {
       if (!services.value?.promptService) {
         toast.error(t('toast.error.serviceInit'))
@@ -113,7 +117,7 @@ export function usePromptTester(
       optimizedPrompt: string,
       testContent: string,
       testVars?: Record<string, string>,
-      testPanelRef?: any
+      testPanelRef?: TestAreaPanelInstance | null
     ) => {
       const isOriginal = type === 'original'
       const selectedPrompt = isOriginal ? prompt : optimizedPrompt
@@ -137,7 +141,7 @@ export function usePromptTester(
       }
 
       // 清除对应类型的工具调用数据
-      testPanelRef?.clearToolCalls?.(isOriginal ? 'original' : 'optimized')
+      testPanelRef?.clearToolCalls(isOriginal ? 'original' : 'optimized')
 
       try {
         const streamHandler = {
@@ -191,8 +195,7 @@ export function usePromptTester(
         // 变量：合并全局变量 + 测试变量 + 当前提示词/问题（用于会话模板中的占位符）
         // 按优先级合并: 全局自定义变量 < 测试变量 < 预定义变量
         const baseVars =
-          (variableManager?.variableManager.value?.resolveAllVariables() ||
-            {}) as Record<string, string>
+          variableManager?.variableManager.value?.resolveAllVariables() || {}
 
         // 使用传入的测试变量
         const variables = {
@@ -203,15 +206,17 @@ export function usePromptTester(
         }
 
         // 对话构造逻辑：
-        // - 系统模式 + 有会话上下文：使用会话上下文（因为系统提示词本身就是多轮对话场景）
+        // - 系统模式 + 有会话上下文：使用会话上下文，并追加当前测试输入
         // - 用户模式：无论是否有会话上下文，都直接发送优化后的提示词作为用户消息
         //   （因为用户提示词优化的目标是生成可直接使用的单条用户消息）
         const messages: ConversationMessage[] =
           selectedOptimizationMode.value === 'system' && hasConversationContext
-            ? optimizationContext.value.map((m) => ({
-                role: m.role,
-                content: m.content,
-              }))
+            ? [
+                // 保留完整的上下文消息（包含 name, tool_calls, tool_call_id 等元数据）
+                ...optimizationContext.value,
+                // 追加当前的测试输入（如果用户输入了新问题）
+                ...(userPrompt ? [{ role: 'user' as const, content: userPrompt }] : [])
+              ]
             : [
                 ...(systemPrompt
                   ? [{ role: 'system' as const, content: systemPrompt }]
@@ -229,24 +234,24 @@ export function usePromptTester(
           },
           {
             ...streamHandler,
-            onToolCall: (toolCall: any) => {
+            onToolCall: (toolCall: ToolCall) => {
               if (!hasTools) return
               console.log(
                 `[usePromptTester] ${type} test tool call received:`,
                 toolCall
               )
-              const toolCallResult = {
-                toolCall: toolCall,
-                status: 'success' as const,
+              const toolCallResult: ToolCallResult = {
+                toolCall,
+                status: 'success',
                 timestamp: new Date(),
               }
-              testPanelRef?.handleToolCall?.(toolCallResult, type)
+              testPanelRef?.handleToolCall(toolCallResult, type)
             },
           }
         )
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`[usePromptTester] ${type} test error:`, error)
-        const errorMessage = error.message || t('test.error.failed')
+        const errorMessage = getErrorMessage(error) || t('test.error.failed')
         const testTypeKey = type === 'original' ? 'originalTestFailed' : 'optimizedTestFailed'
         toast.error(`${t(`test.error.${testTypeKey}`)}: ${errorMessage}`)
       } finally {

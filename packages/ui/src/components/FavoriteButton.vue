@@ -90,7 +90,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject, watch, type Ref } from 'vue';
+import { ref, computed, onMounted, inject, watch, type Ref } from 'vue'
+
 import {
   NButton,
   NIcon,

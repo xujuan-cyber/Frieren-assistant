@@ -1,9 +1,12 @@
-import { reactive, onMounted, onUnmounted, nextTick, inject } from 'vue'
+import { reactive, onMounted, onUnmounted, nextTick, inject, type Ref } from 'vue'
+
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { usePreferences } from './usePreferenceManager'
 import { useI18n } from 'vue-i18n'
+import { asExtendedError } from '../utils/error'
 // 移除过度抽象的 Hook，直接使用 window.electronAPI
 import type { DownloadProgress, UpdateInfo } from '@/types/electron'
+import type { AppServices } from '../types/services'
 
 // 类型定义现在从 @/types/electron 导入，保持统一
 
@@ -34,13 +37,15 @@ export interface UpdaterState {
 
 // 更新器实例类型
 interface UpdaterInstance {
-  checkForUpdates: () => void
-  downloadUpdate: () => void
-  installUpdate: () => void
-  state: 'idle' | 'checking' | 'available' | 'downloading' | 'error'
-  versionInfo: any
-  releaseNotes: string
-  downloadProgress: number
+  state: UpdaterState
+  checkUpdate: () => Promise<void>
+  startDownload: () => Promise<void>
+  installUpdate: () => Promise<void>
+  ignoreUpdate: (version?: string, versionType?: 'stable' | 'prerelease') => Promise<void>
+  unignoreUpdate: (versionType: 'stable' | 'prerelease') => Promise<void>
+  openReleaseUrl: () => Promise<void>
+  downloadStableVersion: () => Promise<void>
+  downloadPrereleaseVersion: () => Promise<void>
 }
 
 // 全局单例状态，确保所有组件共享同一个状态
@@ -85,7 +90,7 @@ export function useUpdater() {
       startDownload: () => Promise.resolve(),
       installUpdate: () => Promise.resolve(),
       ignoreUpdate: () => Promise.resolve(),
-      togglePrerelease: () => Promise.resolve(),
+      unignoreUpdate: () => Promise.resolve(),
       openReleaseUrl: () => Promise.resolve(),
       downloadStableVersion: () => Promise.resolve(),
       downloadPrereleaseVersion: () => Promise.resolve()
@@ -93,7 +98,10 @@ export function useUpdater() {
   }
 
   // Electron环境的实际实现
-  const services = inject('services') as any // 类型断言，避免TypeScript错误
+  const services = inject<Ref<AppServices | null>>('services')
+  if (!services) {
+    throw new Error('[useUpdater] services injection missing')
+  }
   const { setPreference } = usePreferences(services)
   const { t } = useI18n()
 
@@ -454,37 +462,36 @@ export function useUpdater() {
       await checkBothVersions()
     } catch (error) {
       console.error('[useUpdater] Check update error:', error)
-      console.error('[DEBUG] Error properties:', {
-        message: (error as any)?.message,
-        detailedMessage: (error as any)?.detailedMessage,
-        originalError: (error as any)?.originalError,
-        stack: (error as any)?.stack
-      })
+      const extendedError = asExtendedError(error)
+      if (extendedError) {
+        console.error('[DEBUG] Error properties:', {
+          message: extendedError.message,
+          detailedMessage: extendedError.detailedMessage,
+          originalError: extendedError.originalError,
+          stack: extendedError.stack
+        })
+      }
 
       state.lastCheckResult = 'error'
-      // 对于前端 catch 的错误，优先使用详细信息
-      if (error instanceof Error) {
-        // 优先使用 preload.js 中保存的详细错误信息
-        if (error.detailedMessage) {
+      if (extendedError) {
+        if (extendedError.detailedMessage) {
           // 检查是否是开发环境的配置文件缺失错误
-          if (error.detailedMessage.includes('dev-app-update.yml') && error.detailedMessage.includes('ENOENT')) {
+          if (extendedError.detailedMessage.includes('dev-app-update.yml') && extendedError.detailedMessage.includes('ENOENT')) {
             state.lastCheckMessage = 'Development environment: Update checking is disabled (no dev-app-update.yml configured)'
           } else {
-            state.lastCheckMessage = error.detailedMessage
+            state.lastCheckMessage = extendedError.detailedMessage
           }
-        } else if (error.originalError) {
-          state.lastCheckMessage = error.originalError
+        } else if (extendedError.originalError !== undefined) {
+          state.lastCheckMessage = String(extendedError.originalError)
         } else {
-          // 兜底：构建详细错误信息
-          let detailedMessage = `Client Error: ${error.message}`
-          if (error.stack) {
-            detailedMessage += `\n\nStack Trace:\n${error.stack}`
+          let detailedMessage = `Client Error: ${extendedError.message}`
+          if (extendedError.stack) {
+            detailedMessage += `\n\nStack Trace:\n${extendedError.stack}`
           }
           state.lastCheckMessage = detailedMessage
         }
       } else {
-        const fallbackMessage = String(error) || 'Update check failed'
-        state.lastCheckMessage = fallbackMessage
+        state.lastCheckMessage = String(error ?? 'Update check failed')
       }
     } finally {
       state.isCheckingUpdate = false

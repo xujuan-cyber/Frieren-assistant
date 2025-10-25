@@ -4,13 +4,14 @@
  */
 
 import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
+
 import type { AppServices } from '../types/services'
 import type { IVariableManager, ConversationMessage } from '../types/variable'
 import { VariableManager } from '../services/VariableManager'
 
 export interface VariableManagerOptions {
   autoSync?: boolean  // 是否自动同步变量状态
-  context?: any       // 用于解析预定义变量的上下文
+  context?: Record<string, unknown>  // 用于解析预定义变量的上下文
 }
 
 export interface VariableManagerHooks {

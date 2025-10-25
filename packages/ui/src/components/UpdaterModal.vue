@@ -375,11 +375,9 @@ const emit = defineEmits<{
 const {
   state,
   checkUpdate,
-  startDownload,
   installUpdate,
   ignoreUpdate,
   unignoreUpdate,
-  openReleaseUrl,
   downloadStableVersion,
   downloadPrereleaseVersion
 } = useUpdater()
@@ -389,24 +387,14 @@ const handleCheckUpdate = async () => {
   await checkUpdate()
 }
 
-const handleStartDownload = async () => {
-  await startDownload()
-}
 
 const handleInstallUpdate = async () => {
   await installUpdate()
 }
 
-const handleIgnoreUpdate = async (version?: string) => {
-  await ignoreUpdate(version)
-  emit('update:modelValue', false) // 忽略后关闭模态框
-}
 
 
 
-const handleOpenReleaseUrl = async () => {
-  await openReleaseUrl()
-}
 
 const openStableReleaseUrl = async () => {
   if (!state.stableReleaseUrl || !isRunningInElectron() || !window.electronAPI?.shell) return
@@ -466,31 +454,9 @@ const handleUnignorePrereleaseUpdate = async () => {
   await unignoreUpdate('prerelease')
 }
 
-// 打开远程发布页面
-const openRemoteReleaseUrl = async () => {
-  if (!state.remoteReleaseUrl || !isRunningInElectron() || !window.electronAPI?.shell) return
-
-  try {
-    const result = await window.electronAPI.shell.openExternal(state.remoteReleaseUrl)
-
-    if (!result.success) {
-      console.error('[UpdaterModal] Open remote release URL failed:', result.error)
-    }
-  } catch (error) {
-    console.error('[UpdaterModal] Open remote release URL error:', error)
-  }
-}
 
 
 
-// 格式化日期
-const formatDate = (dateString: string) => {
-  try {
-    return new Date(dateString).toLocaleDateString()
-  } catch {
-    return dateString
-  }
-}
 
 // 格式化字节数
 const formatBytes = (bytes: number) => {

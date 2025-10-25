@@ -168,7 +168,8 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue'
+import { type PropType } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NText, NSpace } from 'naive-ui'
 import type { TextModelConfig } from '@prompt-optimizer/core'

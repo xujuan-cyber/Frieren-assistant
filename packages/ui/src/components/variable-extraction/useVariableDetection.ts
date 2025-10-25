@@ -1,4 +1,5 @@
-import { computed, type Ref } from "vue";
+import { computed, type Ref } from 'vue'
+
 
 /**
  * 检测到的变量信息
@@ -47,7 +48,7 @@ export function useVariableDetection(
     while ((match = regex.exec(text)) !== null) {
       const name = match[1];
       // 跳过 Mustache 控制标签 (#、/、^、!、>)
-      if (/^[#\/\^!>]/u.test(name)) {
+      if (/^[#/^!>]/u.test(name)) {
         continue;
       }
       const from = match.index;

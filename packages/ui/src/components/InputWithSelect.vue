@@ -72,7 +72,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+
 import { NInput, NButton, NCard, NEmpty, NSpace } from 'naive-ui';
 
 const props = defineProps({

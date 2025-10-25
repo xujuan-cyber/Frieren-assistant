@@ -1,4 +1,5 @@
-import { computed, ref, type Ref, inject } from 'vue'
+import { computed, ref, inject, type Ref } from 'vue'
+
 import type { AppServices } from '../types/services'
 import type { ImageRequest, ImageResult, ImageModelConfig } from '@prompt-optimizer/core'
 
@@ -36,10 +37,11 @@ export function useImageGeneration() {
       const res = await services.value.imageService.generate(req)
       result.value = res
       progress.value = 'done'
-    } catch (e: any) {
-      error.value = e?.message || String(e)
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e))
+      error.value = err.message
       progress.value = 'error'
-      throw e
+      throw err
     } finally {
       generating.value = false
     }

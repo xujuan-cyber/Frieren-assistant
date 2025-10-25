@@ -241,7 +241,8 @@
 </template>
 
 <script setup lang="ts">
-import { h, inject, onBeforeUnmount, onMounted, reactive, ref, watch, computed, type Ref } from 'vue';
+import { h, inject, onBeforeUnmount, onMounted, reactive, ref, watch, computed, type Ref } from 'vue'
+
 import { useDebounceFn } from '@vueuse/core';
 import {
   NButton,

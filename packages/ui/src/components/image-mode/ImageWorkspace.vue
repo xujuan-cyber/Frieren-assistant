@@ -150,7 +150,7 @@
                                 >
                                     <SelectWithConfig
                                         v-model="selectedTemplateIdForSelect"
-                                        :options="templateOptions as any"
+                                        :options="templateOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
                                         :getSecondary="
                                             OptionAccessors.getSecondary
@@ -170,9 +170,8 @@
                                         @update:modelValue="saveSelections"
                                         @config="
                                             () =>
-                                                appOpenTemplateManager &&
-                                                appOpenTemplateManager(
-                                                    templateType as any,
+                                                onOpenTemplateManager(
+                                                    templateType,
                                                 )
                                         "
                                     />
@@ -200,7 +199,7 @@
                                 <template v-if="appOpenModelManager">
                                     <SelectWithConfig
                                         v-model="selectedTextModelKey"
-                                        :options="textModelOptions as any"
+                                        :options="textModelOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
                                         :getSecondary="
                                             OptionAccessors.getSecondary
@@ -228,7 +227,7 @@
                                 <template v-else>
                                     <SelectWithConfig
                                         v-model="selectedTextModelKey"
-                                        :options="textModelOptions as any"
+                                        :options="textModelOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
                                         :getSecondary="
                                             OptionAccessors.getSecondary
@@ -329,7 +328,7 @@
                                 <template v-if="appOpenModelManager">
                                     <SelectWithConfig
                                         v-model="selectedImageModelKey"
-                                        :options="imageModelOptions as any"
+                                        :options="imageModelOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
                                         :getSecondary="
                                             OptionAccessors.getSecondary
@@ -359,7 +358,7 @@
                                 <template v-else>
                                     <SelectWithConfig
                                         v-model="selectedImageModelKey"
-                                        :options="imageModelOptions as any"
+                                        :options="imageModelOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
                                         :getSecondary="
                                             OptionAccessors.getSecondary
@@ -1095,21 +1094,12 @@
 </template>
 
 <script setup lang="ts">
-import {
-    onMounted,
-    onUnmounted,
-    inject,
-    ref,
-    computed,
-    watch,
-    nextTick,
-    type Ref,
-} from "vue";
+import { onMounted, onUnmounted, inject, ref, computed, watch, nextTick, type Ref } from 'vue'
+
 import {
     NCard,
     NButton,
     NInput,
-    NSelect,
     NEmpty,
     NFormItem,
     NForm,
@@ -1135,8 +1125,7 @@ import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
 import TestResultSection from "../TestResultSection.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
-import ImageModeSelector, { type ImageMode } from "./ImageModeSelector.vue";
-import { useImageWorkspace } from "../../composables/useImageWorkspace";
+import { useImageWorkspace, type ImageUploadChangePayload } from "../../composables/useImageWorkspace";
 import { DataTransformer, OptionAccessors } from "../../utils/data-transformer";
 import type { AppServices } from "../../types/services";
 import { useFullscreen } from "../../composables/useFullscreen";
@@ -1166,11 +1155,9 @@ const {
     selectedImageModelKey,
     selectedTemplate,
     selectedIterateTemplate,
-    inputImageB64,
     isCompareMode,
     originalImageResult,
     optimizedImageResult,
-    currentImageResult,
     currentVersions,
     currentVersionId,
     uploadStatus,
@@ -1189,8 +1176,6 @@ const {
 
     // 图像生成状态
     isGenerating,
-    generationProgress,
-    generationError,
 
     // 方法
     initialize,
@@ -1213,37 +1198,30 @@ const {
 const promptPanelRef = ref<InstanceType<typeof PromptPanelUI> | null>(null);
 
 // 注入 App 层统一的 openTemplateManager / openModelManager / handleSaveFavorite 接口
+type TemplateEntryType =
+    | "optimize"
+    | "userOptimize"
+    | "iterate"
+    | "text2imageOptimize"
+    | "image2imageOptimize"
+    | "imageIterate";
+
 const appOpenTemplateManager = inject<
-    (
-        type?:
-            | "optimize"
-            | "userOptimize"
-            | "iterate"
-            | "text2imageOptimize"
-            | "image2imageOptimize"
-            | "imageIterate",
-    ) => void
->("openTemplateManager", null as any);
-const appOpenModelManager = inject<(tab?: "text" | "image") => void>(
+    ((type?: TemplateEntryType) => void) | null
+>("openTemplateManager", null);
+const appOpenModelManager = inject<((tab?: "text" | "image") => void) | null>(
     "openModelManager",
-    null as any,
+    null,
 );
 const appHandleSaveFavorite = inject<
-    (data: { content: string; originalContent?: string }) => void
->("handleSaveFavorite", null as any);
+    ((data: { content: string; originalContent?: string }) => void) | null
+>("handleSaveFavorite", null);
 
 // 将迭代类型映射为图像迭代，并调用 App 入口
-const onOpenTemplateManager = (
-    type:
-        | "optimize"
-        | "userOptimize"
-        | "iterate"
-        | "text2imageOptimize"
-        | "image2imageOptimize"
-        | "imageIterate",
-) => {
-    const target = type === "iterate" ? "imageIterate" : type;
-    if (appOpenTemplateManager) appOpenTemplateManager(target as any);
+const onOpenTemplateManager = (type: TemplateEntryType) => {
+    const target: TemplateEntryType =
+        type === "iterate" ? "imageIterate" : type;
+    appOpenTemplateManager?.(target);
 };
 
 // 模板列表（根据当前 image 模式的模板类型加载）
@@ -1252,9 +1230,10 @@ const templateOptions = ref<TemplateSelectOption[]>([]);
 const loadTemplateList = async () => {
     try {
         if (services?.value?.templateManager) {
+            const currentType = templateType.value;
             const list =
                 await services.value.templateManager.listTemplatesByType(
-                    templateType.value as any,
+                    currentType,
                 );
             templateOptions.value = DataTransformer.templatesToSelectOptions(
                 list || [],
@@ -1264,7 +1243,7 @@ const loadTemplateList = async () => {
             // 模板选择的逻辑应该完全由 useImageWorkspace 的 restoreTemplateSelection 处理
             console.log(
                 "[ImageWorkspace] Template list loaded for type:",
-                templateType.value,
+                currentType,
                 "count:",
                 templateOptions.value.length,
             );
@@ -1313,13 +1292,13 @@ const selectedTemplateIdForSelect = computed<string>({
     },
     set(id: string) {
         if (!id) {
-            (selectedTemplate as any).value = null;
+            selectedTemplate.value = null;
             return;
         }
         const option =
             (templateOptions.value || []).find((opt) => opt.value === id) ||
             null;
-        (selectedTemplate as any).value = option?.raw || null;
+        selectedTemplate.value = option?.raw || null;
         // 用户选择模板时立即保存到对应模式的存储键
         if (option?.raw) {
             nextTick(() => {
@@ -1341,7 +1320,7 @@ const openUploadModal = () => {
 };
 
 // 弹窗中的上传处理
-const handleModalUploadChange = (data: any) => {
+const handleModalUploadChange = (data: ImageUploadChangePayload) => {
     // 复用原有的上传逻辑
     handleUploadChange(data);
     // 上传成功后关闭弹窗
@@ -1386,20 +1365,24 @@ const copyImageText = async (text: string) => {
 };
 
 // 处理收藏回填 - 从收藏夹恢复提示词到图像工作区
-const handleRestoreFavorite = (event: CustomEvent) => {
+interface RestoreFavoriteDetail {
+    content: string;
+    imageSubMode?: "text2image" | "image2image";
+}
+
+const handleRestoreFavorite = (event: Event) => {
+    if (!(event instanceof CustomEvent)) {
+        return;
+    }
     console.log(
         "[ImageWorkspace] handleRestoreFavorite triggered:",
         event.detail,
     );
-
-    const { content, imageSubMode, metadata } = event.detail;
+    const { content, imageSubMode } = event.detail as RestoreFavoriteDetail;
 
     // 设置图像子模式
-    if (
-        imageSubMode &&
-        (imageSubMode === "text2image" || imageSubMode === "image2image")
-    ) {
-        (imageMode as any).value = imageSubMode;
+    if (imageSubMode) {
+        imageMode.value = imageSubMode;
     }
 
     // 设置原始提示词
@@ -1412,7 +1395,7 @@ const handleRestoreFavorite = (event: CustomEvent) => {
 if (typeof window !== "undefined") {
     window.addEventListener(
         "image-workspace-restore-favorite",
-        handleRestoreFavorite as any,
+        handleRestoreFavorite,
     );
     console.log(
         "[ImageWorkspace] Favorite restore event listener registered immediately on component creation",
@@ -1549,7 +1532,7 @@ onUnmounted(() => {
         );
         window.removeEventListener(
             "image-workspace-restore-favorite",
-            handleRestoreFavorite as any,
+            handleRestoreFavorite,
         );
     }
 });

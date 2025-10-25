@@ -1736,7 +1736,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, shallowRef, nextTick, h } from "vue";
+import { ref, computed, watch, shallowRef, nextTick, h } from 'vue'
+
 import { useI18n } from "vue-i18n";
 import {
     NModal,
@@ -1888,16 +1889,6 @@ const tagSize = computed(() => {
         large: "medium",
     } as const;
     return sizeMap[responsiveButtonSize.value] || "small";
-});
-
-// 模式化行为：用户模式禁止编辑消息，仅允许管理变量和工具
-const canEditMessages = computed(() => {
-    // readonly优先级最高
-    if (props.readonly) return false;
-    // 用户模式不允许编辑消息
-    if (props.contextMode === "user") return false;
-    // 系统模式允许编辑
-    return true;
 });
 
 // 是否显示消息编辑标签页：用户模式隐藏

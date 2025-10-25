@@ -1,4 +1,5 @@
 import { ref, computed, inject } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import { useToast } from './useToast'
 import type {
@@ -10,6 +11,20 @@ import type {
   IImageService
 } from '@prompt-optimizer/core'
 import { useModelAdvancedParameters } from './useModelAdvancedParameters'
+
+type EditableImageModelConfig = Omit<ImageModelConfig, 'provider' | 'model'> & {
+  provider?: ImageProvider
+  model?: ImageModel
+}
+
+const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message
+  try {
+    return String(error)
+  } catch {
+    return 'Unknown error'
+  }
+}
 
 export function useImageModelManager() {
   const { t } = useI18n()
@@ -35,7 +50,7 @@ export function useImageModelManager() {
   const selectedModelId = ref('')
 
   // 表单状态（不包含provider和model字段，仅用于编辑）
-  const configForm = ref<Omit<ImageModelConfig, 'provider' | 'model'>>({
+  const configForm = ref<EditableImageModelConfig>({
     id: '',
     name: '',
     providerId: '',
@@ -87,12 +102,15 @@ export function useImageModelManager() {
     providerId: selectedProviderId,
     modelId: selectedModelId,
     savedModelMeta: computed(() => {
-      // 优先使用表单中已保存的模型元数据
-      const currentConfig = configForm.value as any
-      if (currentConfig?.model?.id === selectedModelId.value) {
-        return currentConfig.model
+      if (configForm.value.id) {
+        const existing = configs.value.find(config => config.id === configForm.value.id)
+        if (existing?.model && existing.model.id === selectedModelId.value) {
+          return existing.model
+        }
       }
-      // 其次使用选中的模型
+      if (configForm.value.model && configForm.value.model.id === selectedModelId.value) {
+        return configForm.value.model
+      }
       return selectedModel.value
     }),
     getParamOverrides: () => configForm.value.paramOverrides ?? {},
@@ -256,7 +274,7 @@ export function useImageModelManager() {
 
     // 2. 如果支持动态获取且用户已配置连接信息
     if (registry.supportsDynamicModels(providerId)) {
-      const connectionConfig = getConnectionConfig(providerId)
+      const connectionConfig = getConnectionConfig()
       if (connectionConfig && hasValidConnectionConfig(connectionConfig)) {
         // 异步加载动态模型，不阻塞UI
         refreshDynamicModels().catch(error => {
@@ -273,12 +291,12 @@ export function useImageModelManager() {
   }
 
   // 获取连接配置（辅助方法）
-  const getConnectionConfig = (providerId: string) => {
-    return configForm.value.connectionConfig || {}
+  const getConnectionConfig = () => {
+    return configForm.value.connectionConfig ?? {}
   }
 
   // 验证连接配置是否有效（辅助方法）
-  const hasValidConnectionConfig = (connectionConfig: Record<string, any>) => {
+  const hasValidConnectionConfig = (connectionConfig: Record<string, unknown>) => {
     const provider = selectedProvider.value
     if (!provider?.connectionSchema) return true
 
@@ -286,7 +304,7 @@ export function useImageModelManager() {
   }
 
   // 详细校验：返回缺失字段与类型不符列表
-  const validateConnectionConfigDetailed = (connectionConfig: Record<string, any>) => {
+  const validateConnectionConfigDetailed = (connectionConfig: Record<string, unknown>) => {
     const provider = selectedProvider.value
     const missing: string[] = []
     const typeErrors: { field: string; expected: string; actual: string }[] = []
@@ -346,8 +364,10 @@ export function useImageModelManager() {
 
   // 连接测试
   // 辅助函数：根据模型能力选择测试类型
-  const selectTestType = (model: any): 'text2image' | 'image2image' => {
-    const { text2image, image2image } = model.capabilities || {}
+  const selectTestType = (model: ImageModel): 'text2image' | 'image2image' => {
+    const capabilities = model.capabilities || {}
+    const text2image = capabilities?.text2image
+    const image2image = capabilities?.image2image
 
     if (text2image && !image2image) {
       return 'text2image'  // 只支持文生图
@@ -442,13 +462,14 @@ export function useImageModelManager() {
       toast.success(t('image.connection.testSuccess'))
 
     } catch (error) {
+      const message = toErrorMessage(error)
       console.error('Connection test failed:', error)
       connectionStatus.value = {
         type: 'error',
         messageKey: 'image.connection.testError',
-        detail: (error as any)?.message || String(error)
+        detail: message
       }
-      toast.error(`${t('image.connection.testError')}: ${(error as any)?.message || String(error)}`)
+      toast.error(`${t('image.connection.testError')}: ${message}`)
     } finally {
       isTestingConnection.value = false
     }
@@ -460,7 +481,7 @@ export function useImageModelManager() {
       return
     }
 
-    const connectionConfig = getConnectionConfig(selectedProviderId.value)
+    const connectionConfig = getConnectionConfig()
     if (!connectionConfig || !hasValidConnectionConfig(connectionConfig)) {
       const detail = validateConnectionConfigDetailed(connectionConfig || {})
       const parts: string[] = []
@@ -503,7 +524,7 @@ export function useImageModelManager() {
         type: 'warning',
         messageKey: 'image.model.dynamicFailed',
         count: staticModels.length,
-        detail: (error as any)?.message || String(error)
+        detail: toErrorMessage(error)
       }
     } finally {
       isLoadingDynamicModels.value = false

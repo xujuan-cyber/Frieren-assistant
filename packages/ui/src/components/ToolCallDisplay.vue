@@ -87,6 +87,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import { 
   NCollapse, NCollapseItem, NSpace, NIcon, NText, NTag, NCard, 
@@ -116,14 +117,6 @@ const props = withDefaults(defineProps<Props>(), {
 // 展开状态管理
 const expandedNames = ref<string[]>([])
 
-// 初始化展开状态
-const initializeExpandedState = () => {
-  if (props.defaultExpanded && props.toolCalls && props.toolCalls.length > 0) {
-    expandedNames.value = ['tool-calls']
-  } else {
-    expandedNames.value = []
-  }
-}
 
 // 监听工具调用变化，自动展开
 watch(() => props.toolCalls, (newToolCalls) => {

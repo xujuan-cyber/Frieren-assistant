@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, inject } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import { NSelect, NButton, NSpace, NText } from 'naive-ui'
 import type { OptimizationMode, Template, TemplateMetadata } from '@prompt-optimizer/core'
@@ -160,7 +161,7 @@ const loadTemplatesByType = async () => {
   }
 
   // 统一使用异步方法，立即抛错不静默处理
-  const typeTemplates = await templateManager.value.listTemplatesByType(props.type as any)
+  const typeTemplates = await templateManager.value.listTemplatesByType(props.type)
   templates.value.splice(0, templates.value.length, ...typeTemplates)
 }
 

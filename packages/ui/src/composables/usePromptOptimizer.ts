@@ -1,6 +1,8 @@
 import { ref, nextTick, computed, reactive, type Ref } from 'vue'
+
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '../utils/error'
 
 import { v4 as uuidv4 } from 'uuid'
 import type {
@@ -13,13 +15,20 @@ import type {
   ITemplateManager,
   OptimizationMode,
   OptimizationRequest,
-  ConversationMessage
+  ConversationMessage,
+  ToolDefinition
 } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import { useFunctionMode, type FunctionMode } from './useFunctionMode'
 
 
 type PromptChain = PromptRecordChain
+
+interface AdvancedContextPayload {
+  variables: Record<string, string>
+  messages?: ConversationMessage[]
+  tools?: ToolDefinition[]
+}
 
 /**
  * 提示词优化器Hook
@@ -67,14 +76,14 @@ export function usePromptOptimizer(
     selectedIterateTemplate: null as Template | null,
     currentChainId: '',
     currentVersions: [] as PromptChain['versions'],
-    currentVersionId: '',
-    
-    // 方法 (将在下面定义并绑定到 state)
-    handleOptimizePrompt: async () => {},
-    handleOptimizePromptWithContext: async (advancedContext: { variables: Record<string, string>, messages?: ConversationMessage[], tools?: any[] }) => {},
-    handleIteratePrompt: async (payload: { originalPrompt: string, optimizedPrompt: string, iterateInput: string }) => {},
-    handleSwitchVersion: async (version: PromptChain['versions'][number]) => {}
-  })
+  currentVersionId: '',
+  
+  // 方法 (将在下面定义并绑定到 state)
+  handleOptimizePrompt: async () => {},
+  handleOptimizePromptWithContext: async (_advancedContext: AdvancedContextPayload) => {},
+  handleIteratePrompt: async (payload: { originalPrompt: string, optimizedPrompt: string, iterateInput: string }) => {},
+  handleSwitchVersion: async (version: PromptChain['versions'][number]) => {}
+})
   
   // 注意：存储键现在由 useTemplateManager 统一管理
   
@@ -164,9 +173,9 @@ export function usePromptOptimizer(
               state.currentVersionId = newRecord.currentRecord.id;
 
               toast.success(t('toast.success.optimizeSuccess'))
-            } catch (error) {
+            } catch (error: unknown) {
               console.error('创建历史记录失败:', error)
-              toast.error('创建历史记录失败: ' + (error as Error).message)
+              toast.error('创建历史记录失败: ' + getErrorMessage(error))
             } finally {
               state.isOptimizing = false
             }
@@ -178,16 +187,16 @@ export function usePromptOptimizer(
           }
         }
       )
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(t('toast.error.optimizeFailed'), error)
-      toast.error(error.message || t('toast.error.optimizeFailed'))
+      toast.error(getErrorMessage(error) || t('toast.error.optimizeFailed'))
     } finally {
       state.isOptimizing = false
     }
   }
   
   // 带上下文的优化提示词
-  state.handleOptimizePromptWithContext = async (advancedContext: { variables: Record<string, string>, messages?: ConversationMessage[], tools?: any[] }) => {
+  state.handleOptimizePromptWithContext = async (advancedContext: AdvancedContextPayload) => {
     if (!state.prompt.trim() || state.isOptimizing) return
 
     // 根据优化模式选择对应的模板
@@ -280,9 +289,9 @@ export function usePromptOptimizer(
               state.currentVersionId = newRecord.currentRecord.id;
 
               toast.success(t('toast.success.optimizeSuccess'))
-            } catch (error) {
+            } catch (error: unknown) {
               console.error('创建历史记录失败:', error)
-              toast.error('创建历史记录失败: ' + (error as Error).message)
+              toast.error('创建历史记录失败: ' + getErrorMessage(error))
             } finally {
               state.isOptimizing = false
             }
@@ -294,9 +303,9 @@ export function usePromptOptimizer(
           }
         }
       )
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(t('toast.error.optimizeFailed'), error)
-      toast.error(error.message || t('toast.error.optimizeFailed'))
+      toast.error(getErrorMessage(error) || t('toast.error.optimizeFailed'))
     } finally {
       state.isOptimizing = false
     }
@@ -354,7 +363,7 @@ export function usePromptOptimizer(
               state.currentVersionId = updatedChain.currentRecord.id
               
               toast.success(t('toast.success.iterateComplete'))
-            } catch (error) {
+            } catch (error: unknown) {
               console.error('[History] 迭代记录失败:', error)
               toast.warning(t('toast.warning.historyFailed'))
             } finally {
@@ -369,7 +378,7 @@ export function usePromptOptimizer(
         },
         state.selectedIterateTemplate.id
       )
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[Iterate] 迭代失败:', error)
       toast.error(t('toast.error.iterateFailed'))
       state.isIterating = false

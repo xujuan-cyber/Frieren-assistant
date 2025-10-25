@@ -415,7 +415,7 @@ export class PromptDataConverter implements DataConverter {
   /**
    * 验证数据格式是否有效
    */
-  validate(data: any, format: 'standard' | 'langfuse' | 'openai' | 'conversation'): ConversionResult<boolean> {
+  validate(data: unknown, format: 'standard' | 'langfuse' | 'openai' | 'conversation'): ConversionResult<boolean> {
     try {
       switch (format) {
         case 'standard':
@@ -451,20 +451,28 @@ export class PromptDataConverter implements DataConverter {
   }
 
   // 私有方法：验证标准格式
-  private validateStandardFormat(data: any): ConversionResult<boolean> {
+  private validateStandardFormat(data: unknown): ConversionResult<boolean> {
     if (!data || typeof data !== 'object') {
       return { success: false, error: 'Data must be an object' }
     }
 
-    if (!data.messages || !Array.isArray(data.messages)) {
+    const payload = data as { messages?: unknown }
+
+    if (!payload.messages || !Array.isArray(payload.messages)) {
       return { success: false, error: 'Messages must be an array' }
     }
 
-    for (const [index, message] of data.messages.entries()) {
-      if (!message.role || !['system', 'user', 'assistant', 'tool'].includes(message.role)) {
+    for (const [index, message] of payload.messages.entries()) {
+      if (!message || typeof message !== 'object') {
+        return { success: false, error: `Invalid message at index ${index}` }
+      }
+
+      const typedMessage = message as { role?: unknown; content?: unknown }
+
+      if (!typedMessage.role || !['system', 'user', 'assistant', 'tool'].includes(String(typedMessage.role))) {
         return { success: false, error: `Invalid role in message ${index}` }
       }
-      if (typeof message.content !== 'string') {
+      if (typeof typedMessage.content !== 'string') {
         return { success: false, error: `Invalid content in message ${index}` }
       }
     }
@@ -473,46 +481,56 @@ export class PromptDataConverter implements DataConverter {
   }
 
   // 私有方法：验证LangFuse格式
-  private validateLangFuseFormat(data: any): ConversionResult<boolean> {
+  private validateLangFuseFormat(data: unknown): ConversionResult<boolean> {
     if (!data || typeof data !== 'object') {
       return { success: false, error: 'LangFuse data must be an object' }
     }
 
-    if (!data.input || !data.input.messages) {
+    const payload = data as { input?: { messages?: unknown } }
+
+    if (!payload.input || !payload.input.messages) {
       return { success: false, error: 'LangFuse data must have input.messages' }
     }
 
-    return this.validateStandardFormat({ messages: data.input.messages })
+    return this.validateStandardFormat({ messages: payload.input.messages })
   }
 
   // 私有方法：验证OpenAI格式
-  private validateOpenAIFormat(data: any): ConversionResult<boolean> {
+  private validateOpenAIFormat(data: unknown): ConversionResult<boolean> {
     if (!data || typeof data !== 'object') {
       return { success: false, error: 'OpenAI data must be an object' }
     }
 
-    if (!data.messages || !Array.isArray(data.messages)) {
+    const payload = data as { messages?: unknown; model?: unknown }
+
+    if (!payload.messages || !Array.isArray(payload.messages)) {
       return { success: false, error: 'OpenAI data must have messages array' }
     }
 
-    if (!data.model || typeof data.model !== 'string') {
+    if (!payload.model || typeof payload.model !== 'string') {
       return { success: false, error: 'OpenAI data must have model string' }
     }
 
-    return this.validateStandardFormat(data)
+    return this.validateStandardFormat({ messages: payload.messages })
   }
 
   // 私有方法：验证会话格式
-  private validateConversationFormat(data: any): ConversionResult<boolean> {
+  private validateConversationFormat(data: unknown): ConversionResult<boolean> {
     if (!Array.isArray(data)) {
       return { success: false, error: 'Conversation data must be an array' }
     }
 
     for (const [index, message] of data.entries()) {
-      if (!message.role || !['system', 'user', 'assistant', 'tool'].includes(message.role)) {
+      if (!message || typeof message !== 'object') {
+        return { success: false, error: `Invalid message at index ${index}` }
+      }
+
+      const typedMessage = message as { role?: unknown; content?: unknown }
+
+      if (!typedMessage.role || !['system', 'user', 'assistant', 'tool'].includes(String(typedMessage.role))) {
         return { success: false, error: `Invalid role in conversation message ${index}` }
       }
-      if (typeof message.content !== 'string') {
+      if (typeof typedMessage.content !== 'string') {
         return { success: false, error: `Invalid content in conversation message ${index}` }
       }
     }

@@ -1,4 +1,5 @@
-import { computed, type Ref } from "vue";
+import { computed, type Ref } from 'vue'
+
 import type { ContextMode } from "@prompt-optimizer/core";
 
 /**

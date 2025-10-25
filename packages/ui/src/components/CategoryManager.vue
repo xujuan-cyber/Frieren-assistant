@@ -125,7 +125,8 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, computed, inject, onMounted, watch, type Ref, type VNodeChild } from 'vue';
+import { h, ref, computed, inject, onMounted, watch, type Ref, type VNodeChild } from 'vue'
+
 import {
   NButton,
   NIcon,

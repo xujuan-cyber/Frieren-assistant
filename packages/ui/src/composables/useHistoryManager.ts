@@ -1,9 +1,12 @@
 import { reactive, type Ref } from 'vue'
+
 import type { AppServices } from '../types/services'
+
+import type { PromptRecordChain, PromptRecord } from '@prompt-optimizer/core'
 
 export interface HistoryManagerHooks {
   showHistory: boolean
-  handleSelectHistory: (historyItem: any) => void
+  handleSelectHistory: (historyItem: PromptRecord) => void
   handleClearHistory: () => void
   handleDeleteChain: (chainId: string) => void
 }
@@ -26,16 +29,16 @@ export function useHistoryManager(
   prompt: Ref<string>,
   optimizedPrompt: Ref<string>,
   currentChainId: Ref<string | null>,
-  currentVersions: Ref<any[]>,
+  currentVersions: Ref<PromptRecordChain['versions']>,
   currentVersionId: Ref<string | null>,
-  handleSelectHistoryBase: (historyItem: any) => void,
+  handleSelectHistoryBase: (historyItem: PromptRecord) => void,
   handleClearHistoryBase: () => void,
   handleDeleteChainBase: (chainId: string) => void
 ): HistoryManagerHooks {
   // 创建一个 reactive 状态对象
   const state = reactive<HistoryManagerHooks>({
     showHistory: false,
-    handleSelectHistory: (historyItem: any) => {
+    handleSelectHistory: (historyItem: PromptRecord) => {
       handleSelectHistoryBase(historyItem)
       state.showHistory = false
     },

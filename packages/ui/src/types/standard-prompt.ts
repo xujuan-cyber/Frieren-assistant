@@ -52,6 +52,7 @@ export interface StandardPromptData {
       name?: string
       version?: string
       variables?: string[]
+      [key: string]: unknown
     }
     timestamp?: string
     [key: string]: unknown

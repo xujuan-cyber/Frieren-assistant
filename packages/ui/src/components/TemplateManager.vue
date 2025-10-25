@@ -630,6 +630,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick, inject } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import {
   NModal, NCard, NButton, NTag, NInput,
@@ -973,17 +974,21 @@ const moveMessage = (index: number, direction: number) => {
 }
 
 // 初始化textarea高度 - 只在打开时调用一次
-const initializeTextareaHeight = (textarea: HTMLTextAreaElement) => {
-  if (!textarea || (textarea as any)._initialized) return
-  
+type AdjustableTextarea = HTMLTextAreaElement & { _initialized?: boolean }
+
+const initializeTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+  if (!textarea) return
+  const element = textarea as AdjustableTextarea
+  if (element._initialized) return
+
   try {
     const minHeight = 80
     const maxHeight = 280
     
     // 设置为auto以获取内容实际高度
     // const originalHeight = textarea.style.height  // 保留用于可能的需要
-    textarea.style.height = 'auto'
-    const scrollHeight = textarea.scrollHeight
+    element.style.height = 'auto'
+    const scrollHeight = element.scrollHeight
     
     let initialHeight
     if (scrollHeight <= minHeight) {
@@ -994,8 +999,8 @@ const initializeTextareaHeight = (textarea: HTMLTextAreaElement) => {
       initialHeight = scrollHeight
     }
     
-    textarea.style.height = initialHeight + 'px'
-    ;(textarea as any)._initialized = true
+    element.style.height = initialHeight + 'px'
+    element._initialized = true
   } catch (error) {
     console.warn('Textarea initialization error:', error)
   }

@@ -1,4 +1,6 @@
-import type { OptimizationMode } from '@prompt-optimizer/core'
+import type { Slot } from 'vue'
+
+import type { OptimizationMode, ToolCallResult } from '@prompt-optimizer/core'
 
 // 基础尺寸类型
 export type ComponentSize = 'small' | 'medium' | 'large'
@@ -191,28 +193,32 @@ export interface TestResultConfig {
   }
 }
 
+// TestAreaPanel 暴露的工具调用状态
+export interface TestAreaToolCallState {
+  original: ToolCallResult[]
+  optimized: ToolCallResult[]
+}
+
 // 组件实例类型
 export interface TestAreaPanelInstance {
-  // 公开方法
-  toggleCompareMode: () => void
-  startTest: () => void
-  resetResults: () => void
-  
-  // 状态访问
-  readonly isTestRunning: boolean
-  readonly showTestInput: boolean
-  readonly canStartTest: boolean
+  clearToolCalls: (testType?: 'original' | 'optimized' | 'both') => void
+  handleToolCall: (toolCall: ToolCallResult, testType: 'original' | 'optimized') => void
+  getToolCalls: () => TestAreaToolCallState
+  getVariableValues: () => Record<string, string>
+  setVariableValues: (values: Record<string, string>) => void
+  showPreview: () => void
+  hidePreview: () => void
 }
 
 // 插槽类型定义
 export interface TestAreaSlots {
-  'model-select': () => any
-  'secondary-controls': () => any
-  'custom-actions': () => any
-  'conversation-manager': () => any
-  'original-result': () => any
-  'optimized-result': () => any
-  'single-result': () => any
+  'model-select'?: Slot
+  'secondary-controls'?: Slot
+  'custom-actions'?: Slot
+  'conversation-manager'?: Slot
+  'original-result'?: Slot
+  'optimized-result'?: Slot
+  'single-result'?: Slot
 }
 
 // 事件回调类型

@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import { NSelect, NButton, NText, NSpace } from 'naive-ui'
 import type { AppServices } from '../types/services'

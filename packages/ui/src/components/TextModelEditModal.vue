@@ -183,6 +183,7 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import {
   NModal,
@@ -205,14 +206,10 @@ import {
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
 import type { TextModelManager } from '../composables/useTextModelManager'
 
-const { show, configId } = defineProps({
+const { show } = defineProps({
   show: {
     type: Boolean,
     default: false
-  },
-  configId: {
-    type: String,
-    default: ''
   }
 })
 

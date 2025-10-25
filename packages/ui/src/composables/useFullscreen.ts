@@ -1,5 +1,6 @@
 import { ref, watch, type ComputedRef } from 'vue'
 
+
 export function useFullscreen(
   modelValue: ComputedRef<string> | { value: string }, 
   emitUpdateValue: (value: string) => void

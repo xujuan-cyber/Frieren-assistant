@@ -4,6 +4,7 @@
  */
 
 import { ref, computed } from 'vue'
+
 import type { 
   StandardPromptData,
   ConversionResult,
@@ -192,12 +193,17 @@ export function useContextEditor() {
   }
 
   // 智能变量建议
+  const coerceVariableCategory = (value: string): VariableSuggestion['category'] => {
+    const allowed: VariableSuggestion['category'][] = ['database', 'examples', 'rules', 'context', 'input', 'output', 'custom']
+    return allowed.includes(value as VariableSuggestion['category']) ? (value as VariableSuggestion['category']) : 'custom'
+  }
+
   const suggestVariableNames = (selectedText: string): VariableSuggestion[] => {
     try {
       return variableExtractor.suggestVariableNames(selectedText).map(suggestion => ({
         name: suggestion.name,
         confidence: suggestion.confidence,
-        category: suggestion.category as any,
+        category: coerceVariableCategory(suggestion.category),
         description: suggestion.reason
       }))
     } catch (err) {

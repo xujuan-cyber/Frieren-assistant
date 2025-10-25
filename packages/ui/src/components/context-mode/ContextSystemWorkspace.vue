@@ -210,7 +210,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ref } from 'vue'
+
 import { useI18n } from "vue-i18n";
 import { NCard, NFlex, NButton, NText, NTag } from "naive-ui";
 import { useBreakpoints } from "@vueuse/core";
@@ -219,7 +220,13 @@ import PromptPanelUI from "../PromptPanel.vue";
 import TestAreaPanel from "../TestAreaPanel.vue";
 import ConversationManager from "./ConversationManager.vue";
 import type { OptimizationMode, ConversationMessage } from "../../types";
-import type { IServices } from "@prompt-optimizer/core";
+import type {
+    IServices,
+    PromptRecord,
+    Template,
+} from "@prompt-optimizer/core";
+import type { TestAreaPanelInstance } from "../types/test-area";
+import type { IteratePayload, SaveFavoritePayload } from "../../types/workspace";
 
 // 响应式断点
 const breakpoints = useBreakpoints({
@@ -242,9 +249,9 @@ interface Props {
     isTestRunning?: boolean;
 
     // 版本管理
-    versions: any[];
+    versions: PromptRecord[];
     currentVersionId: string | null;
-    selectedIterateTemplate: any;
+    selectedIterateTemplate: Template | null;
 
     // 上下文数据 (系统模式专属)
     optimizationContext: ConversationMessage[];
@@ -286,18 +293,18 @@ const emit = defineEmits<{
     // 数据更新
     "update:prompt": [value: string];
     "update:optimizedPrompt": [value: string];
-    "update:selectedIterateTemplate": [value: any];
+    "update:selectedIterateTemplate": [value: Template | null];
     "update:optimizationContext": [value: ConversationMessage[]];
     "update:testContent": [value: string];
     "update:isCompareMode": [value: boolean];
 
     // 操作事件
     optimize: [];
-    iterate: [payload: any];
+    iterate: [payload: IteratePayload];
     test: [testVariables: Record<string, string>]; // 🆕 传递测试变量
     "compare-toggle": [];
-    "switch-version": [versionId: any];
-    "save-favorite": [data: any];
+    "switch-version": [version: PromptRecord];
+    "save-favorite": [data: SaveFavoritePayload];
 
     // 打开面板/管理器
     "open-global-variables": [];
@@ -319,7 +326,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 // 🆕 TestAreaPanel 引用
-const testAreaPanelRef = ref<any>(null);
+const testAreaPanelRef = ref<TestAreaPanelInstance | null>(null);
 
 // 🆕 处理测试事件并获取测试变量
 const handleTestWithVariables = async () => {
@@ -329,4 +336,9 @@ const handleTestWithVariables = async () => {
     // 触发测试事件，传递测试变量给 App.vue
     emit('test', testVariables);
 };
+
+// 暴露 TestAreaPanel 引用给父组件（用于工具调用等高级功能）
+defineExpose({
+    testAreaPanelRef
+});
 </script>

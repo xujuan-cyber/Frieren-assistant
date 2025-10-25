@@ -1,4 +1,5 @@
-import { ref, computed, inject, type Ref } from 'vue';
+import { ref, computed, inject, type Ref } from 'vue'
+
 import type { AppServices } from '../types/services';
 import { TagTypeConverter } from '@prompt-optimizer/core';
 

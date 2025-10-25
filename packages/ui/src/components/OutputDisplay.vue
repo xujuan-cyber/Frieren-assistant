@@ -42,7 +42,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, inject, type Ref } from 'vue';
+import { computed, ref, inject, type Ref } from 'vue'
+
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import OutputDisplayFullscreen from './OutputDisplayFullscreen.vue';
 import type { AppServices } from '../types/services';

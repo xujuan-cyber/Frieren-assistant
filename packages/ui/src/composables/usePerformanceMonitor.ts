@@ -1,5 +1,16 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+
 import type { PerformanceMetrics } from '../types/components'
+
+interface PerformanceMemory {
+  usedJSHeapSize: number
+  totalJSHeapSize: number
+  jsHeapSizeLimit: number
+}
+
+type PerformanceWithMemory = Performance & {
+  memory?: PerformanceMemory
+}
 
 /**
  * 性能监控 Composable
@@ -51,9 +62,11 @@ export function usePerformanceMonitor(componentName: string = 'Unknown') {
 
   // 获取内存使用情况
   const updateMemoryUsage = () => {
-    if (typeof performance !== 'undefined' && (performance as any).memory) {
-      const memory = (performance as any).memory
-      memoryUsage.value = memory.usedJSHeapSize
+    if (typeof performance !== 'undefined') {
+      const perf = performance as PerformanceWithMemory
+      if (perf.memory) {
+        memoryUsage.value = perf.memory.usedJSHeapSize
+      }
     }
   }
 
@@ -132,7 +145,7 @@ export function usePerformanceMonitor(componentName: string = 'Unknown') {
     if (typeof PerformanceObserver !== 'undefined') {
       performanceObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries()
-        entries.forEach((entry) => {
+        entries.forEach((entry: PerformanceEntry) => {
           if (entry.name.includes(componentName)) {
             console.debug(`Performance: ${entry.name} took ${entry.duration.toFixed(2)}ms`)
           }

@@ -1,4 +1,5 @@
 import { ref, readonly, type Ref } from 'vue'
+
 import type { AppServices } from '../types/services'
 import { usePreferences } from './usePreferenceManager'
 import { UI_SETTINGS_KEYS, type ImageSubMode } from '@prompt-optimizer/core'

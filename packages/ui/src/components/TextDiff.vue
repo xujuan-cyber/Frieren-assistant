@@ -27,6 +27,7 @@
   
   <script setup lang="ts">
 import { computed } from 'vue'
+
 import { NTag, NCard, NFlex, NScrollbar } from 'naive-ui'
 import type { CompareResult, ChangeType } from '@prompt-optimizer/core'
 import { useNaiveTheme } from '../composables/useNaiveTheme'

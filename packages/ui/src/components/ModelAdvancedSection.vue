@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import {
   NButton,
@@ -112,8 +113,7 @@ import {
   useMessage,
   createDiscreteApi
 } from 'naive-ui'
-import type { MessageApiInjection, UnifiedParameterDefinition } from '@prompt-optimizer/core'
-import { isSafeCustomKey } from '@prompt-optimizer/core'
+import { isSafeCustomKey, type MessageApiInjection, type UnifiedParameterDefinition } from '@prompt-optimizer/core'
 import ModelParameterEditor from './ModelParameterEditor.vue'
 
 const props = defineProps({

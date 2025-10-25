@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+
 import { NModal, NFlex } from 'naive-ui'
 
 const props = defineProps({

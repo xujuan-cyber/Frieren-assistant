@@ -146,7 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, inject, toRaw, type Ref } from 'vue';
+import { ref, reactive, computed, watch, inject, toRaw, type Ref } from 'vue'
+
 import {
   NModal,
   NCard,
@@ -158,7 +159,6 @@ import {
   NTag,
   NButton,
   NSpace,
-  NScrollbar,
   NDivider,
   NGrid,
   NGridItem

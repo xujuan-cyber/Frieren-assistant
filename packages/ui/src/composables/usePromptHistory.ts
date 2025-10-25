@@ -1,4 +1,5 @@
 import { ref, watch, computed, reactive, type Ref } from 'vue'
+
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 
@@ -7,6 +8,12 @@ import type { IHistoryManager, PromptRecordChain, PromptRecord } from '@prompt-o
 import type { AppServices } from '../types/services'
 
 type PromptChain = PromptRecordChain
+
+interface HistorySelectionContext {
+  record: PromptRecord
+  chainId: string
+  rootPrompt: string
+}
 
 /**
  * 提示词历史管理Hook
@@ -37,7 +44,7 @@ export function usePromptHistory(
     history: [] as PromptChain[],
     showHistory: false,
     
-    handleSelectHistory: async (context: { record: any, chainId: string, rootPrompt: string }) => {
+    handleSelectHistory: async (context: HistorySelectionContext) => {
       try {
         const { record, chainId, rootPrompt } = context
 
@@ -87,7 +94,7 @@ export function usePromptHistory(
     try {
       // 获取链中的所有记录
       const allChains = await historyManager.value!.getAllChains()
-      const chain = allChains.find((c: any) => c.chainId === chainId)
+      const chain = allChains.find((c) => c.chainId === chainId)
       
       if (chain) {
         // 删除链中的所有记录

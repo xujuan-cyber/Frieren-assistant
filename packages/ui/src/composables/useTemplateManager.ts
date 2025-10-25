@@ -1,16 +1,17 @@
 import { watch, computed, reactive, type Ref } from 'vue'
+
 import { useToast } from './useToast'
 import { useI18n } from 'vue-i18n'
 import { usePreferences } from './usePreferenceManager'
-import { TEMPLATE_SELECTION_KEYS, type Template } from '@prompt-optimizer/core'
+import { TEMPLATE_SELECTION_KEYS, IMAGE_MODE_KEYS, type Template } from '@prompt-optimizer/core'
 import { useFunctionMode, type FunctionMode } from './useFunctionMode'
 import type { AppServices } from '../types/services'
 
 export interface TemplateManagerHooks {
   showTemplates: boolean
   currentType: string
-  handleTemplateSelect: (template: Template | null, type: string, showToast?: boolean) => void
-  openTemplateManager: (type: string) => void
+  handleTemplateSelect: (template: Template | null, type: Template['metadata']['templateType'], showToast?: boolean) => void
+  openTemplateManager: (type: Template['metadata']['templateType']) => void
   handleTemplateManagerClose: (refreshCallback?: () => void) => void
 }
 
@@ -20,6 +21,17 @@ export interface TemplateManagerOptions {
   selectedIterateTemplate: Ref<Template | null>
   // saveTemplateSelection现在完全由useTemplateManager内部实现
 }
+
+type StoredTemplateType =
+  | 'optimize'
+  | 'userOptimize'
+  | 'iterate'
+  | 'contextSystemOptimize'
+  | 'contextUserOptimize'
+  | 'contextIterate'
+  | 'text2imageOptimize'
+  | 'image2imageOptimize'
+  | 'imageIterate'
 
 /**
  * 模板管理器Hook
@@ -44,7 +56,7 @@ export function useTemplateManager(
   const state = reactive<TemplateManagerHooks>({
     showTemplates: false,
     currentType: '', // 不设置默认值，必须明确指定
-    handleTemplateSelect: (template: Template | null, type: string, showToast: boolean = true) => {
+    handleTemplateSelect: (template: Template | null, type: Template['metadata']['templateType'], showToast: boolean = true) => {
       console.log(t('log.info.templateSelected'), {
         template: template ? {
           id: template.id,
@@ -66,7 +78,7 @@ export function useTemplateManager(
 
       if (template) {
         // 使用内部的保存逻辑，异步执行但不等待
-        saveTemplateSelection(template, type as any).catch(error => {
+        saveTemplateSelection(template, type as StoredTemplateType).catch(error => {
           console.error('[useTemplateManager] 保存模板选择失败:', error)
           toast.error('保存模板选择失败')
         })
@@ -74,7 +86,7 @@ export function useTemplateManager(
         // 不再显示toast提示，移除选择成功的冒泡提示
       }
     },
-    openTemplateManager: (type: string) => {
+    openTemplateManager: (type: Template['metadata']['templateType']) => {
       state.currentType = type
       state.showTemplates = true
     },
@@ -90,9 +102,10 @@ export function useTemplateManager(
   // 保存模板选择到存储
   const saveTemplateSelection = async (
     template: Template,
-    type: 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate'
+    type: StoredTemplateType
   ) => {
     const storageKey = resolveSelectionKey(type)
+    if (!storageKey) return
     await setPreference(storageKey, template.id)
   }
 
@@ -103,7 +116,7 @@ export function useTemplateManager(
       const mode = functionMode.value as FunctionMode
 
       const loadTemplate = async (
-        type: 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate',
+        type: StoredTemplateType,
         storageKey: string,
         targetRef: Ref<Template | null>
       ) => {
@@ -124,7 +137,7 @@ export function useTemplateManager(
         }
         
         // 回退逻辑：加载该类型的第一个模板
-        const templates = await templateManager.value!.listTemplatesByType(type as any)
+        const templates = await templateManager.value!.listTemplatesByType(type)
         if (templates.length > 0) {
           targetRef.value = templates[0]
           await setPreference(storageKey, templates[0].id) // 保存新的默认值
@@ -134,14 +147,14 @@ export function useTemplateManager(
       };
       
       // 依据当前功能模式确定三类类型与存储键
-      const sysType = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
-      const userType = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
-      const itType = (mode === 'pro') ? 'contextIterate' : 'iterate'
+      const sysType: StoredTemplateType = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
+      const userType: StoredTemplateType = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
+      const itType: StoredTemplateType = (mode === 'pro') ? 'contextIterate' : 'iterate'
 
       await Promise.all([
-        loadTemplate(sysType as any, resolveSelectionKey(sysType as any), selectedOptimizeTemplate),
-        loadTemplate(userType as any, resolveSelectionKey(userType as any), selectedUserOptimizeTemplate),
-        loadTemplate(itType as any, resolveSelectionKey(itType as any), selectedIterateTemplate),
+        loadTemplate(sysType, resolveSelectionKey(sysType), selectedOptimizeTemplate),
+        loadTemplate(userType, resolveSelectionKey(userType), selectedUserOptimizeTemplate),
+        loadTemplate(itType, resolveSelectionKey(itType), selectedIterateTemplate),
       ]);
 
     } catch (error) {
@@ -162,8 +175,8 @@ export function useTemplateManager(
     if (newTemplate && oldTemplate && newTemplate.id !== oldTemplate.id) {
       try {
         const mode = functionMode.value as FunctionMode
-        const type = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
-        await saveTemplateSelection(newTemplate, type as any)
+        const type: StoredTemplateType = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
+        await saveTemplateSelection(newTemplate, type)
         // 不再显示toast提示，移除选择成功的冒泡提示
       } catch (error) {
         console.error('[useTemplateManager] 保存系统优化模板失败:', error)
@@ -176,8 +189,8 @@ export function useTemplateManager(
     if (newTemplate && oldTemplate && newTemplate.id !== oldTemplate.id) {
       try {
         const mode = functionMode.value as FunctionMode
-        const type = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
-        await saveTemplateSelection(newTemplate, type as any)
+        const type: StoredTemplateType = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
+        await saveTemplateSelection(newTemplate, type)
         // 不再显示toast提示，移除选择成功的冒泡提示
       } catch (error) {
         console.error('[useTemplateManager] 保存用户优化模板失败:', error)
@@ -190,8 +203,8 @@ export function useTemplateManager(
     if (newTemplate && oldTemplate && newTemplate.id !== oldTemplate.id) {
       try {
         const mode = functionMode.value as FunctionMode
-        const type = (mode === 'pro') ? 'contextIterate' : 'iterate'
-        await saveTemplateSelection(newTemplate, type as any)
+        const type: StoredTemplateType = (mode === 'pro') ? 'contextIterate' : 'iterate'
+        await saveTemplateSelection(newTemplate, type)
         // 不再显示toast提示，移除选择成功的冒泡提示
       } catch (error) {
         console.error('[useTemplateManager] 保存迭代模板失败:', error)
@@ -203,44 +216,59 @@ export function useTemplateManager(
   // 当功能模式发生变化时，重新从对应键加载选择
   watch(functionMode, async (mode) => {
     try {
-      const sysType = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
-      const userType = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
-      const itType = (mode === 'pro') ? 'contextIterate' : 'iterate'
+      const sysType: StoredTemplateType = (mode === 'pro') ? 'contextSystemOptimize' : 'optimize'
+      const userType: StoredTemplateType = (mode === 'pro') ? 'contextUserOptimize' : 'userOptimize'
+      const itType: StoredTemplateType = (mode === 'pro') ? 'contextIterate' : 'iterate'
 
-      const sysId = await getPreference(resolveSelectionKey(sysType as any), null)
-      const userId = await getPreference(resolveSelectionKey(userType as any), null)
-      const itId = await getPreference(resolveSelectionKey(itType as any), null)
+      const sysId = await getPreference(resolveSelectionKey(sysType), null)
+      const userId = await getPreference(resolveSelectionKey(userType), null)
+      const itId = await getPreference(resolveSelectionKey(itType), null)
 
       // 系统
       if (sysId) {
-        try { selectedOptimizeTemplate.value = await templateManager.value!.getTemplate(sysId) } catch {}
+        try {
+          selectedOptimizeTemplate.value = await templateManager.value!.getTemplate(sysId)
+        } catch (error) {
+          // 忽略模板加载错误，继续执行
+          console.warn('Failed to load system template:', error)
+        }
       } else {
-        const list = await templateManager.value!.listTemplatesByType(sysType as any)
+        const list = await templateManager.value!.listTemplatesByType(sysType)
         if (list.length > 0) {
           selectedOptimizeTemplate.value = list[0]
-          await setPreference(resolveSelectionKey(sysType as any), list[0].id)
+          await setPreference(resolveSelectionKey(sysType), list[0].id)
         }
       }
 
       // 用户
       if (userId) {
-        try { selectedUserOptimizeTemplate.value = await templateManager.value!.getTemplate(userId) } catch {}
+        try {
+          selectedUserOptimizeTemplate.value = await templateManager.value!.getTemplate(userId)
+        } catch (error) {
+          // 忽略模板加载错误，继续执行
+          console.warn('Failed to load user template:', error)
+        }
       } else {
-        const list = await templateManager.value!.listTemplatesByType(userType as any)
+        const list = await templateManager.value!.listTemplatesByType(userType)
         if (list.length > 0) {
           selectedUserOptimizeTemplate.value = list[0]
-          await setPreference(resolveSelectionKey(userType as any), list[0].id)
+          await setPreference(resolveSelectionKey(userType), list[0].id)
         }
       }
 
       // 迭代
       if (itId) {
-        try { selectedIterateTemplate.value = await templateManager.value!.getTemplate(itId) } catch {}
+        try {
+          selectedIterateTemplate.value = await templateManager.value!.getTemplate(itId)
+        } catch (error) {
+          // 忽略模板加载错误，继续执行
+          console.warn('Failed to load iterate template:', error)
+        }
       } else {
-        const list = await templateManager.value!.listTemplatesByType(itType as any)
+        const list = await templateManager.value!.listTemplatesByType(itType)
         if (list.length > 0) {
           selectedIterateTemplate.value = list[0]
-          await setPreference(resolveSelectionKey(itType as any), list[0].id)
+          await setPreference(resolveSelectionKey(itType), list[0].id)
         }
       }
 
@@ -251,8 +279,8 @@ export function useTemplateManager(
 
   // 工具函数：将六类类型映射到存储键
   function resolveSelectionKey(
-    type: 'optimize' | 'userOptimize' | 'iterate' | 'contextSystemOptimize' | 'contextUserOptimize' | 'contextIterate'
-  ): string {
+    type: StoredTemplateType
+  ): string | null {
     switch (type) {
       case 'optimize':
         return TEMPLATE_SELECTION_KEYS.SYSTEM_OPTIMIZE_TEMPLATE
@@ -266,8 +294,14 @@ export function useTemplateManager(
         return TEMPLATE_SELECTION_KEYS.CONTEXT_USER_OPTIMIZE_TEMPLATE
       case 'contextIterate':
         return TEMPLATE_SELECTION_KEYS.CONTEXT_ITERATE_TEMPLATE
+      case 'text2imageOptimize':
+        return IMAGE_MODE_KEYS.SELECTED_TEMPLATE_TEXT2IMAGE
+      case 'image2imageOptimize':
+        return IMAGE_MODE_KEYS.SELECTED_TEMPLATE_IMAGE2IMAGE
+      case 'imageIterate':
+        return IMAGE_MODE_KEYS.SELECTED_ITERATE_TEMPLATE
       default:
-        return TEMPLATE_SELECTION_KEYS.SYSTEM_OPTIMIZE_TEMPLATE
+        return null
     }
   }
 
@@ -275,8 +309,12 @@ export function useTemplateManager(
   function normalizeTypeToFamily(
     type: string
   ): 'system' | 'user' | 'iterate' {
-    if (type === 'optimize' || type === 'contextSystemOptimize') return 'system'
-    if (type === 'userOptimize' || type === 'contextUserOptimize') return 'user'
+    if (type === 'optimize' || type === 'contextSystemOptimize' || type === 'text2imageOptimize' || type === 'image2imageOptimize') {
+      return 'system'
+    }
+    if (type === 'userOptimize' || type === 'contextUserOptimize') {
+      return 'user'
+    }
     return 'iterate'
   }
 

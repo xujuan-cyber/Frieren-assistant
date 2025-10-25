@@ -1,4 +1,5 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
+
 import type {
   UnifiedParameterDefinition,
   TextModel,
@@ -138,7 +139,7 @@ export function useModelAdvancedParameters(
  * 请直接使用 useModelAdvancedParameters 并传入简化后的参数
  */
 export function createTextModelMetaResolver(
-  options: any
+  options: unknown
 ) {
   console.warn('[useModelAdvancedParameters] createTextModelMetaResolver is deprecated, use simplified interface')
   return () => undefined
@@ -149,7 +150,7 @@ export function createTextModelMetaResolver(
  * 请直接使用 useModelAdvancedParameters 并传入简化后的参数
  */
 export function createImageModelMetaResolver(
-  options: any
+  options: unknown
 ) {
   console.warn('[useModelAdvancedParameters] createImageModelMetaResolver is deprecated, use simplified interface')
   return () => undefined

@@ -1,4 +1,5 @@
-import { watch, computed, reactive, nextTick, type Ref } from "vue";
+import { watch, computed, reactive, nextTick, type Ref } from 'vue'
+
 import {
   MODEL_SELECTION_KEYS,
   type TextModelConfig,
@@ -125,19 +126,19 @@ export function useModelManager(
       try {
         // Get latest enabled models list
         const allModels = await modelManager.value!.getAllModels();
-        const enabledModels = allModels.filter((m: any) => m.enabled);
+        const enabledModels = allModels.filter((m) => m.enabled);
         const defaultModel = enabledModels[0]?.id;
 
         // Verify if current selected models are still available
         if (
-          !enabledModels.find((m: any) => m.id === state.selectedOptimizeModel)
+          !enabledModels.find((m) => m.id === state.selectedOptimizeModel)
         ) {
           state.selectedOptimizeModel = defaultModel || "";
         }
-        if (!enabledModels.find((m: any) => m.id === state.selectedTestModel)) {
+        if (!enabledModels.find((m) => m.id === state.selectedTestModel)) {
           state.selectedTestModel = defaultModel || "";
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error(t("toast.error.loadModelsFailed"), error);
         toast.error(t("toast.error.loadModelsFailed"));
       }

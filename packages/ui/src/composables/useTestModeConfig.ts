@@ -1,4 +1,5 @@
 import { computed, readonly, type Ref } from 'vue'
+
 import type { OptimizationMode } from '@prompt-optimizer/core'
 
 export interface TestModeConfigOptions {

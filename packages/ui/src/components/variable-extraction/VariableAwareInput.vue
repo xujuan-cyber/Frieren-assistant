@@ -45,14 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-    ref,
-    onMounted,
-    onBeforeUnmount,
-    watch,
-    computed,
-    nextTick,
-} from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+
 import { EditorView, basicSetup } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
 import { NPopover, NButton, useThemeVars } from "naive-ui";

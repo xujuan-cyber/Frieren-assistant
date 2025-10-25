@@ -1,4 +1,5 @@
 import { ref, nextTick, computed } from 'vue'
+
 import { useAccessibility } from './useAccessibility'
 
 export interface FocusManagerOptions {

@@ -1,4 +1,6 @@
-import { ref, computed, reactive, nextTick, toRef, type Ref } from "vue";
+import { ref, computed, reactive, nextTick, toRef, type Ref } from 'vue'
+import type { UploadFileInfo } from 'naive-ui'
+
 import { useToast } from "./useToast";
 import { useI18n } from "vue-i18n";
 import { usePreferences } from "./usePreferenceManager";
@@ -15,6 +17,8 @@ import {
   type OptimizationMode,
   type ImageRequest,
   type ImageResult,
+  type ImageModelConfig,
+  type ImageResultItem,
 } from "@prompt-optimizer/core";
 import type { AppServices } from "../types/services";
 import type { ModelSelectOption, SelectOption } from "../types/select-options";
@@ -23,6 +27,14 @@ import type { ModelSelectOption, SelectOption } from "../types/select-options";
  * 图像模式工作区 Hook
  * 复用现有的历史记录系统，添加图像优化类型支持
  */
+export interface ImageUploadChangePayload {
+  file: UploadFileInfo | null | undefined
+  fileList: UploadFileInfo[]
+  event?: Event
+}
+
+type TemplateKind = Template['metadata']['templateType']
+
 export function useImageWorkspace(services: Ref<AppServices | null>) {
   const toast = useToast();
   const { t } = useI18n();
@@ -82,18 +94,20 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   const currentVersionId = ref("");
 
   // 模板管理器状态
+  type WorkspaceTemplateType =
+    | 'text2imageOptimize'
+    | 'image2imageOptimize'
+    | 'iterate'
+    | 'imageIterate'
+
   const templateManagerState = reactive({
     showTemplates: false,
-    currentType: "text2imageOptimize" as
-      | "text2imageOptimize"
-      | "image2imageOptimize"
-      | "imageIterate"
-      | "iterate",
+    currentType: 'text2imageOptimize' as WorkspaceTemplateType,
   });
 
   // 模型选项
   const textModelOptions = ref<ModelSelectOption[]>([]);
-  const imageModelOptions = ref<SelectOption<any>[]>([]);
+  const imageModelOptions = ref<SelectOption<ImageModelConfig>[]>([]);
 
   // 当前使用的提示词
   const currentPrompt = computed(
@@ -101,7 +115,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   );
 
   // 根据图像模式确定模板类型
-  const templateType = computed(() => {
+  const templateType = computed<TemplateKind>(() => {
     return state.imageMode === "text2image"
       ? "text2imageOptimize"
       : "image2imageOptimize";
@@ -180,9 +194,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
 
     try {
       const manager = modelManager.value;
-      if (typeof (manager as any).ensureInitialized === "function") {
-        await (manager as any).ensureInitialized();
-      }
+      await manager.ensureInitialized();
 
       const textModels = await manager.getEnabledModels();
       textModelOptions.value = textModels.map((m) => ({
@@ -314,7 +326,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
         currentTemplateType,
       );
       const templates = await templateManager.value.listTemplatesByType(
-        currentTemplateType as any,
+        currentTemplateType,
       );
       console.log(
         "[restoreTemplateSelection] Available templates:",
@@ -441,7 +453,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     if (!templateManager.value) return;
     try {
       const iterateTemplates = await templateManager.value.listTemplatesByType(
-        "imageIterate" as any,
+        "imageIterate",
       );
       if (iterateTemplates.length === 0) {
         console.warn("[useImageWorkspace] No imageIterate templates available");
@@ -467,10 +479,11 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   };
 
   // 文件上传处理
-  const handleUploadChange = async (data: { file: any; fileList: any[] }) => {
-    const f: File | undefined = data?.file?.file || data?.file;
+  const handleUploadChange = async (data: ImageUploadChangePayload) => {
+    const fileEntry = data.file ?? null;
+    const file = fileEntry?.file ?? null;
 
-    if (!f) {
+    if (!file) {
       state.inputImageB64 = null;
       state.inputImageMime = "image/png"; // 重置为默认值，防止undefined错误
       state.uploadStatus = "idle";
@@ -478,14 +491,14 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
     }
 
     // 验证文件类型
-    if (!/image\/(png|jpeg)/.test(f.type)) {
+    if (!/image\/(png|jpeg)/.test(file.type)) {
       toast.error("仅支持 PNG/JPEG 格式");
       state.uploadStatus = "error";
       return;
     }
 
     // 验证文件大小
-    if (f.size > 10 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       toast.error("文件大小不能超过 10MB");
       state.uploadStatus = "error";
       return;
@@ -500,7 +513,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1];
       state.inputImageB64 = base64;
-      state.inputImageMime = f.type;
+      state.inputImageMime = file.type;
       state.uploadStatus = "success";
       state.uploadProgress = 100;
       toast.success("图片上传成功");
@@ -566,8 +579,9 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
           throw error;
         },
       });
-    } catch (error: any) {
-      toast.error("优化失败：" + (error?.message || String(error)));
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      toast.error("优化失败：" + err.message);
     } finally {
       state.isOptimizing = false;
     }
@@ -670,8 +684,9 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       }
 
       toast.success("图像生成完成");
-    } catch (error: any) {
-      toast.error("生成失败：" + (error?.message || String(error)));
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      toast.error("生成失败：" + err.message);
     }
   };
 
@@ -700,18 +715,25 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   };
 
   // 获取图像显示源地址
-  const getImageSrc = (imageItem: any) => {
-    if (imageItem?.url) {
+  const getImageSrc = (imageItem: ImageResultItem | null | undefined) => {
+    if (!imageItem) return "";
+    if (imageItem.url) {
       return imageItem.url;
-    } else if (imageItem?.b64) {
-      return "data:image/png;base64," + imageItem.b64;
+    }
+    if (imageItem.b64) {
+      const mime = imageItem.mimeType ?? "image/png";
+      return `data:${mime};base64,${imageItem.b64}`;
     }
     return "";
   };
 
   // 下载图像
-  const downloadImageFromResult = async (imageItem: any, prefix: string) => {
-    if (imageItem?.url) {
+  const downloadImageFromResult = async (
+    imageItem: ImageResultItem | null | undefined,
+    prefix: string,
+  ) => {
+    if (!imageItem) return;
+    if (imageItem.url) {
       try {
         const response = await fetch(imageItem.url);
         const blob = await response.blob();
@@ -724,9 +746,10 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       } catch (error) {
         toast.error("下载失败");
       }
-    } else if (imageItem?.b64) {
+    } else if (imageItem.b64) {
       const a = document.createElement("a");
-      a.href = "data:image/png;base64," + imageItem.b64;
+      const mime = imageItem.mimeType ?? "image/png";
+      a.href = `data:${mime};base64,${imageItem.b64}`;
       a.download = `${prefix}-image.png`;
       a.click();
     }
@@ -804,8 +827,9 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
         },
         state.selectedIterateTemplate.id,
       );
-    } catch (error: any) {
-      toast.error("迭代优化失败：" + (error?.message || String(error)));
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      toast.error("迭代优化失败：" + err.message);
       // 恢复之前的内容
       state.optimizedPrompt = previousOptimizedPrompt;
     } finally {
@@ -814,15 +838,18 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   };
 
   // 复制图像数据
-  const copyImageFromResult = async (imageItem: any) => {
-    if (imageItem?.b64) {
+  const copyImageFromResult = async (
+    imageItem: ImageResultItem | null | undefined,
+  ) => {
+    if (!imageItem) return;
+    if (imageItem.b64) {
       try {
         await navigator.clipboard.writeText(imageItem.b64);
         toast.success("Base64已复制");
       } catch {
         toast.error("复制失败");
       }
-    } else if (imageItem?.url) {
+    } else if (imageItem.url) {
       try {
         const response = await fetch(imageItem.url);
         const blob = await response.blob();
@@ -888,9 +915,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
           try {
             // 兼容旧记录：根据当前模式的类型尝试列表查找
             const type = templateType.value;
-            const list = await templateManager.value.listTemplatesByType(
-              type as any,
-            );
+            const list = await templateManager.value.listTemplatesByType(type);
             const t = list.find((t) => t.id === historyData.templateId);
             if (t) state.selectedTemplate = t;
           } catch (err) {
@@ -965,21 +990,13 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
   };
 
   // 打开模板管理器
-  const handleOpenTemplateManager = (
-    templateType?:
-      | "text2imageOptimize"
-      | "image2imageOptimize"
-      | "iterate"
-      | "imageIterate",
-  ) => {
-    let target: any = templateType;
-    // 在图像模式中，迭代应打开 imageIterate 类别
-    if (templateType === "iterate") target = "imageIterate";
+  const handleOpenTemplateManager = (type?: WorkspaceTemplateType) => {
+    let target: WorkspaceTemplateType | undefined = type;
+    if (target === 'iterate') {
+      target = 'imageIterate';
+    }
     if (!target) {
-      target =
-        state.imageMode === "text2image"
-          ? "text2imageOptimize"
-          : "image2imageOptimize";
+      target = state.imageMode === 'text2image' ? 'text2imageOptimize' : 'image2imageOptimize';
     }
     templateManagerState.currentType = target;
     templateManagerState.showTemplates = true;

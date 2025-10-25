@@ -478,7 +478,7 @@ export function useAccessibilityTesting() {
       case 'json':
         return JSON.stringify(report, null, 2)
         
-      case 'csv':
+      case 'csv': {
         const headers = ['Type', 'Rule', 'Message', 'Suggestion', 'Severity', 'WCAG Level', 'XPath']
         const rows = report.details.map(issue => [
           issue.type,
@@ -489,12 +489,13 @@ export function useAccessibilityTesting() {
           issue.wcagLevel,
           issue.xpath || ''
         ])
-        
-        return [headers, ...rows].map(row => 
+
+        return [headers, ...rows].map(row =>
           row.map(cell => `"${cell?.toString().replace(/"/g, '""') || ''}"`).join(',')
         ).join('\n')
-        
-      case 'html':
+      }
+
+      case 'html': {
         return `
           <!DOCTYPE html>
           <html lang="zh-CN">
@@ -546,6 +547,7 @@ export function useAccessibilityTesting() {
           </body>
           </html>
         `
+      }
     }
   }
   

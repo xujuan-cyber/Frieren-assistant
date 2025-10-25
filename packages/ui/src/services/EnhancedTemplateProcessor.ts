@@ -2,11 +2,18 @@
  * 增强的模板处理器实现
  */
 
-import type { 
-  TemplateProcessor, 
-  StandardPromptData, 
+import type {
+  TemplateProcessor,
+  StandardPromptData,
   StandardMessage
 } from '../types'
+import type {
+  VariablePrimitiveType,
+  VariableDefaultValue,
+  VariableDefinition,
+  VariableAnalysis,
+  VariableUsageStats
+} from '../types/template'
 
 export class EnhancedTemplateProcessor implements TemplateProcessor {
   /**
@@ -15,22 +22,10 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
   toTemplate(data: StandardPromptData): {
     template: StandardPromptData
     variables: Record<string, string>
-    variableDefinitions: Array<{
-      name: string
-      type: 'string' | 'number' | 'boolean' | 'object' | 'array'
-      description?: string
-      defaultValue?: any
-      required?: boolean
-    }>
+    variableDefinitions: VariableDefinition[]
   } {
     const variables: Record<string, string> = {}
-    const variableDefinitions: Array<{
-      name: string
-      type: 'string' | 'number' | 'boolean' | 'object' | 'array'
-      description?: string
-      defaultValue?: any
-      required?: boolean
-    }> = []
+    const variableDefinitions: VariableDefinition[] = []
 
     // 从现有metadata中获取变量
     if (data.metadata?.variables) {
@@ -77,7 +72,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
           version: data.metadata?.template_info?.version,
           variables: Array.from(allVariables),
           created_at: new Date().toISOString()
-        } as any
+        }
       }
     }
 
@@ -310,18 +305,13 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
 
   // 私有方法：分析变量特征
   private analyzeVariable(
-    varName: string, 
+    varName: string,
     messages: StandardMessage[]
-  ): {
-    type: 'string' | 'number' | 'boolean' | 'object' | 'array'
-    description?: string
-    defaultValue?: any
-    required: boolean
-  } {
+  ): VariableAnalysis {
     // 基于变量名推断类型和用途
     const nameLower = varName.toLowerCase()
     
-    let type: 'string' | 'number' | 'boolean' | 'object' | 'array' = 'string'
+    let type: VariablePrimitiveType = 'string'
     let description = ''
 
     if (nameLower.includes('count') || nameLower.includes('number') || nameLower.includes('num')) {
@@ -356,7 +346,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
   }
 
   // 私有方法：获取类型的默认值
-  private getDefaultValueForType(type: 'string' | 'number' | 'boolean' | 'object' | 'array'): any {
+  private getDefaultValueForType(type: VariablePrimitiveType): VariableDefaultValue {
     switch (type) {
       case 'string': return ''
       case 'number': return 0
@@ -368,18 +358,8 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
   }
 
   // 私有方法：分析变量使用情况
-  private analyzeVariableUsage(template: StandardPromptData): Record<string, {
-    count: number
-    avgLength: number
-    complexity: number
-    contexts: string[]
-  }> {
-    const usage: Record<string, {
-      count: number
-      avgLength: number
-      complexity: number
-      contexts: string[]
-    }> = {}
+  private analyzeVariableUsage(template: StandardPromptData): Record<string, VariableUsageStats> {
+    const usage: Record<string, VariableUsageStats> = {}
 
     template.messages.forEach(message => {
       const variables = this.scanVariablesInContent(message.content)
@@ -402,7 +382,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
   }
 
   // 私有方法：查找相似变量
-  private findSimilarVariables(usage: Record<string, any>): string[][] {
+  private findSimilarVariables(usage: Record<string, VariableUsageStats>): string[][] {
     const variables = Object.keys(usage)
     const groups: string[][] = []
     

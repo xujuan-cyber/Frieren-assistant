@@ -5,6 +5,7 @@
 
 import { ref, type Ref } from 'vue'
 
+
 export interface ClipboardHooks {
   isSupported: boolean
   copyText: (text: string) => Promise<void>

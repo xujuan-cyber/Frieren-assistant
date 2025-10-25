@@ -103,15 +103,16 @@ export class VariableManager implements IVariableManager {
   }
 
   // 变量解析
-  resolveAllVariables(context?: any): Record<string, string> {
+  resolveAllVariables(context?: Record<string, unknown>): Record<string, string> {
     // 获取预定义变量的值
     const predefinedValues: Record<string, string> = {};
     
     if (context) {
       // 从上下文中提取预定义变量
       for (const varName of PREDEFINED_VARIABLES) {
-        if (context[varName] !== undefined) {
-          predefinedValues[varName] = String(context[varName] || '');
+        if (Object.prototype.hasOwnProperty.call(context, varName)) {
+          const value = context[varName];
+          predefinedValues[varName] = value != null ? String(value) : '';
         } else {
           predefinedValues[varName] = '';
         }

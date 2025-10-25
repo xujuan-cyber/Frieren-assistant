@@ -262,7 +262,8 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
 import { useDebounceFn } from '@vueuse/core';
 import {
   NCard,

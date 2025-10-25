@@ -3,14 +3,18 @@
  * 负责管理优化上下文、上下文变量、上下文编辑器等相关功能
  */
 
-import { ref, computed, watch, type Ref } from "vue";
+import { ref, computed, watch, type Ref } from 'vue'
+
 import { useToast } from "./useToast";
 import { quickTemplateManager } from "../data/quickTemplates";
 import type {
   ConversationMessage,
   OptimizationMode,
+  ToolDefinition,
+  ContextEditorState as CoreContextEditorState,
 } from "@prompt-optimizer/core";
 import type { AppServices } from "../types/services";
+import type { VariableManagerHooks } from "./useVariableManager";
 
 export interface ContextManagementOptions {
   services: Ref<AppServices | null>;
@@ -18,16 +22,9 @@ export interface ContextManagementOptions {
   advancedModeEnabled: Ref<boolean>;
   showContextEditor: Ref<boolean>;
   contextEditorDefaultTab: Ref<"messages" | "variables" | "tools">;
-  contextEditorState: Ref<{
-    messages: ConversationMessage[];
-    variables: Record<string, string>;
-    tools: any[];
-    showVariablePreview: boolean;
-    showToolManager: boolean;
-    mode: "edit" | "preview";
-  }>;
-  variableManager: any;
-  optimizer: any;
+  contextEditorState: Ref<CoreContextEditorState>;
+  variableManager: VariableManagerHooks | null;
+  optimizer: { prompt?: string; optimizedPrompt?: string } | null;
 }
 
 export function useContextManagement(options: ContextManagementOptions) {
@@ -50,7 +47,7 @@ export function useContextManagement(options: ContextManagementOptions) {
 
   // 优化阶段上下文状态
   const optimizationContext = ref<ConversationMessage[]>([]);
-  const optimizationContextTools = ref<any[]>([]);
+  const optimizationContextTools = ref<ToolDefinition[]>([]);
 
   // 标记是否已从持久化仓库加载过上下文
   const isContextLoaded = ref(false);
@@ -133,7 +130,7 @@ export function useContextManagement(options: ContextManagementOptions) {
   const persistContextUpdate = async (patch: {
     messages?: ConversationMessage[];
     variables?: Record<string, string>;
-    tools?: any[];
+    tools?: ToolDefinition[];
   }) => {
     if (!contextRepo.value || !currentContextId.value) return;
 
@@ -239,7 +236,7 @@ export function useContextManagement(options: ContextManagementOptions) {
   const handleContextEditorSave = async (context: {
     messages: ConversationMessage[];
     variables: Record<string, string>;
-    tools: any[];
+    tools: ToolDefinition[];
   }) => {
     // 更新优化上下文
     optimizationContext.value = [...context.messages];
@@ -263,7 +260,7 @@ export function useContextManagement(options: ContextManagementOptions) {
   const handleContextEditorStateUpdate = async (state: {
     messages: ConversationMessage[];
     variables: Record<string, string>;
-    tools: any[];
+    tools: ToolDefinition[];
   }) => {
     // 实时同步状态到contextEditorState
     contextEditorState.value = { ...contextEditorState.value, ...state };

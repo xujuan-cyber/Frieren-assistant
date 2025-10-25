@@ -108,7 +108,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, watch, h, type Ref } from 'vue';
+import { ref, computed, inject, watch, h, type Ref } from 'vue'
+
 import {
   NModal,
   NSpace,

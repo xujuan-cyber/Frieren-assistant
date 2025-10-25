@@ -1,4 +1,5 @@
-import { ref, onMounted, type Ref } from 'vue';
+import { ref, onMounted, type Ref } from 'vue'
+
 import {
   StorageFactory,
   createModelManager,
@@ -261,8 +262,9 @@ export function useAppInitializer(): {
 
         // Ensure image model defaults are seeded (similar to text models)
         try {
-          // Optional chaining for backward compatibility
-          await (imageModelManagerInstance as any)?.ensureInitialized?.()
+          if (typeof imageModelManagerInstance.ensureInitialized === 'function') {
+            await imageModelManagerInstance.ensureInitialized()
+          }
         } catch (e) {
           console.warn('[AppInitializer] ImageModelManager ensureInitialized failed (non-critical):', e)
         }

@@ -246,7 +246,8 @@
  * />
  * ```
  */
-import { ref, computed } from "vue";
+import { ref, computed } from 'vue'
+
 import { useI18n } from "vue-i18n";
 import { NCard, NFlex, NButton, NText, NTag } from "naive-ui";
 import { useBreakpoints } from "@vueuse/core";
@@ -254,7 +255,13 @@ import InputPanelUI from "../InputPanel.vue";
 import PromptPanelUI from "../PromptPanel.vue";
 import TestAreaPanel from "../TestAreaPanel.vue";
 import type { OptimizationMode } from "../../types";
-import type { IServices } from "@prompt-optimizer/core";
+import type {
+    IServices,
+    PromptRecord,
+    Template,
+} from "@prompt-optimizer/core";
+import type { TestAreaPanelInstance } from "../types/test-area";
+import type { IteratePayload, SaveFavoritePayload } from "../../types/workspace";
 
 // ========================
 // 响应式断点配置
@@ -289,11 +296,11 @@ interface Props {
 
     // --- 版本管理 ---
     /** 历史版本列表 */
-    versions: any[];
+    versions: PromptRecord[];
     /** 当前版本 ID */
     currentVersionId: string | null;
     /** 选中的迭代模板 */
-    selectedIterateTemplate: any;
+    selectedIterateTemplate: Template | null;
 
     // --- 测试数据 ---
     /** 测试输入内容 */
@@ -341,7 +348,7 @@ const emit = defineEmits<{
     // --- 数据更新事件 ---
     "update:prompt": [value: string];
     "update:optimizedPrompt": [value: string];
-    "update:selectedIterateTemplate": [value: any];
+    "update:selectedIterateTemplate": [value: Template | null];
     "update:testContent": [value: string];
     "update:isCompareMode": [value: boolean];
 
@@ -349,15 +356,15 @@ const emit = defineEmits<{
     /** 执行优化 */
     optimize: [];
     /** 执行迭代优化 */
-    iterate: [payload: any];
+    iterate: [payload: IteratePayload];
     /** 执行测试 (传递测试变量) */
     test: [testVariables: Record<string, string>];
     /** 切换对比模式 */
     "compare-toggle": [];
     /** 切换历史版本 */
-    "switch-version": [versionId: any];
+    "switch-version": [version: PromptRecord];
     /** 保存到收藏 */
-    "save-favorite": [data: any];
+    "save-favorite": [data: SaveFavoritePayload];
 
     // --- 打开面板/管理器 ---
     /** 打开全局变量管理器 */
@@ -427,7 +434,7 @@ const predefinedVariableValues = computed(() => ({ ...props.predefinedVariables 
 // 组件引用
 // ========================
 /** TestAreaPanel 组件引用,用于获取测试变量 */
-const testAreaPanelRef = ref<InstanceType<typeof TestAreaPanel> | null>(null);
+const testAreaPanelRef = ref<TestAreaPanelInstance | null>(null);
 
 // ========================
 // 事件处理
@@ -579,4 +586,9 @@ const handleTestWithVariables = async () => {
         emit("test", {});
     }
 };
+
+// 暴露 TestAreaPanel 引用给父组件（用于工具调用等高级功能）
+defineExpose({
+    testAreaPanelRef
+});
 </script>
