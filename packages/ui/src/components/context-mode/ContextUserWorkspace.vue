@@ -96,7 +96,6 @@
                     :versions="versions"
                     :current-version-id="currentVersionId"
                     :optimization-mode="optimizationMode"
-                    :services="services"
                     :advanced-mode-enabled="true"
                     :show-preview="true"
                     @iterate="emit('iterate', $event)"

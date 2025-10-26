@@ -108,21 +108,26 @@ export function useAggregatedVariables(
     if (predefinedVariables) {
       return predefinedVariables
     }
-    // 从系统预定义变量列表构建映射
+
     const map: Record<string, string> = {}
+
+    // 优先从 variableManager 的 allVariables 中取值，以保留动态上下文
+    const resolved = variableManager?.allVariables?.value || {}
     PREDEFINED_VARIABLES.forEach(varName => {
-      // 预定义变量的值通常需要从上下文中解析
-      // 这里暂时设为空字符串，实际使用时会通过 variableManager 解析
-      map[varName] = ''
+      if (resolved[varName] !== undefined) {
+        map[varName] = resolved[varName]
+      } else {
+        map[varName] = ''
+      }
     })
+
     return map
   })
 
   // 全局变量
   const globalVarsMap = computed<Record<string, string>>(() => {
-    // 安全访问：处理 variableManager 可能为 undefined 的情况
     if (!variableManager) return {}
-    return variableManager.allVariables?.value || {}
+    return variableManager.customVariables?.value || {}
   })
 
   // 临时变量

@@ -143,7 +143,19 @@ vi.mock('naive-ui', () => ({
 // Mock vue-i18n
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
-    t: (key: string, params?: any) => params ? `${key}:${JSON.stringify(params)}` : key,
+    t: (key: string, params?: any) => {
+      const translations = {
+        'contextEditor.importPlaceholders.openai': 'OpenAI API 请求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4"\n}',
+        'contextEditor.importPlaceholders.langfuse': 'LangFuse 追踪数据，例如：\n{\n  "input": {\n    "messages": [...]\n  }\n}',
+        'contextEditor.importPlaceholders.conversation': '标准会话格式，例如：\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}',
+        'contextEditor.importPlaceholders.smart': "粘贴任意支持格式的 JSON 数据，系统将自动识别"
+      }
+
+      if (params) {
+        return translations[key]?.replace('{count}', params.count)?.replace('{name}', params.name) || `${key}:${JSON.stringify(params)}`
+      }
+      return translations[key] || key
+    },
     locale: { value: 'zh-CN' }
   })
 }))
@@ -227,6 +239,35 @@ describe('ContextEditor 综合测试', () => {
     }
   ]
 
+  // Mock variableManager
+  const createMockVariableManager = () => ({
+    variableManager: { value: null },
+    isReady: { value: true },
+    isAdvancedMode: { value: false },
+    customVariables: { value: {} },
+    allVariables: { value: {} },
+    statistics: { value: {
+      customVariableCount: 0,
+      predefinedVariableCount: 7,
+      totalVariableCount: 7,
+      advancedModeEnabled: false
+    }},
+    setAdvancedMode: vi.fn(),
+    addVariable: vi.fn(),
+    updateVariable: vi.fn(),
+    deleteVariable: vi.fn(),
+    getVariable: vi.fn((name: string) => undefined),
+    validateVariableName: vi.fn(() => true),
+    scanVariablesInContent: vi.fn(() => []),
+    replaceVariables: vi.fn((content: string) => content),
+    detectMissingVariables: vi.fn(() => []),
+    getConversationMessages: vi.fn(() => []),
+    setConversationMessages: vi.fn(),
+    exportVariables: vi.fn(() => '{}'),
+    importVariables: vi.fn(),
+    refresh: vi.fn()
+  })
+
   const defaultProps = {
     visible: true,
     state: {
@@ -240,7 +281,8 @@ describe('ContextEditor 综合测试', () => {
     optimizationMode: 'system' as const,
     scanVariables: vi.fn(() => []),
     replaceVariables: vi.fn((content: string) => content),
-    isPredefinedVariable: vi.fn(() => false)
+    isPredefinedVariable: vi.fn(() => false),
+    variableManager: createMockVariableManager()
   }
 
   let wrapper: any

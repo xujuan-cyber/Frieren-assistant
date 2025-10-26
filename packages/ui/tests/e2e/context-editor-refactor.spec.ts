@@ -136,7 +136,15 @@ vi.mock('vue-i18n', () => ({
         'contextEditor.addFirstMessage': '添加第一条消息',
         'contextEditor.addMessage': '添加消息',
         'contextEditor.templateApplied': '已应用模板：{name}',
-        'contextEditor.applyTemplate': '应用模板'
+        'contextEditor.applyTemplate': '应用模板',
+        'contextEditor.importFormats.smart.name': '智能识别',
+        'contextEditor.importFormats.smart.description': '自动检测格式并转换',
+        'contextEditor.importFormats.conversation.name': '会话格式',
+        'contextEditor.importFormats.conversation.description': '标准的会话消息格式',
+        'contextEditor.importFormats.openai.name': 'OpenAI',
+        'contextEditor.importFormats.openai.description': 'OpenAI API 请求格式',
+        'contextEditor.importFormats.langfuse.name': 'LangFuse',
+        'contextEditor.importFormats.langfuse.description': 'LangFuse 追踪数据格式'
       }
       
       if (params) {
@@ -231,6 +239,34 @@ vi.mock('../../src/data/quickTemplates', () => ({
     ])
   }
 }))
+// 创建 variableManager mock
+const createMockVariableManager = () => ({
+  variableManager: { value: null },
+  isReady: { value: true },
+  isAdvancedMode: { value: false },
+  customVariables: { value: {} },
+  allVariables: { value: {} },
+  statistics: { value: {
+    customVariableCount: 0,
+    predefinedVariableCount: 7,
+    totalVariableCount: 7,
+    advancedModeEnabled: false
+  }},
+  setAdvancedMode: vi.fn(),
+  addVariable: vi.fn(),
+  updateVariable: vi.fn(),
+  deleteVariable: vi.fn(),
+  getVariable: vi.fn((name: string) => undefined),
+  validateVariableName: vi.fn(() => true),
+  scanVariablesInContent: vi.fn(() => []),
+  replaceVariables: vi.fn((content: string) => content),
+  detectMissingVariables: vi.fn(() => []),
+  getConversationMessages: vi.fn(() => []),
+  setConversationMessages: vi.fn(),
+  exportVariables: vi.fn(() => '{}'),
+  importVariables: vi.fn(),
+  refresh: vi.fn()
+})
 
 describe('完整用户流程E2E测试', () => {
   let conversationWrapper: VueWrapper<any>
@@ -338,7 +374,8 @@ describe('完整用户流程E2E测试', () => {
           },
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},
@@ -378,7 +415,8 @@ describe('完整用户流程E2E测试', () => {
           optimizationMode: 'system',
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},
@@ -434,7 +472,8 @@ describe('完整用户流程E2E测试', () => {
           },
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},
@@ -479,7 +518,8 @@ describe('完整用户流程E2E测试', () => {
           },
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},
@@ -641,7 +681,8 @@ describe('完整用户流程E2E测试', () => {
           },
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},
@@ -704,7 +745,8 @@ describe('完整用户流程E2E测试', () => {
           },
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},
@@ -822,7 +864,8 @@ describe('完整用户流程E2E测试', () => {
           },
           scanVariables,
           replaceVariables,
-          isPredefinedVariable: () => false
+          isPredefinedVariable: () => false,
+          variableManager: createMockVariableManager()
         },
         global: {
           stubs: {},

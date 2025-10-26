@@ -161,22 +161,15 @@ const formRules: FormRules = {
             trigger: ["input", "blur"],
         },
         {
-            validator: (
-                rule: { trigger?: string; validator?: Function },
-                value: string,
-            ) => {
+            validator: (_rule: unknown, value: string) => {
                 if (value && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value.trim())) {
                     return new Error(t("variables.editor.errors.nameInvalid"));
                 }
-                return true;
             },
             trigger: ["input", "blur"],
         },
         {
-            validator: (
-                rule: { trigger?: string; validator?: Function },
-                value: string,
-            ) => {
+            validator: (_rule: unknown, value: string) => {
                 const predefinedNames = [
                     "originalPrompt",
                     "lastOptimizedPrompt",
@@ -191,22 +184,17 @@ const formRules: FormRules = {
                         t("variables.editor.errors.namePredefined"),
                     );
                 }
-                return true;
             },
             trigger: ["input", "blur"],
         },
         {
-            validator: (
-                rule: { trigger?: string; validator?: Function },
-                value: string,
-            ) => {
+            validator: (_rule: unknown, value: string) => {
                 const existingNames = props.existingNames.filter((n) =>
                     isEditing.value ? n !== props.variable?.name : true,
                 );
                 if (value && existingNames.includes(value.trim())) {
                     return new Error(t("variables.editor.errors.nameExists"));
                 }
-                return true;
             },
             trigger: ["input", "blur"],
         },
@@ -218,14 +206,10 @@ const formRules: FormRules = {
             trigger: ["input", "blur"],
         },
         {
-            validator: (
-                rule: { trigger?: string; validator?: Function },
-                value: string,
-            ) => {
+            validator: (_rule: unknown, value: string) => {
                 if (value && value.trim().length > 5000) {
                     return new Error(t("variables.editor.errors.valueTooLong"));
                 }
-                return true;
             },
             trigger: ["input", "blur"],
         },
@@ -234,11 +218,11 @@ const formRules: FormRules = {
 
 // 验证函数（保持兼容性）
 const validateName = () => {
-    formRef.value?.validate(["name"]);
+    formRef.value?.validateField?.("name");
 };
 
 const validateValue = () => {
-    formRef.value?.validate(["value"]);
+    formRef.value?.validateField?.("value");
 };
 
 // 事件处理

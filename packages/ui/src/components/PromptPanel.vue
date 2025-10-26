@@ -161,7 +161,6 @@
                     "
                     :type="templateType"
                     :optimization-mode="optimizationMode"
-                    :services="services"
                     @manage="$emit('openTemplateManager', templateType)"
                 />
             </div>
@@ -202,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, type Ref } from "vue";
+import { ref, computed, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag, NIcon } from "naive-ui";
 import { useToast } from '../composables/ui/useToast';
@@ -210,7 +209,6 @@ import TemplateSelect from "./TemplateSelect.vue";
 import Modal from "./Modal.vue";
 import OutputDisplay from "./OutputDisplay.vue";
 import type { Template, PromptRecord } from "@prompt-optimizer/core";
-import type { AppServices } from "../types/services";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -256,10 +254,6 @@ const props = defineProps({
     },
     optimizationMode: {
         type: String as () => import("@prompt-optimizer/core").OptimizationMode,
-        required: true,
-    },
-    services: {
-        type: Object as () => Ref<AppServices | null>,
         required: true,
     },
     advancedModeEnabled: {

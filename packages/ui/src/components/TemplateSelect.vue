@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, inject } from 'vue'
+import { ref, computed, watch, inject, type Ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { NSelect, NButton, NSpace, NText } from 'naive-ui'

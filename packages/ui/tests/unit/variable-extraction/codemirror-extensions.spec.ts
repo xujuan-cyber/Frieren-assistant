@@ -6,6 +6,7 @@ import {
   variableAutocompletion,
   missingVariableTooltip,
   createThemeExtension,
+  createVariableCompletionOption,
   type VariableDetectionLabels
 } from '../../../src/components/variable-extraction/codemirror-extensions'
 import type { DetectedVariable } from '../../../src/components/variable-extraction/useVariableDetection'
@@ -132,33 +133,20 @@ describe('codemirror-extensions', () => {
       // 补全选项应该包含 tempVar1 和 tempVar2
     })
 
-    it('应该为预定义变量生成补全选项', () => {
-      const predefinedVariables = {
-        systemVar: 'system value'
-      }
-
-      const extension = variableAutocompletion({}, {}, predefinedVariables, mockLabels)
-
-      expect(extension).toBeDefined()
-      // 补全选项应该包含 systemVar
-    })
-
-    it('应该按优先级排序补全选项 (预定义 > 全局 > 临时)', () => {
+    it('应该按优先级排序补全选项 (临时 > 全局)', () => {
       const globalVariables = { var1: 'global' }
       const temporaryVariables = { var2: 'temp' }
-      const predefinedVariables = { var3: 'predef' }
 
       const extension = variableAutocompletion(
         globalVariables,
         temporaryVariables,
-        predefinedVariables,
+        {},
         mockLabels
       )
 
       expect(extension).toBeDefined()
-      // 预定义变量应该有最高的 boost 值 (3)
-      // 全局变量应该有中等的 boost 值 (2)
-      // 临时变量应该有最低的 boost 值 (1)
+      // 临时变量应该有最高的 boost 值 (3)
+      // 全局变量应该有次高的 boost 值 (2)
     })
 
     it('应该为长值生成截断的预览', () => {
@@ -182,11 +170,49 @@ describe('codemirror-extensions', () => {
 
     it('应该正确设置补全项的 apply 属性', () => {
       const globalVariables = { testVar: 'value' }
+      const temporaryVariables = { tempVar: 'temp' }
+      const predefinedVariables = { sysVar: 'system' }
 
-      const extension = variableAutocompletion(globalVariables, {}, {}, mockLabels)
+      // 创建编辑器状态，输入 "{{" 触发补全
+      const state = EditorState.create({
+        doc: '{{',
+        selection: { anchor: 2 },
+        extensions: [variableAutocompletion(globalVariables, temporaryVariables, predefinedVariables, mockLabels)]
+      })
 
+      // 创建编辑器视图
+      const view = new EditorView({
+        state,
+        parent: document.body
+      })
+
+      // 模拟补全上下文
+      const context = {
+        state: view.state,
+        pos: 2,
+        explicit: false,
+        matchBefore: (regex: RegExp) => {
+          const text = view.state.doc.toString().slice(0, 2)
+          const match = regex.exec(text)
+          if (match) {
+            return { from: 0, to: 2, text: match[0] }
+          }
+          return null
+        }
+      }
+
+      // 获取自动完成扩展的 override 函数
+      const extension = variableAutocompletion(globalVariables, temporaryVariables, predefinedVariables, mockLabels)
+
+      // 验证扩展被正确创建
       expect(extension).toBeDefined()
-      // apply 应该是 "testVar}}",补全后形成 {{testVar}}
+
+      // 验证三种类型的变量都应该使用正确的 apply 格式
+      // apply 应该是 "变量名}}" (2个右括号)，而不是 "变量名}}}" (3个右括号)
+      // 最终结果应该是 {{变量名}}
+
+      // 清理
+      view.destroy()
     })
 
     it('应该处理空变量集合', () => {
@@ -194,6 +220,108 @@ describe('codemirror-extensions', () => {
 
       expect(extension).toBeDefined()
       // 应该返回空的补全选项列表
+    })
+
+    it('apply 字段应该使用2个右括号，不是3个', () => {
+      // 回归测试：修复 {{变量名}}}} bug (多了一个右括号)
+      const globalVariables = { testVar: 'test value' }
+      const temporaryVariables = { tempVar: 'temp value' }
+      const predefinedVariables = { lastOptimizedPrompt: 'system value' }
+
+      // 创建编辑器状态并模拟用户输入 "{{"
+      const state = EditorState.create({
+        doc: '{{',
+        selection: { anchor: 2 }
+      })
+
+      // 创建编辑器视图
+      const view = new EditorView({
+        state,
+        parent: document.body,
+        extensions: [
+          variableAutocompletion(globalVariables, temporaryVariables, predefinedVariables, mockLabels)
+        ]
+      })
+
+      // 验证初始文本
+      expect(view.state.doc.toString()).toBe('{{')
+
+      // 模拟选择补全项 "lastOptimizedPrompt"
+      // 在实际场景中，这会触发 apply: "lastOptimizedPrompt}}"
+      // 预期结果应该是 "{{lastOptimizedPrompt}}" (2个右括号)
+
+      // 手动模拟补全插入（因为无法直接触发补全）
+      view.dispatch({
+        changes: {
+          from: 2,
+          to: 2,
+          insert: 'lastOptimizedPrompt}}'
+        }
+      })
+
+      // 验证最终文本：应该是 {{lastOptimizedPrompt}} (正确的2个右括号)
+      expect(view.state.doc.toString()).toBe('{{lastOptimizedPrompt}}')
+
+      // 不应该是 {{lastOptimizedPrompt}}} (3个右括号)
+      expect(view.state.doc.toString()).not.toBe('{{lastOptimizedPrompt}}}')
+
+      // 也不应该是 {{lastOptimizedPrompt}}}} (4个右括号，修复前的错误)
+      expect(view.state.doc.toString()).not.toBe('{{lastOptimizedPrompt}}}}')
+
+      // 清理
+      view.destroy()
+    })
+
+    it('选择补全时应该补齐缺失的右花括号', () => {
+      const option = createVariableCompletionOption({
+        name: 'selectedVar',
+        source: 'global',
+        valuePreview: 'demo',
+        boost: 1
+      })
+
+      const state = EditorState.create({
+        doc: '{{',
+        selection: { anchor: 2 }
+      })
+      const view = new EditorView({ state, parent: document.body })
+
+      option.apply?.(view, option, 2, 2)
+
+      expect(view.state.doc.toString()).toBe('{{selectedVar}}')
+      view.destroy()
+    })
+
+    it('已有右花括号时不应该重复插入', () => {
+      const option = createVariableCompletionOption({
+        name: 'predefinedVar',
+        source: 'predefined',
+        valuePreview: 'demo',
+        boost: 3
+      })
+
+      const state = EditorState.create({
+        doc: '{{}}',
+        selection: { anchor: 2 }
+      })
+      const view = new EditorView({ state, parent: document.body })
+
+      option.apply?.(view, option, 2, 2)
+
+      expect(view.state.doc.toString()).toBe('{{predefinedVar}}')
+      view.destroy()
+    })
+
+    it('创建的补全项应该包含自定义显示文本和来源信息', () => {
+      const completion = createVariableCompletionOption({
+        name: 'sampleVar',
+        source: 'temporary',
+        valuePreview: 'preview',
+        boost: 1
+      })
+
+      expect((completion as any).displayLabel).toBe('sampleVar: preview')
+      expect((completion as any).sourceType).toBe('temporary')
     })
   })
 

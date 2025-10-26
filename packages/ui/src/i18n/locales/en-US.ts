@@ -1039,7 +1039,7 @@ export default {
       detected: "Variables Detected",
       manageVariables: "Manage Variables",
       viewPreview: "View Preview",
-      formTitle: "Variable Values",
+      formTitle: "Temporary Variables",
       variablesCount: "variables",
       clearAll: "Clear All",
       inputPlaceholder: "Enter variable value",
@@ -1441,7 +1441,6 @@ export default {
   },
   contextEditor: {
     // Variables tab (新增)
-    variablesTab: "Variables",
     contextVariables: "Context Variables",
     contextVariablesDesc:
       "Manage context-level variable overrides without affecting global variables",
@@ -1511,11 +1510,21 @@ export default {
     selectFile: "Select File",
     orPasteText: "Or paste text below",
     import: "Import",
+    importSuccess: "Import successful",
+    importFailed: "Import failed",
+    importDataRequired: "Please enter data to import",
+    invalidConversationFormat: "Invalid conversation format: must contain messages array",
+    unsupportedImportFormat: "Unsupported import format",
+    invalidJsonFormat: "Invalid data format, please check JSON syntax",
     exportTitle: "Export Context Data",
     exportFormat: "Export Format:",
     exportPreview: "Export Preview:",
     copyToClipboard: "Copy to Clipboard",
     saveToFile: "Save to File",
+    exportSuccess: "Export successful",
+    exportFailed: "Export failed",
+    copySuccess: "Copied to clipboard",
+    copyFailed: "Copy failed",
 
     // Tools editor
     editTool: "Edit Tool",
@@ -1536,35 +1545,92 @@ export default {
     toolsTooltip: "Tools: {tools}",
     toolsCount: "{count} tools",
 
-    // Missing keys
-    override: "Context Variable",
-    createOverride: "Create Context Variable",
-    overrideCount: "{count} context variables",
-    variableOverrides: "Context Variables",
+    // Tab labels
+    messagesTab: "Messages",
+    templatesTab: "Templates",
+    variablesTab: "Variables",
+    toolsTab: "Tools",
+
+    // Statistics
+    messageCount: "{count} messages",
+    messageItemLabel: "Message {index}: {role}",
+    variableCountLabel: "Variables: {count}",
+    toolCountLabel: "Tools: {count}",
+    variableDetected: "Variables: {count}",
+    missingVariableLabel: "Missing: {count}",
+
+    // Variable management
+    variableManagement: "Variable Management",
+    variableManagementHint:
+      "Temporary variables are session-only; global variables persist across sessions",
+
+    // Temporary variables
+    temporaryVariables: "Temporary Variables",
+    temporaryVariableCount: "{count} temporary variables",
+    temporaryVariableHint: "Session-only",
     globalVariables: "Global: {count}",
+    globalVariableHint: "Persist across sessions",
     noVariables: "No variables",
-    addFirstVariable: "Add your first context variable",
+    addFirstVariable: "Add your first variable",
     variableName: "Variable Name",
     variableValue: "Variable Value",
+    variableType: "Variable Type",
     variableNamePlaceholder: "Enter variable name (without brackets)",
     predefinedVariableWarning: "Cannot modify predefined variables",
     variableValuePlaceholder: "Enter variable value",
-    deleteVariableConfirm:
-      'Are you sure you want to delete context variable "{name}"?',
-    variableDeleted: "Context variable deleted: {name}",
+    deleteVariableConfirm: 'Are you sure you want to delete variable "{name}"?',
+    variableDeleted: "Variable deleted: {name}",
     predefinedVariableError: "Cannot modify predefined variables",
-    variableSaved: "{action} context variable: {name}",
+    variableSaved: "{action} {type} variable: {name}",
+    globalVariableEditHint:
+      "Global variables can only be edited in the variable manager",
+    cannotDeleteGlobalVariable: "Cannot delete global variables",
+    globalVariableSaveNotSupported:
+      "Global variable save requires variableManager (coming soon)",
+    variableNotFound: "Variable not found",
+    variableManagerNotReady: "Variable manager not initialized, please try again later",
+    variableSaveFailed: "Failed to save variable",
 
     // Variable source labels
     variableSourceLabels: {
       global: "Global",
-      context: "Context",
+      temporary: "Temporary",
+      predefined: "System",
     },
 
     // Variable status labels
     variableStatusLabels: {
       active: "Active",
       overridden: "Overridden",
+    },
+
+    // Import/Export formats
+    importFormats: {
+      smart: { name: "Smart Detection", description: "Auto-detect format and convert" },
+      conversation: { name: "Conversation", description: "Standard conversation message format" },
+      openai: { name: "OpenAI", description: "OpenAI API request format" },
+      langfuse: { name: "LangFuse", description: "LangFuse tracking data format" },
+    },
+    exportFormats: {
+      standard: { name: "Standard", description: "Internal standard data format" },
+      openai: { name: "OpenAI", description: "OpenAI API compatible format" },
+      template: { name: "Template", description: "Reusable template format" },
+    },
+
+    // Import placeholders
+    importPlaceholders: {
+      openai: 'OpenAI API request format, e.g.:\n{\n  "messages": [...],\n  "model": "gpt-4"\n}',
+      langfuse: 'LangFuse tracking data, e.g.:\n{\n  "input": {\n    "messages": [...]\n  }\n}',
+      conversation: 'Standard conversation format, e.g.:\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}',
+      smart: "Paste any supported JSON format, system will auto-detect",
+    },
+
+    // Console errors (developer logs)
+    consoleErrors: {
+      toolEditIndexOutOfRange: "Tool edit failed: index {index} out of range",
+      toolEditToolNotFound: "Tool edit failed: tool at index {index} not found",
+      toolSaveMissingFunction: "Tool save failed: missing function property",
+      toolDataStructureError: "Tool data structure error: missing function property",
     },
   },
   updater: {

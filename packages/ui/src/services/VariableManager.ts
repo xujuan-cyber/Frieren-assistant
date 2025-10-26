@@ -31,20 +31,58 @@ interface ScanCacheEntry {
 }
 
 /**
+ * 🆕 工厂函数：创建并初始化 VariableManager（推荐使用）
+ * @param preferenceService - 偏好设置服务
+ * @returns 已初始化的 VariableManager 实例
+ *
+ * @example
+ * const manager = await createVariableManager(preferenceService);
+ * // 此时数据已加载完成，可以安全使用
+ * const vars = manager.listVariables();
+ */
+export async function createVariableManager(
+  preferenceService: IPreferenceService
+): Promise<VariableManager> {
+  const manager = new VariableManager(preferenceService);
+  await manager.waitForInitialization();
+  return manager;
+}
+
+/**
  * 变量管理器实现
+ *
+ * ⚠️ 注意：直接使用 new VariableManager() 创建实例时，需要手动调用 waitForInitialization()
+ * 推荐使用 createVariableManager() 工厂函数，它会自动处理初始化。
  */
 export class VariableManager implements IVariableManager {
   private customVariables: Record<string, string> = {};
   private advancedModeEnabled: boolean = false;
   private lastConversationMessages: ConversationMessage[] = [];
-  
+
+  // 🆕 初始化 Promise，用于等待异步加载完成
+  private _initPromise: Promise<void>;
+
+  // 🆕 数据加载完成后的回调（可选）
+  private _onDataLoaded?: () => void;
+
   // 变量扫描缓存
   private scanCache: Map<string, ScanCacheEntry> = new Map();
   private readonly CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5分钟缓存
   private readonly MAX_CACHE_SIZE = 100; // 最大缓存条目数
-  
+
   constructor(private preferenceService: IPreferenceService) {
-    this.loadFromStorage();
+    // 保存 Promise，让外部可以等待初始化完成
+    this._initPromise = this.loadFromStorage();
+  }
+
+  // 等待初始化完成
+  async waitForInitialization(): Promise<void> {
+    await this._initPromise;
+  }
+
+  // 设置数据加载完成后的回调（可选，用于通知外部刷新）
+  setOnDataLoaded(callback: () => void): void {
+    this._onDataLoaded = callback;
   }
 
   // 变量CRUD操作
@@ -230,7 +268,7 @@ export class VariableManager implements IVariableManager {
   private async loadFromStorage(): Promise<void> {
     try {
       const storage = await this.preferenceService.get<VariableStorage>(
-        STORAGE_KEYS.VARIABLES, 
+        STORAGE_KEYS.VARIABLES,
         {
           customVariables: {},
           advancedModeEnabled: false,
@@ -241,6 +279,11 @@ export class VariableManager implements IVariableManager {
       this.customVariables = storage.customVariables || {};
       this.advancedModeEnabled = storage.advancedModeEnabled || false;
       this.lastConversationMessages = storage.lastConversationMessages || [];
+
+      // 触发回调通知外部数据已加载
+      if (this._onDataLoaded) {
+        this._onDataLoaded();
+      }
     } catch (error) {
       console.warn('[VariableManager] Failed to load from storage:', error);
       // 继续使用默认值

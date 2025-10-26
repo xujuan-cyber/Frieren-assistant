@@ -129,7 +129,7 @@ export function useContextManagement(options: ContextManagementOptions) {
   let persistContextUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   const persistContextUpdate = async (patch: {
     messages?: ConversationMessage[];
-    variables?: Record<string, string>;
+    // variables 已移除 - 临时变量由 useTemporaryVariables() 全局管理，不持久化
     tools?: ToolDefinition[];
   }) => {
     if (!contextRepo.value || !currentContextId.value) return;
@@ -235,17 +235,17 @@ export function useContextManagement(options: ContextManagementOptions) {
   // 处理上下文编辑器保存
   const handleContextEditorSave = async (context: {
     messages: ConversationMessage[];
-    variables: Record<string, string>;
+    variables: Record<string, string>; // 保留参数以保持接口兼容，但不使用
     tools: ToolDefinition[];
   }) => {
     // 更新优化上下文
     optimizationContext.value = [...context.messages];
     optimizationContextTools.value = [...context.tools];
 
-    // 持久化到contextRepo
+    // 持久化到contextRepo（不包含临时变量）
     await persistContextUpdate({
       messages: context.messages,
-      variables: context.variables,
+      // variables 不持久化 - 临时变量由 useTemporaryVariables() 管理
       tools: context.tools,
     });
 
@@ -259,20 +259,22 @@ export function useContextManagement(options: ContextManagementOptions) {
   // 处理上下文编辑器实时状态更新
   const handleContextEditorStateUpdate = async (state: {
     messages: ConversationMessage[];
-    variables: Record<string, string>;
+    variables?: Record<string, string>; // 保留以保持兼容，但不使用
     tools: ToolDefinition[];
   }) => {
-    // 实时同步状态到contextEditorState
-    contextEditorState.value = { ...contextEditorState.value, ...state };
+    // 实时同步状态到contextEditorState（不包含 variables）
+    contextEditorState.value.messages = [...state.messages];
+    contextEditorState.value.tools = [...state.tools];
+    // variables 不同步 - 临时变量由 useTemporaryVariables() 全局管理
 
     // 实时更新优化上下文
     optimizationContext.value = [...state.messages];
     optimizationContextTools.value = [...(state.tools || [])];
 
-    // 实时持久化
+    // 实时持久化（不包含临时变量）
     await persistContextUpdate({
       messages: state.messages,
-      variables: state.variables,
+      // variables 不持久化
       tools: state.tools,
     });
 

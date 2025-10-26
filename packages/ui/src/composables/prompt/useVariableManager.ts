@@ -3,11 +3,11 @@
  * 提供变量管理的响应式接口
  */
 
-import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
 
 import type { AppServices } from '../../types/services'
 import type { IVariableManager, ConversationMessage } from '../../types/variable'
-import { VariableManager } from '../../services/VariableManager'
+import { VariableManager, createVariableManager } from '../../services/VariableManager'
 
 export interface VariableManagerOptions {
   autoSync?: boolean  // 是否自动同步变量状态
@@ -55,9 +55,11 @@ export interface VariableManagerHooks {
 
 /**
  * 使用变量管理器
+ * @param services - 服务实例，支持 Ref 或 ComputedRef
+ * @param options - 配置选项
  */
 export function useVariableManager(
-  services: Ref<AppServices | null>,
+  services: Ref<AppServices | null> | ComputedRef<AppServices | null>,
   options: VariableManagerOptions = {}
 ): VariableManagerHooks {
   
@@ -88,14 +90,11 @@ export function useVariableManager(
       isReady.value = false
       return
     }
-    
+
     try {
-      const manager = new VariableManager(services.value.preferenceService)
+      // 使用工厂函数，自动等待初始化完成
+      const manager = await createVariableManager(services.value.preferenceService)
       variableManager.value = manager
-      
-      // 等待一个微任务，确保异步加载完成
-      await new Promise(resolve => setTimeout(resolve, 0))
-      
       refreshState()
       isReady.value = true
     } catch (error) {
@@ -106,8 +105,10 @@ export function useVariableManager(
   
   // 刷新状态
   const refreshState = () => {
-    if (!variableManager.value) return
-    
+    if (!variableManager.value) {
+      return
+    }
+
     try {
       isAdvancedMode.value = variableManager.value.getAdvancedModeEnabled()
       customVariables.value = variableManager.value.listVariables()

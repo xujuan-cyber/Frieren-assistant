@@ -140,8 +140,11 @@ export interface ContextTemplate {
 export interface ContextEditorState {
   /** 当前消息列表 */
   messages: ConversationMessage[];
-  /** 当前变量 */
-  variables: Record<string, string>;
+  /**
+   * 当前变量
+   * @deprecated 已迁移到 useTemporaryVariables() 和 useVariableManager()，此字段保留仅为向后兼容
+   */
+  variables?: Record<string, string>;
   /** 当前工具 */
   tools: ToolDefinition[];
   /** 是否显示变量预览 */

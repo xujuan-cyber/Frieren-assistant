@@ -286,7 +286,7 @@
                 content-style="height: 100%; max-height: 100%; overflow: hidden;"
             >
                 <PromptPanelUI
-                    v-if="services && services.templateManager"
+                    v-if="services?.value?.templateManager"
                     ref="promptPanelRef"
                     v-model:optimized-prompt="optimizedPrompt"
                     :reasoning="optimizedReasoning"
@@ -297,7 +297,6 @@
                     :versions="currentVersions"
                     :current-version-id="currentVersionId"
                     :optimization-mode="optimizationMode"
-                    :services="services"
                     :advanced-mode-enabled="advancedModeEnabled"
                     iterate-template-type="imageIterate"
                     @iterate="handleIteratePrompt"

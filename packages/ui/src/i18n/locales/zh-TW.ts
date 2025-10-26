@@ -1003,7 +1003,7 @@ export default {
       detected: "偵測到變數",
       manageVariables: "管理變數",
       viewPreview: "查看預覽",
-      formTitle: "變數值設定",
+      formTitle: "臨時變數",
       variablesCount: "個變數",
       clearAll: "清空全部",
       inputPlaceholder: "請輸入變數值",
@@ -1355,7 +1355,6 @@ export default {
   },
   contextEditor: {
     // Variables tab (新增)
-    variablesTab: "變數",
     contextVariables: "情境變數",
     contextVariablesDesc: "管理目前情境的變數覆蓋，不影響全域變數",
     noContextVariables: "暫無情境變數",
@@ -1414,6 +1413,20 @@ export default {
     title: "情境編輯器",
     systemTemplates: "系統範本",
     userTemplates: "使用者範本",
+
+    // Tab labels
+    messagesTab: "訊息編輯",
+    templatesTab: "快速範本",
+    variablesTab: "變數管理",
+    toolsTab: "工具管理",
+
+    // Statistics
+    messageCount: "{count} 條訊息",
+    messageItemLabel: "訊息 {index}: {role}",
+    variableCountLabel: "變數: {count}",
+    toolCountLabel: "工具: {count}",
+    variableDetected: "變數: {count}",
+    missingVariableLabel: "缺失: {count}",
     // Basic
     noMessages: "暫無訊息",
     addFirstMessage: "新增您的第一則訊息",
@@ -1439,40 +1452,91 @@ export default {
     selectFile: "選擇檔案",
     orPasteText: "或在下方貼上文字",
     import: "匯入",
+    importSuccess: "匯入成功",
+    importFailed: "匯入失敗",
+    importDataRequired: "請輸入要匯入的資料",
+    invalidConversationFormat: "無效的會話格式：必須包含messages陣列",
+    unsupportedImportFormat: "不支援的匯入格式",
+    invalidJsonFormat: "資料格式錯誤，請檢查JSON格式",
     exportTitle: "匯出情境資料",
     exportFormat: "匯出格式：",
     exportPreview: "匯出預覽：",
     copyToClipboard: "複製到剪貼簿",
     saveToFile: "儲存到檔案",
+    exportSuccess: "匯出成功",
+    exportFailed: "匯出失敗",
+    copySuccess: "已複製到剪貼簿",
+    copyFailed: "複製失敗",
 
-    // Missing keys
-    override: "情境變數",
-    createOverride: "建立情境變數",
-    overrideCount: "{count} 個情境變數",
-    variableOverrides: "情境變數",
+    // Variable management
+    variableManagement: "變數管理",
+    variableManagementHint: "臨時變數僅在目前工作階段有效；全域變數跨工作階段持久保存",
+
+    // Temporary variables
+    temporaryVariables: "臨時變數",
+    temporaryVariableCount: "{count} 個臨時變數",
+    temporaryVariableHint: "僅目前工作階段有效",
     globalVariables: "全域: {count}",
+    globalVariableHint: "跨工作階段持久保存",
     noVariables: "暫無變數",
-    addFirstVariable: "新增第一個情境變數",
+    addFirstVariable: "新增第一個變數",
     variableName: "變數名稱",
     variableValue: "變數值",
+    variableType: "變數類型",
     variableNamePlaceholder: "請輸入變數名稱（不含大括號）",
     predefinedVariableWarning: "不能修改預定義變數",
     variableValuePlaceholder: "請輸入變數值",
-    deleteVariableConfirm: '確定要刪除情境變數"{name}"嗎？',
-    variableDeleted: "已刪除情境變數：{name}",
+    deleteVariableConfirm: '確定要刪除變數"{name}"嗎？',
+    variableDeleted: "已刪除變數：{name}",
     predefinedVariableError: "不能修改預定義變數",
-    variableSaved: "已{action}情境變數：{name}",
+    variableSaved: "已{action}{type}變數：{name}",
+    globalVariableEditHint: "全域變數請到變數管理器中編輯",
+    cannotDeleteGlobalVariable: "無法刪除全域變數",
+    globalVariableSaveNotSupported: "全域變數儲存功能需要 variableManager（即將支援）",
+    variableNotFound: "變數不存在",
+    variableManagerNotReady: "變數管理器未初始化，請稍後再試",
+    variableSaveFailed: "變數儲存失敗",
 
     // Variable source labels
     variableSourceLabels: {
       global: "全域",
-      context: "情境",
+      temporary: "臨時",
+      predefined: "系統",
     },
 
     // Variable status labels
     variableStatusLabels: {
       active: "活躍",
       overridden: "被覆蓋",
+    },
+
+    // Import/Export formats
+    importFormats: {
+      smart: { name: "智慧識別", description: "自動偵測格式並轉換" },
+      conversation: { name: "會話格式", description: "標準的會話訊息格式" },
+      openai: { name: "OpenAI", description: "OpenAI API 請求格式" },
+      langfuse: { name: "LangFuse", description: "LangFuse 追蹤資料格式" },
+    },
+    exportFormats: {
+      standard: { name: "標準格式", description: "內部標準資料格式" },
+      openai: { name: "OpenAI", description: "OpenAI API 相容格式" },
+      template: { name: "範本格式", description: "可複用的範本格式" },
+    },
+
+    // Import placeholders
+    importPlaceholders: {
+      openai: 'OpenAI API 請求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4"\n}',
+      langfuse: 'LangFuse 追蹤資料，例如：\n{\n  "input": {\n    "messages": [...]\n  }\n}',
+      conversation: '標準會話格式，例如：\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}',
+      smart: "貼上任意支援格式的 JSON 資料，系統將自動識別",
+    },
+
+    // Console errors (開發者日誌)
+    consoleErrors: {
+      toolEditIndexOutOfRange: "工具編輯失敗：索引 {index} 超出範圍",
+      toolEditToolNotFound: "工具編輯失敗：索引 {index} 處的工具不存在",
+      toolSaveMissingFunction: "工具儲存失敗：缺少 function 屬性",
+      toolDataStructureError: "工具資料結構錯誤：缺少 function 屬性",
     },
   },
   updater: {

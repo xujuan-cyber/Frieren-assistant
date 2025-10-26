@@ -8,7 +8,12 @@ import {
 } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
 import type { ThemeCommonVars } from 'naive-ui'
-import { autocompletion, CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
+import {
+  autocompletion,
+  CompletionContext,
+  type Completion,
+  type CompletionResult
+} from '@codemirror/autocomplete'
 import type { DetectedVariable } from './useVariableDetection'
 
 export interface VariableDetectionLabels {
@@ -207,10 +212,11 @@ export function variableHighlighter(
 export function variableAutocompletion(
   globalVariables: Record<string, string>,
   temporaryVariables: Record<string, string>,
-  predefinedVariables: Record<string, string>,
+  _predefinedVariables: Record<string, string>, // 预定义变量保留参数以兼容调用方，但不再参与自动补全
   labels: VariableDetectionLabels
 ) {
   return autocompletion({
+    icons: false,
     override: [
       (context: CompletionContext): CompletionResult | null => {
         // 检测是否在 {{ 后面
@@ -219,46 +225,36 @@ export function variableAutocompletion(
 
         const options = []
 
-        // 添加预定义变量 (优先级最高)
-        for (const [name, value] of Object.entries(predefinedVariables)) {
-          options.push({
-            label: name,
-            type: 'variable',
-            detail: labels.sourcePredefined,
-            info: value
-              ? labels.valuePreview(`${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`)
-              : labels.emptyValue,
-            apply: `${name}}}`,
-            boost: 3 // 最高优先级
-          })
+        // 添加临时变量 (优先级最高)
+        for (const [name, value] of Object.entries(temporaryVariables)) {
+          const preview = value
+            ? `${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`
+            : labels.emptyValue
+
+          options.push(
+            createVariableCompletionOption({
+              name,
+              source: 'temporary',
+              valuePreview: preview,
+              boost: 3
+            })
+          )
         }
 
         // 添加全局变量
         for (const [name, value] of Object.entries(globalVariables)) {
-          options.push({
-            label: name,
-            type: 'variable',
-            detail: labels.sourceGlobal,
-            info: value
-              ? labels.valuePreview(`${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`)
-              : labels.emptyValue,
-            apply: `${name}}}`,
-            boost: 2
-          })
-        }
+          const preview = value
+            ? `${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`
+            : labels.emptyValue
 
-        // 添加临时变量
-        for (const [name, value] of Object.entries(temporaryVariables)) {
-          options.push({
-            label: name,
-            type: 'variable',
-            detail: labels.sourceTemporary,
-            info: value
-              ? labels.valuePreview(`${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`)
-              : labels.emptyValue,
-            apply: `${name}}}`,
-            boost: 1
-          })
+          options.push(
+            createVariableCompletionOption({
+              name,
+              source: 'global',
+              valuePreview: preview,
+              boost: 2
+            })
+          )
         }
 
         return {
@@ -271,8 +267,70 @@ export function variableAutocompletion(
     // 自动完成配置
     activateOnTyping: true,
     maxRenderedOptions: 20,
-    defaultKeymap: true
+    defaultKeymap: true,
+    optionClass: (completion) => {
+      const source = (completion as VariableCompletionMeta).sourceType
+      return source ? `variable-completion-${source}` : ''
+    }
   })
+}
+
+type VariableSource = 'temporary' | 'global' | 'predefined'
+
+interface CompletionOptionParams {
+  name: string
+  source: VariableSource
+  valuePreview: string
+  boost: number
+}
+
+interface VariableCompletionMeta extends Completion {
+  sourceType?: VariableSource
+  valuePreview?: string
+}
+
+/**
+ * 构建变量补全选项,自动处理右花括号补全逻辑
+ */
+export function createVariableCompletionOption({
+  name,
+  source,
+  valuePreview,
+  boost
+}: CompletionOptionParams): Completion {
+  const completion = {
+    label: name,
+    displayLabel: `${name}: ${valuePreview}`,
+    type: 'variable',
+    boost,
+    apply: (view, _completion, from, to) => {
+      // 计算光标之后已有的右花括号数量(最多检查两个)
+      let existingClosings = 0
+      for (let i = 0; i < 2; i += 1) {
+        if (view.state.sliceDoc(to + i, to + i + 1) === '}') {
+          existingClosings += 1
+        } else {
+          break
+        }
+      }
+
+      const neededClosings = Math.max(0, 2 - existingClosings)
+      const closingText = '}'.repeat(neededClosings)
+      const insertText = `${name}${closingText}`
+
+      view.dispatch({
+        changes: { from, to, insert: insertText },
+        selection: {
+          anchor: from + insertText.length + existingClosings
+        }
+      })
+    }
+  } as Completion & VariableCompletionMeta
+
+  completion.sourceType = source
+  completion.valuePreview = valuePreview
+
+  return completion
 }
 
 /**

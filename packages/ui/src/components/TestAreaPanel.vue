@@ -114,12 +114,6 @@
                         >
                             {{ t("test.variables.addVariable") }}
                         </NButton>
-                        <NButton
-                            size="small"
-                            @click="handleOpenVariableManager"
-                        >
-                            {{ t("test.variables.manageVariables") }}
-                        </NButton>
                     </NSpace>
                 </NSpace>
             </NCard>
@@ -635,12 +629,6 @@ const getVariablePlaceholder = (varName: string): string => {
 // 变量列表变化时的清理逻辑已不再需要（不再使用 userInputValues）
 
 // 事件处理函数
-const handleOpenVariableManager = () => {
-    emit("open-variable-manager");
-    recordUpdate();
-};
-
-
 const handleVariableValueChange = (varName: string, value: string) => {
     // 🧪 更新测试区临时变量
     if (testVariables.value[varName]) {

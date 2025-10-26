@@ -215,14 +215,14 @@ const TestContextEditorWithPersistence = {
     const storage = new MemoryStorageProvider()
     const contextRepo = createContextRepo(storage)
     const currentContextId = ref<string | null>(null)
-    
+
     // 模拟变量扫描函数
     const scanVariables = (content: string): string[] => {
       if (!content) return []
       const matches = content.match(/\{\{([^}]+)\}\}/g) || []
       return matches.map(match => match.slice(2, -2))
     }
-    
+
     // 模拟变量替换函数
     const replaceVariables = (content: string, vars?: Record<string, string>): string => {
       if (!content) return content
@@ -233,11 +233,40 @@ const TestContextEditorWithPersistence = {
       })
       return result
     }
-    
+
     // 检查是否为预定义变量
     const isPredefinedVariable = (name: string): boolean => {
       const predefined = ['originalPrompt', 'currentPrompt', 'userQuestion', 'conversationContext', 'iterateInput', 'lastOptimizedPrompt', 'toolsContext']
       return predefined.includes(name)
+    }
+
+    // Mock variableManager
+    const mockVariableManager = {
+      variableManager: ref(null),
+      isReady: ref(true),
+      isAdvancedMode: ref(false),
+      customVariables: ref<Record<string, string>>({}),
+      allVariables: ref<Record<string, string>>({}),
+      statistics: ref({
+        customVariableCount: 0,
+        predefinedVariableCount: 7,
+        totalVariableCount: 7,
+        advancedModeEnabled: false
+      }),
+      setAdvancedMode: vi.fn(),
+      addVariable: vi.fn(),
+      updateVariable: vi.fn(),
+      deleteVariable: vi.fn(),
+      getVariable: vi.fn((name: string) => undefined),
+      validateVariableName: vi.fn(() => true),
+      scanVariablesInContent: vi.fn(scanVariables),
+      replaceVariables: vi.fn(replaceVariables),
+      detectMissingVariables: vi.fn(() => []),
+      getConversationMessages: vi.fn(() => []),
+      setConversationMessages: vi.fn(),
+      exportVariables: vi.fn(() => '{}'),
+      importVariables: vi.fn(),
+      refresh: vi.fn()
     }
     
     // 处理状态更新并持久化
@@ -295,7 +324,8 @@ const TestContextEditorWithPersistence = {
       isPredefinedVariable,
       handleStateUpdate,
       handleContextChange,
-      simulateRefresh
+      simulateRefresh,
+      mockVariableManager
     }
   },
   template: `
@@ -303,8 +333,9 @@ const TestContextEditorWithPersistence = {
       v-model:visible="visible"
       :state="initialState"
       :scan-variables="scanVariables"
-      :replace-variables="replaceVariables" 
+      :replace-variables="replaceVariables"
       :is-predefined-variable="isPredefinedVariable"
+      :variable-manager="mockVariableManager"
       @update:state="handleStateUpdate"
       @contextChange="handleContextChange"
       data-testid="context-editor-with-persistence"

@@ -160,7 +160,7 @@
                             :is-compare-mode="isCompareMode"
                             @update:isCompareMode="isCompareMode = $event"
                             :global-variables="
-                                variableManager?.allVariables?.value || {}
+                                variableManager?.customVariables?.value || {}
                             "
                             :predefined-variables="predefinedVariables"
                             :available-variables="
@@ -173,7 +173,7 @@
                                         content,
                                     ) || []
                             "
-                            :services="services"
+                            :services="services?.value || null"
                             :input-mode="
                                 responsiveLayout.recommendedInputMode.value
                             "
@@ -204,7 +204,6 @@
                             @config-model="modelManager.showConfig = true"
                             @open-input-preview="handleOpenInputPreview"
                             @open-prompt-preview="handleOpenPromptPreview"
-                            @open-test-preview="showPreviewPanel = true"
                         >
                             <!-- 优化模型选择插槽 -->
                             <template #optimize-model-select>
@@ -339,7 +338,7 @@
                                 variableManager?.allVariables?.value || {}
                             "
                             :predefined-variables="predefinedVariables"
-                            :services="services"
+                            :services="services?.value || null"
                             @variable-change="handleTestPanelVariableChange"
                             @save-to-global="handleSaveToGlobal"
                             :input-mode="
@@ -367,6 +366,7 @@
                             @save-favorite="handleSaveFavorite"
                             @open-global-variables="openVariableManager()"
                             @open-tool-manager="
+                                openContextEditorWithTab('tools');
                                 handleOpenContextEditor('tools')
                             "
                             @open-variable-manager="handleOpenVariableManager"
@@ -374,7 +374,6 @@
                             @config-model="modelManager.showConfig = true"
                             @open-input-preview="handleOpenInputPreview"
                             @open-prompt-preview="handleOpenPromptPreview"
-                            @open-test-preview="showPreviewPanel = true"
                         >
                             <!-- 优化模型选择插槽 -->
                             <template #optimize-model-select>
@@ -655,7 +654,6 @@
                                         :optimization-mode="
                                             selectedOptimizationMode
                                         "
-                                        :services="services"
                                         :advanced-mode-enabled="
                                             advancedModeEnabled
                                         "
@@ -726,7 +724,6 @@
                                     @open-variable-manager="
                                         handleOpenVariableManager
                                     "
-                                    @open-preview="showPreviewPanel = true"
                                 >
                                     <!-- 模型选择插槽 -->
                                     <template #model-select>
@@ -897,7 +894,8 @@
                 v-if="isReady"
                 v-model:visible="showContextEditor"
                 :state="contextEditorState"
-                :available-variables="variableManager?.allVariables.value || {}"
+                :services="servicesForContextEditor"
+                :variable-manager="variableManager"
                 :optimization-mode="selectedOptimizationMode"
                 :context-mode="contextMode"
                 :scan-variables="
@@ -914,10 +912,11 @@
                         ) || content
                 "
                 :defaultTab="contextEditorDefaultTab"
-                title="上下文编辑器"
+                :only-show-tab="contextEditorOnlyShowTab"
+                :title="contextEditorTitle"
                 @update:state="handleContextEditorStateUpdate"
                 @save="handleContextEditorSave"
-                @cancel="showContextEditor = false"
+                @cancel="handleContextEditorCancel"
                 @open-variable-manager="handleOpenVariableManager"
             />
 
@@ -1022,6 +1021,8 @@ import {
     usePromptPreview,
     usePromptTester,
     useContextManagement,
+    useAggregatedVariables,
+    useContextEditorUIState,
 
     // i18n functions
     initializeI18nWithStorage,
@@ -1081,6 +1082,9 @@ provide("services", services);
 // 5. 控制主UI渲染的标志
 const isReady = computed(() => !!services.value && !isInitializing.value);
 
+// 创建 ContextEditor 使用的 services 引用
+const servicesForContextEditor = computed(() => services?.value || null);
+
 // 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null);
 const selectedOptimizationMode = ref<OptimizationMode>("system");
@@ -1127,9 +1131,8 @@ const handleModeSelect = async (mode: "basic" | "pro" | "image") => {
         const { ensureInitialized } = useBasicSubMode(services as any);
         await ensureInitialized();
         selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
-        console.log(
-            `[App] 切换到基础模式，已恢复子模式: ${basicSubMode.value}`,
-        );
+        // 同步 contextMode，确保测试输入框正确显示
+        contextMode.value = basicSubMode.value as import("@prompt-optimizer/core").ContextMode;
     } else if (mode === "pro") {
         const { ensureInitialized } = useProSubMode(services as any);
         await ensureInitialized();
@@ -1138,15 +1141,9 @@ const handleModeSelect = async (mode: "basic" | "pro" | "image") => {
         await handleContextModeChange(
             proSubMode.value as import("@prompt-optimizer/core").ContextMode,
         );
-        console.log(
-            `[App] 切换到上下文模式，已恢复子模式: ${proSubMode.value}`,
-        );
     } else if (mode === "image") {
         const { ensureInitialized } = useImageSubMode(services as any);
         await ensureInitialized();
-        console.log(
-            `[App] 切换到图像模式，已恢复子模式: ${imageSubMode.value}`,
-        );
     }
 };
 
@@ -1180,9 +1177,17 @@ const showContextEditor = ref(false);
 const contextEditorDefaultTab = ref<"messages" | "variables" | "tools">(
     "messages",
 );
+
+// 使用 composable 管理编辑器 UI 状态
+const {
+    onlyShowTab: contextEditorOnlyShowTab,
+    title: contextEditorTitle,
+    handleCancel: handleContextEditorCancel,
+    openWithTab: openContextEditorWithTab,
+} = useContextEditorUIState(showContextEditor, t);
 const contextEditorState = ref({
     messages: [] as ConversationMessage[],
-    variables: {} as Record<string, string>,
+    // variables 已移除 - 临时变量由 useTemporaryVariables() 全局管理
     tools: [] as any[],
     showVariablePreview: true,
     showToolManager: false,
@@ -1192,14 +1197,17 @@ const contextEditorState = ref({
 // 🆕 提示词预览面板状态
 const showPreviewPanel = ref(false);
 
+// 变量管理器实例（必须在使用前声明）
+const variableManager = useVariableManager(services as any);
+
+// 使用聚合变量管理器（自动合并预定义 + 全局 + 临时变量）
+const aggregatedVariables = useAggregatedVariables(variableManager);
 // 🆕 使用 usePromptPreview composable 实时预览提示词
 const promptPreviewContent = ref(""); // 改为 ref，动态设置内容
 const promptPreviewVariables = computed(() => {
-    // 合并全局变量和上下文变量（上下文变量优先，会覆盖同名的全局变量）
-    return {
-        ...(variableManager?.allVariables.value || {}),
-        ...(contextEditorState.value.variables || {}),
-    };
+    // 🆕 aggregatedVariables 已自动聚合所有变量（预定义 + 全局 + 临时）
+    // 临时变量由 useTemporaryVariables() 全局管理，无需从 contextEditorState 获取
+    return aggregatedVariables.allVariables.value;
 });
 
 // 渲染阶段（用于预览）
@@ -1226,7 +1234,6 @@ const handleOpenPromptPreview = () => {
 };
 
 // 变量管理器实例
-const variableManager = useVariableManager(services as any);
 
 const templateSelectType = computed<
     | "optimize"
@@ -1297,13 +1304,9 @@ const contextManagement = useContextManagement({
 // 从 contextManagement 提取其他状态和方法 (contextMode 除外,已在前面声明)
 const optimizationContext = contextManagement.optimizationContext;
 const optimizationContextTools = contextManagement.optimizationContextTools;
-const isContextLoaded = contextManagement.isContextLoaded;
-const currentContextId = contextManagement.currentContextId;
-const contextRepo = contextManagement.contextRepo;
 const predefinedVariables = contextManagement.predefinedVariables;
 const initializeContextPersistence =
     contextManagement.initializeContextPersistence;
-const persistContextUpdate = contextManagement.persistContextUpdate;
 const handleOpenContextEditor = contextManagement.handleOpenContextEditor;
 const handleContextEditorSave = contextManagement.handleContextEditorSave;
 const handleContextEditorStateUpdate =
@@ -1327,7 +1330,6 @@ const testResults = computed(() => promptTester.testResults);
 // 处理测试面板的变量变化（现在测试变量由TestAreaPanel自己管理，不需要同步到会话）
 const handleTestPanelVariableChange = async (name: string, value: string) => {
     // 测试变量现在只在TestAreaPanel内部管理，不需要外部同步
-    console.log("[App] Variable change ignored (handled by TestAreaPanel):", name, value);
 };
 
 // 🆕 处理保存测试变量到全局
@@ -1420,7 +1422,6 @@ const textModelOptions = ref<ModelSelectOption[]>([]);
 
 const handleOpenOptimizeTemplateManager = () => {
     const type = templateSelectType.value;
-    console.log("[App] Opening template manager for type:", type);
     openTemplateManager(type as any);
 };
 
@@ -1582,7 +1583,6 @@ watch(services, async (newServices) => {
         await ensureInitialized();
         // 同步到 selectedOptimizationMode 以保持兼容性
         selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
-        console.log(`[App] 基础模式子模式已恢复: ${basicSubMode.value}`);
     } else if (functionMode.value === "pro") {
         const { ensureInitialized } = useProSubMode(services as any);
         await ensureInitialized();
@@ -1592,14 +1592,10 @@ watch(services, async (newServices) => {
         await handleContextModeChange(
             proSubMode.value as import("@prompt-optimizer/core").ContextMode,
         );
-        console.log(`[App] 上下文模式子模式已恢复: ${proSubMode.value}`);
     } else if (functionMode.value === "image") {
         const { ensureInitialized } = useImageSubMode(services as any);
         await ensureInitialized();
-        console.log(`[App] 图像模式子模式已恢复: ${imageSubMode.value}`);
     }
-
-    console.log("All services and composables initialized.");
 
     // 监听全局历史刷新事件（来自图像模式）
     const handleGlobalHistoryRefresh = () => {
@@ -1613,8 +1609,6 @@ watch(services, async (newServices) => {
 
 // 8. 处理数据导入成功后的刷新
 const handleDataImported = () => {
-    console.log("[App] 数据导入成功，即将刷新页面以应用所有更改...");
-
     // 显示成功提示，然后刷新页面
     useToast().success(t("dataManager.import.successWithRefresh"));
 
@@ -1643,8 +1637,6 @@ const handleOptimizePrompt = () => {
                     : undefined, // 🆕 添加工具传递
         };
 
-        console.log("[App] Optimizing with advanced context:", advancedContext);
-
         // 使用带上下文的优化
         optimizer.handleOptimizePromptWithContext(advancedContext);
     } else {
@@ -1666,16 +1658,12 @@ const handleSwitchVersion = (versionId: any) => {
 // 处理高级模式变化
 const handleAdvancedModeChange = (enabled: boolean) => {
     advancedModeEnabled.value = enabled;
-    console.log(`[App] Advanced mode ${enabled ? "enabled" : "disabled"}`);
 };
 
 // 切换高级模式（导航菜单使用）
 const toggleAdvancedMode = async () => {
     const next = !advancedModeEnabled.value;
     advancedModeEnabled.value = next;
-    console.log(
-        `[App] Advanced mode ${next ? "enabled" : "disabled"} (toggled from navigation)`,
-    );
 };
 
 // 打开变量管理器
@@ -1814,7 +1802,8 @@ const handleBasicSubModeChange = async (mode: OptimizationMode) => {
         mode as import("@prompt-optimizer/core").BasicSubMode,
     );
     selectedOptimizationMode.value = mode; // 保持兼容性
-    console.log(`[App] 基础模式子模式已切换并持久化: ${mode}`);
+    // 同步 contextMode，确保测试输入框正确显示
+    contextMode.value = mode as import("@prompt-optimizer/core").ContextMode;
 };
 
 // 上下文模式子模式变更处理器
@@ -1822,13 +1811,12 @@ const handleProSubModeChange = async (mode: OptimizationMode) => {
     await setProSubMode(mode as import("@prompt-optimizer/core").ProSubMode);
     selectedOptimizationMode.value = mode; // 保持兼容性
 
-    // 🔧 同步更新 contextMode，确保两者一致（避免重复调用）
+    // 同步更新 contextMode，确保两者一致（避免重复调用）
     if (services.value?.contextMode.value !== mode) {
         await handleContextModeChange(
             mode as import("@prompt-optimizer/core").ContextMode,
         );
     }
-    console.log(`[App] 上下文模式子模式已切换并持久化: ${mode}`);
 };
 
 // 图像模式子模式变更处理器
@@ -1836,7 +1824,6 @@ const handleImageSubModeChange = async (
     mode: import("@prompt-optimizer/core").ImageSubMode,
 ) => {
     await setImageSubMode(mode);
-    console.log(`[App] 图像模式子模式已切换并持久化: ${mode}`);
 
     // 通知 ImageWorkspace 更新
     if (typeof window !== "undefined") {
@@ -1862,8 +1849,6 @@ const handleOptimizationModeChange = async (mode: OptimizationMode) => {
 
 // 处理模板语言变化
 const handleTemplateLanguageChanged = (newLanguage: string) => {
-    console.log("[App] 模板语言已切换:", newLanguage);
-
     // 刷新主界面的模板选择组件
     refreshOptimizeTemplates();
 
@@ -2062,7 +2047,6 @@ const promptInputPlaceholder = computed(() => {
         : t("promptOptimizer.userPromptPlaceholder");
 });
 
-// 真实测试处理函数
 const getActiveTestPanelInstance = (): TestAreaPanelInstance | null => {
     if (functionMode.value === "pro") {
         if (contextMode.value === "system") {
@@ -2080,6 +2064,7 @@ const getActiveTestPanelInstance = (): TestAreaPanelInstance | null => {
     return null;
 };
 
+// 真实测试处理函数
 const handleTestAreaTest = async (testVariables?: Record<string, string>) => {
     // 调用 promptTester 的 executeTest 方法
     await promptTester.executeTest(
@@ -2093,7 +2078,7 @@ const handleTestAreaTest = async (testVariables?: Record<string, string>) => {
 };
 
 const handleTestAreaCompareToggle = () => {
-    console.log("[App] Compare mode toggled:", isCompareMode.value);
+    // Compare mode toggle handler
 };
 
 // 处理收藏保存请求
@@ -2101,8 +2086,6 @@ const handleSaveFavorite = (data: {
     content: string;
     originalContent?: string;
 }) => {
-    console.log("[App] handleSaveFavorite triggered:", data);
-
     // 保存数据用于对话框预填充
     saveFavoriteData.value = data;
 
@@ -2112,7 +2095,6 @@ const handleSaveFavorite = (data: {
 
 // 处理保存完成
 const handleSaveFavoriteComplete = () => {
-    console.log("[App] Favorite saved successfully");
     // 关闭对话框已由组件内部处理
     // 可选:刷新收藏列表或显示额外提示
 };

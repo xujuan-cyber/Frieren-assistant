@@ -1,5 +1,8 @@
 <template>
-    <div class="variable-aware-input-wrapper">
+    <div
+        class="variable-aware-input-wrapper"
+        :style="completionColorVars"
+    >
         <!-- CodeMirror 编辑器容器 -->
         <div ref="editorRef" class="codemirror-container"></div>
 
@@ -126,6 +129,18 @@ const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
 const themeVars = useThemeVars();
+const completionColorVars = computed(() => ({
+    "--variable-completion-temporary-color":
+        themeVars.value.successColor || "#18a058",
+    "--variable-completion-global-color":
+        themeVars.value.infoColor || "#2080f0",
+    "--variable-completion-predefined-color":
+        themeVars.value.warningColor || "#8a63d2",
+    "--variable-completion-selected-bg":
+        themeVars.value.primaryColorSuppl || "rgba(32, 128, 240, 0.12)",
+    "--variable-completion-selected-color":
+        themeVars.value.primaryColor || "#2080f0",
+}));
 const editorRef = ref<HTMLElement>();
 let editorView: EditorView | null = null;
 
@@ -794,8 +809,32 @@ defineExpose({
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+.codemirror-container
+    :deep(.cm-tooltip-autocomplete ul li[aria-selected="true"]) {
+    background: var(--variable-completion-selected-bg, rgba(32, 128, 240, 0.12));
+}
+
+.codemirror-container
+    :deep(
+        .cm-tooltip-autocomplete ul li[aria-selected="true"] .cm-completionLabel
+    ) {
+    color: var(--variable-completion-selected-color, #2080f0);
+}
+
 .codemirror-container :deep(.cm-completionLabel) {
     color: var(--n-text-color-1);
+}
+
+.codemirror-container :deep(.variable-completion-temporary .cm-completionLabel) {
+    color: var(--variable-completion-temporary-color, #18a058);
+}
+
+.codemirror-container :deep(.variable-completion-global .cm-completionLabel) {
+    color: var(--variable-completion-global-color, #2080f0);
+}
+
+.codemirror-container :deep(.variable-completion-predefined .cm-completionLabel) {
+    color: var(--variable-completion-predefined-color, #8a63d2);
 }
 
 .codemirror-container :deep(.cm-completionDetail) {

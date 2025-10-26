@@ -249,14 +249,14 @@ const TestParentComponent = {
     const messages = ref([...props.initialMessages])
     const variables = ref({ ...props.initialVariables })
     const showContextEditor = ref(false)
-    
+
     // 模拟变量扫描函数
     const scanVariables = (content: string): string[] => {
       if (!content) return []
       const matches = content.match(/\{\{([^}]+)\}\}/g) || []
       return matches.map(match => match.slice(2, -2))
     }
-    
+
     // 模拟变量替换函数
     const replaceVariables = (content: string, vars?: Record<string, string>): string => {
       if (!content || !vars) return content
@@ -265,6 +265,35 @@ const TestParentComponent = {
         result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
       })
       return result
+    }
+
+    // Mock variableManager
+    const mockVariableManager = {
+      variableManager: ref(null),
+      isReady: ref(true),
+      isAdvancedMode: ref(false),
+      customVariables: ref<Record<string, string>>({}),
+      allVariables: ref<Record<string, string>>({}),
+      statistics: ref({
+        customVariableCount: 0,
+        predefinedVariableCount: 7,
+        totalVariableCount: 7,
+        advancedModeEnabled: false
+      }),
+      setAdvancedMode: vi.fn(),
+      addVariable: vi.fn(),
+      updateVariable: vi.fn(),
+      deleteVariable: vi.fn(),
+      getVariable: vi.fn((name: string) => undefined),
+      validateVariableName: vi.fn(() => true),
+      scanVariablesInContent: vi.fn(scanVariables),
+      replaceVariables: vi.fn(replaceVariables),
+      detectMissingVariables: vi.fn(() => []),
+      getConversationMessages: vi.fn(() => []),
+      setConversationMessages: vi.fn(),
+      exportVariables: vi.fn(() => '{}'),
+      importVariables: vi.fn(),
+      refresh: vi.fn()
     }
     
     // 处理 ConversationManager 的消息更新
@@ -311,7 +340,8 @@ const TestParentComponent = {
       handleContextEditorStateUpdate,
       handleContextChange,
       handleOpenContextEditor,
-      handleCloseContextEditor
+      handleCloseContextEditor,
+      mockVariableManager
     }
   },
   template: `
@@ -325,13 +355,14 @@ const TestParentComponent = {
         @openContextEditor="handleOpenContextEditor"
         data-testid="conversation-manager"
       />
-      
+
       <ContextEditor
         :visible="showContextEditor"
         :state="{ messages, variables, tools: [], showVariablePreview: true, showToolManager: false, mode: 'edit' }"
         :scan-variables="scanVariables"
         :replace-variables="replaceVariables"
         :is-predefined-variable="() => false"
+        :variable-manager="mockVariableManager"
         @update:visible="(visible) => showContextEditor = visible"
         @update:state="handleContextEditorStateUpdate"
         @contextChange="handleContextChange"

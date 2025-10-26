@@ -2,7 +2,7 @@
     <NModal
         v-model:show="localVisible"
         preset="card"
-        :title="title"
+        :title="modalTitle"
         :style="modalStyle"
         size="huge"
         :bordered="false"
@@ -20,6 +20,7 @@
         <!-- 顶部工具栏 -->
         <template #header-extra>
             <NSpace
+                v-if="!onlyShowTab"
                 :size="buttonSize"
                 role="toolbar"
                 :aria-label="aria.getLabel('statisticsToolbar')"
@@ -32,11 +33,11 @@
                     :aria-label="
                         aria.getLabel(
                             'messageCount',
-                            `${localState.messages.length} 条消息`,
+                            t('contextEditor.messageCount', { count: localState.messages.length }),
                         )
                     "
                 >
-                    {{ localState.messages.length }} 条消息
+                    {{ t('contextEditor.messageCount', { count: localState.messages.length }) }}
                 </NTag>
                 <NTag
                     v-if="variableCount > 0"
@@ -44,10 +45,10 @@
                     type="success"
                     role="status"
                     :aria-label="
-                        aria.getLabel('variableCount', `变量: ${variableCount}`)
+                        aria.getLabel('variableCount', t('contextEditor.variableCountLabel', { count: variableCount }))
                     "
                 >
-                    变量: {{ variableCount }}
+                    {{ t('contextEditor.variableCountLabel', { count: variableCount }) }}
                 </NTag>
                 <NTag
                     v-if="localState.tools.length > 0"
@@ -57,11 +58,11 @@
                     :aria-label="
                         aria.getLabel(
                             'toolCount',
-                            `工具: ${localState.tools.length}`,
+                            t('contextEditor.toolCountLabel', { count: localState.tools.length }),
                         )
                     "
                 >
-                    工具: {{ localState.tools.length }}
+                    {{ t('contextEditor.toolCountLabel', { count: localState.tools.length }) }}
                 </NTag>
             </NSpace>
         </template>
@@ -76,6 +77,7 @@
                 v-model:value="activeTab"
                 type="line"
                 :size="size"
+                :class="{ 'context-editor-tabs--single': !!onlyShowTab }"
                 role="tablist"
                 :aria-label="aria.getLabel('editorTabs')"
                 @update:value="handleTabChange"
@@ -84,7 +86,7 @@
                 <NTabPane
                     v-if="showMessagesTab"
                     name="messages"
-                    tab="消息编辑"
+                    :tab="t('contextEditor.messagesTab')"
                     role="tabpanel"
                     :aria-label="aria.getLabel('messagesTab')"
                     :aria-describedby="aria.getDescription('messagesTab')"
@@ -155,7 +157,7 @@
                                     :aria-label="
                                         aria.getLabel(
                                             'messageItem',
-                                            `消息 ${index + 1}: ${message.role}`,
+                                            t('contextEditor.messageItemLabel', { index: index + 1, role: message.role }),
                                         )
                                     "
                                 >
@@ -213,12 +215,7 @@
                                                         :size="tagSize"
                                                         type="info"
                                                     >
-                                                        变量:
-                                                        {{
-                                                            getMessageVariables(
-                                                                message.content,
-                                                            ).detected.length
-                                                        }}
+                                                        {{ t('contextEditor.variableDetected', { count: getMessageVariables(message.content).detected.length }) }}
                                                     </NTag>
                                                     <NTag
                                                         v-if="
@@ -229,12 +226,7 @@
                                                         :size="tagSize"
                                                         type="warning"
                                                     >
-                                                        缺失:
-                                                        {{
-                                                            getMessageVariables(
-                                                                message.content,
-                                                            ).missing.length
-                                                        }}
+                                                        {{ t('contextEditor.missingVariableLabel', { count: getMessageVariables(message.content).missing.length }) }}
                                                     </NTag>
                                                 </NSpace>
 
@@ -457,7 +449,7 @@
                                                         :title="
                                                             t(
                                                                 'conversation.clickToCreateVariable',
-                                                            ) || '点击创建变量'
+                                                            )
                                                         "
                                                         @click="
                                                             handleCreateVariableAndOpenManager(
@@ -494,7 +486,7 @@
                                                         {{
                                                             t(
                                                                 "variables.management.title",
-                                                            ) || "变量管理"
+                                                            )
                                                         }}
                                                     </NButton>
                                                 </NSpace>
@@ -550,9 +542,9 @@
 
                 <!-- 模板管理标签页 (系统模式下显示) -->
                 <NTabPane
-                    v-if="showMessagesTab"
+                    v-if="showTemplatesTab"
                     name="templates"
-                    tab="快速模板"
+                    :tab="t('contextEditor.templatesTab')"
                 >
                     <div
                         class="templates-panel"
@@ -662,11 +654,7 @@
                                                         :size="tagSize"
                                                         type="info"
                                                     >
-                                                        {{
-                                                            template.messages
-                                                                .length
-                                                        }}
-                                                        条消息
+                                                        {{ t('contextEditor.messageCount', { count: template.messages.length }) }}
                                                     </NTag>
                                                 </NSpace>
                                                 <NSpace :size="4">
@@ -682,7 +670,7 @@
                                                         :title="
                                                             t(
                                                                 'common.preview',
-                                                            ) || '预览'
+                                                            )
                                                         "
                                                     >
                                                         <template #icon>
@@ -837,7 +825,7 @@
                 </NTabPane>
 
                 <!-- 变量管理标签页 -->
-                <NTabPane name="variables" tab="变量管理">
+                <NTabPane name="variables" v-if="showVariablesTab" :tab="t('contextEditor.variablesTab')">
                     <div
                         class="variables-panel"
                         role="region"
@@ -845,42 +833,46 @@
                     >
                         <!-- 变量状态信息 -->
                         <NCard size="small" embedded class="mb-4">
-                            <NSpace align="center" justify="space-between">
+                            <NSpace align="center" justify="space-between" wrap>
                                 <NSpace align="center" :size="8">
                                     <NText strong>{{
-                                        t("contextEditor.variableOverrides")
+                                        t("contextEditor.variableManagement")
                                     }}</NText>
-                                    <NTag :size="tagSize" type="info">
+                                    <NTag :size="tagSize" type="warning">
                                         {{
-                                            t("contextEditor.overrideCount", {
+                                            t("contextEditor.temporaryVariableCount", {
                                                 count: Object.keys(
-                                                    localState.variables,
+                                                    tempVars.listVariables(),
                                                 ).length,
                                             })
                                         }}
                                     </NTag>
+                                    <NTag
+                                        :size="tagSize"
+                                        type="info"
+                                        v-if="globalCustomVariableCount > 0"
+                                    >
+                                        {{
+                                            t("contextEditor.globalVariables", {
+                                                count: globalCustomVariableCount,
+                                            })
+                                        }}
+                                    </NTag>
                                 </NSpace>
-                                <NTag
-                                    :size="tagSize"
-                                    type="warning"
-                                    v-if="availableVariables"
-                                >
-                                    {{
-                                        t("contextEditor.globalVariables", {
-                                            count: globalCustomVariableCount,
-                                        })
-                                    }}
-                                </NTag>
                             </NSpace>
+                            <!-- 添加说明文案 -->
+                            <NText depth="3" class="text-xs mt-2 block">
+                                {{
+                                    t("contextEditor.variableManagementHint")
+                                }}
+                            </NText>
                         </NCard>
 
                         <!-- 变量列表 -->
                         <NEmpty
                             v-if="
-                                Object.keys(localState.variables).length ===
-                                    0 &&
-                                (!availableVariables ||
-                                    globalCustomVariableCount === 0)
+                                Object.keys(tempVars.listVariables()).length === 0 &&
+                                globalCustomVariableCount === 0
                             "
                             :description="t('contextEditor.noVariables')"
                             role="status"
@@ -960,7 +952,7 @@
                 </NTabPane>
 
                 <!-- 工具管理标签页 -->
-                <NTabPane v-if="showToolManager" name="tools" tab="工具管理">
+                <NTabPane v-if="showToolsTab" name="tools" :tab="t('contextEditor.toolsTab')">
                     <div class="tools-panel">
                         <!-- 工具列表内容 -->
                         <NEmpty
@@ -1044,8 +1036,7 @@
                                                     quaternary
                                                     circle
                                                     :title="
-                                                        t('common.focus') ||
-                                                        '聚焦此消息'
+                                                        t('common.focus')
                                                     "
                                                 >
                                                     <template #icon>
@@ -1243,7 +1234,7 @@
     <NModal
         v-model:show="showTemplatePreview"
         preset="card"
-        :title="previewTemplate?.name || t('common.preview') || '模板详情'"
+        :title="previewTemplate?.name || t('common.preview')"
         :mask-closable="true"
         :style="previewModalStyle"
     >
@@ -1251,8 +1242,7 @@
             <NText depth="3" class="mb-2 block">
                 {{
                     previewTemplate?.description ||
-                    t("contextEditor.noDescription") ||
-                    "无描述"
+                    t("contextEditor.noDescription")
                 }}
             </NText>
 
@@ -1262,7 +1252,7 @@
                 :show-icon="false"
                 class="mb-2"
             >
-                {{ t("contextEditor.noTemplates") || "暂无模板" }}
+                {{ t("contextEditor.noTemplates") }}
             </NAlert>
 
             <NScrollbar v-else :style="scrollbarStyle">
@@ -1293,7 +1283,7 @@
                     @click="showTemplatePreview = false"
                     :size="buttonSize"
                 >
-                    {{ t("common.close") || "关闭" }}
+                    {{ t("common.close") }}
                 </NButton>
                 <NButton
                     type="primary"
@@ -1305,7 +1295,7 @@
                         (showTemplatePreview = false))
                     "
                 >
-                    {{ t("contextEditor.applyTemplate") || "应用模板" }}
+                    {{ t("contextEditor.applyTemplate") }}
                 </NButton>
             </NSpace>
         </template>
@@ -1493,7 +1483,7 @@
         <template #action>
             <NSpace justify="end">
                 <NButton @click="showImportDialog = false" :size="buttonSize">
-                    {{ t("common.cancel") || "取消" }}
+                    {{ t("common.cancel") }}
                 </NButton>
                 <NButton
                     @click="handleImportSubmit"
@@ -1577,7 +1567,7 @@
         <template #action>
             <NSpace justify="space-between">
                 <NButton @click="showExportDialog = false" :size="buttonSize">
-                    {{ t("common.cancel") || "取消" }}
+                    {{ t("common.cancel") }}
                 </NButton>
 
                 <NSpace>
@@ -1672,6 +1662,33 @@
                 </NText>
             </div>
 
+            <!-- 变量类型 -->
+            <div>
+                <label class="block text-sm font-medium mb-2">{{
+                    t("contextEditor.variableType")
+                }}</label>
+                <NRadioGroup v-model:value="variableEditState.type">
+                    <NSpace>
+                        <NRadio value="temporary">
+                            <NSpace :size="4" align="center">
+                                <span>{{ t("contextEditor.variableSourceLabels.temporary") }}</span>
+                                <NText depth="3" class="text-xs">
+                                    {{ t("contextEditor.temporaryVariableHint") }}
+                                </NText>
+                            </NSpace>
+                        </NRadio>
+                        <NRadio value="global">
+                            <NSpace :size="4" align="center">
+                                <span>{{ t("contextEditor.variableSourceLabels.global") }}</span>
+                                <NText depth="3" class="text-xs">
+                                    {{ t("contextEditor.globalVariableHint") }}
+                                </NText>
+                            </NSpace>
+                        </NRadio>
+                    </NSpace>
+                </NRadioGroup>
+            </div>
+
             <!-- 变量值 -->
             <div>
                 <label class="block text-sm font-medium mb-2">{{
@@ -1691,7 +1708,7 @@
         <template #action>
             <NSpace justify="end">
                 <NButton @click="cancelVariableEdit" :size="buttonSize">
-                    {{ t("common.cancel") || "取消" }}
+                    {{ t("common.cancel") }}
                 </NButton>
                 <NButton
                     @click="saveVariable"
@@ -1758,6 +1775,8 @@ import {
     NGridItem,
     NAlert,
     NDataTable,
+    NRadioGroup,
+    NRadio,
     type DataTableColumns,
 } from "naive-ui";
 import { useResponsive } from "../../composables/ui/useResponsive";
@@ -1765,6 +1784,8 @@ import { usePerformanceMonitor } from "../../composables/performance/usePerforma
 import { useDebounceThrottle } from '../../composables/performance/useDebounceThrottle';
 import { useAccessibility } from "../../composables/accessibility/useAccessibility";
 import { useContextEditor } from '../../composables/context/useContextEditor';
+import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables';
+import { useAggregatedVariables } from '../../composables/variable/useAggregatedVariables';
 import {
     quickTemplateManager,
     type QuickTemplateDefinition,
@@ -1802,8 +1823,43 @@ const {
     announcements,
 } = useAccessibility("ContextEditor");
 
+// Props 和 Events（必须在最前面定义，因为后面的代码会用到）
+const props = withDefaults(
+    defineProps<ContextEditorProps>(),
+    {
+        disabled: false,
+        readonly: false,
+        size: "medium",
+        visible: false,
+        showToolManager: true,
+        optimizationMode: "system",
+        contextMode: "system",
+        title: "",
+        width: "90vw",
+        height: "85vh",
+        defaultTab: "messages",
+        onlyShowTab: undefined,
+    },
+);
+
+const emit = defineEmits<ContextEditorEvents>();
+
 // 导入导出功能
 const contextEditor = useContextEditor();
+
+// 临时变量管理
+const tempVars = useTemporaryVariables();
+
+// 全局变量管理
+// 从 props 接收 variableManager 实例，确保与全局变量管理器数据同步
+if (!props.variableManager) {
+    throw new Error('[ContextEditor] Missing required prop: variableManager. ContextEditor must receive a variableManager instance from parent component.');
+}
+
+const variableManager = props.variableManager;
+
+// 聚合变量（包含预定义、全局、临时三层）
+const aggregatedVars = useAggregatedVariables(variableManager);
 
 // 响应式配置
 const {
@@ -1813,34 +1869,9 @@ const {
     isMobile,
 } = useResponsive();
 
-// Props 和 Events
-const props = withDefaults(
-    defineProps<
-        ContextEditorProps & {
-            availableVariables?: Record<string, string>;
-        }
-    >(),
-    {
-        disabled: false,
-        readonly: false,
-        size: "medium",
-        visible: false,
-        showToolManager: true,
-        optimizationMode: "system",
-        contextMode: "system",
-        title: "上下文编辑器",
-        width: "90vw",
-        height: "85vh",
-        availableVariables: () => ({}),
-        defaultTab: "messages",
-    },
-);
-
-const emit = defineEmits<ContextEditorEvents>();
-
 // 状态管理 - 使用性能优化
 const loading = ref(false);
-const activeTab = ref(props.defaultTab || "messages");
+const activeTab = ref("messages");
 const localVisible = ref(props.visible);
 
 // 导入导出状态
@@ -1859,9 +1890,9 @@ const showTemplatePreview = ref(false);
 const previewTemplate = ref<QuickTemplateDefinition | null>(null);
 
 // 使用shallowRef优化深度对象
+// 注意：variables 已迁移到 useTemporaryVariables() 和 useVariableManager() 管理
 const localState = shallowRef<ContextEditorState>({
     messages: [],
-    variables: {},
     tools: [],
     showVariablePreview: true,
     showToolManager: props.showToolManager,
@@ -1891,10 +1922,57 @@ const tagSize = computed(() => {
     return sizeMap[responsiveButtonSize.value] || "small";
 });
 
-// 是否显示消息编辑标签页：用户模式隐藏
-const showMessagesTab = computed(() => {
-    return props.contextMode !== "user";
+// 标签页显示控制逻辑 - 配置驱动
+type TabName = 'messages' | 'templates' | 'variables' | 'tools';
+
+// 标签页默认可见性配置
+const TAB_VISIBILITY_CONFIG: Record<TabName, () => boolean> = {
+    messages: () => props.contextMode !== "user",
+    templates: () => props.contextMode !== "user",
+    variables: () => true, // 变量标签页默认总是显示
+    tools: () => props.showToolManager,
+};
+
+// 通用标签页可见性计算函数
+const createTabVisibility = (tabName: TabName) => computed(() => {
+    // 如果指定了 onlyShowTab，只有当值匹配时才显示
+    if (props.onlyShowTab) {
+        return props.onlyShowTab === tabName;
+    }
+    // 否则使用配置的默认可见性规则
+    return TAB_VISIBILITY_CONFIG[tabName]();
 });
+
+// 各标签页可见性
+const showMessagesTab = createTabVisibility('messages');
+const showTemplatesTab = createTabVisibility('templates');
+const showVariablesTab = createTabVisibility('variables');
+const showToolsTab = createTabVisibility('tools');
+
+const resolveDefaultTab = (): string => {
+    const candidate = props.onlyShowTab || props.defaultTab;
+    const visibilityMap: Record<string, boolean> = {
+        messages: showMessagesTab.value,
+        templates: showTemplatesTab.value,
+        variables: showVariablesTab.value,
+        tools: showToolsTab.value,
+    };
+    if (candidate && visibilityMap[candidate]) {
+        return candidate;
+    }
+    const preferenceOrder: Array<keyof typeof visibilityMap> = [
+        "messages",
+        "templates",
+        "variables",
+        "tools",
+    ];
+    for (const key of preferenceOrder) {
+        if (visibilityMap[key]) return key;
+    }
+    return "messages";
+};
+
+activeTab.value = resolveDefaultTab();
 
 const cardSize = computed(() => {
     const sizeMap = {
@@ -1924,6 +2002,8 @@ const scrollbarStyle = computed(() => ({
     maxHeight: isMobile.value ? "40vh" : "60vh",
 }));
 
+const modalTitle = computed(() => props.title || t("contextEditor.title"));
+
 const size = computed(() => responsiveButtonSize.value);
 
 const variableCount = computed(() => {
@@ -1935,16 +2015,9 @@ const variableCount = computed(() => {
     return variables.size;
 });
 
-// 仅统计“全局自定义变量”（排除预定义变量），用于避免“全局7”的误导
+// 仅统计"全局自定义变量"（排除预定义变量），用于避免"全局7"的误导
 const globalCustomVariableCount = computed(() => {
-    const available = props.availableVariables || {};
-    let count = 0;
-    for (const name of Object.keys(available)) {
-        if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
-            count++;
-        }
-    }
-    return count;
+    return variableManager.statistics.value.customVariableCount;
 });
 
 const roleOptions = computed(() => [
@@ -1963,25 +2036,13 @@ const quickTemplates = computed(() => {
     );
 });
 
-// 变量管理相关计算属性
-const finalVars = computed(() => {
-    const result = { ...props.availableVariables };
-    // 合并上下文变量，并过滤掉预定义变量名的覆盖
-    Object.entries(localState.value.variables).forEach(([name, value]) => {
-        if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
-            result[name] = value;
-        }
-    });
-    return result;
-});
-
 // 变量表格数据类型定义
 interface VariableTableRow {
     key: string;
     name: string;
     value: string;
     fullValue: string;
-    source: "context" | "global" | "predefined";
+    source: "temporary" | "global" | "predefined";
     status: "active" | "overridden" | "missing";
     readonly: boolean;
 }
@@ -2023,39 +2084,39 @@ const normalizeMessage = (
 
 const variableTableData = computed(() => {
     const data: VariableTableRow[] = [];
+    const temporaryVars = tempVars.listVariables();
 
-    // 添加全局变量（只读显示）
-    if (props.availableVariables) {
-        Object.entries(props.availableVariables).forEach(([name, value]) => {
-            if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
-                data.push({
-                    key: `global-${name}`,
-                    name,
-                    value:
-                        value.length > 50
-                            ? value.substring(0, 50) + "..."
-                            : value,
-                    fullValue: value,
-                    source: "global",
-                    status: localState.value.variables[name]
-                        ? "overridden"
-                        : "active",
-                    readonly: true,
-                });
-            }
-        });
-    }
+    // 添加全局变量（可编辑，但预定义变量只读）
+    const globalVars = variableManager.customVariables.value;
+    Object.entries(globalVars).forEach(([name, value]) => {
+        const isPredefined = PREDEFINED_VARIABLES.includes(name as PredefinedVariable);
+        if (!isPredefined) {
+            const isOverridden = name in temporaryVars;
+            data.push({
+                key: `global-${name}`,
+                name,
+                value:
+                    value.length > 50
+                        ? value.substring(0, 50) + "..."
+                        : value,
+                fullValue: value,
+                source: "global",
+                status: isOverridden ? "overridden" : "active",
+                readonly: false, // 全局自定义变量现在可编辑
+            });
+        }
+    });
 
-    // 添加上下文变量
-    Object.entries(localState.value.variables).forEach(([name, value]) => {
+    // 添加临时变量（可编辑）
+    Object.entries(temporaryVars).forEach(([name, value]) => {
         if (!PREDEFINED_VARIABLES.includes(name as PredefinedVariable)) {
             data.push({
-                key: `override-${name}`,
+                key: `temporary-${name}`,
                 name,
                 value:
                     value.length > 50 ? value.substring(0, 50) + "..." : value,
                 fullValue: value,
-                source: "context",
+                source: "temporary",
                 status: "active",
                 readonly: false,
             });
@@ -2077,7 +2138,7 @@ const variableColumns = computed(
                     NTag,
                     {
                         size: "small",
-                        type: row.source === "context" ? "primary" : "default",
+                        type: row.source === "temporary" ? "primary" : "default",
                         round: true,
                     },
                     () => `{{${row.name}}}`,
@@ -2118,9 +2179,13 @@ const variableColumns = computed(
                         type: "info",
                         text: t("contextEditor.variableSourceLabels.global"),
                     },
-                    context: {
+                    temporary: {
                         type: "warning",
-                        text: t("contextEditor.variableSourceLabels.context"),
+                        text: t("contextEditor.variableSourceLabels.temporary"),
+                    },
+                    predefined: {
+                        type: "default",
+                        text: t("contextEditor.variableSourceLabels.predefined"),
                     },
                 };
                 const config = typeMap[row.source] || {
@@ -2183,7 +2248,7 @@ const variableColumns = computed(
                             {
                                 size: "small",
                                 quaternary: true,
-                                title: t("common.edit") || "编辑",
+                                title: t("common.edit"),
                                 onClick: () => editVariable(row.name),
                             },
                             {
@@ -2218,7 +2283,7 @@ const variableColumns = computed(
                                 size: "small",
                                 quaternary: true,
                                 type: "error",
-                                title: t("common.delete") || "删除",
+                                title: t("common.delete"),
                                 onClick: () => deleteVariable(row.name),
                             },
                             {
@@ -2256,13 +2321,13 @@ const variableColumns = computed(
 const getMessageVariables = (content: string) => {
     const detected = props.scanVariables(content || "") || [];
     const missing = detected.filter(
-        (varName) => finalVars.value[varName] === undefined,
+        (varName) => aggregatedVars.allVariables.value[varName] === undefined,
     );
     return { detected, missing };
 };
 
 const replaceVariables = (content: string): string => {
-    return props.replaceVariables(content || "", finalVars.value);
+    return props.replaceVariables(content || "", aggregatedVars.allVariables.value);
 };
 
 const getPlaceholderText = (role: string) => {
@@ -2283,13 +2348,13 @@ const getPlaceholderText = (role: string) => {
 const getRoleLabel = (role: string) => {
     switch (role) {
         case "system":
-            return t("conversation.roles.system") || "系统";
+            return t("conversation.roles.system");
         case "user":
-            return t("conversation.roles.user") || "用户";
+            return t("conversation.roles.user");
         case "assistant":
-            return t("conversation.roles.assistant") || "助手";
+            return t("conversation.roles.assistant");
         case "tool":
-            return t("conversation.roles.tool") || "工具";
+            return t("conversation.roles.tool");
         default:
             return role;
     }
@@ -2308,7 +2373,7 @@ const handleModalClose = () => {
 
 const handleTabChange = (activeKey: string) => {
     recordUpdate();
-    const tabName = activeKey === "messages" ? "消息编辑" : "工具管理";
+    const tabName = activeKey === "messages" ? t("contextEditor.messagesTab") : t("contextEditor.toolsTab");
     announce(
         aria.getLiveRegionText("tabChanged").replace("{tab}", tabName),
         "polite",
@@ -2400,9 +2465,9 @@ const handleVisibilityChange = (visible: boolean) => {
 
 const handleStateChange = () => {
     emit("update:state", { ...localState.value });
-    emit("contextChange", [...localState.value.messages], {
-        ...localState.value.variables,
-    });
+    // 传递临时变量的快照，供父组件使用
+    // 注意：全局变量由 useVariableManager 管理，不包含在此事件中
+    emit("contextChange", [...localState.value.messages], tempVars.listVariables());
 };
 
 // ============ 工具管理：状态、校验与事件 ============
@@ -2529,13 +2594,13 @@ const addTool = () => {
 
 const editTool = (index: number) => {
     if (index < 0 || index >= localState.value.tools.length) {
-        console.error(`工具编辑失败：索引 ${index} 超出范围`);
+        console.error(t("contextEditor.consoleErrors.toolEditIndexOutOfRange", { index }));
         return;
     }
 
     const tool = localState.value.tools[index];
     if (!tool) {
-        console.error(`工具编辑失败：索引 ${index} 处的工具不存在`);
+        console.error(t("contextEditor.consoleErrors.toolEditToolNotFound", { index }));
         return;
     }
 
@@ -2566,8 +2631,8 @@ const saveTool = () => {
 
     // 更严格的防护性检查
     if (!current.function) {
-        console.error("工具保存失败：缺少 function 属性");
-        jsonError.value = "工具数据结构错误：缺少 function 属性";
+        console.error(t("contextEditor.consoleErrors.toolSaveMissingFunction"));
+        jsonError.value = t("contextEditor.consoleErrors.toolDataStructureError");
         return;
     }
 
@@ -2644,7 +2709,7 @@ const handleExport = () => {
 const handleSave = () => {
     const context = {
         messages: [...localState.value.messages],
-        variables: { ...localState.value.variables },
+        variables: {}, // 不再保存临时变量到上下文
         tools: [...localState.value.tools],
     };
     emit("save", context);
@@ -2663,6 +2728,8 @@ const variableEditState = ref<{
     editingName: string;
     name: string;
     value: string;
+    type: "temporary" | "global";
+    originalType?: "temporary" | "global";
 }>({
     show: false,
     isEditing: false,
@@ -2670,43 +2737,92 @@ const variableEditState = ref<{
     editingName: "",
     name: "",
     value: "",
+    type: "temporary",
 });
 
 // 变量管理方法
 const addVariable = () => {
+    // 打开编辑对话框，默认创建临时变量
     variableEditState.value = {
         show: true,
         isEditing: false,
+        isFromMissing: false,
         editingName: "",
         name: "",
         value: "",
+        type: "temporary",
     };
 };
 
+/**
+ * 获取变量来源和值
+ * @param name 变量名
+ * @returns 变量类型和值，如果不存在则返回 null
+ */
+const getVariableSource = (name: string): {
+    type: "temporary" | "global";
+    value: string;
+} | null => {
+    const temporaryVars = tempVars.listVariables();
+
+    if (name in temporaryVars) {
+        return { type: "temporary", value: temporaryVars[name] || "" };
+    }
+
+    const globalVars = variableManager.customVariables.value;
+    if (name in globalVars) {
+        return { type: "global", value: globalVars[name] || "" };
+    }
+
+    return null;
+};
+
 const editVariable = (name: string) => {
-    const value = localState.value.variables[name] || "";
+    const source = getVariableSource(name);
+
+    if (!source) {
+        announce(t("contextEditor.variableNotFound"), "assertive");
+        return;
+    }
+
     variableEditState.value = {
         show: true,
         isEditing: true,
+        isFromMissing: false,
         editingName: name,
         name,
-        value,
+        value: source.value,
+        type: source.type,
+        originalType: source.type,
     };
 };
 
 const deleteVariable = (name: string) => {
+    const source = getVariableSource(name);
+
+    if (!source) {
+        announce(t("contextEditor.variableNotFound"), "assertive");
+        return;
+    }
+
     const confirmed = confirm(
         t("contextEditor.deleteVariableConfirm", { name }),
     );
     if (!confirmed) return;
 
-    delete localState.value.variables[name];
+    // 根据类型删除变量
+    if (source.type === "temporary") {
+        tempVars.deleteVariable(name);
+    } else if (source.type === "global") {
+        variableManager.deleteVariable(name);
+    }
+
     handleStateChange();
     announce(t("contextEditor.variableDeleted", { name }), "polite");
 };
 
 const saveVariable = () => {
-    const { isEditing, editingName, name, value } = variableEditState.value;
+    const { isEditing, editingName, name, value, type, originalType } = variableEditState.value;
 
     // 验证变量名
     if (!name.trim()) {
@@ -2719,13 +2835,37 @@ const saveVariable = () => {
         return;
     }
 
-    // 如果是编辑模式且变量名发生变化，需要删除旧的
-    if (isEditing && editingName !== name) {
-        delete localState.value.variables[editingName];
+    // 如果是编辑模式且变量名发生变化，需要删除旧变量
+    if (isEditing && editingName !== name && originalType) {
+        if (originalType === "temporary") {
+            tempVars.deleteVariable(editingName);
+        } else if (originalType === "global") {
+            variableManager.deleteVariable(editingName);
+        }
     }
 
-    // 设置新值
-    localState.value.variables[name] = value;
+    // 根据类型保存变量
+    if (type === "temporary") {
+        tempVars.setVariable(name, value);
+    } else if (type === "global") {
+        // 保存全局变量 - 检查是否已初始化
+        if (!variableManager.isReady.value) {
+            announce(t("contextEditor.variableManagerNotReady"), "assertive");
+            return;
+        }
+
+        try {
+            if (isEditing) {
+                variableManager.updateVariable(name, value);
+            } else {
+                variableManager.addVariable(name, value);
+            }
+        } catch (error) {
+            console.error('[ContextEditor] Failed to save global variable:', error);
+            announce(t("contextEditor.variableSaveFailed"), "assertive");
+            return;
+        }
+    }
 
     // 关闭编辑器
     variableEditState.value.show = false;
@@ -2735,17 +2875,18 @@ const saveVariable = () => {
 
     // 通知用户
     const action = isEditing ? t("common.edit") : t("common.add");
-    announce(t("contextEditor.variableSaved", { action, name }), "polite");
+    const typeLabel = type === "temporary" ? t("contextEditor.variableSourceLabels.temporary") : t("contextEditor.variableSourceLabels.global");
+    announce(t("contextEditor.variableSaved", { action, name, type: typeLabel }), "polite");
 };
 
 const cancelVariableEdit = () => {
     variableEditState.value.show = false;
 };
 
-// 变量快捷操作（修改行为：直接在上下文中创建上下文变量）
+// 变量快捷操作（修改行为：直接在上下文中创建临时变量）
 const handleCreateVariableAndOpenManager = (name: string) => {
     if (!name) return;
-    // 直接在上下文中创建上下文变量，标记为来自缺失变量
+    // 直接在上下文中创建临时变量，标记为来自缺失变量
     variableEditState.value = {
         show: true,
         isEditing: false,
@@ -2753,6 +2894,7 @@ const handleCreateVariableAndOpenManager = (name: string) => {
         editingName: "",
         name,
         value: "",
+        type: "temporary",
     };
     // 等待弹窗打开后自动聚焦到变量值输入框
     nextTick(() => {
@@ -2790,9 +2932,37 @@ watch(
     () => props.visible,
     (newVisible) => {
         localVisible.value = newVisible;
-        // 当对话框打开时，切换到指定的默认标签页
-        if (newVisible && props.defaultTab) {
-            activeTab.value = props.defaultTab;
+        activeTab.value = resolveDefaultTab();
+    },
+);
+
+watch(
+    () => props.onlyShowTab,
+    (tab) => {
+        if (tab) {
+            activeTab.value = resolveDefaultTab();
+        }
+    },
+);
+
+watch(
+    () => props.defaultTab,
+    () => {
+        activeTab.value = resolveDefaultTab();
+    },
+);
+
+watch(
+    [showMessagesTab, showTemplatesTab, showVariablesTab, showToolsTab],
+    () => {
+        const visibilityMap: Record<string, boolean> = {
+            messages: showMessagesTab.value,
+            templates: showTemplatesTab.value,
+            variables: showVariablesTab.value,
+            tools: showToolsTab.value,
+        };
+        if (!visibilityMap[activeTab.value]) {
+            activeTab.value = resolveDefaultTab();
         }
     },
 );
@@ -2815,32 +2985,32 @@ watch(
 );
 
 // 导入导出方法
-const importFormats = [
-    { id: "smart", name: "智能识别", description: "自动检测格式并转换" },
-    { id: "conversation", name: "会话格式", description: "标准的会话消息格式" },
-    { id: "openai", name: "OpenAI", description: "OpenAI API 请求格式" },
-    { id: "langfuse", name: "LangFuse", description: "LangFuse 追踪数据格式" },
-];
+const importFormats = computed(() => [
+    { id: "smart", name: t("contextEditor.importFormats.smart.name"), description: t("contextEditor.importFormats.smart.description") },
+    { id: "conversation", name: t("contextEditor.importFormats.conversation.name"), description: t("contextEditor.importFormats.conversation.description") },
+    { id: "openai", name: t("contextEditor.importFormats.openai.name"), description: t("contextEditor.importFormats.openai.description") },
+    { id: "langfuse", name: t("contextEditor.importFormats.langfuse.name"), description: t("contextEditor.importFormats.langfuse.description") },
+]);
 
 type ExportFormat = "standard" | "openai" | "template";
 
-const exportFormats = [
+const exportFormats = computed(() => [
     {
         id: "standard" as ExportFormat,
-        name: "标准格式",
-        description: "内部标准数据格式",
+        name: t("contextEditor.exportFormats.standard.name"),
+        description: t("contextEditor.exportFormats.standard.description"),
     },
     {
         id: "openai" as ExportFormat,
-        name: "OpenAI",
-        description: "OpenAI API 兼容格式",
+        name: t("contextEditor.exportFormats.openai.name"),
+        description: t("contextEditor.exportFormats.openai.description"),
     },
     {
         id: "template" as ExportFormat,
-        name: "模板格式",
-        description: "可复用的模板格式",
+        name: t("contextEditor.exportFormats.template.name"),
+        description: t("contextEditor.exportFormats.template.description"),
     },
-];
+]);
 
 const handleFileUpload = async (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
@@ -2858,7 +3028,7 @@ const handleFileUpload = async (event: Event) => {
             localState.value.messages = (data.messages || []).map((msg) =>
                 normalizeMessage(msg),
             );
-            localState.value.variables = data.metadata?.variables || {};
+            // 不导入 variables，临时变量不持久化
             localState.value.tools = data.tools || [];
 
             handleStateChange();
@@ -2868,13 +3038,13 @@ const handleFileUpload = async (event: Event) => {
 
             // 切换到消息编辑标签页
             activeTab.value = "messages";
-            announce("文件导入成功", "polite");
+            announce(t("contextEditor.importSuccess"), "polite");
         } else {
-            importError.value = "文件导入失败，请检查文件格式";
+            importError.value = t("contextEditor.importFailed");
         }
     } catch (err) {
         console.error("File upload error:", err);
-        const errorMsg = err instanceof Error ? err.message : "文件导入失败";
+        const errorMsg = err instanceof Error ? err.message : t("contextEditor.importFailed");
         importError.value = errorMsg;
     } finally {
         loading.value = false;
@@ -2883,7 +3053,7 @@ const handleFileUpload = async (event: Event) => {
 
 const handleImportSubmit = async () => {
     if (!importData.value.trim()) {
-        importError.value = "请输入要导入的数据";
+        importError.value = t("contextEditor.importDataRequired");
         return;
     }
 
@@ -2918,13 +3088,10 @@ const handleImportSubmit = async () => {
                         (msg: Partial<ConversationMessage>) =>
                             normalizeMessage(msg),
                     );
-                    localState.value.variables =
-                        jsonData.metadata?.variables ||
-                        jsonData.variables ||
-                        {};
+                    // 不导入 variables，临时变量不持久化
                     localState.value.tools = jsonData.tools || [];
                 } else {
-                    importError.value = "无效的会话格式：必须包含messages数组";
+                    importError.value = t("contextEditor.invalidConversationFormat");
                     return;
                 }
                 handleStateChange();
@@ -2932,10 +3099,10 @@ const handleImportSubmit = async () => {
                 importData.value = "";
                 importError.value = "";
                 activeTab.value = "messages";
-                announce("导入成功", "polite");
+                announce(t("contextEditor.importSuccess"), "polite");
                 return;
             default:
-                importError.value = "不支持的导入格式";
+                importError.value = t("contextEditor.unsupportedImportFormat");
                 return;
         }
 
@@ -2946,7 +3113,7 @@ const handleImportSubmit = async () => {
             localState.value.messages = (data.messages || []).map((msg) =>
                 normalizeMessage(msg),
             );
-            localState.value.variables = data.metadata?.variables || {};
+            // 不导入 variables，临时变量不持久化
             localState.value.tools = data.tools || [];
 
             handleStateChange();
@@ -2954,14 +3121,14 @@ const handleImportSubmit = async () => {
             importData.value = "";
             importError.value = "";
             activeTab.value = "messages";
-            announce("导入成功", "polite");
+            announce(t("contextEditor.importSuccess"), "polite");
         } else {
-            importError.value = result?.error || "导入失败：数据转换失败";
+            importError.value = result?.error || t("contextEditor.importFailed");
         }
     } catch (err) {
         console.error("Import error:", err);
         const errorMsg =
-            err instanceof Error ? err.message : "数据格式错误，请检查JSON格式";
+            err instanceof Error ? err.message : t("contextEditor.invalidJsonFormat");
         importError.value = errorMsg;
     } finally {
         loading.value = false;
@@ -2984,7 +3151,7 @@ const handleExportToFile = () => {
             })),
             tools: localState.value.tools,
             metadata: {
-                variables: localState.value.variables,
+                // 不导出临时变量（会话级别，不持久化）
                 exportTime: new Date().toISOString(),
                 version: "1.0",
                 source: "manual",
@@ -3003,15 +3170,15 @@ const handleExportToFile = () => {
 
         if (success) {
             showExportDialog.value = false;
-            announce("导出成功", "polite");
+            announce(t("contextEditor.exportSuccess"), "polite");
         } else {
-            throw new Error("导出操作失败");
+            throw new Error(t("contextEditor.exportFailed"));
         }
     } catch (err) {
         console.error("Export to file error:", err);
-        const errorMsg = err instanceof Error ? err.message : "导出失败";
+        const errorMsg = err instanceof Error ? err.message : t("contextEditor.exportFailed");
         // TODO: 显示错误提示给用户
-        announce(`导出失败: ${errorMsg}`, "assertive");
+        announce(`${t("contextEditor.exportFailed")}: ${errorMsg}`, "assertive");
     } finally {
         loading.value = false;
     }
@@ -3033,7 +3200,7 @@ const handleExportToClipboard = async () => {
             })),
             tools: localState.value.tools,
             metadata: {
-                variables: localState.value.variables,
+                // 不导出临时变量（会话级别，不持久化）
                 exportTime: new Date().toISOString(),
                 version: "1.0",
                 source: "manual",
@@ -3051,15 +3218,15 @@ const handleExportToClipboard = async () => {
 
         if (success) {
             showExportDialog.value = false;
-            announce("已复制到剪贴板", "polite");
+            announce(t("contextEditor.copySuccess"), "polite");
         } else {
-            throw new Error("复制到剪贴板失败");
+            throw new Error(t("contextEditor.copyFailed"));
         }
     } catch (err) {
         console.error("Export to clipboard error:", err);
-        const errorMsg = err instanceof Error ? err.message : "导出失败";
+        const errorMsg = err instanceof Error ? err.message : t("contextEditor.exportFailed");
         // TODO: 显示错误提示给用户
-        announce(`复制失败: ${errorMsg}`, "assertive");
+        announce(`${t("contextEditor.copyFailed")}: ${errorMsg}`, "assertive");
     } finally {
         loading.value = false;
     }
@@ -3068,14 +3235,14 @@ const handleExportToClipboard = async () => {
 const getImportPlaceholder = () => {
     switch (selectedImportFormat.value) {
         case "openai":
-            return 'OpenAI API 请求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4"\n}';
+            return t("contextEditor.importPlaceholders.openai");
         case "langfuse":
-            return 'LangFuse 追踪数据，例如：\n{\n  "input": {\n    "messages": [...]\n  }\n}';
+            return t("contextEditor.importPlaceholders.langfuse");
         case "conversation":
-            return '标准会话格式，例如：\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}';
+            return t("contextEditor.importPlaceholders.conversation");
         case "smart":
         default:
-            return "粘贴任意支持格式的 JSON 数据，系统将自动识别";
+            return t("contextEditor.importPlaceholders.smart");
     }
 };
 </script>
@@ -3133,6 +3300,11 @@ const getImportPlaceholder = () => {
 .focused-card {
     box-shadow: 0 0 0 2px var(--n-color-target, #18a058) inset;
     transition: box-shadow 0.2s ease;
+}
+
+.context-editor-tabs--single :deep(.n-tabs-tab-wrapper),
+.context-editor-tabs--single :deep(.n-tabs-nav) {
+    display: none;
 }
 
 /* 可访问性支持样式 */

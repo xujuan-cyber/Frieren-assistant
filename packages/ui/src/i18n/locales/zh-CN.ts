@@ -1008,7 +1008,7 @@ export default {
       detected: "检测到变量",
       manageVariables: "管理变量",
       viewPreview: "查看预览",
-      formTitle: "变量值设置",
+      formTitle: "临时变量",
       variablesCount: "个变量",
       clearAll: "清空全部",
       inputPlaceholder: "请输入变量值",
@@ -1390,7 +1390,6 @@ export default {
   },
   contextEditor: {
     // Variables tab (新增)
-    variablesTab: "变量",
     contextVariables: "上下文变量",
     contextVariablesDesc: "管理当前上下文的变量覆盖，不影响全局变量",
     noContextVariables: "暂无上下文变量",
@@ -1449,6 +1448,20 @@ export default {
     title: "上下文编辑器",
     systemTemplates: "系统模板",
     userTemplates: "用户模板",
+
+    // Tab labels
+    messagesTab: "消息编辑",
+    templatesTab: "快速模板",
+    variablesTab: "变量管理",
+    toolsTab: "工具管理",
+
+    // Statistics
+    messageCount: "{count} 条消息",
+    messageItemLabel: "消息 {index}: {role}",
+    variableCountLabel: "变量: {count}",
+    toolCountLabel: "工具: {count}",
+    variableDetected: "变量: {count}",
+    missingVariableLabel: "缺失: {count}",
     // Basic
     noMessages: "暂无消息",
     addFirstMessage: "添加您的第一条消息",
@@ -1474,40 +1487,91 @@ export default {
     selectFile: "选择文件",
     orPasteText: "或在下方粘贴文本",
     import: "导入",
+    importSuccess: "导入成功",
+    importFailed: "导入失败",
+    importDataRequired: "请输入要导入的数据",
+    invalidConversationFormat: "无效的会话格式：必须包含messages数组",
+    unsupportedImportFormat: "不支持的导入格式",
+    invalidJsonFormat: "数据格式错误，请检查JSON格式",
     exportTitle: "导出上下文数据",
     exportFormat: "导出格式：",
     exportPreview: "导出预览：",
     copyToClipboard: "复制到剪贴板",
     saveToFile: "保存到文件",
+    exportSuccess: "导出成功",
+    exportFailed: "导出失败",
+    copySuccess: "已复制到剪贴板",
+    copyFailed: "复制失败",
 
-    // Missing keys
-    override: "上下文变量",
-    createOverride: "创建上下文变量",
-    overrideCount: "{count} 个上下文变量",
-    variableOverrides: "上下文变量",
+    // Variable management
+    variableManagement: "变量管理",
+    variableManagementHint: "临时变量仅在当前会话有效；全局变量跨会话持久保存",
+
+    // Temporary variables
+    temporaryVariables: "临时变量",
+    temporaryVariableCount: "{count} 个临时变量",
+    temporaryVariableHint: "仅当前会话有效",
     globalVariables: "全局: {count}",
+    globalVariableHint: "跨会话持久保存",
     noVariables: "暂无变量",
-    addFirstVariable: "添加第一个上下文变量",
+    addFirstVariable: "添加第一个变量",
     variableName: "变量名",
     variableValue: "变量值",
+    variableType: "变量类型",
     variableNamePlaceholder: "请输入变量名（不含大括号）",
     predefinedVariableWarning: "不能修改预定义变量",
     variableValuePlaceholder: "请输入变量值",
-    deleteVariableConfirm: '确定要删除上下文变量"{name}"吗？',
-    variableDeleted: "已删除上下文变量：{name}",
+    deleteVariableConfirm: '确定要删除变量"{name}"吗？',
+    variableDeleted: "已删除变量：{name}",
     predefinedVariableError: "不能修改预定义变量",
-    variableSaved: "已{action}上下文变量：{name}",
+    variableSaved: "已{action}{type}变量：{name}",
+    globalVariableEditHint: "全局变量请到变量管理器中编辑",
+    cannotDeleteGlobalVariable: "无法删除全局变量",
+    globalVariableSaveNotSupported: "全局变量保存功能需要 variableManager（即将支持）",
+    variableNotFound: "变量不存在",
+    variableManagerNotReady: "变量管理器未初始化，请稍后再试",
+    variableSaveFailed: "变量保存失败",
 
     // Variable source labels
     variableSourceLabels: {
       global: "全局",
-      context: "上下文",
+      temporary: "临时",
+      predefined: "系统",
     },
 
     // Variable status labels
     variableStatusLabels: {
       active: "活跃",
       overridden: "被覆盖",
+    },
+
+    // Import/Export formats
+    importFormats: {
+      smart: { name: "智能识别", description: "自动检测格式并转换" },
+      conversation: { name: "会话格式", description: "标准的会话消息格式" },
+      openai: { name: "OpenAI", description: "OpenAI API 请求格式" },
+      langfuse: { name: "LangFuse", description: "LangFuse 追踪数据格式" },
+    },
+    exportFormats: {
+      standard: { name: "标准格式", description: "内部标准数据格式" },
+      openai: { name: "OpenAI", description: "OpenAI API 兼容格式" },
+      template: { name: "模板格式", description: "可复用的模板格式" },
+    },
+
+    // Import placeholders
+    importPlaceholders: {
+      openai: 'OpenAI API 请求格式，例如：\n{\n  "messages": [...],\n  "model": "gpt-4"\n}',
+      langfuse: 'LangFuse 追踪数据，例如：\n{\n  "input": {\n    "messages": [...]\n  }\n}',
+      conversation: '标准会话格式，例如：\n{\n  "messages": [\n    {"role": "system", "content": "..."},\n    {"role": "user", "content": "..."}\n  ]\n}',
+      smart: "粘贴任意支持格式的 JSON 数据，系统将自动识别",
+    },
+
+    // Console errors (开发者日志)
+    consoleErrors: {
+      toolEditIndexOutOfRange: "工具编辑失败：索引 {index} 超出范围",
+      toolEditToolNotFound: "工具编辑失败：索引 {index} 处的工具不存在",
+      toolSaveMissingFunction: "工具保存失败：缺少 function 属性",
+      toolDataStructureError: "工具数据结构错误：缺少 function 属性",
     },
   },
   updater: {
