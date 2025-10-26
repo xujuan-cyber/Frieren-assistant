@@ -57,6 +57,7 @@ import {
     variableHighlighter,
     variableAutocompletion,
     missingVariableTooltip,
+    existingVariableTooltip,
     createThemeExtension,
     type VariableDetectionLabels,
 } from "./codemirror-extensions";
@@ -132,6 +133,7 @@ let editorView: EditorView | null = null;
 const autocompletionCompartment = new Compartment();
 const highlighterCompartment = new Compartment();
 const missingVariableTooltipCompartment = new Compartment();
+const existingVariableTooltipCompartment = new Compartment();
 const placeholderCompartment = new Compartment();
 const themeCompartment = new Compartment();
 
@@ -503,6 +505,23 @@ onMounted(() => {
                     },
                 ),
             ),
+            // 已存在变量提示
+            existingVariableTooltipCompartment.of(
+                existingVariableTooltip(
+                    variableDetectionLabels.value,
+                    {
+                        backgroundColor: themeVars.value.cardColor,
+                        borderColor: themeVars.value.borderColor,
+                        borderRadius: themeVars.value.borderRadius,
+                        textColor: themeVars.value.textColor2,
+                        shadow: themeVars.value.boxShadow2,
+                        sourceGlobalColor: themeVars.value.infoColor,
+                        sourceTemporaryColor: themeVars.value.successColor,
+                        sourcePredefinedColor: themeVars.value.warningColor,
+                        surfaceOverlay: themeVars.value.popoverColor,
+                    },
+                ),
+            ),
             // 主题适配
             themeCompartment.of(createThemeExtension(themeVars.value)),
             // 监听文档变化
@@ -586,6 +605,22 @@ watch(
                         },
                     ),
                 ),
+                existingVariableTooltipCompartment.reconfigure(
+                    existingVariableTooltip(
+                        variableDetectionLabels.value,
+                        {
+                            backgroundColor: themeVars.value.cardColor,
+                            borderColor: themeVars.value.borderColor,
+                            borderRadius: themeVars.value.borderRadius,
+                            textColor: themeVars.value.textColor2,
+                            shadow: themeVars.value.boxShadow2,
+                            sourceGlobalColor: themeVars.value.infoColor,
+                            sourceTemporaryColor: themeVars.value.successColor,
+                            sourcePredefinedColor: themeVars.value.warningColor,
+                            surfaceOverlay: themeVars.value.popoverColor,
+                        },
+                    ),
+                ),
             ],
         });
     },
@@ -618,6 +653,36 @@ watch(
         editorView.dispatch({
             effects: [
                 themeCompartment.reconfigure(createThemeExtension(vars)),
+                missingVariableTooltipCompartment.reconfigure(
+                    missingVariableTooltip(
+                        handleAddMissingVariable,
+                        variableDetectionLabels.value,
+                        {
+                            backgroundColor: vars.cardColor,
+                            borderColor: vars.borderColor,
+                            borderRadius: vars.borderRadius,
+                            textColor: vars.textColor2,
+                            primaryColor: vars.primaryColor,
+                            primaryColorHover: vars.primaryColorHover,
+                        },
+                    ),
+                ),
+                existingVariableTooltipCompartment.reconfigure(
+                    existingVariableTooltip(
+                        variableDetectionLabels.value,
+                        {
+                            backgroundColor: vars.cardColor,
+                            borderColor: vars.borderColor,
+                            borderRadius: vars.borderRadius,
+                            textColor: vars.textColor2,
+                            shadow: vars.boxShadow2,
+                            sourceGlobalColor: vars.infoColor,
+                            sourceTemporaryColor: vars.successColor,
+                            sourcePredefinedColor: vars.warningColor,
+                            surfaceOverlay: vars.popoverColor,
+                        },
+                    ),
+                ),
             ],
         });
     },
