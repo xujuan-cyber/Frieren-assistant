@@ -63,7 +63,7 @@ import { computed } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { NSpace, NFlex, NText, NButton, NIcon, NInput } from 'naive-ui'
-import { useFullscreen } from '../composables/useFullscreen'
+import { useFullscreen } from '../composables/ui/useFullscreen'
 import FullscreenDialog from './FullscreenDialog.vue'
 
 const { t } = useI18n()

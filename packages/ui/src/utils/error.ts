@@ -3,7 +3,7 @@
  * 提供统一的错误处理和类型安全的错误信息提取
  */
 
-import { useToast } from '../composables/useToast'
+import { useToast } from '../composables/ui/useToast'
 
 /**
  * 扩展错误类型，支持更详细的错误信息

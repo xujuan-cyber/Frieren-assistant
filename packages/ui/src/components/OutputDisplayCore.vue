@@ -172,9 +172,9 @@ import {
   NCard, NButton, NButtonGroup, NIcon, NCollapse, NCollapseItem,
   NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace
 } from 'naive-ui'
-import { useToast } from '../composables/useToast'
+import { useToast } from '../composables/ui/useToast'
 import { Star } from '@vicons/tabler'
-import { useClipboard } from '../composables/useClipboard'
+import { useClipboard } from '../composables/ui/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
 import type { CompareResult } from '@prompt-optimizer/core'

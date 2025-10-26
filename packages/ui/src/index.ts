@@ -25,7 +25,7 @@ export {
 } from "./config/naive-theme";
 
 // 导出主题相关 Composables
-export { useNaiveTheme } from "./composables/useNaiveTheme";
+export { useNaiveTheme } from "./composables/ui/useNaiveTheme";
 
 /**
  * 组件导出

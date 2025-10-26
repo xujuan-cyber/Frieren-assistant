@@ -188,7 +188,7 @@ import {
   NDivider, NCollapse, NCollapseItem, NEmpty
 } from 'naive-ui'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
-import { useToast } from '../composables/useToast'
+import { useToast } from '../composables/ui/useToast'
 
 const props = defineProps({
   show: Boolean,

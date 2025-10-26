@@ -220,8 +220,8 @@ import {
   NCheckbox, NSelect, NButton, NTag, NTooltip, NText,
   NDivider, NH4, NForm, NFormItem, NImage
 } from 'naive-ui'
-import { useImageModelManager } from '../composables/useImageModelManager'
-import { useToast } from '../composables/useToast'
+import { useImageModelManager } from '../composables/model/useImageModelManager'
+import { useToast } from '../composables/ui/useToast'
 import type { ImageModelConfig } from '@prompt-optimizer/core'
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
 

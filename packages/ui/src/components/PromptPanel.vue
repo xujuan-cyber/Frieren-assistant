@@ -203,7 +203,7 @@
 import { ref, computed, nextTick, watch, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag } from "naive-ui";
-import { useToast } from "../composables/useToast";
+import { useToast } from '../composables/ui/useToast';
 import TemplateSelect from "./TemplateSelect.vue";
 import Modal from "./Modal.vue";
 import OutputDisplay from "./OutputDisplay.vue";

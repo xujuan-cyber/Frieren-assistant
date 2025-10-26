@@ -356,7 +356,7 @@
 import { useI18n } from 'vue-i18n'
 import { NButton } from 'naive-ui'
 import { isRunningInElectron } from '@prompt-optimizer/core'
-import { useUpdater } from '../composables/useUpdater'
+import { useUpdater } from '../composables/system/useUpdater'
 import Modal from './Modal.vue'
 
 const { t } = useI18n()

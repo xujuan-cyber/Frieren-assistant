@@ -181,7 +181,7 @@ import {
     NGridItem,
     NIcon,
 } from "naive-ui";
-import { useFullscreen } from "../composables/useFullscreen";
+import { useFullscreen } from '../composables/ui/useFullscreen';
 import FullscreenDialog from "./FullscreenDialog.vue";
 import { VariableAwareInput } from "./variable-extraction";
 

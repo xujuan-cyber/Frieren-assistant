@@ -149,7 +149,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard } from 'naive-ui'
-import { useToast } from '../composables/useToast'
+import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 import InputPanelUI from './InputPanel.vue'
 import ModelSelectUI from './ModelSelect.vue'

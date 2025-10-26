@@ -14,7 +14,7 @@
 import { onMounted, defineComponent, h } from "vue";
 import { NMessageProvider, useMessage } from "naive-ui";
 
-import { setGlobalMessageApi } from "../composables/useToast";
+import { setGlobalMessageApi } from '../composables/ui/useToast';
 
 // 内部组件用于在正确的上下文中初始化消息API
 const MessageApiInitializer = defineComponent({

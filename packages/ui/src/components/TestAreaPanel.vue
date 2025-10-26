@@ -404,9 +404,10 @@ import type {
     AdvancedTestResult,
     ToolCallResult,
 } from "@prompt-optimizer/core";
-import { useResponsive } from "../composables/useResponsive";
-import { usePerformanceMonitor } from "../composables/usePerformanceMonitor";
-import { useDebounceThrottle } from "../composables/useDebounceThrottle";
+import { useResponsive } from '../composables/ui/useResponsive';
+import { usePerformanceMonitor } from "../composables/performance/usePerformanceMonitor";
+import { useDebounceThrottle } from "../composables/performance/useDebounceThrottle";
+import { useCurrentMode } from "../composables/mode";
 import TestInputSection from "./TestInputSection.vue";
 import TestControlBar from "./TestControlBar.vue";
 import TestResultSection from "./TestResultSection.vue";
@@ -434,6 +435,9 @@ const {
     inputSize,
     // gridConfig  // 保留用于网格布局
 } = useResponsive();
+
+// 🆕 模式检测（用于隐藏基础模式下的变量功能）
+const { isBasicMode } = useCurrentMode();
 
 interface Props {
     // 核心状态
@@ -747,10 +751,19 @@ const displayVariables = computed(() => {
     return sortedTestVariables.value;
 });
 
-// 是否显示变量表单：默认显示（除非在测试运行中）
+// 是否显示变量表单：默认显示（除非在测试运行中或在基础模式下）
 const showVariableForm = computed(() => {
-    // 改为默认显示，不再依赖检测到的变量数量
-    return !props.isTestRunning;
+    // 🆕 基础模式不显示变量功能（变量系统仅在上下文模式下可用）
+    if (isBasicMode.value) {
+        return false;
+    }
+
+    // 测试运行中不显示
+    if (props.isTestRunning) {
+        return false;
+    }
+
+    return true;
 });
 
 // 区分内置变量和自定义变量

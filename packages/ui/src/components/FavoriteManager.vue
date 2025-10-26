@@ -267,8 +267,8 @@ import {
   type UploadChangeParam
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
-import { useToast } from '../composables/useToast';
-import { useFavoriteInitializer } from '../composables/useFavoriteInitializer';
+import { useToast } from '../composables/ui/useToast';
+import { useFavoriteInitializer } from '../composables/storage/useFavoriteInitializer';
 import ToastUI from './Toast.vue';
 
 const { t } = useI18n();

@@ -1760,11 +1760,11 @@ import {
     NDataTable,
     type DataTableColumns,
 } from "naive-ui";
-import { useResponsive } from "../../composables/useResponsive";
-import { usePerformanceMonitor } from "../../composables/usePerformanceMonitor";
-import { useDebounceThrottle } from "../../composables/useDebounceThrottle";
-import { useAccessibility } from "../../composables/useAccessibility";
-import { useContextEditor } from "../../composables/useContextEditor";
+import { useResponsive } from "../../composables/ui/useResponsive";
+import { usePerformanceMonitor } from "../../composables/performance/usePerformanceMonitor";
+import { useDebounceThrottle } from '../../composables/performance/useDebounceThrottle';
+import { useAccessibility } from "../../composables/accessibility/useAccessibility";
+import { useContextEditor } from '../../composables/context/useContextEditor';
 import {
     quickTemplateManager,
     type QuickTemplateDefinition,

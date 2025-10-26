@@ -1125,13 +1125,13 @@ import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
 import TestResultSection from "../TestResultSection.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
-import { useImageWorkspace, type ImageUploadChangePayload } from "../../composables/useImageWorkspace";
+import { useImageWorkspace, type ImageUploadChangePayload } from '../../composables/image/useImageWorkspace';
 import { DataTransformer, OptionAccessors } from "../../utils/data-transformer";
 import type { AppServices } from "../../types/services";
-import { useFullscreen } from "../../composables/useFullscreen";
+import { useFullscreen } from "../../composables/ui/useFullscreen";
 import FullscreenDialog from "../FullscreenDialog.vue";
 import type { TemplateSelectOption } from "../../types/select-options";
-import { useToast } from "../../composables/useToast";
+import { useToast } from "../../composables/ui/useToast";
 
 // 国际化
 const { t } = useI18n();

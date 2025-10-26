@@ -443,8 +443,8 @@ import {
     NInput,
     NDropdown,
 } from "naive-ui";
-import { usePerformanceMonitor } from "../../composables/usePerformanceMonitor";
-import { useDebounceThrottle } from "../../composables/useDebounceThrottle";
+import { usePerformanceMonitor } from "../../composables/performance/usePerformanceMonitor";
+import { useDebounceThrottle } from '../../composables/performance/useDebounceThrottle';
 import type {
     ConversationManagerProps,
     ConversationManagerEvents,

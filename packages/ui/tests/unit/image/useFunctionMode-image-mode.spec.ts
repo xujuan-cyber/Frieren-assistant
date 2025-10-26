@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { ref } from 'vue'
-import { useFunctionMode } from '../../../src/composables/useFunctionMode'
+import { useFunctionMode } from '../../../src/composables/mode/useFunctionMode'
 
 const makeServices = () => {
   const store = new Map<string, any>()

@@ -152,7 +152,7 @@ import {
   Plus,
   Folder
 } from '@vicons/tabler';
-import { useToast } from '../composables/useToast';
+import { useToast } from '../composables/ui/useToast';
 import { useI18n } from 'vue-i18n';
 import type { FavoriteCategory } from '@prompt-optimizer/core';
 import type { AppServices } from '../types/services';

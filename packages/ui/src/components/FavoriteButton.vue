@@ -105,7 +105,7 @@ import {
   type FormInst,
   type FormRules
 } from 'naive-ui';
-import { useToast } from '../composables/useToast';
+import { useToast } from '../composables/ui/useToast';
 import { StarFilled, StarOutline } from '@vicons/tabler';
 import type { FavoriteCategory } from '@prompt-optimizer/core';
 import type { AppServices } from '../types/services';

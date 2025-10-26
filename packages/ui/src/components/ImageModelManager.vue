@@ -145,8 +145,8 @@ import { useI18n } from 'vue-i18n'
 import {
   NSpace, NCard, NText, NTag, NButton, NEmpty, NImage
 } from 'naive-ui'
-import { useImageModelManager } from '../composables/useImageModelManager'
-import { useToast } from '../composables/useToast'
+import { useImageModelManager } from '../composables/model/useImageModelManager'
+import { useToast } from '../composables/ui/useToast'
 import type { IImageService } from '@prompt-optimizer/core'
 
 const { t } = useI18n()

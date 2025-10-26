@@ -164,8 +164,8 @@ import {
   NGridItem
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
-import { useToast } from '../composables/useToast';
-import { useTagSuggestions } from '../composables/useTagSuggestions';
+import { useToast } from '../composables/ui/useToast';
+import { useTagSuggestions } from '../composables/ui/useTagSuggestions';
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';
 import type { AppServices } from '../types/services';

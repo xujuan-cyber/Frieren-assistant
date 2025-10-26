@@ -204,7 +204,7 @@ import {
   NSpin
 } from 'naive-ui'
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
-import type { TextModelManager } from '../composables/useTextModelManager'
+import type { TextModelManager } from '../composables/model/useTextModelManager'
 
 const { show } = defineProps({
   show: {

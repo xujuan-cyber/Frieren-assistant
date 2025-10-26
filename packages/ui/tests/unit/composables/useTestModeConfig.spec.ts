@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import { useTestModeConfig } from '../../../src/composables/useTestModeConfig'
+import { useTestModeConfig } from '../../../src/composables/ui/useTestModeConfig'
 
 type OptimizationMode = 'system' | 'user'
 

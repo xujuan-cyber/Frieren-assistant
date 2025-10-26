@@ -285,7 +285,7 @@ import {
 } from '@vicons/tabler';
 import { useI18n } from 'vue-i18n';
 import type { FavoritePrompt, FavoriteCategory } from '@prompt-optimizer/core';
-import { useTooltipTheme } from '../composables/useTooltipTheme';
+import { useTooltipTheme } from '../composables/ui/useTooltipTheme';
 
 const { t } = useI18n();
 

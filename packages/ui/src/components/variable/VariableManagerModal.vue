@@ -326,14 +326,14 @@ import {
     NIcon,
     type DataTableColumns,
 } from "naive-ui";
-import { useResponsive } from "../../composables/useResponsive";
-import { useClipboard } from "../../composables/useClipboard";
+import { useResponsive } from "../../composables/ui/useResponsive";
+import { useClipboard } from "../../composables/ui/useClipboard";
 import type {
     VariableManagerModalProps,
     VariableManagerModalEvents,
 } from "../../types/components";
 import type { Variable } from "../../types/variable";
-import type { VariableManagerHooks } from "../../composables/useVariableManager";
+import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager';
 import VariableEditor from "./VariableEditor.vue";
 import VariableImporter from "./VariableImporter.vue";
 

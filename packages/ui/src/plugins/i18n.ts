@@ -7,7 +7,7 @@ import enUS from "../i18n/locales/en-US";
 import {
   getPreference,
   setPreference,
-} from "../composables/usePreferenceManager";
+} from '../composables/storage/usePreferenceManager';
 import { UI_SETTINGS_KEYS } from "@prompt-optimizer/core";
 import type { AppServices } from "../types/services";
 

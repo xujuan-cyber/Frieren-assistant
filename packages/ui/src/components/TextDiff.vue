@@ -30,7 +30,7 @@ import { computed } from 'vue'
 
 import { NTag, NCard, NFlex, NScrollbar } from 'naive-ui'
 import type { CompareResult, ChangeType } from '@prompt-optimizer/core'
-import { useNaiveTheme } from '../composables/useNaiveTheme'
+import { useNaiveTheme } from '../composables/ui/useNaiveTheme'
   
   interface Props {
     /** 原始文本 */

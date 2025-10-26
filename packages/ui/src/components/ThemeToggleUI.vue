@@ -23,7 +23,7 @@ import { computed, h } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { NButton, NDropdown, type DropdownOption } from 'naive-ui'
-import { useNaiveTheme } from '../composables/useNaiveTheme'
+import { useNaiveTheme } from '../composables/ui/useNaiveTheme'
 
 const { t } = useI18n()
 

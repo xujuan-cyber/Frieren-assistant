@@ -23,7 +23,7 @@
 import { onMounted, provide, ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
-import { useTextModelManager } from '../composables/useTextModelManager'
+import { useTextModelManager } from '../composables/model/useTextModelManager'
 import TextModelList from './TextModelList.vue'
 import TextModelEditModal from './TextModelEditModal.vue'
 

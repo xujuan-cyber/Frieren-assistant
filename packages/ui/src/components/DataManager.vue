@@ -187,7 +187,7 @@ import {
   NModal, NSpace, NText, NButton, NUpload, NUploadDragger, 
   NIcon, NAlert, type UploadFileInfo 
 } from 'naive-ui'
-import { useToast } from '../composables/useToast'
+import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 
 interface Props {
