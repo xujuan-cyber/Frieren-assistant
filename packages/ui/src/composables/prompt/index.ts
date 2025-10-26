@@ -5,3 +5,6 @@ export * from './usePromptHistory'
 export * from './usePromptPreview'
 export * from './useTemplateManager'
 export * from './useVariableManager'
+
+// 变量管理相关 composables
+export * from '../variable'

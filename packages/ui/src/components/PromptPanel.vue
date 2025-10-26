@@ -56,10 +56,12 @@
                         type="tertiary"
                         size="small"
                         ghost
+                        round
+                        :title="t('common.preview')"
                     >
                         <template #icon>
-                            <svg
-                                class="w-4 h-4"
+                            <NIcon>
+                                <svg
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -77,8 +79,8 @@
                                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                                 />
                             </svg>
+                            </NIcon>
                         </template>
-                        {{ t("common.preview") }}
                     </NButton>
                     <!-- 继续优化按钮 -->
                     <NButton
@@ -202,7 +204,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag } from "naive-ui";
+import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag, NIcon } from "naive-ui";
 import { useToast } from '../composables/ui/useToast';
 import TemplateSelect from "./TemplateSelect.vue";
 import Modal from "./Modal.vue";

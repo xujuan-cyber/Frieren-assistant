@@ -204,7 +204,6 @@
                             @config-model="modelManager.showConfig = true"
                             @open-input-preview="handleOpenInputPreview"
                             @open-prompt-preview="handleOpenPromptPreview"
-                            @open-test-preview="showPreviewPanel = true"
                         >
                             <!-- 优化模型选择插槽 -->
                             <template #optimize-model-select>
@@ -374,7 +373,6 @@
                             @config-model="modelManager.showConfig = true"
                             @open-input-preview="handleOpenInputPreview"
                             @open-prompt-preview="handleOpenPromptPreview"
-                            @open-test-preview="showPreviewPanel = true"
                         >
                             <!-- 优化模型选择插槽 -->
                             <template #optimize-model-select>
@@ -726,7 +724,6 @@
                                     @open-variable-manager="
                                         handleOpenVariableManager
                                     "
-                                    @open-preview="showPreviewPanel = true"
                                 >
                                     <!-- 模型选择插槽 -->
                                     <template #model-select>
@@ -1022,6 +1019,7 @@ import {
     usePromptPreview,
     usePromptTester,
     useContextManagement,
+    useAggregatedVariables,
 
     // i18n functions
     initializeI18nWithStorage,
@@ -1127,8 +1125,10 @@ const handleModeSelect = async (mode: "basic" | "pro" | "image") => {
         const { ensureInitialized } = useBasicSubMode(services as any);
         await ensureInitialized();
         selectedOptimizationMode.value = basicSubMode.value as OptimizationMode;
+        // 🐛 修复：同步 contextMode，确保测试输入框正确显示
+        contextMode.value = basicSubMode.value as import("@prompt-optimizer/core").ContextMode;
         console.log(
-            `[App] 切换到基础模式，已恢复子模式: ${basicSubMode.value}`,
+            `[App] 切换到基础模式，已恢复子模式: ${basicSubMode.value}，同步 contextMode: ${contextMode.value}`,
         );
     } else if (mode === "pro") {
         const { ensureInitialized } = useProSubMode(services as any);
@@ -1192,13 +1192,18 @@ const contextEditorState = ref({
 // 🆕 提示词预览面板状态
 const showPreviewPanel = ref(false);
 
+// 变量管理器实例（必须在使用前声明）
+const variableManager = useVariableManager(services as any);
+
+// 🆕 使用聚合变量管理器（自动合并预定义 + 全局 + 临时变量）
+const aggregatedVariables = useAggregatedVariables(variableManager);
 // 🆕 使用 usePromptPreview composable 实时预览提示词
 const promptPreviewContent = ref(""); // 改为 ref，动态设置内容
 const promptPreviewVariables = computed(() => {
-    // 合并全局变量和上下文变量（上下文变量优先，会覆盖同名的全局变量）
+    // 🆕 使用聚合变量，自动包含临时变量
     return {
-        ...(variableManager?.allVariables.value || {}),
-        ...(contextEditorState.value.variables || {}),
+        ...aggregatedVariables.allVariables.value,
+        ...(contextEditorState.value.variables || {}), // 上下文变量优先级最高
     };
 });
 
@@ -1226,7 +1231,6 @@ const handleOpenPromptPreview = () => {
 };
 
 // 变量管理器实例
-const variableManager = useVariableManager(services as any);
 
 const templateSelectType = computed<
     | "optimize"
@@ -1809,7 +1813,9 @@ const handleBasicSubModeChange = async (mode: OptimizationMode) => {
         mode as import("@prompt-optimizer/core").BasicSubMode,
     );
     selectedOptimizationMode.value = mode; // 保持兼容性
-    console.log(`[App] 基础模式子模式已切换并持久化: ${mode}`);
+    // 🐛 修复：同步 contextMode，确保测试输入框正确显示
+    contextMode.value = mode as import("@prompt-optimizer/core").ContextMode;
+    console.log(`[App] 基础模式子模式已切换并持久化: ${mode}，同步 contextMode: ${contextMode.value}`);
 };
 
 // 上下文模式子模式变更处理器

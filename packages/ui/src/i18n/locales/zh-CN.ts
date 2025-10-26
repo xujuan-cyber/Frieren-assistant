@@ -1828,4 +1828,9 @@ export default {
       duplicateVariable: "该变量名已存在，将引用现有变量",
     },
   },
+  // 变量引导提示
+  variableGuide: {
+    inlineHint:
+      "支持变量功能：输入 {doubleBraces} 触发自动补全 · 选中文本可提取为变量 · 悬停查看变量值",
+  },
 };

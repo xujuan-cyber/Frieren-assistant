@@ -30,6 +30,7 @@
                     @update:modelValue="emit('update:prompt', $event)"
                     :label="t('promptOptimizer.userPromptInput')"
                     :placeholder="t('promptOptimizer.userPromptPlaceholder')"
+                    :help-text="variableGuideInlineHint"
                     :model-label="t('promptOptimizer.optimizeModel')"
                     :template-label="t('promptOptimizer.templateLabel')"
                     :button-text="t('promptOptimizer.optimize')"
@@ -117,13 +118,7 @@
             <NCard size="small" style="flex-shrink: 0">
                 <NFlex justify="space-between" align="center">
                     <!-- 左侧：区域标识 -->
-                    <NFlex align="center" :size="8">
                         <NText strong>{{ $t("test.areaTitle") }}</NText>
-                        <NTag type="info" size="small">
-                            <template #icon><span>👤</span></template>
-                            {{ $t("contextMode.user.label") }}
-                        </NTag>
-                    </NFlex>
 
                     <!-- 右侧：快捷操作按钮 -->
                     <NFlex :size="8">
@@ -185,7 +180,6 @@
                     @test="handleTestWithVariables"
                     @compare-toggle="emit('compare-toggle')"
                     @open-variable-manager="emit('open-variable-manager')"
-                    @open-preview="emit('open-test-preview')"
                     @variable-change="handleTestVariableChange"
                     @save-to-global="
                         (name: string, value: string) =>
@@ -231,6 +225,7 @@
  * - 支持版本管理和历史记录
  * - 支持变量系统 (全局变量 + 测试临时变量)
  * - 🆕 支持文本选择并提取为变量 (用户模式独有)
+ * - 🆕 使用 composable 管理临时变量，无需 props 传递
  * - 支持工具调用配置
  * - 支持响应式布局
  *
@@ -249,7 +244,7 @@
 import { ref, computed } from 'vue'
 
 import { useI18n } from "vue-i18n";
-import { NCard, NFlex, NButton, NText, NTag } from "naive-ui";
+import { NCard, NFlex, NButton, NText } from "naive-ui";
 import { useBreakpoints } from "@vueuse/core";
 import InputPanelUI from "../InputPanel.vue";
 import PromptPanelUI from "../PromptPanel.vue";
@@ -262,6 +257,7 @@ import type {
 } from "@prompt-optimizer/core";
 import type { TestAreaPanelInstance } from "../types/test-area";
 import type { IteratePayload, SaveFavoritePayload } from "../../types/workspace";
+import { useTemporaryVariables } from "../../composables/variable/useTemporaryVariables";
 
 // ========================
 // 响应式断点配置
@@ -384,7 +380,6 @@ const emit = defineEmits<{
     /** 打开提示词预览 */
     "open-prompt-preview": [];
     /** 打开测试预览 */
-    "open-test-preview": [];
 
     // --- 变量管理 ---
     /** 变量值变化 */
@@ -406,8 +401,9 @@ const { t } = useI18n();
 // ========================
 // 内部状态管理
 // ========================
-/** 临时变量 (从文本提取的变量,仅当前会话有效) */
-const temporaryVariables = ref<Record<string, string>>({});
+/** 🆕 使用全局临时变量管理器 (从文本提取的变量,仅当前会话有效) */
+const tempVarsManager = useTemporaryVariables();
+const temporaryVariables = tempVarsManager.temporaryVariables;
 
 // ========================
 // 计算属性
@@ -429,6 +425,12 @@ const temporaryVariableValues = computed(() => ({ ...temporaryVariables.value })
 
 /** 预定义变量名到值的映射 (用于补全展示) */
 const predefinedVariableValues = computed(() => ({ ...props.predefinedVariables }));
+
+/** 变量提示文本，包含双花括号示例，避免模板解析误判 */
+const doubleBraceToken = "{{}}";
+const variableGuideInlineHint = computed(() =>
+    t("variableGuide.inlineHint", { doubleBraces: doubleBraceToken }),
+);
 
 // ========================
 // 组件引用
@@ -465,8 +467,8 @@ const handleVariableExtracted = (data: {
             }),
         );
     } else {
-        // 临时变量: 保存到本地状态
-        temporaryVariables.value[data.variableName] = data.variableValue;
+        // 🆕 临时变量: 使用 composable 方法保存
+        tempVarsManager.setVariable(data.variableName, data.variableValue);
         window.$message?.success(
             t("variableExtraction.savedToTemporary", {
                 name: data.variableName,
@@ -490,8 +492,8 @@ const handleVariableExtracted = (data: {
  * @param varName 变量名
  */
 const handleAddMissingVariable = (varName: string) => {
-    // 添加到临时变量,值为空
-    temporaryVariables.value[varName] = "";
+    // 🆕 使用 composable 方法添加到临时变量,值为空
+    tempVarsManager.setVariable(varName, "");
 
     // 显示成功提示 (在 VariableAwareInput 中已经显示过了,这里不重复)
     // window.$message?.success(
@@ -507,7 +509,8 @@ const handleAddMissingVariable = (varName: string) => {
  * - 向父组件转发事件,保持既有对外接口不变
  */
 const handleTestVariableChange = (name: string, value: string) => {
-    temporaryVariables.value[name] = value;
+    // 🆕 使用 composable 方法设置变量
+    tempVarsManager.setVariable(name, value);
     emit("variable-change", name, value);
 };
 
@@ -515,8 +518,9 @@ const handleTestVariableChange = (name: string, value: string) => {
  * 🆕 测试区域移除临时变量时的处理
  */
 const handleTestVariableRemove = (name: string) => {
-    if (Object.prototype.hasOwnProperty.call(temporaryVariables.value, name)) {
-        delete temporaryVariables.value[name];
+    // 🆕 使用 composable 方法删除变量
+    if (tempVarsManager.hasVariable(name)) {
+        tempVarsManager.deleteVariable(name);
     }
     emit("variable-change", name, "");
 };
@@ -525,8 +529,9 @@ const handleTestVariableRemove = (name: string) => {
  * 🆕 清空测试区域临时变量时的处理
  */
 const handleClearTemporaryVariables = () => {
+    // 🆕 使用 composable 方法清空所有临时变量
     const removedNames = Object.keys(temporaryVariables.value);
-    temporaryVariables.value = {};
+    tempVarsManager.clearAll();
     removedNames.forEach((name) => emit("variable-change", name, ""));
 };
 

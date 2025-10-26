@@ -178,7 +178,6 @@
                     @test="handleTestWithVariables"
                     @compare-toggle="emit('compare-toggle')"
                     @open-variable-manager="emit('open-variable-manager')"
-                    @open-preview="emit('open-test-preview')"
                     @variable-change="
                         (name: string, value: string) => emit('variable-change', name, value)
                     "
@@ -316,7 +315,6 @@ const emit = defineEmits<{
     // 预览相关
     "open-input-preview": [];
     "open-prompt-preview": [];
-    "open-test-preview": [];
 
     // 变量管理
     "variable-change": [name: string, value: string];

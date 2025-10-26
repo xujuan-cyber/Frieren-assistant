@@ -1793,4 +1793,9 @@ export default {
       duplicateVariable: "該變數名稱已存在，將參照現有變數",
     },
   },
+  // 變數引導提示
+  variableGuide: {
+    inlineHint:
+      "支援變數功能：輸入 {doubleBraces} 觸發自動補全 · 選中文字可提取為變數 · 懸停查看變數值",
+  },
 };

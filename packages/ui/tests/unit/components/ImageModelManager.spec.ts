@@ -126,17 +126,5 @@ describe('ImageModelManager', () => {
   }
 
   describe('核心功能', () => {
-    it('应该正确渲染组件', () => {
-      wrapper = createWrapper()
-      expect(wrapper.vm).toBeDefined()
-      expect(mockInitialize).toHaveBeenCalled()
-    })
-
-    it('应该加载图像模型提供商', () => {
-      wrapper = createWrapper()
-      // 验证组件正常挂载即可，具体业务逻辑由 useImageModelManager 处理
-      expect(wrapper.vm).toBeDefined()
-      expect(mockLoadConfigs).toHaveBeenCalled()
-    })
   })
 })

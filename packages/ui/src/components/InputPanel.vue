@@ -3,9 +3,48 @@
     <NSpace vertical :size="16">
         <!-- 标题区域 -->
         <NFlex justify="space-between" align="center" :wrap="false">
-            <NText :depth="1" style="font-size: 18px; font-weight: 500">{{
-                label
-            }}</NText>
+            <NFlex align="center" :size="8">
+                <NText :depth="1" style="font-size: 18px; font-weight: 500">{{
+                    label
+                }}</NText>
+                <!-- 🆕 帮助提示图标 -->
+                <NPopover
+                    v-if="helpText"
+                    trigger="hover"
+                    placement="right"
+                    :show-arrow="true"
+                >
+                    <template #trigger>
+                        <NButton
+                            text
+                            size="tiny"
+                            :focusable="false"
+                            style="cursor: help; opacity: 0.6"
+                        >
+                            <template #icon>
+                                <NIcon :size="16">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                </NIcon>
+                            </template>
+                        </NButton>
+                    </template>
+                    <div style="max-width: 320px; line-height: 1.6">
+                        {{ helpText }}
+                    </div>
+                </NPopover>
+            </NFlex>
             <NFlex align="center" :size="12">
                 <!-- 预览按钮 -->
                 <NButton
@@ -180,6 +219,7 @@ import {
     NGrid,
     NGridItem,
     NIcon,
+    NPopover,
 } from "naive-ui";
 import { useFullscreen } from '../composables/ui/useFullscreen';
 import FullscreenDialog from "./FullscreenDialog.vue";
@@ -218,6 +258,8 @@ interface Props {
     disabled?: boolean;
     /** 是否显示预览按钮 */
     showPreview?: boolean;
+    /** 🆕 帮助提示文本（显示在标题旁边的问号图标，悬浮时显示） */
+    helpText?: string;
 
     /** 🆕 是否启用变量提取功能 */
     enableVariableExtraction?: boolean;
@@ -241,6 +283,7 @@ const props = withDefaults(defineProps<Props>(), {
     loading: false,
     disabled: false,
     showPreview: false,
+    helpText: "",
     enableVariableExtraction: false,
     existingGlobalVariables: () => [],
     existingTemporaryVariables: () => [],

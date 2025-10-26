@@ -530,7 +530,7 @@ export function useImageWorkspace(services: Ref<AppServices | null>) {
       }
     };
 
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(file);
   };
 
   // 优化提示词

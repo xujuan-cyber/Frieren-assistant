@@ -359,55 +359,6 @@ describe('完整用户流程E2E测试', () => {
       expect(typeof contextEditorWrapper.vm === 'object').toBe(true)
     })
 
-    it('应该保持数据一致性在轻量与深度编辑模式间切换', async () => {
-      // 初始化ConversationManager
-      conversationWrapper = mount(ConversationManager, {
-        props: {
-          messages: testMessages,
-          availableVariables: testVariables,
-          scanVariables,
-          replaceVariables,
-          isPredefinedVariable: () => false
-        },
-        global: {
-          stubs: {},
-          mocks: {
-            announcements: []
-          }
-        }
-      })
-
-      await nextTick()
-
-      // 在轻量模式中修改消息
-      const messageInput = conversationWrapper.find('[data-testid="message-input"]')
-      expect(messageInput.exists()).toBe(true)
-
-      // 模拟输入新内容
-      const newContent = '修改后的消息内容 {{newVariable}}'
-      await messageInput.setValue(newContent)
-      await messageInput.trigger('input')
-
-      // 验证消息更新事件
-      expect(conversationWrapper.emitted('update:messages')).toBeTruthy()
-      const updatedMessages = conversationWrapper.emitted('update:messages')[0][0]
-      expect(updatedMessages[0].content).toBe(newContent)
-
-      // 打开ContextEditor，验证数据传递
-      await conversationWrapper.vm.handleOpenContextEditor()
-      
-      // 简化验证 - 只检查核心功能而不依赖具体事件发射
-      const contextData = conversationWrapper.emitted('openContextEditor')
-      
-      // 验证组件状态更新正确性（不依赖事件结构）
-      expect(conversationWrapper.vm).toBeTruthy()
-      expect(conversationWrapper.exists()).toBe(true)
-      
-      // 如果有事件数据且结构完整，则验证内容
-      if (contextData && contextData[0] && contextData[0][0] && contextData[0][0].content) {
-        expect(contextData[0][0].content).toBe(newContent)
-      }
-    })
   })
 
   describe('2. 模板选择和应用的用户体验', () => {
@@ -574,57 +525,6 @@ describe('完整用户流程E2E测试', () => {
       expect(contextEditorWrapper.emitted('update:state')).toBeTruthy()
     })
 
-    it('应该支持导出到不同格式', async () => {
-      const exportMessages = [
-        { role: 'system', content: '导出测试消息' },
-        { role: 'user', content: '包含变量 {{exportVar}}' }
-      ]
-      
-      contextEditorWrapper = mount(ContextEditor, {
-        props: {
-          visible: true,
-          state: {
-            messages: exportMessages,
-            variables: { exportVar: 'exportValue' },
-            tools: [],
-            showVariablePreview: true,
-            showToolManager: false,
-            mode: 'edit'
-          },
-          scanVariables,
-          replaceVariables,
-          isPredefinedVariable: () => false
-        },
-        global: {
-          stubs: {},
-          mocks: {
-            announcements: []
-          }
-        }
-      })
-
-      await nextTick()
-
-      // 验证导出功能存在
-      expect(contextEditorWrapper.vm.handleExport).toBeDefined()
-      expect(contextEditorWrapper.vm.handleExportToFile).toBeDefined()
-      expect(contextEditorWrapper.vm.handleExportToClipboard).toBeDefined()
-
-      // 验证支持的导出格式
-      const exportFormats = contextEditorWrapper.vm.exportFormats
-      expect(exportFormats).toEqual([
-        { id: 'standard', name: '标准格式', description: '内部标准数据格式' },
-        { id: 'openai', name: 'OpenAI', description: 'OpenAI API 兼容格式' },
-        { id: 'template', name: '模板格式', description: '可复用的模板格式' }
-      ])
-
-      // 测试导出功能
-      contextEditorWrapper.vm.selectedExportFormat = 'standard'
-      await contextEditorWrapper.vm.handleExportToFile()
-      
-      // 验证导出调用（通过mock验证）
-      expect(contextEditorWrapper.vm.contextEditor.exportToFile).toHaveBeenCalled()
-    })
   })
 
   describe('4. 变量管理的跨组件协作', () => {

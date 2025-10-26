@@ -120,132 +120,11 @@
                         >
                             {{ t("test.variables.manageVariables") }}
                         </NButton>
-                        <NButton
-                            size="small"
-                            type="primary"
-                            @click="handleShowPreview"
-                        >
-                            {{ t("test.variables.viewPreview") }}
-                        </NButton>
                     </NSpace>
                 </NSpace>
             </NCard>
         </div>
 
-        <!-- 双轮替换预览 (展开/折叠) -->
-        <div
-            v-if="showPreviewSection"
-            :style="{ flexShrink: 0, marginBottom: '16px' }"
-        >
-            <NCard
-                :title="t('test.variables.previewTitle')"
-                size="small"
-                :bordered="true"
-            >
-                <template #header-extra>
-                    <NButton
-                        size="small"
-                        quaternary
-                        @click="showPreviewSection = false"
-                    >
-                        {{ t("common.close") }}
-                    </NButton>
-                </template>
-
-                <NSpace vertical :size="12">
-                    <!-- 系统模式：显示两轮替换 -->
-                    <template v-if="contextMode === 'system'">
-                        <div>
-                            <NText strong
-                                >{{ t("test.variables.firstRound") }} ({{
-                                    t("test.variables.builtinVars")
-                                }})</NText
-                            >
-                            <NCard
-                                size="small"
-                                :style="{ marginTop: '8px' }"
-                                embedded
-                            >
-                                <NText
-                                    :style="{
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                    }"
-                                >
-                                    {{ firstRoundPreview }}
-                                </NText>
-                            </NCard>
-                        </div>
-
-                        <div>
-                            <NText strong
-                                >{{ t("test.variables.secondRound") }} ({{
-                                    t("test.variables.customVars")
-                                }})</NText
-                            >
-                            <NCard
-                                size="small"
-                                :style="{ marginTop: '8px' }"
-                                embedded
-                            >
-                                <NText
-                                    :style="{
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                    }"
-                                >
-                                    {{ secondRoundPreview }}
-                                </NText>
-                            </NCard>
-                        </div>
-                    </template>
-
-                    <!-- 用户模式：显示单轮替换 -->
-                    <template v-else>
-                        <div>
-                            <NText strong>{{
-                                t("test.variables.finalPreview")
-                            }}</NText>
-                            <NCard
-                                size="small"
-                                :style="{ marginTop: '8px' }"
-                                embedded
-                            >
-                                <NText
-                                    :style="{
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                    }"
-                                >
-                                    {{ finalPreview }}
-                                </NText>
-                            </NCard>
-                        </div>
-                    </template>
-
-                    <!-- 缺失变量警告 -->
-                    <NAlert
-                        v-if="missingVariables.length > 0"
-                        type="warning"
-                        :bordered="false"
-                    >
-                        <template #header>{{
-                            t("test.variables.missingVars")
-                        }}</template>
-                        <NSpace :size="4">
-                            <NTag
-                                v-for="varName in missingVariables"
-                                :key="varName"
-                                size="small"
-                                type="warning"
-                            >
-                                <span v-text="`{{${varName}}}`"></span>
-                            </NTag>
-                        </NSpace>
-                    </NAlert>
-                </NSpace>
-            </NCard>
-        </div>
 
         <!-- 🆕 添加变量对话框 -->
         <NModal
@@ -389,13 +268,11 @@ import {
     useMessage,
     NFlex,
     NCard,
-    NAlert,
     NButton,
     NTag,
     NSpace,
     NInput,
     NEmpty,
-    NText,
     NModal,
     NFormItem,
 } from "naive-ui";
@@ -505,7 +382,6 @@ const emit = defineEmits<{
     // 高级功能事件
     "open-variable-manager": [];
     "open-context-editor": [];
-    "open-preview": []; // 打开预览面板
     "variable-change": [name: string, value: string];
     "save-to-global": [name: string, value: string]; // 🆕 保存测试变量到全局
     "get-test-variables": []; // 🆕 请求获取测试变量（用于测试执行）
@@ -572,9 +448,13 @@ const clearToolCalls = (
 
 // 移除结果缓存与相关节流逻辑，避免不必要的复杂度
 
-// 关键计算属性：showTestInput 取决于 contextMode（系统模式才需要测试输入）
+// 关键计算属性：showTestInput 取决于当前功能模式
 const showTestInput = computed(() => {
-    // 系统模式下，需要用户提供测试问题
+    // 基础模式始终以系统提示词布尔值决定可见性
+    if (isBasicMode.value) {
+        return props.optimizationMode === "system";
+    }
+    // 上下文模式需要双重判断：上下文系统模式 + 系统提示词优化
     return (
         props.contextMode === "system" && props.optimizationMode === "system"
     );
@@ -641,49 +521,7 @@ const handleTest = throttle(
     "handleTest",
 );
 
-// ========== 变量管理与双轮预览（完整实现） ==========
-
-// 内置变量列表（与 core 包中的 PREDEFINED_VARIABLES 保持一致）
-const BUILTIN_VARIABLES = new Set([
-    "originalPrompt",
-    "lastOptimizedPrompt",
-    "iterateInput",
-    "currentPrompt",
-    "userQuestion",
-    "conversationContext",
-    "toolsContext",
-]);
-
-// 变量检测逻辑
-const detectedVariables = computed(() => {
-    if (!props.optimizedPrompt) return [];
-
-    // 简单的变量占位符匹配：{{variableName}}
-    const regex = /\{\{([^}]+)\}\}/g;
-    const matches = props.optimizedPrompt.matchAll(regex);
-    const variables = new Set<string>();
-
-    for (const match of matches) {
-        const varName = match[1].trim();
-        // 跳过 Mustache 特殊标签
-        if (
-            varName &&
-            !varName.startsWith("#") &&
-            !varName.startsWith("/") &&
-            !varName.startsWith("^") &&
-            !varName.startsWith("!") &&
-            !varName.startsWith(">") &&
-            !varName.startsWith("&")
-        ) {
-            variables.add(varName);
-        }
-    }
-
-    return Array.from(variables);
-});
-
-// 预览面板显示状态
-const showPreviewSection = ref(false);
+// ========== 变量管理 ==========
 
 // 🆕 添加变量对话框状态
 const showAddVariableDialog = ref(false);
@@ -704,7 +542,15 @@ const testVariables = ref<Record<string, TestVariable>>({});
 watch(
     () => props.temporaryVariables,
     (newVars) => {
-        // 合并新的临时变量,为新变量添加时间戳
+        // 🔧 第一步：删除不再存在于 newVars 中的过期变量（防止内存泄漏）
+        const newVarNames = new Set(Object.keys(newVars));
+        for (const name of Object.keys(testVariables.value)) {
+            if (!newVarNames.has(name)) {
+                delete testVariables.value[name];
+            }
+        }
+
+        // 第二步：合并新的临时变量,为新变量添加时间戳
         for (const [name, value] of Object.entries(newVars)) {
             if (!testVariables.value[name]) {
                 testVariables.value[name] = {
@@ -735,9 +581,6 @@ const mergedVariables = computed(() => {
     };
 });
 
-// 实际使用的变量值（合并后的结果）
-const variableValues = computed(() => mergedVariables.value);
-
 // 🆕 按时间排序的临时变量列表 (最新的在最前面)
 const sortedTestVariables = computed(() => {
     const entries = Object.entries(testVariables.value);
@@ -764,69 +607,6 @@ const showVariableForm = computed(() => {
     }
 
     return true;
-});
-
-// 区分内置变量和自定义变量
-const builtinVars = computed(() => {
-    return detectedVariables.value.filter((v) => BUILTIN_VARIABLES.has(v));
-});
-
-const customVars = computed(() => {
-    return detectedVariables.value.filter((v) => !BUILTIN_VARIABLES.has(v));
-});
-
-// 缺失变量检测（检查合并后的变量中是否有缺失）
-const missingVariables = computed(() => {
-    return detectedVariables.value.filter((varName) => {
-        const value = mergedVariables.value[varName];
-        return !value || value.trim() === "";
-    });
-});
-
-// 第一轮替换（仅内置变量）
-const firstRoundPreview = computed(() => {
-    if (!props.optimizedPrompt) return "";
-
-    let result = props.optimizedPrompt;
-
-    // 只替换内置变量
-    for (const varName of builtinVars.value) {
-        const value = variableValues.value[varName] || "";
-        const regex = new RegExp(`\\{\\{${varName}\\}\\}`, "g");
-        result = result.replace(regex, value);
-    }
-
-    return result;
-});
-
-// 第二轮替换（自定义变量）
-const secondRoundPreview = computed(() => {
-    let result = firstRoundPreview.value;
-
-    // 替换自定义变量
-    for (const varName of customVars.value) {
-        const value = variableValues.value[varName] || "";
-        const regex = new RegExp(`\\{\\{${varName}\\}\\}`, "g");
-        result = result.replace(regex, value);
-    }
-
-    return result;
-});
-
-// 最终预览（用户模式 - 一次性替换所有）
-const finalPreview = computed(() => {
-    if (!props.optimizedPrompt) return "";
-
-    let result = props.optimizedPrompt;
-
-    // 替换所有变量
-    for (const varName of detectedVariables.value) {
-        const value = variableValues.value[varName] || "";
-        const regex = new RegExp(`\\{\\{${varName}\\}\\}`, "g");
-        result = result.replace(regex, value);
-    }
-
-    return result;
 });
 
 // 获取变量的显示值（从合并后的变量中获取）
@@ -860,10 +640,6 @@ const handleOpenVariableManager = () => {
     recordUpdate();
 };
 
-const handleShowPreview = () => {
-    showPreviewSection.value = true;
-    recordUpdate();
-};
 
 const handleVariableValueChange = (varName: string, value: string) => {
     // 🧪 更新测试区临时变量
@@ -1026,13 +802,6 @@ defineExpose({
     // 变量管理
     getVariableValues,
     setVariableValues,
-    // 预览控制
-    showPreview: () => {
-        showPreviewSection.value = true;
-    },
-    hidePreview: () => {
-        showPreviewSection.value = false;
-    },
 });
 </script>
 

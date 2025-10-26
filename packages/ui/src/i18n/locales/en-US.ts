@@ -1898,4 +1898,9 @@ export default {
         "Variable name already exists, will reference existing variable",
     },
   },
+  // Variable guide
+  variableGuide: {
+    inlineHint:
+      "Variable support: Type {doubleBraces} for auto-completion · Select text to extract · Hover to view values",
+  },
 };
