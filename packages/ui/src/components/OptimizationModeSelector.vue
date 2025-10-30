@@ -7,6 +7,7 @@
     class="optimization-mode-selector"
   >
     <NRadioButton
+      v-if="!hideSystemOption"
       value="system"
       :title="t('promptOptimizer.systemPromptHelp')"
     >
@@ -30,6 +31,8 @@ const { t } = useI18n()
 
 interface Props {
   modelValue: OptimizationMode
+  /** 是否隐藏系统提示词选项（用于临时禁用功能） */
+  hideSystemOption?: boolean
 }
 
 interface Emits {
@@ -37,7 +40,9 @@ interface Emits {
   (e: 'change', value: OptimizationMode): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  hideSystemOption: false,
+})
 const emit = defineEmits<Emits>()
 
 /**

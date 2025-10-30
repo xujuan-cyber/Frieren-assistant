@@ -38,6 +38,7 @@
                         <OptimizationModeSelectorUI
                             v-if="functionMode === 'pro'"
                             :modelValue="proSubMode"
+                            :hide-system-option="true"
                             @change="handleProSubModeChange"
                         />
 
