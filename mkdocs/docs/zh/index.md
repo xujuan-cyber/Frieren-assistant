@@ -4,7 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
 ![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/cakkkhboolfnadechdlgdcnjammejlna)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/linshenkx/prompt-optimizer/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/linshenkx/prompt-optimizer/blob/main/LICENSE)
 
 **一个强大的 AI 提示词优化工具，帮助你编写更好的 AI 提示词，提升 AI 输出质量**
 
@@ -81,7 +81,7 @@
 
 ## 📄 开源协议
 
-本项目采用 [MIT](https://github.com/linshenkx/prompt-optimizer/blob/main/LICENSE) 协议开源。
+本项目采用 [GNU Affero General Public License v3.0](https://github.com/linshenkx/prompt-optimizer/blob/main/LICENSE) 协议开源。
 
 ---
 

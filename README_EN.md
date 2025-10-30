@@ -9,7 +9,7 @@
 
 <a href="https://trendshift.io/repositories/13813" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13813" alt="linshenkx%2Fprompt-optimizer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/linshen/prompt-optimizer)](https://hub.docker.com/r/linshen/prompt-optimizer)
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
@@ -424,7 +424,26 @@ Thanks to all the developers who have contributed to this project!
 
 ## 📄 License
 
-This project is licensed under the [MIT](LICENSE) License.
+This project is licensed under [AGPL-3.0](LICENSE).
+
+**In simple terms**: You can freely use, modify, and commercialize this project, but if you turn it into a website or service for others, you must share your source code.
+
+<details>
+<summary>👉 Click for detailed explanation</summary>
+
+**What you can do:**
+- ✅ Personal use, learning, and research
+- ✅ Internal company use (not offering public services)
+- ✅ Modify code for commercial projects
+- ✅ Charge for products or services
+
+**What you must do:**
+- 📖 If distributing software or offering network services, disclose source code
+- 📝 Preserve original author's copyright notices
+
+**Core principle**: Commercial use is allowed, but not closed-source.
+
+</details>
 
 ---
 

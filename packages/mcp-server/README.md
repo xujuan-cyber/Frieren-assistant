@@ -165,4 +165,4 @@ npx @modelcontextprotocol/inspector
 
 ## 许可证
 
-MIT
+GNU Affero General Public License v3.0 (AGPL-3.0-only)

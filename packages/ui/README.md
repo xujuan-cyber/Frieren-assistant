@@ -422,7 +422,7 @@ pnpm -F @prompt-optimizer/ui test -- test-area-e2e
 
 ## 许可证
 
-ISC License
+GNU Affero General Public License v3.0 (AGPL-3.0-only)
 
 ## 文档
 
