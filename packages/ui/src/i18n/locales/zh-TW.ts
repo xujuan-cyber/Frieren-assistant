@@ -712,6 +712,15 @@ export default {
     addModel: "新增",
     addImageModel: "新增圖像模型",
 
+    provider: {
+      section: "提供商配置",
+      label: "提供商",
+      placeholder: "選擇提供商",
+    },
+    model: {
+      section: "模型配置",
+    },
+
     // 進階參數
     advancedParameters: {
       title: "進階參數",

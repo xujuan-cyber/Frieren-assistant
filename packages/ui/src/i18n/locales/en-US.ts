@@ -732,6 +732,15 @@ export default {
     addModel: "Add",
     addImageModel: "Add Image Model",
 
+    provider: {
+      section: "Provider Configuration",
+      label: "Provider",
+      placeholder: "Select Provider",
+    },
+    model: {
+      section: "Model Configuration",
+    },
+
     // Advanced Parameters
     advancedParameters: {
       title: "Advanced Parameters",
