@@ -219,7 +219,6 @@ import TestAreaPanel from "../TestAreaPanel.vue";
 import ConversationManager from "./ConversationManager.vue";
 import type { OptimizationMode, ConversationMessage } from "../../types";
 import type {
-    IServices,
     PromptRecord,
     Template,
 } from "@prompt-optimizer/core";
@@ -264,9 +263,6 @@ interface Props {
     predefinedVariables: Record<string, string>;
     availableVariables: Record<string, string>;
     scanVariables: (content: string) => string[];
-
-    // 服务
-    services: IServices | null;
 
     // 响应式布局配置
     inputMode?: "compact" | "normal";

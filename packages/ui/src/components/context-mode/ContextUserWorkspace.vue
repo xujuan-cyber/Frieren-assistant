@@ -250,7 +250,6 @@ import PromptPanelUI from "../PromptPanel.vue";
 import TestAreaPanel from "../TestAreaPanel.vue";
 import type { OptimizationMode } from "../../types";
 import type {
-    IServices,
     PromptRecord,
     Template,
 } from "@prompt-optimizer/core";
@@ -308,10 +307,6 @@ interface Props {
     globalVariables: Record<string, string>;
     /** 预定义变量 (系统内置) */
     predefinedVariables: Record<string, string>;
-
-    // --- 服务 ---
-    /** 核心服务实例 */
-    services: IServices | null;
 
     // --- 响应式布局配置 ---
     /** 输入模式 */

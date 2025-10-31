@@ -174,7 +174,6 @@
                                         content,
                                     ) || []
                             "
-                            :services="services?.value || null"
                             :input-mode="
                                 responsiveLayout.recommendedInputMode.value
                             "
@@ -339,7 +338,6 @@
                                 variableManager?.allVariables?.value || {}
                             "
                             :predefined-variables="predefinedVariables"
-                            :services="services?.value || null"
                             @variable-change="handleTestPanelVariableChange"
                             @save-to-global="handleSaveToGlobal"
                             :input-mode="

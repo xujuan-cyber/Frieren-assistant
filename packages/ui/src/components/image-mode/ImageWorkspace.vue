@@ -286,7 +286,7 @@
                 content-style="height: 100%; max-height: 100%; overflow: hidden;"
             >
                 <PromptPanelUI
-                    v-if="services?.value?.templateManager"
+                    v-if="services && services.templateManager"
                     ref="promptPanelRef"
                     v-model:optimized-prompt="optimizedPrompt"
                     :reasoning="optimizedReasoning"
