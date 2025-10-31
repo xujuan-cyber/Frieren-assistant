@@ -33,6 +33,7 @@ interface TextModelForm {
 interface SetProviderOptions {
   autoSelectFirstModel?: boolean
   resetOverrides?: boolean
+  resetConnectionConfig?: boolean
 }
 
 const DEFAULT_TEXT_MODEL_IDS = ['openai', 'gemini', 'deepseek', 'zhipu', 'siliconflow', 'custom'] as const
@@ -322,7 +323,8 @@ export function useTextModelManager() {
   const setProvider = (providerId: string, options: SetProviderOptions = {}) => {
     const {
       autoSelectFirstModel = true,
-      resetOverrides = true
+      resetOverrides = true,
+      resetConnectionConfig = true
     } = options
 
     form.value.providerId = providerId
@@ -340,10 +342,24 @@ export function useTextModelManager() {
     loadStaticModelsForProvider(providerId)
 
     const providerMeta = providers.value.find(p => p.id === providerId)
-    if (providerMeta?.defaultBaseURL) {
-      form.value.connectionConfig = {
-        baseURL: form.value.connectionConfig.baseURL || providerMeta.defaultBaseURL,
-        ...form.value.connectionConfig
+
+    // 根据 resetConnectionConfig 参数决定是否重置连接配置
+    if (resetConnectionConfig) {
+      // 切换提供商时：完全重置为新提供商的默认配置
+      if (providerMeta?.defaultBaseURL) {
+        form.value.connectionConfig = {
+          baseURL: providerMeta.defaultBaseURL
+        }
+      } else {
+        form.value.connectionConfig = {}
+      }
+    } else {
+      // 编辑模式时：只在 baseURL 为空时才填充默认值
+      if (providerMeta?.defaultBaseURL && !form.value.connectionConfig.baseURL) {
+        form.value.connectionConfig = {
+          ...form.value.connectionConfig,
+          baseURL: providerMeta.defaultBaseURL
+        }
       }
     }
 
@@ -408,7 +424,8 @@ export function useTextModelManager() {
 
       setProvider(form.value.providerId, {
         autoSelectFirstModel: false,
-        resetOverrides: false
+        resetOverrides: false,
+        resetConnectionConfig: false
       })
       if (!modelOptions.value.some(option => option.value === form.value.modelId) && form.value.modelId) {
         modelOptions.value.push({ value: form.value.modelId, label: form.value.modelId })

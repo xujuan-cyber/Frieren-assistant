@@ -279,7 +279,8 @@ const handleModelChange = (modelId: string) => {
 const onProviderChange = (providerId: string) => {
   manager.selectProvider(providerId, {
     autoSelectFirstModel: !isEditing.value,
-    resetOverrides: true
+    resetOverrides: true,
+    resetConnectionConfig: true
   })
 }
 </script>
