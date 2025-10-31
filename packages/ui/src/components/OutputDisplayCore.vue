@@ -127,15 +127,32 @@
         />
 
         <!-- 原文模式 -->
-        <NInput v-else-if="internalViewMode === 'source'"
-          :value="content"
-          @input="handleSourceInput"
-          :readonly="mode !== 'editable' || streaming"
-          type="textarea"
-          :placeholder="placeholder"
-          :autosize="{ minRows: 10 }"
-          style="height: 100%; min-height: 0;"
-        />
+        <template v-if="internalViewMode === 'source'">
+          <!-- 🆕 Pro 模式：使用变量感知输入框 -->
+          <VariableAwareInput
+            v-if="shouldEnableVariables && variableData"
+            :model-value="content"
+            @update:model-value="handleSourceInput"
+            :readonly="mode !== 'editable' || streaming"
+            :placeholder="placeholder"
+            :autosize="{ minRows: 10, maxRows: 20 }"
+            v-bind="variableData"
+            @variable-extracted="handleVariableExtracted"
+            @add-missing-variable="handleAddMissingVariable"
+          />
+
+          <!-- Basic/Image 模式：使用普通输入框 -->
+          <NInput
+            v-else
+            :value="content"
+            @input="handleSourceInput"
+            :readonly="mode !== 'editable' || streaming"
+            type="textarea"
+            :placeholder="placeholder"
+            :autosize="{ minRows: 10 }"
+            style="height: 100%; min-height: 0;"
+          />
+        </template>
 
         <!-- 渲染模式（默认） -->
         <NFlex v-else
@@ -165,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, inject, type Ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import {
@@ -178,6 +195,12 @@ import { useClipboard } from '../composables/ui/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
 import type { CompareResult } from '@prompt-optimizer/core'
+import { VariableAwareInput } from './variable-extraction'
+import { useFunctionMode } from '../composables/mode/useFunctionMode'
+import { useTemporaryVariables } from '../composables/variable/useTemporaryVariables'
+import { useVariableManager } from '../composables/prompt/useVariableManager'
+import type { AppServices } from '../types/services'
+import { platform } from '../utils/platform'
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
 
@@ -186,8 +209,8 @@ const { copyText } = useClipboard()
 
 const message = useToast()
 
-// 服务注入（当前未使用，保留用于未来扩展）
-// const services = inject<Ref<AppServices | null> | null>('services', null)
+// 🆕 注入 services（用于变量管理）
+const services = inject<Ref<AppServices | null>>('services', ref(null))
 
 // 移除收藏状态管理(改由父组件处理)
 
@@ -240,6 +263,134 @@ const emit = defineEmits<{
   'view-change': [mode: 'base' | 'diff']
   'save-favorite': [data: { content: string; originalContent?: string }]
 }>()
+
+// 🆕 变量管理功能（仅 Pro 模式）
+// ==================== 功能模式判断 ====================
+// ✅ 无条件调用，使用全局单例的 functionMode
+// ⚠️ 不主动初始化，避免在 services 未就绪时污染全局单例
+const { functionMode } = useFunctionMode(services)
+
+// 判断是否启用变量功能（仅 Pro 模式）
+const shouldEnableVariables = computed(() => functionMode.value === 'pro')
+
+// ==================== 变量管理 Composables ====================
+// 临时变量管理器（全局单例）
+const tempVars = useTemporaryVariables()
+
+// ✅ 无条件调用，composable 内部会等待 services.preferenceService 准备就绪
+const globalVarsManager = useVariableManager(services)
+
+// ==================== 变量数据计算 ====================
+/**
+ * 计算纯预定义变量
+ * allVariables = 预定义变量 + 自定义全局变量
+ * 因此：预定义变量 = allVariables - customVariables
+ */
+const purePredefinedVariables = computed(() => {
+  const all = globalVarsManager.allVariables.value || {}
+  const custom = globalVarsManager.customVariables.value || {}
+
+  const predefined: Record<string, string> = {}
+  for (const [key, value] of Object.entries(all)) {
+    // 只保留不在 customVariables 中的变量
+    if (!(key in custom)) {
+      predefined[key] = value
+    }
+  }
+
+  return predefined
+})
+
+const variableData = computed(() => {
+  // 只在 Pro 模式下提供变量数据
+  if (!shouldEnableVariables.value) return null
+
+  // 🔒 如果全局变量管理器未就绪，返回 null 以禁用变量功能
+  // 这样可以避免文本被替换但变量未保存的不一致状态
+  if (!globalVarsManager.isReady.value) return null
+
+  return {
+    existingGlobalVariables: Object.keys(globalVarsManager.customVariables.value || {}),
+    existingTemporaryVariables: Object.keys(tempVars.temporaryVariables.value || {}),
+    predefinedVariables: Object.keys(purePredefinedVariables.value),
+    globalVariableValues: globalVarsManager.customVariables.value || {},
+    temporaryVariableValues: tempVars.temporaryVariables.value || {},
+    predefinedVariableValues: purePredefinedVariables.value
+  }
+})
+
+// ==================== 变量事件处理 ====================
+/**
+ * 处理变量提取事件
+ * 在 Pro 模式的原文编辑模式下，用户选中文本提取变量时触发
+ *
+ * ⚠️ 注意：此函数只会在 variableData 不为 null 时被调用
+ * （即管理器已就绪且为 Pro 模式），因此不需要额外检查
+ *
+ * ⚠️ 数据一致性问题：
+ * VariableAwareInput 在触发此事件前已完成文本替换（{{varName}}）
+ * 如果保存失败，文本已被修改但变量未保存，需提示用户撤销操作
+ */
+const handleVariableExtracted = (data: {
+  variableName: string
+  variableValue: string
+  variableType: 'global' | 'temporary'
+}) => {
+  if (data.variableType === 'global') {
+    try {
+      // 保存到全局变量
+      globalVarsManager.addVariable(data.variableName, data.variableValue)
+      message.success(
+        t('variableExtraction.savedToGlobal', { name: data.variableName })
+      )
+    } catch (error) {
+      console.error('[OutputDisplayCore] Failed to save global variable:', error)
+      // ⚠️ 保存失败但文本已被替换，提示用户需要撤销
+      message.error(
+        t('variableExtraction.saveFailedWithUndo', {
+          name: data.variableName,
+          undo: platform.getUndoKey()
+        }),
+        {
+          duration: 8000, // 延长显示时间，确保用户看到
+          closable: true
+        }
+      )
+    }
+  } else {
+    // 保存到临时变量（临时变量管理器是全局单例，始终可用）
+    try {
+      tempVars.setVariable(data.variableName, data.variableValue)
+      message.success(
+        t('variableExtraction.savedToTemporary', { name: data.variableName })
+      )
+    } catch (error) {
+      console.error('[OutputDisplayCore] Failed to save temporary variable:', error)
+      // 临时变量保存失败的可能性极低，但仍需处理
+      message.error(
+        t('variableExtraction.saveFailedWithUndo', {
+          name: data.variableName,
+          undo: platform.getUndoKey()
+        }),
+        {
+          duration: 8000,
+          closable: true
+        }
+      )
+    }
+  }
+}
+
+/**
+ * 处理添加缺失变量事件
+ * 当用户悬停在缺失变量上并点击快速添加时触发
+ */
+const handleAddMissingVariable = (varName: string) => {
+  tempVars.setVariable(varName, '')
+  message.success(
+    t('variableDetection.addSuccess', { name: varName })
+  )
+}
 
 // 内部状态
 const reasoningContentRef = ref<HTMLDivElement | null>(null)
@@ -462,6 +613,12 @@ const handleFavorite = () => {
 
 // 组件挂载时设置初始视图模式
 onMounted(() => {
+  // ⚠️ 不在此处初始化 functionMode
+  // 原因：useFunctionMode 是全局单例，不应由单个组件控制初始化时机
+  // - 如果 services 未就绪，初始化会失败但仍标记为已完成，导致永久卡在 'basic'
+  // - 应该在应用级别统一初始化（如 App.vue）
+  // - functionMode 有默认值 'basic'，可以正常工作
+
   // 如果是可编辑模式，默认显示原文
   if (props.mode === 'editable') {
     internalViewMode.value = 'source';

@@ -54,6 +54,7 @@ import { EditorView, basicSetup } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
 import { NPopover, NButton, useThemeVars } from "naive-ui";
 import { useI18n } from "vue-i18n";
+import { useToast } from "../../composables/ui/useToast";
 import { useVariableDetection } from "./useVariableDetection";
 import VariableExtractionDialog from "./VariableExtractionDialog.vue";
 import {
@@ -81,6 +82,8 @@ interface Props {
     modelValue: string;
     /** 占位符文本 */
     placeholder?: string;
+    /** 🆕 是否只读 */
+    readonly?: boolean;
     /** 自动调整高度 */
     autosize?: boolean | { minRows?: number; maxRows?: number };
     /** 已存在的全局变量名列表 */
@@ -99,6 +102,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
     placeholder: "",
+    readonly: false,
     autosize: () => ({ minRows: 4, maxRows: 12 }),
     existingGlobalVariables: () => [],
     existingTemporaryVariables: () => [],
@@ -128,6 +132,7 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
+const message = useToast();
 const themeVars = useThemeVars();
 const completionColorVars = computed(() => ({
     "--variable-completion-temporary-color":
@@ -151,6 +156,7 @@ const missingVariableTooltipCompartment = new Compartment();
 const existingVariableTooltipCompartment = new Compartment();
 const placeholderCompartment = new Compartment();
 const themeCompartment = new Compartment();
+const readOnlyCompartment = new Compartment();
 
 const buildVariableMap = (
     names: string[] | undefined,
@@ -357,6 +363,12 @@ const editorHeight = computed(() => {
 const checkSelection = () => {
     if (!editorView) return;
 
+    // 🔒 只读模式下禁用变量提取功能
+    if (props.readonly) {
+        showExtractionButton.value = false;
+        return;
+    }
+
     const { from, to } = editorView.state.selection.main;
     const selectedText = editorView.state.sliceDoc(from, to);
 
@@ -422,6 +434,13 @@ const handleExtractionConfirm = (data: {
     replaceAll: boolean;
 }) => {
     if (!editorView) return;
+
+    // 🔒 只读模式下禁止修改文本（双重防护）
+    if (props.readonly) {
+        message.warning(t("variableExtraction.readonlyWarning"));
+        showExtractionDialog.value = false;
+        return;
+    }
 
     const placeholder = `{{${data.variableName}}}`;
     const text = editorView.state.doc.toString();
@@ -539,6 +558,8 @@ onMounted(() => {
             ),
             // 主题适配
             themeCompartment.of(createThemeExtension(themeVars.value)),
+            // 🆕 只读状态
+            readOnlyCompartment.of(EditorState.readOnly.of(props.readonly)),
             // 监听文档变化
             EditorView.updateListener.of((update) => {
                 if (update.docChanged) {
@@ -654,6 +675,20 @@ watch(
                         "aria-placeholder": placeholder,
                     }),
                 ),
+            ],
+        });
+    },
+);
+
+// 🆕 监听 readonly 变化,动态更新编辑器只读状态
+watch(
+    () => props.readonly,
+    (readonly) => {
+        if (!editorView) return;
+
+        editorView.dispatch({
+            effects: [
+                readOnlyCompartment.reconfigure(EditorState.readOnly.of(readonly)),
             ],
         });
     },

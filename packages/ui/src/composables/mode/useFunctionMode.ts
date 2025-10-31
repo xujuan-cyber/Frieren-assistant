@@ -48,15 +48,14 @@ export function useFunctionMode(services: Ref<AppServices | null>): UseFunctionM
         if (saved !== 'pro' && saved !== 'basic' && saved !== 'image') {
           await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
         }
-      } catch (e) {
-        // 读取失败则保持默认 'basic'，并尝试持久化
-        try {
-          await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
-        } catch {
-          // 忽略设置失败错误
-        }
-      } finally {
+        // ✅ 只在成功时标记为已初始化
         singleton!.initialized = true
+      } catch (e) {
+        // ⚠️ 初始化失败，保持 initialized = false，允许后续重试
+        console.warn('[useFunctionMode] Initialization failed, will retry on next call:', e)
+        // 保持默认 'basic' 模式，但不标记为已初始化
+      } finally {
+        // 清理初始化锁，无论成败
         singleton!.initializing = null
       }
     })()

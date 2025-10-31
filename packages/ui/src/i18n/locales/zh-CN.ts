@@ -1893,6 +1893,10 @@ export default {
     extractSuccessAll: "成功提取变量 {{variableName}}（替换了 {count} 处）",
     savedToGlobal: "变量 {name} 已保存到全局",
     savedToTemporary: "变量 {name} 已保存到临时变量",
+    managerNotReady: "变量管理器尚未初始化，请稍后再试",
+    saveFailed: "保存变量 {name} 失败",
+    saveFailedWithUndo: "保存变量 {name} 失败，文本已被替换但变量未保存。请按 {undo} 撤销操作",
+    readonlyWarning: "只读模式下无法提取变量",
     validation: {
       required: "变量名不能为空",
       noNumberStart: "变量名不能以数字开头",

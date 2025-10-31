@@ -1858,6 +1858,10 @@ export default {
     extractSuccessAll: "成功提取變數 {{variableName}}（取代了 {count} 處）",
     savedToGlobal: "變數 {name} 已儲存到全域",
     savedToTemporary: "變數 {name} 已儲存到臨時變數",
+    managerNotReady: "變數管理器尚未初始化，請稍後再試",
+    saveFailed: "儲存變數 {name} 失敗",
+    saveFailedWithUndo: "儲存變數 {name} 失敗，文字已被取代但變數未儲存。請按 {undo} 復原操作",
+    readonlyWarning: "唯讀模式下無法提取變數",
     validation: {
       required: "變數名稱不能為空",
       noNumberStart: "變數名稱不能以數字開頭",

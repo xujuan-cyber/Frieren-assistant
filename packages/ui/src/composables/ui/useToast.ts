@@ -15,6 +15,8 @@ export function setGlobalMessageApi(api: MessageApiInjection) {
   console.log('[useToast] Global message API set successfully')
 }
 
+type ToastOptions = number | MessageOptions
+
 export function useToast() {
   const getMessageApi = (): MessageApiInjection | null => {
     if (!globalMessageApi) {
@@ -26,28 +28,28 @@ export function useToast() {
   const add = (
     content: string,
     type: Toast['type'] = 'info',
-    duration: number = 3000
+    options?: ToastOptions
   ): MessageReactive | undefined => {
     const message = getMessageApi()
     if (!message) return undefined
 
-    const options: MessageOptions = {
-      duration,
-      content,
+    const normalizedOptions: MessageOptions = {
+      duration: 3000,
       closable: true,
-      keepAliveOnHover: true
+      keepAliveOnHover: true,
+      ...(typeof options === 'number' ? { duration: options } : options || {})
     }
     
     switch (type) {
       case 'success':
-        return message.success(content, options)
+        return message.success(content, normalizedOptions)
       case 'error':
-        return message.error(content, options)
+        return message.error(content, normalizedOptions)
       case 'warning':
-        return message.warning(content, options)
+        return message.warning(content, normalizedOptions)
       case 'info':
       default:
-        return message.info(content, options)
+        return message.info(content, normalizedOptions)
     }
   }
 
@@ -58,10 +60,10 @@ export function useToast() {
     }
   }
 
-  const success = (content: string, duration?: number) => add(content, 'success', duration)
-  const error = (content: string, duration?: number) => add(content, 'error', duration)
-  const info = (content: string, duration?: number) => add(content, 'info', duration)
-  const warning = (content: string, duration?: number) => add(content, 'warning', duration)
+  const success = (content: string, options?: ToastOptions) => add(content, 'success', options)
+  const error = (content: string, options?: ToastOptions) => add(content, 'error', options)
+  const info = (content: string, options?: ToastOptions) => add(content, 'info', options)
+  const warning = (content: string, options?: ToastOptions) => add(content, 'warning', options)
 
   return {
     add,

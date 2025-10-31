@@ -1963,6 +1963,10 @@ export default {
       "Successfully extracted variable {{variableName}} ({count} replacements)",
     savedToGlobal: "Variable {name} saved to global",
     savedToTemporary: "Variable {name} saved to temporary",
+    managerNotReady: "Variable manager not initialized yet, please try again later",
+    saveFailed: "Failed to save variable {name}",
+    saveFailedWithUndo: "Failed to save variable {name}. Text has been replaced but variable was not saved. Press {undo} to undo",
+    readonlyWarning: "Cannot extract variables in readonly mode",
     validation: {
       required: "Variable name cannot be empty",
       noNumberStart: "Variable name cannot start with a number",
