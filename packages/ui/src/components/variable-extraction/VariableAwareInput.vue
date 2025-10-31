@@ -157,6 +157,7 @@ const existingVariableTooltipCompartment = new Compartment();
 const placeholderCompartment = new Compartment();
 const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
+const lineWrappingCompartment = new Compartment();
 
 const buildVariableMap = (
     names: string[] | undefined,
@@ -560,6 +561,8 @@ onMounted(() => {
             themeCompartment.of(createThemeExtension(themeVars.value)),
             // 🆕 只读状态
             readOnlyCompartment.of(EditorState.readOnly.of(props.readonly)),
+            // 🆕 自动换行功能
+            lineWrappingCompartment.of(EditorView.lineWrapping),
             // 监听文档变化
             EditorView.updateListener.of((update) => {
                 if (update.docChanged) {
@@ -826,6 +829,16 @@ defineExpose({
 
 .codemirror-container :deep(.cm-content) {
     min-height: v-bind("editorHeight.min");
+    /* 🆕 支持文本自动换行 */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 🆕 确保长行文本正确换行 */
+.codemirror-container :deep(.cm-line) {
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 /* 占位符样式 */
