@@ -23,6 +23,7 @@ export const integration: OptionalIntegration = {
       proVariableSession: ctx.proVariableSession,
       imageText2ImageSession: ctx.imageText2ImageSession,
       imageImage2ImageSession: ctx.imageImage2ImageSession,
+      getFavoriteManager: () => ctx.getFavoriteManager(),
       optimizerCurrentVersions: ctx.optimizerCurrentVersions,
     })
   },

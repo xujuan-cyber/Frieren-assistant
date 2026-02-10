@@ -1655,6 +1655,7 @@ void registerOptionalIntegrations({
     proVariableSession,
     imageText2ImageSession,
     imageImage2ImageSession,
+    getFavoriteManager: () => services.value?.favoriteManager || null,
     optimizerCurrentVersions,
 });
 provide("handleSaveFavorite", handleSaveFavorite);

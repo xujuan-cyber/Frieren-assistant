@@ -6,7 +6,7 @@ import type {
   RouteLocationRaw,
   Router,
 } from 'vue-router'
-import type { ConversationMessage, PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
+import type { ConversationMessage, FavoritePrompt, PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import type { MessageReactive } from 'naive-ui'
 
 import { createTestPinia } from '../../utils/pinia-test-helpers'
@@ -1207,6 +1207,456 @@ describe('useAppPromptGardenImport', () => {
 
       expect(proVariableSession.getTemporaryVariable('keep')).toBeUndefined()
       expect(proVariableSession.getTemporaryVariable('alsoRemove')).toBeUndefined()
+    } finally {
+      scope.stop()
+    }
+  })
+
+  it('auto-saves imported prompt into favorites when saveToFavorites=1', async () => {
+    const { pinia } = createTestPinia()
+
+    const createReactive = (): MessageReactive => ({
+      destroy: () => {},
+    } as unknown as MessageReactive)
+    setGlobalMessageApi({
+      success: vi.fn(() => createReactive()),
+      error: vi.fn(() => createReactive()),
+      warning: vi.fn(() => createReactive()),
+      info: vi.fn(() => createReactive()),
+    })
+
+    const basicSystemSession = useBasicSystemSession(pinia)
+    const basicUserSession = useBasicUserSession(pinia)
+    const proMultiMessageSession = useProMultiMessageSession(pinia)
+    const proVariableSession = useProVariableSession(pinia)
+    const imageText2ImageSession = useImageText2ImageSession(pinia)
+    const imageImage2ImageSession = useImageImage2ImageSession(pinia)
+
+    const optimizerCurrentVersions = ref<PromptRecordChain['versions']>([])
+    const hasRestoredInitialState = ref(false)
+    const isLoadingExternalData = ref(false)
+
+    const query: LocationQuery = {
+      importCode: 'NB-SAVE-001',
+      saveToFavorites: '1',
+    }
+
+    const currentRoute = ref<RouteLocationNormalizedLoaded>(makeRoute('/basic/system', query))
+
+    let replaceResolve: (() => void) | undefined
+    const replaceDone = new Promise<void>((resolve) => {
+      replaceResolve = resolve
+    })
+
+    const push: Router['push'] = vi.fn(async (to) => {
+      applyNavigation(currentRoute, to)
+      return undefined
+    })
+
+    const replace: Router['replace'] = vi.fn(async (to) => {
+      applyNavigation(currentRoute, to)
+      replaceResolve?.()
+      return undefined
+    })
+
+    const router: Pick<Router, 'currentRoute' | 'push' | 'replace'> = {
+      currentRoute,
+      push,
+      replace,
+    }
+
+    const favoriteManager = {
+      getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      addFavorite: vi.fn(async (
+        _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
+      ) => 'fav-new'),
+      updateFavorite: vi.fn(async (_id: string, _updates: Partial<FavoritePrompt>) => {}),
+    }
+
+    const v1Payload = {
+      id: 'prompt-001',
+      importCode: 'NB-SAVE-001',
+      schema: 'prompt-garden.prompt.v1',
+      schemaVersion: 1,
+      optimizerTarget: { subModeKey: 'basic-system' },
+      prompt: { format: 'text', text: 'IMPORTED PROMPT' },
+      variables: [
+        {
+          name: 'topic',
+          description: 'topic desc',
+          type: 'string',
+          required: true,
+          defaultValue: 'travel',
+          source: 'frontmatter',
+        },
+      ],
+      assets: {
+        cover: {
+          url: '/prompt-assets/cover.png',
+        },
+        showcases: [
+          {
+            id: 'show-1',
+            images: ['/prompt-assets/show-1.png'],
+          },
+        ],
+        examples: [
+          {
+            id: 'ex-1',
+            inputImages: ['/prompt-assets/in-1.png'],
+            parameters: {
+              topic: 'city',
+            },
+          },
+        ],
+      },
+      meta: {
+        title: 'Garden Prompt Title',
+        description: 'Garden Prompt Description',
+        tags: ['travel', 'city'],
+      },
+    }
+
+    const fetchMock = vi.fn<
+      (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+    >(async () => {
+      return new Response(JSON.stringify(v1Payload), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const scope = effectScope()
+    try {
+      scope.run(() => {
+        useAppPromptGardenImport({
+          router,
+          hasRestoredInitialState,
+          isLoadingExternalData,
+          gardenBaseUrl: 'http://garden.local',
+          basicSystemSession,
+          basicUserSession,
+          proMultiMessageSession,
+          proVariableSession,
+          imageText2ImageSession,
+          imageImage2ImageSession,
+          getFavoriteManager: () => favoriteManager,
+          optimizerCurrentVersions,
+        })
+      })
+
+      hasRestoredInitialState.value = true
+
+      await replaceDone
+      await waitForCondition(() => isLoadingExternalData.value === false)
+
+      expect(favoriteManager.getFavorites).toHaveBeenCalledTimes(1)
+      expect(favoriteManager.updateFavorite).not.toHaveBeenCalled()
+      expect(favoriteManager.addFavorite).toHaveBeenCalledTimes(1)
+
+      const savedArg = favoriteManager.addFavorite.mock.calls[0]![0] as Record<string, unknown>
+      expect(savedArg.content).toBe('IMPORTED PROMPT')
+      expect(savedArg.functionMode).toBe('basic')
+      expect(savedArg.optimizationMode).toBe('system')
+      expect(savedArg.tags).toEqual(['travel', 'city'])
+
+      const metadata = savedArg.metadata as Record<string, unknown>
+      const snapshot = metadata.gardenSnapshot as Record<string, unknown>
+      expect(snapshot.importCode).toBe('NB-SAVE-001')
+      expect(snapshot.gardenBaseUrl).toBe('http://garden.local')
+
+      const snapshotAssets = snapshot.assets as Record<string, unknown>
+      const cover = snapshotAssets.cover as Record<string, unknown>
+      expect(String(cover.url)).toMatch(/^data:/)
+
+      const showcases = snapshotAssets.showcases as Array<Record<string, unknown>>
+      const showcaseImages = showcases[0]?.images as unknown[]
+      expect(showcaseImages).toHaveLength(1)
+      expect(String(showcaseImages[0])).toMatch(/^data:/)
+
+      const examples = snapshotAssets.examples as Array<Record<string, unknown>>
+      const inputImages = examples[0]?.inputImages as unknown[]
+      expect(inputImages).toHaveLength(1)
+      expect(String(inputImages[0])).toMatch(/^data:/)
+
+      // saveToFavorites 查询参数会和 import 参数一起清理。
+      expect(currentRoute.value.query.importCode).toBeUndefined()
+      expect(currentRoute.value.query.saveToFavorites).toBeUndefined()
+    } finally {
+      scope.stop()
+    }
+  })
+
+  it('does not auto-save when saveToFavorites flag is absent', async () => {
+    const { pinia } = createTestPinia()
+
+    const createReactive = (): MessageReactive => ({
+      destroy: () => {},
+    } as unknown as MessageReactive)
+    setGlobalMessageApi({
+      success: vi.fn(() => createReactive()),
+      error: vi.fn(() => createReactive()),
+      warning: vi.fn(() => createReactive()),
+      info: vi.fn(() => createReactive()),
+    })
+
+    const basicSystemSession = useBasicSystemSession(pinia)
+    const basicUserSession = useBasicUserSession(pinia)
+    const proMultiMessageSession = useProMultiMessageSession(pinia)
+    const proVariableSession = useProVariableSession(pinia)
+    const imageText2ImageSession = useImageText2ImageSession(pinia)
+    const imageImage2ImageSession = useImageImage2ImageSession(pinia)
+
+    const optimizerCurrentVersions = ref<PromptRecordChain['versions']>([])
+    const hasRestoredInitialState = ref(false)
+    const isLoadingExternalData = ref(false)
+
+    const query: LocationQuery = {
+      importCode: 'NB-NO-SAVE-001',
+    }
+
+    const currentRoute = ref<RouteLocationNormalizedLoaded>(makeRoute('/basic/system', query))
+
+    let replaceResolve: (() => void) | undefined
+    const replaceDone = new Promise<void>((resolve) => {
+      replaceResolve = resolve
+    })
+
+    const push: Router['push'] = vi.fn(async (to) => {
+      applyNavigation(currentRoute, to)
+      return undefined
+    })
+
+    const replace: Router['replace'] = vi.fn(async (to) => {
+      applyNavigation(currentRoute, to)
+      replaceResolve?.()
+      return undefined
+    })
+
+    const router: Pick<Router, 'currentRoute' | 'push' | 'replace'> = {
+      currentRoute,
+      push,
+      replace,
+    }
+
+    const favoriteManager = {
+      getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      addFavorite: vi.fn(async (
+        _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
+      ) => 'fav-new'),
+      updateFavorite: vi.fn(async (_id: string, _updates: Partial<FavoritePrompt>) => {}),
+    }
+
+    const fetchMock = vi.fn<
+      (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+    >(async () => {
+      return new Response(
+        JSON.stringify({
+          schema: 'prompt-garden.prompt.v1',
+          schemaVersion: 1,
+          optimizerTarget: { subModeKey: 'basic-system' },
+          prompt: { format: 'text', text: 'NO SAVE PROMPT' },
+          variables: [],
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const scope = effectScope()
+    try {
+      scope.run(() => {
+        useAppPromptGardenImport({
+          router,
+          hasRestoredInitialState,
+          isLoadingExternalData,
+          gardenBaseUrl: 'http://garden.local',
+          basicSystemSession,
+          basicUserSession,
+          proMultiMessageSession,
+          proVariableSession,
+          imageText2ImageSession,
+          imageImage2ImageSession,
+          getFavoriteManager: () => favoriteManager,
+          optimizerCurrentVersions,
+        })
+      })
+
+      hasRestoredInitialState.value = true
+
+      await replaceDone
+      await waitForCondition(() => isLoadingExternalData.value === false)
+
+      expect(favoriteManager.getFavorites).not.toHaveBeenCalled()
+      expect(favoriteManager.addFavorite).not.toHaveBeenCalled()
+      expect(favoriteManager.updateFavorite).not.toHaveBeenCalled()
+    } finally {
+      scope.stop()
+    }
+  })
+
+  it('upserts existing favorite by gardenSnapshot importCode + gardenBaseUrl', async () => {
+    const { pinia } = createTestPinia()
+
+    const createReactive = (): MessageReactive => ({
+      destroy: () => {},
+    } as unknown as MessageReactive)
+    setGlobalMessageApi({
+      success: vi.fn(() => createReactive()),
+      error: vi.fn(() => createReactive()),
+      warning: vi.fn(() => createReactive()),
+      info: vi.fn(() => createReactive()),
+    })
+
+    const basicSystemSession = useBasicSystemSession(pinia)
+    const basicUserSession = useBasicUserSession(pinia)
+    const proMultiMessageSession = useProMultiMessageSession(pinia)
+    const proVariableSession = useProVariableSession(pinia)
+    const imageText2ImageSession = useImageText2ImageSession(pinia)
+    const imageImage2ImageSession = useImageImage2ImageSession(pinia)
+
+    const optimizerCurrentVersions = ref<PromptRecordChain['versions']>([])
+    const hasRestoredInitialState = ref(false)
+    const isLoadingExternalData = ref(false)
+
+    const query: LocationQuery = {
+      importCode: 'NB-SAVE-UPSERT-001',
+      saveToFavorites: 'true',
+    }
+
+    const currentRoute = ref<RouteLocationNormalizedLoaded>(makeRoute('/pro/multi', query))
+
+    let replaceResolve: (() => void) | undefined
+    const replaceDone = new Promise<void>((resolve) => {
+      replaceResolve = resolve
+    })
+
+    const push: Router['push'] = vi.fn(async (to) => {
+      applyNavigation(currentRoute, to)
+      return undefined
+    })
+
+    const replace: Router['replace'] = vi.fn(async (to) => {
+      applyNavigation(currentRoute, to)
+      replaceResolve?.()
+      return undefined
+    })
+
+    const router: Pick<Router, 'currentRoute' | 'push' | 'replace'> = {
+      currentRoute,
+      push,
+      replace,
+    }
+
+    const existingFavorite: FavoritePrompt = {
+      id: 'fav-existing',
+      title: 'old',
+      content: 'old',
+      createdAt: 1,
+      updatedAt: 1,
+      tags: [],
+      useCount: 0,
+      functionMode: 'basic',
+      optimizationMode: 'system',
+      metadata: {
+        gardenSnapshot: {
+          importCode: 'NB-SAVE-UPSERT-001',
+          gardenBaseUrl: 'http://garden.local',
+        },
+      },
+    }
+
+    const favoriteManager = {
+      getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => [
+        existingFavorite,
+      ]),
+      addFavorite: vi.fn(async (
+        _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
+      ) => 'fav-new'),
+      updateFavorite: vi.fn(async (_id: string, _updates: Partial<FavoritePrompt>) => {}),
+    }
+
+    const fetchMock = vi.fn<
+      (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+    >(async () => {
+      return new Response(
+        JSON.stringify({
+          schema: 'prompt-garden.prompt.v1',
+          schemaVersion: 1,
+          optimizerTarget: { subModeKey: 'pro-multi' },
+          prompt: {
+            format: 'messages',
+            messages: [
+              {
+                id: 'm1',
+                role: 'system',
+                content: 'System content',
+              },
+              {
+                id: 'm2',
+                role: 'user',
+                content: 'User content',
+              },
+            ],
+          },
+          variables: [],
+          meta: {
+            title: 'new title',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const scope = effectScope()
+    try {
+      scope.run(() => {
+        useAppPromptGardenImport({
+          router,
+          hasRestoredInitialState,
+          isLoadingExternalData,
+          gardenBaseUrl: 'http://garden.local',
+          basicSystemSession,
+          basicUserSession,
+          proMultiMessageSession,
+          proVariableSession,
+          imageText2ImageSession,
+          imageImage2ImageSession,
+          getFavoriteManager: () => favoriteManager,
+          optimizerCurrentVersions,
+        })
+      })
+
+      hasRestoredInitialState.value = true
+
+      await replaceDone
+      await waitForCondition(() => isLoadingExternalData.value === false)
+
+      expect(favoriteManager.getFavorites).toHaveBeenCalledTimes(1)
+      expect(favoriteManager.addFavorite).not.toHaveBeenCalled()
+      expect(favoriteManager.updateFavorite).toHaveBeenCalledTimes(1)
+      expect(favoriteManager.updateFavorite).toHaveBeenCalledWith(
+        'fav-existing',
+        expect.objectContaining({
+          content: '[system] System content\n\n[user] User content',
+          functionMode: 'context',
+          optimizationMode: 'system',
+          metadata: expect.objectContaining({
+            gardenSnapshot: expect.objectContaining({
+              importCode: 'NB-SAVE-UPSERT-001',
+              gardenBaseUrl: 'http://garden.local',
+            }),
+          }),
+        })
+      )
     } finally {
       scope.stop()
     }

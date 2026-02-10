@@ -12,7 +12,12 @@
 
 import { watch, nextTick, type Ref } from 'vue'
 import type { LocationQuery, Router } from 'vue-router'
-import type { ConversationMessage, PromptRecordChain } from '@prompt-optimizer/core'
+import type {
+  ConversationMessage,
+  FavoritePrompt,
+  IFavoriteManager,
+  PromptRecordChain,
+} from '@prompt-optimizer/core'
 
 import { useToast } from '../ui/useToast'
 import { createDefaultEvaluationResults } from '../../types/evaluation'
@@ -99,6 +104,7 @@ const resolveTargetKey = (
 }
 
 type FetchedPrompt = {
+  importCode: string
   optimizerTargetKey: string
   promptFormat: 'text' | 'messages'
   promptText?: string
@@ -109,6 +115,196 @@ type FetchedPrompt = {
     parameters?: Record<string, string>
     inputImages?: string[]
   }>
+  gardenSnapshot: GardenSnapshot
+}
+
+type FavoriteManagerLike = Pick<IFavoriteManager, 'getFavorites' | 'addFavorite' | 'updateFavorite'>
+
+type GardenSnapshotVariable = {
+  name: string
+  description?: string
+  type?: 'string' | 'number' | 'boolean' | 'enum'
+  required?: boolean
+  defaultValue?: string
+  options?: string[]
+  source?: string
+}
+
+type GardenSnapshotAssetItem = {
+  id?: string
+  url?: string
+  images?: string[]
+  inputImages?: string[]
+  text?: string
+  description?: string
+  parameters?: Record<string, string>
+  [key: string]: unknown
+}
+
+type GardenSnapshot = {
+  schema: 'prompt-garden.prompt.v1'
+  schemaVersion: 1
+  importCode: string
+  gardenBaseUrl: string | null
+  id?: string
+  optimizerTarget: {
+    subModeKey: string
+  }
+  prompt: {
+    format: 'text' | 'messages'
+    text?: string
+    messages?: ConversationMessage[]
+  }
+  variables: GardenSnapshotVariable[]
+  assets: {
+    cover?: {
+      url?: string
+      [key: string]: unknown
+    }
+    showcases?: GardenSnapshotAssetItem[]
+    examples?: GardenSnapshotAssetItem[]
+  }
+  meta?: Record<string, unknown>
+  importedAt: string
+}
+
+type FavoriteModeMapping =
+  | { functionMode: 'basic'; optimizationMode: 'system' | 'user'; imageSubMode?: never }
+  | { functionMode: 'context'; optimizationMode: 'system' | 'user'; imageSubMode?: never }
+  | { functionMode: 'image'; imageSubMode: 'text2image' | 'image2image'; optimizationMode?: never }
+
+const isTruthyQueryFlag = (value: string | null): boolean => {
+  if (!value) return false
+  const normalized = value.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true'
+}
+
+const extractStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean)
+}
+
+const toFavoriteModeMapping = (targetKey: SupportedSubModeKey): FavoriteModeMapping => {
+  switch (targetKey) {
+    case 'basic-user':
+      return { functionMode: 'basic', optimizationMode: 'user' }
+    case 'pro-multi':
+      return { functionMode: 'context', optimizationMode: 'system' }
+    case 'pro-variable':
+      return { functionMode: 'context', optimizationMode: 'user' }
+    case 'image-text2image':
+      return { functionMode: 'image', imageSubMode: 'text2image' }
+    case 'image-image2image':
+      return { functionMode: 'image', imageSubMode: 'image2image' }
+    case 'basic-system':
+    default:
+      return { functionMode: 'basic', optimizationMode: 'system' }
+  }
+}
+
+const buildFavoriteContentFromFetchedPrompt = (fetched: FetchedPrompt): string => {
+  if (fetched.promptFormat === 'text') {
+    return String(fetched.promptText || '').trim()
+  }
+
+  const rows = (fetched.promptMessages || [])
+    .map((msg) => {
+      const role = String(msg.role || '').trim() || 'system'
+      const content = String(msg.content || '').trim()
+      if (!content) return ''
+      return `[${role}] ${content}`
+    })
+    .filter(Boolean)
+
+  return rows.join('\n\n').trim()
+}
+
+const deriveFavoriteTitle = (fetched: FetchedPrompt): string => {
+  const snapshotMeta = fetched.gardenSnapshot.meta
+  const metaTitle = snapshotMeta && typeof snapshotMeta.title === 'string'
+    ? snapshotMeta.title.trim()
+    : ''
+  if (metaTitle) return metaTitle
+
+  const content = buildFavoriteContentFromFetchedPrompt(fetched)
+  if (!content) return `Prompt Garden ${fetched.importCode}`
+
+  const firstLine = content.replace(/\r?\n/g, ' ').trim()
+  if (firstLine.length <= 60) return firstLine
+  return `${firstLine.slice(0, 60)}...`
+}
+
+const deriveFavoriteDescription = (fetched: FetchedPrompt): string | undefined => {
+  const snapshotMeta = fetched.gardenSnapshot.meta
+  const metaDescription = snapshotMeta && typeof snapshotMeta.description === 'string'
+    ? snapshotMeta.description.trim()
+    : ''
+  return metaDescription || undefined
+}
+
+const deriveFavoriteTags = (fetched: FetchedPrompt): string[] => {
+  const snapshotMeta = fetched.gardenSnapshot.meta
+  if (!snapshotMeta) return []
+  return extractStringArray(snapshotMeta.tags)
+}
+
+const isSameGardenSnapshotFavorite = (favorite: FavoritePrompt, snapshot: GardenSnapshot): boolean => {
+  const metadata = favorite.metadata
+  if (!isPlainObject(metadata)) return false
+  const gardenSnapshot = isPlainObject(metadata.gardenSnapshot) ? metadata.gardenSnapshot : null
+  if (!gardenSnapshot) return false
+
+  const importCode = typeof gardenSnapshot.importCode === 'string' ? gardenSnapshot.importCode.trim() : ''
+  const gardenBaseUrl = typeof gardenSnapshot.gardenBaseUrl === 'string' ? gardenSnapshot.gardenBaseUrl.trim() : ''
+
+  return importCode === snapshot.importCode && gardenBaseUrl === (snapshot.gardenBaseUrl || '')
+}
+
+const saveImportedPromptToFavorites = async (opts: {
+  manager: FavoriteManagerLike
+  fetched: FetchedPrompt
+  targetKey: SupportedSubModeKey
+}): Promise<void> => {
+  const { manager, fetched, targetKey } = opts
+  const content = buildFavoriteContentFromFetchedPrompt(fetched)
+  if (!content) {
+    throw new Error('Cannot save imported prompt with empty content')
+  }
+
+  const modeMapping = toFavoriteModeMapping(targetKey)
+  const snapshot = await buildStorableGardenSnapshot(fetched.gardenSnapshot)
+  const favorites = await manager.getFavorites()
+  const existing = favorites.find((favorite) => isSameGardenSnapshotFavorite(favorite, snapshot))
+
+  if (existing) {
+    const metadataBase = isPlainObject(existing.metadata) ? existing.metadata : {}
+    await manager.updateFavorite(existing.id, {
+      content,
+      functionMode: modeMapping.functionMode,
+      optimizationMode: modeMapping.optimizationMode,
+      imageSubMode: modeMapping.imageSubMode,
+      metadata: {
+        ...metadataBase,
+        gardenSnapshot: snapshot,
+      },
+    })
+    return
+  }
+
+  await manager.addFavorite({
+    title: deriveFavoriteTitle(fetched),
+    description: deriveFavoriteDescription(fetched),
+    content,
+    tags: deriveFavoriteTags(fetched),
+    functionMode: modeMapping.functionMode,
+    optimizationMode: modeMapping.optimizationMode,
+    imageSubMode: modeMapping.imageSubMode,
+    metadata: {
+      gardenSnapshot: snapshot,
+    },
+  })
 }
 
 type ImportedVariable = {
@@ -236,17 +432,88 @@ const buildConversationFromPromptText = (content: string): ConversationMessage[]
   return [{ id, role: 'system', content: text, originalContent: text }]
 }
 
+const normalizeSnapshotUrl = (opts: {
+  gardenBaseUrl: string | null
+  rawUrl: string
+}): string => {
+  const raw = String(opts.rawUrl || '').trim()
+  if (!raw) return ''
+  const resolved = resolveGardenUrl({ gardenBaseUrl: opts.gardenBaseUrl, url: raw })
+  return resolved || raw
+}
+
+const normalizeSnapshotUrlList = (opts: {
+  gardenBaseUrl: string | null
+  urls: unknown
+}): string[] => {
+  if (!Array.isArray(opts.urls)) return []
+  return opts.urls
+    .map((item) => (typeof item === 'string' ? normalizeSnapshotUrl({ gardenBaseUrl: opts.gardenBaseUrl, rawUrl: item }) : ''))
+    .filter(Boolean)
+}
+
+const normalizeSnapshotParameters = (value: unknown): Record<string, string> | undefined => {
+  if (!isPlainObject(value)) return undefined
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(value)) {
+    const key = String(k || '').trim()
+    if (!key) continue
+    if (v === undefined || v === null) continue
+    out[key] = String(v)
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+const normalizeSnapshotAssetItem = (opts: {
+  gardenBaseUrl: string | null
+  item: unknown
+}): GardenSnapshotAssetItem | null => {
+  if (!isPlainObject(opts.item)) return null
+  const raw = { ...opts.item } as GardenSnapshotAssetItem
+
+  if (typeof raw.url === 'string') {
+    const next = normalizeSnapshotUrl({ gardenBaseUrl: opts.gardenBaseUrl, rawUrl: raw.url })
+    raw.url = next || undefined
+  }
+
+  const images = normalizeSnapshotUrlList({ gardenBaseUrl: opts.gardenBaseUrl, urls: raw.images })
+  if (images.length) {
+    raw.images = images
+  } else if (Array.isArray(raw.images)) {
+    raw.images = []
+  }
+
+  const inputImages = normalizeSnapshotUrlList({
+    gardenBaseUrl: opts.gardenBaseUrl,
+    urls: raw.inputImages,
+  })
+  if (inputImages.length) {
+    raw.inputImages = inputImages
+  } else if (Array.isArray(raw.inputImages)) {
+    raw.inputImages = []
+  }
+
+  const parameters = normalizeSnapshotParameters(raw.parameters)
+  if (parameters) {
+    raw.parameters = parameters
+  } else {
+    delete raw.parameters
+  }
+
+  return raw
+}
+
 const fetchPromptFromGarden = async (opts: {
   gardenBaseUrl: string | null
   importCode: string
 }): Promise<FetchedPrompt> => {
   const { gardenBaseUrl, importCode } = opts
 
+  const normalizedGardenBaseUrl = gardenBaseUrl ? normalizeBaseUrl(gardenBaseUrl) : null
+
   const url = (() => {
-    if (!gardenBaseUrl) return null
-    const base = normalizeBaseUrl(gardenBaseUrl)
-    if (!base) return null
-    return `${base}/api/prompt-source/${encodeURIComponent(importCode)}`
+    if (!normalizedGardenBaseUrl) return null
+    return `${normalizedGardenBaseUrl}/api/prompt-source/${encodeURIComponent(importCode)}`
   })()
 
   if (!url) {
@@ -312,7 +579,7 @@ const fetchPromptFromGarden = async (opts: {
     if (!Array.isArray(data.variables)) {
       throw new Error('Missing variables')
     }
-    const variables = data.variables
+    const variablesForImport = data.variables
       .map((v): { name: string; defaultValue?: string } => {
         if (!isPlainObject(v)) return { name: '' }
         const name = typeof v.name === 'string' ? v.name.trim() : ''
@@ -321,29 +588,72 @@ const fetchPromptFromGarden = async (opts: {
       })
       .filter((v) => isValidVariableName(v.name))
 
-    const assets = isPlainObject((data as any).assets) ? ((data as any).assets as Record<string, unknown>) : null
-    const rawExamples = assets && Array.isArray((assets as any).examples) ? ((assets as any).examples as unknown[]) : []
-    const examples = rawExamples
-      .map((ex): { id?: string; parameters?: Record<string, string>; inputImages?: string[] } => {
-        if (!isPlainObject(ex)) return {}
+    const snapshotVariables = data.variables
+      .map((v): GardenSnapshotVariable | null => {
+        if (!isPlainObject(v)) return null
+        const name = typeof v.name === 'string' ? v.name.trim() : ''
+        if (!isValidVariableName(name)) return null
 
+        const type =
+          v.type === 'string' || v.type === 'number' || v.type === 'boolean' || v.type === 'enum'
+            ? v.type
+            : undefined
+
+        const options = extractStringArray(v.options)
+        const source = typeof v.source === 'string' && v.source.trim() ? v.source.trim() : undefined
+
+        return {
+          name,
+          description: typeof v.description === 'string' ? v.description : undefined,
+          type,
+          required: typeof v.required === 'boolean' ? v.required : undefined,
+          defaultValue: typeof v.defaultValue === 'string' ? v.defaultValue : undefined,
+          options: options.length ? options : undefined,
+          source,
+        }
+      })
+      .filter((v): v is GardenSnapshotVariable => Boolean(v))
+
+    const assets = isPlainObject(data.assets) ? data.assets : null
+
+    const cover = (() => {
+      if (!assets || !isPlainObject(assets.cover)) return undefined
+      const out = { ...assets.cover } as { url?: string; [key: string]: unknown }
+      if (typeof out.url === 'string') {
+        out.url = normalizeSnapshotUrl({
+          gardenBaseUrl: normalizedGardenBaseUrl,
+          rawUrl: out.url,
+        }) || undefined
+      }
+      return out
+    })()
+
+    const showcases = assets && Array.isArray(assets.showcases)
+      ? assets.showcases
+          .map((item) => normalizeSnapshotAssetItem({
+            gardenBaseUrl: normalizedGardenBaseUrl,
+            item,
+          }))
+          .filter((item): item is GardenSnapshotAssetItem => Boolean(item))
+      : []
+
+    const snapshotExamples = assets && Array.isArray(assets.examples)
+      ? assets.examples
+          .map((item) => normalizeSnapshotAssetItem({
+            gardenBaseUrl: normalizedGardenBaseUrl,
+            item,
+          }))
+          .filter((item): item is GardenSnapshotAssetItem => Boolean(item))
+      : []
+
+    const examples = snapshotExamples
+      .map((ex): { id?: string; parameters?: Record<string, string>; inputImages?: string[] } => {
         const id = typeof ex.id === 'string' ? ex.id.trim() : undefined
 
-        const parameters = (() => {
-          const p = (ex as any).parameters
-          if (!isPlainObject(p)) return undefined
-          const out: Record<string, string> = {}
-          for (const [k, v] of Object.entries(p)) {
-            const key = String(k || '').trim()
-            if (!isValidVariableName(key)) continue
-            if (v === undefined || v === null) continue
-            out[key] = String(v)
-          }
-          return Object.keys(out).length ? out : undefined
-        })()
+        const parameters = normalizeSnapshotParameters(ex.parameters)
 
-        const inputImages = Array.isArray((ex as any).inputImages)
-          ? ((ex as any).inputImages as unknown[])
+        const inputImages = Array.isArray(ex.inputImages)
+          ? ex.inputImages
               .map((u) => (typeof u === 'string' ? u.trim() : ''))
               .filter(Boolean)
           : undefined
@@ -356,13 +666,49 @@ const fetchPromptFromGarden = async (opts: {
       })
       .filter((ex) => Boolean(ex.parameters) || (Array.isArray(ex.inputImages) && ex.inputImages.length > 0))
 
+    const meta = isPlainObject(data.meta) ? { ...data.meta } : undefined
+
+    const snapshot: GardenSnapshot = {
+      schema: 'prompt-garden.prompt.v1',
+      schemaVersion: 1,
+      importCode:
+        typeof data.importCode === 'string' && data.importCode.trim()
+          ? data.importCode.trim()
+          : importCode,
+      gardenBaseUrl: normalizedGardenBaseUrl,
+      id: typeof data.id === 'string' ? data.id : undefined,
+      optimizerTarget: {
+        subModeKey: optimizerTargetKey,
+      },
+      prompt:
+        format === 'text'
+          ? {
+              format,
+              text: promptText,
+            }
+          : {
+              format,
+              messages: promptMessages,
+            },
+      variables: snapshotVariables,
+      assets: {
+        cover,
+        showcases: showcases.length ? showcases : undefined,
+        examples: snapshotExamples.length ? snapshotExamples : undefined,
+      },
+      meta,
+      importedAt: new Date().toISOString(),
+    }
+
     return {
+      importCode: snapshot.importCode,
       optimizerTargetKey,
       promptFormat: format,
       promptText,
       promptMessages,
-      variables,
+      variables: variablesForImport,
       examples,
+      gardenSnapshot: snapshot,
     }
   }
 
@@ -400,8 +746,12 @@ const fetchImageAsBase64 = async (absoluteUrl: string): Promise<{ b64: string; m
   const headerType = resp.headers.get('content-type')
   const mimeType = typeof headerType === 'string' ? headerType.split(';')[0].trim() : ''
 
+  type BufferLike = {
+    from: (data: ArrayBuffer) => { toString: (encoding: 'base64') => string }
+  }
+
   // Tests run in Node where Buffer is available; browsers use FileReader.
-  const maybeBuffer = (globalThis as any).Buffer as any
+  const maybeBuffer = (globalThis as unknown as { Buffer?: BufferLike }).Buffer
   if (maybeBuffer && typeof maybeBuffer.from === 'function') {
     const ab = await resp.arrayBuffer()
     const b64 = maybeBuffer.from(ab).toString('base64')
@@ -427,6 +777,88 @@ const fetchImageAsBase64 = async (absoluteUrl: string): Promise<{ b64: string; m
     throw new Error('Failed to decode image data URL')
   }
   return { b64, mimeType: actualMime }
+}
+
+const isDataUrl = (value: string): boolean => /^data:/iu.test(value.trim())
+
+const toDataUrlOrOriginal = async (value: string): Promise<string> => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (isDataUrl(raw)) return raw
+  if (!/^https?:\/\//u.test(raw)) return raw
+
+  try {
+    const encoded = await fetchImageAsBase64(raw)
+    if (!encoded?.b64) return raw
+    const mimeType = encoded.mimeType || 'application/octet-stream'
+    return `data:${mimeType};base64,${encoded.b64}`
+  } catch (error) {
+    console.warn('[PromptGardenImport] Failed to convert image URL to base64, keep original URL:', raw, error)
+    return raw
+  }
+}
+
+const toDataUrlListOrOriginal = async (urls: unknown): Promise<string[] | undefined> => {
+  if (!Array.isArray(urls)) return undefined
+
+  const converted = await Promise.all(
+    urls.map(async (item) => {
+      if (typeof item !== 'string') return ''
+      return toDataUrlOrOriginal(item)
+    })
+  )
+
+  return converted.filter(Boolean)
+}
+
+const toBase64AssetItem = async (item: GardenSnapshotAssetItem): Promise<GardenSnapshotAssetItem> => {
+  const next: GardenSnapshotAssetItem = { ...item }
+
+  if (typeof next.url === 'string') {
+    next.url = await toDataUrlOrOriginal(next.url)
+  }
+
+  const images = await toDataUrlListOrOriginal(next.images)
+  if (images !== undefined) {
+    next.images = images
+  }
+
+  const inputImages = await toDataUrlListOrOriginal(next.inputImages)
+  if (inputImages !== undefined) {
+    next.inputImages = inputImages
+  }
+
+  return next
+}
+
+async function buildStorableGardenSnapshot(snapshot: GardenSnapshot): Promise<GardenSnapshot> {
+  const assets = snapshot.assets || {}
+
+  let cover = assets.cover
+  if (cover && typeof cover.url === 'string') {
+    cover = {
+      ...cover,
+      url: await toDataUrlOrOriginal(cover.url),
+    }
+  }
+
+  const showcases = Array.isArray(assets.showcases)
+    ? await Promise.all(assets.showcases.map((item) => toBase64AssetItem(item)))
+    : undefined
+
+  const examples = Array.isArray(assets.examples)
+    ? await Promise.all(assets.examples.map((item) => toBase64AssetItem(item)))
+    : undefined
+
+  return {
+    ...snapshot,
+    assets: {
+      ...assets,
+      cover,
+      showcases,
+      examples,
+    },
+  }
 }
 
 const pickImportedExample = (
@@ -533,6 +965,9 @@ export interface AppPromptGardenImportOptions {
   imageText2ImageSession: ImageText2ImageSessionApi
   imageImage2ImageSession: ImageImage2ImageSessionApi
 
+  /** Optional getter for auto-save-to-favorites flow. */
+  getFavoriteManager?: () => FavoriteManagerLike | null
+
   /** UI-only current versions list for history drawer; safe to clear for basic imports */
   optimizerCurrentVersions: Ref<PromptRecordChain['versions']>
 }
@@ -550,6 +985,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
     proVariableSession,
     imageText2ImageSession,
     imageImage2ImageSession,
+    getFavoriteManager,
     optimizerCurrentVersions,
   } = options
 
@@ -571,6 +1007,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
       if (!importCode) return
 
       const exampleId = getQueryString(query, 'exampleId')
+      const shouldSaveToFavorites = isTruthyQueryFlag(getQueryString(query, 'saveToFavorites'))
 
       inFlight.value = true
       isLoadingExternalData.value = true
@@ -702,6 +1139,23 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           }
         }
 
+        if (shouldSaveToFavorites) {
+          const favoriteManager = getFavoriteManager?.() || null
+          if (favoriteManager) {
+            try {
+              await saveImportedPromptToFavorites({
+                manager: favoriteManager,
+                fetched,
+                targetKey,
+              })
+            } catch (error) {
+              console.warn('[PromptGardenImport] Auto-save to favorites failed:', error)
+            }
+          } else {
+            console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')
+          }
+        }
+
         // Best-effort persist.
         try {
           if (targetKey === 'basic-system') await basicSystemSession.saveSession()
@@ -715,7 +1169,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
         }
 
         // Remove import params to avoid re-import on refresh.
-        const cleanedQuery = omitKeys(query, ['importCode', 'subModeKey', 'exampleId'])
+        const cleanedQuery = omitKeys(query, ['importCode', 'subModeKey', 'exampleId', 'saveToFavorites'])
         await router.replace({ path: router.currentRoute.value.path, query: cleanedQuery })
         await nextTick()
 
