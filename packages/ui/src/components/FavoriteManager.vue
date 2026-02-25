@@ -146,6 +146,10 @@
       @copy="handlePreviewCopy"
     >
       <template #extra-content>
+        <FavoriteMediaPreviewPanel
+          v-if="previewFavorite"
+          :favorite="previewFavorite"
+        />
         <FavoritePreviewExtensionHost
           v-if="previewFavorite"
           :favorite="previewFavorite"
@@ -281,6 +285,7 @@ import ToastUI from './Toast.vue';
 const { t } = useI18n();
 import FavoriteCard from './FavoriteCard.vue';
 import OutputDisplayFullscreen from './OutputDisplayFullscreen.vue';
+import FavoriteMediaPreviewPanel from './FavoriteMediaPreviewPanel.vue';
 import FavoritePreviewExtensionHost from './FavoritePreviewExtensionHost.vue';
 import CategoryManager from './CategoryManager.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';

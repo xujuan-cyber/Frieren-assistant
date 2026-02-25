@@ -263,6 +263,11 @@ export default {
           saveSnapshotSuccess: "Snapshot updated",
           saveSnapshotFailed: "Failed to update snapshot",
         },
+        media: {
+          title: "Images",
+          hint: "These images are attached to this favorite",
+          imageAlt: "Favorite image #{index}",
+        },
       },
       messages: {
         unavailable:
@@ -380,6 +385,14 @@ export default {
       imageModePlaceholder: "Select image mode",
       tagsLabel: "Tags",
       tagsPlaceholder: "Enter tags and press Enter to add",
+      imagesLabel: "Images",
+      imagesUploadHint: "Click or drag images to this area",
+      imagesUploadSupport: "Common image formats are supported, multiple files allowed",
+      imageAlt: "Image #{index}",
+      coverTag: "Cover",
+      setAsCover: "Set as cover",
+      removeImage: "Remove",
+      clearImages: "Clear images",
       contentPlaceholder: "Enter prompt content here...",
       cancel: "Cancel",
       save: "Save",
@@ -405,6 +418,7 @@ export default {
         saveSuccess: "Saved to favorites successfully",
         saveFailed: "Save failed",
         editFailed: "Edit failed",
+        imageReadFailed: "Failed to read selected image",
         unavailable:
           "Favorites feature is temporarily unavailable, please try again later",
       },

@@ -39,6 +39,17 @@ export interface FavoritePrompt {
     modelKey?: string;
     modelName?: string;
     templateId?: string;
+    /** 收藏图片资源（通用收藏能力） */
+    media?: {
+      /** 封面图片资源 ID（优先使用） */
+      coverAssetId?: string;
+      /** 封面图片回退 URL（当资产持久化失败时） */
+      coverUrl?: string;
+      /** 图片资源 ID 列表 */
+      assetIds?: string[];
+      /** 图片回退 URL 列表 */
+      urls?: string[];
+    };
     [key: string]: any;
   };
 }

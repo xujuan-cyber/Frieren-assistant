@@ -111,6 +111,82 @@
                 />
               </div>
             </n-form-item>
+
+            <n-form-item :label="t('favorites.dialog.imagesLabel')">
+              <n-space vertical :size="8" style="width: 100%;">
+                <n-upload
+                  accept="image/*"
+                  multiple
+                  :default-upload="false"
+                  :show-file-list="false"
+                  :disabled="saving"
+                  @before-upload="handleBeforeImageUpload"
+                >
+                  <n-upload-dragger>
+                    <div style="padding: 12px; text-align: center;">
+                      <n-space vertical :size="6" align="center">
+                        <n-text depth="3">{{ t('favorites.dialog.imagesUploadHint') }}</n-text>
+                        <n-text depth="3" style="font-size: 12px;">
+                          {{ t('favorites.dialog.imagesUploadSupport') }}
+                        </n-text>
+                      </n-space>
+                    </div>
+                  </n-upload-dragger>
+                </n-upload>
+
+                <n-image-group v-if="mediaDraft.sources.length > 0">
+                  <n-space :size="8" wrap>
+                    <div
+                      v-for="(source, index) in mediaDraft.sources"
+                      :key="`${index}-${source.slice(0, 32)}`"
+                      style="display: flex; flex-direction: column; gap: 6px;"
+                    >
+                      <n-image
+                        :src="source"
+                        width="88"
+                        object-fit="cover"
+                        :alt="t('favorites.dialog.imageAlt', { index: index + 1 })"
+                      />
+                      <n-space :size="4" align="center" justify="space-between">
+                        <n-tag
+                          v-if="mediaDraft.coverIndex === index"
+                          size="small"
+                          type="success"
+                          :bordered="false"
+                        >
+                          {{ t('favorites.dialog.coverTag') }}
+                        </n-tag>
+                        <n-button
+                          v-else
+                          quaternary
+                          size="tiny"
+                          @click="handleSetCover(index)"
+                        >
+                          {{ t('favorites.dialog.setAsCover') }}
+                        </n-button>
+                        <n-button
+                          quaternary
+                          type="error"
+                          size="tiny"
+                          @click="handleRemoveImage(index)"
+                        >
+                          {{ t('favorites.dialog.removeImage') }}
+                        </n-button>
+                      </n-space>
+                    </div>
+                  </n-space>
+                </n-image-group>
+
+                <n-button
+                  v-if="mediaDraft.sources.length > 0"
+                  quaternary
+                  size="small"
+                  @click="handleClearImages"
+                >
+                  {{ t('favorites.dialog.clearImages') }}
+                </n-button>
+              </n-space>
+            </n-form-item>
           </n-form>
         </n-card>
       </div>
@@ -161,7 +237,12 @@ import {
   NSpace,
   NDivider,
   NGrid,
-  NGridItem
+  NGridItem,
+  NUpload,
+  NUploadDragger,
+  NImage,
+  NImageGroup,
+  type UploadFileInfo,
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/ui/useToast';
@@ -170,6 +251,11 @@ import OutputDisplayCore from './OutputDisplayCore.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';
 import type { AppServices } from '../types/services';
 import type { FavoritePrompt } from '@prompt-optimizer/core';
+import { buildFavoriteMediaMetadata, parseFavoriteMediaMetadata } from '../utils/favorite-media';
+import {
+  persistImageSourceAsAssetId,
+  resolveAssetIdToDataUrl,
+} from '../utils/image-asset-storage';
 
 const { t } = useI18n();
 const { filterTags, loadTags } = useTagSuggestions();
@@ -238,6 +324,189 @@ const formData = reactive({
   optimizationMode: 'system' as 'system' | 'user' | undefined,
   imageSubMode: undefined as 'text2image' | 'image2image' | undefined
 });
+
+const mediaDraft = reactive({
+  sources: [] as string[],
+  coverIndex: -1,
+});
+
+const dedupeStrings = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
+
+const getPreferredStorageService = () => {
+  return services?.value?.favoriteImageStorageService || services?.value?.imageStorageService || null;
+};
+
+const getReadStorageCandidates = () => {
+  const favoriteStorage = services?.value?.favoriteImageStorageService || null;
+  const legacyStorage = services?.value?.imageStorageService || null;
+
+  if (favoriteStorage && legacyStorage && favoriteStorage !== legacyStorage) {
+    return [favoriteStorage, legacyStorage];
+  }
+
+  if (favoriteStorage) return [favoriteStorage];
+  if (legacyStorage) return [legacyStorage];
+  return [];
+};
+
+const readBlobAsDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(blob);
+  });
+
+const resolveAssetIdsToDataUrls = async (assetIds: string[]): Promise<string[]> => {
+  const storageCandidates = getReadStorageCandidates();
+  if (storageCandidates.length === 0 || assetIds.length === 0) return [];
+
+  const resolved: string[] = [];
+  for (const assetId of dedupeStrings(assetIds)) {
+    for (const storageService of storageCandidates) {
+      try {
+        const dataUrl = await resolveAssetIdToDataUrl(assetId, storageService);
+        if (dataUrl) {
+          resolved.push(dataUrl);
+          break;
+        }
+      } catch (error) {
+        console.warn('[SaveFavoriteDialog] Failed to resolve asset id:', assetId, error);
+      }
+    }
+  }
+
+  return resolved;
+};
+
+const resetMediaDraft = () => {
+  mediaDraft.sources = [];
+  mediaDraft.coverIndex = -1;
+};
+
+const hydrateMediaDraftFromFavorite = async (favorite?: FavoritePrompt) => {
+  resetMediaDraft();
+  const media = parseFavoriteMediaMetadata(favorite);
+  if (!media) return;
+
+  const resolvedCover = media.coverAssetId
+    ? (await resolveAssetIdsToDataUrls([media.coverAssetId]))[0]
+    : undefined;
+  const resolvedAssets = await resolveAssetIdsToDataUrls(media.assetIds);
+
+  const sources = dedupeStrings([
+    resolvedCover || media.coverUrl || '',
+    ...resolvedAssets,
+    ...media.urls,
+  ]);
+
+  mediaDraft.sources = sources;
+  if (sources.length === 0) {
+    mediaDraft.coverIndex = -1;
+    return;
+  }
+
+  const coverSource = resolvedCover || media.coverUrl || '';
+  mediaDraft.coverIndex = coverSource ? Math.max(0, sources.indexOf(coverSource)) : 0;
+};
+
+const buildMediaMetadataForSave = async () => {
+  const normalizedSources = dedupeStrings(
+    mediaDraft.sources.map((item) => String(item || '').trim()).filter(Boolean),
+  );
+
+  if (normalizedSources.length === 0) return null;
+
+  const preferredStorage = getPreferredStorageService();
+  const assetIds: string[] = [];
+  const fallbackUrls: string[] = [];
+  const sourceToAssetId = new Map<string, string>();
+
+  for (const source of normalizedSources) {
+    if (!preferredStorage) {
+      fallbackUrls.push(source);
+      continue;
+    }
+
+    try {
+      const assetId = await persistImageSourceAsAssetId({
+        source,
+        storageService: preferredStorage,
+        sourceType: 'uploaded',
+      });
+
+      if (assetId) {
+        assetIds.push(assetId);
+        sourceToAssetId.set(source, assetId);
+      } else {
+        fallbackUrls.push(source);
+      }
+    } catch (error) {
+      console.warn('[SaveFavoriteDialog] Failed to persist media source:', error);
+      fallbackUrls.push(source);
+    }
+  }
+
+  const coverSource =
+    mediaDraft.coverIndex >= 0 && mediaDraft.coverIndex < normalizedSources.length
+      ? normalizedSources[mediaDraft.coverIndex]
+      : normalizedSources[0];
+
+  const coverAssetId = coverSource ? sourceToAssetId.get(coverSource) : undefined;
+  const coverUrl = coverSource && !coverAssetId ? coverSource : undefined;
+
+  return buildFavoriteMediaMetadata({
+    coverAssetId,
+    coverUrl,
+    assetIds,
+    urls: fallbackUrls,
+  });
+};
+
+const handleBeforeImageUpload = async (options: { file: UploadFileInfo }) => {
+  const raw = (options.file as unknown as { file?: Blob | null }).file;
+  if (!raw) return false;
+
+  try {
+    const dataUrl = await readBlobAsDataUrl(raw);
+    if (dataUrl) {
+      mediaDraft.sources = dedupeStrings([...mediaDraft.sources, dataUrl]);
+      if (mediaDraft.coverIndex < 0) {
+        mediaDraft.coverIndex = 0;
+      }
+    }
+  } catch (error) {
+    console.error('[SaveFavoriteDialog] Failed to read selected image:', error);
+    message.error(t('favorites.dialog.messages.imageReadFailed'));
+  }
+
+  return false;
+};
+
+const handleSetCover = (index: number) => {
+  if (index < 0 || index >= mediaDraft.sources.length) return;
+  mediaDraft.coverIndex = index;
+};
+
+const handleRemoveImage = (index: number) => {
+  if (index < 0 || index >= mediaDraft.sources.length) return;
+
+  mediaDraft.sources.splice(index, 1);
+  if (mediaDraft.sources.length === 0) {
+    mediaDraft.coverIndex = -1;
+    return;
+  }
+
+  if (mediaDraft.coverIndex === index) {
+    mediaDraft.coverIndex = 0;
+  } else if (mediaDraft.coverIndex > index) {
+    mediaDraft.coverIndex -= 1;
+  }
+};
+
+const handleClearImages = () => {
+  resetMediaDraft();
+};
 
 // 选项配置
 const functionModeOptions = computed(() => [
@@ -369,10 +638,29 @@ const handleSave = async () => {
       imageSubMode: formData.imageSubMode
     };
 
+    const existingMetadata =
+      props.mode === 'edit' && props.favorite?.metadata && typeof props.favorite.metadata === 'object'
+        ? { ...props.favorite.metadata }
+        : {};
+
+    const mediaMetadata = await buildMediaMetadataForSave();
+    if (mediaMetadata) {
+      existingMetadata.media = mediaMetadata;
+    } else {
+      delete existingMetadata.media;
+    }
+
+    if (props.originalContent) {
+      existingMetadata.originalContent = props.originalContent;
+    }
+
+    const metadata = Object.keys(existingMetadata).length > 0 ? existingMetadata : undefined;
+
     if (props.mode === 'edit' && props.favorite) {
       // 编辑模式：更新现有收藏
       await servicesValue.favoriteManager.updateFavorite(props.favorite.id, {
-        ...basePayload
+        ...basePayload,
+        metadata,
       });
       message.success(t('favorites.dialog.messages.editSuccess'));
     } else {
@@ -391,12 +679,7 @@ const handleSave = async () => {
         ...basePayload
       };
 
-      // 如果是从优化器保存,添加元数据
-      if (props.originalContent) {
-        favoriteData.metadata = {
-          originalContent: props.originalContent
-        };
-      }
+      favoriteData.metadata = metadata;
 
       await servicesValue.favoriteManager.addFavorite(favoriteData);
       message.success(t('favorites.dialog.messages.saveSuccess'));
@@ -429,6 +712,7 @@ watch(() => props.show, async (newShow) => {
       formData.functionMode = 'basic';
       formData.optimizationMode = 'system';
       formData.imageSubMode = undefined;
+      resetMediaDraft();
     } else if (props.mode === 'edit' && props.favorite) {
       // 编辑模式: 加载现有收藏数据
       formData.title = props.favorite.title;
@@ -439,6 +723,7 @@ watch(() => props.show, async (newShow) => {
       formData.functionMode = props.favorite.functionMode || 'basic';
       formData.optimizationMode = props.favorite.optimizationMode;
       formData.imageSubMode = props.favorite.imageSubMode;
+      await hydrateMediaDraftFromFavorite(props.favorite);
     } else {
       // 保存模式: 智能预填充
       // 1. 标题 = 原始提示词前30字符(去除换行符)
@@ -470,6 +755,7 @@ watch(() => props.show, async (newShow) => {
       formData.description = '';
       formData.category = '';
       formData.tags = [];
+      resetMediaDraft();
     }
   }
 }, { immediate: true });
