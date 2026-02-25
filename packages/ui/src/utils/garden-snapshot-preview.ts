@@ -16,7 +16,9 @@ export type GardenSnapshotPreviewAsset = {
   description?: string
   url?: string
   images: string[]
+  imageAssetIds: string[]
   inputImages: string[]
+  inputImageAssetIds: string[]
   parameters: Record<string, string>
 }
 
@@ -35,6 +37,7 @@ export type GardenSnapshotPreview = {
   meta: GardenSnapshotPreviewMeta
   variables: GardenSnapshotPreviewVariable[]
   coverUrl?: string
+  coverAssetId?: string
   showcases: GardenSnapshotPreviewAsset[]
   examples: GardenSnapshotPreviewAsset[]
 }
@@ -98,7 +101,9 @@ const parseAsset = (value: unknown): GardenSnapshotPreviewAsset | null => {
     description: asTrimmedString(value.description),
     url,
     images,
+    imageAssetIds: dedupeStrings(asStringArray(value.imageAssetIds)),
     inputImages: dedupeStrings(asStringArray(value.inputImages)),
+    inputImageAssetIds: dedupeStrings(asStringArray(value.inputImageAssetIds)),
     parameters: parseParameters(value.parameters),
   }
 
@@ -108,7 +113,9 @@ const parseAsset = (value: unknown): GardenSnapshotPreviewAsset | null => {
       asset.description ||
       asset.url ||
       asset.images.length > 0 ||
+      asset.imageAssetIds.length > 0 ||
       asset.inputImages.length > 0 ||
+      asset.inputImageAssetIds.length > 0 ||
       Object.keys(asset.parameters).length > 0,
   )
 
@@ -172,6 +179,7 @@ export const parseGardenSnapshotPreview = (value: unknown): GardenSnapshotPrevie
     },
     variables: parseVariables(value.variables),
     coverUrl: asTrimmedString(cover.url),
+    coverAssetId: asTrimmedString(cover.assetId),
     showcases: parseAssets(assets.showcases),
     examples: parseAssets(assets.examples),
   }
@@ -183,9 +191,12 @@ export const parseGardenSnapshotPreview = (value: unknown): GardenSnapshotPrevie
       snapshot.meta.description ||
       snapshot.meta.tags.length > 0 ||
       snapshot.coverUrl ||
+      snapshot.coverAssetId ||
       snapshot.variables.length > 0 ||
       snapshot.showcases.length > 0 ||
-      snapshot.examples.length > 0,
+      snapshot.examples.length > 0 ||
+      snapshot.showcases.some((asset) => asset.imageAssetIds.length > 0 || asset.inputImageAssetIds.length > 0) ||
+      snapshot.examples.some((asset) => asset.imageAssetIds.length > 0 || asset.inputImageAssetIds.length > 0),
   )
 
   return hasMeaningfulContent ? snapshot : null

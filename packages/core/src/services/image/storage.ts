@@ -18,8 +18,8 @@ class ImageDB extends Dexie {
   imageMetadata!: Table<MetadataRecord, string>
   imageData!: Table<DataRecord, string>
 
-  constructor() {
-    super('PromptOptimizerImageDB')
+  constructor(dbName: string) {
+    super(dbName)
 
     // Dexie 版本声明必须按升序（v1 -> v2），upgrade 回调挂在目标版本（v2）。
     // v1: 单表 images（metadata + base64 data）
@@ -112,7 +112,8 @@ const DEFAULT_CONFIG: ImageStorageConfig = {
   maxCacheSize: 50 * 1024 * 1024,      // 50 MB
   maxAge: 7 * 24 * 60 * 60 * 1000,     // 7 天
   maxCount: 100,                       // 最多 100 张
-  autoCleanupThreshold: 0.8            // 达到 80% 时触发清理
+  autoCleanupThreshold: 0.8,           // 达到 80% 时触发清理
+  dbName: 'PromptOptimizerImageDB',
 }
 
 /**
@@ -129,8 +130,8 @@ export class ImageStorageService implements IImageStorageService {
   private config: ImageStorageConfig
 
   constructor(config?: Partial<ImageStorageConfig>) {
-    this.db = new ImageDB()
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.db = new ImageDB(this.config.dbName || DEFAULT_CONFIG.dbName || 'PromptOptimizerImageDB')
   }
 
   /**
@@ -386,7 +387,13 @@ export class ImageStorageService implements IImageStorageService {
    * @param config 部分配置更新
    */
   async updateConfig(config: Partial<ImageStorageConfig>): Promise<void> {
-    this.config = { ...this.config, ...config }
+    const { dbName, ...updatable } = config
+    if (dbName && dbName !== this.config.dbName) {
+      // dbName is initialization-only because DB is already opened.
+      console.warn('[ImageStorageService] Ignoring dbName update after initialization')
+    }
+
+    this.config = { ...this.config, ...updatable, dbName: this.config.dbName }
 
     // 配置更新后立即执行清理
     await this.enforceQuota()

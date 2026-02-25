@@ -48,6 +48,8 @@ export interface AppServices {
   imageAdapterRegistry?: IImageAdapterRegistry;
   // 🆕 图像存储服务（可选）
   imageStorageService?: IImageStorageService;
+  // 收藏快照图像存储（与 session 图像存储隔离）
+  favoriteImageStorageService?: IImageStorageService;
   // 🆕 评估服务（可选）
   evaluationService?: IEvaluationService;
   // 🆕 变量提取服务（可选）

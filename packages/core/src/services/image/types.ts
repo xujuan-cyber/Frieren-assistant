@@ -256,6 +256,7 @@ export interface ImageStorageConfig {
   maxAge?: number              // 最大保留时间（毫秒），默认 7天
   maxCount?: number            // 最大图像数量，默认 100张
   autoCleanupThreshold?: number  // 自动清理阈值（达到此比例时触发），默认 0.8
+  dbName?: string              // IndexedDB 数据库名（默认 PromptOptimizerImageDB）
 }
 
 /**
@@ -310,4 +311,3 @@ export function createImageRef(id: string): ImageRef {
 
 // 导出抽象基类
 export { AbstractImageProviderAdapter } from './adapters/abstract-adapter'
-

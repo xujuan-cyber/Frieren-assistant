@@ -88,6 +88,7 @@ export function useAppInitializer(): {
       let imageService: IImageService | undefined;
       let imageAdapterRegistryInstance: ReturnType<typeof createImageAdapterRegistry> | undefined;
       let imageStorageService: IImageStorageService | undefined;
+      let favoriteImageStorageService: IImageStorageService | undefined;
       let textAdapterRegistryInstance: ITextAdapterRegistry | undefined;
 
       if (isRunningInElectron()) {
@@ -127,7 +128,17 @@ export function useAppInitializer(): {
           maxCacheSize: 50 * 1024 * 1024,  // 50 MB
           maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 天
           maxCount: 100,                     // 最多 100 张
-          autoCleanupThreshold: 0.8         // 达到 80% 时触发清理
+          autoCleanupThreshold: 0.8,         // 达到 80% 时触发清理
+          dbName: 'PromptOptimizerImageDB',
+        });
+
+        // 收藏快照图像存储（独立数据库，避免与 session 图片清理策略耦合）
+        favoriteImageStorageService = createImageStorageService({
+          maxCacheSize: 200 * 1024 * 1024,      // 200 MB
+          maxAge: 365 * 24 * 60 * 60 * 1000,    // 365 天
+          maxCount: 1000,
+          autoCleanupThreshold: 0.9,
+          dbName: 'PromptOptimizerFavoriteImageDB',
         });
 
         // DataManager在Electron环境下使用代理模式
@@ -185,6 +196,7 @@ export function useAppInitializer(): {
           imageService,
           imageAdapterRegistry: imageAdapterRegistryInstance,
           imageStorageService, // 🆕 图像存储服务
+          favoriteImageStorageService,
           evaluationService, // 🆕 评估服务
           variableExtractionService, // 🆕 变量提取服务
           variableValueGenerationService, // 🆕 变量值生成服务
@@ -193,7 +205,9 @@ export function useAppInitializer(): {
 
         // 只保留 session 引用的图片：启动后做一次 best-effort GC
         if (imageStorageService) {
-          scheduleImageStorageGc(preferenceService, imageStorageService)
+          scheduleImageStorageGc(preferenceService, imageStorageService, {
+            getFavoritesPayload: () => favoriteManager.getFavorites(),
+          })
         }
 
       } else {
@@ -223,7 +237,17 @@ export function useAppInitializer(): {
           maxCacheSize: 50 * 1024 * 1024,  // 50 MB
           maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 天
           maxCount: 100,                     // 最多 100 张
-          autoCleanupThreshold: 0.8         // 达到 80% 时触发清理
+          autoCleanupThreshold: 0.8,         // 达到 80% 时触发清理
+          dbName: 'PromptOptimizerImageDB',
+        });
+
+        // 收藏快照图像存储（独立数据库，避免与 session 图片清理策略耦合）
+        favoriteImageStorageService = createImageStorageService({
+          maxCacheSize: 200 * 1024 * 1024,      // 200 MB
+          maxAge: 365 * 24 * 60 * 60 * 1000,    // 365 天
+          maxCount: 1000,
+          autoCleanupThreshold: 0.9,
+          dbName: 'PromptOptimizerFavoriteImageDB',
         });
 
         // 📝 图像数据迁移已移除（session 是本次重构新引入，无历史数据需要迁移）
@@ -372,6 +396,7 @@ export function useAppInitializer(): {
           imageService,
           imageAdapterRegistry: imageAdapterRegistryInstance,
           imageStorageService, // 🆕 图像存储服务
+          favoriteImageStorageService,
           evaluationService, // 🆕 评估服务
           variableExtractionService, // 🆕 变量提取服务
           variableValueGenerationService, // 🆕 变量值生成服务
@@ -381,7 +406,9 @@ export function useAppInitializer(): {
 
         // 只保留 session 引用的图片：启动后做一次 best-effort GC
         if (imageStorageService) {
-          scheduleImageStorageGc(preferenceService, imageStorageService)
+          scheduleImageStorageGc(preferenceService, imageStorageService, {
+            getFavoritesPayload: () => favoriteManager.getFavorites(),
+          })
         }
       }
 
