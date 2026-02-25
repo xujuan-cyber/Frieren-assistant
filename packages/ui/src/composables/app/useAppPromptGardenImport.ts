@@ -33,6 +33,7 @@ import type { ImageImage2ImageSessionApi } from '../../stores/session/useImageIm
 import {
   persistImageSourceAsAssetId,
 } from '../../utils/image-asset-storage'
+import { buildFavoriteMediaMetadata } from '../../utils/favorite-media'
 
 type SupportedSubModeKey =
   | 'basic-system'
@@ -283,6 +284,7 @@ const saveImportedPromptToFavorites = async (opts: {
 
   const modeMapping = toFavoriteModeMapping(targetKey)
   const snapshot = await buildStorableGardenSnapshot(fetched.gardenSnapshot, imageStorageService)
+  const media = buildFavoriteMediaFromSnapshot(snapshot)
   const favorites = await manager.getFavorites()
   const existing = favorites.find((favorite) => isSameGardenSnapshotFavorite(favorite, snapshot))
 
@@ -296,6 +298,7 @@ const saveImportedPromptToFavorites = async (opts: {
       metadata: {
         ...metadataBase,
         gardenSnapshot: snapshot,
+        ...(media ? { media } : {}),
       },
     })
     return
@@ -311,6 +314,7 @@ const saveImportedPromptToFavorites = async (opts: {
     imageSubMode: modeMapping.imageSubMode,
     metadata: {
       gardenSnapshot: snapshot,
+      ...(media ? { media } : {}),
     },
   })
 }
@@ -946,6 +950,47 @@ async function buildStorableGardenSnapshot(
       examples,
     },
   }
+}
+
+const buildFavoriteMediaFromSnapshot = (snapshot: GardenSnapshot) => {
+  const assets = snapshot.assets || {}
+  const cover = assets.cover || {}
+
+  const collectAssetIdsFromItems = (items: GardenSnapshotAssetItem[] | undefined, key: 'imageAssetIds' | 'inputImageAssetIds') => {
+    if (!Array.isArray(items)) return [] as string[]
+    return dedupeStrings(
+      items.flatMap((item) => extractStringArray(item[key]))
+    )
+  }
+
+  const collectUrlsFromItems = (items: GardenSnapshotAssetItem[] | undefined, key: 'images' | 'inputImages') => {
+    if (!Array.isArray(items)) return [] as string[]
+    return dedupeStrings(
+      items.flatMap((item) => extractStringArray(item[key]))
+    )
+  }
+
+  const coverAssetId = typeof cover.assetId === 'string' ? cover.assetId.trim() : undefined
+  const coverUrl = typeof cover.url === 'string' ? cover.url.trim() : undefined
+
+  const assetIds = dedupeStrings([
+    ...collectAssetIdsFromItems(assets.showcases, 'imageAssetIds'),
+    ...collectAssetIdsFromItems(assets.examples, 'imageAssetIds'),
+    ...collectAssetIdsFromItems(assets.examples, 'inputImageAssetIds'),
+  ])
+
+  const urls = dedupeStrings([
+    ...collectUrlsFromItems(assets.showcases, 'images'),
+    ...collectUrlsFromItems(assets.examples, 'images'),
+    ...collectUrlsFromItems(assets.examples, 'inputImages'),
+  ])
+
+  return buildFavoriteMediaMetadata({
+    coverAssetId,
+    coverUrl,
+    assetIds,
+    urls,
+  })
 }
 
 const pickImportedExample = (

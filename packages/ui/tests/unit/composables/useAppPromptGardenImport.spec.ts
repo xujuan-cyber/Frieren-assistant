@@ -1372,6 +1372,12 @@ describe('useAppPromptGardenImport', () => {
       expect(snapshot.importCode).toBe('NB-SAVE-001')
       expect(snapshot.gardenBaseUrl).toBe('http://garden.local')
 
+      const media = metadata.media as Record<string, unknown>
+      expect(String(media.coverAssetId || '')).toMatch(/^img_/)
+      const mediaAssetIds = media.assetIds as unknown[]
+      expect(Array.isArray(mediaAssetIds)).toBe(true)
+      expect(mediaAssetIds.length).toBeGreaterThan(0)
+
       const snapshotAssets = snapshot.assets as Record<string, unknown>
       const cover = snapshotAssets.cover as Record<string, unknown>
       expect(String(cover.assetId || '')).toMatch(/^img_/)
