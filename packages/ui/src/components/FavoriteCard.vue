@@ -65,6 +65,17 @@
       </NSpace>
     </template>
 
+    <!-- 封面图区域：有封面图时显示缩略图 -->
+    <div v-if="coverImageSrc" style="margin: -16px -16px 0 -16px;">
+      <NImage
+        :src="coverImageSrc"
+        object-fit="cover"
+        style="width: 100%; aspect-ratio: 16/9; display: block;"
+        :alt="favorite.title"
+        preview-disabled
+      />
+    </div>
+
     <!-- 卡片内容：精确控制区域大小，防止溢出 -->
     <NSpace vertical :size="6" style="flex: 1; min-height: 0; overflow: hidden;">
       <!-- 内容区域：固定2行 -->
@@ -262,7 +273,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 
 import { useDebounceFn } from '@vueuse/core';
 import {
@@ -274,7 +285,8 @@ import {
   NButton,
   NSpace,
   NTooltip,
-  NPopconfirm
+  NPopconfirm,
+  NImage,
 } from 'naive-ui';
 import {
   Copy,
@@ -286,8 +298,13 @@ import {
 import { useI18n } from 'vue-i18n';
 import type { FavoritePrompt, FavoriteCategory } from '@prompt-optimizer/core';
 import { useTooltipTheme } from '../composables/ui/useTooltipTheme';
+import type { AppServices } from '../types/services';
+import { parseFavoriteMediaMetadata } from '../utils/favorite-media';
+import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage';
 
 const { t } = useI18n();
+
+const services = inject<Ref<AppServices | null> | null>('services', null);
 
 interface Props {
   favorite: FavoritePrompt;
@@ -296,7 +313,7 @@ interface Props {
   cardHeight?: number;
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 defineEmits<{
   'select': [favorite: FavoritePrompt];
@@ -340,6 +357,71 @@ const descriptionTooltipWidth = ref<number>(DESCRIPTION_TOOLTIP_WIDTH);
 const descriptionTooltipMaxHeight = ref<number>(0);
 const contentTriggerRef = ref<HTMLElement | null>(null);
 const descriptionTriggerRef = ref<HTMLElement | null>(null);
+
+// 封面图解析逻辑
+const coverImageSrc = ref<string | null>(null);
+
+const getReadStorageCandidates = () => {
+  const favoriteStorage = services?.value?.favoriteImageStorageService || null
+  const legacyStorage = services?.value?.imageStorageService || null
+
+  if (favoriteStorage && legacyStorage && favoriteStorage !== legacyStorage) {
+    return [favoriteStorage, legacyStorage]
+  }
+
+  if (favoriteStorage) return [favoriteStorage]
+  if (legacyStorage) return [legacyStorage]
+  return []
+}
+
+const resolveCoverImage = async () => {
+  const media = parseFavoriteMediaMetadata(props.favorite)
+  if (!media) {
+    coverImageSrc.value = null
+    return
+  }
+
+  const storageCandidates = getReadStorageCandidates()
+  if (storageCandidates.length === 0) {
+    // 无存储服务时直接用 URL
+    coverImageSrc.value = media.coverUrl || null
+    return
+  }
+
+  if (media.coverAssetId) {
+    for (const storageService of storageCandidates) {
+      try {
+        const dataUrl = await resolveAssetIdToDataUrl(media.coverAssetId, storageService)
+        if (dataUrl) {
+          coverImageSrc.value = dataUrl
+          return
+        }
+      } catch (error) {
+        console.warn('[FavoriteCard] Failed to resolve cover asset id:', media.coverAssetId, error)
+      }
+    }
+  }
+
+  // 回退到 URL
+  coverImageSrc.value = media.coverUrl || null
+}
+
+// 监听收藏变化解析封面图
+watch(
+  () => props.favorite,
+  () => {
+    void resolveCoverImage()
+  },
+  { immediate: true },
+)
+
+// 监听服务可用性变化
+watch(
+  () => [services?.value?.favoriteImageStorageService, services?.value?.imageStorageService],
+  () => {
+    void resolveCoverImage()
+  },
+)
 
 // 缓存 rect 结果，避免频繁计算
 const cachedContentRect = ref<DOMRect | null>(null);
