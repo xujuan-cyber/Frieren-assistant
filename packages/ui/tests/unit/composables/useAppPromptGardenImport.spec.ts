@@ -1273,6 +1273,11 @@ describe('useAppPromptGardenImport', () => {
       updateFavorite: vi.fn(async (_id: string, _updates: Partial<FavoritePrompt>) => {}),
     }
 
+    const imageStorageService = {
+      getMetadata: vi.fn(async () => null),
+      saveImage: vi.fn(async () => 'saved-image-id'),
+    } as any
+
     const v1Payload = {
       id: 'prompt-001',
       importCode: 'NB-SAVE-001',
@@ -1342,6 +1347,7 @@ describe('useAppPromptGardenImport', () => {
           imageText2ImageSession,
           imageImage2ImageSession,
           getFavoriteManager: () => favoriteManager,
+          getFavoriteImageStorageService: () => imageStorageService,
           optimizerCurrentVersions,
         })
       })
@@ -1368,17 +1374,19 @@ describe('useAppPromptGardenImport', () => {
 
       const snapshotAssets = snapshot.assets as Record<string, unknown>
       const cover = snapshotAssets.cover as Record<string, unknown>
-      expect(String(cover.url)).toMatch(/^data:/)
+      expect(String(cover.assetId || '')).toMatch(/^img_/)
+      expect(cover.url).toBeUndefined()
 
       const showcases = snapshotAssets.showcases as Array<Record<string, unknown>>
-      const showcaseImages = showcases[0]?.images as unknown[]
-      expect(showcaseImages).toHaveLength(1)
-      expect(String(showcaseImages[0])).toMatch(/^data:/)
+      const showcaseImageAssetIds = showcases[0]?.imageAssetIds as unknown[]
+      expect(showcaseImageAssetIds).toHaveLength(1)
+      expect(String(showcaseImageAssetIds[0] || '')).toMatch(/^img_/)
 
       const examples = snapshotAssets.examples as Array<Record<string, unknown>>
-      const inputImages = examples[0]?.inputImages as unknown[]
-      expect(inputImages).toHaveLength(1)
-      expect(String(inputImages[0])).toMatch(/^data:/)
+      const inputImageAssetIds = examples[0]?.inputImageAssetIds as unknown[]
+      expect(inputImageAssetIds).toHaveLength(1)
+      expect(String(inputImageAssetIds[0] || '')).toMatch(/^img_/)
+      expect(imageStorageService.saveImage).toHaveBeenCalled()
 
       // saveToFavorites 查询参数会和 import 参数一起清理。
       expect(currentRoute.value.query.importCode).toBeUndefined()

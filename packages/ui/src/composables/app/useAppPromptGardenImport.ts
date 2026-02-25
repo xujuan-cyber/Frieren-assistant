@@ -16,6 +16,7 @@ import type {
   ConversationMessage,
   FavoritePrompt,
   IFavoriteManager,
+  IImageStorageService,
   PromptRecordChain,
 } from '@prompt-optimizer/core'
 
@@ -29,6 +30,9 @@ import type { ProMultiMessageSessionApi } from '../../stores/session/useProMulti
 import type { ProVariableSessionApi } from '../../stores/session/useProVariableSession'
 import type { ImageText2ImageSessionApi } from '../../stores/session/useImageText2ImageSession'
 import type { ImageImage2ImageSessionApi } from '../../stores/session/useImageImage2ImageSession'
+import {
+  persistImageSourceAsAssetId,
+} from '../../utils/image-asset-storage'
 
 type SupportedSubModeKey =
   | 'basic-system'
@@ -133,7 +137,9 @@ type GardenSnapshotVariable = {
 type GardenSnapshotAssetItem = {
   id?: string
   url?: string
+  imageAssetIds?: string[]
   images?: string[]
+  inputImageAssetIds?: string[]
   inputImages?: string[]
   text?: string
   description?: string
@@ -158,6 +164,7 @@ type GardenSnapshot = {
   variables: GardenSnapshotVariable[]
   assets: {
     cover?: {
+      assetId?: string
       url?: string
       [key: string]: unknown
     }
@@ -264,17 +271,18 @@ const isSameGardenSnapshotFavorite = (favorite: FavoritePrompt, snapshot: Garden
 
 const saveImportedPromptToFavorites = async (opts: {
   manager: FavoriteManagerLike
+  imageStorageService?: IImageStorageService | null
   fetched: FetchedPrompt
   targetKey: SupportedSubModeKey
 }): Promise<void> => {
-  const { manager, fetched, targetKey } = opts
+  const { manager, imageStorageService, fetched, targetKey } = opts
   const content = buildFavoriteContentFromFetchedPrompt(fetched)
   if (!content) {
     throw new Error('Cannot save imported prompt with empty content')
   }
 
   const modeMapping = toFavoriteModeMapping(targetKey)
-  const snapshot = await buildStorableGardenSnapshot(fetched.gardenSnapshot)
+  const snapshot = await buildStorableGardenSnapshot(fetched.gardenSnapshot, imageStorageService)
   const favorites = await manager.getFavorites()
   const existing = favorites.find((favorite) => isSameGardenSnapshotFavorite(favorite, snapshot))
 
@@ -750,12 +758,11 @@ const fetchImageAsBase64 = async (absoluteUrl: string): Promise<{ b64: string; m
     from: (data: ArrayBuffer) => { toString: (encoding: 'base64') => string }
   }
 
-  // Tests run in Node where Buffer is available; browsers use FileReader.
   const maybeBuffer = (globalThis as unknown as { Buffer?: BufferLike }).Buffer
   if (maybeBuffer && typeof maybeBuffer.from === 'function') {
     const ab = await resp.arrayBuffer()
     const b64 = maybeBuffer.from(ab).toString('base64')
-    return { b64, mimeType }
+    return { b64, mimeType: mimeType || 'application/octet-stream' }
   }
 
   if (typeof FileReader === 'undefined') {
@@ -776,78 +783,158 @@ const fetchImageAsBase64 = async (absoluteUrl: string): Promise<{ b64: string; m
   if (!b64) {
     throw new Error('Failed to decode image data URL')
   }
-  return { b64, mimeType: actualMime }
+  return { b64, mimeType: actualMime || 'application/octet-stream' }
 }
 
-const isDataUrl = (value: string): boolean => /^data:/iu.test(value.trim())
+const dedupeStrings = (items: string[]): string[] => {
+  return Array.from(new Set(items.filter(Boolean)))
+}
 
-const toDataUrlOrOriginal = async (value: string): Promise<string> => {
-  const raw = String(value || '').trim()
-  if (!raw) return ''
-  if (isDataUrl(raw)) return raw
-  if (!/^https?:\/\//u.test(raw)) return raw
+const buildAssetSourceMetadata = (snapshot: GardenSnapshot): { prompt?: string } => {
+  if (snapshot.prompt.format !== 'text') {
+    return {}
+  }
 
-  try {
-    const encoded = await fetchImageAsBase64(raw)
-    if (!encoded?.b64) return raw
-    const mimeType = encoded.mimeType || 'application/octet-stream'
-    return `data:${mimeType};base64,${encoded.b64}`
-  } catch (error) {
-    console.warn('[PromptGardenImport] Failed to convert image URL to base64, keep original URL:', raw, error)
-    return raw
+  const prompt = typeof snapshot.prompt.text === 'string' ? snapshot.prompt.text.trim() : ''
+  if (!prompt) return {}
+  return { prompt }
+}
+
+const persistSourcesToAssetIdsWithFallback = async (opts: {
+  sources: string[]
+  storageService: IImageStorageService | null | undefined
+  metadata?: { prompt?: string }
+}): Promise<{ assetIds: string[]; fallbackSources: string[] }> => {
+  const { storageService, metadata } = opts
+  const normalizedSources = dedupeStrings(opts.sources.map((item) => String(item || '').trim()).filter(Boolean))
+
+  if (!storageService || normalizedSources.length === 0) {
+    return {
+      assetIds: [],
+      fallbackSources: normalizedSources,
+    }
+  }
+
+  const assetIds: string[] = []
+  const fallbackSources: string[] = []
+
+  for (const source of normalizedSources) {
+    try {
+      const assetId = await persistImageSourceAsAssetId({
+        source,
+        storageService,
+        sourceType: 'uploaded',
+        metadata,
+      })
+
+      if (assetId) {
+        assetIds.push(assetId)
+      } else {
+        fallbackSources.push(source)
+      }
+    } catch (error) {
+      console.warn('[PromptGardenImport] Failed to persist snapshot image source:', source, error)
+      fallbackSources.push(source)
+    }
+  }
+
+  return {
+    assetIds: dedupeStrings(assetIds),
+    fallbackSources,
   }
 }
 
-const toDataUrlListOrOriginal = async (urls: unknown): Promise<string[] | undefined> => {
-  if (!Array.isArray(urls)) return undefined
+const persistSnapshotAssetItem = async (opts: {
+  item: GardenSnapshotAssetItem
+  storageService: IImageStorageService | null | undefined
+  metadata?: { prompt?: string }
+}): Promise<GardenSnapshotAssetItem> => {
+  const { storageService, metadata } = opts
+  const next: GardenSnapshotAssetItem = { ...opts.item }
 
-  const converted = await Promise.all(
-    urls.map(async (item) => {
-      if (typeof item !== 'string') return ''
-      return toDataUrlOrOriginal(item)
-    })
-  )
+  const imageSources = dedupeStrings([
+    ...(typeof next.url === 'string' ? [next.url] : []),
+    ...extractStringArray(next.images),
+  ])
 
-  return converted.filter(Boolean)
-}
+  const imagePersisted = await persistSourcesToAssetIdsWithFallback({
+    sources: imageSources,
+    storageService,
+    metadata,
+  })
 
-const toBase64AssetItem = async (item: GardenSnapshotAssetItem): Promise<GardenSnapshotAssetItem> => {
-  const next: GardenSnapshotAssetItem = { ...item }
+  const existingImageAssetIds = extractStringArray(next.imageAssetIds)
+  next.imageAssetIds = dedupeStrings([...existingImageAssetIds, ...imagePersisted.assetIds])
 
-  if (typeof next.url === 'string') {
-    next.url = await toDataUrlOrOriginal(next.url)
+  if (imagePersisted.fallbackSources.length > 0) {
+    next.url = imagePersisted.fallbackSources[0]
+    next.images = imagePersisted.fallbackSources
+  } else {
+    delete next.url
+    next.images = []
   }
 
-  const images = await toDataUrlListOrOriginal(next.images)
-  if (images !== undefined) {
-    next.images = images
-  }
+  const inputSources = extractStringArray(next.inputImages)
+  const inputPersisted = await persistSourcesToAssetIdsWithFallback({
+    sources: inputSources,
+    storageService,
+    metadata,
+  })
 
-  const inputImages = await toDataUrlListOrOriginal(next.inputImages)
-  if (inputImages !== undefined) {
-    next.inputImages = inputImages
-  }
+  const existingInputAssetIds = extractStringArray(next.inputImageAssetIds)
+  next.inputImageAssetIds = dedupeStrings([...existingInputAssetIds, ...inputPersisted.assetIds])
+  next.inputImages = inputPersisted.fallbackSources
 
   return next
 }
 
-async function buildStorableGardenSnapshot(snapshot: GardenSnapshot): Promise<GardenSnapshot> {
+async function buildStorableGardenSnapshot(
+  snapshot: GardenSnapshot,
+  imageStorageService?: IImageStorageService | null,
+): Promise<GardenSnapshot> {
   const assets = snapshot.assets || {}
+  const sourceMetadata = buildAssetSourceMetadata(snapshot)
 
-  let cover = assets.cover
+  const cover = assets.cover ? { ...assets.cover } : undefined
   if (cover && typeof cover.url === 'string') {
-    cover = {
-      ...cover,
-      url: await toDataUrlOrOriginal(cover.url),
+    try {
+      const coverAssetId = await persistImageSourceAsAssetId({
+        source: cover.url,
+        storageService: imageStorageService,
+        sourceType: 'uploaded',
+        metadata: sourceMetadata,
+      })
+      if (coverAssetId) {
+        cover.assetId = coverAssetId
+        delete cover.url
+      }
+    } catch (error) {
+      console.warn('[PromptGardenImport] Failed to persist cover image source:', cover.url, error)
     }
   }
 
   const showcases = Array.isArray(assets.showcases)
-    ? await Promise.all(assets.showcases.map((item) => toBase64AssetItem(item)))
+    ? await Promise.all(
+        assets.showcases.map((item) =>
+          persistSnapshotAssetItem({
+            item,
+            storageService: imageStorageService,
+            metadata: sourceMetadata,
+          }),
+        ),
+      )
     : undefined
 
   const examples = Array.isArray(assets.examples)
-    ? await Promise.all(assets.examples.map((item) => toBase64AssetItem(item)))
+    ? await Promise.all(
+        assets.examples.map((item) =>
+          persistSnapshotAssetItem({
+            item,
+            storageService: imageStorageService,
+            metadata: sourceMetadata,
+          }),
+        ),
+      )
     : undefined
 
   return {
@@ -967,6 +1054,10 @@ export interface AppPromptGardenImportOptions {
 
   /** Optional getter for auto-save-to-favorites flow. */
   getFavoriteManager?: () => FavoriteManagerLike | null
+  /** Optional getter for favorite image storage service (asset refs). */
+  getFavoriteImageStorageService?: () => IImageStorageService | null
+  /** @deprecated Use getFavoriteImageStorageService instead. */
+  getImageStorageService?: () => IImageStorageService | null
 
   /** UI-only current versions list for history drawer; safe to clear for basic imports */
   optimizerCurrentVersions: Ref<PromptRecordChain['versions']>
@@ -986,6 +1077,8 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
     imageText2ImageSession,
     imageImage2ImageSession,
     getFavoriteManager,
+    getFavoriteImageStorageService,
+    getImageStorageService,
     optimizerCurrentVersions,
   } = options
 
@@ -1141,10 +1234,13 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
 
         if (shouldSaveToFavorites) {
           const favoriteManager = getFavoriteManager?.() || null
+          const imageStorageService =
+            getFavoriteImageStorageService?.() || getImageStorageService?.() || null
           if (favoriteManager) {
             try {
               await saveImportedPromptToFavorites({
                 manager: favoriteManager,
+                imageStorageService,
                 fetched,
                 targetKey,
               })

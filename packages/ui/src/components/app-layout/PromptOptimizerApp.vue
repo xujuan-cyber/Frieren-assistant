@@ -1656,6 +1656,8 @@ void registerOptionalIntegrations({
     imageText2ImageSession,
     imageImage2ImageSession,
     getFavoriteManager: () => services.value?.favoriteManager || null,
+    getFavoriteImageStorageService:
+      () => services.value?.favoriteImageStorageService || services.value?.imageStorageService || null,
     optimizerCurrentVersions,
 });
 provide("handleSaveFavorite", handleSaveFavorite);

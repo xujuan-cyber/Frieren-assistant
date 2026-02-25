@@ -1,6 +1,11 @@
 import type { Ref } from 'vue'
 import type { Router } from 'vue-router'
-import type { ConversationMessage, IFavoriteManager, PromptRecordChain } from '@prompt-optimizer/core'
+import type {
+  ConversationMessage,
+  IFavoriteManager,
+  IImageStorageService,
+  PromptRecordChain,
+} from '@prompt-optimizer/core'
 
 import type { BasicSystemSessionApi } from '../stores/session/useBasicSystemSession'
 import type { BasicUserSessionApi } from '../stores/session/useBasicUserSession'
@@ -30,6 +35,8 @@ export interface OptionalIntegrationsContext {
 
   /** Lazy getter to avoid hard coupling optional integrations to app service lifecycle. */
   getFavoriteManager: () => IFavoriteManager | null
+  /** Lazy getter for optional favorite image asset storage integration. */
+  getFavoriteImageStorageService: () => IImageStorageService | null
 }
 
 export interface OptionalIntegration {

@@ -24,6 +24,7 @@ export const integration: OptionalIntegration = {
       imageText2ImageSession: ctx.imageText2ImageSession,
       imageImage2ImageSession: ctx.imageImage2ImageSession,
       getFavoriteManager: () => ctx.getFavoriteManager(),
+      getFavoriteImageStorageService: () => ctx.getFavoriteImageStorageService(),
       optimizerCurrentVersions: ctx.optimizerCurrentVersions,
     })
   },
