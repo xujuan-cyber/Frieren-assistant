@@ -115,6 +115,28 @@ rm -rf packages/desktop/icons && electron-icon-builder --input=images/logo/v2.pn
 
 ---
 
-**最后更新**: 2025-07-10  
+**最后更新**: 2026-03-01  
 **生成工具**: electron-icon-builder  
-**当前源文件**: images/logo/1024-1024.png
+**当前源文件**: images/logo/1024-1024.svg（保留同名 PNG 作为位图参考）  
+**SVG 转 PNG（圆角透明蒙版，推荐作为跨平台统一输入）**:
+
+```bash
+magick images/logo/1024-1024.svg -alpha set -colorspace sRGB -strip -resize 1024x1024! images/logo/_tmp-icon-square.png
+magick images/logo/_tmp-icon-square.png \
+  \( -size 1024x1024 xc:none -fill white -draw "roundrectangle 0,0 1024,1024 224,224" \) \
+  -alpha off -compose CopyOpacity -composite images/logo/1024-1024.png
+rm -f images/logo/_tmp-icon-square.png
+```
+
+macOS Dock 图标建议使用圆角（避免直角黑底在 Dock 上显得突兀）：
+
+```bash
+# 生成圆角临时 PNG，然后用 electron-icon-builder 产出 icns
+magick images/logo/1024-1024.png \
+  \( -size 1024x1024 xc:none -fill white -draw "roundrectangle 0,0 1024,1024 224,224" \) \
+  -alpha off -compose CopyOpacity -composite images/logo/_mac-icon-src.png
+
+electron-icon-builder --input=images/logo/_mac-icon-src.png --output=images/logo/_icon-build-mac-tmp --flatten
+cp images/logo/_icon-build-mac-tmp/icons/icon.icns packages/desktop/icons/app-icon.icns
+rm -rf images/logo/_icon-build-mac-tmp images/logo/_mac-icon-src.png
+```
