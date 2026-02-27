@@ -371,6 +371,66 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     }
   }
 
+  /**
+   * 浏览器环境下，跨域请求强制使用 credentials='omit'
+   * 避免部分兼容端点在 "Access-Control-Allow-Origin: *" 时被浏览器拦截。
+   */
+  private shouldForceCrossOriginCredentialOmit(input: RequestInfo | URL): boolean {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    try {
+      const requestURL = this.resolveRequestURL(input, window.location.href)
+      return requestURL.origin !== window.location.origin
+    } catch (error) {
+      console.warn('[OpenAIAdapter] Failed to resolve request URL for credentials mode:', error)
+      return false
+    }
+  }
+
+  private resolveRequestURL(input: RequestInfo | URL, baseHref: string): URL {
+    if (typeof input === 'string') {
+      return new URL(input, baseHref)
+    }
+
+    if (input instanceof URL) {
+      return new URL(input.toString(), baseHref)
+    }
+
+    if (typeof Request !== 'undefined' && input instanceof Request) {
+      return new URL(input.url, baseHref)
+    }
+
+    return new URL(String(input), baseHref)
+  }
+
+  private sanitizeCrossOriginHeaders(headers?: HeadersInit): Headers | undefined {
+    if (!headers) {
+      return undefined
+    }
+
+    const source = new Headers(headers)
+    const sanitized = new Headers()
+
+    source.forEach((value, key) => {
+      const normalizedKey = key.toLowerCase()
+
+      // 精简 SDK 注入的诊断头，降低第三方网关 CORS 预检失败概率。
+      if (
+        normalizedKey.startsWith('x-stainless-') ||
+        normalizedKey === 'user-agent' ||
+        normalizedKey === 'content-length'
+      ) {
+        return
+      }
+
+      sanitized.set(key, value)
+    })
+
+    return sanitized
+  }
+
   // ===== SDK实例创建（从service.ts迁移） =====
 
   /**
@@ -409,6 +469,27 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     // 浏览器环境检测
     if (typeof window !== 'undefined') {
       sdkConfig.dangerouslyAllowBrowser = true
+
+      const runtimeFetch =
+        typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : undefined
+
+      if (runtimeFetch) {
+        sdkConfig.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+          if (!this.shouldForceCrossOriginCredentialOmit(input)) {
+            return runtimeFetch(input, init)
+          }
+
+          const sanitizedHeaders = this.sanitizeCrossOriginHeaders(init?.headers)
+
+          return runtimeFetch(input, {
+            ...(init ?? {}),
+            ...(sanitizedHeaders ? { headers: sanitizedHeaders } : {}),
+            mode: init?.mode ?? 'cors',
+            credentials: 'omit'
+          })
+        }
+      }
+
       console.log('[OpenAIAdapter] Browser environment detected. Setting dangerouslyAllowBrowser=true.')
     }
 

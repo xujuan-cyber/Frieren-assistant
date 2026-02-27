@@ -4,12 +4,14 @@ import type { TextModelConfig, Message } from '../../../src/services/llm/types';
 
 // 创建 mock OpenAI 实例
 let mockOpenAIInstance: any;
+let mockOpenAIConfig: any;
 
 // Mock OpenAI SDK - 使用工厂函数返回一个类
 vi.mock('openai', () => {
   return {
     default: class MockOpenAI {
-      constructor() {
+      constructor(config: any) {
+        mockOpenAIConfig = config;
         return mockOpenAIInstance;
       }
     }
@@ -76,6 +78,7 @@ describe('OpenAIAdapter', () => {
 
   beforeEach(() => {
     adapter = new OpenAIAdapter();
+    mockOpenAIConfig = undefined;
     vi.clearAllMocks();
 
     // 在每个测试前重新创建 mock OpenAI 实例
@@ -208,6 +211,118 @@ describe('OpenAIAdapter', () => {
       } catch (error: any) {
         // 验证错误堆栈被保留
         expect(error.stack).toContain('Original Stack Trace');
+      }
+    });
+  });
+
+  describe('browser fetch credential handling', () => {
+    const mockBrowserResponse = {
+      id: 'chatcmpl-browser',
+      object: 'chat.completion',
+      created: Date.now(),
+      model: 'gpt-5-mini',
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: 'ok'
+        },
+        finish_reason: 'stop'
+      }]
+    };
+
+    it('should force credentials=omit for cross-origin browser requests', async () => {
+      const originalWindow = (globalThis as any).window;
+      const originalFetch = (globalThis as any).fetch;
+      const runtimeFetch = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+
+      (globalThis as any).window = {
+        location: {
+          origin: 'https://prompt.always200.com',
+          href: 'https://prompt.always200.com/'
+        }
+      };
+      (globalThis as any).fetch = runtimeFetch;
+
+      mockOpenAIInstance.chat.completions.create.mockResolvedValue(mockBrowserResponse);
+
+      try {
+        await adapter.sendMessage(mockMessages, mockConfig);
+
+        expect(mockOpenAIConfig?.dangerouslyAllowBrowser).toBe(true);
+        expect(typeof mockOpenAIConfig?.fetch).toBe('function');
+
+        await mockOpenAIConfig.fetch('https://api-inference.modelscope.cn/v1/chat/completions', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            Authorization: 'Bearer test-api-key',
+            'Content-Type': 'application/json',
+            'x-stainless-lang': 'js',
+            'User-Agent': 'OpenAI/JS test'
+          }
+        });
+
+        const [, requestInit] = runtimeFetch.mock.calls[0];
+        expect(requestInit.credentials).toBe('omit');
+        expect(requestInit.mode).toBe('cors');
+
+        const outgoingHeaders = new Headers(requestInit.headers);
+        expect(outgoingHeaders.get('authorization')).toBe('Bearer test-api-key');
+        expect(outgoingHeaders.get('content-type')).toBe('application/json');
+        expect(outgoingHeaders.get('x-stainless-lang')).toBeNull();
+        expect(outgoingHeaders.get('user-agent')).toBeNull();
+      } finally {
+        if (originalWindow === undefined) {
+          delete (globalThis as any).window;
+        } else {
+          (globalThis as any).window = originalWindow;
+        }
+
+        if (originalFetch === undefined) {
+          delete (globalThis as any).fetch;
+        } else {
+          (globalThis as any).fetch = originalFetch;
+        }
+      }
+    });
+
+    it('should keep same-origin browser requests unchanged', async () => {
+      const originalWindow = (globalThis as any).window;
+      const originalFetch = (globalThis as any).fetch;
+      const runtimeFetch = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+
+      (globalThis as any).window = {
+        location: {
+          origin: 'https://prompt.always200.com',
+          href: 'https://prompt.always200.com/'
+        }
+      };
+      (globalThis as any).fetch = runtimeFetch;
+
+      mockOpenAIInstance.chat.completions.create.mockResolvedValue(mockBrowserResponse);
+
+      try {
+        await adapter.sendMessage(mockMessages, mockConfig);
+
+        await mockOpenAIConfig.fetch('/api/proxy/chat', {
+          method: 'POST'
+        });
+
+        const [, requestInit] = runtimeFetch.mock.calls[0];
+        expect(requestInit.credentials).toBeUndefined();
+      } finally {
+        if (originalWindow === undefined) {
+          delete (globalThis as any).window;
+        } else {
+          (globalThis as any).window = originalWindow;
+        }
+
+        if (originalFetch === undefined) {
+          delete (globalThis as any).fetch;
+        } else {
+          (globalThis as any).fetch = originalFetch;
+        }
       }
     });
   });
