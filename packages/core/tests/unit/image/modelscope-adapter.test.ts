@@ -134,7 +134,7 @@ describe('ModelScopeImageAdapter', () => {
         configId: 'test-config',
         prompt: 'make this colorful',
         inputImage: {
-          url: 'https://example.com/test.png',
+          b64: 'aGVsbG8=',
           mimeType: 'image/png'
         },
         count: 1
