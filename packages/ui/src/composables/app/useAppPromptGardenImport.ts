@@ -181,10 +181,18 @@ type FavoriteModeMapping =
   | { functionMode: 'context'; optimizationMode: 'system' | 'user'; imageSubMode?: never }
   | { functionMode: 'image'; imageSubMode: 'text2image' | 'image2image'; optimizationMode?: never }
 
-const isTruthyQueryFlag = (value: string | null): boolean => {
-  if (!value) return false
+type SaveToFavoritesMode = 'none' | 'auto' | 'confirm'
+
+const parseSaveToFavoritesMode = (value: string | null): SaveToFavoritesMode => {
+  if (!value) return 'none'
   const normalized = value.trim().toLowerCase()
-  return normalized === '1' || normalized === 'true'
+  if (normalized === '1' || normalized === 'true' || normalized === 'auto') {
+    return 'auto'
+  }
+  if (normalized === 'confirm' || normalized === 'dialog' || normalized === 'manual') {
+    return 'confirm'
+  }
+  return 'none'
 }
 
 const extractStringArray = (value: unknown): string[] => {
@@ -256,6 +264,21 @@ const deriveFavoriteTags = (fetched: FetchedPrompt): string[] => {
   const snapshotMeta = fetched.gardenSnapshot.meta
   if (!snapshotMeta) return []
   return extractStringArray(snapshotMeta.tags)
+}
+
+const deriveFavoriteCategory = (fetched: FetchedPrompt): string | undefined => {
+  const snapshotMeta = fetched.gardenSnapshot.meta
+  if (!snapshotMeta) return undefined
+
+  const categoryKey = typeof snapshotMeta.categoryKey === 'string'
+    ? snapshotMeta.categoryKey.trim()
+    : ''
+  if (categoryKey) return categoryKey
+
+  const category = typeof snapshotMeta.category === 'string'
+    ? snapshotMeta.category.trim()
+    : ''
+  return category || undefined
 }
 
 const isSameGardenSnapshotFavorite = (favorite: FavoritePrompt, snapshot: GardenSnapshot): boolean => {
@@ -1082,6 +1105,21 @@ const clearSessionForExternalImport = (targetKey: SupportedSubModeKey, api: {
   api.imageImage2ImageSession.updateOptimizedImageResult(null)
 }
 
+type SaveFavoriteDialogPayload = {
+  content: string
+  originalContent?: string
+  prefill?: {
+    title?: string
+    description?: string
+    category?: string
+    tags?: string[]
+    functionMode?: 'basic' | 'context' | 'image'
+    optimizationMode?: 'system' | 'user'
+    imageSubMode?: 'text2image' | 'image2image'
+    metadata?: Record<string, unknown>
+  }
+}
+
 export interface AppPromptGardenImportOptions {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   hasRestoredInitialState: Ref<boolean>
@@ -1103,6 +1141,8 @@ export interface AppPromptGardenImportOptions {
   getFavoriteImageStorageService?: () => IImageStorageService | null
   /** @deprecated Use getFavoriteImageStorageService instead. */
   getImageStorageService?: () => IImageStorageService | null
+  /** Optional callback for confirmation-style favorite flow. */
+  openSaveFavoriteDialog?: (payload: SaveFavoriteDialogPayload) => void
 
   /** UI-only current versions list for history drawer; safe to clear for basic imports */
   optimizerCurrentVersions: Ref<PromptRecordChain['versions']>
@@ -1124,6 +1164,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
     getFavoriteManager,
     getFavoriteImageStorageService,
     getImageStorageService,
+    openSaveFavoriteDialog,
     optimizerCurrentVersions,
   } = options
 
@@ -1145,7 +1186,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
       if (!importCode) return
 
       const exampleId = getQueryString(query, 'exampleId')
-      const shouldSaveToFavorites = isTruthyQueryFlag(getQueryString(query, 'saveToFavorites'))
+      const saveToFavoritesMode = parseSaveToFavoritesMode(getQueryString(query, 'saveToFavorites'))
 
       inFlight.value = true
       isLoadingExternalData.value = true
@@ -1277,7 +1318,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           }
         }
 
-        if (shouldSaveToFavorites) {
+        if (saveToFavoritesMode === 'auto') {
           const favoriteManager = getFavoriteManager?.() || null
           const imageStorageService =
             getFavoriteImageStorageService?.() || getImageStorageService?.() || null
@@ -1294,6 +1335,45 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
             }
           } else {
             console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')
+          }
+        } else if (saveToFavoritesMode === 'confirm') {
+          const content = buildFavoriteContentFromFetchedPrompt(fetched)
+          if (!content) {
+            console.warn('[PromptGardenImport] Skip favorite dialog: imported content is empty')
+          } else if (!openSaveFavoriteDialog) {
+            console.warn('[PromptGardenImport] Favorite dialog callback unavailable, skip confirm flow')
+          } else {
+            const modeMapping = toFavoriteModeMapping(targetKey)
+            const imageStorageService =
+              getFavoriteImageStorageService?.() || getImageStorageService?.() || null
+
+            let snapshot = fetched.gardenSnapshot
+            try {
+              snapshot = await buildStorableGardenSnapshot(snapshot, imageStorageService)
+            } catch (error) {
+              console.warn('[PromptGardenImport] Failed to persist snapshot assets for favorite dialog:', error)
+            }
+
+            const media = buildFavoriteMediaFromSnapshot(snapshot)
+            const metadata: Record<string, unknown> = {
+              gardenSnapshot: snapshot,
+              ...(media ? { media } : {}),
+            }
+
+            openSaveFavoriteDialog({
+              content,
+              originalContent: content,
+              prefill: {
+                title: deriveFavoriteTitle(fetched),
+                description: deriveFavoriteDescription(fetched),
+                category: deriveFavoriteCategory(fetched),
+                tags: deriveFavoriteTags(fetched),
+                functionMode: modeMapping.functionMode,
+                optimizationMode: modeMapping.optimizationMode,
+                imageSubMode: modeMapping.imageSubMode,
+                metadata,
+              },
+            })
           }
         }
 

@@ -14,6 +14,21 @@ import type { ProVariableSessionApi } from '../stores/session/useProVariableSess
 import type { ImageText2ImageSessionApi } from '../stores/session/useImageText2ImageSession'
 import type { ImageImage2ImageSessionApi } from '../stores/session/useImageImage2ImageSession'
 
+export interface SaveFavoriteDialogDraft {
+  content: string
+  originalContent?: string
+  prefill?: {
+    title?: string
+    description?: string
+    category?: string
+    tags?: string[]
+    functionMode?: 'basic' | 'context' | 'image'
+    optimizationMode?: 'system' | 'user'
+    imageSubMode?: 'text2image' | 'image2image'
+    metadata?: Record<string, unknown>
+  }
+}
+
 export interface OptionalIntegrationsContext {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   hasRestoredInitialState: Ref<boolean>
@@ -37,6 +52,8 @@ export interface OptionalIntegrationsContext {
   getFavoriteManager: () => IFavoriteManager | null
   /** Lazy getter for optional favorite image asset storage integration. */
   getFavoriteImageStorageService: () => IImageStorageService | null
+  /** Optional callback to open save-favorite dialog after import. */
+  openSaveFavoriteDialog?: (draft: SaveFavoriteDialogDraft) => void
 }
 
 export interface OptionalIntegration {

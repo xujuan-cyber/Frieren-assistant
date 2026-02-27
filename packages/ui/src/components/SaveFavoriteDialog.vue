@@ -273,6 +273,17 @@ interface Props {
   currentFunctionMode?: 'basic' | 'context' | 'pro' | 'image'
   /** 当前优化模式(用于从优化器保存时预填充) */
   currentOptimizationMode?: 'system' | 'user'
+  /** 可选的预填充数据（外部导入收藏确认场景） */
+  prefill?: {
+    title?: string
+    description?: string
+    category?: string
+    tags?: string[]
+    functionMode?: 'basic' | 'context' | 'image'
+    optimizationMode?: 'system' | 'user'
+    imageSubMode?: 'text2image' | 'image2image'
+    metadata?: Record<string, unknown>
+  }
   /** 要编辑的收藏(仅用于 edit 模式) */
   favorite?: FavoritePrompt
 }
@@ -283,6 +294,7 @@ const props = withDefaults(defineProps<Props>(), {
   originalContent: undefined,
   currentFunctionMode: 'basic',
   currentOptimizationMode: 'system',
+  prefill: undefined,
   favorite: undefined
 });
 
@@ -295,6 +307,7 @@ const services = inject<Ref<AppServices | null>>('services');
 const message = useToast();
 
 const saving = ref(false);
+const mediaTouched = ref(false);
 
 // 标签输入和建议
 const tagInputValue = ref('');
@@ -410,6 +423,58 @@ const hydrateMediaDraftFromFavorite = async (favorite?: FavoritePrompt) => {
   mediaDraft.coverIndex = coverSource ? Math.max(0, sources.indexOf(coverSource)) : 0;
 };
 
+const hydrateMediaDraftFromMetadata = async (metadata?: Record<string, unknown>) => {
+  resetMediaDraft();
+  if (!metadata) return;
+
+  const media = parseFavoriteMediaMetadata({ metadata } as FavoritePrompt);
+  if (!media) return;
+
+  const resolvedCover = media.coverAssetId
+    ? (await resolveAssetIdsToDataUrls([media.coverAssetId]))[0]
+    : undefined;
+  const resolvedAssets = await resolveAssetIdsToDataUrls(media.assetIds);
+
+  const sources = dedupeStrings([
+    resolvedCover || media.coverUrl || '',
+    ...resolvedAssets,
+    ...media.urls,
+  ]);
+
+  mediaDraft.sources = sources;
+  if (sources.length === 0) {
+    mediaDraft.coverIndex = -1;
+    return;
+  }
+
+  const coverSource = resolvedCover || media.coverUrl || '';
+  mediaDraft.coverIndex = coverSource ? Math.max(0, sources.indexOf(coverSource)) : 0;
+};
+
+const resolvePrefillCategoryId = async (candidate?: string): Promise<string> => {
+  const normalized = String(candidate || '').trim();
+  if (!normalized) return '';
+
+  const servicesValue = services?.value;
+  if (!servicesValue?.favoriteManager) return '';
+
+  try {
+    const categories = await servicesValue.favoriteManager.getCategories();
+    if (categories.some((category) => category.id === normalized)) {
+      return normalized;
+    }
+
+    const lowered = normalized.toLowerCase();
+    const matched = categories.find(
+      (category) => String(category.name || '').trim().toLowerCase() === lowered,
+    );
+    return matched?.id || '';
+  } catch (error) {
+    console.warn('[SaveFavoriteDialog] Failed to resolve prefill category:', error);
+    return '';
+  }
+};
+
 const buildMediaMetadataForSave = async () => {
   const normalizedSources = dedupeStrings(
     mediaDraft.sources.map((item) => String(item || '').trim()).filter(Boolean),
@@ -471,6 +536,7 @@ const handleBeforeImageUpload = async (options: { file: UploadFileInfo }) => {
     const dataUrl = await readBlobAsDataUrl(raw);
     if (dataUrl) {
       mediaDraft.sources = dedupeStrings([...mediaDraft.sources, dataUrl]);
+      mediaTouched.value = true;
       if (mediaDraft.coverIndex < 0) {
         mediaDraft.coverIndex = 0;
       }
@@ -485,11 +551,14 @@ const handleBeforeImageUpload = async (options: { file: UploadFileInfo }) => {
 
 const handleSetCover = (index: number) => {
   if (index < 0 || index >= mediaDraft.sources.length) return;
+  mediaTouched.value = true;
   mediaDraft.coverIndex = index;
 };
 
 const handleRemoveImage = (index: number) => {
   if (index < 0 || index >= mediaDraft.sources.length) return;
+
+  mediaTouched.value = true;
 
   mediaDraft.sources.splice(index, 1);
   if (mediaDraft.sources.length === 0) {
@@ -505,6 +574,7 @@ const handleRemoveImage = (index: number) => {
 };
 
 const handleClearImages = () => {
+  mediaTouched.value = true;
   resetMediaDraft();
 };
 
@@ -641,11 +711,25 @@ const handleSave = async () => {
     const existingMetadata =
       props.mode === 'edit' && props.favorite?.metadata && typeof props.favorite.metadata === 'object'
         ? { ...props.favorite.metadata }
+        : props.mode === 'save' && props.prefill?.metadata && typeof props.prefill.metadata === 'object'
+          ? { ...props.prefill.metadata }
         : {};
 
     const mediaMetadata = await buildMediaMetadataForSave();
+    const prefillMedia =
+      props.mode === 'save' && props.prefill?.metadata && typeof props.prefill.metadata === 'object'
+        ? (props.prefill.metadata as Record<string, unknown>).media
+        : undefined;
+
     if (mediaMetadata) {
       existingMetadata.media = mediaMetadata;
+    } else if (
+      props.mode === 'save' &&
+      !mediaTouched.value &&
+      prefillMedia &&
+      typeof prefillMedia === 'object'
+    ) {
+      existingMetadata.media = { ...(prefillMedia as Record<string, unknown>) };
     } else {
       delete existingMetadata.media;
     }
@@ -699,6 +783,8 @@ const handleSave = async () => {
 // 监听对话框显示,初始化表单
 watch(() => props.show, async (newShow) => {
   if (newShow) {
+    mediaTouched.value = false;
+
     // 加载标签建议
     await loadTags();
 
@@ -726,8 +812,12 @@ watch(() => props.show, async (newShow) => {
       await hydrateMediaDraftFromFavorite(props.favorite);
     } else {
       // 保存模式: 智能预填充
+      const prefill = props.prefill;
+
       // 1. 标题 = 原始提示词前30字符(去除换行符)
-      const titleSource = props.originalContent || props.content || '';
+      const titleSource = (typeof prefill?.title === 'string' && prefill.title.trim()
+        ? prefill.title
+        : props.originalContent || props.content || '');
       formData.title = titleSource
         .replace(/\r?\n/g, ' ')  // 替换换行为空格
         .substring(0, 30)
@@ -736,10 +826,28 @@ watch(() => props.show, async (newShow) => {
       // 2. 内容 = 优化后的提示词
       formData.content = props.content || '';
 
-      // 3. 根据当前功能模式和优化模式自动设置
-      if (props.currentFunctionMode === 'image') {
+      // 3. 说明 / 分类 / 标签 预填充
+      formData.description = typeof prefill?.description === 'string' ? prefill.description : '';
+      formData.category = await resolvePrefillCategoryId(
+        typeof prefill?.category === 'string' ? prefill.category : '',
+      );
+      formData.tags = Array.isArray(prefill?.tags)
+        ? dedupeStrings(prefill.tags.map((tag) => String(tag || '').trim()).filter(Boolean))
+        : [];
+
+      // 4. 根据预填充模式（优先）或当前模式自动设置
+      if (prefill?.functionMode === 'image') {
         formData.functionMode = 'image';
-        formData.imageSubMode = 'text2image';  // 默认文生图
+        formData.imageSubMode =
+          prefill.imageSubMode === 'image2image' ? 'image2image' : 'text2image';
+        formData.optimizationMode = undefined;
+      } else if (prefill?.functionMode === 'context' || prefill?.functionMode === 'basic') {
+        formData.functionMode = prefill.functionMode;
+        formData.optimizationMode = prefill.optimizationMode === 'user' ? 'user' : 'system';
+        formData.imageSubMode = undefined;
+      } else if (props.currentFunctionMode === 'image') {
+        formData.functionMode = 'image';
+        formData.imageSubMode = 'text2image';
         formData.optimizationMode = undefined;
       } else if (props.currentFunctionMode === 'context' || props.currentFunctionMode === 'pro') {
         formData.functionMode = 'context';
@@ -751,11 +859,11 @@ watch(() => props.show, async (newShow) => {
         formData.imageSubMode = undefined;
       }
 
-      // 重置其他字段
-      formData.description = '';
-      formData.category = '';
-      formData.tags = [];
-      resetMediaDraft();
+      const prefillMetadata =
+        prefill?.metadata && typeof prefill.metadata === 'object'
+          ? (prefill.metadata as Record<string, unknown>)
+          : undefined;
+      await hydrateMediaDraftFromMetadata(prefillMetadata);
     }
   }
 }, { immediate: true });

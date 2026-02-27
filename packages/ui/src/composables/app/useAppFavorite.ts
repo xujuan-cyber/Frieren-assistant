@@ -17,6 +17,16 @@ import type { BasicSubMode, ProSubMode, ContextMode, OptimizationMode } from '@p
 export interface SaveFavoriteData {
     content: string
     originalContent?: string
+    prefill?: {
+        title?: string
+        description?: string
+        category?: string
+        tags?: string[]
+        functionMode?: 'basic' | 'context' | 'image'
+        optimizationMode?: OptimizationMode
+        imageSubMode?: 'text2image' | 'image2image'
+        metadata?: Record<string, unknown>
+    }
 }
 
 /**
