@@ -235,6 +235,7 @@ import {
   NTag,
   NButton,
   NSpace,
+  NText,
   NDivider,
   NGrid,
   NGridItem,
