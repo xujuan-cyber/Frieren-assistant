@@ -31,142 +31,166 @@
                             : t('test.variableValueGeneration.generateButton')
                     }}
                 </NButton>
+
+                <NDropdown
+                    :options="headerActionOptions"
+                    @select="handleHeaderActionSelect"
+                >
+                    <NButton
+                        size="small"
+                        quaternary
+                        :disabled="props.disabled || displayVariables.length === 0"
+                        :aria-label="t('common.actions')"
+                    >
+                        {{ t('common.actions') }}
+                    </NButton>
+                </NDropdown>
+
                 <NButton
                     size="small"
                     quaternary
-                    type="error"
-                    :disabled="props.disabled"
-                    @click="handleClearAllVariables"
-                    :aria-label="t('test.variables.clearAll')"
+                    :aria-label="isPanelCollapsed ? t('common.expand') : t('common.collapse')"
+                    @click="togglePanelCollapsed"
                 >
-                    {{ t('test.variables.clearAll') }}
+                    {{ isPanelCollapsed ? t('common.expand') : t('common.collapse') }}
                 </NButton>
             </NSpace>
         </template>
 
-        <NSpace vertical :size="12">
-            <!-- 变量输入项 -->
-            <div
-                v-for="varName in displayVariables"
-                :key="varName"
-                :style="{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '2px 0',
-                }"
-            >
-                <NTag
-                    size="small"
-                    :bordered="false"
-                    :type="
-                        getVariableSource(varName) === 'predefined'
-                            ? 'success'
-                            : getVariableSource(varName) === 'test'
-                              ? 'warning'
-                              : 'default'
-                    "
-                    :style="{ minWidth: '160px', maxWidth: '220px', flexShrink: 0 }"
+        <template v-if="!isPanelCollapsed">
+            <NSpace vertical :size="10">
+                <div
+                    :style="{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                    }"
                 >
-                    <span
+                    <NText :depth="3">{{ t('test.variables.tempCount', { count: displayVariables.length }) }}</NText>
+
+                    <NButton
+                        size="small"
+                        :disabled="props.disabled"
+                        @click="showAddVariableDialog = true"
+                    >
+                        {{ t('test.variables.addVariable') }}
+                    </NButton>
+                </div>
+
+                <!-- 变量输入项 -->
+                <div
+                    v-for="(varName, index) in displayVariables"
+                    :key="varName"
+                    :style="getVariableRowStyle(index)"
+                >
+                    <div
                         :style="{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            lineHeight: '1.5',
-                            maxWidth: '100%',
+                            width: '220px',
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
                         }"
                     >
-                        <span
+                        <NInput
+                            v-if="isVariableNameEditing(varName)"
+                            :value="variableNameDraft"
+                            size="small"
+                            :disabled="props.disabled"
+                            :placeholder="t('variableExtraction.variableNamePlaceholder')"
+                            @update:value="variableNameDraft = $event"
+                            @keydown="handleVariableNameDraftKeydown"
+                            @blur="commitVariableNameChange"
+                        />
+
+                        <NText
+                            v-else
                             :style="{
-                                maxWidth: '120px',
+                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                                fontSize: '13px',
+                                lineHeight: '20px',
+                                maxWidth: '100%',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
+                                cursor: canEditVariableName(varName) ? 'text' : 'default',
                             }"
-                            v-text="`{{${varName}}}`"
-                        ></span>
-                        <span
+                            @dblclick="beginVariableNameEdit(varName)"
+                        >
+                            {{ varName }}
+                        </NText>
+
+                        <NTag
                             v-if="getVariableSourceLabel(varName)"
-                            :style="{ fontSize: '12px', opacity: 0.75, whiteSpace: 'nowrap' }"
+                            size="small"
+                            :bordered="false"
+                            :type="getVariableSourceTagType(varName)"
+                            :style="{ width: 'fit-content', maxWidth: '100%' }"
                         >
                             {{ getVariableSourceLabel(varName) }}
-                        </span>
-                    </span>
-                </NTag>
-                <NInput
-                    :value="getVariableDisplayValue(varName)"
-                    :placeholder="getVariablePlaceholder(varName)"
-                    size="small"
-                    :disabled="props.disabled"
-                    :style="{ flex: 1, minWidth: 0 }"
-                    @update:value="handleVariableValueChange(varName, $event)"
-                />
+                        </NTag>
+                    </div>
 
-                <!-- 单变量智能填充（允许覆盖已有值；仅 Pro/Image 的变量区启用） -->
-                <NButton
-                    v-if="props.showGenerateValues && getVariableSource(varName) === 'test'"
-                    size="small"
-                    quaternary
-                    :disabled="props.disabled || props.isGenerating"
-                    @click="emit('generate-values', varName)"
-                    :title="t('test.variableValueGeneration.generateButton')"
-                    :aria-label="t('test.variableValueGeneration.generateButton')"
-                >
-                    <NIcon size="16">
-                        <Wand />
-                    </NIcon>
-                </NButton>
+                    <NInput
+                        :value="getVariableDisplayValue(varName)"
+                        :placeholder="getVariablePlaceholder(varName)"
+                        size="small"
+                        type="textarea"
+                        :autosize="{ minRows: 1, maxRows: 2 }"
+                        :disabled="props.disabled"
+                        :style="{ flex: 1, minWidth: 0 }"
+                        @update:value="handleVariableValueChange(varName, $event)"
+                    />
 
-                <!-- 删除按钮 (仅临时变量显示) -->
-                <NButton
-                    v-if="getVariableSource(varName) === 'test'"
-                    size="small"
-                    quaternary
-                    :disabled="props.disabled"
-                    @click="handleDeleteVariable(varName)"
-                    :title="t('test.variables.delete')"
-                    :aria-label="t('test.variables.delete')"
-                >
-                    <NIcon size="16">
-                        <Trash />
-                    </NIcon>
-                </NButton>
-                <!-- 保存到全局按钮 (仅测试变量显示) -->
-                <NButton
-                    v-if="getVariableSource(varName) === 'test'"
-                    size="small"
-                    quaternary
-                    :disabled="props.disabled"
-                    @click="handleSaveToGlobal(varName)"
-                    :title="t('test.variables.saveToGlobal')"
-                    :aria-label="t('test.variables.saveToGlobal')"
-                >
-                    <NIcon size="16">
-                        <DeviceFloppy />
-                    </NIcon>
-                </NButton>
-            </div>
+                    <div
+                        :style="{
+                            width: '84px',
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: '4px',
+                        }"
+                    >
+                        <NButton
+                            size="small"
+                            quaternary
+                            :disabled="props.disabled"
+                            @click="openValueFullscreenEditor(varName)"
+                            :title="t('test.variables.fullscreenEdit')"
+                            :aria-label="t('test.variables.fullscreenEdit')"
+                        >
+                            <NIcon size="16">
+                                <ArrowsMaximize />
+                            </NIcon>
+                        </NButton>
 
-            <!-- 无变量提示 -->
-            <NEmpty
-                v-if="displayVariables.length === 0"
-                :description="t('test.variables.noVariables')"
-                size="small"
-            />
+                        <NDropdown
+                            :options="getVariableActionOptions(varName)"
+                            @select="(key) => handleVariableActionSelect(varName, key)"
+                        >
+                            <NButton
+                                size="small"
+                                quaternary
+                                :disabled="props.disabled || !hasVariableActions(varName)"
+                                :title="t('common.actions')"
+                                :aria-label="t('common.actions')"
+                            >
+                                <NIcon size="16">
+                                    <DotsVertical />
+                                </NIcon>
+                            </NButton>
+                        </NDropdown>
+                    </div>
+                </div>
 
-            <!-- 操作按钮 -->
-            <NSpace :size="8" justify="end">
-                <!-- 添加变量按钮 -->
-                <NButton
-                    size="small"
-                    :disabled="props.disabled"
-                    @click="showAddVariableDialog = true"
-                >
-                    {{ t('test.variables.addVariable') }}
-                </NButton>
+                <!-- 无变量提示 -->
+                <div v-if="displayVariables.length === 0" :style="{ padding: '2px 0' }">
+                    <NText :depth="3">{{ t('test.variables.noVariables') }}</NText>
+                </div>
             </NSpace>
-        </NSpace>
+        </template>
     </NCard>
 
     <!-- 添加变量对话框 -->
@@ -202,10 +226,32 @@
             </NFormItem>
         </NSpace>
     </NModal>
+
+    <FullscreenDialog
+        v-model="showValueFullscreenEditor"
+        :title="t('test.variables.fullscreenEdit')"
+    >
+        <NSpace vertical :size="12" :style="{ height: '100%', minHeight: 0 }">
+            <NText v-if="fullscreenEditorVariableName" :depth="2">
+                {{ fullscreenEditorVariableName }}
+            </NText>
+
+            <NInput
+                :value="fullscreenEditorValue"
+                type="textarea"
+                :disabled="props.disabled"
+                :placeholder="getVariablePlaceholder(fullscreenEditorVariableName)"
+                :autosize="{ minRows: 18 }"
+                show-count
+                :style="{ flex: 1, minHeight: 0 }"
+                @update:value="handleFullscreenValueChange"
+            />
+        </NSpace>
+    </FullscreenDialog>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import {
@@ -214,14 +260,18 @@ import {
     NTag,
     NButton,
     NInput,
-    NEmpty,
     NModal,
     NFormItem,
     NIcon,
+    NText,
+    NDropdown,
+    useDialog,
+    type DropdownOption,
 } from 'naive-ui'
 
-import { DeviceFloppy, Trash, Wand } from '@vicons/tabler'
+import { ArrowsMaximize, DotsVertical } from '@vicons/tabler'
 
+import FullscreenDialog from '../FullscreenDialog.vue'
 import type { TestVariableManager } from '../../composables/variable/useTestVariableManager'
 
 interface Props {
@@ -232,6 +282,9 @@ interface Props {
     showGenerateValues?: boolean
     isGenerating?: boolean
 }
+
+type VariableActionKey = 'rename' | 'save-global' | 'delete' | 'generate'
+type HeaderActionKey = 'clear-all'
 
 const props = withDefaults(defineProps<Props>(), {
     disabled: false,
@@ -244,6 +297,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const dialog = useDialog()
 
 const {
     showAddVariableDialog,
@@ -256,17 +310,229 @@ const {
     getVariablePlaceholder,
     validateNewVariableName,
     handleVariableValueChange,
+    renameVariable,
     handleAddVariable,
     handleDeleteVariable,
     handleClearAllVariables,
     handleSaveToGlobal,
 } = props.manager
 
+const isPanelCollapsed = ref(false)
+const editingVariableName = ref('')
+const variableNameDraft = ref('')
+
+const showValueFullscreenEditor = ref(false)
+const fullscreenEditorVariableName = ref('')
+const fullscreenEditorValue = ref('')
+
+const displayVariables = computed(() => sortedVariables.value)
+
+const headerActionOptions = computed<DropdownOption[]>(() => [
+    {
+        key: 'clear-all',
+        label: t('test.variables.clearAll'),
+        disabled: props.disabled || displayVariables.value.length === 0,
+    },
+])
+
+const togglePanelCollapsed = () => {
+    isPanelCollapsed.value = !isPanelCollapsed.value
+}
+
+const getVariableRowStyle = (index: number) => {
+    const hasDivider = index < displayVariables.value.length - 1
+    return {
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '8px',
+        padding: '6px 0',
+        borderBottom: hasDivider ? '1px solid rgba(128, 128, 128, 0.16)' : 'none',
+    }
+}
+
+const canEditVariableName = (varName: string) => {
+    return !props.disabled && getVariableSource(varName) === 'test'
+}
+
+const isVariableNameEditing = (varName: string) => {
+    return editingVariableName.value === varName
+}
+
+const beginVariableNameEdit = (varName: string) => {
+    if (!canEditVariableName(varName)) return
+    editingVariableName.value = varName
+    variableNameDraft.value = varName
+}
+
+const cancelVariableNameEdit = () => {
+    editingVariableName.value = ''
+    variableNameDraft.value = ''
+}
+
+const handleVariableNameDraftKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+        event.preventDefault()
+        commitVariableNameChange()
+        return
+    }
+    if (event.key === 'Escape') {
+        event.preventDefault()
+        cancelVariableNameEdit()
+    }
+}
+
+const commitVariableNameChange = () => {
+    const currentName = editingVariableName.value
+    if (!currentName) return
+
+    const nextName = variableNameDraft.value.trim()
+    if (!nextName || nextName === currentName) {
+        cancelVariableNameEdit()
+        return
+    }
+
+    const renamed = renameVariable(currentName, nextName)
+    if (renamed) {
+        if (fullscreenEditorVariableName.value === currentName) {
+            fullscreenEditorVariableName.value = nextName
+        }
+        cancelVariableNameEdit()
+        return
+    }
+
+    variableNameDraft.value = currentName
+}
+
 const getVariableSourceLabel = (varName: string) => {
     const source = getVariableSource(varName)
     if (source === 'predefined') return t('variableDetection.sourcePredefined')
+    if (source === 'global') return t('variableDetection.sourceGlobal')
     return ''
 }
 
-const displayVariables = computed(() => sortedVariables.value)
+const getVariableSourceTagType = (varName: string): 'success' | 'default' => {
+    const source = getVariableSource(varName)
+    if (source === 'predefined') return 'success'
+    return 'default'
+}
+
+const getVariableActionOptions = (varName: string): DropdownOption[] => {
+    const source = getVariableSource(varName)
+    const options: DropdownOption[] = []
+
+    if (props.showGenerateValues && source === 'test') {
+        options.push({
+            key: 'generate',
+            label: t('test.variableValueGeneration.generateButton'),
+            disabled: props.disabled || props.isGenerating,
+        })
+    }
+
+    if (source === 'test') {
+        options.push(
+            {
+                key: 'rename',
+                label: t('common.edit'),
+                disabled: props.disabled,
+            },
+            {
+                key: 'save-global',
+                label: t('test.variables.saveToGlobal'),
+                disabled: props.disabled,
+            },
+            {
+                key: 'delete',
+                label: t('test.variables.delete'),
+                disabled: props.disabled,
+            }
+        )
+    }
+
+    return options
+}
+
+const hasVariableActions = (varName: string) => {
+    return getVariableActionOptions(varName).length > 0
+}
+
+const handleVariableActionSelect = (varName: string, actionKey: string | number) => {
+    if (props.disabled) return
+
+    const action = String(actionKey) as VariableActionKey
+
+    switch (action) {
+        case 'generate':
+            emit('generate-values', varName)
+            break
+        case 'rename':
+            beginVariableNameEdit(varName)
+            break
+        case 'save-global':
+            handleSaveToGlobal(varName)
+            break
+        case 'delete':
+            handleDeleteVariable(varName)
+            if (fullscreenEditorVariableName.value === varName) {
+                showValueFullscreenEditor.value = false
+            }
+            if (editingVariableName.value === varName) {
+                cancelVariableNameEdit()
+            }
+            break
+    }
+}
+
+const showClearAllConfirm = () => {
+    dialog.warning({
+        title: t('common.warning'),
+        content: t('test.variables.clearAllConfirm', { count: displayVariables.value.length }),
+        positiveText: t('common.confirm'),
+        negativeText: t('common.cancel'),
+        onPositiveClick: () => {
+            cancelVariableNameEdit()
+            handleClearAllVariables()
+        },
+    })
+}
+
+const handleHeaderActionSelect = (actionKey: string | number) => {
+    const action = String(actionKey) as HeaderActionKey
+    if (action !== 'clear-all') return
+    if (props.disabled || displayVariables.value.length === 0) return
+    showClearAllConfirm()
+}
+
+const openValueFullscreenEditor = (varName: string) => {
+    fullscreenEditorVariableName.value = varName
+    fullscreenEditorValue.value = getVariableDisplayValue(varName)
+    showValueFullscreenEditor.value = true
+}
+
+const handleFullscreenValueChange = (value: string) => {
+    fullscreenEditorValue.value = value
+    if (!fullscreenEditorVariableName.value) return
+    handleVariableValueChange(fullscreenEditorVariableName.value, value)
+}
+
+watch(showValueFullscreenEditor, (visible) => {
+    if (visible) return
+    fullscreenEditorVariableName.value = ''
+    fullscreenEditorValue.value = ''
+})
+
+watch(displayVariables, (variableNames) => {
+    if (
+        editingVariableName.value &&
+        !variableNames.includes(editingVariableName.value)
+    ) {
+        cancelVariableNameEdit()
+    }
+
+    if (
+        fullscreenEditorVariableName.value &&
+        !variableNames.includes(fullscreenEditorVariableName.value)
+    ) {
+        showValueFullscreenEditor.value = false
+    }
+})
 </script>
