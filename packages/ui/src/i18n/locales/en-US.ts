@@ -1175,9 +1175,13 @@ export default {
       addVariable: "Add Variable",
       nameRequired: "Variable name is required",
       addSuccess: "Variable added successfully",
+      clearAllConfirm: "Clear all temporary variables ({count})?",
+      renameSuccess: "Variable name changed from {oldName} to {newName}",
+      renameNotSupported: "Renaming variables isn't supported in this view",
       deleteSuccess: "Variable {name} deleted",
       clearSuccess: "All temporary variables cleared",
       delete: "Delete this variable",
+      fullscreenEdit: "Edit value in fullscreen",
     },
     variableValueGeneration: {
       generateButton: "Smart Fill Variable Values",

@@ -1136,9 +1136,13 @@ export default {
       addVariable: "新增變數",
       nameRequired: "變數名稱不能為空",
       addSuccess: "變數新增成功",
+      clearAllConfirm: "確定清空所有臨時變數（{count} 個）？",
+      renameSuccess: "變數名稱已從 {oldName} 更名為 {newName}",
+      renameNotSupported: "此檢視不支援重新命名變數",
       deleteSuccess: "變數 {name} 已刪除",
       clearSuccess: "已清空所有臨時變數",
       delete: "刪除此變數",
+      fullscreenEdit: "全螢幕編輯變數值",
     },
     variableValueGeneration: {
       generateButton: "智慧填充變數值",

@@ -1142,9 +1142,13 @@ export default {
       addVariable: "添加变量",
       nameRequired: "变量名不能为空",
       addSuccess: "变量添加成功",
+      clearAllConfirm: "确定清空全部临时变量（{count} 个）？",
+      renameSuccess: "变量名已从 {oldName} 修改为 {newName}",
+      renameNotSupported: "当前视图不支持重命名变量",
       deleteSuccess: "变量 {name} 已删除",
       clearSuccess: "已清空所有临时变量",
       delete: "删除此变量",
+      fullscreenEdit: "全屏编辑变量值",
     },
     variableValueGeneration: {
       generateButton: "智能填充变量值",
