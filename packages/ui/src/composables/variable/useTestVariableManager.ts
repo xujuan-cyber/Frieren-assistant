@@ -28,6 +28,8 @@ export interface TestVariableManagerOptions {
   onSaveToGlobal?: (name: string, value: string) => void
   /** 删除变量回调 */
   onVariableRemove?: (name: string) => void
+  /** 重命名变量回调（比 remove+change 更明确，避免旧 key 残留） */
+  onVariableRename?: (oldName: string, newName: string, value: string) => void
   /** 清空所有变量回调 */
   onVariablesClear?: () => void
 }
@@ -129,7 +131,7 @@ export function useTestVariableManager(options: TestVariableManagerOptions) {
   }
 
   // 验证变量名
-  const validateVariableName = (name: string): string => {
+  const validateVariableName = (name: string, excludeName?: string): string => {
     if (!name) return ''
 
     const trimmedName = name.trim()
@@ -158,7 +160,7 @@ export function useTestVariableManager(options: TestVariableManagerOptions) {
       return t('variableExtraction.validation.predefinedVariable')
     }
 
-    if (testVariables.value[trimmedName]) {
+    if (testVariables.value[trimmedName] && trimmedName !== excludeName) {
       return t('variableExtraction.validation.duplicateVariable')
     }
 
@@ -180,6 +182,52 @@ export function useTestVariableManager(options: TestVariableManagerOptions) {
       testVariables.value[varName] = { value, timestamp: Date.now() }
     }
     options.onVariableChange?.(varName, value)
+  }
+
+  const renameVariable = (oldName: string, nextNameRaw: string): boolean => {
+    const originalVariable = testVariables.value[oldName]
+    if (!originalVariable) return false
+
+    const nextName = nextNameRaw.trim()
+    if (!nextName) {
+      message.warning(t('variableExtraction.validation.required'))
+      return false
+    }
+
+    if (nextName === oldName) return true
+
+    const renameError = validateVariableName(nextName, oldName)
+    if (renameError) {
+      message.warning(renameError)
+      return false
+    }
+
+    const canUpdateExternalStore = Boolean(options.onVariableRename)
+      || (Boolean(options.onVariableRemove) && Boolean(options.onVariableChange))
+    if (!canUpdateExternalStore) {
+      message.warning(t('test.variables.renameNotSupported'))
+      return false
+    }
+
+    delete testVariables.value[oldName]
+    testVariables.value[nextName] = {
+      value: originalVariable.value,
+      timestamp: originalVariable.timestamp,
+    }
+
+    if (options.onVariableRename) {
+      options.onVariableRename(oldName, nextName, originalVariable.value)
+    } else {
+      options.onVariableRemove?.(oldName)
+      options.onVariableChange?.(nextName, originalVariable.value)
+    }
+
+    message.success(t('test.variables.renameSuccess', {
+      oldName,
+      newName: nextName,
+    }))
+
+    return true
   }
 
   // 添加变量
@@ -285,6 +333,7 @@ export function useTestVariableManager(options: TestVariableManagerOptions) {
     getVariablePlaceholder,
     validateNewVariableName,
     handleVariableValueChange,
+    renameVariable,
     handleAddVariable,
     handleDeleteVariable,
     handleClearAllVariables,
