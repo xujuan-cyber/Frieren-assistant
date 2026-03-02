@@ -1,5 +1,5 @@
 import type { UnifiedParameterDefinition } from '../model/parameter-schema'
-import { ModelConfig } from '../model/types';
+import type { ModelConfig, TextModelConfig as ModelTextModelConfig } from '../model/types';
 
 // === 核心架构类型（三层分离：Provider → Model → Configuration） ===
 
@@ -76,44 +76,11 @@ export interface TextModel {
 }
 
 /**
- * 用户文本模型配置（Configuration层）
- * 新架构的配置结构，完全独立于传统ModelConfig
+ * 用户文本模型配置（Configuration 层）
  *
- * 设计原则：
- * - 自包含：包含完整的providerMeta和modelMeta副本
- * - 独立性：不继承ModelConfig，是全新的类型
- * - 类型安全：通过元数据副本提供编译时类型检查
+ * 统一复用 model/types 中的 TextModelConfig，避免双定义漂移。
  */
-export interface TextModelConfig {
-  // === 基础标识 ===
-  /** 配置唯一标识 */
-  id: string
-  /** 用户自定义配置名称 */
-  name: string
-  /** 是否启用 */
-  enabled: boolean
-
-  // === 自包含元数据副本 ===
-  /** 完整Provider元数据副本 */
-  providerMeta: TextProvider
-  /** 完整Model元数据副本 */
-  modelMeta: TextModel
-
-  // === 连接配置 ===
-  /** 连接参数配置 */
-  connectionConfig: {
-    /** API 密钥 */
-    apiKey?: string
-    /** 覆盖默认 API 地址 */
-    baseURL?: string
-    /** 支持其他连接参数（如 organization, timeout 等） */
-    [key: string]: any
-  }
-
-  // === 参数覆盖 ===
-  /** 覆盖modelMeta中的默认参数 */
-  paramOverrides?: Record<string, unknown>
-}
+export type TextModelConfig = ModelTextModelConfig
 
 /**
  * 工具调用相关类型

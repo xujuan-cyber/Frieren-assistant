@@ -47,7 +47,6 @@ export type {
   ITextProviderAdapter,
   TextProvider,
   TextModel,
-  TextModelConfig,
   ConnectionSchema
 } from './services/llm/types'
 export { LLMService, createLLMService } from './services/llm/service'
