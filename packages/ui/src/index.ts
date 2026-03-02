@@ -92,6 +92,7 @@ export { default as UpdaterModal } from "./components/UpdaterModal.vue";
 export { default as FullscreenDialog } from "./components/FullscreenDialog.vue";
 export { default as InputWithSelect } from "./components/InputWithSelect.vue";
 export { default as MarkdownRenderer } from "./components/MarkdownRenderer.vue";
+export { default as XmlRenderer } from "./components/XmlRenderer.vue";
 export { default as ToolCallDisplay } from "./components/ToolCallDisplay.vue";
 export { default as FavoriteManagerUI } from "./components/FavoriteManager.vue";
 export { default as CategoryManagerUI } from "./components/CategoryManager.vue";

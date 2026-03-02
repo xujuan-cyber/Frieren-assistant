@@ -166,8 +166,13 @@
           :justify="displayContent ? 'start' : 'center'"
           style="flex: 1; min-height: 0; overflow: hidden;"
         >
+          <XmlRenderer
+            v-if="displayContent && renderContentType === 'xml'"
+            :content="displayContent"
+            style="flex: 1; min-height: 0; overflow: auto;"
+          />
           <MarkdownRenderer
-            v-if="displayContent"
+            v-else-if="displayContent"
             :content="displayContent"
             :streaming="streaming"
             style="flex: 1; min-height: 0; overflow: auto;"
@@ -198,6 +203,7 @@ import { useToast } from '../composables/ui/useToast'
 import { Star } from '@vicons/tabler'
 import { useClipboard } from '../composables/ui/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import XmlRenderer from './XmlRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
 import type { CompareResult, ICompareService } from '@prompt-optimizer/core'
 import { VariableAwareInput } from './variable-extraction'
@@ -206,6 +212,7 @@ import { useVariableAwareInputBridge } from '../composables/variable/useVariable
 import { useVariableManager } from '../composables/prompt/useVariableManager'
 import type { AppServices } from '../types/services'
 import { router as routerInstance } from '../router'
+import { isValidXmlContent } from '../utils/xml-renderer'
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
 
@@ -336,6 +343,15 @@ const hasToolbar = computed(() =>
 // 计算属性
 const displayContent = computed(() => (props.content || '').trim())
 const displayReasoning = computed(() => (props.reasoning || '').trim())
+
+const renderContentType = computed<'markdown' | 'xml'>(() => {
+  if (!displayContent.value) return 'markdown'
+
+  // Avoid format jumps while text is still being streamed.
+  if (props.streaming) return 'markdown'
+
+  return isValidXmlContent(displayContent.value) ? 'xml' : 'markdown'
+})
 
 const hasContent = computed(() => !!displayContent.value)
 const hasReasoning = computed(() => !!displayReasoning.value)
