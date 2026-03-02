@@ -231,22 +231,25 @@
         v-model="showValueFullscreenEditor"
         :title="t('test.variables.fullscreenEdit')"
     >
-        <NSpace vertical :size="12" :style="{ height: '100%', minHeight: 0 }">
+        <NFlex vertical :size="12" :style="{ height: '100%', minHeight: 0 }">
             <NText v-if="fullscreenEditorVariableName" :depth="2">
                 {{ fullscreenEditorVariableName }}
             </NText>
 
-            <NInput
-                :value="fullscreenEditorValue"
-                type="textarea"
-                :disabled="props.disabled"
-                :placeholder="getVariablePlaceholder(fullscreenEditorVariableName)"
-                :autosize="false"
-                show-count
-                :style="{ flex: 1, minHeight: 0 }"
-                @update:value="handleFullscreenValueChange"
-            />
-        </NSpace>
+            <div :style="{ flex: 1, minHeight: 0 }">
+                <NInput
+                    :value="fullscreenEditorValue"
+                    type="textarea"
+                    :disabled="props.disabled"
+                    :placeholder="getVariablePlaceholder(fullscreenEditorVariableName)"
+                    :autosize="false"
+                    clearable
+                    show-count
+                    style="height: 100%; min-height: 0;"
+                    @update:value="handleFullscreenValueChange"
+                />
+            </div>
+        </NFlex>
     </FullscreenDialog>
 </template>
 
@@ -265,6 +268,7 @@ import {
     NIcon,
     NText,
     NDropdown,
+    NFlex,
     useDialog,
     type DropdownOption,
 } from 'naive-ui'
