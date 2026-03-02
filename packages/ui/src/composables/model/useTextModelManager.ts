@@ -626,7 +626,7 @@ export function useTextModelManager() {
     const newConfig = {
       id: modelKey,
       name: form.value.name,
-      enabled: true,
+      enabled: form.value.enabled,
       providerMeta,
       modelMeta,
       connectionConfig: { ...form.value.connectionConfig },
