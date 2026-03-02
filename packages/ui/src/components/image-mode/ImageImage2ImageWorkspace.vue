@@ -631,7 +631,8 @@
                 v-model:value="fullscreenValue"
                 type="textarea"
                 :placeholder="t('imageWorkspace.input.originalPromptPlaceholder')"
-                :autosize="{ minRows: 20 }"
+                :autosize="false"
+                style="height: 100%; min-height: 0;"
                 clearable
                 show-count
                 :disabled="isOptimizing"

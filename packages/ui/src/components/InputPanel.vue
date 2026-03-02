@@ -239,7 +239,8 @@
             v-model:value="fullscreenValue"
             type="textarea"
             :placeholder="placeholder"
-            :autosize="{ minRows: 20 }"
+            :autosize="false"
+            style="height: 100%; min-height: 0;"
             clearable
             show-count
         />
