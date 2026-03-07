@@ -1,11 +1,16 @@
 <template>
   <div class="function-model-manager">
-    <NSpace vertical :size="16">
-      <!-- 评估模型配置 -->
-      <div class="config-section">
-        <NSpace align="center" :size="8" class="section-header">
+    <NCard embedded size="small" :bordered="false" class="function-config-card">
+      <template #header>
+        <NSpace justify="space-between" align="center" :size="8" class="section-header">
           <NText strong>{{ t('functionModel.evaluationModel') }}</NText>
+          <NTag size="small" type="default" round :bordered="false">
+            {{ t('modelManager.textModels') }}
+          </NTag>
         </NSpace>
+      </template>
+
+      <NSpace vertical :size="12" class="config-section">
         <NText depth="3" class="section-hint">
           {{ t('functionModel.evaluationModelHint') }}
         </NText>
@@ -29,23 +34,23 @@
           />
           <!-- 显示模型源和模型名称标签 -->
           <template v-if="selectedModelInfo">
-            <NTag v-if="selectedModelInfo.provider" size="small" type="info">
+            <NTag v-if="selectedModelInfo.provider" size="small" type="default" round :bordered="false">
               {{ selectedModelInfo.provider }}
             </NTag>
-            <NTag v-if="selectedModelInfo.model" size="small">
+            <NTag v-if="selectedModelInfo.model" size="small" type="info" round :bordered="false">
               {{ selectedModelInfo.model }}
             </NTag>
           </template>
         </NSpace>
-      </div>
-    </NSpace>
+      </NSpace>
+    </NCard>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, inject, onMounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NSpace, NText, NTag } from 'naive-ui'
+import { NCard, NSpace, NText, NTag } from 'naive-ui'
 import SelectWithConfig from './SelectWithConfig.vue'
 import { useFunctionModelManager } from '../composables/model/useFunctionModelManager'
 import { DataTransformer, OptionAccessors } from '../utils/data-transformer'
@@ -164,22 +169,25 @@ defineExpose({ refresh })
 
 <style scoped>
 .function-model-manager {
-  padding: 12px 0;
+  width: 100%;
+}
+
+.function-config-card {
+   border-radius: 16px;
 }
 
 .config-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .section-header {
-  margin-bottom: 4px;
+  width: 100%;
 }
 
 .section-hint {
   font-size: 12px;
-  margin-bottom: 8px;
 }
 
 .model-select-row {
