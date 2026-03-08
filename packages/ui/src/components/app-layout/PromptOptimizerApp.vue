@@ -73,6 +73,7 @@
             <ModelManagerUI
                 v-if="isReady"
                 v-model:show="modelManager.showConfig"
+                @models-updated="handleTextModelsUpdated"
                 @update:show="
                     (v: boolean) => {
                         if (!v) handleModelManagerClosed();
@@ -2000,6 +2001,22 @@ const openContextEditor = (
 };
 provide("openContextEditor", openContextEditor);
 
+const dispatchTextModelRefreshEvents = () => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    window.dispatchEvent(new Event("basic-workspace-refresh-text-models"));
+    window.dispatchEvent(new Event("pro-workspace-refresh-text-models"));
+    window.dispatchEvent(new Event("image-workspace-refresh-text-models"));
+};
+
+// 文本模型更新回调
+const handleTextModelsUpdated = async () => {
+    await refreshTextModels();
+    dispatchTextModelRefreshEvents();
+};
+
 // 模型管理器关闭回调
 const handleModelManagerClosed = async () => {
     try {
@@ -2009,8 +2026,7 @@ const handleModelManagerClosed = async () => {
     }
     await refreshTextModels();
     if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("basic-workspace-refresh-text-models"));
-        window.dispatchEvent(new Event("image-workspace-refresh-text-models"));
+        dispatchTextModelRefreshEvents();
         window.dispatchEvent(new Event("image-workspace-refresh-image-models"));
     }
 };

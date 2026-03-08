@@ -124,6 +124,12 @@ describe('ModelManager', () => {
           ImageModelManager: {
             template: '<div class="stub-image-manager" />'
           },
+          TextModelManager: {
+            template: '<div class="stub-text-manager" />'
+          },
+          FunctionModelManager: {
+            template: '<div class="stub-function-manager" />'
+          },
           ImageModelEditModal: {
             template: '<div class="stub-image-edit-modal" />'
           },
