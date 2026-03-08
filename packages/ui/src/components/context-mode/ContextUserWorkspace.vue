@@ -435,7 +435,7 @@
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
             @re-evaluate="evaluationHandler.handleReEvaluate"
-            @evaluate-with-feedback="({ feedback }) => evaluationHandler.handleEvaluateActiveWithFeedback(feedback)"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @apply-local-patch="handleApplyLocalPatch"
             @apply-improvement="handleApplyImprovement"
             @clear="handleClearEvaluation"
@@ -820,6 +820,10 @@ const onSplitKeydown = (e: KeyboardEvent) => {
 
 onUnmounted(() => {
     endSplitDrag()
+
+    if (typeof window !== 'undefined') {
+        window.removeEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+    }
 })
 
 // ✨ 新增：直接使用 session store 管理模型和模板选择
@@ -1309,9 +1313,21 @@ const runAllVariants = async () => {
 // ========================
 // Pro-user（变量模式）测试：改为多列 variants，结果与配置由 session store 持久化
 // ========================
+const refreshTextModelsHandler = async () => {
+    try {
+        await modelSelection.refreshTextModels()
+    } catch (e) {
+        console.warn('[ContextUserWorkspace] Failed to refresh text models after manager close:', e)
+    }
+}
+
 onMounted(() => {
     // ✅ 刷新模型列表
-    modelSelection.refreshTextModels()
+    void refreshTextModelsHandler()
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+    }
 });
 
 const proContext = computed<ProUserEvaluationContext | undefined>(() => {
@@ -1454,6 +1470,10 @@ const handleEvaluateWithFeedback = async (payload: {
     feedback: string
 }) => {
     await evaluationHandler.handleEvaluateWithFeedback(payload.type, payload.feedback)
+}
+
+const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+    await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
 }
 
 const showDetail = (type: 'original' | 'optimized' | 'compare') => {

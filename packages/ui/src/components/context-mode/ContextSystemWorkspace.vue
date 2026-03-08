@@ -407,7 +407,7 @@
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
             @re-evaluate="evaluationHandler.handleReEvaluate"
-            @evaluate-with-feedback="({ feedback }) => evaluationHandler.handleEvaluateActiveWithFeedback(feedback)"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @apply-local-patch="handleApplyLocalPatch"
             @apply-improvement="handleApplyImprovement"
             @clear="handleClearEvaluation"
@@ -799,10 +799,22 @@ const selectedIterateTemplate = computed<Template | null>({
     }
 })
 
+const refreshTextModelsHandler = async () => {
+    try {
+        await modelSelection.refreshTextModels()
+    } catch (e) {
+        console.warn('[ContextSystemWorkspace] Failed to refresh text models after manager close:', e)
+    }
+}
+
 // 🆕 从 session store 恢复测试结果（只恢复稳定字段，不恢复过程态）
  onMounted(() => {
     // ✅ 刷新模型列表
-    modelSelection.refreshTextModels()
+    void refreshTextModelsHandler()
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+    }
 
      // Pro Multi：初始态保持“未选择消息”，让用户明确选择要优化的消息。
      // 仅在 session store 有选中记录时尝试恢复（刷新/恢复场景）。
@@ -894,6 +906,10 @@ const onSplitKeydown = (e: KeyboardEvent) => {
 
 onUnmounted(() => {
     endSplitDrag()
+
+    if (typeof window !== 'undefined') {
+        window.removeEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+    }
 })
 
 // ==================== 测试区：多列 variants（当前选中消息版本） ====================
@@ -1452,6 +1468,10 @@ const handleEvaluateWithFeedback = async (payload: {
     feedback: string
 }) => {
     await evaluationHandler.handleEvaluateWithFeedback(payload.type, payload.feedback)
+}
+
+const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+    await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
 }
 
 const showDetail = (type: 'original' | 'optimized' | 'compare') => {

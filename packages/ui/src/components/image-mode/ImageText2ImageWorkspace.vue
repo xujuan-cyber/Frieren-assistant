@@ -594,7 +594,7 @@
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
             @re-evaluate="evaluationHandler.handleReEvaluate"
-            @evaluate-with-feedback="({ feedback }) => evaluationHandler.handleEvaluateActiveWithFeedback(feedback)"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @apply-local-patch="handleApplyPatch"
             @apply-improvement="handleApplyImprovement"
             @clear="handleClearEvaluation"
@@ -1365,6 +1365,10 @@ provideEvaluation(evaluationHandler.evaluation)
 
 const { evaluation } = evaluationHandler
 const panelProps = evaluationHandler.panelProps
+
+const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+    await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
+}
 
 const handleApplyImprovement = (payload: { improvement: string }) => {
     evaluation.closePanel()

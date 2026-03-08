@@ -396,7 +396,7 @@
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
             @re-evaluate="evaluationHandler.handleReEvaluate"
-            @evaluate-with-feedback="({ feedback }) => evaluationHandler.handleEvaluateActiveWithFeedback(feedback)"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @apply-local-patch="handleApplyPatch"
             @apply-improvement="handleApplyImprovement"
             @clear="handleClearEvaluation"
@@ -1076,6 +1076,10 @@ const handleEvaluateWithFeedback = async (payload: {
   feedback: string
 }) => {
   await evaluationHandler.handleEvaluateWithFeedback(payload.type, payload.feedback)
+}
+
+const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+  await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
 }
 
 // 分析评估（prompt-only）
