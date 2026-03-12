@@ -909,9 +909,18 @@ function setupIPC() {
     }
   });
 
-  ipcMain.handle('prompt-iteratePrompt', async (event, originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId) => {
+  ipcMain.handle('prompt-optimizeMessage', async (event, request) => {
     try {
-      const result = await promptService.iteratePrompt(originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId);
+      const result = await promptService.optimizeMessage(request);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-iteratePrompt', async (event, originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, contextData) => {
+    try {
+      const result = await promptService.iteratePrompt(originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, contextData);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
@@ -979,6 +988,17 @@ function setupIPC() {
     const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
     try {
       await promptService.optimizePromptStream(request, streamHandlers);
+      return createSuccessResponse(null);
+    } catch (error) {
+      streamHandlers.onError(error);
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('prompt-optimizeMessageStream', async (event, request, streamId) => {
+    const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
+    try {
+      await promptService.optimizeMessageStream(request, streamHandlers);
       return createSuccessResponse(null);
     } catch (error) {
       streamHandlers.onError(error);

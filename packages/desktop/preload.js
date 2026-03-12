@@ -789,6 +789,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     },
+    optimizeMessage: async (request) => {
+      const result = await ipcRenderer.invoke('prompt-optimizeMessage', request);
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
     // 统一的流式封装（与 llm.sendMessageStream 同模式）
     optimizePromptStream: async (request, callbacks) => {
       const streamId = generateStreamId();
@@ -821,6 +828,42 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on(`stream-error-${streamId}`, errorListener);
 
       const result = await ipcRenderer.invoke('prompt-optimizePromptStream', request, streamId);
+      if (!result.success) {
+        cleanup();
+        throw createIpcError(result.error);
+      }
+    },
+    optimizeMessageStream: async (request, callbacks) => {
+      const streamId = generateStreamId();
+
+      const tokenListener = (event, token) => {
+        if (callbacks?.onToken) callbacks.onToken(token);
+      };
+      const reasoningListener = (event, token) => {
+        if (callbacks?.onReasoningToken) callbacks.onReasoningToken(token);
+      };
+      const finishListener = () => {
+        cleanup();
+        if (callbacks?.onComplete) callbacks.onComplete();
+      };
+      const errorListener = (event, error) => {
+        cleanup();
+        if (callbacks?.onError) callbacks.onError(new Error(error));
+      };
+
+      const cleanup = () => {
+        ipcRenderer.removeListener(`stream-token-${streamId}`, tokenListener);
+        ipcRenderer.removeListener(`stream-reasoning-token-${streamId}`, reasoningListener);
+        ipcRenderer.removeListener(`stream-finish-${streamId}`, finishListener);
+        ipcRenderer.removeListener(`stream-error-${streamId}`, errorListener);
+      };
+
+      ipcRenderer.on(`stream-token-${streamId}`, tokenListener);
+      ipcRenderer.on(`stream-reasoning-token-${streamId}`, reasoningListener);
+      ipcRenderer.on(`stream-finish-${streamId}`, finishListener);
+      ipcRenderer.on(`stream-error-${streamId}`, errorListener);
+
+      const result = await ipcRenderer.invoke('prompt-optimizeMessageStream', request, streamId);
       if (!result.success) {
         cleanup();
         throw createIpcError(result.error);
@@ -940,8 +983,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw createIpcError(result.error);
       }
     },
-    iteratePrompt: async (originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId) => {
-      const result = await ipcRenderer.invoke('prompt-iteratePrompt', originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId);
+    iteratePrompt: async (originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, contextData) => {
+      const result = await ipcRenderer.invoke('prompt-iteratePrompt', originalPrompt, lastOptimizedPrompt, iterateInput, modelKey, templateId, contextData);
       if (!result.success) {
         throw createIpcError(result.error);
       }
