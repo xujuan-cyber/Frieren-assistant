@@ -6,6 +6,7 @@
       :is-default-model="manager.isDefaultModel"
       @test="handleTestConnection"
       @edit="handleEditModel"
+      @clone="handleCloneModel"
       @enable="handleEnableModel"
       @disable="handleDisableModel"
       @delete="handleDeleteModel"
@@ -101,6 +102,16 @@ const updateEditModalVisibility = (value: boolean) => {
   // 当模态框关闭时，重置编辑状态但不重置表单数据
   if (!value) {
     editingModelId.value = null
+  }
+}
+
+const handleCloneModel = async (id: string) => {
+  try {
+    await manager.prepareForClone(id)
+    showEditModal.value = true
+    editingModelId.value = null
+  } catch {
+    // prepareForClone already handles user-facing errors
   }
 }
 

@@ -122,6 +122,26 @@
             <NTooltip trigger="hover">
               <template #trigger>
                 <NButton
+                  @click="cloneConfig(config.id)"
+                  size="small"
+                  quaternary
+                  circle
+                  :title="t('modelManager.cloneModel')"
+                >
+                  <template #icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                  </template>
+                </NButton>
+              </template>
+              {{ t('modelManager.cloneModel') }}
+            </NTooltip>
+
+            <NTooltip trigger="hover">
+              <template #trigger>
+                <NButton
                   @click="toggleConfig(config)"
                   size="small"
                   quaternary
@@ -190,7 +210,7 @@ const dialog = useDialog()
 const isElectronEnv = isRunningInElectron()
 
 // 定义事件
-const emit = defineEmits(['add', 'edit'])
+const emit = defineEmits(['add', 'edit', 'clone'])
 
 // 使用 composable
 const {
@@ -257,6 +277,23 @@ const openAddModal = () => {
 
 const editConfig = (configId: string) => {
   emit('edit', configId)
+}
+
+const cloneConfig = (configId: string) => {
+  const source = configs.value.find(c => c.id === configId)
+  if (!source) return
+
+  try {
+    const cloned = {
+      ...JSON.parse(JSON.stringify(source)),
+      id: '',
+      name: `${source.name || source.id} (Copy)`
+    }
+    emit('clone', cloned)
+  } catch (error) {
+    console.error('Failed to clone model config:', error)
+    toast.error(t('modelManager.cloneFailed'))
+  }
 }
 
 const testConnection = async (configId: string) => {

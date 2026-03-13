@@ -313,6 +313,47 @@ export function useTextModelManager() {
     }
   }
 
+  const prepareForClone = async (id: string) => {
+    try {
+      const model = await modelManager.getModel(id)
+      if (!model) throw new Error(t('modelManager.noModelsAvailable'))
+
+      resetFormState()
+      await ensureProvidersLoaded()
+      formReady.value = false
+
+      form.value = {
+        id: '',
+        name: `${model.name || id} (Copy)`,
+        enabled: model.enabled,
+        providerId: model.providerMeta?.id ?? 'custom',
+        modelId: model.modelMeta?.id ?? '',
+        connectionConfig: JSON.parse(JSON.stringify(model.connectionConfig ?? {})) as TextConnectionConfig,
+        paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {},
+        displayMaskedKey: false,
+        originalApiKey: typeof model.connectionConfig?.apiKey === 'string' ? model.connectionConfig.apiKey : undefined,
+        defaultModel: String(model.modelMeta?.id ?? '')
+      }
+      editingModelMeta.value = model.modelMeta
+
+      setProvider(form.value.providerId, {
+        autoSelectFirstModel: false,
+        resetOverrides: false,
+        resetConnectionConfig: false
+      })
+
+      if (!modelOptions.value.some(option => option.value === form.value.modelId) && form.value.modelId) {
+        modelOptions.value.push({ value: form.value.modelId, label: form.value.modelId })
+      }
+    } catch (error: unknown) {
+      console.error('Failed to prepare clone model draft:', error)
+      toast.error(t('modelManager.cloneFailed'))
+      throw error
+    } finally {
+      formReady.value = true
+    }
+  }
+
   const deleteModel = async (id: string) => {
     try {
       await modelManager.deleteModel(id)
@@ -396,11 +437,11 @@ export function useTextModelManager() {
 
   const prepareForEdit = async (id: string, forceReload = true) => {
     // 如果已经在编辑同一个模型且不强制重新加载，则跳过
-  if (!forceReload && editingModelId.value === id && formReady.value) {
-    return
-  }
+    if (!forceReload && editingModelId.value === id && formReady.value) {
+      return
+    }
 
-  resetFormState()
+    resetFormState()
     editingModelId.value = id
     await ensureProvidersLoaded()
     formReady.value = false
@@ -623,13 +664,20 @@ export function useTextModelManager() {
     const providerMeta = ensureProviderMeta(form.value.providerId)
     const modelMeta = ensureModelMeta(form.value.providerId, form.value.defaultModel || form.value.modelId)
 
+    const connectionConfig: TextConnectionConfig = {
+      ...form.value.connectionConfig
+    }
+    if (form.value.displayMaskedKey && form.value.originalApiKey) {
+      connectionConfig.apiKey = form.value.originalApiKey
+    }
+
     const newConfig = {
       id: modelKey,
       name: form.value.name,
       enabled: form.value.enabled,
       providerMeta,
       modelMeta,
-      connectionConfig: { ...form.value.connectionConfig },
+      connectionConfig,
       paramOverrides: { ...(form.value.paramOverrides ?? {}) }
     } as TextModelConfig
 
@@ -752,6 +800,7 @@ export function useTextModelManager() {
     testConfigConnection,
     enableModel,
     disableModel,
+    prepareForClone,
     deleteModel,
 
     // providers
