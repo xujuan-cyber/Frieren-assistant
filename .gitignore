@@ -194,5 +194,7 @@ CLAUDE.md
 .kilocode
 .serena
 .kiro
+.agents/
+.codex/
 # BMAD (local only)
 .ace-tool/
