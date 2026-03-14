@@ -4,7 +4,7 @@
  * Use LLM to intelligently infer variable values based on prompt context
  */
 
-import type { Template, MessageTemplate } from '../../../types';
+import type { Template, MessageTemplate } from '../../types';
 
 export const template: Template = {
   id: 'variable-value-generation',

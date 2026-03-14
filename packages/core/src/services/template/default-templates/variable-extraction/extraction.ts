@@ -4,7 +4,7 @@
  * 使用 LLM 智能识别提示词中的可参数化变量
  */
 
-import type { Template, MessageTemplate } from '../../../types';
+import type { Template, MessageTemplate } from '../../types';
 
 export const template: Template = {
   id: 'variable-extraction',

@@ -6,12 +6,11 @@ import {
   EvaluationTemplateError,
 } from '../../../src/services/evaluation/errors'
 import type {
-  OriginalEvaluationRequest,
-  OptimizedEvaluationRequest,
   CompareEvaluationRequest,
-  PromptOnlyEvaluationRequest,
-  PromptIterateEvaluationRequest,
   EvaluationModeConfig,
+  PromptIterateEvaluationRequest,
+  PromptOnlyEvaluationRequest,
+  ResultEvaluationRequest,
 } from '../../../src/services/evaluation/types'
 
 describe('EvaluationService', () => {
@@ -45,6 +44,99 @@ describe('EvaluationService', () => {
     summary: 'Good prompt',
   })
 
+  const createPromptOnlyRequest = (
+    overrides: Partial<PromptOnlyEvaluationRequest> = {}
+  ): PromptOnlyEvaluationRequest => ({
+    type: 'prompt-only',
+    target: {
+      workspacePrompt: 'Optimized prompt',
+    },
+    evaluationModelKey: 'test-model',
+    mode: defaultModeConfig,
+    ...overrides,
+  })
+
+  const createPromptIterateRequest = (
+    overrides: Partial<PromptIterateEvaluationRequest> = {}
+  ): PromptIterateEvaluationRequest => ({
+    type: 'prompt-iterate',
+    target: {
+      workspacePrompt: 'Optimized prompt',
+    },
+    iterateRequirement: 'Make it more concise',
+    evaluationModelKey: 'test-model',
+    mode: defaultModeConfig,
+    ...overrides,
+  })
+
+  const createResultRequest = (
+    overrides: Partial<ResultEvaluationRequest> = {}
+  ): ResultEvaluationRequest => ({
+    type: 'result',
+    target: {
+      workspacePrompt: 'Workspace prompt',
+    },
+    testCase: {
+      id: 'tc-1',
+      input: {
+        kind: 'text',
+        label: 'Test Input',
+        content: 'Input',
+      },
+    },
+    snapshot: {
+      id: 'snap-1',
+      label: 'A',
+      testCaseId: 'tc-1',
+      promptRef: { kind: 'workspace' },
+      promptText: 'Executed prompt',
+      output: 'Output',
+    },
+    evaluationModelKey: 'test-model',
+    mode: defaultModeConfig,
+    ...overrides,
+  })
+
+  const createCompareRequest = (
+    overrides: Partial<CompareEvaluationRequest> = {}
+  ): CompareEvaluationRequest => ({
+    type: 'compare',
+    target: {
+      workspacePrompt: 'Workspace prompt',
+    },
+    testCases: [
+      {
+        id: 'tc-1',
+        input: {
+          kind: 'text',
+          label: 'Shared Input',
+          content: 'Input',
+        },
+      },
+    ],
+    snapshots: [
+      {
+        id: 'snap-1',
+        label: 'A',
+        testCaseId: 'tc-1',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt A',
+        output: 'Output A',
+      },
+      {
+        id: 'snap-2',
+        label: 'B',
+        testCaseId: 'tc-1',
+        promptRef: { kind: 'version', version: 1 },
+        promptText: 'Prompt B',
+        output: 'Output B',
+      },
+    ],
+    evaluationModelKey: 'test-model',
+    mode: defaultModeConfig,
+    ...overrides,
+  })
+
   beforeEach(() => {
     mockLLMService = {
       sendMessage: vi.fn().mockResolvedValue(mockEvaluationResult),
@@ -57,10 +149,14 @@ describe('EvaluationService', () => {
 
     mockTemplateManager = {
       getTemplate: vi.fn().mockResolvedValue({
-        id: 'evaluation-basic-system-original',
+        id: 'evaluation-basic-system-prompt-only',
         content: [
           { role: 'system', content: 'You are an evaluator.' },
-          { role: 'user', content: '{{originalPrompt}}' },
+          {
+            role: 'user',
+            content:
+              '{{workspacePrompt}}\n{{iterateRequirement}}\n{{testContent}}\n{{testResult}}\n{{#hasFocus}}Focus: {{focusBrief}}{{/hasFocus}}',
+          },
         ],
       }),
     }
@@ -77,295 +173,153 @@ describe('EvaluationService', () => {
   })
 
   describe('validateRequest', () => {
-    describe('prompt-only type', () => {
-      it('should pass validation with valid prompt-only request', async () => {
-        const request: PromptOnlyEvaluationRequest = {
-          type: 'prompt-only',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
-
-        await expect(evaluationService.evaluate(request)).resolves.toBeDefined()
-      })
-
-      it('should throw error when optimizedPrompt is empty for prompt-only', async () => {
-        const request: PromptOnlyEvaluationRequest = {
-          type: 'prompt-only',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: '',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
-
-        await expect(evaluationService.evaluate(request)).rejects.toThrow(
-          EvaluationValidationError
-        )
-      })
-
-      it('should NOT require testResult for prompt-only type', async () => {
-        const request: PromptOnlyEvaluationRequest = {
-          type: 'prompt-only',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-          // No testResult - this should be valid
-        }
-
-        await expect(evaluationService.evaluate(request)).resolves.toBeDefined()
-      })
+    it('passes validation with a valid prompt-only request', async () => {
+      await expect(evaluationService.evaluate(createPromptOnlyRequest())).resolves.toBeDefined()
     })
 
-    describe('prompt-iterate type', () => {
-      it('should pass validation with valid prompt-iterate request', async () => {
-        const request: PromptIterateEvaluationRequest = {
-          type: 'prompt-iterate',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          iterateRequirement: 'Make it more concise',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
-
-        await expect(evaluationService.evaluate(request)).resolves.toBeDefined()
-      })
-
-      it('should throw error when optimizedPrompt is empty for prompt-iterate', async () => {
-        const request: PromptIterateEvaluationRequest = {
-          type: 'prompt-iterate',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: '',
-          iterateRequirement: 'Make it more concise',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
-
-        await expect(evaluationService.evaluate(request)).rejects.toThrow(
-          EvaluationValidationError
+    it('rejects prompt-only when workspacePrompt is empty', async () => {
+      await expect(
+        evaluationService.evaluate(
+          createPromptOnlyRequest({
+            target: { workspacePrompt: '' },
+          })
         )
-      })
-
-      it('should throw error when iterateRequirement is empty for prompt-iterate', async () => {
-        const request: PromptIterateEvaluationRequest = {
-          type: 'prompt-iterate',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          iterateRequirement: '',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
-
-        await expect(evaluationService.evaluate(request)).rejects.toThrow()
-      })
-
-      it('should throw error when iterateRequirement is whitespace only', async () => {
-        const request: PromptIterateEvaluationRequest = {
-          type: 'prompt-iterate',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          iterateRequirement: '   ',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
-
-        await expect(evaluationService.evaluate(request)).rejects.toThrow()
-      })
+      ).rejects.toThrow(EvaluationValidationError)
     })
 
-    describe('common validations', () => {
-      it('should allow empty originalPrompt for original type', async () => {
-        const request: OriginalEvaluationRequest = {
-          type: 'original',
-          testResult: 'some result',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        }
+    it('passes validation with a valid prompt-iterate request', async () => {
+      await expect(evaluationService.evaluate(createPromptIterateRequest())).resolves.toBeDefined()
+    })
 
-        await expect(evaluationService.evaluate(request)).resolves.toBeDefined()
-      })
+    it('rejects prompt-iterate when iterateRequirement is empty', async () => {
+      await expect(
+        evaluationService.evaluate(
+          createPromptIterateRequest({
+            iterateRequirement: '   ',
+          })
+        )
+      ).rejects.toThrow(EvaluationValidationError)
+    })
 
-      it('should throw error when evaluationModelKey is empty', async () => {
-        const request: PromptOnlyEvaluationRequest = {
-          type: 'prompt-only',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          evaluationModelKey: '',
-          mode: defaultModeConfig,
-        }
+    it('allows omitted referencePrompt for result type', async () => {
+      await expect(
+        evaluationService.evaluate(
+          createResultRequest({
+            target: {
+              workspacePrompt: 'Workspace prompt',
+            },
+          })
+        )
+      ).resolves.toBeDefined()
+    })
 
-        await expect(evaluationService.evaluate(request)).rejects.toThrow()
-      })
+    it('rejects compare when fewer than two snapshots are provided', async () => {
+      await expect(
+        evaluationService.evaluate(
+          createCompareRequest({
+            snapshots: [
+              {
+                id: 'snap-1',
+                label: 'A',
+                testCaseId: 'tc-1',
+                promptRef: { kind: 'workspace' },
+                promptText: 'Prompt A',
+                output: 'Output A',
+              },
+            ],
+          })
+        )
+      ).rejects.toThrow(EvaluationValidationError)
+    })
 
-      it('should throw error when mode is missing', async () => {
-        const request = {
-          type: 'prompt-only',
-          originalPrompt: 'Original prompt',
-          optimizedPrompt: 'Optimized prompt',
-          evaluationModelKey: 'test-model',
-          // mode is missing
-        } as PromptOnlyEvaluationRequest
+    it('rejects when evaluationModelKey is empty', async () => {
+      await expect(
+        evaluationService.evaluate(
+          createPromptOnlyRequest({
+            evaluationModelKey: '',
+          })
+        )
+      ).rejects.toThrow(EvaluationValidationError)
+    })
 
-        await expect(evaluationService.evaluate(request)).rejects.toThrow()
-      })
+    it('rejects when mode is missing', async () => {
+      await expect(
+        evaluationService.evaluate({
+          ...createPromptOnlyRequest(),
+          mode: undefined as any,
+        })
+      ).rejects.toThrow(EvaluationValidationError)
+    })
 
-      it('should throw error for unknown evaluation type', async () => {
-        const request = {
-          type: 'unknown-type',
-          originalPrompt: 'Original prompt',
-          evaluationModelKey: 'test-model',
-          mode: defaultModeConfig,
-        } as any
-
-        await expect(evaluationService.evaluate(request)).rejects.toThrow()
-      })
+    it('rejects unknown evaluation type', async () => {
+      await expect(
+        evaluationService.evaluate({
+          ...createPromptOnlyRequest(),
+          type: 'unknown-type' as any,
+        })
+      ).rejects.toThrow(EvaluationValidationError)
     })
   })
 
   describe('buildTemplateContext', () => {
-    it('should include optimizedPrompt for prompt-only type', async () => {
-      const request: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original prompt',
-        optimizedPrompt: 'Optimized prompt',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-      }
+    it('includes workspacePrompt only for prompt-only', async () => {
+      await evaluationService.evaluate(createPromptOnlyRequest())
 
-      await evaluationService.evaluate(request)
-
-      // Verify template was fetched with correct ID
       expect(mockTemplateManager.getTemplate).toHaveBeenCalledWith(
         'evaluation-basic-system-prompt-only'
       )
+
+      const sentMessages = mockLLMService.sendMessage.mock.calls[0][0]
+      expect(sentMessages[1].content).toContain('Optimized prompt')
     })
 
-    it('should include iterateRequirement for prompt-iterate type', async () => {
-      const request: PromptIterateEvaluationRequest = {
-        type: 'prompt-iterate',
-        originalPrompt: 'Original prompt',
-        optimizedPrompt: 'Optimized prompt',
-        iterateRequirement: 'Make it more concise',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-      }
+    it('includes iterateRequirement and focus for prompt-iterate', async () => {
+      await evaluationService.evaluate(
+        createPromptIterateRequest({
+          focus: {
+            content: 'Need stricter output format',
+            source: 'user',
+            priority: 'highest',
+          },
+        })
+      )
 
-      await evaluationService.evaluate(request)
-
-      // Verify template was fetched with correct ID
       expect(mockTemplateManager.getTemplate).toHaveBeenCalledWith(
         'evaluation-basic-system-prompt-iterate'
       )
-    })
-
-    it('should include userFeedback in template output when template supports it', async () => {
-      mockTemplateManager.getTemplate.mockResolvedValueOnce({
-        id: 'evaluation-basic-system-prompt-only',
-        content: [
-          { role: 'system', content: 'You are an evaluator.' },
-          {
-            role: 'user',
-            content:
-              '{{optimizedPrompt}}\n\n{{#hasUserFeedback}}\n## User Feedback\n{{userFeedback}}\n{{/hasUserFeedback}}',
-          },
-        ],
-      })
-
-      const request: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original prompt',
-        optimizedPrompt: 'Optimized prompt',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-        userFeedback: 'Need stricter output format',
-        variables: { language: 'en' },
-      }
-
-      await evaluationService.evaluate(request)
 
       const sentMessages = mockLLMService.sendMessage.mock.calls[0][0]
-      expect(sentMessages).toHaveLength(2)
-      expect(sentMessages[1].role).toBe('user')
+      expect(sentMessages[1].content).toContain('Make it more concise')
       expect(sentMessages[1].content).toContain('Need stricter output format')
-      expect(sentMessages[1].content).toContain('User Feedback')
     })
 
-    it('should not include userFeedback section when feedback is not provided', async () => {
-      mockTemplateManager.getTemplate.mockImplementation(async () => ({
-        id: 'evaluation-basic-system-prompt-only',
-        content: [
-          { role: 'system', content: 'You are an evaluator.' },
-          {
-            role: 'user',
-            content:
-              '{{optimizedPrompt}}\n\n{{#hasUserFeedback}}\n## User Feedback\n{{userFeedback}}\n{{/hasUserFeedback}}',
-          },
-        ],
-      }))
-
-      const requestWithFeedback: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original prompt',
-        optimizedPrompt: 'Optimized prompt',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-        userFeedback: 'Need stricter output format',
-        variables: { language: 'en' },
-      }
-
-      await evaluationService.evaluate(requestWithFeedback)
-      mockLLMService.sendMessage.mockClear()
-
-      const requestWithoutFeedback: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original prompt',
-        optimizedPrompt: 'Optimized prompt',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-      }
-
-      await evaluationService.evaluate(requestWithoutFeedback)
+    it('does not render focus block when focus is absent', async () => {
+      await evaluationService.evaluate(createPromptOnlyRequest())
 
       const sentMessages = mockLLMService.sendMessage.mock.calls[0][0]
-      expect(sentMessages).toHaveLength(2)
-      expect(
-        sentMessages.some((msg: { content: string }) =>
-          msg.content.includes('Need stricter output format')
-        )
-      ).toBe(false)
-      expect(sentMessages[1].content).not.toContain('User Feedback')
+      expect(sentMessages[1].content).not.toContain('Focus:')
     })
   })
 
   describe('getTemplateId', () => {
-    it('should generate correct template ID for prompt-only', async () => {
-      const request: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original',
-        optimizedPrompt: 'Optimized',
-        evaluationModelKey: 'test-model',
-        mode: { functionMode: 'pro', subMode: 'variable' },
-      }
-
-      await evaluationService.evaluate(request)
+    it('generates the correct template ID for prompt-only', async () => {
+      await evaluationService.evaluate(
+        createPromptOnlyRequest({
+          mode: { functionMode: 'pro', subMode: 'variable' },
+        })
+      )
 
       expect(mockTemplateManager.getTemplate).toHaveBeenCalledWith(
         'evaluation-pro-variable-prompt-only'
       )
     })
 
-    it('should generate correct template ID for prompt-iterate', async () => {
-      const request: PromptIterateEvaluationRequest = {
-        type: 'prompt-iterate',
-        originalPrompt: 'Original',
-        optimizedPrompt: 'Optimized',
-        iterateRequirement: 'Improve clarity',
-        evaluationModelKey: 'test-model',
-        mode: { functionMode: 'basic', subMode: 'user' },
-      }
-
-      await evaluationService.evaluate(request)
+    it('generates the correct template ID for prompt-iterate', async () => {
+      await evaluationService.evaluate(
+        createPromptIterateRequest({
+          mode: { functionMode: 'basic', subMode: 'user' },
+        })
+      )
 
       expect(mockTemplateManager.getTemplate).toHaveBeenCalledWith(
         'evaluation-basic-user-prompt-iterate'
@@ -374,43 +328,31 @@ describe('EvaluationService', () => {
   })
 
   describe('model validation', () => {
-    it('should throw EvaluationModelError when model not found', async () => {
+    it('throws EvaluationModelError when model is not found', async () => {
       mockModelManager.getModel.mockResolvedValue(null)
 
-      const request: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original',
-        optimizedPrompt: 'Optimized',
-        evaluationModelKey: 'non-existent-model',
-        mode: defaultModeConfig,
-      }
-
-      await expect(evaluationService.evaluate(request)).rejects.toThrow(
-        EvaluationModelError
-      )
+      await expect(
+        evaluationService.evaluate(
+          createPromptOnlyRequest({
+            evaluationModelKey: 'non-existent-model',
+          })
+        )
+      ).rejects.toThrow(EvaluationModelError)
     })
   })
 
   describe('template validation', () => {
-    it('should throw EvaluationTemplateError when template not found', async () => {
+    it('throws EvaluationTemplateError when template is not found', async () => {
       mockTemplateManager.getTemplate.mockResolvedValue(null)
 
-      const request: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original',
-        optimizedPrompt: 'Optimized',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-      }
-
-      await expect(evaluationService.evaluate(request)).rejects.toThrow(
+      await expect(evaluationService.evaluate(createPromptOnlyRequest())).rejects.toThrow(
         EvaluationTemplateError
       )
     })
   })
 
   describe('evaluateStream', () => {
-    it('should call callbacks correctly for prompt-only', async () => {
+    it('calls callbacks correctly for prompt-only', async () => {
       const onToken = vi.fn()
       const onComplete = vi.fn()
       const onError = vi.fn()
@@ -418,20 +360,14 @@ describe('EvaluationService', () => {
       mockLLMService.sendMessageStream.mockImplementation(
         async (_messages: any, _model: any, handlers: any) => {
           handlers.onToken('{"score":')
-          handlers.onToken('{"overall":85,"dimensions":[{"key":"test","label":"Test","score":85}]}}')
+          handlers.onToken(
+            '{"overall":85,"dimensions":[{"key":"test","label":"Test","score":85}]},"summary":"done","improvements":[],"patchPlan":[]}'
+          )
           handlers.onComplete()
         }
       )
 
-      const request: PromptOnlyEvaluationRequest = {
-        type: 'prompt-only',
-        originalPrompt: 'Original',
-        optimizedPrompt: 'Optimized',
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-      }
-
-      await evaluationService.evaluateStream(request, {
+      await evaluationService.evaluateStream(createPromptOnlyRequest(), {
         onToken,
         onComplete,
         onError,
@@ -442,25 +378,21 @@ describe('EvaluationService', () => {
       expect(onError).not.toHaveBeenCalled()
     })
 
-    it('should call onError for validation failure in prompt-iterate', async () => {
+    it('calls onError for validation failure in prompt-iterate', async () => {
       const onToken = vi.fn()
       const onComplete = vi.fn()
       const onError = vi.fn()
 
-      const request: PromptIterateEvaluationRequest = {
-        type: 'prompt-iterate',
-        originalPrompt: 'Original',
-        optimizedPrompt: 'Optimized',
-        iterateRequirement: '', // Invalid: empty
-        evaluationModelKey: 'test-model',
-        mode: defaultModeConfig,
-      }
-
-      await evaluationService.evaluateStream(request, {
-        onToken,
-        onComplete,
-        onError,
-      })
+      await evaluationService.evaluateStream(
+        createPromptIterateRequest({
+          iterateRequirement: '',
+        }),
+        {
+          onToken,
+          onComplete,
+          onError,
+        }
+      )
 
       expect(onError).toHaveBeenCalled()
       expect(onToken).not.toHaveBeenCalled()
@@ -469,18 +401,11 @@ describe('EvaluationService', () => {
   })
 
   describe('parse robustness', () => {
-    const baseRequest: PromptOnlyEvaluationRequest = {
-      type: 'prompt-only',
-      originalPrompt: 'Original',
-      optimizedPrompt: 'Optimized',
-      evaluationModelKey: 'test-model',
-      mode: defaultModeConfig,
-    }
+    const baseRequest = createPromptOnlyRequest()
 
-    it('should parse JSON inside fenced code block without language tag', async () => {
+    it('parses JSON inside a fenced code block without a language tag', async () => {
       mockLLMService.sendMessage.mockResolvedValueOnce(
-        `Here is the result:\n\n\
-\`\`\`\n${mockEvaluationResult}\n\`\`\`\n`
+        `Here is the result:\n\n\`\`\`\n${mockEvaluationResult}\n\`\`\`\n`
       )
 
       const res = await evaluationService.evaluate(baseRequest)
@@ -488,30 +413,32 @@ describe('EvaluationService', () => {
       expect(res.score.dimensions.length).toBeGreaterThan(0)
     })
 
-    it('should locate nested payload that contains a score field', async () => {
-      const nested = JSON.stringify({
-        evaluation: JSON.parse(mockEvaluationResult),
-      })
-      mockLLMService.sendMessage.mockResolvedValueOnce(nested)
+    it('locates nested payloads that contain a score field', async () => {
+      mockLLMService.sendMessage.mockResolvedValueOnce(
+        JSON.stringify({
+          evaluation: JSON.parse(mockEvaluationResult),
+        })
+      )
 
       const res = await evaluationService.evaluate(baseRequest)
       expect(res.score.overall).toBe(85)
     })
 
-    it('should accept dimensions as an object map', async () => {
-      const payload = JSON.stringify({
-        score: {
-          overall: 80,
-          dimensions: {
-            goalAchievement: 90,
-            outputQuality: 70,
+    it('accepts dimensions as an object map', async () => {
+      mockLLMService.sendMessage.mockResolvedValueOnce(
+        JSON.stringify({
+          score: {
+            overall: 80,
+            dimensions: {
+              goalAchievement: 90,
+              outputQuality: 70,
+            },
           },
-        },
-        improvements: [],
-        patchPlan: [],
-        summary: 'OK',
-      })
-      mockLLMService.sendMessage.mockResolvedValueOnce(payload)
+          improvements: [],
+          patchPlan: [],
+          summary: 'OK',
+        })
+      )
 
       const res = await evaluationService.evaluate(baseRequest)
       expect(res.score.overall).toBe(80)
@@ -519,16 +446,17 @@ describe('EvaluationService', () => {
       expect(res.score.dimensions.find((d) => d.key === 'outputQuality')?.score).toBe(70)
     })
 
-    it('should fall back to overall-only dimension when dimensions are missing', async () => {
-      const payload = JSON.stringify({
-        score: {
-          overall: 88,
-        },
-        improvements: [],
-        patchPlan: [],
-        summary: 'OK',
-      })
-      mockLLMService.sendMessage.mockResolvedValueOnce(payload)
+    it('falls back to an overall-only dimension when dimensions are missing', async () => {
+      mockLLMService.sendMessage.mockResolvedValueOnce(
+        JSON.stringify({
+          score: {
+            overall: 88,
+          },
+          improvements: [],
+          patchPlan: [],
+          summary: 'OK',
+        })
+      )
 
       const res = await evaluationService.evaluate(baseRequest)
       expect(res.score.overall).toBe(88)
@@ -536,7 +464,7 @@ describe('EvaluationService', () => {
       expect(res.score.dimensions[0].key).toBe('overall')
     })
 
-    it('should extract overall score from text when JSON parsing fails', async () => {
+    it('extracts overall score from plain text when JSON parsing fails', async () => {
       mockLLMService.sendMessage.mockResolvedValueOnce('Overall score: 85/100')
 
       const res = await evaluationService.evaluate(baseRequest)

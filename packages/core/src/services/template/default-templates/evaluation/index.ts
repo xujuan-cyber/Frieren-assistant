@@ -4,10 +4,8 @@
 
 // 基础模式 - 系统提示词评估
 export {
-  evaluationBasicSystemOriginal,
-  evaluationBasicSystemOriginalEn,
-  evaluationBasicSystemOptimized,
-  evaluationBasicSystemOptimizedEn,
+  evaluationBasicSystemResult,
+  evaluationBasicSystemResultEn,
   evaluationBasicSystemCompare,
   evaluationBasicSystemCompareEn,
   evaluationBasicSystemPromptOnly,
@@ -18,10 +16,8 @@ export {
 
 // 基础模式 - 用户提示词评估
 export {
-  evaluationBasicUserOriginal,
-  evaluationBasicUserOriginalEn,
-  evaluationBasicUserOptimized,
-  evaluationBasicUserOptimizedEn,
+  evaluationBasicUserResult,
+  evaluationBasicUserResultEn,
   evaluationBasicUserCompare,
   evaluationBasicUserCompareEn,
   evaluationBasicUserPromptOnly,
@@ -32,10 +28,8 @@ export {
 
 // 高级模式 - 系统提示词评估（多消息模式）
 export {
-  evaluationProSystemOriginal,
-  evaluationProSystemOriginalEn,
-  evaluationProSystemOptimized,
-  evaluationProSystemOptimizedEn,
+  evaluationProSystemResult,
+  evaluationProSystemResultEn,
   evaluationProSystemCompare,
   evaluationProSystemCompareEn,
   evaluationProSystemPromptOnly,
@@ -46,10 +40,8 @@ export {
 
 // 高级模式 - 用户提示词评估（变量模式）
 export {
-  evaluationProUserOriginal,
-  evaluationProUserOriginalEn,
-  evaluationProUserOptimized,
-  evaluationProUserOptimizedEn,
+  evaluationProUserResult,
+  evaluationProUserResultEn,
   evaluationProUserCompare,
   evaluationProUserCompareEn,
   evaluationProUserPromptOnly,

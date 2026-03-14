@@ -19,6 +19,9 @@ import {
   type EvaluationModeConfig,
   type PatchOperation,
   type PatchOperationType,
+  type EvaluationContentBlock,
+  type EvaluationSnapshot,
+  type EvaluationTestCase,
 } from './types';
 import {
   EvaluationValidationError,
@@ -157,42 +160,60 @@ export class EvaluationService implements IEvaluationService {
     }
 
     switch (request.type) {
-      case 'original':
-        if (!request.testResult?.trim()) {
-          throw new EvaluationValidationError('Test result must not be empty.');
+      case 'result':
+        if (!request.target?.workspacePrompt?.trim()) {
+          throw new EvaluationValidationError('Workspace prompt must not be empty.');
         }
-        break;
-
-      case 'optimized':
-        if (!request.optimizedPrompt?.trim()) {
-          throw new EvaluationValidationError('Optimized prompt must not be empty.');
-        }
-        if (!request.testResult?.trim()) {
-          throw new EvaluationValidationError('Test result must not be empty.');
+        this.validateTestCase(request.testCase, 'Result evaluation test case');
+        this.validateSnapshot(request.snapshot, 'Result evaluation snapshot');
+        if (request.snapshot.testCaseId !== request.testCase.id) {
+          throw new EvaluationValidationError(
+            'Result evaluation snapshot testCaseId must match testCase.id.'
+          );
         }
         break;
 
       case 'compare':
-        if (!request.optimizedPrompt?.trim()) {
-          throw new EvaluationValidationError('Optimized prompt must not be empty.');
+        if (!request.target?.workspacePrompt?.trim()) {
+          throw new EvaluationValidationError('Workspace prompt must not be empty.');
         }
-        if (!request.originalTestResult?.trim()) {
-          throw new EvaluationValidationError('Original test result must not be empty.');
+        if (!Array.isArray(request.testCases) || request.testCases.length < 1) {
+          throw new EvaluationValidationError('Compare evaluation requires at least one test case.');
         }
-        if (!request.optimizedTestResult?.trim()) {
-          throw new EvaluationValidationError('Optimized test result must not be empty.');
+        if (!Array.isArray(request.snapshots) || request.snapshots.length < 2) {
+          throw new EvaluationValidationError('Compare evaluation requires at least two snapshots.');
         }
+
+        const testCaseIds = new Set<string>();
+        request.testCases.forEach((testCase, index) => {
+          this.validateTestCase(testCase, `Compare test case #${index + 1}`);
+          if (testCaseIds.has(testCase.id)) {
+            throw new EvaluationValidationError(
+              `Compare test case #${index + 1} id must be unique.`
+            );
+          }
+          testCaseIds.add(testCase.id);
+        });
+
+        request.snapshots.forEach((snapshot, index) => {
+          this.validateSnapshot(snapshot, `Compare snapshot #${index + 1}`);
+          if (!testCaseIds.has(snapshot.testCaseId)) {
+            throw new EvaluationValidationError(
+              `Compare snapshot #${index + 1} references unknown testCaseId "${snapshot.testCaseId}".`
+            );
+          }
+        });
         break;
 
       case 'prompt-only':
-        if (!request.optimizedPrompt?.trim()) {
-          throw new EvaluationValidationError('Optimized prompt must not be empty.');
+        if (!request.target?.workspacePrompt?.trim()) {
+          throw new EvaluationValidationError('Workspace prompt must not be empty.');
         }
         break;
 
       case 'prompt-iterate':
-        if (!request.optimizedPrompt?.trim()) {
-          throw new EvaluationValidationError('Optimized prompt must not be empty.');
+        if (!request.target?.workspacePrompt?.trim()) {
+          throw new EvaluationValidationError('Workspace prompt must not be empty.');
         }
         if (!request.iterateRequirement?.trim()) {
           throw new EvaluationValidationError('Iteration requirement must not be empty.');
@@ -246,67 +267,328 @@ export class EvaluationService implements IEvaluationService {
    */
   private buildTemplateContext(request: EvaluationRequest): TemplateContext {
     const baseContext: TemplateContext = {
-      testContent: request.testContent || '',
       ...(request.variables || {}),
     };
 
-    const feedback = request.userFeedback?.trim();
-    baseContext.hasUserFeedback = !!feedback;
-    if (feedback) {
-      baseContext.userFeedback = feedback;
-    }
-
-    // 原始提示词（可选）
-    if (request.originalPrompt) {
-      baseContext.originalPrompt = request.originalPrompt;
-      baseContext.hasOriginalPrompt = true;
-    } else {
-      baseContext.hasOriginalPrompt = false;
-    }
-
-    // Pro 模式上下文
-    if (request.proContext) {
-      baseContext.proContext = JSON.stringify(request.proContext, null, 2);
+    const focus = request.focus?.content?.trim() || '';
+    baseContext.hasFocus = !!focus;
+    baseContext.focusBrief = focus;
+    // 兼容仍使用旧字段命名的模板
+    baseContext.hasUserFeedback = !!focus;
+    if (focus) {
+      baseContext.userFeedback = focus;
     }
 
     switch (request.type) {
-      case 'original':
-        return {
-          ...baseContext,
-          testResult: request.testResult,
-        };
-
-      case 'optimized':
-        return {
-          ...baseContext,
-          optimizedPrompt: request.optimizedPrompt,
-          testResult: request.testResult,
-        };
+      case 'result':
+        return this.buildResultTemplateContext(baseContext, request);
 
       case 'compare':
-        return {
-          ...baseContext,
-          optimizedPrompt: request.optimizedPrompt,
-          originalTestResult: request.originalTestResult,
-          optimizedTestResult: request.optimizedTestResult,
-        };
+        return this.buildCompareTemplateContext(baseContext, request);
 
       case 'prompt-only':
         return {
           ...baseContext,
-          optimizedPrompt: request.optimizedPrompt,
+          ...this.buildTargetContext(request.target),
+          optimizedPrompt: request.target.workspacePrompt,
         };
 
       case 'prompt-iterate':
         return {
           ...baseContext,
-          optimizedPrompt: request.optimizedPrompt,
+          ...this.buildTargetContext(request.target),
+          optimizedPrompt: request.target.workspacePrompt,
           iterateRequirement: request.iterateRequirement,
         };
 
       default:
         return baseContext;
     }
+  }
+
+  private validateContentBlock(
+    block: EvaluationContentBlock | undefined,
+    label: string
+  ): void {
+    if (!block) {
+      throw new EvaluationValidationError(`${label} must not be empty.`);
+    }
+    if (!block.label?.trim()) {
+      throw new EvaluationValidationError(`${label} label must not be empty.`);
+    }
+    if (!block.content?.trim()) {
+      throw new EvaluationValidationError(`${label} content must not be empty.`);
+    }
+  }
+
+  private validateTestCase(testCase: EvaluationTestCase | undefined, label: string): void {
+    if (!testCase?.id?.trim()) {
+      throw new EvaluationValidationError(`${label} id must not be empty.`);
+    }
+    this.validateContentBlock(testCase.input, `${label} input`);
+  }
+
+  private validateSnapshot(snapshot: EvaluationSnapshot | undefined, label: string): void {
+    if (!snapshot?.id?.trim()) {
+      throw new EvaluationValidationError(`${label} id must not be empty.`);
+    }
+    if (!snapshot?.label?.trim()) {
+      throw new EvaluationValidationError(`${label} label must not be empty.`);
+    }
+    if (!snapshot?.testCaseId?.trim()) {
+      throw new EvaluationValidationError(`${label} testCaseId must not be empty.`);
+    }
+    if (!snapshot?.promptText?.trim()) {
+      throw new EvaluationValidationError(`${label} promptText must not be empty.`);
+    }
+    if (!snapshot?.output?.trim()) {
+      throw new EvaluationValidationError(`${label} output must not be empty.`);
+    }
+    if (!snapshot?.promptRef?.kind) {
+      throw new EvaluationValidationError(`${label} promptRef.kind must not be empty.`);
+    }
+    if (snapshot.executionInput) {
+      this.validateContentBlock(snapshot.executionInput, `${label} executionInput`);
+    }
+  }
+
+  private normalizeContentBlock(block?: EvaluationContentBlock): Record<string, unknown> | undefined {
+    const label = block?.label?.trim() || '';
+    const content = block?.content?.trim() || '';
+    if (!label || !content) {
+      return undefined;
+    }
+
+    const summary = block?.summary?.trim() || '';
+    return {
+      kind: block?.kind || 'custom',
+      label,
+      content,
+      summary,
+      hasSummary: !!summary,
+    };
+  }
+
+  private buildTargetContext(target: {
+    workspacePrompt: string;
+    referencePrompt?: string;
+    designContext?: EvaluationContentBlock;
+  }): TemplateContext {
+    const workspacePrompt = target?.workspacePrompt?.trim() || '';
+    const referencePrompt = target?.referencePrompt?.trim() || '';
+    const designContext = this.normalizeContentBlock(target?.designContext);
+
+    return {
+      workspacePrompt,
+      hasWorkspacePrompt: !!workspacePrompt,
+      currentWorkspacePrompt: workspacePrompt,
+      referencePrompt,
+      hasReferencePrompt: !!referencePrompt,
+      originalPrompt: referencePrompt,
+      hasOriginalPrompt: !!referencePrompt,
+      hasDesignContext: !!designContext,
+      designContextKind: (designContext?.kind as string) || '',
+      designContextLabel: (designContext?.label as string) || '',
+      designContextContent: (designContext?.content as string) || '',
+      designContextSummary: (designContext?.summary as string) || '',
+      designContextJson: (designContext?.content as string) || '',
+      // 兼容旧模板中的 proContext 占位
+      proContext: (designContext?.content as string) || '',
+    };
+  }
+
+  private normalizeTestCase(testCase: EvaluationTestCase): Record<string, unknown> {
+    const input = this.normalizeContentBlock(testCase.input)!;
+    const label = testCase.label?.trim() || '';
+    const settingsSummary = testCase.settingsSummary?.trim() || '';
+
+    return {
+      id: testCase.id.trim(),
+      label,
+      hasLabel: !!label,
+      inputKind: input.kind,
+      inputLabel: input.label,
+      inputContent: input.content,
+      inputSummary: input.summary || '',
+      hasInputSummary: !!input.hasSummary,
+      settingsSummary,
+      hasSettingsSummary: !!settingsSummary,
+    };
+  }
+
+  private normalizeSnapshot(
+    snapshot: EvaluationSnapshot,
+    testCase: Record<string, unknown> | undefined,
+    workspacePrompt: string
+  ): Record<string, unknown> {
+    const executionInput = this.normalizeContentBlock(snapshot.executionInput);
+    const executionInputLabel = (executionInput?.label || '') as string;
+    const executionInputContent = (executionInput?.content || '') as string;
+    const executionInputSummary = (executionInput?.summary || '') as string;
+    const modelKey = snapshot.modelKey?.trim() || '';
+    const versionLabel = snapshot.versionLabel?.trim() || '';
+    const reasoning = snapshot.reasoning?.trim() || '';
+    const promptText = snapshot.promptText.trim();
+    const workspacePromptTrimmed = workspacePrompt.trim();
+    const promptMatchesWorkspace = !!workspacePromptTrimmed && promptText === workspacePromptTrimmed;
+    const promptRefLabel =
+      snapshot.promptRef.label?.trim() ||
+      (
+        snapshot.promptRef.kind === 'version' && typeof snapshot.promptRef.version === 'number'
+          ? `v${snapshot.promptRef.version}`
+          : snapshot.promptRef.kind
+      );
+
+    return {
+      id: snapshot.id.trim(),
+      label: snapshot.label.trim(),
+      testCaseId: snapshot.testCaseId.trim(),
+      testCaseLabel: (testCase?.['label'] || '') as string,
+      promptText,
+      promptMatchesWorkspace,
+      hasDistinctPromptText: !promptMatchesWorkspace,
+      promptRefKind: snapshot.promptRef.kind,
+      promptRefLabel,
+      modelKey,
+      hasModelKey: !!modelKey,
+      versionLabel,
+      hasVersionLabel: !!versionLabel,
+      reasoning,
+      hasReasoning: !!reasoning,
+      output: snapshot.output.trim(),
+      executionInputLabel,
+      executionInputContent,
+      executionInputSummary,
+      hasExecutionInputSummary: !!executionInputSummary,
+      hasExecutionInput: !!executionInputContent,
+      // 兼容旧模板字段，但不再回填公共测试输入，避免重复证据
+      inputLabel: executionInputLabel,
+      inputContent: executionInputContent,
+      inputSummary: executionInputSummary,
+      hasInputSummary: !!executionInputSummary,
+      hasInput: !!executionInputContent,
+    };
+  }
+
+  private buildResultTemplateContext(
+    baseContext: TemplateContext,
+    request: Extract<EvaluationRequest, { type: 'result' }>
+  ): TemplateContext {
+    const targetContext = this.buildTargetContext(request.target);
+    const testCase = this.normalizeTestCase(request.testCase);
+    const snapshot = this.normalizeSnapshot(
+      request.snapshot,
+      testCase,
+      request.target.workspacePrompt
+    );
+
+    return {
+      ...baseContext,
+      ...targetContext,
+      evaluationTestCase: testCase,
+      testCaseLabel: testCase.label,
+      hasTestCaseLabel: testCase.hasLabel,
+      testCaseInputLabel: testCase.inputLabel,
+      testCaseInputContent: testCase.inputContent,
+      testCaseInputSummary: testCase.inputSummary,
+      hasTestCaseInputSummary: testCase.hasInputSummary,
+      evaluationSnapshot: snapshot,
+      hasEditableWorkspaceTarget:
+        snapshot.promptRefKind === 'workspace' && snapshot.promptMatchesWorkspace,
+      prompt: snapshot.promptText,
+      testContent: testCase.inputContent,
+      testResult: snapshot.output,
+      resultLabel: snapshot.label,
+      hasResultLabel: !!snapshot.label,
+    };
+  }
+
+  private buildCompareTemplateContext(
+    baseContext: TemplateContext,
+    request: Extract<EvaluationRequest, { type: 'compare' }>
+  ): TemplateContext {
+    const targetContext = this.buildTargetContext(request.target);
+    const normalizedTestCases = request.testCases.map((testCase) => this.normalizeTestCase(testCase));
+    const normalizeTestCaseEvidenceKey = (testCase: Record<string, unknown>): string =>
+      JSON.stringify({
+        inputKind: (testCase['inputKind'] || '') as string,
+        inputLabel: (testCase['inputLabel'] || '') as string,
+        inputSummary: (testCase['inputSummary'] || '') as string,
+        inputContent: (testCase['inputContent'] || '') as string,
+        settingsSummary: (testCase['settingsSummary'] || '') as string,
+      });
+    const dedupedRenderedTestCases = Array.from(
+      normalizedTestCases.reduce((map, testCase) => {
+        const evidenceKey = normalizeTestCaseEvidenceKey(testCase);
+        if (!map.has(evidenceKey)) {
+          map.set(evidenceKey, testCase);
+        }
+        return map;
+      }, new Map<string, Record<string, unknown>>()).values()
+    );
+    const testCaseMap = new Map(normalizedTestCases.map((testCase) => [testCase.id as string, testCase]));
+    const normalizedSnapshots = request.snapshots.map((snapshot) =>
+      this.normalizeSnapshot(snapshot, testCaseMap.get(snapshot.testCaseId), request.target.workspacePrompt)
+    );
+    const samePromptAcrossSnapshots =
+      request.compareHints?.hasSamePromptSnapshots ??
+      (new Set(request.snapshots.map((snapshot) => snapshot.promptText.trim())).size === 1);
+    const sameTestCaseAcrossSnapshots =
+      request.compareHints?.hasSharedTestCases ??
+      (new Set(request.snapshots.map((snapshot) => snapshot.testCaseId.trim())).size === 1);
+    const sharedCompareInputs = sameTestCaseAcrossSnapshots || dedupedRenderedTestCases.length === 1;
+    const crossModelComparison =
+      request.compareHints?.hasCrossModelComparison ??
+      (
+        samePromptAcrossSnapshots &&
+        sharedCompareInputs &&
+        new Set(request.snapshots.map((snapshot) => (snapshot.modelKey || '').trim()).filter(Boolean)).size > 1
+      );
+    const hasEditableWorkspaceTarget = normalizedSnapshots.some(
+      (snapshot) => snapshot.promptRefKind === 'workspace' && snapshot.promptMatchesWorkspace
+    );
+
+    return {
+      ...baseContext,
+      ...targetContext,
+      compareTestCaseCount: dedupedRenderedTestCases.length,
+      hasCompareTestCases: dedupedRenderedTestCases.length > 0,
+      compareTestCases: dedupedRenderedTestCases,
+      hasSharedCompareInputs: sharedCompareInputs,
+      sharedTestCaseCount: dedupedRenderedTestCases.length,
+      hasSharedTestCases: sharedCompareInputs && dedupedRenderedTestCases.length > 0,
+      sharedTestCases: dedupedRenderedTestCases,
+      compareSnapshotCount: normalizedSnapshots.length,
+      compareSnapshots: normalizedSnapshots,
+      hasCrossModelComparison: crossModelComparison,
+      hasEditableWorkspaceTarget,
+      compareHints: {
+        hasSharedTestCases: sharedCompareInputs,
+        hasSamePromptSnapshots: samePromptAcrossSnapshots,
+        hasCrossModelComparison: crossModelComparison,
+      },
+      // 兼容旧 compare 模板字段
+      compareVariantCount: normalizedSnapshots.length,
+      compareVariants: normalizedSnapshots.map((snapshot) => ({
+        id: snapshot.id,
+        label: snapshot.label,
+        prompt: snapshot.promptText,
+        output: snapshot.output,
+        reasoning: snapshot.reasoning,
+        hasReasoning: snapshot.hasReasoning,
+        modelKey: snapshot.modelKey,
+        hasModelKey: snapshot.hasModelKey,
+        versionLabel: snapshot.versionLabel,
+        hasVersionLabel: snapshot.hasVersionLabel,
+        promptMatchesWorkspace: snapshot.promptMatchesWorkspace,
+        hasDistinctPromptText: snapshot.hasDistinctPromptText,
+        hasInput: !!snapshot.inputContent,
+        inputLabel: snapshot.inputLabel,
+        inputContent: snapshot.inputContent,
+        inputSummary: snapshot.inputSummary,
+        hasInputSummary: snapshot.hasInputSummary,
+      })),
+    };
   }
 
   /**

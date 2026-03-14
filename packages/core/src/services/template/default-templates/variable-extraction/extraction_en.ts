@@ -4,7 +4,7 @@
  * Intelligently identify parameterizable variables in prompts using LLM
  */
 
-import type { Template, MessageTemplate } from '../../../types';
+import type { Template, MessageTemplate } from '../../types';
 
 export const template: Template = {
   id: 'variable-extraction',

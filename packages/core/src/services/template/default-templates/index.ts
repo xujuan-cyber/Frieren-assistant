@@ -63,31 +63,23 @@ import { template as image_iterate_general } from './image-optimize/iterate/imag
 import { template as image_iterate_general_en } from './image-optimize/iterate/image-iterate-general_en';
 
 // 评估模板 - 基础模式/系统提示词
-import { template as evaluation_basic_system_original } from './evaluation/basic/system/evaluation-original';
-import { template as evaluation_basic_system_original_en } from './evaluation/basic/system/evaluation-original_en';
-import { template as evaluation_basic_system_optimized } from './evaluation/basic/system/evaluation-optimized';
-import { template as evaluation_basic_system_optimized_en } from './evaluation/basic/system/evaluation-optimized_en';
+import { template as evaluation_basic_system_result } from './evaluation/basic/system/evaluation-result';
+import { template as evaluation_basic_system_result_en } from './evaluation/basic/system/evaluation-result_en';
 import { template as evaluation_basic_system_compare } from './evaluation/basic/system/evaluation-compare';
 import { template as evaluation_basic_system_compare_en } from './evaluation/basic/system/evaluation-compare_en';
 // 评估模板 - 基础模式/用户提示词
-import { template as evaluation_basic_user_original } from './evaluation/basic/user/evaluation-original';
-import { template as evaluation_basic_user_original_en } from './evaluation/basic/user/evaluation-original_en';
-import { template as evaluation_basic_user_optimized } from './evaluation/basic/user/evaluation-optimized';
-import { template as evaluation_basic_user_optimized_en } from './evaluation/basic/user/evaluation-optimized_en';
+import { template as evaluation_basic_user_result } from './evaluation/basic/user/evaluation-result';
+import { template as evaluation_basic_user_result_en } from './evaluation/basic/user/evaluation-result_en';
 import { template as evaluation_basic_user_compare } from './evaluation/basic/user/evaluation-compare';
 import { template as evaluation_basic_user_compare_en } from './evaluation/basic/user/evaluation-compare_en';
 // 评估模板 - 高级模式/系统提示词（多消息模式）
-import { template as evaluation_pro_system_original } from './evaluation/pro/system/evaluation-original';
-import { template as evaluation_pro_system_original_en } from './evaluation/pro/system/evaluation-original_en';
-import { template as evaluation_pro_system_optimized } from './evaluation/pro/system/evaluation-optimized';
-import { template as evaluation_pro_system_optimized_en } from './evaluation/pro/system/evaluation-optimized_en';
+import { template as evaluation_pro_system_result } from './evaluation/pro/system/evaluation-result';
+import { template as evaluation_pro_system_result_en } from './evaluation/pro/system/evaluation-result_en';
 import { template as evaluation_pro_system_compare } from './evaluation/pro/system/evaluation-compare';
 import { template as evaluation_pro_system_compare_en } from './evaluation/pro/system/evaluation-compare_en';
 // 评估模板 - 高级模式/用户提示词（变量模式）
-import { template as evaluation_pro_user_original } from './evaluation/pro/user/evaluation-original';
-import { template as evaluation_pro_user_original_en } from './evaluation/pro/user/evaluation-original_en';
-import { template as evaluation_pro_user_optimized } from './evaluation/pro/user/evaluation-optimized';
-import { template as evaluation_pro_user_optimized_en } from './evaluation/pro/user/evaluation-optimized_en';
+import { template as evaluation_pro_user_result } from './evaluation/pro/user/evaluation-result';
+import { template as evaluation_pro_user_result_en } from './evaluation/pro/user/evaluation-result_en';
 import { template as evaluation_pro_user_compare } from './evaluation/pro/user/evaluation-compare';
 import { template as evaluation_pro_user_compare_en } from './evaluation/pro/user/evaluation-compare_en';
 // 评估模板 - 仅提示词评估（无需测试结果）
@@ -174,31 +166,23 @@ export const ALL_TEMPLATES = {
   image_iterate_general,
   image_iterate_general_en,
   // 评估模板 - 基础模式/系统提示词
-  evaluation_basic_system_original,
-  evaluation_basic_system_original_en,
-  evaluation_basic_system_optimized,
-  evaluation_basic_system_optimized_en,
+  evaluation_basic_system_result,
+  evaluation_basic_system_result_en,
   evaluation_basic_system_compare,
   evaluation_basic_system_compare_en,
   // 评估模板 - 基础模式/用户提示词
-  evaluation_basic_user_original,
-  evaluation_basic_user_original_en,
-  evaluation_basic_user_optimized,
-  evaluation_basic_user_optimized_en,
+  evaluation_basic_user_result,
+  evaluation_basic_user_result_en,
   evaluation_basic_user_compare,
   evaluation_basic_user_compare_en,
   // 评估模板 - 高级模式/系统提示词（多消息模式）
-  evaluation_pro_system_original,
-  evaluation_pro_system_original_en,
-  evaluation_pro_system_optimized,
-  evaluation_pro_system_optimized_en,
+  evaluation_pro_system_result,
+  evaluation_pro_system_result_en,
   evaluation_pro_system_compare,
   evaluation_pro_system_compare_en,
   // 评估模板 - 高级模式/用户提示词（变量模式）
-  evaluation_pro_user_original,
-  evaluation_pro_user_original_en,
-  evaluation_pro_user_optimized,
-  evaluation_pro_user_optimized_en,
+  evaluation_pro_user_result,
+  evaluation_pro_user_result_en,
   evaluation_pro_user_compare,
   evaluation_pro_user_compare_en,
   // 评估模板 - 仅提示词评估（无需测试结果）

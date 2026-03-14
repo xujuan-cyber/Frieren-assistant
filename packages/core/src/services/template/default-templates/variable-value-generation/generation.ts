@@ -4,7 +4,7 @@
  * 使用 LLM 根据提示词上下文智能推测变量值
  */
 
-import type { Template, MessageTemplate } from '../../../types';
+import type { Template, MessageTemplate } from '../../types';
 
 export const template: Template = {
   id: 'variable-value-generation',
