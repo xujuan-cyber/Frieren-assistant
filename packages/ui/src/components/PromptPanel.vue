@@ -124,8 +124,7 @@
                         {{ t("prompt.applyToConversation") }}
                     </NButton>
                     <!-- 评估入口：分数徽章或评估按钮 -->
-                    <!-- prompt-only 评估（分析功能）不需要 optimizedPrompt -->
-                    <div v-if="showEvaluation && (optimizedPrompt || evaluationType === 'prompt-only')" class="evaluation-entry">
+                    <div v-if="showEvaluation && optimizedPrompt" class="evaluation-entry">
                         <EvaluationScoreBadge
                             v-if="hasEvaluationResult || isEvaluating"
                             :score="evaluationScore"
@@ -133,6 +132,8 @@
                             :loading="isEvaluating"
                             :result="evaluationResult"
                             :type="evaluationType"
+                            :stale="isEvaluationStale"
+                            :stale-message="evaluationStaleMessage"
                             size="small"
                             @show-detail="handleShowEvaluationDetail"
                             @evaluate="handleEvaluate"
@@ -308,7 +309,14 @@ import TemplateSelect from "./TemplateSelect.vue";
 import Modal from "./Modal.vue";
 import OutputDisplay from "./OutputDisplay.vue";
 import { EvaluationScoreBadge, FocusAnalyzeButton } from "./evaluation";
-import type { Template, PromptRecord, EvaluationType, PatchOperation } from "@prompt-optimizer/core";
+import type {
+    EvaluationContentBlock,
+    EvaluationTarget,
+    EvaluationType,
+    PatchOperation,
+    PromptRecord,
+    Template,
+} from "@prompt-optimizer/core";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -439,6 +447,68 @@ const evaluationResult = computed(() => {
         : evaluation.state['prompt-only'].result;
 });
 
+const promptOnlyEvaluationFingerprint = ref("");
+const promptIterateEvaluationFingerprint = ref("");
+
+const buildEvaluationFingerprint = (
+    type: "prompt-only" | "prompt-iterate",
+): string => {
+    const prompt = (props.optimizedPrompt || "").trim();
+    if (type === "prompt-iterate") {
+        return `${prompt}::${currentIterationNote.value.trim()}`;
+    }
+    return prompt;
+};
+
+const isEvaluationStale = computed(() => {
+    if (!hasEvaluationResult.value) return false;
+
+    const storedFingerprint =
+        evaluationType.value === "prompt-iterate"
+            ? promptIterateEvaluationFingerprint.value
+            : promptOnlyEvaluationFingerprint.value;
+
+    if (!storedFingerprint) return false;
+    return storedFingerprint !== buildEvaluationFingerprint(evaluationType.value);
+});
+
+const evaluationStaleMessage = computed(() =>
+    evaluationType.value === "prompt-iterate"
+        ? t("evaluation.stale.promptIterate")
+        : t("evaluation.stale.promptOnly"),
+);
+
+const buildDesignContextBlock = (): EvaluationContentBlock | undefined => {
+    const context = proContextRef?.value;
+    if (!context) return undefined;
+
+    const content = JSON.stringify(context, null, 2);
+    if (!content.trim()) return undefined;
+
+    return {
+        kind: "json",
+        label: props.advancedModeEnabled
+            ? t("evaluation.designContext.advanced")
+            : t("evaluation.designContext.basic"),
+        content,
+    };
+};
+
+const buildEvaluationTarget = (): EvaluationTarget => {
+    const workspacePrompt = props.optimizedPrompt || "";
+    const referencePrompt = (props.originalPrompt || "").trim();
+    const normalizedWorkspacePrompt = workspacePrompt.trim();
+
+    return {
+        workspacePrompt,
+        referencePrompt:
+            referencePrompt && referencePrompt !== normalizedWorkspacePrompt
+                ? props.originalPrompt
+                : undefined,
+        designContext: buildDesignContextBlock(),
+    };
+};
+
 const emit = defineEmits<{
     "update:optimizedPrompt": [value: string];
     iterate: [payload: IteratePayload];
@@ -552,26 +622,31 @@ const executeEvaluate = async (userFeedback?: string, preferredType?: Evaluation
             ? preferredType
             : evaluationType.value;
 
-    // 获取 Pro 模式上下文（如果可用）
-    const proContext = proContextRef?.value;
+    const target = buildEvaluationTarget();
 
     if (targetType === "prompt-iterate" && iterateRequirement) {
         // 有迭代需求时使用 prompt-iterate 评估
         await evaluation.evaluatePromptIterate({
-            originalPrompt: props.originalPrompt,
-            optimizedPrompt: props.optimizedPrompt,
+            target,
             iterateRequirement,
-            proContext,
-            userFeedback,
+            focus: userFeedback,
         });
+
+        if (evaluation.state["prompt-iterate"].result) {
+            promptIterateEvaluationFingerprint.value =
+                buildEvaluationFingerprint("prompt-iterate");
+        }
     } else {
         // 无迭代需求时使用 prompt-only 评估
         await evaluation.evaluatePromptOnly({
-            originalPrompt: props.originalPrompt,
-            optimizedPrompt: props.optimizedPrompt,
-            proContext,
-            userFeedback,
+            target,
+            focus: userFeedback,
         });
+
+        if (evaluation.state["prompt-only"].result) {
+            promptOnlyEvaluationFingerprint.value =
+                buildEvaluationFingerprint("prompt-only");
+        }
     }
 };
 

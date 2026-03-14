@@ -1082,14 +1082,17 @@ export default {
     compareMode: "對比模式",
     layout: {
       columns: "列數",
+      workspace: "工作區",
       original: "原始",
       latest: "最新",
       runAll: "測試全部",
       runThisColumn: "測試此列",
       stale: "配置已變更",
     },
-    originalResult: "原始提示詞結果",
-    optimizedResult: "優化後提示詞結果",
+    originalResult: "結果 A",
+    optimizedResult: "結果 B",
+    compareResultA: "結果 A",
+    compareResultB: "結果 B",
     testResult: "測試結果",
     userPromptTest: "使用者提示詞測試",
     advanced: {
@@ -1103,6 +1106,7 @@ export default {
       failed: "測試失敗",
       noModel: "請先選擇測試模型",
       noTestContent: "請輸入測試內容",
+      noWorkspacePrompt: "工作區為空，請先在下方工作區輸入或生成提示詞",
       noOriginalPrompt: "請先輸入原始提示詞",
       noOptimizedPrompt: "請先生成優化後的提示詞",
       missingVariables: "偵測到缺失或未填變數：{vars}",
@@ -2141,21 +2145,26 @@ export default {
     feedbackSubmit: "提交並開始分析",
 
     focus: "聚焦",
-    focusTitle: "聚焦點",
-    focusPlaceholder:
-      "可選：輸入你希望評估重點關注的面向/意見（例如輸出結構、約束遺漏、示例長度等）",
-    focusHint: "不填也可以直接開始（等同預設智慧評估）",
-    title: {
-      default: "評估結果",
-      original: "原始提示詞評估",
-      optimized: "優化後評估",
-      compare: "對比評估",
-      promptOnly: "提示詞品質分析",
+      focusTitle: "聚焦點",
+      focusPlaceholder:
+        "可選：輸入你希望評估重點關注的面向/意見（例如輸出結構、約束遺漏、示例長度等）",
+      focusHint: "不填也可以直接開始（等同預設智慧評估）",
+      stale: {
+        default: "目前內容已變更，這份評估結果基於舊快照。",
+        promptOnly: "目前提示詞已變更，這份分析結果基於舊內容。",
+        promptIterate: "目前提示詞或迭代要求已變更，這份分析結果基於舊內容。",
+        result: "目前測試配置或工作區內容已變更，這份評估結果基於舊快照。",
+        compare: "目前測試配置或工作區內容已變更，這份對比評估基於舊快照。",
+      },
+      title: {
+        default: "評估結果",
+        result: "測試結果評估",
+        compare: "對比評估",
+        promptOnly: "提示詞品質分析",
       promptIterate: "迭代優化分析",
     },
     type: {
-      original: "評估原始提示詞",
-      optimized: "評估優化效果",
+      result: "評估該結果",
       compare: "對比評估",
     },
     level: {
@@ -2173,11 +2182,19 @@ export default {
     },
     optimizedBetter: "優化後效果更好",
     originalBetter: "原始效果更好",
+    syntheticInput: {
+      noExplicitText: "沒有額外測試輸入，輸出會直接基於目前提示詞生成。",
+      noExplicitVariables: "沒有額外變數輸入。",
+    },
     error: {
       title: "評估失敗",
       serviceNotReady: "評估服務未就緒，請稍後再試",
       failed: "評估失敗：{error}",
       noOptimizedPrompt: "沒有可優化的提示詞",
+    },
+    designContext: {
+      basic: "設計上下文",
+      advanced: "設計上下文",
     },
 
     // 變數提取相關翻譯

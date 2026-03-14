@@ -35,42 +35,40 @@
             <TestResultSection
                 :is-compare-mode="isCompareMode"
                 :vertical-layout="adaptiveResultVerticalLayout"
-                :show-original="isCompareMode"
-                :original-result-title="t('test.originalResult')"
-                :optimized-result-title="t('test.optimizedResult')"
+                :show-primary="isCompareMode"
+                :primary-title="t('test.compareResultA')"
+                :secondary-title="t('test.compareResultB')"
                 :single-result-title="singleResultTitle"
-                :original-result="originalTestResult"
-                :optimized-result="optimizedTestResult"
+                :primary-result="primaryTestResult"
+                :secondary-result="secondaryTestResult"
                 :single-result="testResult"
                 :size="adaptiveButtonSize"
                 :style="{ flex: 1, minHeight: 0 }"
                 :show-evaluation="showEvaluation"
-                :has-original-result="hasOriginalResult"
-                :has-optimized-result="hasOptimizedResult"
-                :is-evaluating-original="isEvaluatingOriginal"
-                :is-evaluating-optimized="isEvaluatingOptimized"
-                :original-score="originalScore"
-                :optimized-score="optimizedScore"
-                :has-original-evaluation="hasOriginalEvaluation"
-                :has-optimized-evaluation="hasOptimizedEvaluation"
-                :original-evaluation-result="originalEvaluationResult"
-                :optimized-evaluation-result="optimizedEvaluationResult"
-                :original-score-level="originalScoreLevel"
-                :optimized-score-level="optimizedScoreLevel"
-                @evaluate-original="emit('evaluate-original')"
-                @evaluate-optimized="emit('evaluate-optimized')"
+                :has-primary-result="hasPrimaryResult"
+                :has-secondary-result="hasSecondaryResult"
+                :is-evaluating-primary="isEvaluatingPrimary"
+                :is-evaluating-secondary="isEvaluatingSecondary"
+                :primary-score="primaryScore"
+                :secondary-score="secondaryScore"
+                :has-primary-evaluation="hasPrimaryEvaluation"
+                :has-secondary-evaluation="hasSecondaryEvaluation"
+                :primary-evaluation-result="primaryEvaluationResult"
+                :secondary-evaluation-result="secondaryEvaluationResult"
+                :primary-score-level="primaryScoreLevel"
+                :secondary-score-level="secondaryScoreLevel"
+                @evaluate-primary="emit('evaluate-primary')"
+                @evaluate-secondary="emit('evaluate-secondary')"
                 @evaluate-with-feedback="emit('evaluate-with-feedback', $event)"
-                @show-original-detail="emit('show-original-detail')"
-                @show-optimized-detail="emit('show-optimized-detail')"
+                @show-primary-detail="emit('show-primary-detail')"
+                @show-secondary-detail="emit('show-secondary-detail')"
                 @apply-improvement="emit('apply-improvement', $event)"
             >
-                <!-- 🆕 对比模式：原始结果 -->
-                <template #original-result>
+                <template #primary-result>
                     <div class="result-container">
-                        <!-- 工具调用显示 -->
                         <ToolCallDisplay
-                            v-if="originalToolCalls.length > 0"
-                            :tool-calls="originalToolCalls"
+                            v-if="variantToolCalls[COMPARE_BASELINE_VARIANT_ID].length > 0"
+                            :tool-calls="variantToolCalls[COMPARE_BASELINE_VARIANT_ID]"
                             :size="
                                 adaptiveButtonSize === 'small' ? 'small' : 'medium'
                             "
@@ -78,18 +76,16 @@
                         />
 
                         <div class="result-body">
-                            <slot name="original-result"></slot>
+                            <slot name="primary-result"></slot>
                         </div>
                     </div>
                 </template>
 
-                <!-- 🆕 对比模式：优化结果 -->
-                <template #optimized-result>
+                <template #secondary-result>
                     <div class="result-container">
-                        <!-- 工具调用显示 -->
                         <ToolCallDisplay
-                            v-if="optimizedToolCalls.length > 0"
-                            :tool-calls="optimizedToolCalls"
+                            v-if="variantToolCalls[COMPARE_CANDIDATE_VARIANT_ID].length > 0"
+                            :tool-calls="variantToolCalls[COMPARE_CANDIDATE_VARIANT_ID]"
                             :size="
                                 adaptiveButtonSize === 'small' ? 'small' : 'medium'
                             "
@@ -97,7 +93,7 @@
                         />
 
                         <div class="result-body">
-                            <slot name="optimized-result"></slot>
+                            <slot name="secondary-result"></slot>
                         </div>
                     </div>
                 </template>
@@ -107,8 +103,8 @@
                     <div class="result-container">
                         <!-- 工具调用显示 -->
                         <ToolCallDisplay
-                            v-if="toolCalls.length > 0"
-                            :tool-calls="toolCalls"
+                            v-if="variantToolCalls[SINGLE_TEST_VARIANT_ID].length > 0"
+                            :tool-calls="variantToolCalls[SINGLE_TEST_VARIANT_ID]"
                             :size="
                                 adaptiveButtonSize === 'small' ? 'small' : 'medium'
                             "
@@ -126,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onUnmounted, toRef } from 'vue'
+import { computed, reactive, onUnmounted, toRef } from 'vue'
 
 import { useI18n } from "vue-i18n";
 import {
@@ -144,6 +140,11 @@ import type { ScoreLevel } from '../../composables/prompt/useEvaluation';
 import { useResponsive } from '../../composables/ui/useResponsive';
 import { usePerformanceMonitor } from "../../composables/performance/usePerformanceMonitor";
 import { useDebounceThrottle } from "../../composables/performance/useDebounceThrottle";
+import {
+    COMPARE_BASELINE_VARIANT_ID,
+    COMPARE_CANDIDATE_VARIANT_ID,
+    SINGLE_TEST_VARIANT_ID,
+} from "../../composables/prompt/testVariantState";
 import TestControlBar from "../TestControlBar.vue";
 import TestResultSection from "../TestResultSection.vue";
 import ToolCallDisplay from "../ToolCallDisplay.vue";
@@ -198,28 +199,28 @@ interface Props {
 
     // 🆕 测试结果数据（支持对比模式）
     testResult?: AdvancedTestResult;
-    originalTestResult?: AdvancedTestResult;
-    optimizedTestResult?: AdvancedTestResult;
+    primaryTestResult?: AdvancedTestResult;
+    secondaryTestResult?: AdvancedTestResult;
 
     // 🆕 评估功能配置
     showEvaluation?: boolean;
     // 是否有测试结果（用于显示评估按钮）
-    hasOriginalResult?: boolean;
-    hasOptimizedResult?: boolean;
+    hasPrimaryResult?: boolean;
+    hasSecondaryResult?: boolean;
     // 评估状态
-    isEvaluatingOriginal?: boolean;
-    isEvaluatingOptimized?: boolean;
+    isEvaluatingPrimary?: boolean;
+    isEvaluatingSecondary?: boolean;
     // 评估分数
-    originalScore?: number | null;
-    optimizedScore?: number | null;
+    primaryScore?: number | null;
+    secondaryScore?: number | null;
     // 是否有评估结果
-    hasOriginalEvaluation?: boolean;
-    hasOptimizedEvaluation?: boolean;
+    hasPrimaryEvaluation?: boolean;
+    hasSecondaryEvaluation?: boolean;
     // 评估结果和等级（用于悬浮预览）
-    originalEvaluationResult?: EvaluationResponse | null;
-    optimizedEvaluationResult?: EvaluationResponse | null;
-    originalScoreLevel?: ScoreLevel | null;
-    optimizedScoreLevel?: ScoreLevel | null;
+    primaryEvaluationResult?: EvaluationResponse | null;
+    secondaryEvaluationResult?: EvaluationResponse | null;
+    primaryScoreLevel?: ScoreLevel | null;
+    secondaryScoreLevel?: ScoreLevel | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -236,18 +237,18 @@ const props = withDefaults(defineProps<Props>(), {
     temporaryVariables: () => ({}),
     // 评估默认值
     showEvaluation: false,
-    hasOriginalResult: false,
-    hasOptimizedResult: false,
-    isEvaluatingOriginal: false,
-    isEvaluatingOptimized: false,
-    originalScore: null,
-    optimizedScore: null,
-    hasOriginalEvaluation: false,
-    hasOptimizedEvaluation: false,
-    originalEvaluationResult: null,
-    optimizedEvaluationResult: null,
-    originalScoreLevel: null,
-    optimizedScoreLevel: null,
+    hasPrimaryResult: false,
+    hasSecondaryResult: false,
+    isEvaluatingPrimary: false,
+    isEvaluatingSecondary: false,
+    primaryScore: null,
+    secondaryScore: null,
+    hasPrimaryEvaluation: false,
+    hasSecondaryEvaluation: false,
+    primaryEvaluationResult: null,
+    secondaryEvaluationResult: null,
+    primaryScoreLevel: null,
+    secondaryScoreLevel: null,
 });
 
 const emit = defineEmits<{
@@ -257,23 +258,32 @@ const emit = defineEmits<{
     "open-variable-manager": [];
     "variable-change": [name: string, value: string];
     "save-to-global": [name: string, value: string];
-    "tool-call": [toolCall: ToolCallResult];
-    "tool-calls-updated": [toolCalls: ToolCallResult[]];
+    "tool-call": [toolCall: ToolCallResult, variantId?: string];
+    "tool-calls-updated": [toolCalls: ToolCallResult[], variantId?: string];
     "temporary-variable-remove": [name: string];
     "temporary-variables-clear": [];
     // 🆕 评估相关事件
-    "evaluate-original": [];
-    "evaluate-optimized": [];
+    "evaluate-primary": [];
+    "evaluate-secondary": [];
     "evaluate-with-feedback": [payload: { type: EvaluationType; feedback: string }];
-    "show-original-detail": [];
-    "show-optimized-detail": [];
+    "show-primary-detail": [];
+    "show-secondary-detail": [];
     "apply-improvement": [payload: { improvement: string; type: EvaluationType }];
 }>();
 
-// 🆕 工具调用状态管理（支持对比模式）
-const toolCalls = ref<ToolCallResult[]>([]);
-const originalToolCalls = ref<ToolCallResult[]>([]);
-const optimizedToolCalls = ref<ToolCallResult[]>([]);
+// 🆕 工具调用状态管理（按 variantId 分桶）
+const variantToolCalls = reactive<Record<string, ToolCallResult[]>>({
+    [COMPARE_BASELINE_VARIANT_ID]: [],
+    [COMPARE_CANDIDATE_VARIANT_ID]: [],
+    [SINGLE_TEST_VARIANT_ID]: [],
+});
+
+const ensureToolCallBucket = (variantId: string): ToolCallResult[] => {
+    if (!variantToolCalls[variantId]) {
+        variantToolCalls[variantId] = [];
+    }
+    return variantToolCalls[variantId];
+};
 
 // 🆕 处理对比模式切换
 const handleCompareToggle = () => {
@@ -283,35 +293,27 @@ const handleCompareToggle = () => {
 };
 
 // 🆕 处理工具调用的方法（支持对比模式）
-const handleToolCall = (toolCall: ToolCallResult, testType?: 'original' | 'optimized') => {
-    if (props.isCompareMode && testType) {
-        // 对比模式：根据 testType 添加到对应数组
-        if (testType === 'original') {
-            originalToolCalls.value.push(toolCall);
-        } else {
-            optimizedToolCalls.value.push(toolCall);
-        }
-    } else {
-        // 单一模式：添加到统一数组
-        toolCalls.value.push(toolCall);
-    }
-    emit("tool-call", toolCall);
-    emit("tool-calls-updated", toolCalls.value);
+const handleToolCall = (toolCall: ToolCallResult, variantId?: string) => {
+    const resolvedVariantId =
+        variantId ||
+        (props.isCompareMode ? COMPARE_CANDIDATE_VARIANT_ID : SINGLE_TEST_VARIANT_ID);
+    const bucket = ensureToolCallBucket(resolvedVariantId);
+    bucket.push(toolCall);
+
+    emit("tool-call", toolCall, resolvedVariantId);
+    emit("tool-calls-updated", bucket, resolvedVariantId);
     recordUpdate();
 };
 
-// 🆕 清除工具调用数据的方法（支持对比模式）
-const clearToolCalls = (testType?: 'original' | 'optimized' | 'both') => {
-    if (!testType || testType === 'both') {
-        // 清除所有
-        toolCalls.value = [];
-        originalToolCalls.value = [];
-        optimizedToolCalls.value = [];
-    } else if (testType === 'original') {
-        originalToolCalls.value = [];
-    } else if (testType === 'optimized') {
-        optimizedToolCalls.value = [];
+// 🆕 清除工具调用数据的方法（按 variantId 分桶）
+const clearToolCalls = (variantId?: string) => {
+    if (!variantId) {
+        Object.keys(variantToolCalls).forEach((key) => {
+            variantToolCalls[key] = [];
+        });
+        return;
     }
+    variantToolCalls[variantId] = [];
 };
 
 // 响应式布局配置
@@ -401,11 +403,7 @@ if (import.meta.env.DEV) {
 defineExpose({
     handleToolCall,
     clearToolCalls,
-    // 🆕 支持对比模式的工具调用数据
-    getToolCalls: () => ({
-        original: props.isCompareMode ? originalToolCalls.value : [],
-        optimized: props.isCompareMode ? optimizedToolCalls.value : toolCalls.value
-    }),
+    getToolCalls: () => ({ ...variantToolCalls }),
     getVariableValues,
     setVariableValues,
     // 预览功能占位符（兼容接口）

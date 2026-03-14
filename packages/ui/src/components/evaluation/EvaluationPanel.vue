@@ -28,7 +28,7 @@
             <NText depth="3">{{ error }}</NText>
           </template>
           <template #footer>
-            <NButton @click="handleRetry">{{ t('common.retry') }}</NButton>
+            <NButton :disabled="isActionDisabled" @click="handleRetry">{{ t('common.retry') }}</NButton>
           </template>
         </NResult>
       </template>
@@ -37,6 +37,15 @@
       <template v-else-if="result">
         <NScrollbar style="max-height: calc(100vh - 120px);">
           <NSpace vertical :size="20">
+            <NAlert
+              v-if="stale"
+              type="warning"
+              :bordered="false"
+              class="stale-alert"
+            >
+              {{ staleMessage || t('evaluation.stale.default') }}
+            </NAlert>
+
             <!-- 总分展示 -->
             <div class="score-section">
               <div class="overall-score" :class="scoreLevelClass">
@@ -129,7 +138,7 @@
               <FeedbackEditor
                 v-model="feedbackDraft"
                 :show-actions="false"
-                :disabled="isEvaluating"
+                :disabled="isActionDisabled"
               />
             </NCard>
           </NSpace>
@@ -163,7 +172,7 @@
             <FeedbackEditor
               v-model="feedbackDraft"
               :show-actions="false"
-              :disabled="isEvaluating"
+              :disabled="isActionDisabled"
             />
           </NCard>
         </NSpace>
@@ -179,8 +188,9 @@
             <NButton
               v-if="currentType"
               type="primary"
-              :disabled="isEvaluating"
+              :disabled="isActionDisabled"
               :loading="isEvaluating"
+              data-testid="evaluation-panel-re-evaluate"
               @click="handleReEvaluateClick"
             >
               {{ t('evaluation.reEvaluate') }}
@@ -211,6 +221,7 @@ import {
   NSpin,
   NScrollbar,
   NEmpty,
+  NAlert,
   NList,
   NListItem,
   NTag,
@@ -230,6 +241,9 @@ const props = defineProps<{
   streamContent: string
   error: string | null
   scoreLevel: 'excellent' | 'good' | 'acceptable' | 'poor' | 'very-poor' | null
+  stale?: boolean
+  staleMessage?: string
+  disableEvaluate?: boolean
 }>()
 
 // Emits
@@ -251,6 +265,7 @@ const { t } = useI18n()
 // 流式内容滚动条引用
 const streamScrollbarRef = ref<ScrollbarInst | null>(null)
 const feedbackDraft = ref('')
+const isActionDisabled = computed(() => props.isEvaluating || !!props.disableEvaluate)
 
 // 监听流式内容变化，自动滚动到底部
 watch(() => props.streamContent, () => {
@@ -267,10 +282,8 @@ const tOr = (key: string, fallback: string): string => {
 // 面板标题
 const panelTitle = computed(() => {
   switch (props.currentType) {
-    case 'original':
-      return t('evaluation.title.original')
-    case 'optimized':
-      return t('evaluation.title.optimized')
+    case 'result':
+      return t('evaluation.title.result')
     case 'compare':
       return t('evaluation.title.compare')
     case 'prompt-only':
@@ -339,11 +352,14 @@ const handleClear = () => {
 
 // 重试评估
 const handleRetry = () => {
+  if (isActionDisabled.value) return
   emit('retry')
 }
 
 // 重新评估
 const handleReEvaluateClick = () => {
+  if (isActionDisabled.value) return
+
   const trimmed = feedbackDraft.value.trim()
 
   if (trimmed) {
@@ -359,7 +375,7 @@ const handleReEvaluateClick = () => {
 const handleApplyImprovement = (improvement: string) => {
   emit('apply-improvement', {
     improvement,
-    type: props.currentType || 'optimized'
+    type: props.currentType || 'prompt-only'
   })
 }
 
@@ -559,6 +575,10 @@ watch(() => props.show, (visible) => {
 
 .optional-tag {
   opacity: 0.85;
+}
+
+.stale-alert {
+  margin-bottom: -4px;
 }
 
 </style>

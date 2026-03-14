@@ -9,6 +9,15 @@
     <!-- 有评估结果 -->
     <template v-else-if="result">
       <div class="hover-card-scroll">
+        <NAlert
+          v-if="stale"
+          type="warning"
+          :bordered="false"
+          class="stale-alert"
+        >
+          {{ staleMessage || t('evaluation.stale.default') }}
+        </NAlert>
+
         <!-- 总分 + 等级 -->
         <NSpace align="center" :size="12" class="score-header">
           <NProgress
@@ -137,15 +146,30 @@
               </NTag>
             </NSpace>
           </template>
-          <FeedbackEditor v-model="feedbackDraft" :show-actions="false" />
+          <FeedbackEditor
+            v-model="feedbackDraft"
+            :show-actions="false"
+            :disabled="disableEvaluate"
+          />
         </NCard>
 
         <NDivider class="section-divider" />
         <NSpace justify="space-between" class="full-width">
-          <NButton text size="tiny" @click="handleShowDetail">
+          <NButton
+            text
+            size="tiny"
+            data-testid="evaluation-hover-view-details"
+            @click="handleShowDetail"
+          >
             {{ t('evaluation.viewDetails') }}
           </NButton>
-          <NButton type="primary" size="tiny" @click="handleEvaluateClick">
+          <NButton
+            type="primary"
+            size="tiny"
+            :disabled="disableEvaluate"
+            data-testid="evaluation-hover-re-evaluate"
+            @click="handleEvaluateClick"
+          >
             {{ t('evaluation.reEvaluate') }}
           </NButton>
         </NSpace>
@@ -157,7 +181,13 @@
       <NEmpty :description="t('evaluation.noResult')">
         <template #extra>
           <NSpace justify="center" :size="8">
-            <NButton type="primary" size="small" @click="handleEvaluateClick">
+            <NButton
+              type="primary"
+              size="small"
+              :disabled="disableEvaluate"
+              data-testid="evaluation-hover-evaluate"
+              @click="handleEvaluateClick"
+            >
               {{ t('evaluation.evaluate') }}
             </NButton>
           </NSpace>
@@ -174,7 +204,11 @@
             </NTag>
           </NSpace>
         </template>
-        <FeedbackEditor v-model="feedbackDraft" :show-actions="false" />
+        <FeedbackEditor
+          v-model="feedbackDraft"
+          :show-actions="false"
+          :disabled="disableEvaluate"
+        />
       </NCard>
     </div>
   </div>
@@ -183,7 +217,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NDivider, NEmpty, NIcon, NList, NListItem, NProgress, NSpace, NSpin, NTag, NText } from 'naive-ui'
+import { NAlert, NButton, NCard, NDivider, NEmpty, NIcon, NList, NListItem, NProgress, NSpace, NSpin, NTag, NText } from 'naive-ui'
 import type { EvaluationResponse, EvaluationType, PatchOperation } from '@prompt-optimizer/core'
 import { Bulb, Tool } from '@vicons/tabler'
 import InlineDiff from './InlineDiff.vue'
@@ -193,6 +227,9 @@ const props = defineProps<{
   result: EvaluationResponse | null
   type: EvaluationType
   loading?: boolean
+  stale?: boolean
+  staleMessage?: string
+  disableEvaluate?: boolean
   /** 由父组件传入，用于在 popover 关闭时重置内部编辑器状态 */
   visible?: boolean
 }>()
@@ -247,6 +284,8 @@ const handleShowDetail = () => {
 }
 
 const handleEvaluateClick = () => {
+  if (props.disableEvaluate) return
+
   const trimmed = feedbackDraft.value.trim()
 
   if (trimmed) {
@@ -311,6 +350,10 @@ const handleApplyPatch = (operation: PatchOperation) => {
 
 /* 分数头部 */
 .score-header {
+  margin-bottom: 10px;
+}
+
+.stale-alert {
   margin-bottom: 10px;
 }
 

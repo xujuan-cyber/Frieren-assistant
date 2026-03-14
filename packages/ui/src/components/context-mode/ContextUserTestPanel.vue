@@ -38,40 +38,38 @@
             <TestResultSection
                 :is-compare-mode="isCompareMode"
                 :vertical-layout="adaptiveResultVerticalLayout"
-                :show-original="isCompareMode"
-                :original-result-title="t('test.originalResult')"
-                :optimized-result-title="t('test.optimizedResult')"
+                :show-primary="isCompareMode"
+                :primary-title="t('test.compareResultA')"
+                :secondary-title="t('test.compareResultB')"
                 :single-result-title="singleResultTitle"
                 :size="adaptiveButtonSize"
                 :style="{ flex: 1, minHeight: 0 }"
                 :show-evaluation="showEvaluation"
-                :has-original-result="hasOriginalResult"
-                :has-optimized-result="hasOptimizedResult"
-                :is-evaluating-original="isEvaluatingOriginal"
-                :is-evaluating-optimized="isEvaluatingOptimized"
-                :original-score="originalScore"
-                :optimized-score="optimizedScore"
-                :has-original-evaluation="hasOriginalEvaluation"
-                :has-optimized-evaluation="hasOptimizedEvaluation"
-                :original-evaluation-result="originalEvaluationResult"
-                :optimized-evaluation-result="optimizedEvaluationResult"
-                :original-score-level="originalScoreLevel"
-                :optimized-score-level="optimizedScoreLevel"
-                @evaluate-original="emit('evaluate-original')"
-                @evaluate-optimized="emit('evaluate-optimized')"
+                :has-primary-result="hasPrimaryResult"
+                :has-secondary-result="hasSecondaryResult"
+                :is-evaluating-primary="isEvaluatingPrimary"
+                :is-evaluating-secondary="isEvaluatingSecondary"
+                :primary-score="primaryScore"
+                :secondary-score="secondaryScore"
+                :has-primary-evaluation="hasPrimaryEvaluation"
+                :has-secondary-evaluation="hasSecondaryEvaluation"
+                :primary-evaluation-result="primaryEvaluationResult"
+                :secondary-evaluation-result="secondaryEvaluationResult"
+                :primary-score-level="primaryScoreLevel"
+                :secondary-score-level="secondaryScoreLevel"
+                @evaluate-primary="emit('evaluate-primary')"
+                @evaluate-secondary="emit('evaluate-secondary')"
                 @evaluate-with-feedback="emit('evaluate-with-feedback', $event)"
-                @show-original-detail="emit('show-original-detail')"
-                @show-optimized-detail="emit('show-optimized-detail')"
+                @show-primary-detail="emit('show-primary-detail')"
+                @show-secondary-detail="emit('show-secondary-detail')"
                 @apply-improvement="emit('apply-improvement', $event)"
             >
-                <!-- 对比模式：原始结果 -->
-                <template #original-result>
-                    <slot name="original-result"></slot>
+                <template #primary-result>
+                    <slot name="primary-result"></slot>
                 </template>
 
-                <!-- 对比模式：优化结果 -->
-                <template #optimized-result>
-                    <slot name="optimized-result"></slot>
+                <template #secondary-result>
+                    <slot name="secondary-result"></slot>
                 </template>
 
                 <!-- 单一结果模式 -->
@@ -166,22 +164,22 @@ interface Props {
     // 🆕 评估功能配置
     showEvaluation?: boolean;
     // 是否有测试结果（用于显示评估按钮）
-    hasOriginalResult?: boolean;
-    hasOptimizedResult?: boolean;
+    hasPrimaryResult?: boolean;
+    hasSecondaryResult?: boolean;
     // 评估状态
-    isEvaluatingOriginal?: boolean;
-    isEvaluatingOptimized?: boolean;
+    isEvaluatingPrimary?: boolean;
+    isEvaluatingSecondary?: boolean;
     // 评估分数
-    originalScore?: number | null;
-    optimizedScore?: number | null;
+    primaryScore?: number | null;
+    secondaryScore?: number | null;
     // 是否有评估结果
-    hasOriginalEvaluation?: boolean;
-    hasOptimizedEvaluation?: boolean;
+    hasPrimaryEvaluation?: boolean;
+    hasSecondaryEvaluation?: boolean;
     // 评估结果和等级（用于悬浮预览）
-    originalEvaluationResult?: EvaluationResponse | null;
-    optimizedEvaluationResult?: EvaluationResponse | null;
-    originalScoreLevel?: ScoreLevel | null;
-    optimizedScoreLevel?: ScoreLevel | null;
+    primaryEvaluationResult?: EvaluationResponse | null;
+    secondaryEvaluationResult?: EvaluationResponse | null;
+    primaryScoreLevel?: ScoreLevel | null;
+    secondaryScoreLevel?: ScoreLevel | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -201,18 +199,18 @@ const props = withDefaults(defineProps<Props>(), {
     services: null,
     // 评估默认值
     showEvaluation: false,
-    hasOriginalResult: false,
-    hasOptimizedResult: false,
-    isEvaluatingOriginal: false,
-    isEvaluatingOptimized: false,
-    originalScore: null,
-    optimizedScore: null,
-    hasOriginalEvaluation: false,
-    hasOptimizedEvaluation: false,
-    originalEvaluationResult: null,
-    optimizedEvaluationResult: null,
-    originalScoreLevel: null,
-    optimizedScoreLevel: null,
+    hasPrimaryResult: false,
+    hasSecondaryResult: false,
+    isEvaluatingPrimary: false,
+    isEvaluatingSecondary: false,
+    primaryScore: null,
+    secondaryScore: null,
+    hasPrimaryEvaluation: false,
+    hasSecondaryEvaluation: false,
+    primaryEvaluationResult: null,
+    secondaryEvaluationResult: null,
+    primaryScoreLevel: null,
+    secondaryScoreLevel: null,
 });
 
 const emit = defineEmits<{
@@ -225,11 +223,11 @@ const emit = defineEmits<{
     "temporary-variable-remove": [name: string];
     "temporary-variables-clear": [];
     // 🆕 评估相关事件
-    "evaluate-original": [];
-    "evaluate-optimized": [];
+    "evaluate-primary": [];
+    "evaluate-secondary": [];
     "evaluate-with-feedback": [payload: { type: EvaluationType; feedback: string }];
-    "show-original-detail": [];
-    "show-optimized-detail": [];
+    "show-primary-detail": [];
+    "show-secondary-detail": [];
     "apply-improvement": [payload: { improvement: string; type: EvaluationType }];
 }>();
 
@@ -351,7 +349,7 @@ defineExpose({
     // ContextUser 不支持工具调用，提供空实现
     clearToolCalls: () => {},
     handleToolCall: () => {},
-    getToolCalls: () => ({ original: [], optimized: [] }),
+    getToolCalls: () => ({}),
 
     // 变量管理
     getVariableValues,

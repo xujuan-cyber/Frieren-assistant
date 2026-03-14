@@ -1088,14 +1088,17 @@ export default {
     compareMode: "对比模式",
     layout: {
       columns: "列数",
+      workspace: "工作区",
       original: "原始",
       latest: "最新",
       runAll: "测试全部",
       runThisColumn: "测试此列",
       stale: "配置已变更",
     },
-    originalResult: "原始提示词结果",
-    optimizedResult: "优化后提示词结果",
+    originalResult: "结果 A",
+    optimizedResult: "结果 B",
+    compareResultA: "结果 A",
+    compareResultB: "结果 B",
     testResult: "测试结果",
     userPromptTest: "用户提示词测试",
     advanced: {
@@ -1109,6 +1112,7 @@ export default {
       failed: "测试失败",
       noModel: "请先选择测试模型",
       noTestContent: "请输入测试内容",
+      noWorkspacePrompt: "工作区为空，请先在下方工作区输入或生成提示词",
       noOriginalPrompt: "请先输入原始提示词",
       noOptimizedPrompt: "请先生成优化后的提示词",
       missingVariables: "检测到缺失或未填变量：{vars}",
@@ -2161,21 +2165,26 @@ export default {
     feedbackSubmit: "提交并开始分析",
 
     focus: "聚焦",
-    focusTitle: "聚焦点",
-    focusPlaceholder:
-      "可选：输入你希望评估重点关注的方面/意见（例如输出结构、约束遗漏、示例长度等）",
-    focusHint: "不填写也可以直接开始（等同默认智能评估）",
-    title: {
-      default: "评估结果",
-      original: "原始提示词评估",
-      optimized: "优化后评估",
-      compare: "对比评估",
-      promptOnly: "提示词质量分析",
+      focusTitle: "聚焦点",
+      focusPlaceholder:
+        "可选：输入你希望评估重点关注的方面/意见（例如输出结构、约束遗漏、示例长度等）",
+      focusHint: "不填写也可以直接开始（等同默认智能评估）",
+      stale: {
+        default: "当前内容已变更，这份评估结果基于旧快照。",
+        promptOnly: "当前提示词已变更，这份分析结果基于旧内容。",
+        promptIterate: "当前提示词或迭代要求已变更，这份分析结果基于旧内容。",
+        result: "当前测试配置或工作区内容已变更，这份评估结果基于旧快照。",
+        compare: "当前测试配置或工作区内容已变更，这份对比评估基于旧快照。",
+      },
+      title: {
+        default: "评估结果",
+        result: "测试结果评估",
+        compare: "对比评估",
+        promptOnly: "提示词质量分析",
       promptIterate: "迭代优化分析",
     },
     type: {
-      original: "评估原始提示词",
-      optimized: "评估优化效果",
+      result: "评估该结果",
       compare: "对比评估",
     },
     level: {
@@ -2193,11 +2202,19 @@ export default {
     },
     optimizedBetter: "优化后效果更好",
     originalBetter: "原始效果更好",
+    syntheticInput: {
+      noExplicitText: "无额外测试输入，输出直接基于当前提示词生成。",
+      noExplicitVariables: "无额外变量输入。",
+    },
     error: {
       title: "评估失败",
       serviceNotReady: "评估服务未就绪，请稍后再试",
       failed: "评估失败：{error}",
       noOptimizedPrompt: "没有可优化的提示词",
+    },
+    designContext: {
+      basic: "设计上下文",
+      advanced: "设计上下文",
     },
 
     // 变量提取相关翻译

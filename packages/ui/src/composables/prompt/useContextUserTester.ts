@@ -5,28 +5,19 @@ import { getI18nErrorMessage } from '../../utils/error'
 import type { AppServices } from '../../types/services'
 import type { ConversationMessage } from '../../types/variable'
 import type { VariableManagerHooks } from './useVariableManager'
-
-/**
- * ContextUser 模式测试结果接口
- */
-export interface ContextUserTestResults {
-  // 原始提示词结果
-  originalResult: string
-  originalReasoning: string
-  isTestingOriginal: boolean
-
-  // 优化提示词结果
-  optimizedResult: string
-  optimizedReasoning: string
-  isTestingOptimized: boolean
-}
+import {
+  COMPARE_BASELINE_VARIANT_ID,
+  COMPARE_CANDIDATE_VARIANT_ID,
+  createCompareTestVariantStateMap,
+  type CompareTestVariantId,
+} from './testVariantState'
 
 /**
  * ContextUser 模式测试器接口
  */
 export interface UseContextUserTester {
-  // 测试结果状态
-  testResults: ContextUserTestResults
+  // 内部统一按 variantId 分桶的状态
+  variantStates: ReturnType<typeof createCompareTestVariantStateMap>
 
   // 方法
   executeTest: (
@@ -78,7 +69,7 @@ export function useContextUserTester(
 
   type InternalTesterState = UseContextUserTester & {
     testPromptWithType: (
-      type: 'original' | 'optimized',
+      variantId: CompareTestVariantId,
       prompt: string,
       optimizedPrompt: string,
       testVars?: Record<string, string>
@@ -87,18 +78,7 @@ export function useContextUserTester(
 
   // 创建响应式状态对象
   const state = reactive<InternalTesterState>({
-    // 测试结果状态
-    testResults: {
-      // 原始提示词结果
-      originalResult: '',
-      originalReasoning: '',
-      isTestingOriginal: false,
-
-      // 优化提示词结果
-      optimizedResult: '',
-      optimizedReasoning: '',
-      isTestingOptimized: false,
-    },
+    variantStates: createCompareTestVariantStateMap(),
 
     // 执行测试（支持对比模式）
     executeTest: async (
@@ -121,13 +101,13 @@ export function useContextUserTester(
         // 对比模式：并发测试原始和优化提示词
         await Promise.all([
           state.testPromptWithType(
-            'original',
+            COMPARE_BASELINE_VARIANT_ID,
             prompt,
             optimizedPrompt,
             testVariables
           ),
           state.testPromptWithType(
-            'optimized',
+            COMPARE_CANDIDATE_VARIANT_ID,
             prompt,
             optimizedPrompt,
             testVariables
@@ -136,7 +116,7 @@ export function useContextUserTester(
       } else {
         // 单一模式：只测试优化后的提示词
         await state.testPromptWithType(
-          'optimized',
+          COMPARE_CANDIDATE_VARIANT_ID,
           prompt,
           optimizedPrompt,
           testVariables
@@ -148,13 +128,14 @@ export function useContextUserTester(
      * 测试特定类型的提示词（内部方法）
      */
     testPromptWithType: async (
-      type: 'original' | 'optimized',
+      variantId: CompareTestVariantId,
       prompt: string,
       optimizedPrompt: string,
       testVars?: Record<string, string>
     ) => {
-      const isOriginal = type === 'original'
+      const isOriginal = variantId === COMPARE_BASELINE_VARIANT_ID
       const selectedPrompt = isOriginal ? prompt : optimizedPrompt
+      const targetState = state.variantStates[variantId]
 
       // 检查提示词
       if (!selectedPrompt) {
@@ -165,39 +146,25 @@ export function useContextUserTester(
       }
 
       // 设置测试状态
-      if (isOriginal) {
-        state.testResults.isTestingOriginal = true
-        state.testResults.originalResult = ''
-        state.testResults.originalReasoning = ''
-      } else {
-        state.testResults.isTestingOptimized = true
-        state.testResults.optimizedResult = ''
-        state.testResults.optimizedReasoning = ''
-      }
+      targetState.isRunning = true
+      targetState.result = ''
+      targetState.reasoning = ''
 
       try {
         const streamHandler = {
           onToken: (token: string) => {
-            if (isOriginal) {
-              state.testResults.originalResult += token
-            } else {
-              state.testResults.optimizedResult += token
-            }
+            targetState.result += token
           },
           onReasoningToken: (reasoningToken: string) => {
-            if (isOriginal) {
-              state.testResults.originalReasoning += reasoningToken
-            } else {
-              state.testResults.optimizedReasoning += reasoningToken
-            }
+            targetState.reasoning += reasoningToken
           },
           onComplete: () => {
             // Test completed successfully
           },
           onError: (err: Error) => {
             const errorMessage = err.message || t('test.error.failed')
-            console.error(`[useContextUserTester] ${type} test failed:`, errorMessage)
-            const testTypeKey = type === 'original' ? 'originalTestFailed' : 'optimizedTestFailed'
+            console.error(`[useContextUserTester] ${variantId} test failed:`, errorMessage)
+            const testTypeKey = isOriginal ? 'originalTestFailed' : 'optimizedTestFailed'
             toast.error(`${t(`test.error.${testTypeKey}`)}: ${errorMessage}`)
           },
         }
@@ -232,17 +199,12 @@ export function useContextUserTester(
           streamHandler
         )
       } catch (error: unknown) {
-        console.error(`[useContextUserTester] ${type} test error:`, error)
+        console.error(`[useContextUserTester] ${variantId} test error:`, error)
         const errorMessage = getI18nErrorMessage(error, t('test.error.failed'))
-        const testTypeKey = type === 'original' ? 'originalTestFailed' : 'optimizedTestFailed'
+        const testTypeKey = isOriginal ? 'originalTestFailed' : 'optimizedTestFailed'
         toast.error(`${t(`test.error.${testTypeKey}`)}: ${errorMessage}`)
       } finally {
-        // 重置测试状态
-        if (isOriginal) {
-          state.testResults.isTestingOriginal = false
-        } else {
-          state.testResults.isTestingOptimized = false
-        }
+        targetState.isRunning = false
       }
     },
   })

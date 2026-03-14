@@ -43,12 +43,10 @@ const ChartIcon = {
 
 // Props
 const props = defineProps<{
-  /** 是否有原始测试结果 */
-  hasOriginalResult: boolean
-  /** 是否有优化后测试结果 */
-  hasOptimizedResult: boolean
-  /** 是否为对比模式 */
-  isCompareMode: boolean
+  /** 是否至少存在一个可评估结果 */
+  hasResult: boolean
+  /** 是否存在可执行的对比评估 */
+  hasCompareResult?: boolean
   /** 是否正在评估 */
   isEvaluating: boolean
 }>()
@@ -62,33 +60,22 @@ const { t } = useI18n()
 
 // 是否有任何测试结果
 const hasAnyResult = computed(() => {
-  return props.hasOriginalResult || props.hasOptimizedResult
+  return props.hasResult
 })
 
 // 下拉菜单选项
 const evaluationOptions = computed<DropdownOption[]>(() => {
   const options: DropdownOption[] = []
 
-  // 原始提示词评估（需要有原始测试结果）
-  if (props.hasOriginalResult) {
+  if (props.hasResult) {
     options.push({
-      label: t('evaluation.type.original'),
-      key: 'original',
-      disabled: !props.hasOriginalResult,
+      label: t('evaluation.type.result'),
+      key: 'result',
+      disabled: !props.hasResult,
     })
   }
 
-  // 优化后评估（需要有优化测试结果）
-  if (props.hasOptimizedResult) {
-    options.push({
-      label: t('evaluation.type.optimized'),
-      key: 'optimized',
-      disabled: !props.hasOptimizedResult,
-    })
-  }
-
-  // 对比评估（需要同时有两个结果，且在对比模式下）
-  if (props.isCompareMode && props.hasOriginalResult && props.hasOptimizedResult) {
+  if (props.hasResult && props.hasCompareResult) {
     options.push({
       type: 'divider',
       key: 'd1',
@@ -96,7 +83,7 @@ const evaluationOptions = computed<DropdownOption[]>(() => {
     options.push({
       label: t('evaluation.type.compare'),
       key: 'compare',
-      disabled: !(props.hasOriginalResult && props.hasOptimizedResult),
+      disabled: !props.hasCompareResult,
     })
   }
 

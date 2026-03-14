@@ -14,7 +14,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, type Ref } from 'vue'
+import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
 import {
@@ -23,22 +23,12 @@ import {
 } from '../../types/evaluation'
 
 /**
- * 测试结果结构
- */
-export interface TestResults {
-  originalResult: string
-  originalReasoning: string
-  optimizedResult: string
-  optimizedReasoning: string
-}
-
-/**
  * basic-system 测试面板的版本选择：
+ * - 'workspace': 下方工作区当前内容（未保存草稿也算）
  * - 0: v0（原始提示词）
  * - >=1: v1..vn（历史链版本号）
- * - 'latest': 跟随最新 vn
  */
-export type TestPanelVersionValue = 0 | number | 'latest'
+export type TestPanelVersionValue = 'workspace' | 0 | number
 
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
 
@@ -82,9 +72,6 @@ export interface BasicSystemSessionState {
   // 测试区域内容（system 模式必填，用于测试区输入框）
   testContent: string
 
-  // 测试结果
-  testResults: TestResults | null
-
   // 测试布局与列配置（basic-system 专用：最多 4 列）
   layout: BasicSystemLayoutConfig
   testVariants: TestVariantConfig[]
@@ -119,13 +106,12 @@ const createDefaultState = (): BasicSystemSessionState => ({
   chainId: '',
   versionId: '',
   testContent: '',
-  testResults: null,
   layout: { mainSplitLeftPct: 50, testColumnCount: 2 },
   testVariants: [
     { id: 'a', version: 0, modelKey: '' },
-    { id: 'b', version: 'latest', modelKey: '' },
-    { id: 'c', version: 'latest', modelKey: '' },
-    { id: 'd', version: 'latest', modelKey: '' },
+    { id: 'b', version: 'workspace', modelKey: '' },
+    { id: 'c', version: 'workspace', modelKey: '' },
+    { id: 'd', version: 'workspace', modelKey: '' },
   ],
   testVariantResults: {
     a: { result: '', reasoning: '' },
@@ -163,16 +149,13 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
   // 测试区域内容
   const testContent = ref('')
 
-  // 测试结果
-  const testResults = ref<TestResults | null>(null)
-
   // 测试布局与列配置（最多 4 列）
   const layout = ref<BasicSystemLayoutConfig>({ mainSplitLeftPct: 50, testColumnCount: 2 })
   const testVariants = ref<TestVariantConfig[]>([
     { id: 'a', version: 0, modelKey: '' },
-    { id: 'b', version: 'latest', modelKey: '' },
-    { id: 'c', version: 'latest', modelKey: '' },
-    { id: 'd', version: 'latest', modelKey: '' },
+    { id: 'b', version: 'workspace', modelKey: '' },
+    { id: 'c', version: 'workspace', modelKey: '' },
+    { id: 'd', version: 'workspace', modelKey: '' },
   ])
 
   const testVariantResults = ref<TestVariantResults>({
@@ -239,31 +222,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     reasoning.value = nextReasoning
     chainId.value = nextChainId
     versionId.value = nextVersionId
-    lastActiveAt.value = Date.now()
-  }
-
-  /**
-   * 更新测试结果
-   */
-  const updateTestResults = (results: TestResults | null) => {
-    const prev = testResults.value
-
-    // 检查是否相同
-    const isSame =
-      prev === results ||
-      (!!prev &&
-        !!results &&
-        prev.originalResult === results.originalResult &&
-        prev.originalReasoning === results.originalReasoning &&
-        prev.optimizedResult === results.optimizedResult &&
-        prev.optimizedReasoning === results.optimizedReasoning)
-
-    if (isSame) {
-      return
-    }
-
-    // 直接赋值给 ref（现在是响应式的）
-    testResults.value = results
     lastActiveAt.value = Date.now()
   }
 
@@ -366,6 +324,16 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
   }
 
   /**
+   * 重置多列测试结果与最近运行指纹
+   */
+  const resetTestVariantState = () => {
+    const defaultState = createDefaultState()
+    testVariantResults.value = defaultState.testVariantResults
+    testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
+    lastActiveAt.value = Date.now()
+  }
+
+  /**
    * 重置状态
    */
   const reset = () => {
@@ -376,7 +344,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     chainId.value = defaultState.chainId
     versionId.value = defaultState.versionId
     testContent.value = defaultState.testContent
-    testResults.value = defaultState.testResults
     layout.value = defaultState.layout
     testVariants.value = defaultState.testVariants
     testVariantResults.value = defaultState.testVariantResults
@@ -409,7 +376,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         chainId: chainId.value,
         versionId: versionId.value,
         testContent: testContent.value,
-        testResults: testResults.value,
         layout: layout.value,
         testVariants: testVariants.value,
         testVariantResults: testVariantResults.value,
@@ -459,19 +425,16 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         chainId.value = parsed.chainId
         versionId.value = parsed.versionId
         testContent.value = parsed.testContent
-        testResults.value = parsed.testResults
 
-        // 兼容旧数据：layout/testVariants 缺失时使用默认值
         const defaultState = createDefaultState()
         const coerceVersionValue = (value: unknown): TestPanelVersionValue | null => {
-          if (value === 'latest') return 'latest'
+          if (value === 'workspace' || value === 'latest') return 'workspace'
           if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return Math.floor(value)
           return null
         }
 
         const legacyModelKey = typeof parsed.selectedTestModelKey === 'string' ? parsed.selectedTestModelKey : ''
 
-        // variant results (v2): 优先从 saved 读取；否则从旧 testResults 迁移 a/b
         const savedVariantResults = (parsed as Partial<BasicSystemSessionState>).testVariantResults
         const savedFingerprint = (parsed as Partial<BasicSystemSessionState>).testVariantLastRunFingerprint
         const nextVariantResults: TestVariantResults = { ...defaultState.testVariantResults }
@@ -492,12 +455,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
             const vr = coerceVariantResult(obj[id])
             if (vr) nextVariantResults[id] = vr
           }
-        } else if (parsed.testResults) {
-          // legacy: 仅 a/b
-          if (typeof parsed.testResults.originalResult === 'string') nextVariantResults.a.result = parsed.testResults.originalResult
-          if (typeof parsed.testResults.originalReasoning === 'string') nextVariantResults.a.reasoning = parsed.testResults.originalReasoning
-          if (typeof parsed.testResults.optimizedResult === 'string') nextVariantResults.b.result = parsed.testResults.optimizedResult
-          if (typeof parsed.testResults.optimizedReasoning === 'string') nextVariantResults.b.reasoning = parsed.testResults.optimizedReasoning
         }
 
         if (savedFingerprint && typeof savedFingerprint === 'object') {
@@ -510,7 +467,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         testVariantResults.value = nextVariantResults
         testVariantLastRunFingerprint.value = nextFingerprint
 
-        // layout
         const savedLayout = (parsed as Partial<BasicSystemSessionState>).layout
         const savedLeftRaw = savedLayout && typeof savedLayout.mainSplitLeftPct === 'number'
           ? savedLayout.mainSplitLeftPct
@@ -539,7 +495,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         } else {
           testVariants.value = defaultState.testVariants.map((v) => ({ ...v, modelKey: legacyModelKey }))
         }
-        // 兼容旧数据：未保存 evaluationResults 时使用默认值
         evaluationResults.value = {
           ...createDefaultEvaluationResults(),
           ...(parsed.evaluationResults && typeof parsed.evaluationResults === 'object'
@@ -588,7 +543,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     chainId,
     versionId,
     testContent,
-    testResults,
     layout,
     testVariants,
     testVariantResults,
@@ -605,7 +559,6 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     updatePrompt,
     updateOptimizedResult,
     updateTestContent,
-    updateTestResults,
     updateOptimizeModel,
     updateTestModel,
     updateTemplate,
@@ -613,6 +566,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     toggleCompareMode,
     setTestColumnCount,
     setMainSplitLeftPct,
+    resetTestVariantState,
     updateTestVariant,
     reset,
 

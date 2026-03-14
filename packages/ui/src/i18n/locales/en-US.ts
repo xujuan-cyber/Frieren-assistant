@@ -1122,14 +1122,17 @@ export default {
     compareMode: "Compare Mode",
     layout: {
       columns: "Columns",
+      workspace: "Workspace",
       original: "Original",
       latest: "Latest",
       runAll: "Run All",
       runThisColumn: "Run This Column",
       stale: "Config Changed",
     },
-    originalResult: "Original Prompt Result",
-    optimizedResult: "Optimized Prompt Result",
+    originalResult: "Result A",
+    optimizedResult: "Result B",
+    compareResultA: "Result A",
+    compareResultB: "Result B",
     testResult: "Test Result",
     userPromptTest: "User Prompt Test",
     advanced: {
@@ -1142,6 +1145,7 @@ export default {
       failed: "Test Failed",
       noModel: "Please select a test model first",
       noTestContent: "Please enter test content",
+      noWorkspacePrompt: "Workspace is empty. Please enter or generate a prompt in the workspace first",
       noOriginalPrompt: "Please enter the original prompt first",
       noOptimizedPrompt: "Please generate the optimized prompt first",
       missingVariables: "Missing or empty variables: {vars}",
@@ -2238,21 +2242,26 @@ export default {
     feedbackSubmit: "Submit & Analyze",
 
     focus: "Focus",
-    focusTitle: "Focus",
-    focusPlaceholder:
-      "Optional: what should the evaluation focus on? (e.g. output structure, missing constraints, example length)",
-    focusHint: "Leave blank to run the default smart evaluation.",
-    title: {
-      default: "Evaluation Result",
-      original: "Original Prompt Evaluation",
-      optimized: "Optimized Prompt Evaluation",
-      compare: "Comparison Evaluation",
-      promptOnly: "Prompt Quality Analysis",
+      focusTitle: "Focus",
+      focusPlaceholder:
+        "Optional: what should the evaluation focus on? (e.g. output structure, missing constraints, example length)",
+      focusHint: "Leave blank to run the default smart evaluation.",
+      stale: {
+        default: "The content has changed. This evaluation result is based on an older snapshot.",
+        promptOnly: "The prompt has changed. This analysis result is based on older content.",
+        promptIterate: "The prompt or iterate requirement has changed. This analysis result is based on older content.",
+        result: "The test configuration or workspace content has changed. This evaluation result is based on an older snapshot.",
+        compare: "The test configuration or workspace content has changed. This comparison evaluation is based on an older snapshot.",
+      },
+      title: {
+        default: "Evaluation Result",
+        result: "Result Evaluation",
+        compare: "Comparison Evaluation",
+        promptOnly: "Prompt Quality Analysis",
       promptIterate: "Iteration Analysis",
     },
     type: {
-      original: "Evaluate Original Prompt",
-      optimized: "Evaluate Optimization",
+      result: "Evaluate This Result",
       compare: "Compare Evaluation",
     },
     level: {
@@ -2270,11 +2279,19 @@ export default {
     },
     optimizedBetter: "Optimized version is better",
     originalBetter: "Original version is better",
+    syntheticInput: {
+      noExplicitText: "No extra test input was provided; the output is generated directly from the current prompt.",
+      noExplicitVariables: "No extra variable input.",
+    },
     error: {
       title: "Evaluation Failed",
       serviceNotReady: "Evaluation service not ready, please try again later",
       failed: "Evaluation failed: {error}",
       noOptimizedPrompt: "No prompt to optimize",
+    },
+    designContext: {
+      basic: "Design Context",
+      advanced: "Design Context",
     },
 
     // Variable extraction related translations

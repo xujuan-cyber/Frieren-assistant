@@ -27,12 +27,6 @@ type BasicSessionStore = {
   chainId: string
   versionId: string
   testContent: string
-  testResults: {
-    originalResult: string
-    originalReasoning: string
-    optimizedResult: string
-    optimizedReasoning: string
-  } | null
   selectedOptimizeModelKey: string
   selectedTestModelKey: string
   selectedTemplateId: string | null
@@ -46,12 +40,6 @@ type BasicSessionStore = {
     versionId: string
   }) => void
   updateTestContent: (content: string) => void
-  updateTestResults: (results: {
-    originalResult: string
-    originalReasoning: string
-    optimizedResult: string
-    optimizedReasoning: string
-  } | null) => void
   updateOptimizeModel: (key: string) => void
   updateTestModel: (key: string) => void
   updateTemplate: (id: string | null) => void
@@ -76,8 +64,6 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
   // 过程态状态
   const isOptimizing = ref(false)
   const isIterating = ref(false)
-  const isTestingOriginal = ref(false)
-  const isTestingOptimized = ref(false)
 
   // 历史管理专用 ref（不写入 session store）
   const currentChainId = ref('')
@@ -117,17 +103,6 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
   const testContent = computed<string>({
     get: () => sessionStore.testContent || '',
     set: (value) => sessionStore.updateTestContent(value || '')
-  })
-
-  const testResults = computed<BasicSessionStore['testResults']>({
-    get: () => {
-      // ✅ 关键修复：始终返回 sessionStore.testResults（即使是 null/undefined）
-      // 避免返回临时对象导致响应式追踪失效
-      return sessionStore.testResults
-    },
-    set: (value) => {
-      sessionStore.updateTestResults(value)
-    }
   })
 
   const selectedOptimizeModelKey = computed<string>({
@@ -412,124 +387,6 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
   }
 
   /**
-   * 3. 测试提示词
-   */
-  const handleTest = async (_testVariables?: Record<string, string>) => {
-    void _testVariables
-    if (!optimizedPrompt.value?.trim()) {
-      toast.error(t('prompt.error.noOptimizedPrompt'))
-      return
-    }
-
-    const promptService = services.value?.promptService
-    if (!promptService) {
-      toast.error(t('toast.error.serviceInit'))
-      return
-    }
-
-    const modelKey = selectedTestModelKey.value
-    if (!modelKey) {
-      toast.error(t('toast.error.noTestModel'))
-      return
-    }
-
-    const isCompareMode = !!sessionStore.isCompareMode
-    const testInput = testContent.value || ''
-
-    // system 模式：必须有测试输入
-    if (optimizationMode === 'system' && !testInput.trim()) {
-      toast.error(t('test.simpleMode.help'))
-      return
-    }
-
-    // 🔧 先清空 session store 的 testResults（避免旧数据影响新测试）
-    sessionStore.updateTestResults(null)
-
-    // 初始化测试结果
-    testResults.value = {
-      originalResult: '',
-      originalReasoning: '',
-      optimizedResult: '',
-      optimizedReasoning: ''
-    }
-
-    try {
-      // 对比模式：先测试原始提示词
-      if (isCompareMode) {
-        isTestingOriginal.value = true
-        const systemPrompt = optimizationMode === 'system' ? prompt.value : ''
-        const userPrompt = optimizationMode === 'system' ? testInput : prompt.value
-        await promptService.testPromptStream(
-          systemPrompt,
-          userPrompt,
-          modelKey,
-          {
-            onToken: (token: string) => {
-              testResults.value = {
-                ...(testResults.value || { originalResult: '', originalReasoning: '', optimizedResult: '', optimizedReasoning: '' }),
-                originalResult: ((testResults.value?.originalResult) || '') + token
-              }
-            },
-            onReasoningToken: (token: string) => {
-              testResults.value = {
-                ...(testResults.value || { originalResult: '', originalReasoning: '', optimizedResult: '', optimizedReasoning: '' }),
-                originalReasoning: ((testResults.value?.originalReasoning) || '') + token
-              }
-            },
-            onComplete: () => {
-              isTestingOriginal.value = false
-            },
-            onError: (error: Error) => {
-              throw error
-            }
-          }
-        )
-      }
-
-      // 测试优化后的提示词
-      isTestingOptimized.value = true
-      const optimizedSystemPrompt = optimizationMode === 'system' ? optimizedPrompt.value : ''
-      const optimizedUserPrompt = optimizationMode === 'system' ? testInput : optimizedPrompt.value
-      await promptService.testPromptStream(
-        optimizedSystemPrompt,
-        optimizedUserPrompt,
-        modelKey,
-        {
-          onToken: (token: string) => {
-              testResults.value = {
-                ...(testResults.value || { originalResult: '', originalReasoning: '', optimizedResult: '', optimizedReasoning: '' }),
-                optimizedResult: ((testResults.value?.optimizedResult) || '') + token
-              }
-          },
-          onReasoningToken: (token: string) => {
-              testResults.value = {
-                ...(testResults.value || { originalResult: '', originalReasoning: '', optimizedResult: '', optimizedReasoning: '' }),
-                optimizedReasoning: ((testResults.value?.optimizedReasoning) || '') + token
-              }
-          },
-          onComplete: () => {
-            toast.success(t('toast.success.testComplete'))
-          },
-          onError: (error: Error) => {
-            throw error
-          }
-        }
-      )
-    } catch (error) {
-      const fallback = t('toast.error.testFailed')
-      const detail = getI18nErrorMessage(error, fallback)
-      if (detail === fallback) {
-        toast.error(fallback)
-      } else {
-        toast.error(`${fallback}: ${detail}`)
-      }
-    } finally {
-      isTestingOriginal.value = false
-      isTestingOptimized.value = false
-    }
-  }
-
-  /**
    * 3.5 保存本地编辑为新版本（不触发 LLM）
    * - 将当前编辑后的 optimizedPrompt 写入历史链
    * - 清空 reasoning（避免误用旧的推理内容）
@@ -659,13 +516,46 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     }
   }
 
+  /**
+   * 6. 分析提示词
+   * - 不写入历史记录
+   * - 只在当前工作区创建一个内存中的虚拟 V0
+   * - 清空当前链绑定，避免旧链继续影响下方版本区和右侧测试区
+   */
+  const handleAnalyze = () => {
+    if (!prompt.value?.trim()) return
+
+    const virtualV0Id = uuidv4()
+    const virtualV0: PromptRecordChain['versions'][number] = {
+      id: virtualV0Id,
+      chainId: '',
+      version: 0,
+      originalPrompt: prompt.value,
+      optimizedPrompt: prompt.value,
+      type: promptRecordType,
+      timestamp: Date.now(),
+      modelKey: '',
+      templateId: '',
+    }
+
+    currentChainId.value = ''
+    currentVersions.value = [virtualV0]
+    currentVersionId.value = virtualV0Id
+
+    sessionStore.updateOptimizedResult({
+      optimizedPrompt: prompt.value,
+      reasoning: '',
+      chainId: '',
+      versionId: '',
+    })
+  }
+
   return {
     // 状态代理
     prompt,
     optimizedPrompt,
     optimizedReasoning,
     testContent,
-    testResults,
     selectedOptimizeModelKey,
     selectedTestModelKey,
     selectedTemplateId,
@@ -674,8 +564,6 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     // 过程态
     isOptimizing,
     isIterating,
-    isTestingOriginal,
-    isTestingOptimized,
 
     // 历史管理
     currentChainId,
@@ -685,9 +573,9 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     // 业务逻辑
     handleOptimize,
     handleIterate,
-    handleTest,
     handleSaveLocalEdit,
     handleSwitchVersion,
-    loadVersions
+    loadVersions,
+    handleAnalyze
   }
 }

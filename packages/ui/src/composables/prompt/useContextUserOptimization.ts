@@ -248,25 +248,48 @@ export function useContextUserOptimization(
               }
 
               try {
-                // 保存迭代历史
-                const iterationData = {
-                  chainId: state.currentChainId,
-                  originalPrompt: originalPrompt,
-                  optimizedPrompt: state.optimizedPrompt,
-                  iterationNote: iterateInput,
-                  modelKey: selectedOptimizeModel.value,
-                  templateId: selectedIterateTemplate.value.id
+                let updatedChain: PromptChain
+
+                // 分析入口会创建仅存在于内存中的虚拟 V0，并清空 currentChainId。
+                // 这时继续优化应从当前工作区内容重新创建一条真实历史链，而不是向空链追加迭代。
+                if (!state.currentChainId) {
+                  updatedChain = await historyManager.value!.createNewChain({
+                    id: uuidv4(),
+                    originalPrompt,
+                    optimizedPrompt: state.optimizedPrompt,
+                    type: 'contextUserOptimize',
+                    modelKey: selectedOptimizeModel.value,
+                    templateId: selectedIterateTemplate.value.id,
+                    iterationNote: iterateInput,
+                    timestamp: Date.now(),
+                    metadata: {
+                      optimizationMode: 'user' as const,
+                      functionMode: 'pro' as const,
+                      createdFromAnalyzeV0: true,
+                    }
+                  })
+                } else {
+                  // 保存迭代历史
+                  const iterationData = {
+                    chainId: state.currentChainId,
+                    originalPrompt: originalPrompt,
+                    optimizedPrompt: state.optimizedPrompt,
+                    iterationNote: iterateInput,
+                    modelKey: selectedOptimizeModel.value,
+                    templateId: selectedIterateTemplate.value.id
+                  }
+
+                  updatedChain = await historyManager.value!.addIteration(iterationData)
                 }
 
-                const updatedChain = await historyManager.value!.addIteration(iterationData)
-
+                state.currentChainId = updatedChain.chainId
                 state.currentVersions = updatedChain.versions
                 state.currentVersionId = updatedChain.currentRecord.id
 
                 toast.success(t('toast.success.iterateComplete'))
               } catch (error: unknown) {
                 console.error('[History] 迭代记录失败:', error)
-                toast.warning(t('toast.warning.historyFailed'))
+                toast.warning(t('toast.warning.saveHistoryFailed'))
               } finally {
                 state.isIterating = false
               }

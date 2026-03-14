@@ -10,7 +10,7 @@
   >
     <!-- 对比模式：双列布局 -->
     <NFlex
-      v-if="isCompareMode && showOriginal"
+      v-if="isCompareMode && showPrimary"
       :vertical="verticalLayout"
       justify="space-between"
       :style="{
@@ -20,7 +20,7 @@
         gap: '12px'
       }"
     >
-      <!-- 原始结果 -->
+      <!-- 第一列结果 -->
       <NCard
         size="small"
         :style="{
@@ -33,49 +33,47 @@
         <template #header>
           <div class="card-header-content">
             <NText style="font-size: 16px; font-weight: 600;">
-              {{ originalTitle }}
+              {{ primaryTitle }}
             </NText>
-            <!-- 原始结果评估入口 -->
-            <div v-if="showEvaluation && hasOriginalResult" class="evaluation-entry">
+            <div v-if="showEvaluation && hasPrimaryResult" class="evaluation-entry">
               <EvaluationScoreBadge
-                v-if="hasOriginalEvaluation || isEvaluatingOriginal"
-                :score="originalScore"
-                :level="originalScoreLevel"
-                :loading="isEvaluatingOriginal"
-                :result="originalEvaluationResult"
-                type="original"
+                v-if="hasPrimaryEvaluation || isEvaluatingPrimary"
+                :score="primaryScore"
+                :level="primaryScoreLevel"
+                :loading="isEvaluatingPrimary"
+                :result="primaryEvaluationResult"
+                type="result"
                 size="small"
-                @show-detail="handleShowOriginalDetail"
-                @evaluate="handleEvaluateOriginal"
+                @show-detail="handleShowPrimaryDetail"
+                @evaluate="handleEvaluatePrimary"
                 @evaluate-with-feedback="handleEvaluateWithFeedback"
                 @apply-improvement="handleApplyImprovement"
                 @apply-patch="handleApplyPatch"
               />
               <FocusAnalyzeButton
                 v-else
-                type="original"
+                type="result"
                 :label="t('evaluation.evaluate')"
-                :loading="isEvaluatingOriginal"
+                :loading="isEvaluatingPrimary"
                 :button-props="{ size: 'tiny', secondary: true }"
-                @evaluate="handleEvaluateOriginal"
+                @evaluate="handleEvaluatePrimary"
                 @evaluate-with-feedback="handleEvaluateWithFeedback"
               />
             </div>
           </div>
         </template>
         <div class="result-body">
-          <slot name="original-result"></slot>
+          <slot name="primary-result"></slot>
         </div>
-        <!-- 原始结果的工具调用 -->
         <ToolCallDisplay
-          v-if="originalResult?.toolCalls"
-          :tool-calls="originalResult.toolCalls"
+          v-if="primaryResult?.toolCalls"
+          :tool-calls="primaryResult.toolCalls"
           :size="size"
           class="tool-calls-section"
         />
       </NCard>
 
-      <!-- 优化结果 -->
+      <!-- 第二列结果 -->
       <NCard
         size="small"
         :style="{
@@ -88,43 +86,41 @@
         <template #header>
           <div class="card-header-content">
             <NText style="font-size: 16px; font-weight: 600;">
-              {{ optimizedTitle }}
+              {{ secondaryTitle }}
             </NText>
-            <!-- 优化结果评估入口 -->
-            <div v-if="showEvaluation && hasOptimizedResult" class="evaluation-entry">
+            <div v-if="showEvaluation && hasSecondaryResult" class="evaluation-entry">
               <EvaluationScoreBadge
-                v-if="hasOptimizedEvaluation || isEvaluatingOptimized"
-                :score="optimizedScore"
-                :level="optimizedScoreLevel"
-                :loading="isEvaluatingOptimized"
-                :result="optimizedEvaluationResult"
-                type="optimized"
+                v-if="hasSecondaryEvaluation || isEvaluatingSecondary"
+                :score="secondaryScore"
+                :level="secondaryScoreLevel"
+                :loading="isEvaluatingSecondary"
+                :result="secondaryEvaluationResult"
+                type="result"
                 size="small"
-                @show-detail="handleShowOptimizedDetail"
-                @evaluate="handleEvaluateOptimized"
+                @show-detail="handleShowSecondaryDetail"
+                @evaluate="handleEvaluateSecondary"
                 @evaluate-with-feedback="handleEvaluateWithFeedback"
                 @apply-improvement="handleApplyImprovement"
                 @apply-patch="handleApplyPatch"
               />
               <FocusAnalyzeButton
                 v-else
-                type="optimized"
+                type="result"
                 :label="t('evaluation.evaluate')"
-                :loading="isEvaluatingOptimized"
+                :loading="isEvaluatingSecondary"
                 :button-props="{ size: 'tiny', secondary: true }"
-                @evaluate="handleEvaluateOptimized"
+                @evaluate="handleEvaluateSecondary"
                 @evaluate-with-feedback="handleEvaluateWithFeedback"
               />
             </div>
           </div>
         </template>
         <div class="result-body">
-          <slot name="optimized-result"></slot>
+          <slot name="secondary-result"></slot>
         </div>
-        <!-- 优化结果的工具调用 -->
         <ToolCallDisplay
-          v-if="optimizedResult?.toolCalls"
-          :tool-calls="optimizedResult.toolCalls"
+          v-if="secondaryResult?.toolCalls"
+          :tool-calls="secondaryResult.toolCalls"
           :size="size"
           class="tool-calls-section"
         />
@@ -147,28 +143,28 @@
           <NText style="font-size: 16px; font-weight: 600;">
             {{ singleResultTitle }}
           </NText>
-          <!-- 单一结果评估入口（使用优化结果的评估状态） -->
-          <div v-if="showEvaluation && hasOptimizedResult" class="evaluation-entry">
+          <div v-if="showEvaluation && hasSecondaryResult" class="evaluation-entry">
             <EvaluationScoreBadge
-              v-if="hasOptimizedEvaluation || isEvaluatingOptimized"
-              :score="optimizedScore"
-              :level="optimizedScoreLevel"
-              :loading="isEvaluatingOptimized"
-              :result="optimizedEvaluationResult"
-              type="optimized"
+              v-if="hasSecondaryEvaluation || isEvaluatingSecondary"
+              :score="secondaryScore"
+              :level="secondaryScoreLevel"
+              :loading="isEvaluatingSecondary"
+              :result="secondaryEvaluationResult"
+              type="result"
               size="small"
-              @show-detail="handleShowOptimizedDetail"
-              @evaluate="handleEvaluateOptimized"
+              @show-detail="handleShowSecondaryDetail"
+              @evaluate="handleEvaluateSecondary"
               @evaluate-with-feedback="handleEvaluateWithFeedback"
               @apply-improvement="handleApplyImprovement"
+              @apply-patch="handleApplyPatch"
             />
             <FocusAnalyzeButton
               v-else
-              type="optimized"
+              type="result"
               :label="t('evaluation.evaluate', '评估')"
-              :loading="isEvaluatingOptimized"
+              :loading="isEvaluatingSecondary"
               :button-props="{ size: 'tiny', secondary: true }"
-              @evaluate="handleEvaluateOptimized"
+              @evaluate="handleEvaluateSecondary"
               @evaluate-with-feedback="handleEvaluateWithFeedback"
             />
           </div>
@@ -203,16 +199,16 @@ interface Props {
   // 布局模式
   isCompareMode?: boolean
   verticalLayout?: boolean
-  showOriginal?: boolean
+  showPrimary?: boolean
 
   // 标题配置
-  originalTitle?: string
-  optimizedTitle?: string
+  primaryTitle?: string
+  secondaryTitle?: string
   singleResultTitle?: string
 
   // 测试结果数据（用于工具调用显示）
-  originalResult?: AdvancedTestResult
-  optimizedResult?: AdvancedTestResult
+  primaryResult?: AdvancedTestResult
+  secondaryResult?: AdvancedTestResult
   singleResult?: AdvancedTestResult
 
   // 尺寸配置
@@ -225,67 +221,66 @@ interface Props {
   // 评估功能配置
   showEvaluation?: boolean
   // 是否有测试结果（用于显示评估按钮）
-  hasOriginalResult?: boolean
-  hasOptimizedResult?: boolean
+  hasPrimaryResult?: boolean
+  hasSecondaryResult?: boolean
   // 评估状态
-  isEvaluatingOriginal?: boolean
-  isEvaluatingOptimized?: boolean
+  isEvaluatingPrimary?: boolean
+  isEvaluatingSecondary?: boolean
   // 评估分数
-  originalScore?: number | null
-  optimizedScore?: number | null
+  primaryScore?: number | null
+  secondaryScore?: number | null
   // 是否有评估结果
-  hasOriginalEvaluation?: boolean
-  hasOptimizedEvaluation?: boolean
+  hasPrimaryEvaluation?: boolean
+  hasSecondaryEvaluation?: boolean
   // 评估结果和等级（用于悬浮预览）
-  originalEvaluationResult?: EvaluationResponse | null
-  optimizedEvaluationResult?: EvaluationResponse | null
-  originalScoreLevel?: ScoreLevel | null
-  optimizedScoreLevel?: ScoreLevel | null
+  primaryEvaluationResult?: EvaluationResponse | null
+  secondaryEvaluationResult?: EvaluationResponse | null
+  primaryScoreLevel?: ScoreLevel | null
+  secondaryScoreLevel?: ScoreLevel | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isCompareMode: false,
   verticalLayout: false,
-  showOriginal: true,
-  originalTitle: '',
-  optimizedTitle: '',
+  showPrimary: true,
+  primaryTitle: '',
+  secondaryTitle: '',
   singleResultTitle: '',
   cardSize: 'small',
   size: 'small',
   gap: 12,
   // 评估默认值
   showEvaluation: false,
-  hasOriginalResult: false,
-  hasOptimizedResult: false,
-  isEvaluatingOriginal: false,
-  isEvaluatingOptimized: false,
-  originalScore: null,
-  optimizedScore: null,
-  hasOriginalEvaluation: false,
-  hasOptimizedEvaluation: false,
-  originalEvaluationResult: null,
-  optimizedEvaluationResult: null,
-  originalScoreLevel: null,
-  optimizedScoreLevel: null
+  hasPrimaryResult: false,
+  hasSecondaryResult: false,
+  isEvaluatingPrimary: false,
+  isEvaluatingSecondary: false,
+  primaryScore: null,
+  secondaryScore: null,
+  hasPrimaryEvaluation: false,
+  hasSecondaryEvaluation: false,
+  primaryEvaluationResult: null,
+  secondaryEvaluationResult: null,
+  primaryScoreLevel: null,
+  secondaryScoreLevel: null
 })
 
 const emit = defineEmits<{
-  'evaluate-original': []
-  'evaluate-optimized': []
+  'evaluate-primary': []
+  'evaluate-secondary': []
   'evaluate-with-feedback': [payload: { type: EvaluationType; feedback: string }]
-  'show-original-detail': []
-  'show-optimized-detail': []
+  'show-primary-detail': []
+  'show-secondary-detail': []
   'apply-improvement': [payload: { improvement: string; type: EvaluationType }]
   'apply-patch': [payload: { operation: PatchOperation }]
 }>()
 
-// 计算属性
-const originalTitle = computed(() =>
-  props.originalTitle || t('test.originalResult', '原始结果')
+const primaryTitle = computed(() =>
+  props.primaryTitle || t('test.compareResultA', '结果 A')
 )
 
-const optimizedTitle = computed(() =>
-  props.optimizedTitle || t('test.optimizedResult', '优化结果')
+const secondaryTitle = computed(() =>
+  props.secondaryTitle || t('test.compareResultB', '结果 B')
 )
 
 const singleResultTitle = computed(() =>
@@ -293,24 +288,24 @@ const singleResultTitle = computed(() =>
 )
 
 // 事件处理
-const handleEvaluateOriginal = () => {
-  emit('evaluate-original')
+const handleEvaluatePrimary = () => {
+  emit('evaluate-primary')
 }
 
-const handleEvaluateOptimized = () => {
-  emit('evaluate-optimized')
+const handleEvaluateSecondary = () => {
+  emit('evaluate-secondary')
 }
 
 const handleEvaluateWithFeedback = (payload: { type: EvaluationType; feedback: string }) => {
   emit('evaluate-with-feedback', payload)
 }
 
-const handleShowOriginalDetail = () => {
-  emit('show-original-detail')
+const handleShowPrimaryDetail = () => {
+  emit('show-primary-detail')
 }
 
-const handleShowOptimizedDetail = () => {
-  emit('show-optimized-detail')
+const handleShowSecondaryDetail = () => {
+  emit('show-secondary-detail')
 }
 
 // 应用改进建议处理

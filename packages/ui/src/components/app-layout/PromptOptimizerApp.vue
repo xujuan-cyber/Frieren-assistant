@@ -263,7 +263,6 @@ import {
     usePromptOptimizer,
     usePromptHistory,
     usePromptPreview,
-    usePromptTester,
     // 模型相关
     useModelManager,
     useModelSelectRefs,
@@ -1028,14 +1027,6 @@ provide("variableManager", variableManager);
 provide("optimizationContext", optimizationContext);
 provide("optimizationContextTools", optimizationContextTools);
 
-// 基础模式提示词测试
-const promptTester = usePromptTester(
-    services,
-    selectedTestModelKey,
-    selectedOptimizationMode,
-    variableManager
-);
-
 // ========== Session Store 状态同步 ==========
 
 // 🔧 Step E: 使用 route-computed 代替旧 state
@@ -1064,7 +1055,7 @@ const getCurrentImageSession = () =>
  * 设计原则：
  * - Basic 模式的核心状态（prompt/optimizedPrompt/reasoning/chainId/versionId）
  *   已通过 computed 绑定到 session store（单一真源），无需手动赋值
- * - 只恢复未绑定的 UI 状态（testContent/modelManager/isCompareMode/testResults）
+ * - 只恢复未绑定的 UI 状态（testContent/modelManager/isCompareMode）
  *
  * 根因分析：
  * - 旧逻辑手动赋值 optimizer.prompt 等字段，破坏了"单一真源"架构
@@ -1083,29 +1074,6 @@ const restoreBasicOrProVariableSession = () => {
     // 恢复对比模式
     isCompareMode.value = session.isCompareMode;
 
-    // 🔧 恢复测试结果（仅 Basic 模式使用 promptTester）
-    // 只恢复稳定字段，不恢复 isTesting* 临时状态
-    if (session.testResults) {
-        promptTester.testResults.originalResult =
-            session.testResults.originalResult || '';
-        promptTester.testResults.originalReasoning =
-            session.testResults.originalReasoning || '';
-        promptTester.testResults.optimizedResult =
-            session.testResults.optimizedResult || '';
-        promptTester.testResults.optimizedReasoning =
-            session.testResults.optimizedReasoning || '';
-        // 重置测试中状态
-        promptTester.testResults.isTestingOriginal = false;
-        promptTester.testResults.isTestingOptimized = false;
-    } else {
-        // 如果 session 中没有测试结果，清空当前测试结果
-        promptTester.testResults.originalResult = '';
-        promptTester.testResults.originalReasoning = '';
-        promptTester.testResults.optimizedResult = '';
-        promptTester.testResults.optimizedReasoning = '';
-        promptTester.testResults.isTestingOriginal = false;
-        promptTester.testResults.isTestingOptimized = false;
-    }
 };
 
 /**
@@ -1361,34 +1329,6 @@ watch(
             });
         }
     }
-);
-
-// 同步测试结果到 session store
-// 🔧 Codex 修复：Image 模式没有 updateTestResults 方法，需要分支处理
-// 🔧 使用 deep: true 捕获深层变化（如 originalResult += token）
-// 🔧 过滤掉 isTesting* 临时状态，只持久化稳定字段
-// 🔧 修复：移除提前的 same value 检查，让 session store 自己处理（避免初始化时的空对象被跳过）
-watch(
-    () => promptTester.testResults,
-    (newTestResults) => {
-        if (sessionManager.isSwitching) return;
-
-        // 仅 Basic 模式使用 promptTester（其他模式有各自的测试器/工作区）
-        if (routeFunctionMode.value !== 'basic') return;
-
-        // 只保存稳定字段，不保存 isTesting* 临时状态
-        const stableResults = newTestResults
-            ? {
-                  originalResult: newTestResults.originalResult || '',
-                  originalReasoning: newTestResults.originalReasoning || '',
-                  optimizedResult: newTestResults.optimizedResult || '',
-                  optimizedReasoning: newTestResults.optimizedReasoning || '',
-              }
-            : null;
-        // 🔧 直接调用，让 session store 的 updateTestResults 方法自己处理 same value 检查
-        getCurrentBasicSession().updateTestResults(stableResults);
-    },
-    { deep: true }  // 🔧 启用深层监听，捕获 streaming 写入等深层变化
 );
 
 /*

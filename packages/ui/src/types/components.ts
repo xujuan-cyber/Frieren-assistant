@@ -227,10 +227,10 @@ export interface TestAreaPanelProps extends BaseComponentProps {
   primaryActionText?: string
   /** 主要操作是否禁用 */
   primaryActionDisabled?: boolean
-  /** 原始测试结果（支持工具调用显示） */
-  originalResult?: AdvancedTestResult
-  /** 优化测试结果（支持工具调用显示） */
-  optimizedResult?: AdvancedTestResult
+  /** 第一列测试结果（支持工具调用显示） */
+  primaryResult?: AdvancedTestResult
+  /** 第二列测试结果（支持工具调用显示） */
+  secondaryResult?: AdvancedTestResult
   /** 单一测试结果（支持工具调用显示） */
   singleResult?: AdvancedTestResult
 }

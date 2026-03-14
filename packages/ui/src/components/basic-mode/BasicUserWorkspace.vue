@@ -196,7 +196,7 @@
                                     {{ t('test.layout.runAll') }}
                                 </NButton>
 
-                                <template v-if="testColumnCountModel === 2 && hasVariantResult('a') && hasVariantResult('b')">
+                                <template v-if="hasCompareCandidates || hasCompareEvaluation">
                                     <EvaluationScoreBadge
                                         v-if="hasCompareEvaluation || isEvaluatingCompare"
                                         :score="compareScore"
@@ -204,6 +204,9 @@
                                         :loading="isEvaluatingCompare"
                                         :result="compareEvaluationResult"
                                         type="compare"
+                                        :stale="isCompareEvaluationStale"
+                                        :stale-message="t('evaluation.stale.compare')"
+                                        :disable-evaluate="!canEvaluateCompare"
                                         size="small"
                                         @show-detail="() => showDetail('compare')"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -215,6 +218,7 @@
                                         v-else
                                         type="compare"
                                         :label="t('evaluation.compareEvaluate')"
+                                        :disabled="!canEvaluateCompare"
                                         :loading="isEvaluatingCompare"
                                         :button-props="{ size: 'small', quaternary: true }"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -322,60 +326,35 @@
                                 >
                                   <template #toolbar-right-extra>
                                     <div
-                                      v-if="id === 'a' && hasVariantResult('a')"
+                                      v-if="hasVariantResult(id)"
                                       class="output-evaluation-entry"
                                     >
                                       <EvaluationScoreBadge
-                                        v-if="hasOriginalEvaluation || isEvaluatingOriginal"
-                                        :score="originalScore"
-                                        :level="originalScoreLevel"
-                                        :loading="isEvaluatingOriginal"
-                                        :result="originalEvaluationResult"
-                                        type="original"
+                                        v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
+                                        :score="getResultEvaluationProps(id).score"
+                                        :level="getResultEvaluationProps(id).scoreLevel"
+                                        :loading="getResultEvaluationProps(id).isEvaluating"
+                                        :result="getResultEvaluationProps(id).evaluationResult"
+                                        type="result"
+                                        :stale="isResultEvaluationStale(id)"
+                                        :stale-message="t('evaluation.stale.result')"
+                                        :disable-evaluate="!canEvaluateResult"
                                         size="small"
-                                        @show-detail="() => showDetail('original')"
-                                        @evaluate="() => handleEvaluate('original')"
-                                        @evaluate-with-feedback="handleEvaluateWithFeedback"
+                                        @show-detail="() => showResultDetail(id)"
+                                        @evaluate="() => handleEvaluateResult(id)"
+                                        @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
                                         @apply-improvement="handleApplyImprovement"
                                         @apply-patch="handleApplyPatch"
                                       />
                                        <FocusAnalyzeButton
                                          v-else
-                                         type="original"
+                                         type="result"
                                          :label="t('evaluation.evaluate')"
-                                         :loading="isEvaluatingOriginal"
+                                         :disabled="!canEvaluateResult"
+                                         :loading="getResultEvaluationProps(id).isEvaluating"
                                          :button-props="{ size: 'small', quaternary: true }"
-                                         @evaluate="() => handleEvaluate('original')"
-                                         @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                       />
-                                    </div>
-
-                                    <div
-                                      v-else-if="id === 'b' && hasVariantResult('b')"
-                                      class="output-evaluation-entry"
-                                    >
-                                      <EvaluationScoreBadge
-                                        v-if="hasOptimizedEvaluation || isEvaluatingOptimized"
-                                        :score="optimizedScore"
-                                        :level="optimizedScoreLevel"
-                                        :loading="isEvaluatingOptimized"
-                                        :result="optimizedEvaluationResult"
-                                        type="optimized"
-                                        size="small"
-                                        @show-detail="() => showDetail('optimized')"
-                                        @evaluate="() => handleEvaluate('optimized')"
-                                        @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                        @apply-improvement="handleApplyImprovement"
-                                        @apply-patch="handleApplyPatch"
-                                      />
-                                       <FocusAnalyzeButton
-                                         v-else
-                                         type="optimized"
-                                         :label="t('evaluation.evaluate')"
-                                         :loading="isEvaluatingOptimized"
-                                         :button-props="{ size: 'small', quaternary: true }"
-                                         @evaluate="() => handleEvaluate('optimized')"
-                                         @evaluate-with-feedback="handleEvaluateWithFeedback"
+                                         @evaluate="() => handleEvaluateResult(id)"
+                                         @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
                                        />
                                     </div>
                                   </template>
@@ -395,12 +374,15 @@
             :error="panelProps.error"
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
-            @re-evaluate="evaluationHandler.handleReEvaluate"
+            :stale="activeEvaluationStale"
+            :stale-message="activeEvaluationStaleMessage"
+            :disable-evaluate="activeEvaluationDisableEvaluate"
+            @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @apply-local-patch="handleApplyPatch"
             @apply-improvement="handleApplyImprovement"
             @clear="handleClearEvaluation"
-            @retry="evaluationHandler.handleReEvaluate"
+            @retry="handleReEvaluateActive"
         />
     </div>
 </template>
@@ -436,6 +418,7 @@ import { useBasicWorkspaceLogic } from '../../composables/workspaces/useBasicWor
 import { useWorkspaceModelSelection } from '../../composables/workspaces/useWorkspaceModelSelection'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
+import { buildCompareEvaluationPayload } from '../../composables/prompt/compareEvaluation'
 import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
 import { NButton, NCard, NFlex, NIcon, NText, NSelect, NRadioGroup, NRadioButton, NTooltip, NTag } from 'naive-ui'
 import InputPanelUI from '../InputPanel.vue'
@@ -444,6 +427,7 @@ import OutputDisplay from '../OutputDisplay.vue'
 import { EvaluationPanel, EvaluationScoreBadge, FocusAnalyzeButton } from '../evaluation'
 import SelectWithConfig from '../SelectWithConfig.vue'
 import { OptionAccessors } from '../../utils/data-transformer'
+import { hashString } from '../../utils/prompt-variables'
 import type { AppServices } from '../../types/services'
 import type { IteratePayload } from '../../types/workspace'
 import { applyPatchOperationsToText, type EvaluationType, type PatchOperation, type Template } from '@prompt-optimizer/core'
@@ -594,7 +578,7 @@ const originalTestVersionModel = computed<TestPanelVersionValue>({
 })
 
 const optimizedTestVersionModel = computed<TestPanelVersionValue>({
-  get: () => getVariant('b')?.version ?? 'latest',
+  get: () => getVariant('b')?.version ?? 'workspace',
   set: (value) => session.updateTestVariant('b', { version: value })
 })
 
@@ -610,12 +594,12 @@ const optimizedTestModelKeyModel = computed<string>({
 
 // C/D 两列（仅在 3/4 列模式下显示）
 const variantCTestVersionModel = computed<TestPanelVersionValue>({
-  get: () => getVariant('c')?.version ?? 'latest',
+  get: () => getVariant('c')?.version ?? 'workspace',
   set: (value) => session.updateTestVariant('c', { version: value })
 })
 
 const variantDTestVersionModel = computed<TestPanelVersionValue>({
-  get: () => getVariant('d')?.version ?? 'latest',
+  get: () => getVariant('d')?.version ?? 'workspace',
   set: (value) => session.updateTestVariant('d', { version: value })
 })
 
@@ -647,8 +631,8 @@ const variantModelKeyModels = {
   d: variantDTestModelKeyModel,
 } as const
 
-// 版本选项：默认仅显示“原始(v0)”与“最新(latest)”，
-// 若存在中间版本，则额外显示 v1..v(n-1)。
+// 版本选项：默认显示“工作区”与“原始(v0)”；
+// 若存在历史版本，则额外显示 v1..vn。
 const versionOptions = computed(() => {
   const versions = logic.currentVersions.value || []
 
@@ -658,13 +642,10 @@ const versionOptions = computed(() => {
     .slice()
     .sort((a, b) => a - b)
 
-  const latest = sortedVersions.length ? sortedVersions[sortedVersions.length - 1] : null
-  const middle = latest ? sortedVersions.filter(v => v < latest) : []
-
   return [
+    { label: t('test.layout.workspace'), value: 'workspace' },
     { label: t('test.layout.original'), value: 0 },
-    ...middle.map(v => ({ label: `v${v}`, value: v })),
-    { label: t('test.layout.latest'), value: 'latest' },
+    ...sortedVersions.map(v => ({ label: `v${v}`, value: v })),
   ]
 })
 
@@ -713,21 +694,15 @@ type ResolvedTestPrompt = { text: string; resolvedVersion: number }
 
 const resolveTestPrompt = (selection: TestPanelVersionValue): ResolvedTestPrompt => {
   const v0 = logic.prompt.value || ''
+  const workspace = logic.optimizedPrompt.value || ''
   const versions = logic.currentVersions.value || []
-  const latest = versions.reduce<{ version: number; optimizedPrompt: string } | null>((acc, v) => {
-    if (typeof v.version !== 'number' || v.version < 1) return acc
-    const next = { version: v.version, optimizedPrompt: v.optimizedPrompt || '' }
-    if (!acc || next.version > acc.version) return next
-    return acc
-  }, null)
+
+  if (selection === 'workspace') {
+    return { text: workspace, resolvedVersion: -1 }
+  }
 
   if (selection === 0) {
     return { text: v0, resolvedVersion: 0 }
-  }
-
-  if (selection === 'latest') {
-    if (!latest) return { text: v0, resolvedVersion: 0 }
-    return { text: latest.optimizedPrompt || '', resolvedVersion: latest.version }
   }
 
   const target = versions.find(v => v.version === selection)
@@ -735,12 +710,8 @@ const resolveTestPrompt = (selection: TestPanelVersionValue): ResolvedTestPrompt
     return { text: target.optimizedPrompt || '', resolvedVersion: target.version }
   }
 
-  if (!latest) return { text: v0, resolvedVersion: 0 }
-  return { text: latest.optimizedPrompt || '', resolvedVersion: latest.version }
+  return { text: '', resolvedVersion: -1 }
 }
-
-const resolvedOriginalTestPrompt = computed(() => resolveTestPrompt(originalTestVersionModel.value))
-const resolvedOptimizedTestPrompt = computed(() => resolveTestPrompt(optimizedTestVersionModel.value))
 
 // ==================== 测试区：多列 variant（最多 4 列） ====================
 
@@ -788,7 +759,8 @@ const getVariantFingerprint = (id: TestVariantId) => {
   const selection = variantVersionModels[id].value
   const resolved = resolveTestPrompt(selection)
   const modelKey = variantModelKeyModels[id].value || ''
-  return `${String(selection)}:${resolved.resolvedVersion}:${modelKey}`
+  const promptHash = hashString((resolved.text || '').trim())
+  return `${String(selection)}:${resolved.resolvedVersion}:${modelKey}:${promptHash}`
 }
 
 const isVariantStale = (id: TestVariantId) => {
@@ -797,6 +769,48 @@ const isVariantStale = (id: TestVariantId) => {
   if (!prev) return false
   return prev !== getVariantFingerprint(id)
 }
+
+const getVariantVersionLabel = (id: TestVariantId): string => {
+  const selection = variantVersionModels[id].value
+  const resolved = resolveTestPrompt(selection)
+  if (selection === 'workspace') return t('test.layout.workspace')
+  if (resolved.resolvedVersion === 0) return t('test.layout.original')
+  return `v${resolved.resolvedVersion}`
+}
+
+const compareReadyVariantIds = computed(() =>
+  activeVariantIds.value.filter((id) => hasVariantResult(id) && !isVariantStale(id))
+)
+
+const hasCompareCandidates = computed(() => compareReadyVariantIds.value.length >= 2)
+const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
+  a: '',
+  b: '',
+  c: '',
+  d: '',
+})
+const compareEvaluationFingerprint = ref('')
+
+const buildCompareEvaluationFingerprint = () =>
+  compareReadyVariantIds.value
+    .map((id) => `${id}:${getVariantFingerprint(id)}`)
+    .join('|')
+
+const isResultEvaluationStale = (id: TestVariantId) => {
+  const props = getResultEvaluationProps(id)
+  if (!props.hasEvaluation) return false
+
+  const storedFingerprint = resultEvaluationFingerprint[id]
+  if (!storedFingerprint) return false
+
+  return storedFingerprint !== getVariantFingerprint(id)
+}
+
+const isCompareEvaluationStale = computed(() => {
+  if (!hasCompareEvaluation.value) return false
+  if (!compareEvaluationFingerprint.value) return false
+  return compareEvaluationFingerprint.value !== buildCompareEvaluationFingerprint()
+})
 
 type VariantTestInput = { prompt: string; modelKey: string; resolvedVersion: number }
 
@@ -809,7 +823,11 @@ const getVariantTestInput = (id: TestVariantId): VariantTestInput | null => {
 
   const resolved = resolveTestPrompt(variantVersionModels[id].value)
   if (!resolved.text?.trim()) {
-    const key = resolved.resolvedVersion === 0 ? 'test.error.noOriginalPrompt' : 'test.error.noOptimizedPrompt'
+    const key = variantVersionModels[id].value === 'workspace'
+      ? 'test.error.noWorkspacePrompt'
+      : resolved.resolvedVersion === 0
+        ? 'test.error.noOriginalPrompt'
+        : 'test.error.noOptimizedPrompt'
     toast.error(t(key))
     return null
   }
@@ -953,10 +971,11 @@ const handleAnalyze = async () => {
 
   analyzing.value = true
   try {
-    // 分析模式不产生新提示词，但评估请求需要 non-empty optimizedPrompt
-    // 将当前原始提示词同步到 optimizedPrompt，供 prompt-only 评估使用
-    logic.optimizedPrompt.value = logic.prompt.value
-    logic.optimizedReasoning.value = ''
+    // 分析应重置当前工作区链，创建仅存在于内存中的虚拟 V0，
+    // 避免下方提示词工作区和右侧测试继续沿用旧的优化链。
+    logic.handleAnalyze()
+    evaluation.clearResult('prompt-only')
+    evaluation.clearResult('prompt-iterate')
 
     isInputPanelCollapsed.value = true
     await nextTick()
@@ -972,14 +991,7 @@ const unwrappedLogicProps = computed(() => ({
   isIterating: logic.isIterating.value,
   currentVersions: logic.currentVersions.value,
   currentVersionId: logic.currentVersionId.value,
-  isTestingOriginal: logic.isTestingOriginal.value,
-  isTestingOptimized: logic.isTestingOptimized.value,
   optimizedReasoning: logic.optimizedReasoning.value,
-  // ✅ 修复：处理 testResults 可能为 null 的情况
-  testResultsOriginalResult: logic.testResults.value?.originalResult || '',
-  testResultsOriginalReasoning: logic.testResults.value?.originalReasoning || '',
-  testResultsOptimizedResult: logic.testResults.value?.optimizedResult || '',
-  testResultsOptimizedReasoning: logic.testResults.value?.optimizedReasoning || ''
 }))
 
 // 🔧 为 v-model 创建解包的 computed（支持双向绑定）
@@ -1004,23 +1016,107 @@ const selectedTemplateIdModel = computed({
   set: (value) => { logic.selectedTemplateId.value = value }
 })
 
-// 评估处理器
-const testResultsComputed = computed(() => ({
-  originalResult: variantResults.a.result || undefined,
-  optimizedResult: variantResults.b.result || undefined,
-}))
+const buildEvaluationTarget = () => {
+  const workspacePrompt = logic.optimizedPrompt.value || ''
+  const referencePrompt = (logic.prompt.value || '').trim()
+  const normalizedWorkspacePrompt = workspacePrompt.trim()
+
+  return {
+    workspacePrompt,
+    referencePrompt:
+      referencePrompt && referencePrompt !== normalizedWorkspacePrompt
+        ? logic.prompt.value
+        : undefined,
+  }
+}
+
+const buildVariantPromptRef = (id: TestVariantId) => {
+  const selection = variantVersionModels[id].value
+  if (selection === 'workspace') {
+    return { kind: 'workspace' as const, label: t('test.layout.workspace') }
+  }
+  if (selection === 0) {
+    return { kind: 'original' as const, label: t('test.layout.original') }
+  }
+  return { kind: 'version' as const, version: selection, label: `v${selection}` }
+}
+
+const buildSharedTextEvaluationInput = () => {
+  const content = logic.testContent.value.trim()
+
+  return {
+    kind: 'text' as const,
+    label: t('test.content'),
+    content: content || t('evaluation.syntheticInput.noExplicitText'),
+  }
+}
+
+const buildSharedTextTestCaseDraft = () => ({
+  id: 'shared-test-case',
+  label: t('test.content'),
+  input: buildSharedTextEvaluationInput(),
+})
+
+const resultEvaluationTargets = computed(() =>
+  Object.fromEntries(
+    activeVariantIds.value.map((id) => [
+      id,
+      {
+        variantId: id,
+        target: buildEvaluationTarget(),
+        testCase: {
+          id: `${id}-test-case`,
+          label: t('test.content'),
+          input: buildSharedTextEvaluationInput(),
+        },
+        snapshot: {
+          id,
+          label: getVariantLabel(id),
+          testCaseId: `${id}-test-case`,
+          promptRef: buildVariantPromptRef(id),
+          promptText: resolveTestPrompt(variantVersionModels[id].value).text,
+          output: variantResults[id]?.result || '',
+          reasoning: variantResults[id]?.reasoning || '',
+          modelKey: variantModelKeyModels[id].value || undefined,
+          versionLabel: getVariantVersionLabel(id),
+        },
+      },
+    ])
+  )
+)
+
+const comparePayload = computed(() =>
+  buildCompareEvaluationPayload({
+    target: buildEvaluationTarget(),
+    testCases: [buildSharedTextTestCaseDraft()],
+    snapshots: compareReadyVariantIds.value.map((id) => ({
+      id,
+      label: getVariantLabel(id),
+      testCaseId: 'shared-test-case',
+      promptRef: buildVariantPromptRef(id),
+      promptText: resolveTestPrompt(variantVersionModels[id].value).text,
+      output: variantResults[id]?.result || '',
+      reasoning: variantResults[id]?.reasoning || '',
+      modelKey: variantModelKeyModels[id].value,
+      versionLabel: getVariantVersionLabel(id),
+    })),
+  })
+)
+
+const hasEvaluationWorkspacePrompt = computed(() => !!logic.optimizedPrompt.value.trim())
+const canEvaluateResult = computed(() => hasEvaluationWorkspacePrompt.value)
+const canEvaluateCompare = computed(() => !!comparePayload.value)
 
 const evaluationHandler = useEvaluationHandler({
   services,
-  originalPrompt: computed(() => resolvedOriginalTestPrompt.value.text),
-  optimizedPrompt: computed(() => resolvedOptimizedTestPrompt.value.text),
-  testContent: logic.testContent,
-  testResults: testResultsComputed,
+  analysisOptimizedPrompt: computed(() => logic.optimizedPrompt.value || ''),
+  resultTargets: resultEvaluationTargets,
   evaluationModelKey: computed(() =>
     optimizedTestModelKeyModel.value || originalTestModelKeyModel.value || logic.selectedTestModelKey.value || ''
   ),
   functionMode: computed(() => 'basic'),
   subMode: computed(() => 'user'),
+  comparePayload,
   persistedResults: toRef(session, 'evaluationResults'),
   currentIterateRequirement: computed(() => {
     const versionId = logic.currentVersionId.value
@@ -1035,18 +1131,8 @@ provideEvaluation(evaluationHandler.evaluation)
 
 // 评估状态
 const { evaluation, handleEvaluate: handleEvaluateInternal } = evaluationHandler
-const testAreaProps = evaluationHandler.testAreaEvaluationProps
 const panelProps = evaluationHandler.panelProps
-const isEvaluatingOriginal = computed(() => testAreaProps.value.isEvaluatingOriginal)
-const isEvaluatingOptimized = computed(() => testAreaProps.value.isEvaluatingOptimized)
-const originalScore = computed(() => testAreaProps.value.originalScore ?? 0)
-const optimizedScore = computed(() => testAreaProps.value.optimizedScore ?? 0)
-const hasOriginalEvaluation = computed(() => testAreaProps.value.hasOriginalEvaluation)
-const hasOptimizedEvaluation = computed(() => testAreaProps.value.hasOptimizedEvaluation)
-const originalEvaluationResult = computed(() => testAreaProps.value.originalEvaluationResult)
-const optimizedEvaluationResult = computed(() => testAreaProps.value.optimizedEvaluationResult)
-const originalScoreLevel = computed(() => testAreaProps.value.originalScoreLevel)
-const optimizedScoreLevel = computed(() => testAreaProps.value.optimizedScoreLevel)
+const getResultEvaluationProps = (variantId: string) => evaluationHandler.getResultEvaluationProps(variantId)
 
 // 对比评估状态
 const isEvaluatingCompare = evaluationHandler.compareEvaluation.isEvaluatingCompare
@@ -1056,8 +1142,54 @@ const compareEvaluationResult = computed(() => evaluation.state['compare'].resul
 const compareScoreLevel = computed(() =>
   evaluation.getScoreLevel(evaluationHandler.compareEvaluation.compareScore.value ?? null)
 )
+const activeEvaluationStale = computed(() => {
+  if (panelProps.value.currentType === 'compare') {
+    return isCompareEvaluationStale.value
+  }
+
+  if (
+    panelProps.value.currentType === 'result'
+    && panelProps.value.currentVariantId
+    && panelProps.value.currentVariantId in resultEvaluationFingerprint
+  ) {
+    return isResultEvaluationStale(panelProps.value.currentVariantId as TestVariantId)
+  }
+
+  return false
+})
+const activeEvaluationStaleMessage = computed(() => {
+  if (panelProps.value.currentType === 'compare') {
+    return t('evaluation.stale.compare')
+  }
+
+  if (panelProps.value.currentType === 'result') {
+    return t('evaluation.stale.result')
+  }
+
+  return t('evaluation.stale.default')
+})
+const activeEvaluationDisableEvaluate = computed(() => {
+  if (panelProps.value.currentType === 'compare') {
+    return !canEvaluateCompare.value
+  }
+
+  if (panelProps.value.currentType === 'result') {
+    return !hasEvaluationWorkspacePrompt.value
+  }
+
+  return false
+})
 
 const analyzing = ref(false)
+
+const ensureEvaluationWorkspaceReady = (): boolean => {
+  if (!hasEvaluationWorkspacePrompt.value) {
+    toast.error(t('test.error.noWorkspacePrompt'))
+    return false
+  }
+
+  return true
+}
 
 // ==================== 事件处理 ====================
 
@@ -1067,18 +1199,91 @@ const handleIterate = (payload: IteratePayload) => {
 }
 
 // 评估
-const handleEvaluate = async (type: 'original' | 'optimized' | 'compare') => {
+const handleEvaluateResult = async (variantId: string) => {
+  if (!ensureEvaluationWorkspaceReady()) return
+
+  await handleEvaluateInternal('result', { variantId })
+
+  if (evaluation.state.result[variantId]?.result && variantId in resultEvaluationFingerprint) {
+    resultEvaluationFingerprint[variantId as TestVariantId] = getVariantFingerprint(variantId as TestVariantId)
+  }
+}
+
+const handleResultEvaluateWithFeedback = async (variantId: string, feedback: string) => {
+  if (!ensureEvaluationWorkspaceReady()) return
+
+  await evaluationHandler.handleEvaluateWithFeedback('result', feedback, { variantId })
+
+  if (evaluation.state.result[variantId]?.result && variantId in resultEvaluationFingerprint) {
+    resultEvaluationFingerprint[variantId as TestVariantId] = getVariantFingerprint(variantId as TestVariantId)
+  }
+}
+
+const handleResultEvaluateWithFeedbackEvent = async (
+  variantId: string,
+  payload: { feedback: string }
+) => {
+  await handleResultEvaluateWithFeedback(variantId, payload.feedback)
+}
+
+const handleEvaluate = async (type: 'compare') => {
+  if (!canEvaluateCompare.value) {
+    ensureEvaluationWorkspaceReady()
+    return
+  }
+
   await handleEvaluateInternal(type)
+
+  if (evaluation.state.compare.result) {
+    compareEvaluationFingerprint.value = buildCompareEvaluationFingerprint()
+  }
 }
 
 const handleEvaluateWithFeedback = async (payload: {
   type: EvaluationType
   feedback: string
 }) => {
+  if (payload.type === 'compare' && !canEvaluateCompare.value) {
+    ensureEvaluationWorkspaceReady()
+    return
+  }
+
   await evaluationHandler.handleEvaluateWithFeedback(payload.type, payload.feedback)
+
+  if (payload.type === 'compare' && evaluation.state.compare.result) {
+    compareEvaluationFingerprint.value = buildCompareEvaluationFingerprint()
+  }
+}
+
+const handleReEvaluateActive = async () => {
+  const active = evaluation.state.activeDetail
+  if (!active) return
+
+  if (active.type === 'compare' && !canEvaluateCompare.value) {
+    ensureEvaluationWorkspaceReady()
+    return
+  }
+
+  if (active.type === 'result' && !ensureEvaluationWorkspaceReady()) {
+    return
+  }
+
+  await evaluationHandler.handleReEvaluate()
 }
 
 const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+  const active = evaluation.state.activeDetail
+  if (!active) return
+
+  if (active.type === 'compare' && !canEvaluateCompare.value) {
+    ensureEvaluationWorkspaceReady()
+    return
+  }
+
+  if (active.type === 'result' && !ensureEvaluationWorkspaceReady()) {
+    return
+  }
+
   await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
 }
 
@@ -1088,7 +1293,11 @@ const handleAnalyzeEvaluate = async () => {
 }
 
 // 显示详情
-const showDetail = (type: 'original' | 'optimized' | 'compare') => {
+const showResultDetail = (variantId: string) => {
+  evaluation.showDetail('result', variantId)
+}
+
+const showDetail = (type: 'compare') => {
   evaluation.showDetail(type)
 }
 
@@ -1114,6 +1323,11 @@ const handleApplyPatch = (payload: { operation: PatchOperation }) => {
 const handleClearEvaluation = () => {
   evaluation.closePanel()
   evaluation.clearAllResults()
+  resultEvaluationFingerprint.a = ''
+  resultEvaluationFingerprint.b = ''
+  resultEvaluationFingerprint.c = ''
+  resultEvaluationFingerprint.d = ''
+  compareEvaluationFingerprint.value = ''
 }
 
 // 保存本地编辑

@@ -247,7 +247,7 @@
                                     {{ t('test.layout.runAll') }}
                                 </NButton>
 
-                                <template v-if="testColumnCountModel === 2 && hasVariantResult('a') && hasVariantResult('b')">
+                                <template v-if="hasCompareCandidates || hasCompareEvaluation">
                                     <EvaluationScoreBadge
                                         v-if="hasCompareEvaluation || isEvaluatingCompare"
                                         :score="compareScore"
@@ -255,6 +255,9 @@
                                         :loading="isEvaluatingCompare"
                                         :result="compareEvaluationResult"
                                         type="compare"
+                                        :stale="isCompareEvaluationStale"
+                                        :stale-message="t('evaluation.stale.compare')"
+                                        :disable-evaluate="!canEvaluateCompare"
                                         size="small"
                                         @show-detail="() => showDetail('compare')"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -266,6 +269,7 @@
                                         v-else
                                         type="compare"
                                         :label="t('evaluation.compareEvaluate')"
+                                        :disabled="!canEvaluateCompare"
                                         :loading="isEvaluatingCompare"
                                         :button-props="{ size: 'small', quaternary: true }"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -366,55 +370,33 @@
                                     :style="{ height: '100%', minHeight: '0' }"
                                 >
                                     <template #toolbar-right-extra>
-                                        <div v-if="id === 'a' && hasVariantResult('a')" class="output-evaluation-entry">
+                                        <div v-if="hasVariantResult(id)" class="output-evaluation-entry">
                                             <EvaluationScoreBadge
-                                                v-if="hasOriginalEvaluation || isEvaluatingOriginal"
-                                                :score="originalScore"
-                                                :level="originalScoreLevel"
-                                                :loading="isEvaluatingOriginal"
-                                                :result="originalEvaluationResult"
-                                                type="original"
+                                                v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
+                                                :score="getResultEvaluationProps(id).score"
+                                                :level="getResultEvaluationProps(id).scoreLevel"
+                                                :loading="getResultEvaluationProps(id).isEvaluating"
+                                                :result="getResultEvaluationProps(id).evaluationResult"
+                                                type="result"
+                                                :stale="isResultEvaluationStale(id)"
+                                                :stale-message="t('evaluation.stale.result')"
+                                                :disable-evaluate="!canEvaluateResult"
                                                 size="small"
-                                                @show-detail="() => showDetail('original')"
-                                                @evaluate="() => handleEvaluate('original')"
-                                                @evaluate-with-feedback="handleEvaluateWithFeedback"
+                                                @show-detail="() => showResultDetail(id)"
+                                                @evaluate="() => handleEvaluateResult(id)"
+                                                @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
                                                 @apply-improvement="handleApplyImprovement"
                                                 @apply-patch="handleApplyLocalPatch"
                                             />
                                             <FocusAnalyzeButton
                                                 v-else
-                                                type="original"
+                                                type="result"
                                                 :label="t('evaluation.evaluate')"
-                                                :loading="isEvaluatingOriginal"
+                                                :disabled="!canEvaluateResult"
+                                                :loading="getResultEvaluationProps(id).isEvaluating"
                                                 :button-props="{ size: 'small', quaternary: true }"
-                                                @evaluate="() => handleEvaluate('original')"
-                                                @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                            />
-                                        </div>
-
-                                        <div v-else-if="id === 'b' && hasVariantResult('b')" class="output-evaluation-entry">
-                                            <EvaluationScoreBadge
-                                                v-if="hasOptimizedEvaluation || isEvaluatingOptimized"
-                                                :score="optimizedScore"
-                                                :level="optimizedScoreLevel"
-                                                :loading="isEvaluatingOptimized"
-                                                :result="optimizedEvaluationResult"
-                                                type="optimized"
-                                                size="small"
-                                                @show-detail="() => showDetail('optimized')"
-                                                @evaluate="() => handleEvaluate('optimized')"
-                                                @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                                @apply-improvement="handleApplyImprovement"
-                                                @apply-patch="handleApplyLocalPatch"
-                                            />
-                                            <FocusAnalyzeButton
-                                                v-else
-                                                type="optimized"
-                                                :label="t('evaluation.evaluate')"
-                                                :loading="isEvaluatingOptimized"
-                                                :button-props="{ size: 'small', quaternary: true }"
-                                                @evaluate="() => handleEvaluate('optimized')"
-                                                @evaluate-with-feedback="handleEvaluateWithFeedback"
+                                                @evaluate="() => handleEvaluateResult(id)"
+                                                @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
                                             />
                                         </div>
                                     </template>
@@ -434,12 +416,15 @@
             :error="panelProps.error"
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
-            @re-evaluate="evaluationHandler.handleReEvaluate"
+            :stale="activeEvaluationStale"
+            :stale-message="activeEvaluationStaleMessage"
+            :disable-evaluate="activeEvaluationDisableEvaluate"
+            @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @apply-local-patch="handleApplyLocalPatch"
             @apply-improvement="handleApplyImprovement"
             @clear="handleClearEvaluation"
-            @retry="evaluationHandler.handleReEvaluate"
+            @retry="handleReEvaluateActive"
         />
 
         <!-- 子模式本地预览面板：不再依赖 PromptOptimizerApp 的全局预览状态 -->
@@ -517,7 +502,7 @@ import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPro
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useContextUserOptimization } from '../../composables/prompt/useContextUserOptimization';
 import type { ConversationMessage } from '../../types/variable'
-import { useEvaluationHandler, provideEvaluation, provideProContext } from '../../composables/prompt';
+import { useEvaluationHandler, provideEvaluation, provideProContext, buildCompareEvaluationPayload } from '../../composables/prompt';
 import {
     useProVariableSession,
     type TestPanelVersionValue,
@@ -949,17 +934,17 @@ const variantAVersionModel = computed<TestPanelVersionValue>({
 })
 
 const variantBVersionModel = computed<TestPanelVersionValue>({
-    get: () => getVariant('b')?.version ?? 'latest',
+    get: () => getVariant('b')?.version ?? 'workspace',
     set: (value) => proVariableSession.updateTestVariant('b', { version: value }),
 })
 
 const variantCVersionModel = computed<TestPanelVersionValue>({
-    get: () => getVariant('c')?.version ?? 'latest',
+    get: () => getVariant('c')?.version ?? 'workspace',
     set: (value) => proVariableSession.updateTestVariant('c', { version: value }),
 })
 
 const variantDVersionModel = computed<TestPanelVersionValue>({
-    get: () => getVariant('d')?.version ?? 'latest',
+    get: () => getVariant('d')?.version ?? 'workspace',
     set: (value) => proVariableSession.updateTestVariant('d', { version: value }),
 })
 
@@ -1027,21 +1012,15 @@ type ResolvedTestPrompt = { text: string; resolvedVersion: number }
 
 const resolveTestPrompt = (selection: TestPanelVersionValue): ResolvedTestPrompt => {
     const v0 = contextUserOptimization.prompt || ''
+    const workspace = contextUserOptimization.optimizedPrompt || ''
     const versions = contextUserOptimization.currentVersions || []
-    const latest = versions.reduce<{ version: number; optimizedPrompt: string } | null>((acc, v) => {
-        if (typeof v.version !== 'number' || v.version < 1) return acc
-        const next = { version: v.version, optimizedPrompt: v.optimizedPrompt || '' }
-        if (!acc || next.version > acc.version) return next
-        return acc
-    }, null)
+
+    if (selection === 'workspace') {
+        return { text: workspace, resolvedVersion: -1 }
+    }
 
     if (selection === 0) {
         return { text: v0, resolvedVersion: 0 }
-    }
-
-    if (selection === 'latest') {
-        if (!latest) return { text: v0, resolvedVersion: 0 }
-        return { text: latest.optimizedPrompt || '', resolvedVersion: latest.version }
     }
 
     const target = versions.find(v => v.version === selection)
@@ -1049,11 +1028,10 @@ const resolveTestPrompt = (selection: TestPanelVersionValue): ResolvedTestPrompt
         return { text: target.optimizedPrompt || '', resolvedVersion: target.version }
     }
 
-    if (!latest) return { text: v0, resolvedVersion: 0 }
-    return { text: latest.optimizedPrompt || '', resolvedVersion: latest.version }
+    return { text: '', resolvedVersion: -1 }
 }
 
-// 版本选项：仅显示“原始(v0)”与“最新(latest)”，若存在中间版本，则额外显示 v1..v(n-1)。
+// 版本选项：默认显示“工作区”与“原始(v0)”；若存在历史版本，则额外显示 v1..vn。
 const versionOptions = computed(() => {
     const versions = contextUserOptimization.currentVersions || []
 
@@ -1063,13 +1041,10 @@ const versionOptions = computed(() => {
         .slice()
         .sort((a, b) => a - b)
 
-    const latest = sortedVersions.length ? sortedVersions[sortedVersions.length - 1] : null
-    const middle = latest ? sortedVersions.filter(v => v < latest) : []
-
     return [
+        { label: t('test.layout.workspace'), value: 'workspace' },
         { label: t('test.layout.original'), value: 0 },
-        ...middle.map(v => ({ label: `v${v}`, value: v })),
-        { label: t('test.layout.latest'), value: 'latest' },
+        ...sortedVersions.map(v => ({ label: `v${v}`, value: v })),
     ]
 })
 
@@ -1159,6 +1134,32 @@ const isVariantStale = (id: TestVariantId) => {
     return prev !== getVariantFingerprint(id)
 }
 
+const getVariantVersionLabel = (id: TestVariantId): string => {
+    const selection = variantVersionModels[id].value
+    const resolved = resolveTestPrompt(selection)
+    if (selection === 'workspace') return t('test.layout.workspace')
+    if (resolved.resolvedVersion === 0) return t('test.layout.original')
+    return `v${resolved.resolvedVersion}`
+}
+
+const compareReadyVariantIds = computed(() =>
+    activeVariantIds.value.filter((id) => hasVariantResult(id) && !isVariantStale(id))
+)
+
+const hasCompareCandidates = computed(() => compareReadyVariantIds.value.length >= 2)
+const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
+    a: '',
+    b: '',
+    c: '',
+    d: '',
+})
+const compareEvaluationFingerprint = ref('')
+
+const buildCompareEvaluationFingerprint = () =>
+    compareReadyVariantIds.value
+        .map((id) => `${id}:${getVariantFingerprint(id)}`)
+        .join('|')
+
 type VariantTestInput = {
     userPrompt: string
     modelKey: string
@@ -1175,7 +1176,11 @@ const getVariantTestInput = (id: TestVariantId): VariantTestInput | null => {
     const resolved = resolveTestPrompt(variantVersionModels[id].value)
     const userPrompt = (resolved.text || '').trim()
     if (!userPrompt) {
-        const key = resolved.resolvedVersion === 0 ? 'test.error.noOriginalPrompt' : 'test.error.noOptimizedPrompt'
+        const key = variantVersionModels[id].value === 'workspace'
+            ? 'test.error.noWorkspacePrompt'
+            : resolved.resolvedVersion === 0
+                ? 'test.error.noOriginalPrompt'
+                : 'test.error.noOptimizedPrompt'
         toast.error(t(key))
         return null
     }
@@ -1330,86 +1335,201 @@ onMounted(() => {
     }
 });
 
-const proContext = computed<ProUserEvaluationContext | undefined>(() => {
-    const tempVars = temporaryVariables.value;
-    const globalVars = globalVariables.value;
-    const predefinedVars = predefinedVariables.value;
-    const rawPrompt = resolvedOriginalTestPrompt.value.text;
-    const resolvedPrompt = resolvedOptimizedTestPrompt.value.text;
-
-    // 扫描提示词中实际使用的变量名
-    // 同时扫描原始提示词和优化后的提示词，确保覆盖所有使用的变量
+const collectUsedVariableNames = (...prompts: string[]) => {
     const usedVarNames = new Set<string>();
 
-    // 使用 variableManager 扫描变量
     if (variableManager?.variableManager.value) {
         const vm = variableManager.variableManager.value;
-        // 扫描原始提示词中的变量
-        if (rawPrompt) {
-            vm.scanVariablesInContent(rawPrompt).forEach(name => usedVarNames.add(name));
-        }
-        // 扫描优化后提示词中的变量
-        if (resolvedPrompt) {
-            vm.scanVariablesInContent(resolvedPrompt).forEach(name => usedVarNames.add(name));
-        }
-    } else {
-        // 回退方案：使用正则表达式扫描 {{varName}} 格式的变量
-        // 允许两侧空格，但变量名内部不允许空白（支持中文等 Unicode 变量名）
-        const varPattern = /\{\{\s*([^{}\s]+)\s*\}\}/gu;
-        let match;
-        if (rawPrompt) {
-          while ((match = varPattern.exec(rawPrompt)) !== null) {
-            const name = match[1]?.trim();
-            if (name) usedVarNames.add(name);
-          }
-        }
-        if (resolvedPrompt) {
-          varPattern.lastIndex = 0; // 重置正则表达式
-          while ((match = varPattern.exec(resolvedPrompt)) !== null) {
-            const name = match[1]?.trim();
-            if (name) usedVarNames.add(name);
-          }
-        }
+        prompts.forEach((prompt) => {
+            if (!prompt) return;
+            vm.scanVariablesInContent(prompt).forEach((name) => usedVarNames.add(name));
+        });
+        return usedVarNames;
     }
 
-    // 只收集实际使用的变量
-    const usedVariables: ProUserEvaluationContext['variables'] = [];
-
-    // 按优先级顺序添加变量（预定义 > 临时 > 全局）
-    usedVarNames.forEach(name => {
-        // 预定义变量优先级最高（保留名不可被覆盖）
-        if (predefinedVars[name] !== undefined) {
-            usedVariables.push({ name, value: predefinedVars[name], source: 'predefined' });
-        }
-        // 其次是临时变量
-        else if (tempVars[name] !== undefined) {
-            usedVariables.push({ name, value: tempVars[name], source: 'temporary' });
-        }
-        // 最后是全局变量
-        else if (globalVars[name] !== undefined) {
-            usedVariables.push({ name, value: globalVars[name], source: 'global' });
-        }
-        // 变量未定义时仍然记录，标记为临时变量但值为空
-        else {
-            usedVariables.push({ name, value: '', source: 'temporary' });
+    const varPattern = /\{\{\s*([^{}\s]+)\s*\}\}/gu;
+    prompts.forEach((prompt) => {
+        if (!prompt) return;
+        varPattern.lastIndex = 0;
+        let match;
+        while ((match = varPattern.exec(prompt)) !== null) {
+            const name = match[1]?.trim();
+            if (name) usedVarNames.add(name);
         }
     });
 
+    return usedVarNames;
+};
+
+const buildUsedVariables = (
+    names: Set<string>,
+    options?: {
+        includeValues?: boolean
+        predefinedOverrides?: Record<string, string>
+    },
+): ProUserEvaluationContext['variables'] => {
+    const includeValues = options?.includeValues ?? true;
+    const predefinedOverrides = options?.predefinedOverrides || {};
+    const tempVars = temporaryVariables.value;
+    const globalVars = globalVariables.value;
+    const predefinedVars = predefinedVariables.value;
+    const usedVariables: ProUserEvaluationContext['variables'] = [];
+
+    names.forEach((name) => {
+        if (predefinedVars[name] !== undefined || predefinedOverrides[name] !== undefined) {
+            usedVariables.push({
+                name,
+                value: includeValues
+                    ? (predefinedOverrides[name] ?? predefinedVars[name] ?? '')
+                    : undefined,
+                source: 'predefined',
+            });
+        } else if (tempVars[name] !== undefined) {
+            usedVariables.push({
+                name,
+                value: includeValues ? tempVars[name] : undefined,
+                source: 'temporary',
+            });
+        } else if (globalVars[name] !== undefined) {
+            usedVariables.push({
+                name,
+                value: includeValues ? globalVars[name] : undefined,
+                source: 'global',
+            });
+        } else {
+            usedVariables.push({
+                name,
+                value: includeValues ? '' : undefined,
+                source: 'temporary',
+            });
+        }
+    });
+
+    return usedVariables;
+};
+
+const analysisProContext = computed<ProUserEvaluationContext | undefined>(() => {
+    const currentWorkspacePrompt = contextUserOptimization.optimizedPrompt || '';
+    const usedVarNames = collectUsedVariableNames(currentWorkspacePrompt);
+
     return {
-        variables: usedVariables,
+        variables: buildUsedVariables(usedVarNames, { includeValues: false }),
+        rawPrompt: currentWorkspacePrompt,
+    };
+});
+
+const formatVariableEntries = (
+    variables: ProUserEvaluationContext['variables'],
+): string => variables
+    .map((variable) => `${variable.name}=${String(variable.value ?? '')}`)
+    .join('\n');
+
+const proContext = computed<ProUserEvaluationContext | undefined>(() => {
+    const rawPrompt = resolvedOriginalTestPrompt.value.text;
+    const resolvedPrompt = resolvedOptimizedTestPrompt.value.text;
+    const usedVarNames = collectUsedVariableNames(rawPrompt, resolvedPrompt);
+
+    return {
+        variables: buildUsedVariables(usedVarNames, { includeValues: true }),
         rawPrompt: rawPrompt,
         resolvedPrompt: resolvedPrompt,
     };
 });
 
-// 🆕 提供 Pro 模式上下文给子组件（如 PromptPanel），用于评估时传递变量解析上下文
-provideProContext(proContext);
+// 左侧分析只提供变量结构，不注入右侧测试值
+provideProContext(analysisProContext);
 
-// 🆕 测试结果数据
-const testResultsData = computed(() => ({
-    originalResult: variantResults.a.result || undefined,
-    optimizedResult: variantResults.b.result || undefined,
-}));
+const buildEvaluationTarget = () => {
+    const workspacePrompt = contextUserOptimization.optimizedPrompt || '';
+    const referencePrompt = (contextUserOptimization.prompt || '').trim();
+    const normalizedWorkspacePrompt = workspacePrompt.trim();
+
+    return {
+        workspacePrompt,
+        referencePrompt:
+            referencePrompt && referencePrompt !== normalizedWorkspacePrompt
+                ? contextUserOptimization.prompt
+                : undefined,
+    };
+};
+
+const buildVariantPromptRef = (id: TestVariantId) => {
+    const selection = variantVersionModels[id].value;
+    if (selection === 'workspace') {
+        return { kind: 'workspace' as const, label: t('test.layout.workspace') };
+    }
+    if (selection === 0) {
+        return { kind: 'original' as const, label: t('test.layout.original') };
+    }
+    return { kind: 'version' as const, version: selection, label: `v${selection}` };
+};
+
+const buildVariableTestCaseContent = () => {
+    const entries = Object.entries(mergedTestVariables.value || {});
+    if (!entries.length) return '';
+    return entries
+        .map(([name, value]) => `${name}=${String(value ?? '')}`)
+        .join('\n');
+};
+
+const buildCompareVariableInputVariables = (): ProUserEvaluationContext['variables'] => {
+    const relevantNames = new Set<string>();
+    const collectRelevantNames = (promptText: string) => {
+        collectUsedVariableNames(promptText).forEach((name) => {
+            if (!(PREDEFINED_VARIABLES as readonly string[]).includes(name)) {
+                relevantNames.add(name);
+            }
+        });
+    };
+
+    compareReadyVariantIds.value.forEach((id) => {
+        collectRelevantNames(resolveTestPrompt(variantVersionModels[id].value).text);
+    });
+
+    if (!relevantNames.size) {
+        collectRelevantNames(buildEvaluationTarget().workspacePrompt);
+    }
+
+    return buildUsedVariables(Array.from(relevantNames), { includeValues: true });
+};
+
+const buildSharedVariableTestCaseDraft = () => {
+    const variables = buildCompareVariableInputVariables();
+
+    return {
+        id: 'shared-variable-test-case',
+        label: t('variables.management.variables'),
+        input: {
+            kind: 'variables' as const,
+            label: t('variables.management.variables'),
+            content: variables.length
+                ? formatVariableEntries(variables)
+                : t('evaluation.syntheticInput.noExplicitVariables'),
+        },
+    };
+};
+
+const comparePayload = computed(() =>
+    buildCompareEvaluationPayload({
+        target: buildEvaluationTarget(),
+        testCases: [buildSharedVariableTestCaseDraft()],
+        snapshots: compareReadyVariantIds.value.map((id) => ({
+            id,
+            label: getVariantLabel(id),
+            testCaseId: 'shared-variable-test-case',
+            promptRef: buildVariantPromptRef(id),
+            promptText: resolveTestPrompt(variantVersionModels[id].value).text,
+            output: variantResults[id]?.result || '',
+            reasoning: variantResults[id]?.reasoning || '',
+            modelKey: variantModelKeyModels[id].value,
+            versionLabel: getVariantVersionLabel(id),
+        })),
+    }),
+);
+
+const hasEvaluationWorkspacePrompt = computed(() => !!contextUserOptimization.optimizedPrompt.trim())
+const canEvaluateResult = computed(() => hasEvaluationWorkspacePrompt.value)
+const canEvaluateCompare = computed(() => !!comparePayload.value)
 
 // 🆕 计算当前迭代需求（用于 prompt-iterate 的 re-evaluate）
 const currentIterateRequirement = computed(() => {
@@ -1420,17 +1540,49 @@ const currentIterateRequirement = computed(() => {
     return currentVersion?.iterationNote || '';
 });
 
+const resultEvaluationTargets = computed(() =>
+    Object.fromEntries(
+        activeVariantIds.value.map((id) => [
+            id,
+            {
+                variantId: id,
+                target: buildEvaluationTarget(),
+                testCase: {
+                    id: `${id}-variable-test-case`,
+                    label: t('variables.management.variables'),
+                    input: {
+                        kind: 'variables',
+                        label: t('variables.management.variables'),
+                        content: buildVariableTestCaseContent(),
+                    },
+                },
+                snapshot: {
+                    id,
+                    label: getVariantLabel(id),
+                    testCaseId: `${id}-variable-test-case`,
+                    promptRef: buildVariantPromptRef(id),
+                    promptText: resolveTestPrompt(variantVersionModels[id].value).text,
+                    output: variantResults[id]?.result || '',
+                    reasoning: variantResults[id]?.reasoning || '',
+                    modelKey: variantModelKeyModels[id].value || undefined,
+                    versionLabel: getVariantVersionLabel(id),
+                },
+            },
+        ]),
+    ),
+)
+
 // 🆕 初始化评估处理器（使用全局 evaluation 实例，避免双套状态）
 const evaluationHandler = useEvaluationHandler({
     services: servicesRef,
-    originalPrompt: computed(() => resolvedOriginalTestPrompt.value.text),
-    optimizedPrompt: computed(() => resolvedOptimizedTestPrompt.value.text),
-    testContent: computed(() => ''), // 变量模式不需要单独的测试内容，通过变量系统管理
-    testResults: testResultsData,
+    analysisOptimizedPrompt: computed(() => contextUserOptimization.optimizedPrompt || ''),
+    resultTargets: resultEvaluationTargets,
     evaluationModelKey: effectiveEvaluationModelKey,
     functionMode: computed(() => 'pro'),
     subMode: computed(() => 'variable'),
     proContext,
+    analysisContext: analysisProContext,
+    comparePayload,
     currentIterateRequirement,
     persistedResults: toRef(proVariableSession, 'evaluationResults'),
 });
@@ -1438,19 +1590,8 @@ const evaluationHandler = useEvaluationHandler({
 provideEvaluation(evaluationHandler.evaluation)
 
 const { evaluation, handleEvaluate: handleEvaluateInternal } = evaluationHandler
-const testAreaProps = evaluationHandler.testAreaEvaluationProps
 const panelProps = evaluationHandler.panelProps
-
-const isEvaluatingOriginal = computed(() => testAreaProps.value.isEvaluatingOriginal)
-const isEvaluatingOptimized = computed(() => testAreaProps.value.isEvaluatingOptimized)
-const originalScore = computed(() => testAreaProps.value.originalScore ?? 0)
-const optimizedScore = computed(() => testAreaProps.value.optimizedScore ?? 0)
-const hasOriginalEvaluation = computed(() => testAreaProps.value.hasOriginalEvaluation)
-const hasOptimizedEvaluation = computed(() => testAreaProps.value.hasOptimizedEvaluation)
-const originalEvaluationResult = computed(() => testAreaProps.value.originalEvaluationResult)
-const optimizedEvaluationResult = computed(() => testAreaProps.value.optimizedEvaluationResult)
-const originalScoreLevel = computed(() => testAreaProps.value.originalScoreLevel)
-const optimizedScoreLevel = computed(() => testAreaProps.value.optimizedScoreLevel)
+const getResultEvaluationProps = (variantId: string) => evaluationHandler.getResultEvaluationProps(variantId)
 
 // 对比评估状态
 const isEvaluatingCompare = evaluationHandler.compareEvaluation.isEvaluatingCompare
@@ -1460,23 +1601,162 @@ const compareEvaluationResult = computed(() => evaluation.state['compare'].resul
 const compareScoreLevel = computed(() =>
     evaluation.getScoreLevel(evaluationHandler.compareEvaluation.compareScore.value ?? null)
 )
+const activeEvaluationStale = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return isCompareEvaluationStale.value
+    }
 
-const handleEvaluate = async (type: 'original' | 'optimized' | 'compare') => {
+    if (
+        panelProps.value.currentType === 'result'
+        && panelProps.value.currentVariantId
+        && panelProps.value.currentVariantId in resultEvaluationFingerprint
+    ) {
+        return isResultEvaluationStale(panelProps.value.currentVariantId as TestVariantId)
+    }
+
+    return false
+})
+const activeEvaluationStaleMessage = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return t('evaluation.stale.compare')
+    }
+
+    if (panelProps.value.currentType === 'result') {
+        return t('evaluation.stale.result')
+    }
+
+    return t('evaluation.stale.default')
+})
+const activeEvaluationDisableEvaluate = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return !canEvaluateCompare.value
+    }
+
+    if (panelProps.value.currentType === 'result') {
+        return !canEvaluateResult.value
+    }
+
+    return false
+})
+
+const ensureEvaluationWorkspaceReady = (): boolean => {
+    if (!hasEvaluationWorkspacePrompt.value) {
+        toast.error(t('test.error.noWorkspacePrompt'))
+        return false
+    }
+
+    return true
+}
+
+const isResultEvaluationStale = (id: TestVariantId) => {
+    const props = getResultEvaluationProps(id)
+    if (!props.hasEvaluation) return false
+
+    const storedFingerprint = resultEvaluationFingerprint[id]
+    if (!storedFingerprint) return false
+
+    return storedFingerprint !== getVariantFingerprint(id)
+}
+
+const isCompareEvaluationStale = computed(() => {
+    if (!hasCompareEvaluation.value) return false
+    if (!compareEvaluationFingerprint.value) return false
+    return compareEvaluationFingerprint.value !== buildCompareEvaluationFingerprint()
+})
+
+const handleEvaluateResult = async (variantId: string) => {
+    if (!ensureEvaluationWorkspaceReady()) return
+
+    await handleEvaluateInternal('result', { variantId })
+
+    if (evaluation.state.result[variantId]?.result && variantId in resultEvaluationFingerprint) {
+        resultEvaluationFingerprint[variantId as TestVariantId] = getVariantFingerprint(variantId as TestVariantId)
+    }
+}
+
+const handleResultEvaluateWithFeedback = async (variantId: string, feedback: string) => {
+    if (!ensureEvaluationWorkspaceReady()) return
+
+    await evaluationHandler.handleEvaluateWithFeedback('result', feedback, { variantId })
+
+    if (evaluation.state.result[variantId]?.result && variantId in resultEvaluationFingerprint) {
+        resultEvaluationFingerprint[variantId as TestVariantId] = getVariantFingerprint(variantId as TestVariantId)
+    }
+}
+
+const handleResultEvaluateWithFeedbackEvent = async (
+    variantId: string,
+    payload: { feedback: string },
+) => {
+    await handleResultEvaluateWithFeedback(variantId, payload.feedback)
+}
+
+const handleEvaluate = async (type: 'compare') => {
+    if (!canEvaluateCompare.value) {
+        ensureEvaluationWorkspaceReady()
+        return
+    }
+
     await handleEvaluateInternal(type)
+
+    if (evaluation.state.compare.result) {
+        compareEvaluationFingerprint.value = buildCompareEvaluationFingerprint()
+    }
 }
 
 const handleEvaluateWithFeedback = async (payload: {
     type: EvaluationType
     feedback: string
 }) => {
+    if (payload.type === 'compare' && !canEvaluateCompare.value) {
+        ensureEvaluationWorkspaceReady()
+        return
+    }
+
     await evaluationHandler.handleEvaluateWithFeedback(payload.type, payload.feedback)
+
+    if (payload.type === 'compare' && evaluation.state.compare.result) {
+        compareEvaluationFingerprint.value = buildCompareEvaluationFingerprint()
+    }
+}
+
+const handleReEvaluateActive = async () => {
+    const active = evaluation.state.activeDetail
+    if (!active) return
+
+    if (active.type === 'compare' && !canEvaluateCompare.value) {
+        ensureEvaluationWorkspaceReady()
+        return
+    }
+
+    if (active.type === 'result' && !ensureEvaluationWorkspaceReady()) {
+        return
+    }
+
+    await evaluationHandler.handleReEvaluate()
 }
 
 const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+    const active = evaluation.state.activeDetail
+    if (!active) return
+
+    if (active.type === 'compare' && !canEvaluateCompare.value) {
+        ensureEvaluationWorkspaceReady()
+        return
+    }
+
+    if (active.type === 'result' && !ensureEvaluationWorkspaceReady()) {
+        return
+    }
+
     await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
 }
 
-const showDetail = (type: 'original' | 'optimized' | 'compare') => {
+const showResultDetail = (variantId: string) => {
+    evaluation.showDetail('result', variantId)
+}
+
+const showDetail = (type: 'compare') => {
     evaluation.showDetail(type)
 }
 
@@ -1496,6 +1776,11 @@ const handleApplyLocalPatch = (payload: { operation: PatchOperation }) => {
 const handleClearEvaluation = () => {
     evaluation.closePanel()
     evaluation.clearAllResults()
+    resultEvaluationFingerprint.a = ''
+    resultEvaluationFingerprint.b = ''
+    resultEvaluationFingerprint.c = ''
+    resultEvaluationFingerprint.d = ''
+    compareEvaluationFingerprint.value = ''
 }
 
 // ========================

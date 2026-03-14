@@ -1062,7 +1062,7 @@ const clearSessionForExternalImport = (targetKey: SupportedSubModeKey, api: {
     api.basicSystemSession.updatePrompt(content)
     resetCommon(api.basicSystemSession)
     api.basicSystemSession.updateTestContent('')
-    api.basicSystemSession.updateTestResults(null)
+    api.basicSystemSession.resetTestVariantState()
     api.optimizerCurrentVersions.value = []
     return
   }
@@ -1071,7 +1071,7 @@ const clearSessionForExternalImport = (targetKey: SupportedSubModeKey, api: {
     api.basicUserSession.updatePrompt(content)
     resetCommon(api.basicUserSession)
     api.basicUserSession.updateTestContent('')
-    api.basicUserSession.updateTestResults(null)
+    api.basicUserSession.resetTestVariantState()
     api.optimizerCurrentVersions.value = []
     return
   }
@@ -1080,7 +1080,7 @@ const clearSessionForExternalImport = (targetKey: SupportedSubModeKey, api: {
     api.proVariableSession.updatePrompt(content)
     resetCommon(api.proVariableSession)
     api.proVariableSession.updateTestContent('')
-    api.proVariableSession.updateTestResults(null)
+    api.proVariableSession.resetTestVariantState()
     return
   }
 
@@ -1222,7 +1222,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
 
           // Reset state that is tied to the previously selected message/chain.
           proMultiMessageSession.setMessageChainMap({})
-          proMultiMessageSession.updateTestResults(null)
+          proMultiMessageSession.resetTestVariantState()
           proMultiMessageSession.updateOptimizedResult({
             optimizedPrompt: '',
             reasoning: '',

@@ -1,11 +1,17 @@
-import { reactive, type Ref, type ComputedRef } from 'vue'
+import { reactive, type Ref } from 'vue'
 import { useToast } from '../ui/useToast'
 import { useI18n } from 'vue-i18n'
 import { getI18nErrorMessage } from '../../utils/error'
-import type { OptimizationMode, ToolDefinition, ToolCall, ToolCallResult, ConversationMessage } from '@prompt-optimizer/core'
+import type { ToolDefinition, ToolCall, ToolCallResult, ConversationMessage } from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
 import type { VariableManagerHooks } from './useVariableManager'
 import type { TestAreaPanelInstance } from '../../components/types/test-area'
+import {
+  COMPARE_BASELINE_VARIANT_ID,
+  COMPARE_CANDIDATE_VARIANT_ID,
+  createCompareTestVariantStateMap,
+  type CompareTestVariantId,
+} from './testVariantState'
 
 /**
  * 多对话模式专用测试 Composable
@@ -35,15 +41,7 @@ export function useConversationTester(
   const { t } = useI18n()
 
   const state = reactive({
-    testResults: {
-      originalResult: '',
-      originalReasoning: '',
-      isTestingOriginal: false,
-
-      optimizedResult: '',
-      optimizedReasoning: '',
-      isTestingOptimized: false,
-    },
+    variantStates: createCompareTestVariantStateMap(),
 
     /**
      * 执行多对话测试（支持对比模式）
@@ -74,12 +72,20 @@ export function useConversationTester(
 
       if (isCompareMode) {
         // 对比模式：并发测试原始和优化会话
-        const originalTestPromise = state.testConversation('original', testVariables, testPanelRef)
-        const optimizedTestPromise = state.testConversation('optimized', testVariables, testPanelRef)
+        const originalTestPromise = state.testConversation(
+          COMPARE_BASELINE_VARIANT_ID,
+          testVariables,
+          testPanelRef
+        )
+        const optimizedTestPromise = state.testConversation(
+          COMPARE_CANDIDATE_VARIANT_ID,
+          testVariables,
+          testPanelRef
+        )
         await Promise.all([originalTestPromise, optimizedTestPromise])
       } else {
         // 单一模式：只测试优化后的会话
-        await state.testConversation('optimized', testVariables, testPanelRef)
+        await state.testConversation(COMPARE_CANDIDATE_VARIANT_ID, testVariables, testPanelRef)
       }
     },
 
@@ -87,49 +93,36 @@ export function useConversationTester(
      * 测试特定类型的会话（原始 vs 优化）
      */
     testConversation: async (
-      type: 'original' | 'optimized',
+      variantId: CompareTestVariantId,
       testVars?: Record<string, string>,
       testPanelRef?: TestAreaPanelInstance | null
     ) => {
-      const isOriginal = type === 'original'
+      const isOriginal = variantId === COMPARE_BASELINE_VARIANT_ID
+      const targetState = state.variantStates[variantId]
 
       // 设置测试状态
-      if (isOriginal) {
-        state.testResults.isTestingOriginal = true
-        state.testResults.originalResult = ''
-        state.testResults.originalReasoning = ''
-      } else {
-        state.testResults.isTestingOptimized = true
-        state.testResults.optimizedResult = ''
-        state.testResults.optimizedReasoning = ''
-      }
+      targetState.isRunning = true
+      targetState.result = ''
+      targetState.reasoning = ''
 
       // 清除对应类型的工具调用数据
-      testPanelRef?.clearToolCalls(isOriginal ? 'original' : 'optimized')
+      testPanelRef?.clearToolCalls(variantId)
 
       try {
         const streamHandler = {
           onToken: (token: string) => {
-            if (isOriginal) {
-              state.testResults.originalResult += token
-            } else {
-              state.testResults.optimizedResult += token
-            }
+            targetState.result += token
           },
           onReasoningToken: (reasoningToken: string) => {
-            if (isOriginal) {
-              state.testResults.originalReasoning += reasoningToken
-            } else {
-              state.testResults.optimizedReasoning += reasoningToken
-            }
+            targetState.reasoning += reasoningToken
           },
           onComplete: () => {
             // Test completed successfully
           },
           onError: (err: Error) => {
             const errorMessage = err.message || t('test.error.failed')
-            console.error(`[useConversationTester] ${type} test failed:`, errorMessage)
-            const testTypeKey = type === 'original' ? 'originalTestFailed' : 'optimizedTestFailed'
+            console.error(`[useConversationTester] ${variantId} test failed:`, errorMessage)
+            const testTypeKey = isOriginal ? 'originalTestFailed' : 'optimizedTestFailed'
             toast.error(`${t(`test.error.${testTypeKey}`)}: ${errorMessage}`)
           },
         }
@@ -169,7 +162,7 @@ export function useConversationTester(
             onToolCall: (toolCall: ToolCall) => {
               if (!hasTools) return
               console.log(
-                `[useConversationTester] ${type} test tool call received:`,
+                `[useConversationTester] ${variantId} test tool call received:`,
                 toolCall
               )
               const toolCallResult: ToolCallResult = {
@@ -177,22 +170,17 @@ export function useConversationTester(
                 status: 'success',
                 timestamp: new Date(),
               }
-              testPanelRef?.handleToolCall(toolCallResult, type)
+              testPanelRef?.handleToolCall(toolCallResult, variantId)
             },
           }
         )
       } catch (error: unknown) {
-        console.error(`[useConversationTester] ${type} test error:`, error)
+        console.error(`[useConversationTester] ${variantId} test error:`, error)
         const errorMessage = getI18nErrorMessage(error, t('test.error.failed'))
-        const testTypeKey = type === 'original' ? 'originalTestFailed' : 'optimizedTestFailed'
+        const testTypeKey = isOriginal ? 'originalTestFailed' : 'optimizedTestFailed'
         toast.error(`${t(`test.error.${testTypeKey}`)}: ${errorMessage}`)
       } finally {
-        // 重置测试状态
-        if (isOriginal) {
-          state.testResults.isTestingOriginal = false
-        } else {
-          state.testResults.isTestingOptimized = false
-        }
+        targetState.isRunning = false
       }
     },
   })
