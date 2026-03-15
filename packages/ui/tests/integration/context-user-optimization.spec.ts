@@ -133,4 +133,77 @@ describe('ContextUser optimization (integration)', () => {
     expect(optimizer.currentVersionId).toBe('v1')
     expect(toast.success).toHaveBeenCalledWith('toast.success.iterateComplete')
   })
+
+  it('creates a new history chain when iterating after analyze reset cleared the chain id', async () => {
+    toast.success.mockReset()
+    toast.error.mockReset()
+    toast.warning.mockReset()
+
+    const promptService = {
+      iteratePromptStream: vi.fn(async (_orig: any, _last: any, _note: any, _model: any, handlers: any) => {
+        handlers.onToken('fresh ')
+        handlers.onToken('chain')
+        handlers.onReasoningToken('reason')
+        await handlers.onComplete()
+      })
+    }
+
+    const historyManager = {
+      createNewChain: vi.fn(async (recordData: any) => ({
+        chainId: 'chain-from-v0',
+        versions: [{ ...recordData, chainId: 'chain-from-v0', version: 1 }],
+        currentRecord: { ...recordData, chainId: 'chain-from-v0', version: 1 }
+      })),
+      addIteration: vi.fn()
+    }
+
+    const services: Ref<AppServices | null> = ref({
+      promptService,
+      historyManager,
+      contextMode: ref('user' as any)
+    } as any)
+
+    const selectedOptimizeModel = ref('text-model-1')
+    const selectedTemplate = ref<Template | null>({ id: 'tpl-1' } as any)
+    const selectedIterateTemplate = ref<Template | null>({ id: 'tpl-iter' } as any)
+
+    const optimizer = useContextUserOptimization(
+      services,
+      selectedOptimizeModel,
+      selectedTemplate,
+      selectedIterateTemplate
+    )
+
+    ;(optimizer as any).prompt = 'orig from analyze'
+    optimizer.handleAnalyze()
+
+    expect(optimizer.currentChainId).toBe('')
+    expect(optimizer.currentVersions).toHaveLength(1)
+    expect(optimizer.currentVersions[0]?.version).toBe(0)
+
+    await optimizer.iterate({
+      originalPrompt: 'orig from analyze',
+      optimizedPrompt: 'orig from analyze',
+      iterateInput: 'make it clearer'
+    })
+
+    expect(promptService.iteratePromptStream).toHaveBeenCalledTimes(1)
+    expect(historyManager.createNewChain).toHaveBeenCalledTimes(1)
+    expect(historyManager.addIteration).not.toHaveBeenCalled()
+    expect(historyManager.createNewChain).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalPrompt: 'orig from analyze',
+        optimizedPrompt: 'fresh chain',
+        type: 'contextUserOptimize',
+        iterationNote: 'make it clearer',
+        templateId: 'tpl-iter'
+      })
+    )
+    expect(optimizer.currentChainId).toBe('chain-from-v0')
+    expect(optimizer.currentVersionId).toBeTruthy()
+    expect(optimizer.optimizedPrompt).toBe('fresh chain')
+    expect(optimizer.optimizedReasoning).toBe('reason')
+    expect(toast.warning).not.toHaveBeenCalled()
+    expect(toast.success).toHaveBeenCalledWith('toast.success.iterateComplete')
+  })
 })

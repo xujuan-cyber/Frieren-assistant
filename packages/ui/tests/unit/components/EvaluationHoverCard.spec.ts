@@ -87,7 +87,7 @@ const feedbackEditorStub = {
 }
 
 const baseResult = {
-  type: 'optimized',
+  type: 'result',
   score: {
     overall: 88,
     dimensions: [
@@ -107,7 +107,7 @@ const createWrapper = () =>
   mount(EvaluationHoverCard, {
     props: {
       result: baseResult,
-      type: 'optimized',
+      type: 'result',
       loading: false,
     },
     global: {
@@ -164,5 +164,34 @@ describe('EvaluationHoverCard feedback editor interaction', () => {
     await nextTick()
 
     expect((wrapper.emitted('evaluate') || []).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('disableEvaluate 为 true 时应禁用重新评估入口', async () => {
+    const wrapper = mount(EvaluationHoverCard, {
+      props: {
+        result: baseResult,
+        type: 'result',
+        loading: false,
+        disableEvaluate: true,
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
+          FeedbackEditor: feedbackEditorStub,
+        },
+      },
+    })
+
+    const reEvaluateButton = wrapper
+      .findAll('button')
+      .find((btn) => btn.text().trim() === 'evaluation.reEvaluate')
+
+    expect(reEvaluateButton).toBeTruthy()
+    await reEvaluateButton!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.emitted('evaluate')).toBeFalsy()
+    expect(wrapper.emitted('evaluate-with-feedback')).toBeFalsy()
   })
 })

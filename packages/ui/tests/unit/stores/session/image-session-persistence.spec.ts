@@ -243,4 +243,61 @@ describe('Session stores (image) persistence', () => {
     expect(set).not.toHaveBeenCalled()
     expect(store.inputImageB64).toBe('INPUT_B64')
   })
+
+  it('image-text2image restoreSession migrates legacy latest test variants to workspace', async () => {
+    const get = vi.fn(async (key: string, defaultValue: any) => {
+      if (key !== 'session/v1/image-text2image') return defaultValue
+      return {
+        originalPrompt: 'p',
+        optimizedPrompt: 'draft',
+        reasoning: '',
+        chainId: '',
+        versionId: '',
+        temporaryVariables: {},
+        selectedTextModelKey: '',
+        selectedImageModelKey: '',
+        selectedTemplateId: null,
+        selectedIterateTemplateId: null,
+        testVariants: [
+          { id: 'a', version: 0, modelKey: 'm1' },
+          { id: 'b', version: 'latest', modelKey: 'm2' },
+          { id: 'c', version: 'latest', modelKey: 'm3' },
+          { id: 'd', version: 'latest', modelKey: 'm4' },
+        ],
+        testVariantResults: { a: null, b: null, c: null, d: null },
+        testVariantLastRunFingerprint: { a: '', b: '', c: '', d: '' },
+        layout: { mainSplitLeftPct: 50, testColumnCount: 2 },
+        evaluationResults: {},
+        isCompareMode: true,
+        lastActiveAt: Date.now(),
+      }
+    })
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: {
+        saveImage: vi.fn(),
+        getMetadata: vi.fn(async () => null),
+        listAllMetadata: vi.fn(async () => []),
+        deleteImages: vi.fn(async () => {}),
+        getImage: vi.fn(async () => null),
+      } as any
+    })
+
+    const store = useImageText2ImageSession(pinia)
+    await store.restoreSession()
+
+    expect(store.testVariants.map((item) => item.version)).toEqual([0, 'workspace', 'workspace', 'workspace'])
+  })
 })

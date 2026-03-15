@@ -25,6 +25,10 @@ vi.mock('../../src/composables/ui/useToast', () => ({
 
 import type { AppServices } from '../../src/types/services'
 import { useContextUserTester } from '../../src/composables/prompt/useContextUserTester'
+import {
+  COMPARE_BASELINE_VARIANT_ID,
+  COMPARE_CANDIDATE_VARIANT_ID,
+} from '../../src/composables/prompt/testVariantState'
 
 describe('ContextUser tester (integration)', () => {
   it('runs compare mode and merges variables', async () => {
@@ -58,9 +62,8 @@ describe('ContextUser tester (integration)', () => {
     await tester.executeTest('p0', 'p1', true, { extra: '2' })
 
     expect(testCustomConversationStream).toHaveBeenCalledTimes(2)
-    expect(tester.testResults.originalResult).toBe('AB')
-    expect(tester.testResults.optimizedResult).toBe('AB')
+    expect(tester.variantStates[COMPARE_BASELINE_VARIANT_ID].result).toBe('AB')
+    expect(tester.variantStates[COMPARE_CANDIDATE_VARIANT_ID].result).toBe('AB')
     expect(toast.error).not.toHaveBeenCalled()
   })
 })
-

@@ -88,4 +88,61 @@ describe('Session stores (pro) persistence', () => {
     expect(get).toHaveBeenCalledTimes(3)
     expect(get).toHaveBeenCalledWith('session/v1/pro-variable', null)
   })
+
+  it('pro-multi restoreSession migrates legacy latest test variants to workspace', async () => {
+    const get = vi.fn(async (key: string, defaultValue: any) => {
+      if (key !== 'session/v1/pro-multi') return defaultValue
+      return {
+        conversationMessagesSnapshot: [{ id: 'm1', role: 'user', content: 'hi' }],
+        selectedMessageId: 'm1',
+        optimizedPrompt: 'draft',
+        reasoning: '',
+        chainId: '',
+        versionId: '',
+        messageChainMap: {},
+        conversationVersionMap: {},
+        conversationCurrentVersionMap: {},
+        testVariants: [
+          { id: 'a', version: 0, modelKey: 'm1' },
+          { id: 'b', version: 'latest', modelKey: 'm2' },
+          { id: 'c', version: 'latest', modelKey: 'm3' },
+          { id: 'd', version: 'latest', modelKey: 'm4' },
+        ],
+        testVariantResults: {
+          a: { result: '', reasoning: '' },
+          b: { result: '', reasoning: '' },
+          c: { result: '', reasoning: '' },
+          d: { result: '', reasoning: '' },
+        },
+        testVariantLastRunFingerprint: { a: '', b: '', c: '', d: '' },
+        evaluationResults: {},
+        selectedTemplateId: null,
+        selectedIterateTemplateId: null,
+        selectedTestModelKey: '',
+        selectedOptimizeModelKey: '',
+        isCompareMode: true,
+        lastActiveAt: Date.now(),
+      }
+    })
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any
+    })
+
+    const store = useProMultiMessageSession(pinia)
+    await store.restoreSession()
+
+    expect(store.testVariants.map((item) => item.version)).toEqual([0, 'workspace', 'workspace', 'workspace'])
+  })
 })

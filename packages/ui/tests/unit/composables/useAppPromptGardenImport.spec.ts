@@ -128,12 +128,11 @@ describe('useAppPromptGardenImport', () => {
       versionId: 'old-version',
     })
     basicSystemSession.updateTestContent('old-test')
-    basicSystemSession.updateTestResults({
-      originalResult: 'old-orig',
-      originalReasoning: 'old-orig-r',
-      optimizedResult: 'old-opt',
-      optimizedReasoning: 'old-opt-r',
-    })
+    basicSystemSession.testVariantResults = {
+      ...basicSystemSession.testVariantResults,
+      a: { result: 'old-orig', reasoning: 'old-orig-r' },
+      b: { result: 'old-opt', reasoning: 'old-opt-r' },
+    }
 
     const optimizerCurrentVersions = ref<PromptRecordChain['versions']>([makeDummyRecord()])
 
@@ -228,7 +227,8 @@ describe('useAppPromptGardenImport', () => {
       expect(basicSystemSession.chainId).toBe('')
       expect(basicSystemSession.versionId).toBe('')
       expect(basicSystemSession.testContent).toBe('')
-      expect(basicSystemSession.testResults).toBe(null)
+      expect(basicSystemSession.testVariantResults.a).toEqual({ result: '', reasoning: '' })
+      expect(basicSystemSession.testVariantResults.b).toEqual({ result: '', reasoning: '' })
       expect(optimizerCurrentVersions.value).toEqual([])
 
       // Import params removed from the URL.
@@ -271,12 +271,11 @@ describe('useAppPromptGardenImport', () => {
       chainId: 'old-chain',
       versionId: 'old-version',
     })
-    proMultiMessageSession.updateTestResults({
-      originalResult: 'old-orig',
-      originalReasoning: 'old-orig-r',
-      optimizedResult: 'old-opt',
-      optimizedReasoning: 'old-opt-r',
-    })
+    proMultiMessageSession.testVariantResults = {
+      ...proMultiMessageSession.testVariantResults,
+      a: { result: 'old-orig', reasoning: 'old-orig-r' },
+      b: { result: 'old-opt', reasoning: 'old-opt-r' },
+    }
     proMultiMessageSession.setTemporaryVariable('topic', 'pizza')
     proMultiMessageSession.setTemporaryVariable('obsolete', 'should-delete')
 
@@ -418,7 +417,8 @@ describe('useAppPromptGardenImport', () => {
 
       // Pro-multi state reset.
       expect(proMultiMessageSession.messageChainMap).toEqual({})
-      expect(proMultiMessageSession.testResults).toBe(null)
+      expect(proMultiMessageSession.testVariantResults.a).toEqual({ result: '', reasoning: '' })
+      expect(proMultiMessageSession.testVariantResults.b).toEqual({ result: '', reasoning: '' })
       expect(proMultiMessageSession.optimizedPrompt).toBe('')
       expect(proMultiMessageSession.reasoning).toBe('')
       expect(proMultiMessageSession.chainId).toBe('')
@@ -470,12 +470,11 @@ describe('useAppPromptGardenImport', () => {
       versionId: 'old-version',
     })
     proVariableSession.updateTestContent('old-test')
-    proVariableSession.updateTestResults({
-      originalResult: 'old-orig',
-      originalReasoning: 'old-orig-r',
-      optimizedResult: 'old-opt',
-      optimizedReasoning: 'old-opt-r',
-    })
+    proVariableSession.testVariantResults = {
+      ...proVariableSession.testVariantResults,
+      a: { result: 'old-orig', reasoning: 'old-orig-r' },
+      b: { result: 'old-opt', reasoning: 'old-opt-r' },
+    }
 
     // Existing values should be preserved.
     proVariableSession.setTemporaryVariable('name', 'Bob')
@@ -577,7 +576,8 @@ describe('useAppPromptGardenImport', () => {
       expect(proVariableSession.chainId).toBe('')
       expect(proVariableSession.versionId).toBe('')
       expect(proVariableSession.testContent).toBe('')
-      expect(proVariableSession.testResults).toBe(null)
+      expect(proVariableSession.testVariantResults.a).toEqual({ result: '', reasoning: '' })
+      expect(proVariableSession.testVariantResults.b).toEqual({ result: '', reasoning: '' })
 
       // Variables injected from schema; existing values preserved.
       expect(proVariableSession.getTemporaryVariable('name')).toBe('Bob')

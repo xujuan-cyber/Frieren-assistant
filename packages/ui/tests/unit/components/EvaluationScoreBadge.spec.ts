@@ -50,12 +50,29 @@ const NButtonStub = defineComponent({
 
 const EvaluationHoverCardStub = defineComponent({
   name: 'EvaluationHoverCard',
-  props: ['result', 'type', 'loading', 'visible'],
+  props: ['result', 'type', 'loading', 'visible', 'disableEvaluate'],
   emits: ['show-detail', 'evaluate', 'evaluate-with-feedback', 'apply-improvement', 'apply-patch'],
   setup() {
     return () => h('div', { class: 'hover-card-stub' }, [h('textarea', { 'data-testid': 'feedback-input' })])
   },
 })
+
+const baseResult = {
+  type: 'result',
+  score: {
+    overall: 88,
+    dimensions: [
+      {
+        key: 'overall',
+        label: 'Overall',
+        score: 88,
+      },
+    ],
+  },
+  improvements: [],
+  summary: 'summary',
+  patchPlan: [],
+}
 
 describe('EvaluationScoreBadge popover focus interaction', () => {
   afterEach(() => {
@@ -71,7 +88,7 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
         level: 'good',
         loading: false,
         result: null,
-        type: 'original',
+        type: 'result',
       },
       global: {
         stubs: {
@@ -82,7 +99,7 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
       },
     })
 
-    const badgeButton = wrapper.find('[data-testid="score-badge-original"]')
+    const badgeButton = wrapper.find('[data-testid="score-badge-result"]')
     expect(badgeButton.exists()).toBe(true)
 
     // Open popover via hover
@@ -109,7 +126,7 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
         level: 'good',
         loading: false,
         result: null,
-        type: 'original',
+        type: 'result',
       },
       global: {
         stubs: {
@@ -120,20 +137,20 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
       },
     })
 
-    const badgeButton = wrapper.find('[data-testid="score-badge-original"]')
+    const badgeButton = wrapper.find('[data-testid="score-badge-result"]')
     await badgeButton.trigger('click')
     await nextTick()
 
     expect(wrapper.find('.hover-card-wrapper').exists()).toBe(true)
 
     const hoverCard = wrapper.findComponent({ name: 'EvaluationHoverCard' })
-    hoverCard.vm.$emit('apply-improvement', { improvement: 'Do X', type: 'original' })
+    hoverCard.vm.$emit('apply-improvement', { improvement: 'Do X', type: 'result' })
     await nextTick()
 
     expect(wrapper.find('.hover-card-wrapper').exists()).toBe(true)
     expect(wrapper.emitted('apply-improvement')?.[0]?.[0]).toEqual({
       improvement: 'Do X',
-      type: 'original',
+      type: 'result',
     })
   })
 
@@ -144,7 +161,7 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
         level: 'good',
         loading: false,
         result: null,
-        type: 'original',
+        type: 'result',
       },
       global: {
         stubs: {
@@ -155,7 +172,7 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
       },
     })
 
-    const badgeButton = wrapper.find('[data-testid="score-badge-original"]')
+    const badgeButton = wrapper.find('[data-testid="score-badge-result"]')
     await badgeButton.trigger('click')
     await nextTick()
 
@@ -174,5 +191,37 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
 
     expect(wrapper.find('.hover-card-wrapper').exists()).toBe(true)
     expect(wrapper.emitted('apply-patch')?.[0]?.[0]).toEqual({ operation })
+  })
+
+  it('should suppress evaluate events when disableEvaluate is true', async () => {
+    const wrapper = mount(EvaluationScoreBadge, {
+      props: {
+        score: 80,
+        level: 'good',
+        loading: false,
+        result: baseResult,
+        type: 'result',
+        disableEvaluate: true,
+      },
+      global: {
+        stubs: {
+          NPopover: NPopoverStub,
+          NButton: NButtonStub,
+          EvaluationHoverCard: EvaluationHoverCardStub,
+        },
+      },
+    })
+
+    const badgeButton = wrapper.find('[data-testid="score-badge-result"]')
+    await badgeButton.trigger('click')
+    await nextTick()
+
+    const hoverCard = wrapper.findComponent({ name: 'EvaluationHoverCard' })
+    hoverCard.vm.$emit('evaluate')
+    hoverCard.vm.$emit('evaluate-with-feedback', { feedback: 'focus' })
+    await nextTick()
+
+    expect(wrapper.emitted('evaluate')).toBeFalsy()
+    expect(wrapper.emitted('evaluate-with-feedback')).toBeFalsy()
   })
 })

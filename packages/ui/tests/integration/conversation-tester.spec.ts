@@ -26,6 +26,10 @@ vi.mock('../../src/composables/ui/useToast', () => ({
 import type { AppServices } from '../../src/types/services'
 import type { ConversationMessage } from '@prompt-optimizer/core'
 import { useConversationTester } from '../../src/composables/prompt/useConversationTester'
+import {
+  COMPARE_BASELINE_VARIANT_ID,
+  COMPARE_CANDIDATE_VARIANT_ID,
+} from '../../src/composables/prompt/testVariantState'
 
 describe('Conversation tester (integration)', () => {
   it('runs compare mode and uses originalContent for selected message in original run', async () => {
@@ -75,9 +79,8 @@ describe('Conversation tester (integration)', () => {
 
     expect(testCustomConversationStream).toHaveBeenCalledTimes(2)
     expect(new Set(seenContents)).toEqual(new Set(['c0', 'c1']))
-    expect(tester.testResults.originalResult).toBe('X')
-    expect(tester.testResults.optimizedResult).toBe('X')
+    expect(tester.variantStates[COMPARE_BASELINE_VARIANT_ID].result).toBe('X')
+    expect(tester.variantStates[COMPARE_CANDIDATE_VARIANT_ID].result).toBe('X')
     expect(toast.error).not.toHaveBeenCalled()
   })
 })
-

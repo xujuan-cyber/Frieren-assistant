@@ -98,6 +98,13 @@ async function readOutputSourceText(output: import('@playwright/test').Locator) 
   }
 }
 
+export async function readOutputByTestIdText(page: Page, testId: string): Promise<string> {
+  const output = page.locator(`[data-testid="${testId}"]:visible`)
+  await ensureOutputSourceView(output)
+  const { text } = await readOutputSourceText(output)
+  return text
+}
+
 export async function expectOutputByTestIdNotEmpty(page: Page, testId: string, opts?: { timeoutMs?: number }) {
   const output = page.locator(`[data-testid="${testId}"]:visible`)
   const timeoutMs = opts?.timeoutMs ?? 120000
@@ -116,6 +123,7 @@ export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWo
   const workspace = getWorkspace(page, mode)
 
   const output = workspace.locator(`[data-testid="${mode}-output"]:visible`)
+  const optimizeButton = workspace.locator(`[data-testid="${mode}-optimize-button"]`)
 
   try {
     await ensureOutputSourceView(output)
@@ -126,9 +134,14 @@ export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWo
         return text
       }, { timeout: 120000 })
       .toMatch(/\S/)
+
+    // 文本开始流出并不代表优化已完成；尤其是 pro-multi 左侧分析会在流式收尾阶段重建按钮节点。
+    // 这里补一层“优化按钮重新可用”的等待，确保后续点击分析/测试时已经脱离 streaming 状态。
+    if ((await optimizeButton.count()) > 0) {
+      await expect(optimizeButton).toBeEnabled({ timeout: 120000 })
+    }
   } catch (e) {
     const buttonInfo = await (async () => {
-      const optimizeButton = workspace.locator(`[data-testid="${mode}-optimize-button"]`)
       try {
         const visible = await optimizeButton.isVisible()
         const enabled = await optimizeButton.isEnabled()
@@ -176,9 +189,14 @@ export async function verifyOptimizeButtonDisabledWhenEmpty(page: Page, mode: Op
 }
 
 export async function addProMultiUserMessage(page: Page, content: string) {
-  const addButton = page.getByTestId('pro-multi-add-message').first()
-  await expect(addButton).toBeVisible({ timeout: 20000 })
-  await addButton.click()
+  const firstAddButton = page.getByTestId('pro-multi-add-first-message').first()
+  if (await firstAddButton.isVisible().catch(() => false)) {
+    await firstAddButton.click()
+  } else {
+    const addButton = page.getByTestId('pro-multi-add-message').first()
+    await expect(addButton).toBeVisible({ timeout: 20000 })
+    await addButton.click()
+  }
 
   // 新增消息后，列表最后一项应该出现
   // 我们给 message card 加了 data-testid=pro-multi-message-card-{index}

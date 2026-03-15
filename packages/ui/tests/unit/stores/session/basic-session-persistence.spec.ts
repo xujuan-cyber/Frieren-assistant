@@ -79,4 +79,64 @@ describe('Session stores (basic) persistence', () => {
     expect(store.selectedTemplateId).toBe('legacy-template')
     expect(get).toHaveBeenCalledWith('session/v1/basic-user', null)
   })
+
+  it('basic-system restoreSession migrates legacy latest test variants to workspace', async () => {
+    const get = vi.fn(async (key: string, defaultValue: any) => {
+      if (key !== 'session/v1/basic-system') return defaultValue
+      return {
+        prompt: 'p',
+        optimizedPrompt: 'draft',
+        reasoning: '',
+        chainId: '',
+        versionId: '',
+        testContent: 'input',
+        layout: { mainSplitLeftPct: 50, testColumnCount: 2 },
+        testVariants: [
+          { id: 'a', version: 0, modelKey: 'm1' },
+          { id: 'b', version: 'latest', modelKey: 'm2' },
+          { id: 'c', version: 'latest', modelKey: 'm3' },
+          { id: 'd', version: 'latest', modelKey: 'm4' },
+        ],
+        testVariantResults: {
+          a: { result: '', reasoning: '' },
+          b: { result: '', reasoning: '' },
+          c: { result: '', reasoning: '' },
+          d: { result: '', reasoning: '' },
+        },
+        testVariantLastRunFingerprint: {
+          a: '',
+          b: '',
+          c: '',
+          d: '',
+        },
+        evaluationResults: {},
+        selectedOptimizeModelKey: '',
+        selectedTestModelKey: '',
+        selectedTemplateId: null,
+        selectedIterateTemplateId: null,
+        isCompareMode: true,
+        lastActiveAt: Date.now(),
+      }
+    })
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any
+    })
+
+    const store = useBasicSystemSession(pinia)
+    await store.restoreSession()
+
+    expect(store.testVariants.map((item) => item.version)).toEqual([0, 'workspace', 'workspace', 'workspace'])
+  })
 })
