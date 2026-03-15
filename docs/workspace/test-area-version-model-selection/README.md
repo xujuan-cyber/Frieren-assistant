@@ -1,6 +1,8 @@
 # 工作区：测试区版本/模型选择
 
 > 开发期间的规划与过程记录放在这里，避免污染仓库根目录。
+> 2026-03-16 更新：当前实现语义已从旧 `latest` 切换为 `workspace / v0 / vN`。
+> 如需看最新行为，请优先结合 `docs/workspace/compare-evaluation-analysis/` 一起阅读。
 
 ## 快速入口
 

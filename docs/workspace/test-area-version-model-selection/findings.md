@@ -4,15 +4,16 @@
 
 - 本期实现范围：仅 `basic-user`（后续再推广到其他子模式）。
 - 测试区输入必须与编辑区 textarea 解耦。
-- 提示词版本来源：session 的历史链（`v0..vn`）。
+- 提示词版本来源：当前 session 的工作区状态与历史链（`workspace / v0..vn`）。
+  - `workspace`：下方工作区当前内容，包含未保存草稿
   - `v0`：原始提示词（不在历史链中作为一条 record 存在）
   - `v1..vn`：历史链版本号
 - 每个测试结果面板独立选择：
-  - 提示词版本（`v0..vn` + `latest`）
+  - 提示词版本（`workspace / v0..vn`）
   - 模型（左右可不同）
-- 默认对比：`v0` vs `latest(vn)`。
+- 默认对比：`v0` vs `workspace`。
 - Compare 测试并行执行。
-- 不允许选择草稿/未保存提示词。
+- 允许选择工作区草稿，但如果 `workspace` 为空则直接报错，不再 silently fallback。
 
 ## 代码/结构发现
 
@@ -33,7 +34,7 @@
 | 决策 | 理由 |
 | --- | --- |
 | 在 `useBasicUserSession` 中持久化 per-panel 的 version+model 选择（`testPanels`） | session 已持久化 compare/testContent 等状态；符合“session-scoped”的预期。 |
-| `version` 使用 `0 | number | 'latest'` 表示 | 易持久化、易绑定到 select，`latest` 可跟随新版本增长。 |
+| `version` 使用 `'workspace' | 0 | number` 表示 | 能明确区分工作区草稿、原始输入与历史版本，避免 `latest` 语义歧义。 |
 | 通过确定性 resolver 将选择值解析为 prompt 文本 | 解耦 UI 与测试逻辑，并对缺失/非法版本做 fallback。 |
 | `TestResultSection` 增加 header-extra slots，`TestAreaPanel` 透传 | 组件保持通用；各 workspace 仅注入自己的控制区。 |
 

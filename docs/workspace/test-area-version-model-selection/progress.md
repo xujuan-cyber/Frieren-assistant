@@ -1,5 +1,17 @@
 # 进展日志
 
+## 会话：2026-03-16
+
+### 语义收口（已完成）
+
+- 测试区版本来源已从旧 `latest` 收口为：
+  - `workspace`
+  - `v0`
+  - `v1..vn`
+- `workspace` 现在明确表示“下方工作区当前内容”，不再表示“历史链最新版本”。
+- 当测试列选择 `workspace` 且当前工作区为空时，UI 直接报错，不再回退到原始输入。
+- 旧 session 中持久化的 `'latest'` 会在加载时迁移为 `'workspace'`。
+
 ## 会话：2026-01-22
 
 ### Phase 1：需求与现状梳理（已完成）
@@ -14,7 +26,7 @@
 
 - 动作：
   - 定义 session-scoped 的 per-panel version/model 数据模型。
-  - 定义 v0/fixed/latest 的解析规则。
+  - 定义 workspace/v0/fixed 的解析规则。
   - 定义 UI 方案：结果卡 header 注入选择器。
   - 输出设计文档。
 - 产出：`task_plan.md`、`docs/architecture/test-area-version-model-selection.md`。
