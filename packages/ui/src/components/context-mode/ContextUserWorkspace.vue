@@ -515,6 +515,10 @@ import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useW
 import { OptionAccessors } from '../../utils/data-transformer';
 import { useElementSize } from '@vueuse/core'
 import { buildPromptExecutionContext, hashString, hashVariables } from '../../utils/prompt-variables'
+import {
+    collectReferencedBusinessVariableNames,
+    formatVariableEvidenceEntries,
+} from '../../utils/evaluationVariableEvidence'
 
 // ========================
 // Props 定义
@@ -1464,21 +1468,25 @@ const buildVariantPromptRef = (id: TestVariantId) => {
     return { kind: 'version' as const, version: selection, label: `v${selection}` };
 };
 
-const buildVariableTestCaseContent = () => {
-    const entries = Object.entries(mergedTestVariables.value || {});
-    if (!entries.length) return '';
-    return entries
-        .map(([name, value]) => `${name}=${String(value ?? '')}`)
-        .join('\n');
-};
+const buildResultVariableInputVariables = (
+    id: TestVariantId,
+): ProUserEvaluationContext['variables'] => {
+    const promptText = resolveTestPrompt(variantVersionModels[id].value).text
+    const relevantNames = collectReferencedBusinessVariableNames(promptText)
+    return buildUsedVariables(relevantNames, { includeValues: true })
+}
+
+const buildResultVariableTestCaseContent = (id: TestVariantId): string =>
+    formatVariableEvidenceEntries(
+        buildResultVariableInputVariables(id),
+        t('evaluation.syntheticInput.noExplicitVariables'),
+    )
 
 const buildCompareVariableInputVariables = (): ProUserEvaluationContext['variables'] => {
     const relevantNames = new Set<string>();
     const collectRelevantNames = (promptText: string) => {
-        collectUsedVariableNames(promptText).forEach((name) => {
-            if (!(PREDEFINED_VARIABLES as readonly string[]).includes(name)) {
-                relevantNames.add(name);
-            }
+        collectReferencedBusinessVariableNames(promptText).forEach((name) => {
+            relevantNames.add(name);
         });
     };
 
@@ -1553,7 +1561,7 @@ const resultEvaluationTargets = computed(() =>
                     input: {
                         kind: 'variables',
                         label: t('variables.management.variables'),
-                        content: buildVariableTestCaseContent(),
+                        content: buildResultVariableTestCaseContent(id),
                     },
                 },
                 snapshot: {
