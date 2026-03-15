@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { NTag, NText } from 'naive-ui'
 
 interface ImageRefLike {
     b64?: string

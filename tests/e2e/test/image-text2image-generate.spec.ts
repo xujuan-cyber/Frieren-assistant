@@ -18,10 +18,12 @@ async function saveBase64DataUrlAsPng(dataUrl: string, outPath: string) {
 }
 
 async function openSelectAndWaitForVisibleOptions(page: any, select: any) {
-  const visibleOptions = page.locator('.n-base-select-option:visible')
+  const visibleMenu = page.locator('.swc-select-menu').last()
+  const visibleOptions = visibleMenu.locator('.n-base-select-option')
 
   const ensureOpen = async () => {
     await select.click()
+    await expect(visibleMenu).toBeVisible({ timeout: 20000 })
     await expect.poll(async () => await visibleOptions.count(), { timeout: 20000 }).toBeGreaterThan(0)
   }
 
@@ -37,21 +39,31 @@ async function openSelectAndWaitForVisibleOptions(page: any, select: any) {
 }
 
 async function selectOption(page: any, select: any, matcher?: RegExp) {
-  const options = await openSelectAndWaitForVisibleOptions(page, select)
+  // Naive UI 下拉选项存在动画/重渲染，直接 click 可能卡在“not stable / not visible”重试直到 test 超时。
+  // 这里做两次尝试：失败则收起下拉并重开；第二次使用 force click。
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const options = await openSelectAndWaitForVisibleOptions(page, select)
 
-  if (!matcher) {
-    await options.first().click()
-    return
+    if (!matcher) {
+      await options.first().click({ timeout: 20000, force: attempt > 0 })
+      return
+    }
+
+    const target = options.filter({ hasText: matcher }).first()
+    if ((await target.count()) === 0) {
+      await page.keyboard.press('Escape').catch(() => {})
+      throw new Error(`[E2E] selectOption: option not found for matcher: ${String(matcher)}`)
+    }
+
+    try {
+      await target.click({ timeout: 20000, force: attempt > 0 })
+      await expect.poll(async () => (await select.textContent()) || '', { timeout: 10000 }).toMatch(matcher)
+      return
+    } catch {
+      await page.keyboard.press('Escape').catch(() => {})
+      await page.waitForTimeout(200)
+    }
   }
-
-  const target = options.filter({ hasText: matcher }).first()
-  if ((await target.count()) > 0) {
-    await target.click()
-    return
-  }
-
-  // Fallback: pick the first visible option.
-  await options.first().click()
 }
 
 test.describe('Image Text2Image - 生成（SiliconFlow）', () => {
@@ -79,6 +91,8 @@ test.describe('Image Text2Image - 生成（SiliconFlow）', () => {
     await expect(optimizedModelSelect).toBeVisible({ timeout: 20000 })
     await selectOption(page, originalModelSelect, /siliconflow/i)
     await selectOption(page, optimizedModelSelect, /siliconflow/i)
+    await expect(originalModelSelect).toContainText(/siliconflow/i)
+    await expect(optimizedModelSelect).toContainText(/siliconflow/i)
 
     // 4) 运行两列生成（original + optimized）
     await page.getByTestId('image-text2image-test-run-all').click()

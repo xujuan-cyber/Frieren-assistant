@@ -71,15 +71,15 @@ describe('Prompt-iterate evaluation templates', () => {
       const system = getFirstMessageContent(template, 'system')
       const user = getFirstMessageContent(template, 'user')
 
-      expect(system).toContain('用户反馈解释规则（重要）')
-      // Some templates phrase it as "assistant 最终输出"; keep the check semantic.
-      expect(system).toContain('最终输出')
-      expect(system).toContain('输出/格式/示例')
+      expect(system).toContain('## Goal')
+      expect(system).toContain('## Rules')
+      expect(system).toContain('## Workflow')
+      expect(system).toContain('Focus Brief')
+      expect(system).toContain('patchPlan')
+      expect(system).toContain('只输出合法 JSON')
 
-      // Ensure the user-side hint exists too (models often key off headings).
-      expect(user).toContain('用户反馈（优先关注')
-      expect(user).toContain('默认指')
-      expect(user).toContain('最终输出格式')
+      expect(user).toContain('## 当前工作区')
+      expect(user).toContain('## Focus Brief')
     }
   })
 
@@ -94,12 +94,15 @@ describe('Prompt-iterate evaluation templates', () => {
       const system = getFirstMessageContent(template, 'system')
       const user = getFirstMessageContent(template, 'user')
 
-      expect(system).toContain('How to Interpret User Feedback (Important)')
-      expect(system).toContain('FINAL OUTPUT FORMAT')
-      expect(system).toContain('output/format/examples')
+      expect(system).toContain('## Goal')
+      expect(system).toContain('## Rules')
+      expect(system).toContain('## Workflow')
+      expect(system).toContain('Focus Brief')
+      expect(system).toContain('patchPlan')
+      expect(system).toContain('valid JSON')
 
-      expect(user).toContain('User Feedback (Priority')
-      expect(user).toContain('FINAL OUTPUT FORMAT')
+      expect(user).toContain('## Current Workspace')
+      expect(user).toContain('## Focus Brief')
     }
   })
 })

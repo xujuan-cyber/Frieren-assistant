@@ -6,10 +6,12 @@ import * as path from 'path'
 const MODE = 'image-image2image' as const
 
 async function openSelectAndWaitForVisibleOptions(page: any, select: any) {
-  const visibleOptions = page.locator('.n-base-select-option:visible')
+  const visibleMenu = page.locator('.swc-select-menu').last()
+  const visibleOptions = visibleMenu.locator('.n-base-select-option')
 
   const ensureOpen = async () => {
     await select.click()
+    await expect(visibleMenu).toBeVisible({ timeout: 20000 })
     await expect
       .poll(async () => await visibleOptions.count(), { timeout: 20000 })
       .toBeGreaterThan(0)
@@ -46,6 +48,7 @@ async function selectOption(page: any, select: any, matcher?: RegExp) {
 
     try {
       await target.click({ timeout: 20000, force: attempt > 0 })
+      await expect.poll(async () => (await select.textContent()) || '', { timeout: 10000 }).toMatch(matcher)
       return
     } catch {
       await page.keyboard.press('Escape').catch(() => {})
@@ -106,6 +109,8 @@ test.describe('Image Image2Image - 生成（SiliconFlow）', () => {
     await expect(optimizedModelSelect).toBeVisible({ timeout: 20000 })
     await selectOption(page, originalModelSelect, /siliconflow/i)
     await selectOption(page, optimizedModelSelect, /siliconflow/i)
+    await expect(originalModelSelect).toContainText(/siliconflow/i)
+    await expect(optimizedModelSelect).toContainText(/siliconflow/i)
 
     // 8) 运行两列生成（original + optimized）
     await page.getByTestId('image-image2image-test-run-all').click()
