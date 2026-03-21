@@ -1,6 +1,12 @@
 import { test, expect } from '../fixtures'
 import { navigateToMode } from '../helpers/common'
-import { clickEvaluateButtonWithin, getScoreBadgeValue } from '../helpers/evaluation'
+import {
+  clickEvaluateButtonWithin,
+  expectPromptVersionTagVisible,
+  expectStructuredCompareDrawer,
+  getScoreBadgeValue,
+  openEvaluationDrawerFromBadge,
+} from '../helpers/evaluation'
 import {
   fillOriginalPrompt,
   clickOptimizeButton,
@@ -70,6 +76,39 @@ test.describe('Basic System - 测试（对比模式）', () => {
     const testToolbar = workspace.locator('.test-area-top').first()
     await clickEvaluateButtonWithin(testToolbar)
     await getScoreBadgeValue(testToolbar, 'compare')
+  })
+
+  test('对比评估详情会显示 structured compare 产物，并可通过智能改写生成新版本', async ({ page }) => {
+    test.setTimeout(360000)
+
+    await navigateToMode(page, 'basic', 'system')
+
+    await fillOriginalPrompt(page, MODE, '你是一个诗人')
+    await clickOptimizeButton(page, MODE)
+    await expectOptimizedResultNotEmpty(page, MODE)
+    await expectPromptVersionTagVisible(page, 1)
+
+    const testInput = page.getByTestId('basic-system-test-input').locator('textarea')
+    await testInput.fill('写一首小诗，表达ai时代的迷茫')
+
+    const workspace = page.locator('[data-testid="workspace"][data-mode="basic-system"]').first()
+    await workspace.getByRole('radio', { name: '2' }).check()
+
+    await page.getByTestId('basic-system-test-run-all').click()
+
+    await expectOutputByTestIdNotEmpty(page, 'basic-system-test-original-output')
+    await expectOutputByTestIdNotEmpty(page, 'basic-system-test-optimized-output')
+
+    const testToolbar = workspace.locator('.test-area-top').first()
+    await clickEvaluateButtonWithin(testToolbar)
+    await getScoreBadgeValue(testToolbar, 'compare')
+
+    const compareBadge = workspace.locator('[data-testid="score-badge-compare"]')
+    const drawer = await openEvaluationDrawerFromBadge(compareBadge)
+    await expectStructuredCompareDrawer(drawer)
+
+    await drawer.getByTestId('evaluation-panel-rewrite-from-evaluation').click()
+    await expectPromptVersionTagVisible(page, 2)
   })
 
   test('测试文本清空后旧评估仍可查看且 result/compare 都不能重跑', async ({ page }) => {

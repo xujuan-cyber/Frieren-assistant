@@ -9,6 +9,8 @@ import * as os from 'node:os';
 // E2E 测试专用端口,避免与开发服务器冲突
 const E2E_PORT = process.env.E2E_PORT || 15555;
 const BASE_URL = `http://localhost:${E2E_PORT}`;
+const E2E_VCR_MODE = process.env.E2E_VCR_MODE || 'auto';
+const USE_VCR_PLACEHOLDER_KEYS = E2E_VCR_MODE === 'replay';
 
 export default defineConfig({
   // 测试目录
@@ -88,8 +90,12 @@ export default defineConfig({
     // 避免因本机缺少真实 key 而导致 UI 不渲染对应选项，从而无法命中既有 VCR fixtures。
     env: {
       ...process.env,
-      VITE_SILICONFLOW_API_KEY: process.env.VITE_SILICONFLOW_API_KEY || 'vcr',
-      VITE_DEEPSEEK_API_KEY: process.env.VITE_DEEPSEEK_API_KEY || 'vcr',
+      ...(USE_VCR_PLACEHOLDER_KEYS
+        ? {
+            VITE_SILICONFLOW_API_KEY: process.env.VITE_SILICONFLOW_API_KEY || 'vcr',
+            VITE_DEEPSEEK_API_KEY: process.env.VITE_DEEPSEEK_API_KEY || 'vcr',
+          }
+        : {}),
     },
     // 为了保证每次测试都使用最新构建产物，默认不复用已有 server。
     reuseExistingServer: false,

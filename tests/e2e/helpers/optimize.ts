@@ -124,6 +124,7 @@ export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWo
 
   const output = workspace.locator(`[data-testid="${mode}-output"]:visible`)
   const optimizeButton = workspace.locator(`[data-testid="${mode}-optimize-button"]`)
+  const timeoutMs = 180000
 
   try {
     await ensureOutputSourceView(output)
@@ -132,13 +133,13 @@ export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWo
       .poll(async () => {
         const { text } = await readOutputSourceText(output).catch(() => ({ text: '' }))
         return text
-      }, { timeout: 120000 })
+      }, { timeout: timeoutMs })
       .toMatch(/\S/)
 
     // 文本开始流出并不代表优化已完成；尤其是 pro-multi 左侧分析会在流式收尾阶段重建按钮节点。
     // 这里补一层“优化按钮重新可用”的等待，确保后续点击分析/测试时已经脱离 streaming 状态。
     if ((await optimizeButton.count()) > 0) {
-      await expect(optimizeButton).toBeEnabled({ timeout: 120000 })
+      await expect(optimizeButton).toBeEnabled({ timeout: timeoutMs })
     }
   } catch (e) {
     const buttonInfo = await (async () => {

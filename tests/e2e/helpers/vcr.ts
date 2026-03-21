@@ -95,6 +95,57 @@ class E2EVCR {
     this.config = config
   }
 
+  private normalizeLiveRequestHeaders(headers: Record<string, string>): Record<string, string> {
+    const next = { ...headers }
+    delete next.host
+    delete next.connection
+    delete next['content-length']
+    delete next['transfer-encoding']
+    return next
+  }
+
+  private async fetchLiveResponseWithRetry(
+    url: string,
+    method: string,
+    headers: Record<string, string>,
+    body: string | null,
+    attempts = 3
+  ): Promise<{
+    status: number
+    headers: Record<string, string>
+    body: string
+  }> {
+    let lastError: unknown = null
+    const normalizedHeaders = this.normalizeLiveRequestHeaders(headers)
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: normalizedHeaders,
+          body: body || undefined,
+        })
+
+        return {
+          status: response.status,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: await response.text(),
+        }
+      } catch (error) {
+        lastError = error
+        if (attempt === attempts) break
+
+        const delayMs = attempt * 1000
+        console.warn(
+          `[VCR] live fetch failed (attempt ${attempt}/${attempts}) for ${url}: ${String(error)}`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError))
+  }
+
   /**
    * 设置当前测试上下文
    */
@@ -437,21 +488,25 @@ class E2EVCR {
           if (this.recordingEnabled) {
             // record 模式：调用真实 API 并保存
             const startTime = Date.now()
-            const response = await route.fetch()
+            const response = await this.fetchLiveResponseWithRetry(
+              url,
+              method,
+              request.headers(),
+              requestBody,
+            )
             const endTime = Date.now()
-
-            const responseBody = await response.text()
+            const responseBody = response.body
 
             // 录制时如果返回 4xx/5xx，直接跳过保存 fixture，避免把错误响应录进去
-            if (response.status() >= 400) {
-              const headers = { ...response.headers() }
+            if (response.status >= 400) {
+              const headers = { ...response.headers }
               // route.fetch() 已经解码了 body；若保留 content-encoding/content-length 等头会导致浏览器二次解码/长度不匹配
               delete (headers as any)['content-encoding']
               delete (headers as any)['content-length']
               delete (headers as any)['transfer-encoding']
 
               await route.fulfill({
-                status: response.status(),
+                status: response.status,
                 headers: {
                   ...headers,
                   'access-control-allow-origin': '*',
@@ -463,7 +518,7 @@ class E2EVCR {
             }
 
             // 图像生成等非 SSE：直接按原始响应回放（避免强行合成 SSE 破坏语义）
-            const contentType = response.headers()['content-type'] || ''
+            const contentType = response.headers['content-type'] || ''
             const isImageResponse = /\bimage\//i.test(contentType)
             const isSSE = /\btext\/event-stream\b/i.test(contentType)
 
@@ -477,16 +532,16 @@ class E2EVCR {
                 responseBody,
                 { 'content-type': contentType || 'application/octet-stream' },
                 method,
-                response.status()
+                response.status
               )
 
-              const headers = { ...response.headers() }
+              const headers = { ...response.headers }
               delete (headers as any)['content-encoding']
               delete (headers as any)['content-length']
               delete (headers as any)['transfer-encoding']
 
               await route.fulfill({
-                status: response.status(),
+                status: response.status,
                 headers: {
                   ...headers,
                   'access-control-allow-origin': '*',
@@ -605,22 +660,24 @@ class E2EVCR {
               }
             }
 
-            await this.saveFixture(
-              provider,
-              url,
-              JSON.parse(requestBody || '{}'),
-              responseJson,
-              endTime - startTime,
-              rawSSE,
-              {
-                'content-type': hasSSE ? 'text/event-stream' : (response.headers()['content-type'] || 'application/json'),
-              },
-              method,
-              response.status()
-            )
+              await this.saveFixture(
+                provider,
+                url,
+                JSON.parse(requestBody || '{}'),
+                responseJson,
+                endTime - startTime,
+                rawSSE,
+                {
+                  // rawSSE 在这里要么是原始 SSE，要么是我们为非流式 JSON 合成的 SSE。
+                  // replay 时必须按 SSE 回放，否则浏览器端会把 `data: ...` 当 JSON 解析而失败。
+                  'content-type': 'text/event-stream',
+                },
+                method,
+                response.status
+              )
 
-            // 返回真实响应（补齐 CORS，避免浏览器端 fetch 被拦）
-            const headers = { ...response.headers() }
+              // 返回真实响应（补齐 CORS，避免浏览器端 fetch 被拦）
+            const headers = { ...response.headers }
             // route.fetch() 已经解码了 body；若保留 content-encoding/content-length 等头会导致浏览器二次解码/长度不匹配
             delete (headers as any)['content-encoding']
             delete (headers as any)['content-length']
@@ -632,7 +689,7 @@ class E2EVCR {
             }
 
             await route.fulfill({
-              status: response.status(),
+              status: response.status,
               headers: {
                 ...headers,
                 'access-control-allow-origin': '*',
