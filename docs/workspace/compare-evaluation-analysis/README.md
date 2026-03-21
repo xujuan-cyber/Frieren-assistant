@@ -8,8 +8,9 @@
 
 1. [current-spec.md](./current-spec.md)
 2. [manual-acceptance.md](./manual-acceptance.md)
-3. [real-api-samples/review-summary.md](./real-api-samples/review-summary.md)
-4. `real-api-samples/*/rendered-messages.md`
+3. [manual-test-playbook.md](./manual-test-playbook.md)
+4. [real-api-samples/review-summary.md](./real-api-samples/review-summary.md)
+5. `real-api-samples/*/rendered-messages.md`
 
 ## 当前目录结构
 
@@ -19,6 +20,9 @@
 - `manual-acceptance.md`
   当前手工测试入口。
   如果你要自己在浏览器里点一遍，就看这份。
+- `manual-test-playbook.md`
+  当前最适合直接照着操作的一份手测步骤文档。
+  如果你要逐步验证 compare 阶段功能，优先看这份。
 - `real-api-samples/`
   真实模型请求样例。
   这是判断“现在到底发了什么给模型”的最高优先级证据。

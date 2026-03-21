@@ -196,5 +196,7 @@ CLAUDE.md
 .kiro
 .agents/
 .codex/
+.codex-run/
+.codex-tmp/
 # BMAD (local only)
 .ace-tool/
