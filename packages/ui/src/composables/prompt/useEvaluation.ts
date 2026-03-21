@@ -12,6 +12,13 @@ import { useToast } from '../ui/useToast'
 import { useI18n } from 'vue-i18n'
 import { getI18nErrorMessage } from '../../utils/error'
 import { useFunctionModelManager } from '../model/useFunctionModelManager'
+import {
+  getCompareJudgements,
+  getCompareMode,
+  getCompareSnapshotRoles,
+  getCompareStopSignals,
+  type CompareJudgementRecord,
+} from './compareResultMetadata'
 import type { AppServices } from '../../types/services'
 import type {
   EvaluationType,
@@ -27,6 +34,8 @@ import type {
   EvaluationTestCase,
   EvaluationSnapshot,
   CompareAnalysisHints,
+  CompareStopSignals,
+  StructuredCompareRole,
 } from '@prompt-optimizer/core'
 
 /** 评分等级类型 */
@@ -92,6 +101,10 @@ export interface UseEvaluationReturn {
   compareLevel: ComputedRef<ScoreLevel | null>
   isEvaluatingCompare: ComputedRef<boolean>
   hasCompareResult: ComputedRef<boolean>
+  compareMode: ComputedRef<'generic' | 'structured' | null>
+  compareStopSignals: ComputedRef<CompareStopSignals | null>
+  compareSnapshotRoles: ComputedRef<Record<string, StructuredCompareRole> | null>
+  compareJudgements: ComputedRef<CompareJudgementRecord[]>
 
   promptOnlyScore: ComputedRef<number | null>
   promptOnlyLevel: ComputedRef<ScoreLevel | null>
@@ -202,6 +215,18 @@ export function useEvaluation(
   const compareLevel = computed(() => calculateScoreLevel(compareScore.value))
   const isEvaluatingCompare = computed(() => state.compare.isEvaluating)
   const hasCompareResult = computed(() => state.compare.result !== null)
+  const compareMode = computed(
+    () => getCompareMode(state.compare.result)
+  )
+  const compareStopSignals = computed(
+    () => getCompareStopSignals(state.compare.result)
+  )
+  const compareSnapshotRoles = computed(
+    () => getCompareSnapshotRoles(state.compare.result)
+  )
+  const compareJudgements = computed(
+    () => getCompareJudgements(state.compare.result)
+  )
 
   const promptOnlyScore = computed(() => state['prompt-only'].result?.score?.overall ?? null)
   const promptOnlyLevel = computed(() => calculateScoreLevel(promptOnlyScore.value))
@@ -457,6 +482,10 @@ export function useEvaluation(
     compareLevel,
     isEvaluatingCompare,
     hasCompareResult,
+    compareMode,
+    compareStopSignals,
+    compareSnapshotRoles,
+    compareJudgements,
     promptOnlyScore,
     promptOnlyLevel,
     isEvaluatingPromptOnly,

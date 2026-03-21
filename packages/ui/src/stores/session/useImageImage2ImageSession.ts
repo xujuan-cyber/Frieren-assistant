@@ -11,6 +11,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
 import { isValidVariableName, sanitizeVariableRecord } from '../../types/variable'
+import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
 import {
   isImageRef,
   createImageRef,
@@ -35,8 +36,9 @@ type ImageResultItem = ImageResult['images'][number]
  * - 0: v0（原始提示词）
  * - >=1: v1..vn（历史链版本号）
  * - 'workspace': 下方工作区当前内容（未保存草稿也算）
+ * - 'previous': 动态指向最近保存版本的上一版
  */
-export type TestPanelVersionValue = 'workspace' | 0 | number
+export type TestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
 
@@ -650,10 +652,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
           const byId = new Map<TestVariantId, TestVariantConfig>()
 
           const normalizeVersion = (v: unknown): TestPanelVersionValue => {
-            if (v === 0) return 0
-            if (v === 'workspace' || v === 'latest') return 'workspace'
-            if (typeof v === 'number' && Number.isFinite(v) && v >= 1) return v
-            return 'workspace'
+            return coerceTestPanelVersionValue(v) ?? 'workspace'
           }
 
           for (const item of rawVariants) {

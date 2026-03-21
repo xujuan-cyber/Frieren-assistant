@@ -8,6 +8,7 @@ export { default as EvaluationScoreBadge } from './EvaluationScoreBadge.vue'
 export { default as EvaluationHoverCard } from './EvaluationHoverCard.vue'
 export { default as FeedbackAnalyzeButton } from './FeedbackAnalyzeButton.vue'
 export { default as FocusAnalyzeButton } from './FocusAnalyzeButton.vue'
+export { default as CompareRoleConfigDialog } from './CompareRoleConfigDialog.vue'
 
 // 类型导出
 export type { ScoreLevel } from './types'

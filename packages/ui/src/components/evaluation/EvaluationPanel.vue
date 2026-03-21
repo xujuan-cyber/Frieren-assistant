@@ -4,6 +4,7 @@
     :width="420"
     placement="right"
     :on-update:show="handleUpdateShow"
+    data-testid="evaluation-panel-drawer"
   >
     <NDrawerContent :title="panelTitle" closable>
       <!-- 加载状态 -->
@@ -61,6 +62,315 @@
             <!-- 一句话总结 -->
             <NCard v-if="result.summary" size="small">
               <NText>{{ result.summary }}</NText>
+            </NCard>
+
+            <NCard
+              v-if="compareDecisionSummary"
+              :title="tOr('evaluation.compareMetadata.decision.title', 'Compare Decision')"
+              size="small"
+              data-testid="evaluation-panel-compare-decision"
+            >
+              <NSpace vertical :size="12">
+                <div class="compare-decision-header">
+                  <NTag
+                    size="small"
+                    :type="compareDecisionSummary.recommendationType"
+                    round
+                  >
+                    {{ compareDecisionSummary.recommendationLabel }}
+                  </NTag>
+                  <NText class="compare-decision-headline">
+                    {{ compareDecisionSummary.headline }}
+                  </NText>
+                </div>
+
+                <NSpace
+                  v-if="compareDecisionSummary.signalChips.length"
+                  :size="8"
+                  class="compare-decision-signals"
+                >
+                  <NTag
+                    v-for="chip in compareDecisionSummary.signalChips"
+                    :key="chip.key"
+                    size="small"
+                    :type="chip.type"
+                    round
+                  >
+                    {{ chip.label }}: {{ chip.value }}
+                  </NTag>
+                </NSpace>
+
+                <div v-if="compareDecisionSummary.evidence.length" class="compare-meta-block">
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.decision.keyEvidence', 'Key Evidence') }}
+                  </NText>
+                  <NList>
+                    <NListItem
+                      v-for="item in compareDecisionSummary.evidence"
+                      :key="`compare-decision-evidence-${item}`"
+                    >
+                      <NText>{{ item }}</NText>
+                    </NListItem>
+                  </NList>
+                </div>
+
+                <div v-if="compareDecisionSummary.nextActions.length" class="compare-meta-block">
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.decision.nextActions', 'Next Actions') }}
+                  </NText>
+                  <NList>
+                    <NListItem
+                      v-for="item in compareDecisionSummary.nextActions"
+                      :key="`compare-decision-action-${item}`"
+                    >
+                      <NText>{{ item }}</NText>
+                    </NListItem>
+                  </NList>
+                </div>
+              </NSpace>
+            </NCard>
+
+            <!-- Structured Compare 元信息 -->
+            <NCard
+              v-if="hasCompareMetadata"
+              :title="tOr('evaluation.compareMetadata.title', 'Compare Metadata')"
+              size="small"
+              data-testid="evaluation-panel-compare-metadata"
+            >
+              <NSpace vertical :size="12">
+                <div
+                  v-if="compareMode"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-metadata-mode"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.mode', 'Mode') }}
+                  </NText>
+                  <NTag
+                    size="small"
+                    :type="compareMode === 'structured' ? 'success' : 'default'"
+                    round
+                    data-testid="evaluation-panel-compare-mode-value"
+                  >
+                    {{ formatCompareMode(compareMode) }}
+                  </NTag>
+                </div>
+
+                <div
+                  v-if="compareSnapshotRoleEntries.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-metadata-roles"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.roles', 'Snapshot Roles') }}
+                  </NText>
+                  <NSpace vertical :size="6">
+                    <div
+                      v-for="entry in compareSnapshotRoleEntries"
+                      :key="entry.snapshotId"
+                      class="compare-role-item"
+                    >
+                      <NText>{{ entry.snapshotId }}</NText>
+                      <NTag size="small" type="info" round>{{ entry.role }}</NTag>
+                    </div>
+                  </NSpace>
+                </div>
+
+                <div
+                  v-if="compareStopSignalEntries.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-metadata-stop-signals"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.stopSignals', 'Stop Signals') }}
+                  </NText>
+                  <NSpace vertical :size="6">
+                    <div
+                      v-for="entry in compareStopSignalEntries"
+                      :key="entry.key"
+                      class="compare-role-item"
+                    >
+                      <NText>{{ entry.label }}</NText>
+                      <NTag size="small" :type="entry.type" round>{{ entry.value }}</NTag>
+                    </div>
+                  </NSpace>
+                </div>
+              </NSpace>
+            </NCard>
+
+            <NCard
+              v-if="hasCompareInsights"
+              :title="tOr('evaluation.compareMetadata.insights', 'Compare Insights')"
+              size="small"
+              data-testid="evaluation-panel-compare-insights"
+            >
+              <NSpace vertical :size="12">
+                <div
+                  v-if="compareInsightFocusSummaries.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-insights-focus"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.focusSummaries', 'Focused Findings') }}
+                  </NText>
+                  <NSpace vertical :size="8">
+                    <div
+                      v-for="entry in compareInsightFocusSummaries"
+                      :key="entry.key"
+                      class="compare-judgement-item"
+                    >
+                      <div class="compare-judgement-header">
+                        <NText strong>{{ entry.label }}</NText>
+                        <NSpace :size="6">
+                          <NTag size="small" type="info" round>{{ entry.pairSignal }}</NTag>
+                          <NTag size="small" :type="entry.verdictType" round>{{ entry.verdict }}</NTag>
+                          <NTag size="small" type="default" round>{{ entry.confidence }}</NTag>
+                        </NSpace>
+                      </div>
+                      <NText depth="3" class="compare-judgement-side">
+                        {{ entry.pairLabel }}
+                      </NText>
+                      <NText class="compare-judgement-analysis">{{ entry.analysis }}</NText>
+                    </div>
+                  </NSpace>
+                </div>
+
+                <div
+                  v-if="compareInsightPairHighlights.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-insights-pair-highlights"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.pairHighlights', 'Pair Highlights') }}
+                  </NText>
+                  <NSpace vertical :size="8">
+                    <div
+                      v-for="entry in compareInsightPairHighlights"
+                      :key="entry.pairKey"
+                      class="compare-judgement-item"
+                    >
+                      <div class="compare-judgement-header">
+                        <NText strong>{{ entry.pairLabel }}</NText>
+                        <NSpace :size="6">
+                          <NTag size="small" type="info" round>{{ entry.pairSignal }}</NTag>
+                          <NTag size="small" :type="entry.verdictType" round>{{ entry.verdict }}</NTag>
+                          <NTag size="small" type="default" round>{{ entry.confidence }}</NTag>
+                        </NSpace>
+                      </div>
+                      <NText class="compare-judgement-analysis">{{ entry.analysis }}</NText>
+                    </div>
+                  </NSpace>
+                </div>
+
+                <div
+                  v-if="compareInsightEvidenceHighlights.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-insights-evidence"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.evidenceHighlights', 'Evidence Highlights') }}
+                  </NText>
+                  <NList>
+                    <NListItem
+                      v-for="item in compareInsightEvidenceHighlights"
+                      :key="`compare-insight-evidence-${item}`"
+                    >
+                      <NText>{{ item }}</NText>
+                    </NListItem>
+                  </NList>
+                </div>
+
+                <div
+                  v-if="compareInsightLearnableSignals.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-insights-learnable"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.learnableSignals', 'Learnable Signals') }}
+                  </NText>
+                  <NList>
+                    <NListItem
+                      v-for="item in compareInsightLearnableSignals"
+                      :key="`compare-insight-signal-${item}`"
+                    >
+                      <NText>{{ item }}</NText>
+                    </NListItem>
+                  </NList>
+                </div>
+
+                <div
+                  v-if="compareInsightOverfitWarnings.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-insights-overfit"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.overfitWarnings', 'Overfit Warnings') }}
+                  </NText>
+                  <NList>
+                    <NListItem
+                      v-for="item in compareInsightOverfitWarnings"
+                      :key="`compare-insight-overfit-${item}`"
+                    >
+                      <NText type="warning">{{ item }}</NText>
+                    </NListItem>
+                  </NList>
+                </div>
+
+                <div
+                  v-if="compareInsightConflictSignals.length"
+                  class="compare-meta-block"
+                  data-testid="evaluation-panel-compare-insights-conflict"
+                >
+                  <NText depth="3" class="compare-meta-label">
+                    {{ tOr('evaluation.compareMetadata.conflictSignals', 'Conflict Checks') }}
+                  </NText>
+                  <NList>
+                    <NListItem
+                      v-for="item in compareInsightConflictSignals"
+                      :key="`compare-insight-conflict-${item}`"
+                    >
+                      <NText type="warning">{{ item }}</NText>
+                    </NListItem>
+                  </NList>
+                </div>
+              </NSpace>
+            </NCard>
+
+            <NCard
+              v-if="compareJudgementEntries.length"
+              :title="tOr('evaluation.compareMetadata.judgements', 'Pairwise Judgements')"
+              size="small"
+              data-testid="evaluation-panel-compare-judgements"
+            >
+              <NSpace vertical :size="10">
+                <div
+                  v-for="entry in compareJudgementEntries"
+                  :key="entry.pairKey"
+                  class="compare-judgement-item"
+                >
+                  <div class="compare-judgement-header">
+                    <NText strong>{{ entry.pairLabel }}</NText>
+                    <NSpace :size="6">
+                      <NTag size="small" type="info" round>{{ entry.pairSignal }}</NTag>
+                      <NTag size="small" :type="entry.verdictType" round>{{ entry.verdict }}</NTag>
+                      <NTag size="small" type="default" round>{{ entry.confidence }}</NTag>
+                    </NSpace>
+                  </div>
+                  <NText depth="3" class="compare-judgement-side">
+                    {{ entry.sideLabel }}
+                  </NText>
+                  <NText class="compare-judgement-analysis">{{ entry.analysis }}</NText>
+                  <NText v-if="entry.evidenceText" depth="3" class="compare-judgement-extra">
+                    {{ entry.evidenceText }}
+                  </NText>
+                  <NText v-if="entry.learnableSignalsText" depth="3" class="compare-judgement-extra">
+                    {{ entry.learnableSignalsText }}
+                  </NText>
+                  <NText v-if="entry.overfitWarningsText" depth="3" type="warning" class="compare-judgement-extra">
+                    {{ entry.overfitWarningsText }}
+                  </NText>
+                </div>
+              </NSpace>
             </NCard>
 
             <!-- 四维度分数 -->
@@ -186,6 +496,15 @@
           </NButton>
           <NSpace>
             <NButton
+              v-if="canShowRewriteAction"
+              type="primary"
+              :disabled="isRewriteDisabled"
+              data-testid="evaluation-panel-rewrite-from-evaluation"
+              @click="handleRewriteFromEvaluation"
+            >
+              {{ t('evaluation.rewriteFromEvaluation') }}
+            </NButton>
+            <NButton
               v-if="currentType"
               type="primary"
               :disabled="isActionDisabled"
@@ -229,8 +548,30 @@ import {
 } from 'naive-ui'
 import { ChartBar } from '@vicons/tabler'
 import type { EvaluationResponse, EvaluationType, PatchOperation } from '@prompt-optimizer/core'
+import {
+  getCompareEvaluationMetadata,
+  getCompareInsights,
+  getCompareJudgements,
+  type CompareInsightRecord,
+  type CompareJudgementRecord,
+} from '../../composables/prompt/compareResultMetadata'
 import InlineDiff from './InlineDiff.vue'
 import FeedbackEditor from './FeedbackEditor.vue'
+
+type CompareDecisionSummary = {
+  recommendation: 'continue' | 'stop' | 'review'
+  recommendationLabel: string
+  recommendationType: 'success' | 'warning' | 'error' | 'info' | 'default'
+  headline: string
+  signalChips: Array<{
+    key: string
+    label: string
+    value: string
+    type: 'success' | 'warning' | 'error' | 'info' | 'default'
+  }>
+  evidence: string[]
+  nextActions: string[]
+}
 
 // Props
 const props = defineProps<{
@@ -244,6 +585,7 @@ const props = defineProps<{
   stale?: boolean
   staleMessage?: string
   disableEvaluate?: boolean
+  canRewriteFromEvaluation?: boolean
 }>()
 
 // Emits
@@ -258,6 +600,10 @@ const emit = defineEmits<{
     improvement: string;
     type: EvaluationType;
   }): void
+  (e: 'rewrite-from-evaluation', payload: {
+    result: EvaluationResponse;
+    type: EvaluationType;
+  }): void
 }>()
 
 const { t } = useI18n()
@@ -266,6 +612,15 @@ const { t } = useI18n()
 const streamScrollbarRef = ref<ScrollbarInst | null>(null)
 const feedbackDraft = ref('')
 const isActionDisabled = computed(() => props.isEvaluating || !!props.disableEvaluate)
+const currentEvaluationType = computed<EvaluationType>(() =>
+  props.currentType || props.result?.type || 'prompt-only'
+)
+const canShowRewriteAction = computed(() =>
+  !!props.canRewriteFromEvaluation && !!props.result
+)
+const isRewriteDisabled = computed(() =>
+  !props.result || props.isEvaluating || !!props.stale
+)
 
 // 监听流式内容变化，自动滚动到底部
 watch(() => props.streamContent, () => {
@@ -278,6 +633,555 @@ const tOr = (key: string, fallback: string): string => {
   const translated = t(key)
   return translated === key ? fallback : translated
 }
+
+const normalizeInlineText = (value: string | undefined): string =>
+  (value || '').replace(/\s+/gu, ' ').trim()
+
+const collectUniqueCompareNotes = (
+  values: Array<string | undefined>,
+  limit = 4,
+): string[] => {
+  const seen = new Set<string>()
+  const results: string[] = []
+
+  for (const value of values) {
+    const normalized = normalizeInlineText(value)
+    if (!normalized) continue
+
+    const dedupeKey = normalized.toLocaleLowerCase()
+    if (seen.has(dedupeKey)) continue
+
+    seen.add(dedupeKey)
+    results.push(normalized)
+
+    if (results.length >= limit) {
+      break
+    }
+  }
+
+  return results
+}
+
+const compareMetadata = computed(() =>
+  props.currentType === 'compare' ? getCompareEvaluationMetadata(props.result) : null
+)
+
+const compareMode = computed(() =>
+  compareMetadata.value?.compareMode ?? null
+)
+
+const compareStopSignals = computed(() =>
+  compareMetadata.value?.compareStopSignals
+)
+
+const formatCompareMode = (mode: string | null): string => {
+  if (!mode) return ''
+
+  switch (mode) {
+    case 'structured':
+      return tOr('evaluation.compareMetadata.modeValues.structured', 'Structured')
+    case 'generic':
+      return tOr('evaluation.compareMetadata.modeValues.generic', 'Generic')
+    default:
+      return mode
+  }
+}
+
+const formatCompareRole = (role: string): string => {
+  switch (role) {
+    case 'target':
+      return tOr('evaluation.compareMetadata.roleValues.target', 'Target')
+    case 'baseline':
+      return tOr('evaluation.compareMetadata.roleValues.baseline', 'Baseline')
+    case 'reference':
+      return tOr('evaluation.compareMetadata.roleValues.reference', 'Reference')
+    case 'referenceBaseline':
+      return tOr('evaluation.compareMetadata.roleValues.referenceBaseline', 'Reference Baseline')
+    case 'replica':
+      return tOr('evaluation.compareMetadata.roleValues.replica', 'Replica')
+    case 'auxiliary':
+      return tOr('evaluation.compareMetadata.roleValues.auxiliary', 'Auxiliary')
+    default:
+      return role
+  }
+}
+
+const compareSnapshotRoleEntries = computed(() => {
+  return Object.entries(compareMetadata.value?.snapshotRoles || {}).map(([snapshotId, role]) => ({
+    snapshotId,
+    role: formatCompareRole(role),
+  }))
+})
+
+const formatStopSignalValue = (key: string, value: string): string => {
+  const translationKey = `evaluation.compareMetadata.signalValues.${key}.${value}`
+
+  switch (key) {
+    case 'targetVsBaseline':
+      return tOr(translationKey, {
+        improved: 'Improved',
+        flat: 'Flat',
+        regressed: 'Regressed',
+      }[value] || value)
+    case 'targetVsReferenceGap':
+      return tOr(translationKey, {
+        none: 'None',
+        minor: 'Minor',
+        major: 'Major',
+      }[value] || value)
+    case 'improvementHeadroom':
+      return tOr(translationKey, {
+        none: 'None',
+        low: 'Low',
+        medium: 'Medium',
+        high: 'High',
+      }[value] || value)
+    case 'overfitRisk':
+      return tOr(translationKey, {
+        low: 'Low',
+        medium: 'Medium',
+        high: 'High',
+      }[value] || value)
+    case 'stopRecommendation':
+      return tOr(translationKey, {
+        continue: 'Continue',
+        stop: 'Stop',
+        review: 'Review',
+      }[value] || value)
+    default:
+      return value
+  }
+}
+
+const getStopSignalLabel = (key: string): string => {
+  switch (key) {
+    case 'targetVsBaseline':
+      return tOr('evaluation.compareMetadata.targetVsBaseline', 'Target vs Baseline')
+    case 'targetVsReferenceGap':
+      return tOr('evaluation.compareMetadata.targetVsReferenceGap', 'Target vs Reference Gap')
+    case 'improvementHeadroom':
+      return tOr('evaluation.compareMetadata.improvementHeadroom', 'Improvement Headroom')
+    case 'overfitRisk':
+      return tOr('evaluation.compareMetadata.overfitRisk', 'Overfit Risk')
+    case 'stopRecommendation':
+      return tOr('evaluation.compareMetadata.stopRecommendation', 'Stop Recommendation')
+    default:
+      return key
+  }
+}
+
+const getStopSignalType = (key: string, value: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
+  if (key === 'targetVsBaseline') {
+    if (value === 'improved') return 'success'
+    if (value === 'regressed') return 'error'
+    return 'warning'
+  }
+  if (key === 'targetVsReferenceGap') {
+    if (value === 'none') return 'success'
+    if (value === 'major') return 'warning'
+    return 'info'
+  }
+  if (key === 'improvementHeadroom') {
+    if (value === 'none' || value === 'low') return 'success'
+    if (value === 'high') return 'warning'
+    return 'info'
+  }
+  if (key === 'overfitRisk') {
+    if (value === 'high') return 'error'
+    if (value === 'medium') return 'warning'
+    return 'success'
+  }
+  if (key === 'stopRecommendation') {
+    if (value === 'stop') return 'warning'
+    if (value === 'review') return 'error'
+    return 'success'
+  }
+  return 'default'
+}
+
+const compareStopSignalEntries = computed(() => {
+  if (!compareStopSignals.value) return []
+
+  const entries: Array<{ key: string; label: string; value: string; type: 'success' | 'warning' | 'error' | 'info' | 'default' }> = []
+
+  ;([
+    'targetVsBaseline',
+    'targetVsReferenceGap',
+    'improvementHeadroom',
+    'overfitRisk',
+    'stopRecommendation',
+  ] as const).forEach((key) => {
+    const value = compareStopSignals.value?.[key]
+    if (!value) return
+    entries.push({
+      key,
+      label: getStopSignalLabel(key),
+      value: formatStopSignalValue(key, value),
+      type: getStopSignalType(key, value),
+    })
+  })
+
+  if (compareStopSignals.value?.stopReasons?.length) {
+    entries.push({
+      key: 'stopReasons',
+      label: tOr('evaluation.compareMetadata.stopReasons', 'Stop Reasons'),
+      value: compareStopSignals.value.stopReasons.join(' | '),
+      type: 'default',
+    })
+  }
+
+  return entries
+})
+
+const formatCompareJudgementVerdict = (value: CompareJudgementRecord['verdict']): string => {
+  return tOr(`evaluation.compareMetadata.verdictValues.${value}`, {
+    'left-better': 'Left Better',
+    'right-better': 'Right Better',
+    mixed: 'Mixed',
+    similar: 'Similar',
+  }[value] || value)
+}
+
+const formatCompareJudgementConfidence = (value: CompareJudgementRecord['confidence']): string => {
+  return tOr(`evaluation.compareMetadata.confidenceValues.${value}`, {
+    low: 'Low Confidence',
+    medium: 'Medium Confidence',
+    high: 'High Confidence',
+  }[value] || value)
+}
+
+const getCompareJudgementVerdictType = (
+  verdict: CompareJudgementRecord['verdict']
+): 'success' | 'warning' | 'error' | 'info' | 'default' => {
+  if (verdict === 'left-better') return 'success'
+  if (verdict === 'right-better') return 'warning'
+  if (verdict === 'mixed') return 'info'
+  return 'default'
+}
+
+const compareJudgementEntries = computed(() => {
+  return getCompareJudgements(props.currentType === 'compare' ? props.result : null).map((
+    judgement: CompareJudgementRecord,
+  ) => {
+    const sideLabel = `${judgement.leftSnapshotLabel} (${formatCompareRole(judgement.leftRole || 'auxiliary')}) vs ${judgement.rightSnapshotLabel} (${formatCompareRole(judgement.rightRole || 'auxiliary')})`
+    const evidenceText = judgement.evidence.length
+      ? `${tOr('evaluation.compareMetadata.evidence', 'Evidence')}: ${judgement.evidence.join(' | ')}`
+      : ''
+    const learnableSignalsText = judgement.learnableSignals.length
+      ? `${tOr('evaluation.compareMetadata.learnableSignals', 'Learnable Signals')}: ${judgement.learnableSignals.join(' | ')}`
+      : ''
+    const overfitWarningsText = judgement.overfitWarnings.length
+      ? `${tOr('evaluation.compareMetadata.overfitWarnings', 'Overfit Warnings')}: ${judgement.overfitWarnings.join(' | ')}`
+      : ''
+
+    return {
+      pairKey: judgement.pairKey,
+      pairLabel: judgement.pairLabel,
+      pairSignal: judgement.pairSignal,
+      verdict: formatCompareJudgementVerdict(judgement.verdict),
+      verdictType: getCompareJudgementVerdictType(judgement.verdict),
+      confidence: formatCompareJudgementConfidence(judgement.confidence),
+      sideLabel,
+      analysis: judgement.analysis,
+      evidenceText,
+      learnableSignalsText,
+      overfitWarningsText,
+    }
+  })
+})
+
+const compareInsights = computed(() =>
+  props.currentType === 'compare'
+    ? getCompareInsights(props.result)
+    : undefined
+)
+
+const compareInsightPairHighlights = computed(() =>
+  (compareInsights.value?.pairHighlights || []).map((highlight: CompareInsightRecord['pairHighlights'][number]) => ({
+    pairKey: highlight.pairKey,
+    pairLabel: highlight.pairLabel,
+    pairSignal: highlight.pairSignal,
+    verdict: formatCompareJudgementVerdict(highlight.verdict),
+    verdictType: getCompareJudgementVerdictType(highlight.verdict),
+    confidence: formatCompareJudgementConfidence(highlight.confidence),
+    analysis: highlight.analysis,
+  }))
+)
+
+const compareInsightFocusSummaries = computed(() => {
+  const focusEntries = [
+    {
+      key: 'progressSummary',
+      label: tOr('evaluation.compareMetadata.progressSummary', 'Progress Summary'),
+      value: compareInsights.value?.progressSummary,
+    },
+    {
+      key: 'referenceGapSummary',
+      label: tOr('evaluation.compareMetadata.referenceGapSummary', 'Reference Gap'),
+      value: compareInsights.value?.referenceGapSummary,
+    },
+    {
+      key: 'promptChangeSummary',
+      label: tOr('evaluation.compareMetadata.promptChangeSummary', 'Prompt Change Validity'),
+      value: compareInsights.value?.promptChangeSummary,
+    },
+    {
+      key: 'stabilitySummary',
+      label: tOr('evaluation.compareMetadata.stabilitySummary', 'Stability'),
+      value: compareInsights.value?.stabilitySummary,
+    },
+  ] as const
+
+  return focusEntries
+    .filter((entry) => !!entry.value)
+    .map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      pairLabel: entry.value?.pairLabel || '',
+      pairSignal: entry.value?.pairSignal || '',
+      verdict: formatCompareJudgementVerdict(entry.value?.verdict || 'similar'),
+      verdictType: getCompareJudgementVerdictType(entry.value?.verdict || 'similar'),
+      confidence: formatCompareJudgementConfidence(entry.value?.confidence || 'low'),
+      analysis: entry.value?.analysis || '',
+    }))
+})
+
+const compareInsightEvidenceHighlights = computed(() =>
+  compareInsights.value?.evidenceHighlights || []
+)
+
+const compareInsightLearnableSignals = computed(() =>
+  compareInsights.value?.learnableSignals || []
+)
+
+const compareInsightOverfitWarnings = computed(() =>
+  compareInsights.value?.overfitWarnings || []
+)
+
+const formatCompareConflictSignal = (
+  signal: NonNullable<CompareInsightRecord['conflictSignals']>[number]
+): string => {
+  const fallbackMap: Record<NonNullable<CompareInsightRecord['conflictSignals']>[number], string> = {
+    improvementNotSupportedOnReference:
+      'The target improved over baseline, but the same prompt change is not supported on the reference side.',
+    improvementUnstableAcrossReplicas:
+      'The target improved in one comparison, but replica evidence suggests the gain may be unstable.',
+    regressionOutweighsCosmeticGains:
+      'Regression against the baseline should outweigh cosmetic improvements elsewhere.',
+    sampleOverfitRiskVisible:
+      'When reusable gains and sample-fitting gains coexist, prefer conservative conclusions and keep the overfit risk visible.',
+  }
+
+  return tOr(
+    `evaluation.compareMetadata.conflictSignalValues.${signal}`,
+    fallbackMap[signal] || signal
+  )
+}
+
+const compareInsightConflictSignals = computed(() =>
+  (compareInsights.value?.conflictSignals || []).map((signal) =>
+    formatCompareConflictSignal(signal)
+  )
+)
+
+const getCompareDecisionHeadline = (
+  recommendation: 'continue' | 'stop' | 'review',
+  targetVsBaseline: 'improved' | 'flat' | 'regressed' | undefined,
+): string => {
+  if (targetVsBaseline === 'regressed') {
+    return tOr(
+      'evaluation.compareMetadata.decision.headlines.regressed',
+      'The target appears to have regressed relative to the previous version; do not accept this rewrite directly.'
+    )
+  }
+
+  if (recommendation === 'stop') {
+    return tOr(
+      'evaluation.compareMetadata.decision.headlines.stop',
+      'The current result looks close to convergence; further automatic rewrites are unlikely to help much.'
+    )
+  }
+
+  if (recommendation === 'review') {
+    return tOr(
+      'evaluation.compareMetadata.decision.headlines.review',
+      'The current compare result needs manual review before accepting another rewrite.'
+    )
+  }
+
+  return tOr(
+    'evaluation.compareMetadata.decision.headlines.continue',
+    'The target is moving in the right direction, but there is still actionable improvement headroom.'
+  )
+}
+
+const buildCompareDecisionAction = (action: string): string => {
+  switch (action) {
+    case 'inspectRegression':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.inspectRegression',
+        'Inspect what the new version removed or weakened before attempting another rewrite.'
+      )
+    case 'reviewBeforeRewrite':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.reviewBeforeRewrite',
+        'Review the conflicting evidence first, then decide whether to rewrite or keep the current version.'
+      )
+    case 'reviewPromptValidity':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.reviewPromptValidity',
+        'Check whether the prompt change is actually transferable, because the reference-side evidence does not currently support it.'
+      )
+    case 'learnFromReference':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.learnFromReference',
+        'Learn from the stronger reference-side structure before the next rewrite.'
+      )
+    case 'filterOverfit':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.filterOverfit',
+        'Filter out sample-specific rules and keep only reusable guidance.'
+      )
+    case 'continueTargetedRewrite':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.continueTargetedRewrite',
+        'If you continue rewriting, focus only on the highest-signal gap instead of broad changes.'
+      )
+    case 'acceptCurrent':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.acceptCurrent',
+        'Treat the current workspace as near-converged and avoid adding more rules unless new evidence appears.'
+      )
+    case 'verifyStability':
+      return tOr(
+        'evaluation.compareMetadata.decision.actions.verifyStability',
+        'Re-check stability with another shared input if the current judgement is still borderline.'
+      )
+    default:
+      return action
+  }
+}
+
+const compareDecisionSummary = computed<CompareDecisionSummary | null>(() => {
+  if (props.currentType !== 'compare') return null
+
+  const stopSignals = compareStopSignals.value
+  const insights = compareInsights.value
+  if (!stopSignals && !insights) return null
+
+  const targetVsBaseline = stopSignals?.targetVsBaseline
+  const targetVsReferenceGap = stopSignals?.targetVsReferenceGap
+  const improvementHeadroom = stopSignals?.improvementHeadroom
+  const overfitRisk = stopSignals?.overfitRisk
+
+  const recommendation: 'continue' | 'stop' | 'review' =
+    targetVsBaseline === 'regressed' || overfitRisk === 'high'
+      ? 'review'
+      : stopSignals?.stopRecommendation || 'continue'
+
+  const recommendationType = recommendation === 'continue'
+    ? 'success'
+    : recommendation === 'stop'
+      ? 'warning'
+      : 'error'
+
+  const signalChips = ([
+    'targetVsBaseline',
+    'targetVsReferenceGap',
+    'improvementHeadroom',
+    'overfitRisk',
+  ] as const).flatMap((key) => {
+    const value = stopSignals?.[key]
+    if (!value) return []
+
+    return [{
+      key,
+      label: getStopSignalLabel(key),
+      value: formatStopSignalValue(key, value),
+      type: getStopSignalType(key, value),
+    }]
+  })
+
+  const evidence = collectUniqueCompareNotes([
+    ...(stopSignals?.stopReasons || []),
+    insights?.progressSummary
+      ? `${insights.progressSummary.pairLabel}: ${insights.progressSummary.analysis}`
+      : undefined,
+    insights?.referenceGapSummary
+      ? `${insights.referenceGapSummary.pairLabel}: ${insights.referenceGapSummary.analysis}`
+      : undefined,
+    insights?.promptChangeSummary
+      ? `${insights.promptChangeSummary.pairLabel}: ${insights.promptChangeSummary.analysis}`
+      : undefined,
+    insights?.stabilitySummary
+      ? `${insights.stabilitySummary.pairLabel}: ${insights.stabilitySummary.analysis}`
+      : undefined,
+    ...(compareInsightOverfitWarnings.value || []),
+    ...compareInsightConflictSignals.value,
+    props.result?.summary,
+  ])
+
+  const nextActionKeys = collectUniqueCompareNotes([
+    targetVsBaseline === 'regressed' ? 'inspectRegression' : undefined,
+    insights?.conflictSignals?.includes('regressionOutweighsCosmeticGains')
+      ? 'inspectRegression'
+      : undefined,
+    recommendation === 'review' ? 'reviewBeforeRewrite' : undefined,
+    insights?.conflictSignals?.includes('improvementNotSupportedOnReference')
+      ? 'reviewPromptValidity'
+      : undefined,
+    targetVsReferenceGap === 'major' || targetVsReferenceGap === 'minor'
+      ? 'learnFromReference'
+      : undefined,
+    overfitRisk === 'medium' || overfitRisk === 'high'
+      ? 'filterOverfit'
+      : undefined,
+    insights?.conflictSignals?.includes('sampleOverfitRiskVisible')
+      ? 'filterOverfit'
+      : undefined,
+    recommendation === 'continue' &&
+    targetVsBaseline !== 'regressed' &&
+    (improvementHeadroom === 'medium' ||
+      improvementHeadroom === 'high' ||
+      targetVsReferenceGap === 'major' ||
+      targetVsReferenceGap === 'minor')
+      ? 'continueTargetedRewrite'
+      : undefined,
+    recommendation === 'stop'
+      ? 'acceptCurrent'
+      : undefined,
+    targetVsBaseline === 'flat' ||
+    !!insights?.stabilitySummary ||
+    insights?.conflictSignals?.includes('improvementUnstableAcrossReplicas')
+      ? 'verifyStability'
+      : undefined,
+  ])
+
+  return {
+    recommendation,
+    recommendationLabel: formatStopSignalValue('stopRecommendation', recommendation),
+    recommendationType,
+    headline: getCompareDecisionHeadline(recommendation, targetVsBaseline),
+    signalChips,
+    evidence,
+    nextActions: nextActionKeys.map((item) => buildCompareDecisionAction(item)),
+  }
+})
+
+const hasCompareInsights = computed(() =>
+  compareInsightFocusSummaries.value.length > 0 ||
+  compareInsightPairHighlights.value.length > 0 ||
+  compareInsightEvidenceHighlights.value.length > 0 ||
+  compareInsightLearnableSignals.value.length > 0 ||
+  compareInsightOverfitWarnings.value.length > 0 ||
+  compareInsightConflictSignals.value.length > 0
+)
+
+const hasCompareMetadata = computed(() =>
+  !!compareMode.value ||
+  compareSnapshotRoleEntries.value.length > 0 ||
+  compareStopSignalEntries.value.length > 0
+)
 
 // 面板标题
 const panelTitle = computed(() => {
@@ -375,7 +1279,16 @@ const handleReEvaluateClick = () => {
 const handleApplyImprovement = (improvement: string) => {
   emit('apply-improvement', {
     improvement,
-    type: props.currentType || 'prompt-only'
+    type: currentEvaluationType.value
+  })
+}
+
+const handleRewriteFromEvaluation = () => {
+  if (isRewriteDisabled.value || !props.result) return
+
+  emit('rewrite-from-evaluation', {
+    result: props.result,
+    type: currentEvaluationType.value,
   })
 }
 
@@ -498,6 +1411,70 @@ watch(() => props.show, (visible) => {
 
 .dimension-item {
   width: 100%;
+}
+
+.compare-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compare-meta-label {
+  font-size: 12px;
+}
+
+.compare-role-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.compare-judgement-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.16);
+}
+
+.compare-judgement-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.compare-decision-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compare-decision-headline {
+  line-height: 1.6;
+}
+
+.compare-decision-signals {
+  flex-wrap: wrap;
+}
+
+.compare-judgement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.compare-judgement-side {
+  font-size: 12px;
+}
+
+.compare-judgement-analysis {
+  line-height: 1.5;
+}
+
+.compare-judgement-extra {
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .dimension-header {

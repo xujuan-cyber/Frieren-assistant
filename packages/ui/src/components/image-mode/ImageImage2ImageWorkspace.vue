@@ -533,70 +533,77 @@
                     <NCard size="small" :style="{ flexShrink: 0 }">
                         <div class="variant-deck" :style="{ gridTemplateColumns: testGridTemplateColumns }">
                             <div v-for="id in activeVariantIds" :key="id" class="variant-cell">
-                                <div class="variant-cell__controls">
-                                    <NTag size="small" :bordered="false" class="variant-cell__label">
-                                        {{ getVariantLabel(id) }}
-                                    </NTag>
-                                    <NTag
-                                        v-if="isVariantStale(id)"
-                                        size="small"
-                                        type="warning"
-                                        :bordered="false"
-                                        class="variant-cell__stale"
-                                    >
-                                        {{ t('test.layout.stale') }}
-                                    </NTag>
-
-                                    <NSelect
-                                        :value="variantVersionModels[id].value"
-                                        :options="versionOptions"
-                                        size="small"
-                                        :disabled="variantRunning[id]"
-                                        :data-testid="getVariantVersionTestId(id)"
-                                        @update:value="(value) => { variantVersionModels[id].value = value }"
-                                        style="width: 92px"
-                                    />
-
-                                    <div class="variant-cell__model">
-                                        <SelectWithConfig
-                                            :data-testid="getVariantModelTestId(id)"
-                                            :model-value="variantModelKeyModels[id].value"
-                                            @update:model-value="(value) => { variantModelKeyModels[id].value = String(value ?? '') }"
-                                            :options="imageModelOptions"
-                                            :getPrimary="OptionAccessors.getPrimary"
-                                            :getSecondary="OptionAccessors.getSecondary"
-                                            :getValue="OptionAccessors.getValue"
-                                            :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
+                                <div
+                                    class="variant-cell__controls"
+                                    :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
+                                >
+                                    <div class="variant-cell__meta">
+                                        <NTag size="small" :bordered="false" class="variant-cell__label">
+                                            {{ getVariantLabel(id) }}
+                                        </NTag>
+                                        <NTag
+                                            v-if="isVariantStale(id)"
                                             size="small"
-                                            :disabled="variantRunning[id]"
-                                            filterable
-                                            :show-config-action="!!appOpenModelManager"
-                                            :show-empty-config-c-t-a="true"
-                                            @config="() => appOpenModelManager && appOpenModelManager('image')"
-                                            style="min-width: 0; width: 100%;"
-                                        />
+                                            type="warning"
+                                            :bordered="false"
+                                            class="variant-cell__stale"
+                                        >
+                                            {{ t('test.layout.stale') }}
+                                        </NTag>
                                     </div>
 
-                                    <NTooltip trigger="hover">
-                                        <template #trigger>
-                                                 <NButton
-                                                     type="primary"
-                                                     size="small"
-                                                     circle
-                                                     :loading="variantRunning[id]"
-                                                     :disabled="variantRunning[id]"
-                                                     @click="() => runVariant(id)"
-                                                     :data-testid="getVariantRunTestId(id)"
-                                                 >
-                                                <template #icon>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                                                        <path d="M8 5v14l11-7z" />
-                                                    </svg>
-                                                </template>
-                                            </NButton>
-                                        </template>
-                                        {{ t('test.layout.runThisColumn') }}
-                                    </NTooltip>
+                                    <div class="variant-cell__actions">
+                                        <TestPanelVersionSelect
+                                            :value="variantVersionModels[id].value"
+                                            :options="versionOptions"
+                                            :disabled="variantRunning[id]"
+                                            :test-id="getVariantVersionTestId(id)"
+                                            @update:value="(value) => { variantVersionModels[id].value = value as TestPanelVersionValue }"
+                                        />
+
+                                        <div class="variant-cell__model">
+                                            <SelectWithConfig
+                                                :data-testid="getVariantModelTestId(id)"
+                                                :model-value="variantModelKeyModels[id].value"
+                                                @update:model-value="(value) => { variantModelKeyModels[id].value = String(value ?? '') }"
+                                                :options="imageModelOptions"
+                                                :getPrimary="OptionAccessors.getPrimary"
+                                                :getSecondary="OptionAccessors.getSecondary"
+                                                :getValue="OptionAccessors.getValue"
+                                                :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
+                                                size="small"
+                                                :disabled="variantRunning[id]"
+                                                filterable
+                                                :show-config-action="!!appOpenModelManager"
+                                                :show-empty-config-c-t-a="true"
+                                                @config="() => appOpenModelManager && appOpenModelManager('image')"
+                                                style="min-width: 0; width: 100%;"
+                                            />
+                                        </div>
+
+                                        <div class="variant-cell__run">
+                                            <NTooltip trigger="hover">
+                                                <template #trigger>
+                                                    <NButton
+                                                        type="primary"
+                                                        size="small"
+                                                        circle
+                                                        :loading="variantRunning[id]"
+                                                        :disabled="variantRunning[id]"
+                                                        @click="() => runVariant(id)"
+                                                        :data-testid="getVariantRunTestId(id)"
+                                                    >
+                                                    <template #icon>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                                            <path d="M8 5v14l11-7z" />
+                                                        </svg>
+                                                    </template>
+                                                </NButton>
+                                            </template>
+                                                {{ t('test.layout.runThisColumn') }}
+                                            </NTooltip>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -838,7 +845,6 @@ import {
     NModal,
     NIcon,
     NTag,
-    NSelect,
     NRadioGroup,
     NRadioButton,
     NTooltip,
@@ -848,6 +854,7 @@ import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
+import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import { EvaluationPanel } from '../evaluation'
 import { provideEvaluation } from '../../composables/prompt/useEvaluationContext';
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'
@@ -875,6 +882,10 @@ import {
     hashString,
     hashVariables,
 } from '../../utils/prompt-variables'
+import {
+    buildTestPanelVersionOptions,
+    resolvePreviousSavedVersionNumber,
+} from '../../utils/testPanelVersion'
 import {
     useImageImage2ImageSession,
     type TestColumnCount,
@@ -1300,6 +1311,7 @@ const ALL_VARIANT_IDS: TestVariantId[] = ['a', 'b', 'c', 'd']
 const activeVariantIds = computed<TestVariantId[]>(() =>
     ALL_VARIANT_IDS.slice(0, testColumnCountModel.value),
 )
+const useStackedVariantControls = computed(() => activeVariantIds.value.length >= 2)
 
 const variantVersionModels = {
     a: variantAVersionModel,
@@ -1332,21 +1344,15 @@ const testGridTemplateColumns = computed(
     () => `repeat(${testColumnCountModel.value}, minmax(0, 1fr))`,
 )
 
-// 版本选项：默认显示“工作区”与“原始(v0)”；若存在历史版本，则额外显示 v1..vn。
+const getTestPanelVersionLabels = () => ({
+    workspace: t('test.layout.workspace'),
+    previous: t('test.layout.previous'),
+    original: t('test.layout.original'),
+})
+
+// 版本选项：默认显示“工作区”与“原始(v0)”；存在可用上一版时显示“上一版(vN)”动态别名。
 const versionOptions = computed(() => {
-    const versions = currentVersions.value || []
-
-    const sortedVersions = versions
-        .map((v) => v.version)
-        .filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 1)
-        .slice()
-        .sort((a, b) => a - b)
-
-    return [
-        { label: t('test.layout.workspace'), value: 'workspace' },
-        { label: t('test.layout.original'), value: 0 },
-        ...sortedVersions.map((v) => ({ label: `v${v}`, value: v })),
-    ]
+    return buildTestPanelVersionOptions(currentVersions.value || [], getTestPanelVersionLabels())
 })
 
 // 确保测试列的模型选择始终有效（模型列表变化时自动 fallback）
@@ -1381,11 +1387,15 @@ const resolvePromptForSelection = (selection: TestPanelVersionValue): ResolvedPr
         return { text: workspace, resolvedVersion: -1 }
     }
 
-    if (selection === 0) {
+    const resolvedSelection = selection === 'previous'
+        ? resolvePreviousSavedVersionNumber(versions)
+        : selection
+
+    if (resolvedSelection === 0) {
         return { text: v0, resolvedVersion: 0 }
     }
 
-    const target = versions.find((v) => v.version === selection)
+    const target = versions.find((v) => v.version === resolvedSelection)
     if (target) {
         return { text: target.optimizedPrompt || '', resolvedVersion: target.version }
     }
@@ -2789,8 +2799,33 @@ onUnmounted(() => {
 .variant-cell__controls {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     min-width: 0;
+    flex-wrap: wrap;
+}
+
+.variant-cell__controls--stacked {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+}
+
+.variant-cell__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.variant-cell__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .variant-cell__label {
@@ -2802,9 +2837,12 @@ onUnmounted(() => {
 }
 
 .variant-cell__model {
-    flex: 0 1 260px;
-    max-width: 260px;
+    flex: 1 1 auto;
     min-width: 0;
+}
+
+.variant-cell__run {
+    flex-shrink: 0;
 }
 
 .variant-results-wrap {

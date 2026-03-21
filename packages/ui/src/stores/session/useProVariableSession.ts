@@ -11,9 +11,16 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
+import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
 import { isValidVariableName, sanitizeVariableRecord } from '../../types/variable'
 import {
+  createDefaultCompareSnapshotRoles,
+  createDefaultCompareSnapshotRoleSignatures,
   createDefaultEvaluationResults,
+  sanitizeCompareSnapshotRoles,
+  sanitizeCompareSnapshotRoleSignatures,
+  type PersistedCompareSnapshotRoles,
+  type PersistedCompareSnapshotRoleSignatures,
   type PersistedEvaluationResults,
 } from '../../types/evaluation'
 
@@ -22,8 +29,9 @@ import {
  * - 0: v0（原始提示词）
  * - >=1: v1..vn（历史链版本号）
  * - 'workspace': 下方工作区当前内容（未保存草稿也算）
+ * - 'previous': 动态指向最近保存版本的上一版
  */
-export type TestPanelVersionValue = 'workspace' | 0 | number
+export type TestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
 
@@ -75,6 +83,8 @@ export interface ProVariableSessionState {
   testVariantLastRunFingerprint: TestVariantLastRunFingerprint
 
   evaluationResults: PersistedEvaluationResults
+  compareSnapshotRoles: PersistedCompareSnapshotRoles<TestVariantId>
+  compareSnapshotRoleSignatures: PersistedCompareSnapshotRoleSignatures<TestVariantId>
   selectedOptimizeModelKey: string
   selectedTestModelKey: string
   selectedTemplateId: string | null
@@ -114,6 +124,8 @@ const createDefaultState = (): ProVariableSessionState => ({
     d: '',
   },
   evaluationResults: createDefaultEvaluationResults(),
+  compareSnapshotRoles: createDefaultCompareSnapshotRoles<TestVariantId>(),
+  compareSnapshotRoleSignatures: createDefaultCompareSnapshotRoleSignatures<TestVariantId>(),
   selectedOptimizeModelKey: '',
   selectedTestModelKey: '',
   selectedTemplateId: null,
@@ -152,6 +164,12 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     d: '',
   })
   const evaluationResults = ref<PersistedEvaluationResults>(createDefaultEvaluationResults())
+  const compareSnapshotRoles = ref<PersistedCompareSnapshotRoles<TestVariantId>>(
+    createDefaultCompareSnapshotRoles<TestVariantId>()
+  )
+  const compareSnapshotRoleSignatures = ref<PersistedCompareSnapshotRoleSignatures<TestVariantId>>(
+    createDefaultCompareSnapshotRoleSignatures<TestVariantId>()
+  )
   const selectedOptimizeModelKey = ref('')
   const selectedTestModelKey = ref('')
   const selectedTemplateId = ref<string | null>(null)
@@ -260,6 +278,16 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     lastActiveAt.value = Date.now()
   }
 
+  const updateCompareSnapshotRoles = (
+    roles: PersistedCompareSnapshotRoles<TestVariantId>,
+    signatures: PersistedCompareSnapshotRoleSignatures<TestVariantId>,
+  ) => {
+    compareSnapshotRoles.value = { ...roles }
+    compareSnapshotRoleSignatures.value = { ...signatures }
+    lastActiveAt.value = Date.now()
+    saveSession()
+  }
+
   const setTestColumnCount = (count: TestColumnCount) => {
     if (layout.value.testColumnCount === count) return
     layout.value = { ...layout.value, testColumnCount: count }
@@ -310,6 +338,8 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     testVariantResults.value = defaultState.testVariantResults
     testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
     evaluationResults.value = defaultState.evaluationResults
+    compareSnapshotRoles.value = defaultState.compareSnapshotRoles
+    compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
     selectedOptimizeModelKey.value = defaultState.selectedOptimizeModelKey
     selectedTestModelKey.value = defaultState.selectedTestModelKey
     selectedTemplateId.value = defaultState.selectedTemplateId
@@ -340,6 +370,8 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
         testVariantResults: testVariantResults.value,
         testVariantLastRunFingerprint: testVariantLastRunFingerprint.value,
         evaluationResults: evaluationResults.value,
+        compareSnapshotRoles: compareSnapshotRoles.value,
+        compareSnapshotRoleSignatures: compareSnapshotRoleSignatures.value,
         selectedOptimizeModelKey: selectedOptimizeModelKey.value,
         selectedTestModelKey: selectedTestModelKey.value,
         selectedTemplateId: selectedTemplateId.value,
@@ -388,9 +420,8 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
 
         const defaultState = createDefaultState()
         const coerceVersionValue = (value: unknown): TestPanelVersionValue | null => {
-          if (value === 'workspace' || value === 'latest') return 'workspace'
-          if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return Math.floor(value)
-          return null
+          const normalizedValue = coerceTestPanelVersionValue(value)
+          return normalizedValue == null ? null : normalizedValue
         }
 
         const legacyModelKey = typeof parsed.selectedTestModelKey === 'string' ? parsed.selectedTestModelKey : ''
@@ -465,6 +496,14 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
             ? (parsed.evaluationResults as PersistedEvaluationResults)
             : {}),
         }
+        compareSnapshotRoles.value = sanitizeCompareSnapshotRoles(
+          (parsed as Partial<ProVariableSessionState>).compareSnapshotRoles,
+          ids
+        )
+        compareSnapshotRoleSignatures.value = sanitizeCompareSnapshotRoleSignatures(
+          (parsed as Partial<ProVariableSessionState>).compareSnapshotRoleSignatures,
+          ids
+        )
         selectedOptimizeModelKey.value = typeof parsed.selectedOptimizeModelKey === 'string' ? parsed.selectedOptimizeModelKey : ''
         selectedTestModelKey.value = typeof parsed.selectedTestModelKey === 'string' ? parsed.selectedTestModelKey : ''
         selectedTemplateId.value = typeof parsed.selectedTemplateId === 'string' ? parsed.selectedTemplateId : null
@@ -513,6 +552,8 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     testVariantResults,
     testVariantLastRunFingerprint,
     evaluationResults,
+    compareSnapshotRoles,
+    compareSnapshotRoleSignatures,
     selectedOptimizeModelKey,
     selectedTestModelKey,
     selectedTemplateId,
@@ -534,6 +575,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     updateTemplate,
     updateIterateTemplate,
     toggleCompareMode,
+    updateCompareSnapshotRoles,
     setTestColumnCount,
     setMainSplitLeftPct,
     resetTestVariantState,

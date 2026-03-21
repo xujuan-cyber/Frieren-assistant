@@ -9,18 +9,26 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
+import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
 import {
+  createDefaultCompareSnapshotRoles,
+  createDefaultCompareSnapshotRoleSignatures,
   createDefaultEvaluationResults,
+  sanitizeCompareSnapshotRoles,
+  sanitizeCompareSnapshotRoleSignatures,
+  type PersistedCompareSnapshotRoles,
+  type PersistedCompareSnapshotRoleSignatures,
   type PersistedEvaluationResults,
 } from '../../types/evaluation'
 
 /**
  * basic-user 测试面板的版本选择：
  * - 'workspace': 下方工作区当前内容（未保存草稿也算）
+ * - 'previous': 动态指向最近保存版本的上一版
  * - 0: v0（原始提示词）
  * - >=1: v1..vn（历史链版本号）
  */
-export type TestPanelVersionValue = 'workspace' | 0 | number
+export type TestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
 
@@ -75,6 +83,8 @@ export interface BasicUserSessionState {
 
   // 评估结果（分类型持久化，用于重启恢复）
   evaluationResults: PersistedEvaluationResults
+  compareSnapshotRoles: PersistedCompareSnapshotRoles<TestVariantId>
+  compareSnapshotRoleSignatures: PersistedCompareSnapshotRoleSignatures<TestVariantId>
 
   // 模型和模板选择（只存 ID/key，不存对象）
   selectedOptimizeModelKey: string
@@ -122,6 +132,8 @@ const createDefaultState = (): BasicUserSessionState => ({
     d: '',
   },
   evaluationResults: createDefaultEvaluationResults(),
+  compareSnapshotRoles: createDefaultCompareSnapshotRoles<TestVariantId>(),
+  compareSnapshotRoleSignatures: createDefaultCompareSnapshotRoleSignatures<TestVariantId>(),
   selectedOptimizeModelKey: '',
   selectedTestModelKey: '',
   selectedTemplateId: null,
@@ -175,6 +187,12 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
 
   // 评估结果
   const evaluationResults = ref<PersistedEvaluationResults>(createDefaultEvaluationResults())
+  const compareSnapshotRoles = ref<PersistedCompareSnapshotRoles<TestVariantId>>(
+    createDefaultCompareSnapshotRoles<TestVariantId>()
+  )
+  const compareSnapshotRoleSignatures = ref<PersistedCompareSnapshotRoleSignatures<TestVariantId>>(
+    createDefaultCompareSnapshotRoleSignatures<TestVariantId>()
+  )
 
   // 模型和模板选择（只存 ID/key，不存对象）
   const selectedOptimizeModelKey = ref('')
@@ -335,6 +353,16 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
     lastActiveAt.value = Date.now()
   }
 
+  const updateCompareSnapshotRoles = (
+    roles: PersistedCompareSnapshotRoles<TestVariantId>,
+    signatures: PersistedCompareSnapshotRoleSignatures<TestVariantId>,
+  ) => {
+    compareSnapshotRoles.value = { ...roles }
+    compareSnapshotRoleSignatures.value = { ...signatures }
+    lastActiveAt.value = Date.now()
+    saveSession()
+  }
+
   /**
    * 重置状态
    */
@@ -351,6 +379,8 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
     testVariantResults.value = defaultState.testVariantResults
     testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
     evaluationResults.value = defaultState.evaluationResults
+    compareSnapshotRoles.value = defaultState.compareSnapshotRoles
+    compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
     selectedOptimizeModelKey.value = defaultState.selectedOptimizeModelKey
     selectedTestModelKey.value = defaultState.selectedTestModelKey
     selectedTemplateId.value = defaultState.selectedTemplateId
@@ -383,6 +413,8 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
         testVariantResults: testVariantResults.value,
         testVariantLastRunFingerprint: testVariantLastRunFingerprint.value,
         evaluationResults: evaluationResults.value,
+        compareSnapshotRoles: compareSnapshotRoles.value,
+        compareSnapshotRoleSignatures: compareSnapshotRoleSignatures.value,
         selectedOptimizeModelKey: selectedOptimizeModelKey.value,
         selectedTestModelKey: selectedTestModelKey.value,
         selectedTemplateId: selectedTemplateId.value,
@@ -430,9 +462,8 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
 
         const defaultState = createDefaultState()
         const coerceVersionValue = (value: unknown): TestPanelVersionValue | null => {
-          if (value === 'workspace' || value === 'latest') return 'workspace'
-          if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return Math.floor(value)
-          return null
+          const normalizedValue = coerceTestPanelVersionValue(value)
+          return normalizedValue == null ? null : normalizedValue
         }
 
         const legacyModelKey = typeof parsed.selectedTestModelKey === 'string' ? parsed.selectedTestModelKey : ''
@@ -505,6 +536,14 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
             ? (parsed.evaluationResults as PersistedEvaluationResults)
             : {}),
         }
+        compareSnapshotRoles.value = sanitizeCompareSnapshotRoles(
+          (parsed as Partial<BasicUserSessionState>).compareSnapshotRoles,
+          ids
+        )
+        compareSnapshotRoleSignatures.value = sanitizeCompareSnapshotRoleSignatures(
+          (parsed as Partial<BasicUserSessionState>).compareSnapshotRoleSignatures,
+          ids
+        )
         selectedOptimizeModelKey.value = parsed.selectedOptimizeModelKey
         selectedTestModelKey.value = parsed.selectedTestModelKey
         selectedTemplateId.value = parsed.selectedTemplateId
@@ -552,6 +591,8 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
     testVariantResults,
     testVariantLastRunFingerprint,
     evaluationResults,
+    compareSnapshotRoles,
+    compareSnapshotRoleSignatures,
     selectedOptimizeModelKey,
     selectedTestModelKey,
     selectedTemplateId,
@@ -572,6 +613,7 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
     updateTemplate,
     updateIterateTemplate,
     toggleCompareMode,
+    updateCompareSnapshotRoles,
     reset,
 
     // ========== 持久化方法 ==========

@@ -8,8 +8,13 @@
  */
 
 import { computed, watch, type Ref, type ComputedRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEvaluation, type UseEvaluationReturn, type ScoreLevel } from './useEvaluation'
 import type { CompareEvaluationPayload } from './compareEvaluation'
+import {
+  buildRewriteFromEvaluationInput,
+  normalizeRewriteLocaleLanguage,
+} from './rewriteFromEvaluation'
 import type { AppServices } from '../../types/services'
 import type {
   EvaluationType,
@@ -47,6 +52,7 @@ export interface UseEvaluationHandlerOptions {
 
 export interface PromptPanelRef {
   openIterateDialog?: (input?: string) => void
+  runIterateWithInput?: (input: string) => boolean
 }
 
 export interface ResultEvaluationViewProps {
@@ -76,11 +82,17 @@ export interface UseEvaluationHandlerReturn {
   createApplyImprovementHandler: (
     promptPanelRef: Ref<PromptPanelRef | null>
   ) => (payload: { improvement: string; type: EvaluationType }) => void
+  createRewriteFromEvaluationHandler: (
+    promptPanelRef: Ref<PromptPanelRef | null>
+  ) => (payload: { result: EvaluationResponse; type: EvaluationType }) => void
   getResultEvaluationProps: (variantId: string) => ResultEvaluationViewProps
   compareEvaluation: {
     hasCompareResult: ComputedRef<boolean>
     isEvaluatingCompare: ComputedRef<boolean>
     compareScore: ComputedRef<number | null>
+    compareMode: ComputedRef<'generic' | 'structured' | null>
+    compareStopSignals: ComputedRef<NonNullable<EvaluationResponse['metadata']>['compareStopSignals'] | null>
+    compareSnapshotRoles: ComputedRef<NonNullable<EvaluationResponse['metadata']>['snapshotRoles'] | null>
   }
   panelProps: ComputedRef<{
     show: boolean
@@ -241,6 +253,7 @@ const toDesignContextBlock = (
 export function useEvaluationHandler(
   options: UseEvaluationHandlerOptions
 ): UseEvaluationHandlerReturn {
+  const { locale } = useI18n() as unknown as { locale: Ref<string> }
   const {
     services,
     analysisOptimizedPrompt,
@@ -420,6 +433,9 @@ export function useEvaluationHandler(
     hasCompareResult: evaluation.hasCompareResult,
     isEvaluatingCompare: evaluation.isEvaluatingCompare,
     compareScore: evaluation.compareScore,
+    compareMode: evaluation.compareMode,
+    compareStopSignals: evaluation.compareStopSignals,
+    compareSnapshotRoles: evaluation.compareSnapshotRoles,
   }
 
   const getIsEvaluatingForActive = (): boolean => {
@@ -464,6 +480,24 @@ export function useEvaluationHandler(
     }
   }
 
+  const createRewriteFromEvaluationHandler = (
+    promptPanelRef: Ref<PromptPanelRef | null>
+  ) => {
+    return (payload: { result: EvaluationResponse; type: EvaluationType }): void => {
+      if (!payload.result) return
+
+      const rewriteInput = buildRewriteFromEvaluationInput(
+        payload,
+        normalizeRewriteLocaleLanguage(locale.value)
+      )
+      const started = promptPanelRef.value?.runIterateWithInput?.(rewriteInput) || false
+
+      if (started) {
+        evaluation.closePanel()
+      }
+    }
+  }
+
   return {
     evaluation,
     handleEvaluate,
@@ -472,6 +506,7 @@ export function useEvaluationHandler(
     handleEvaluateActiveWithFeedback,
     clearBeforeTest,
     createApplyImprovementHandler,
+    createRewriteFromEvaluationHandler,
     getResultEvaluationProps,
     compareEvaluation,
     panelProps,
