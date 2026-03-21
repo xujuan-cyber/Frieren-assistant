@@ -484,6 +484,28 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
   }
 
   /**
+   * 4.1 切换到 V0（原始提示词）
+   * - 使用首个版本记录上的 originalPrompt 作为当前展示内容
+   * - V0 不是链上的真实版本，切换后要清空 currentVersionId / session.versionId，
+   *   避免继续继承某个版本上的 iterationNote 等元信息
+   */
+  const handleSwitchToV0 = (version: PromptRecord) => {
+    if (!version?.id || !version.originalPrompt) return
+
+    optimizedPrompt.value = version.originalPrompt
+    optimizedReasoning.value = ''
+    currentVersionId.value = ''
+    currentChainId.value = version.chainId || currentChainId.value || sessionStore.chainId || ''
+
+    sessionStore.updateOptimizedResult({
+      optimizedPrompt: version.originalPrompt,
+      reasoning: '',
+      chainId: currentChainId.value || '',
+      versionId: '',
+    })
+  }
+
+  /**
    * 5. 加载版本列表
    */
   const loadVersions = async () => {
@@ -575,6 +597,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     handleIterate,
     handleSaveLocalEdit,
     handleSwitchVersion,
+    handleSwitchToV0,
     loadVersions,
     handleAnalyze
   }

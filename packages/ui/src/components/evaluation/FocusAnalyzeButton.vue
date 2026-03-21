@@ -1,5 +1,5 @@
 <template>
-  <NButtonGroup class="focus-analyze-group">
+  <NButtonGroup class="focus-analyze-group" :data-evaluation-type="type">
     <NButton
       v-bind="buttonPropsMerged"
       :disabled="isDisabled"

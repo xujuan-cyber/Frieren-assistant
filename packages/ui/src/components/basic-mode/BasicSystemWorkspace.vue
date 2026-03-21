@@ -143,6 +143,7 @@
                         @iterate="handleIterate"
                         @openTemplateManager="handleOpenTemplateManager"
                         @switchVersion="logic.handleSwitchVersion"
+                        @switchToV0="logic.handleSwitchToV0"
                         @save-favorite="handleSaveFavorite"
                         @apply-improvement="handleApplyImprovement"
                         @apply-patch="handleApplyPatch"

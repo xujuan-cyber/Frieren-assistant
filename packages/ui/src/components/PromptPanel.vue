@@ -27,6 +27,7 @@
                             v-if="versions && versions.length > 0"
                             :size="4"
                             class="version-tags"
+                            data-testid="prompt-panel-version-tags"
                         >
                             <!-- V3, V2, V1... 按降序显示（最新版本在前） -->
                             <NTag
@@ -40,6 +41,7 @@
                                 size="small"
                                 @click="switchVersion(version)"
                                 :bordered="currentVersionId !== version.id || isV0Selected"
+                                :data-testid="`prompt-panel-version-tag-v${version.version}`"
                             >
                                 V{{ version.version }}
                             </NTag>
@@ -51,6 +53,7 @@
                                         size="small"
                                         @click="switchToV0"
                                         :bordered="!isV0Selected"
+                                        data-testid="prompt-panel-version-tag-v0"
                                     >
                                         {{ t("prompt.originalVersion") }}
                                     </NTag>
@@ -188,6 +191,7 @@
                         type="primary"
                         size="small"
                         class="min-w-[100px]"
+                        data-testid="prompt-panel-continue-optimize"
                     >
                         <template #icon>
                             <svg
@@ -241,7 +245,11 @@
         />
     </NFlex>
     <!-- 迭代优化弹窗 -->
-    <Modal v-model="showIterateInput" @confirm="submitIterate">
+    <Modal
+        v-model="showIterateInput"
+        data-testid="prompt-panel-iterate-modal"
+        @confirm="submitIterate"
+    >
         <template #title>
             {{ templateTitleText }}
         </template>
@@ -273,6 +281,7 @@
                     :placeholder="t('prompt.iteratePlaceholder')"
                     :rows="3"
                     :autosize="{ minRows: 3, maxRows: 6 }"
+                    data-testid="prompt-panel-iterate-input"
                 />
             </div>
         </div>
@@ -287,6 +296,7 @@
                 :loading="isIterating"
                 type="primary"
                 size="medium"
+                data-testid="prompt-panel-iterate-submit"
             >
                 {{
                     isIterating
@@ -724,18 +734,26 @@ const cancelIterate = () => {
     iterateInput.value = "";
 };
 
-const submitIterate = () => {
-    if (!iterateInput.value.trim()) return;
+const dispatchIterate = (input: string): boolean => {
+    const trimmedInput = input.trim();
+    if (!trimmedInput || props.isIterating) return false;
+
     if (!props.selectedIterateTemplate) {
         toast.error(t("prompt.error.noTemplate"));
-        return;
+        return false;
     }
 
     emit("iterate", {
         originalPrompt: props.originalPrompt,
         optimizedPrompt: outputDisplayRef.value?.content || props.optimizedPrompt,
-        iterateInput: iterateInput.value.trim(),
+        iterateInput: trimmedInput,
     });
+
+    return true;
+};
+
+const submitIterate = () => {
+    if (!dispatchIterate(iterateInput.value)) return;
 
     // 重置输入
     iterateInput.value = "";
@@ -810,9 +828,19 @@ const openIterateDialog = (input?: string) => {
     showIterateInput.value = true;
 };
 
+const runIterateWithInput = (input: string) => {
+    const started = dispatchIterate(input);
+    if (started) {
+        iterateInput.value = "";
+        showIterateInput.value = false;
+    }
+    return started;
+};
+
 defineExpose({
     refreshIterateTemplateSelect,
     openIterateDialog,
+    runIterateWithInput,
 });
 </script>
 
