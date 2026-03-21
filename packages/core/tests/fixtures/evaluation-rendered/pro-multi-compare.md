@@ -53,6 +53,7 @@
   - workspaceTransferability
 - improvements：0-3 条，可复用洞察。
 - summary：一句短结论。
+- metadata.compareMode 必须为 "generic"。
 - summary 不能只说哪一列更好，必须点名最关键的“已观察到的差异”是什么。
 - 第一条 improvement 必须优先处理这条已观察到的关键差异，再谈次级增强项。
 
@@ -69,7 +70,21 @@
     ]
   },
   "improvements": ["<可复用改进建议>"],
-  "summary": "<一句话结论>"
+  "summary": "<一句话结论>",
+  "metadata": {
+    "compareMode": "generic | structured",
+    "snapshotRoles": {
+      "<snapshot-id>": "target | baseline | reference | referenceBaseline | replica | auxiliary"
+    },
+    "compareStopSignals": {
+      "targetVsBaseline": "improved | flat | regressed",
+      "targetVsReferenceGap": "none | minor | major",
+      "improvementHeadroom": "none | low | medium | high",
+      "overfitRisk": "low | medium | high",
+      "stopRecommendation": "continue | stop | review",
+      "stopReasons": ["<停止原因>"]
+    }
+  }
 }
 ```
 

@@ -456,6 +456,12 @@ const buildCompareSystemPrompt = (
 1. Snapshots and shared test inputs are the only scoring evidence.
 2. Do not use any prompt text outside the provided snapshots to influence scoring.
 3. Never hallucinate missing prompt text.
+{{#hasStructuredCompare}}
+4. This compare set is in structured mode with explicit snapshot roles.
+5. Keep the provided Target / Baseline / Reference / Reference Baseline / Replica / Auxiliary roles unchanged.
+6. Treat Target as the optimization focus, use Baseline to judge progress or regression, use Reference to judge learnable gap, and use Reference Baseline to judge whether the prompt change is structurally valid beyond the target model.
+7. Derive compareStopSignals conservatively from the observed evidence only. If a signal is not supported, omit it instead of guessing.
+{{/hasStructuredCompare}}
 {{#hasFocus}}
 4. Focus Brief is the highest-priority input for this task.
 5. If the evidence is insufficient to support the Focus Brief, say so explicitly.
@@ -484,6 +490,9 @@ const buildCompareSystemPrompt = (
 ## Workflow
 1. Read the shared test cases and all execution snapshots.
 2. Identify stronger patterns, weaker patterns, and repeated failure modes across snapshots.
+{{#hasStructuredCompare}}3. Use the provided snapshot roles to judge Target vs Baseline first, then Target vs Reference, and then Reference vs Reference Baseline when that evidence exists.
+4. If you emit compareStopSignals, make them evidence-grounded and conservative.
+{{/hasStructuredCompare}}
 {{#hasCrossModelComparison}}3. For same-prompt cross-model groups, explain whether differences expose prompt ambiguity, weak constraints, unclear boundaries, or pure model-capability limits.
 4. Identify the highest-priority violated instruction or misunderstood boundary in the snapshots, if one already exists.
 5. Write improvements only after mapping them to that observed misunderstanding point, and prefer edits that strengthen cross-model clarity, explicitness, examples, and constraints.
@@ -503,6 +512,20 @@ const buildCompareSystemPrompt = (
   - workspaceTransferability
 - improvements: 0-3 reusable insights.
 - summary: one short sentence.
+{{#hasStructuredCompare}}
+- metadata.compareMode must be "structured".
+- metadata.snapshotRoles must echo the provided snapshot-role mapping by snapshot id.
+- metadata.compareStopSignals may include:
+  - targetVsBaseline
+  - targetVsReferenceGap
+  - improvementHeadroom
+  - overfitRisk
+  - stopRecommendation
+  - stopReasons
+{{/hasStructuredCompare}}
+{{^hasStructuredCompare}}
+- metadata.compareMode must be "generic".
+{{/hasStructuredCompare}}
 {{#hasCrossModelComparison}}
 - If a concrete violated instruction already appears in the snapshots, summary must mention it explicitly and the first improvement must target it first.
 {{/hasCrossModelComparison}}
@@ -558,6 +581,12 @@ As ${subject.roleName}, you must follow the Rules, execute the Workflow, and out
 1. 各快照与公共测试输入是本次评分的唯一证据。
 2. 不得使用快照之外的提示词文本来影响评分判断。
 3. 不得杜撰不存在的提示词片段。
+{{#hasStructuredCompare}}
+4. 当前对比集处于 structured compare 模式，并已提供明确的快照角色。
+5. 必须保持给定的 Target / Baseline / Reference / Reference Baseline / Replica / Auxiliary 角色语义，不得自行改写角色含义。
+6. 必须以 Target 为优化焦点，优先用 Baseline 判断进步/回归，用 Reference 判断可学习差距，用 Reference Baseline 判断改动是否具有结构性。
+7. compareStopSignals 必须严格基于已观察到的证据保守输出；无法支持的信号宁可省略，也不要猜测。
+{{/hasStructuredCompare}}
 {{#hasFocus}}
 4. Focus Brief 是本次任务的最高优先级输入。
 5. 如果当前证据不足以支撑 Focus Brief 指向的问题，必须明确说明。
@@ -586,6 +615,9 @@ As ${subject.roleName}, you must follow the Rules, execute the Workflow, and out
 ## Workflow
 1. 读取公共测试用例和全部执行快照。
 2. 识别多快照中的强模式、弱模式与重复失败模式。
+{{#hasStructuredCompare}}3. 如果存在结构化角色，必须优先判断 Target vs Baseline，再判断 Target vs Reference，并在证据存在时判断 Reference vs Reference Baseline。
+4. 如果输出 compareStopSignals，必须让每个信号都能回溯到当前快照证据。
+{{/hasStructuredCompare}}
 {{#hasCrossModelComparison}}3. 对“同提示词跨模型”分组，判断差异暴露的是提示词歧义、约束过弱、边界不清，还是模型能力边界。
 4. 先识别快照里最高优先级的“被违反指令”或“被误解边界”，如果已经存在，必须把它作为首要问题。
 5. 再把每条改进建议映射到该误解点，随后才收敛能提升跨模型清晰度、显式性、示例化和约束性的方向。
@@ -605,6 +637,20 @@ As ${subject.roleName}, you must follow the Rules, execute the Workflow, and out
   - workspaceTransferability
 - improvements：0-3 条，可复用洞察。
 - summary：一句短结论。
+{{#hasStructuredCompare}}
+- metadata.compareMode 必须为 "structured"。
+- metadata.snapshotRoles 必须按 snapshot id 原样回显当前提供的角色映射。
+- metadata.compareStopSignals 可包含：
+  - targetVsBaseline
+  - targetVsReferenceGap
+  - improvementHeadroom
+  - overfitRisk
+  - stopRecommendation
+  - stopReasons
+{{/hasStructuredCompare}}
+{{^hasStructuredCompare}}
+- metadata.compareMode 必须为 "generic"。
+{{/hasStructuredCompare}}
 {{#hasCrossModelComparison}}
 - 如果快照里已经出现某条明确的“被违反指令”，summary 必须显式提到它，且第一条 improvement 必须优先修它。
 {{/hasCrossModelComparison}}
@@ -624,7 +670,12 @@ const buildCompareUserPrompt = (
   _subject: SubjectConfig,
 ): string => {
   if (language === 'en') {
-    return `{{#hasCompareTestCases}}## {{#hasSharedCompareInputs}}Shared Test Cases{{/hasSharedCompareInputs}}{{^hasSharedCompareInputs}}Test Cases{{/hasSharedCompareInputs}} ({{compareTestCaseCount}})
+    return `{{#hasStructuredCompare}}## Structured Compare Roles
+{{#compareRoleBindings}}
+- Snapshot {{snapshotLabel}} ({{snapshotId}}): {{roleLabel}}
+{{/compareRoleBindings}}
+
+{{/hasStructuredCompare}}{{#hasCompareTestCases}}## {{#hasSharedCompareInputs}}Shared Test Cases{{/hasSharedCompareInputs}}{{^hasSharedCompareInputs}}Test Cases{{/hasSharedCompareInputs}} ({{compareTestCaseCount}})
 {{#compareTestCases}}
 ### Test Case {{#hasLabel}}{{label}}{{/hasLabel}}{{^hasLabel}}{{id}}{{/hasLabel}}
 #### Input ({{inputLabel}})
@@ -638,7 +689,8 @@ const buildCompareUserPrompt = (
 {{/compareTestCases}}{{/hasCompareTestCases}}## Execution Snapshots ({{compareSnapshotCount}})
 {{#compareSnapshots}}
 ### Snapshot {{label}}
-- Prompt Source: {{promptRefLabel}}
+{{#hasRole}}- Compare Role: {{roleLabel}}
+{{/hasRole}}- Prompt Source: {{promptRefLabel}}
 {{#hasModelKey}}- Model: {{modelKey}}
 {{/hasModelKey}}{{#hasVersionLabel}}- Version: {{versionLabel}}
 {{/hasVersionLabel}}#### Executed Prompt
@@ -662,7 +714,12 @@ const buildCompareUserPrompt = (
 Please compare these snapshots and return strict JSON only.`;
   }
 
-  return `{{#hasCompareTestCases}}## {{#hasSharedCompareInputs}}公共测试用例{{/hasSharedCompareInputs}}{{^hasSharedCompareInputs}}测试用例{{/hasSharedCompareInputs}}（{{compareTestCaseCount}}）
+  return `{{#hasStructuredCompare}}## Structured Compare 角色
+{{#compareRoleBindings}}
+- 快照 {{snapshotLabel}}（{{snapshotId}}）：{{roleLabel}}
+{{/compareRoleBindings}}
+
+{{/hasStructuredCompare}}{{#hasCompareTestCases}}## {{#hasSharedCompareInputs}}公共测试用例{{/hasSharedCompareInputs}}{{^hasSharedCompareInputs}}测试用例{{/hasSharedCompareInputs}}（{{compareTestCaseCount}}）
 {{#compareTestCases}}
 ### 测试用例 {{#hasLabel}}{{label}}{{/hasLabel}}{{^hasLabel}}{{id}}{{/hasLabel}}
 #### 输入（{{inputLabel}})
@@ -676,7 +733,8 @@ Please compare these snapshots and return strict JSON only.`;
 {{/compareTestCases}}{{/hasCompareTestCases}}## 执行快照（{{compareSnapshotCount}}）
 {{#compareSnapshots}}
 ### 快照 {{label}}
-- 提示词来源：{{promptRefLabel}}
+{{#hasRole}}- 对比角色：{{roleLabel}}
+{{/hasRole}}- 提示词来源：{{promptRefLabel}}
 {{#hasModelKey}}- 模型：{{modelKey}}
 {{/hasModelKey}}{{#hasVersionLabel}}- 版本：{{versionLabel}}
 {{/hasVersionLabel}}#### 执行提示词
@@ -860,7 +918,21 @@ export const compareJsonContractZh = jsonFence(`{
     ]
   },
   "improvements": ["<可复用改进建议>"],
-  "summary": "<一句话结论>"
+  "summary": "<一句话结论>",
+  "metadata": {
+    "compareMode": "generic | structured",
+    "snapshotRoles": {
+      "<snapshot-id>": "target | baseline | reference | referenceBaseline | replica | auxiliary"
+    },
+    "compareStopSignals": {
+      "targetVsBaseline": "improved | flat | regressed",
+      "targetVsReferenceGap": "none | minor | major",
+      "improvementHeadroom": "none | low | medium | high",
+      "overfitRisk": "low | medium | high",
+      "stopRecommendation": "continue | stop | review",
+      "stopReasons": ["<停止原因>"]
+    }
+  }
 }`);
 
 export const compareJsonContractEn = jsonFence(`{
@@ -875,5 +947,19 @@ export const compareJsonContractEn = jsonFence(`{
     ]
   },
   "improvements": ["<Reusable improvement>"],
-  "summary": "<One-sentence conclusion>"
+  "summary": "<One-sentence conclusion>",
+  "metadata": {
+    "compareMode": "generic | structured",
+    "snapshotRoles": {
+      "<snapshot-id>": "target | baseline | reference | referenceBaseline | replica | auxiliary"
+    },
+    "compareStopSignals": {
+      "targetVsBaseline": "improved | flat | regressed",
+      "targetVsReferenceGap": "none | minor | major",
+      "improvementHeadroom": "none | low | medium | high",
+      "overfitRisk": "low | medium | high",
+      "stopRecommendation": "continue | stop | review",
+      "stopReasons": ["<Stop reason>"]
+    }
+  }
 }`);

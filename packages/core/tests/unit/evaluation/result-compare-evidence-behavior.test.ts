@@ -106,9 +106,18 @@ class StubModelManager implements IModelManager {
 
 class CapturingEvaluationLLM implements ILLMService {
   public lastMessages: Message[] = []
+  public sendMessageCalls: Message[][] = []
+  public sendMessageStreamCalls: Message[][] = []
 
-  async sendMessage(messages: Message[], _provider: string): Promise<string> {
-    this.lastMessages = messages
+  constructor(
+    private options: {
+      responseContent?: string
+      responseQueue?: string[]
+      streamResponseContent?: string
+    } = {}
+  ) {}
+
+  private getDefaultResponseContent(): string {
     return JSON.stringify({
       score: {
         overall: 80,
@@ -124,12 +133,31 @@ class CapturingEvaluationLLM implements ILLMService {
     })
   }
 
+  async sendMessage(messages: Message[], _provider: string): Promise<string> {
+    this.lastMessages = messages
+    this.sendMessageCalls.push(messages)
+    if (this.options.responseQueue?.length) {
+      return this.options.responseQueue.shift() as string
+    }
+    return this.options.responseContent || this.getDefaultResponseContent()
+  }
+
   async sendMessageStructured(messages: Message[], provider: string): Promise<LLMResponse> {
     return { content: await this.sendMessage(messages, provider) }
   }
 
-  async sendMessageStream(_messages: Message[], _provider: string, callbacks: StreamHandlers): Promise<void> {
-    callbacks.onError(new Error('CapturingEvaluationLLM.sendMessageStream is not used in this test'))
+  async sendMessageStream(messages: Message[], _provider: string, callbacks: StreamHandlers): Promise<void> {
+    this.lastMessages = messages
+    this.sendMessageStreamCalls.push(messages)
+    const content =
+      this.options.streamResponseContent ||
+      (this.options.responseQueue?.length
+        ? this.options.responseQueue.shift()
+        : this.options.responseContent) ||
+      this.getDefaultResponseContent()
+
+    callbacks.onToken(content)
+    callbacks.onComplete({ content })
   }
 
   async sendMessageStreamWithTools(
@@ -150,7 +178,15 @@ class CapturingEvaluationLLM implements ILLMService {
   }
 }
 
-const createService = () => {
+const createService = (
+  options?:
+    | string
+    | {
+        responseContent?: string
+        responseQueue?: string[]
+        streamResponseContent?: string
+      }
+) => {
   const modelKey = 'test-model'
   const templateManager = new TemplateManager(
     new MemoryStorageProvider(),
@@ -179,7 +215,11 @@ const createService = () => {
       paramOverrides: {},
     },
   })
-  const llm = new CapturingEvaluationLLM()
+  const llm = new CapturingEvaluationLLM(
+    typeof options === 'string'
+      ? { responseContent: options }
+      : options
+  )
   return {
     llm,
     modelKey,
@@ -794,5 +834,1248 @@ describe('Result/compare evaluation evidence behavior', () => {
     expect(promptText).toContain('先识别快照里最高优先级的“被违反指令”或“被误解边界”')
     expect(promptText).toContain('summary 必须直接点名它')
     expect(promptText).toContain('第一条 improvement 必须先处理它')
+  })
+
+  it('structured compare runs pairwise judges before synthesis when compare hints provide usable roles', async () => {
+    const { llm, modelKey, service } = createService()
+
+    const request: CompareEvaluationRequest = {
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-structured-1',
+          label: '测试内容',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'snap-a',
+          label: 'A',
+          testCaseId: 'tc-structured-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+          output: '问题类型：物流延迟。建议回复：非常抱歉让您久等了。',
+          modelKey: 'qwen3-32b',
+          versionLabel: '工作区',
+        },
+        {
+          id: 'snap-b',
+          label: 'B',
+          testCaseId: 'tc-structured-1',
+          promptRef: { kind: 'version', version: 3, label: 'v3' },
+          promptText: '你是一个助手。',
+          output: '很抱歉。',
+          modelKey: 'qwen3-32b',
+          versionLabel: 'v3',
+        },
+        {
+          id: 'snap-c',
+          label: 'C',
+          testCaseId: 'tc-structured-1',
+          promptRef: { kind: 'workspace', label: '参考工作区' },
+          promptText: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+          output: '问题类型：物流延迟。建议回复：抱歉让您久等，我们会立刻核查。',
+          modelKey: 'deepseek-chat',
+          versionLabel: '工作区',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'snap-a': 'target',
+          'snap-b': 'baseline',
+          'snap-c': 'reference',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    }
+
+    await service.evaluate(request)
+
+    expect(llm.sendMessageCalls).toHaveLength(3)
+
+    const firstJudgePrompt = llm.sendMessageCalls[0].map((message) => message.content).join('\n\n')
+    expect(firstJudgePrompt).toContain('Structured Compare 角色')
+    expect(firstJudgePrompt).toContain('快照 A（snap-a）：Target')
+    expect(firstJudgePrompt).toContain('快照 B（snap-b）：Baseline')
+    expect(firstJudgePrompt).toContain('快照 C（snap-c）：Reference')
+    expect(firstJudgePrompt).toContain('Pair Key：target-vs-baseline')
+    expect(firstJudgePrompt).toContain('对比角色：Target')
+    expect(firstJudgePrompt).toContain('对比角色：Baseline')
+    expect(firstJudgePrompt).toContain('## 当前 Pair 专项判断')
+    expect(firstJudgePrompt).toContain('这一组决定当前 target 是否真的值得替换上一版本')
+    expect(firstJudgePrompt).toContain('不能判成 left-better')
+
+    const secondJudgePrompt = llm.sendMessageCalls[1].map((message) => message.content).join('\n\n')
+    expect(secondJudgePrompt).toContain('Pair Key：target-vs-reference')
+    expect(secondJudgePrompt).toContain('对比角色：Reference')
+    expect(secondJudgePrompt).toContain('要区分“可迁移的提示词结构优势”和“纯模型能力上限”造成的差异')
+
+    const synthesisPrompt = llm.sendMessageCalls[2].map((message) => message.content).join('\n\n')
+    expect(synthesisPrompt).toContain('## 综合提示（确定性）')
+    expect(synthesisPrompt).toContain('Priority Order：targetBaseline > targetReference > referenceBaseline > targetReplica')
+    expect(synthesisPrompt).toContain('Derived Stop Recommendation：n/a')
+    expect(synthesisPrompt).toContain('成对判断结果')
+    expect(synthesisPrompt).toContain('target-vs-baseline')
+    expect(synthesisPrompt).toContain('target-vs-reference')
+    expect(synthesisPrompt).toContain('compareStopSignals 必须保守且有证据支撑')
+  })
+
+  it('structured compare anchors pair identity to the judge plan even when the model echoes the wrong pair key', async () => {
+    const { modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          pairKey: 'target-vs-reference',
+          pairType: 'targetReference',
+          verdict: 'left-better',
+          winner: 'left',
+          confidence: 'high',
+          pairSignal: 'improved',
+          analysis: 'target beats baseline clearly',
+          evidence: ['target keeps the required structure'],
+          learnableSignals: ['keep the explicit response scaffold'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'medium',
+          pairSignal: 'minor',
+          analysis: 'reference is still slightly stronger',
+          evidence: ['reference keeps a clearer service boundary'],
+          learnableSignals: ['clarify the service boundary wording'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          score: {
+            overall: 86,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 86 },
+            ],
+          },
+          improvements: ['keep refining the service boundary'],
+          summary: 'target improved while still trailing the reference slightly',
+        }),
+      ],
+    })
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-judge-anchor-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'anchor-a',
+          label: 'A',
+          testCaseId: 'tc-judge-anchor-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'anchor-b',
+          label: 'B',
+          testCaseId: 'tc-judge-anchor-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'anchor-c',
+          label: 'C',
+          testCaseId: 'tc-judge-anchor-1',
+          promptRef: { kind: 'workspace', label: '参考工作区' },
+          promptText: 'Prompt A',
+          output: 'Output C',
+          modelKey: 'deepseek-chat',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'anchor-a': 'target',
+          'anchor-b': 'baseline',
+          'anchor-c': 'reference',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareJudgements).toEqual([
+      expect.objectContaining({
+        pairKey: 'target-vs-baseline',
+        pairType: 'targetBaseline',
+        pairSignal: 'improved',
+        analysis: 'target beats baseline clearly',
+      }),
+      expect.objectContaining({
+        pairKey: 'target-vs-reference',
+        pairType: 'targetReference',
+        pairSignal: 'minor',
+        analysis: 'reference is still slightly stronger',
+      }),
+    ])
+    expect(result.metadata?.compareInsights?.progressSummary).toEqual(
+      expect.objectContaining({
+        pairKey: 'target-vs-baseline',
+        pairType: 'targetBaseline',
+      })
+    )
+    expect(result.metadata?.compareInsights?.referenceGapSummary).toEqual(
+      expect.objectContaining({
+        pairKey: 'target-vs-reference',
+        pairType: 'targetReference',
+      })
+    )
+  })
+
+  it('structured compare ignores shallow wrapper metadata and uses the actual nested judge payload', async () => {
+    const { modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          meta: {
+            analysis: 'wrapper analysis that should not be treated as the final judge payload',
+          },
+          result: {
+            verdict: 'left-better',
+            winner: 'left',
+            confidence: 'high',
+            pairSignal: 'improved',
+            analysis: 'real baseline judgement',
+            evidence: ['target follows the requested structure more closely'],
+            learnableSignals: ['keep the explicit task decomposition'],
+            overfitWarnings: [],
+          },
+        }),
+        JSON.stringify({
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'medium',
+          pairSignal: 'minor',
+          analysis: 'reference remains slightly stronger',
+          evidence: ['reference keeps a clearer service boundary'],
+          learnableSignals: ['clarify service boundary wording'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          score: {
+            overall: 87,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 87 },
+            ],
+          },
+          improvements: ['clarify the service boundary'],
+          summary: 'target improved but still has a minor reference gap',
+        }),
+      ],
+    })
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-nested-payload-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'nested-a',
+          label: 'A',
+          testCaseId: 'tc-nested-payload-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'nested-b',
+          label: 'B',
+          testCaseId: 'tc-nested-payload-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'nested-c',
+          label: 'C',
+          testCaseId: 'tc-nested-payload-1',
+          promptRef: { kind: 'workspace', label: '参考工作区' },
+          promptText: 'Prompt A',
+          output: 'Output C',
+          modelKey: 'deepseek-chat',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'nested-a': 'target',
+          'nested-b': 'baseline',
+          'nested-c': 'reference',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareJudgements?.[0]).toEqual(
+      expect.objectContaining({
+        pairKey: 'target-vs-baseline',
+        analysis: 'real baseline judgement',
+        confidence: 'high',
+        pairSignal: 'improved',
+      })
+    )
+  })
+
+  it('compare evaluation normalizes compare stop signals and preserves request-side compare metadata', async () => {
+    const { modelKey, service } = createService(JSON.stringify({
+      score: {
+        overall: 84,
+        dimensions: [
+          { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 84 },
+        ],
+      },
+      improvements: ['improve target clarity'],
+      summary: 'target improved but still trails the reference',
+      metadata: {
+        compareStopSignals: {
+          targetVsBaseline: 'improved',
+          targetVsReferenceGap: 'minor',
+          improvementHeadroom: 'low',
+          overfitRisk: 'low',
+          stopRecommendation: 'continue',
+          stopReasons: ['reference gap still exists'],
+        },
+      },
+    }))
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-stop-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'a',
+          label: 'A',
+          testCaseId: 'tc-stop-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'b',
+          label: 'B',
+          testCaseId: 'tc-stop-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          a: 'target',
+          b: 'baseline',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareMode).toBe('structured')
+    expect(result.metadata?.snapshotRoles).toEqual({
+      a: 'target',
+      b: 'baseline',
+    })
+    expect(result.metadata?.compareStopSignals).toEqual({
+      targetVsBaseline: 'improved',
+      targetVsReferenceGap: 'minor',
+      improvementHeadroom: 'low',
+      overfitRisk: 'low',
+      stopRecommendation: 'continue',
+      stopReasons: ['reference gap still exists'],
+    })
+    expect(result.metadata?.compareJudgements).toEqual([
+      {
+        pairKey: 'target-vs-baseline',
+        pairType: 'targetBaseline',
+        pairLabel: 'Target vs Baseline',
+        leftSnapshotId: 'a',
+        leftSnapshotLabel: 'A',
+        leftRole: 'target',
+        rightSnapshotId: 'b',
+        rightSnapshotLabel: 'B',
+        rightRole: 'baseline',
+        verdict: 'mixed',
+        winner: 'none',
+        confidence: 'low',
+        pairSignal: 'unclear',
+        analysis: JSON.stringify({
+          score: {
+            overall: 84,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 84 },
+            ],
+          },
+          improvements: ['improve target clarity'],
+          summary: 'target improved but still trails the reference',
+          metadata: {
+            compareStopSignals: {
+              targetVsBaseline: 'improved',
+              targetVsReferenceGap: 'minor',
+              improvementHeadroom: 'low',
+              overfitRisk: 'low',
+              stopRecommendation: 'continue',
+              stopReasons: ['reference gap still exists'],
+            },
+          },
+        }),
+        evidence: [],
+        learnableSignals: [],
+        overfitWarnings: [],
+      },
+    ])
+    expect(result.metadata?.compareInsights).toEqual({
+      pairHighlights: [
+        {
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          pairLabel: 'Target vs Baseline',
+          pairSignal: 'unclear',
+          verdict: 'mixed',
+          confidence: 'low',
+          analysis: JSON.stringify({
+            score: {
+              overall: 84,
+              dimensions: [
+                { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 84 },
+              ],
+            },
+            improvements: ['improve target clarity'],
+            summary: 'target improved but still trails the reference',
+            metadata: {
+              compareStopSignals: {
+                targetVsBaseline: 'improved',
+                targetVsReferenceGap: 'minor',
+                improvementHeadroom: 'low',
+                overfitRisk: 'low',
+                stopRecommendation: 'continue',
+                stopReasons: ['reference gap still exists'],
+              },
+            },
+          }),
+        },
+      ],
+      progressSummary: {
+        pairKey: 'target-vs-baseline',
+        pairType: 'targetBaseline',
+        pairLabel: 'Target vs Baseline',
+        pairSignal: 'unclear',
+        verdict: 'mixed',
+        confidence: 'low',
+        analysis: JSON.stringify({
+          score: {
+            overall: 84,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 84 },
+            ],
+          },
+          improvements: ['improve target clarity'],
+          summary: 'target improved but still trails the reference',
+          metadata: {
+            compareStopSignals: {
+              targetVsBaseline: 'improved',
+              targetVsReferenceGap: 'minor',
+              improvementHeadroom: 'low',
+              overfitRisk: 'low',
+              stopRecommendation: 'continue',
+              stopReasons: ['reference gap still exists'],
+            },
+          },
+        }),
+      },
+    })
+  })
+
+  it('structured compare derives conservative stop signals from pairwise judgements when synthesis omits them', async () => {
+    const { modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          verdict: 'left-better',
+          winner: 'left',
+          confidence: 'high',
+          pairSignal: 'improved',
+          analysis: 'target clearly improves on baseline',
+          evidence: ['target keeps the required structure more consistently'],
+          learnableSignals: ['keep the explicit task decomposition'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          pairKey: 'target-vs-reference',
+          pairType: 'targetReference',
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'medium',
+          pairSignal: 'minor',
+          analysis: 'reference is still slightly stronger',
+          evidence: ['reference keeps a clearer service boundary'],
+          learnableSignals: ['clarify service boundary wording'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          score: {
+            overall: 86,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 86 },
+            ],
+          },
+          improvements: ['clarify the service boundary in the target prompt'],
+          summary: 'target improved and only trails the reference slightly',
+        }),
+      ],
+    })
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-derived-stop-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'derived-a',
+          label: 'A',
+          testCaseId: 'tc-derived-stop-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'derived-b',
+          label: 'B',
+          testCaseId: 'tc-derived-stop-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'derived-c',
+          label: 'C',
+          testCaseId: 'tc-derived-stop-1',
+          promptRef: { kind: 'workspace', label: '参考工作区' },
+          promptText: 'Prompt A',
+          output: 'Output C',
+          modelKey: 'deepseek-chat',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'derived-a': 'target',
+          'derived-b': 'baseline',
+          'derived-c': 'reference',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareStopSignals).toEqual({
+      targetVsBaseline: 'improved',
+      targetVsReferenceGap: 'minor',
+      improvementHeadroom: 'medium',
+      stopRecommendation: 'continue',
+      stopReasons: ['minor learnable gap remains vs reference'],
+    })
+  })
+
+  it('structured compare omits derived low overfit risk when pairwise judgements provide no explicit evidence', async () => {
+    const { modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          verdict: 'left-better',
+          winner: 'left',
+          confidence: 'high',
+          pairSignal: 'improved',
+          analysis: 'target clearly improves on baseline',
+          evidence: ['target keeps the required structure more consistently'],
+          learnableSignals: ['keep the explicit task decomposition'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          pairKey: 'target-vs-reference',
+          pairType: 'targetReference',
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'medium',
+          pairSignal: 'minor',
+          analysis: 'reference is still slightly stronger',
+          evidence: ['reference keeps a clearer service boundary'],
+          learnableSignals: ['clarify service boundary wording'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          score: {
+            overall: 86,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 86 },
+            ],
+          },
+          improvements: ['clarify the service boundary in the target prompt'],
+          summary: 'target improved and only trails the reference slightly',
+        }),
+      ],
+    })
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-derived-overfit-omit-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'overfit-omit-a',
+          label: 'A',
+          testCaseId: 'tc-derived-overfit-omit-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'overfit-omit-b',
+          label: 'B',
+          testCaseId: 'tc-derived-overfit-omit-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'overfit-omit-c',
+          label: 'C',
+          testCaseId: 'tc-derived-overfit-omit-1',
+          promptRef: { kind: 'workspace', label: '参考工作区' },
+          promptText: 'Prompt A',
+          output: 'Output C',
+          modelKey: 'deepseek-chat',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'overfit-omit-a': 'target',
+          'overfit-omit-b': 'baseline',
+          'overfit-omit-c': 'reference',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareStopSignals).toEqual({
+      targetVsBaseline: 'improved',
+      targetVsReferenceGap: 'minor',
+      improvementHeadroom: 'medium',
+      stopRecommendation: 'continue',
+      stopReasons: ['minor learnable gap remains vs reference'],
+    })
+    expect(result.metadata?.compareStopSignals?.overfitRisk).toBeUndefined()
+  })
+
+  it('structured compare merges synthesis stop signals with pairwise-derived signals conservatively', async () => {
+    const { modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'high',
+          pairSignal: 'regressed',
+          analysis: 'baseline still handles the scenario more robustly',
+          evidence: ['baseline keeps the service boundary clearer'],
+          learnableSignals: [],
+          overfitWarnings: ['the target adds a sample-specific logistics shortcut'],
+        }),
+        JSON.stringify({
+          pairKey: 'target-vs-reference',
+          pairType: 'targetReference',
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'medium',
+          pairSignal: 'major',
+          analysis: 'reference remains substantially stronger',
+          evidence: ['reference better balances empathy and policy constraints'],
+          learnableSignals: ['strengthen the constraint hierarchy'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          score: {
+            overall: 72,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 72 },
+            ],
+          },
+          improvements: ['make the prompt more explicit'],
+          summary: 'target may still have room to improve',
+          metadata: {
+            compareStopSignals: {
+              targetVsBaseline: 'improved',
+              targetVsReferenceGap: 'minor',
+              improvementHeadroom: 'low',
+              overfitRisk: 'low',
+              stopRecommendation: 'continue',
+              stopReasons: ['target still has upside'],
+            },
+          },
+        }),
+      ],
+    })
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-conservative-merge-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'merge-a',
+          label: 'A',
+          testCaseId: 'tc-conservative-merge-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'merge-b',
+          label: 'B',
+          testCaseId: 'tc-conservative-merge-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'merge-c',
+          label: 'C',
+          testCaseId: 'tc-conservative-merge-1',
+          promptRef: { kind: 'workspace', label: '参考工作区' },
+          promptText: 'Prompt A',
+          output: 'Output C',
+          modelKey: 'deepseek-chat',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'merge-a': 'target',
+          'merge-b': 'baseline',
+          'merge-c': 'reference',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareStopSignals).toEqual({
+      targetVsBaseline: 'regressed',
+      targetVsReferenceGap: 'major',
+      improvementHeadroom: 'high',
+      overfitRisk: 'medium',
+      stopRecommendation: 'review',
+      stopReasons: [
+        'target still has upside',
+        'target regressed vs baseline',
+        'major learnable gap remains vs reference',
+        'pairwise judges flagged possible sample overfit',
+      ],
+    })
+  })
+
+  it('falls back to generic compare when structured hints do not produce a usable judge plan', async () => {
+    const { llm, modelKey, service } = createService(JSON.stringify({
+      score: {
+        overall: 81,
+        dimensions: [
+          { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 81 },
+        ],
+      },
+      improvements: ['keep comparing before making a rewrite decision'],
+      summary: 'generic compare fallback',
+    }))
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'user' },
+      target: {
+        workspacePrompt: '请写一首关于秋日思念的七言律诗。',
+      },
+      testCases: [
+        {
+          id: 'tc-generic-fallback-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '无额外测试输入。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'fallback-a',
+          label: 'A',
+          testCaseId: 'tc-generic-fallback-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+        },
+        {
+          id: 'fallback-b',
+          label: 'B',
+          testCaseId: 'tc-generic-fallback-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'fallback-a': 'target',
+          'fallback-b': 'auxiliary',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(llm.sendMessageCalls).toHaveLength(1)
+    expect(result.metadata?.compareMode).toBe('generic')
+    expect(result.metadata?.snapshotRoles).toBeUndefined()
+  })
+
+  it('falls back to generic compare when singleton structured roles conflict', async () => {
+    const { llm, modelKey, service } = createService(JSON.stringify({
+      score: {
+        overall: 78,
+        dimensions: [
+          { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 78 },
+        ],
+      },
+      improvements: ['resolve the role setup before trusting structured compare'],
+      summary: 'generic compare fallback because structured roles conflict',
+    }))
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+      },
+      testCases: [
+        {
+          id: 'tc-conflict-fallback-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '用户说：订单超过一周还没发货，我很着急。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'conflict-a',
+          label: 'A',
+          testCaseId: 'tc-conflict-fallback-1',
+          promptRef: { kind: 'workspace', label: '工作区 A' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'conflict-b',
+          label: 'B',
+          testCaseId: 'tc-conflict-fallback-1',
+          promptRef: { kind: 'workspace', label: '工作区 B' },
+          promptText: 'Prompt B',
+          output: 'Output B',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'conflict-c',
+          label: 'C',
+          testCaseId: 'tc-conflict-fallback-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt C',
+          output: 'Output C',
+          modelKey: 'qwen3-32b',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'conflict-a': 'target',
+          'conflict-b': 'target',
+          'conflict-c': 'baseline',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(llm.sendMessageCalls).toHaveLength(1)
+    expect(result.metadata?.compareMode).toBe('generic')
+    expect(result.metadata?.snapshotRoles).toBeUndefined()
+    expect(result.metadata?.compareJudgements).toBeUndefined()
+  })
+
+  it('structured compare stream keeps pairwise judge calls off the streaming channel and streams synthesis only', async () => {
+    const { llm, modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          verdict: 'left-better',
+          winner: 'left',
+          confidence: 'high',
+          pairSignal: 'improved',
+          analysis: 'target clearly improves on baseline',
+          evidence: ['target follows the requested structure more closely'],
+          learnableSignals: ['keep the explicit task decomposition'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          pairKey: 'target-vs-reference',
+          pairType: 'targetReference',
+          verdict: 'right-better',
+          winner: 'right',
+          confidence: 'medium',
+          pairSignal: 'minor',
+          analysis: 'reference is still slightly stronger',
+          evidence: ['reference keeps a clearer service boundary'],
+          learnableSignals: ['clarify service boundary wording'],
+          overfitWarnings: ['do not add sample-specific logistics rules'],
+        }),
+      ],
+      streamResponseContent: JSON.stringify({
+        score: {
+          overall: 88,
+          dimensions: [
+            { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 88 },
+            { key: 'outputQualityCeiling', label: '输出质量上限', score: 87 },
+          ],
+        },
+        improvements: ['clarify the service boundary in the target prompt'],
+        summary: 'target improved and only trails the reference slightly',
+        metadata: {
+          compareStopSignals: {
+            targetVsBaseline: 'improved',
+            targetVsReferenceGap: 'minor',
+            improvementHeadroom: 'low',
+            overfitRisk: 'low',
+            stopRecommendation: 'continue',
+            stopReasons: ['minor gap to reference remains'],
+          },
+        },
+      }),
+    })
+
+    const streamedTokens: string[] = []
+    let completed: Awaited<ReturnType<typeof service.evaluate>> | null = null
+
+    await service.evaluateStream(
+      {
+        type: 'compare',
+        evaluationModelKey: modelKey,
+        mode: { functionMode: 'basic', subMode: 'system' },
+        target: {
+          workspacePrompt: '你是一个客服助手。请先判断问题类型，再给出建议回复。',
+        },
+        testCases: [
+          {
+            id: 'tc-stream-1',
+            input: {
+              kind: 'text',
+              label: '测试内容',
+              content: '用户说：订单超过一周还没发货，我很着急。',
+            },
+          },
+        ],
+        snapshots: [
+          {
+            id: 'stream-a',
+            label: 'A',
+            testCaseId: 'tc-stream-1',
+            promptRef: { kind: 'workspace', label: '工作区' },
+            promptText: 'Prompt A',
+            output: 'Output A',
+            modelKey: 'qwen3-32b',
+          },
+          {
+            id: 'stream-b',
+            label: 'B',
+            testCaseId: 'tc-stream-1',
+            promptRef: { kind: 'version', version: 1, label: 'v1' },
+            promptText: 'Prompt B',
+            output: 'Output B',
+            modelKey: 'qwen3-32b',
+          },
+          {
+            id: 'stream-c',
+            label: 'C',
+            testCaseId: 'tc-stream-1',
+            promptRef: { kind: 'workspace', label: '参考工作区' },
+            promptText: 'Prompt A',
+            output: 'Output C',
+            modelKey: 'deepseek-chat',
+          },
+        ],
+        compareHints: {
+          mode: 'structured',
+          snapshotRoles: {
+            'stream-a': 'target',
+            'stream-b': 'baseline',
+            'stream-c': 'reference',
+          },
+          hasSharedTestCases: true,
+          hasSamePromptSnapshots: false,
+          hasCrossModelComparison: false,
+        },
+      },
+      {
+        onToken: (token) => {
+          streamedTokens.push(token)
+        },
+        onComplete: (response) => {
+          completed = response as unknown as Awaited<ReturnType<typeof service.evaluate>>
+        },
+        onError: (error) => {
+          throw error
+        },
+      }
+    )
+
+    expect(llm.sendMessageCalls).toHaveLength(2)
+    expect(llm.sendMessageStreamCalls).toHaveLength(1)
+    expect(streamedTokens.join('')).toContain('已启动成对判断 1/2')
+    expect(streamedTokens.join('')).toContain('已启动成对判断 2/2')
+    expect(streamedTokens.join('')).toContain('成对判断完成：Target vs Baseline')
+    expect(streamedTokens.join('')).toContain('正在综合最终评估')
+    expect((completed as any)?.metadata?.compareMode).toBe('structured')
+    expect((completed as any)?.metadata?.compareStopSignals).toEqual({
+      targetVsBaseline: 'improved',
+      targetVsReferenceGap: 'minor',
+      improvementHeadroom: 'medium',
+      overfitRisk: 'medium',
+      stopRecommendation: 'continue',
+      stopReasons: [
+        'minor gap to reference remains',
+        'minor learnable gap remains vs reference',
+        'pairwise judges flagged possible sample overfit',
+      ],
+    })
+    expect((completed as any)?.metadata?.compareJudgements).toEqual([
+      {
+        pairKey: 'target-vs-baseline',
+        pairType: 'targetBaseline',
+        pairLabel: 'Target vs Baseline',
+        leftSnapshotId: 'stream-a',
+        leftSnapshotLabel: 'A',
+        leftRole: 'target',
+        rightSnapshotId: 'stream-b',
+        rightSnapshotLabel: 'B',
+        rightRole: 'baseline',
+        verdict: 'left-better',
+        winner: 'left',
+        confidence: 'high',
+        pairSignal: 'improved',
+        analysis: 'target clearly improves on baseline',
+        evidence: ['target follows the requested structure more closely'],
+        learnableSignals: ['keep the explicit task decomposition'],
+        overfitWarnings: [],
+      },
+      {
+        pairKey: 'target-vs-reference',
+        pairType: 'targetReference',
+        pairLabel: 'Target vs Reference',
+        leftSnapshotId: 'stream-a',
+        leftSnapshotLabel: 'A',
+        leftRole: 'target',
+        rightSnapshotId: 'stream-c',
+        rightSnapshotLabel: 'C',
+        rightRole: 'reference',
+        verdict: 'right-better',
+        winner: 'right',
+        confidence: 'medium',
+        pairSignal: 'minor',
+        analysis: 'reference is still slightly stronger',
+        evidence: ['reference keeps a clearer service boundary'],
+        learnableSignals: ['clarify service boundary wording'],
+        overfitWarnings: ['do not add sample-specific logistics rules'],
+      },
+    ])
+    expect((completed as any)?.metadata?.compareInsights).toEqual({
+      pairHighlights: [
+        {
+          pairKey: 'target-vs-baseline',
+          pairType: 'targetBaseline',
+          pairLabel: 'Target vs Baseline',
+          pairSignal: 'improved',
+          verdict: 'left-better',
+          confidence: 'high',
+          analysis: 'target clearly improves on baseline',
+        },
+        {
+          pairKey: 'target-vs-reference',
+          pairType: 'targetReference',
+          pairLabel: 'Target vs Reference',
+          pairSignal: 'minor',
+          verdict: 'right-better',
+          confidence: 'medium',
+          analysis: 'reference is still slightly stronger',
+        },
+      ],
+      progressSummary: {
+        pairKey: 'target-vs-baseline',
+        pairType: 'targetBaseline',
+        pairLabel: 'Target vs Baseline',
+        pairSignal: 'improved',
+        verdict: 'left-better',
+        confidence: 'high',
+        analysis: 'target clearly improves on baseline',
+      },
+      referenceGapSummary: {
+        pairKey: 'target-vs-reference',
+        pairType: 'targetReference',
+        pairLabel: 'Target vs Reference',
+        pairSignal: 'minor',
+        verdict: 'right-better',
+        confidence: 'medium',
+        analysis: 'reference is still slightly stronger',
+      },
+      evidenceHighlights: [
+        'target follows the requested structure more closely',
+        'reference keeps a clearer service boundary',
+      ],
+      learnableSignals: [
+        'keep the explicit task decomposition',
+        'clarify service boundary wording',
+      ],
+      overfitWarnings: [
+        'do not add sample-specific logistics rules',
+      ],
+      conflictSignals: [
+        'sampleOverfitRiskVisible',
+      ],
+    })
   })
 })

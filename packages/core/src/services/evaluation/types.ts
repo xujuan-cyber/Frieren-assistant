@@ -188,12 +188,116 @@ export interface EvaluationSnapshot {
  * Compare 评估的附加提示
  */
 export interface CompareAnalysisHints {
+  /** compare 模式 */
+  mode?: 'generic' | 'structured';
+  /** 结构化 compare 中各快照的角色 */
+  snapshotRoles?: Record<string, StructuredCompareRole>;
   /** 是否存在共享测试用例 */
   hasSharedTestCases?: boolean;
   /** 是否存在相同提示词跨快照对比 */
   hasSamePromptSnapshots?: boolean;
   /** 是否属于同提示词同输入跨模型对比 */
   hasCrossModelComparison?: boolean;
+}
+
+/**
+ * Structured Compare 角色
+ */
+export type StructuredCompareRole =
+  | 'target'
+  | 'baseline'
+  | 'reference'
+  | 'referenceBaseline'
+  | 'replica'
+  | 'auxiliary';
+
+/**
+ * Compare 的机器可读停止信号
+ */
+export interface CompareStopSignals {
+  targetVsBaseline?: 'improved' | 'flat' | 'regressed';
+  targetVsReferenceGap?: 'none' | 'minor' | 'major';
+  improvementHeadroom?: 'none' | 'low' | 'medium' | 'high';
+  overfitRisk?: 'low' | 'medium' | 'high';
+  stopRecommendation?: 'continue' | 'stop' | 'review';
+  stopReasons?: string[];
+}
+
+/**
+ * Compare judgement 的 pair 类型
+ */
+export type CompareJudgementPairType =
+  | 'targetBaseline'
+  | 'targetReference'
+  | 'referenceBaseline'
+  | 'targetReplica';
+
+/**
+ * Compare 中需要额外暴露给 UI / rewrite / SPO 的冲突信号
+ * - 不直接依赖 synthesis 文本
+ * - 基于 pairwise judge 的确定性派生结果
+ */
+export type CompareConflictSignal =
+  | 'improvementNotSupportedOnReference'
+  | 'improvementUnstableAcrossReplicas'
+  | 'regressionOutweighsCosmeticGains'
+  | 'sampleOverfitRiskVisible';
+
+/**
+ * Compare judgement
+ * - 结构化 compare 内部多次 pairwise judge 的可复用产物
+ * - 供 UI、SPO、rewrite-from-evaluation 等上层直接消费
+ */
+export interface CompareJudgement {
+  pairKey: string;
+  pairType: CompareJudgementPairType;
+  pairLabel: string;
+  leftSnapshotId: string;
+  leftSnapshotLabel: string;
+  leftRole?: StructuredCompareRole;
+  rightSnapshotId: string;
+  rightSnapshotLabel: string;
+  rightRole?: StructuredCompareRole;
+  verdict: 'left-better' | 'right-better' | 'mixed' | 'similar';
+  winner: 'left' | 'right' | 'none';
+  confidence: 'low' | 'medium' | 'high';
+  pairSignal: string;
+  analysis: string;
+  evidence: string[];
+  learnableSignals: string[];
+  overfitWarnings: string[];
+}
+
+/**
+ * Compare insight 高亮
+ * - 对 pairwise judge 的压缩摘要
+ * - 供 UI 和后续自动改写链路直接消费
+ */
+export interface CompareInsightHighlight {
+  pairKey: string;
+  pairType: CompareJudgementPairType;
+  pairLabel: string;
+  pairSignal: string;
+  verdict: CompareJudgement['verdict'];
+  confidence: CompareJudgement['confidence'];
+  analysis: string;
+}
+
+/**
+ * Compare insight 汇总
+ * - 基于 compareJudgements 的本地确定性聚合结果
+ * - 保持轻量，避免再次扩展 compare 主协议
+ */
+export interface CompareInsights {
+  pairHighlights: CompareInsightHighlight[];
+  progressSummary?: CompareInsightHighlight;
+  referenceGapSummary?: CompareInsightHighlight;
+  promptChangeSummary?: CompareInsightHighlight;
+  stabilitySummary?: CompareInsightHighlight;
+  evidenceHighlights?: string[];
+  learnableSignals?: string[];
+  overfitWarnings?: string[];
+  conflictSignals?: CompareConflictSignal[];
 }
 
 // ==================== 补丁操作类型 ====================
@@ -349,6 +453,11 @@ export interface EvaluationResponse {
     model?: string;
     timestamp?: number;
     duration?: number;
+    compareMode?: 'generic' | 'structured';
+    snapshotRoles?: Record<string, StructuredCompareRole>;
+    compareStopSignals?: CompareStopSignals;
+    compareJudgements?: CompareJudgement[];
+    compareInsights?: CompareInsights;
   };
 }
 
