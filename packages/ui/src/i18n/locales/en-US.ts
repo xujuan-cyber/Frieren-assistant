@@ -944,6 +944,10 @@ export default {
   functionModel: {
     evaluationModel: "Evaluation Model",
     evaluationModelHint: "Used for intelligent evaluation and variable extraction, defaults to global optimization model",
+    imageRecognitionModel: "Image Recognition Model",
+    imageRecognitionModelHint: "Used to extract JSON prompts and variable defaults from images, and must be configured separately",
+    noImageRecognitionModel: "Please configure an image recognition model in Function Models first",
+    unsupportedImageRecognitionModel: "The current image recognition model does not support image extraction: {provider}",
   },
   templateManager: {
     title: "Template Manager",
@@ -1975,6 +1979,12 @@ export default {
       modelPlaceholder: "Select model",
       optimizing: "Optimizing...",
       optimizePrompt: "Optimize Prompt",
+      extractFromImage: "Vision Extract",
+      extracting: "Extracting",
+      extractCompleted: "Image extraction completed",
+      extractCompletedWithVariables:
+        "Image extraction completed and initialized {count} local variables",
+      extractFailed: "Image extraction failed",
     },
 
     // Image generation area

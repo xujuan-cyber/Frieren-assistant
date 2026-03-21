@@ -1,56 +1,101 @@
 <template>
   <div class="function-model-manager">
-    <NCard embedded size="small" :bordered="false" class="function-config-card">
-      <template #header>
-        <NSpace justify="space-between" align="center" :size="8" class="section-header">
-          <NText strong>{{ t('functionModel.evaluationModel') }}</NText>
-          <NTag size="small" type="default" round :bordered="false">
-            {{ t('modelManager.textModels') }}
-          </NTag>
-        </NSpace>
-      </template>
-
-      <NSpace vertical :size="12" class="config-section">
-        <NText depth="3" class="section-hint">
-          {{ t('functionModel.evaluationModelHint') }}
-        </NText>
-
-        <NSpace align="center" :size="8" class="model-select-row">
-          <SelectWithConfig
-            v-model="evaluationModel"
-            :options="modelOptions"
-            :getPrimary="OptionAccessors.getPrimary"
-            :getSecondary="OptionAccessors.getSecondary"
-            :getValue="OptionAccessors.getValue"
-            :placeholder="t('model.select.placeholder')"
-            size="medium"
-            filterable
-            :show-config-action="true"
-            :show-empty-config-c-t-a="true"
-            class="model-select"
-            @focus="refreshModels"
-            @config="handleOpenModelManager"
-            @update:model-value="handleModelChange"
-          />
-          <!-- 显示模型源和模型名称标签 -->
-          <template v-if="selectedModelInfo">
-            <NTag v-if="selectedModelInfo.provider" size="small" type="default" round :bordered="false">
-              {{ selectedModelInfo.provider }}
+    <NSpace vertical :size="12">
+      <NCard embedded size="small" :bordered="false" class="function-config-card">
+        <template #header>
+          <NSpace justify="space-between" align="center" :size="8" class="section-header">
+            <NText strong>{{ t('functionModel.evaluationModel') }}</NText>
+            <NTag size="small" type="default" round :bordered="false">
+              {{ t('modelManager.textModels') }}
             </NTag>
-            <NTag v-if="selectedModelInfo.model" size="small" type="info" round :bordered="false">
-              {{ selectedModelInfo.model }}
-            </NTag>
-          </template>
+          </NSpace>
+        </template>
+
+        <NSpace vertical :size="12" class="config-section">
+          <NText depth="3" class="section-hint">
+            {{ t('functionModel.evaluationModelHint') }}
+          </NText>
+
+          <NSpace align="center" :size="8" class="model-select-row">
+            <SelectWithConfig
+              v-model="evaluationModel"
+              :options="evaluationModelOptions"
+              :getPrimary="OptionAccessors.getPrimary"
+              :getSecondary="OptionAccessors.getSecondary"
+              :getValue="OptionAccessors.getValue"
+              :placeholder="t('model.select.placeholder')"
+              size="medium"
+              filterable
+              :show-config-action="true"
+              :show-empty-config-c-t-a="true"
+              class="model-select"
+              @focus="refreshModels"
+              @config="handleOpenModelManager"
+              @update:model-value="handleEvaluationModelChange"
+            />
+            <template v-if="selectedEvaluationModelInfo">
+              <NTag v-if="selectedEvaluationModelInfo.provider" size="small" type="default" round :bordered="false">
+                {{ selectedEvaluationModelInfo.provider }}
+              </NTag>
+              <NTag v-if="selectedEvaluationModelInfo.model" size="small" type="info" round :bordered="false">
+                {{ selectedEvaluationModelInfo.model }}
+              </NTag>
+            </template>
+          </NSpace>
         </NSpace>
-      </NSpace>
-    </NCard>
+      </NCard>
+
+      <NCard embedded size="small" :bordered="false" class="function-config-card">
+        <template #header>
+          <NSpace justify="space-between" align="center" :size="8" class="section-header">
+            <NText strong>{{ t('functionModel.imageRecognitionModel') }}</NText>
+            <NTag size="small" type="default" round :bordered="false">
+              {{ t('modelManager.textModels') }}
+            </NTag>
+          </NSpace>
+        </template>
+
+        <NSpace vertical :size="12" class="config-section">
+          <NText depth="3" class="section-hint">
+            {{ t('functionModel.imageRecognitionModelHint') }}
+          </NText>
+
+          <NSpace align="center" :size="8" class="model-select-row">
+            <SelectWithConfig
+              v-model="imageRecognitionModel"
+              :options="imageRecognitionModelOptions"
+              :getPrimary="OptionAccessors.getPrimary"
+              :getSecondary="OptionAccessors.getSecondary"
+              :getValue="OptionAccessors.getValue"
+              :placeholder="t('model.select.placeholder')"
+              size="medium"
+              filterable
+              :show-config-action="true"
+              :show-empty-config-c-t-a="true"
+              class="model-select"
+              @focus="refreshModels"
+              @config="handleOpenModelManager"
+              @update:model-value="handleImageRecognitionModelChange"
+            />
+            <template v-if="selectedImageRecognitionModelInfo">
+              <NTag v-if="selectedImageRecognitionModelInfo.provider" size="small" type="default" round :bordered="false">
+                {{ selectedImageRecognitionModelInfo.provider }}
+              </NTag>
+              <NTag v-if="selectedImageRecognitionModelInfo.model" size="small" type="info" round :bordered="false">
+                {{ selectedImageRecognitionModelInfo.model }}
+              </NTag>
+            </template>
+          </NSpace>
+        </NSpace>
+      </NCard>
+    </NSpace>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, type Ref } from 'vue'
+import { computed, inject, onMounted, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NCard, NSpace, NText, NTag } from 'naive-ui'
+import { NCard, NSpace, NTag, NText } from 'naive-ui'
 import SelectWithConfig from './SelectWithConfig.vue'
 import { useFunctionModelManager } from '../composables/model/useFunctionModelManager'
 import { DataTransformer, OptionAccessors } from '../utils/data-transformer'
@@ -77,20 +122,33 @@ const servicesRef: Ref<AppServices | null> = 'value' in services
 
 // 使用功能模型管理器（单例）
 const functionModelManager = useFunctionModelManager(servicesRef)
-const { evaluationModel, setEvaluationModel } = functionModelManager
+const {
+  evaluationModel,
+  imageRecognitionModel,
+  setEvaluationModel,
+  setImageRecognitionModel,
+} = functionModelManager
 
 // 模型选项列表
-const modelOptions = ref<ModelSelectOption[]>([])
+const evaluationModelOptions = ref<ModelSelectOption[]>([])
+const imageRecognitionModelOptions = ref<ModelSelectOption[]>([])
 
-// 获取选中模型的详细信息（用于显示标签）
-const selectedModelInfo = computed(() => {
-  if (!evaluationModel.value) return null
-  const option = modelOptions.value.find(opt => opt.value === evaluationModel.value)
+const findModelInfo = (modelKey: string) => {
+  if (!modelKey) return null
+  const option = evaluationModelOptions.value.find(opt => opt.value === modelKey)
   if (!option?.raw) return null
   return {
     provider: option.raw.providerMeta?.name || null,
     model: option.raw.modelMeta?.id || null,
   }
+}
+
+const selectedEvaluationModelInfo = computed(() => {
+  return findModelInfo(evaluationModel.value)
+})
+
+const selectedImageRecognitionModelInfo = computed(() => {
+  return findModelInfo(imageRecognitionModel.value)
 })
 
 const ensureInitializedIfSupported = async (manager: unknown) => {
@@ -104,7 +162,8 @@ const ensureInitializedIfSupported = async (manager: unknown) => {
 // 刷新模型列表
 const refreshModels = async () => {
   if (!servicesRef.value?.modelManager) {
-    modelOptions.value = []
+    evaluationModelOptions.value = []
+    imageRecognitionModelOptions.value = []
     return
   }
 
@@ -112,46 +171,56 @@ const refreshModels = async () => {
     const manager = servicesRef.value.modelManager
     await ensureInitializedIfSupported(manager)
     const enabledModels = await manager.getEnabledModels()
-    modelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
+
+    evaluationModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
+    imageRecognitionModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
   } catch (error) {
     console.error('[FunctionModelManager] Failed to refresh models:', error)
-    modelOptions.value = []
+    evaluationModelOptions.value = []
+    imageRecognitionModelOptions.value = []
   }
 }
 
-// 处理模型变化
-const handleModelChange = async (
+const normalizeModelValue = (
   newValue: string | number | (string | number)[] | null
 ) => {
-  const nextValue = typeof newValue === 'string'
+  return typeof newValue === 'string'
     ? newValue
     : Array.isArray(newValue)
       ? String(newValue[0] ?? '')
       : newValue === null
         ? ''
         : String(newValue)
+}
 
-  await setEvaluationModel(nextValue)
+const handleEvaluationModelChange = async (
+  newValue: string | number | (string | number)[] | null
+) => {
+  await setEvaluationModel(normalizeModelValue(newValue))
+}
+
+const handleImageRecognitionModelChange = async (
+  newValue: string | number | (string | number)[] | null
+) => {
+  await setImageRecognitionModel(normalizeModelValue(newValue))
 }
 
 // 初始化
 const initialize = async () => {
   await refreshModels()
-  // 确保功能模型管理器已初始化
   await functionModelManager.initialize()
 }
 
 // 打开模型管理器
 const handleOpenModelManager = () => {
-  // 评估模型依赖文本模型配置：优先切到 text 页签
+  // 功能模型相关操作优先留在 function 页签，方便直接完成设置
   if (appOpenModelManager) {
-    appOpenModelManager('text')
+    appOpenModelManager('function')
     return
   }
 
-  // 兜底：如果没有注入 openModelManager，只能尝试切换页签并提示宿主补齐注入
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('model-manager:set-tab', { detail: 'text' }))
+    window.dispatchEvent(new CustomEvent('model-manager:set-tab', { detail: 'function' }))
   }
   console.warn('[FunctionModelManager] openModelManager not provided by host app')
 }
@@ -173,7 +242,7 @@ defineExpose({ refresh })
 }
 
 .function-config-card {
-   border-radius: 16px;
+  border-radius: 16px;
 }
 
 .config-section {

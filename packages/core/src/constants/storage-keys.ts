@@ -52,6 +52,8 @@ export const IMAGE_MODE_KEYS = {
 export const FUNCTION_MODEL_KEYS = {
   // 全局评估模型
   EVALUATION_MODEL: "app:function-model:evaluation-model",
+  // 全局图片识别模型
+  IMAGE_RECOGNITION_MODEL: "app:function-model:image-recognition-model",
 } as const;
 
 /**

@@ -915,6 +915,10 @@ export default {
   functionModel: {
     evaluationModel: "评估模型",
     evaluationModelHint: "用于智能评估和变量提取，默认使用全局优化模型",
+    imageRecognitionModel: "图像识别模型",
+    imageRecognitionModelHint: "用于从图片提取 JSON 提示词和变量初始值，需单独设置",
+    noImageRecognitionModel: "请先在功能模型中设置图像识别模型",
+    unsupportedImageRecognitionModel: "当前图像识别模型暂不支持图片提取：{provider}",
   },
   templateManager: {
     title: "功能提示词管理",
@@ -1905,6 +1909,11 @@ export default {
       modelPlaceholder: "选择模型",
       optimizing: "优化中...",
       optimizePrompt: "优化提示词",
+      extractFromImage: "识图提取",
+      extracting: "提取中",
+      extractCompleted: "图片提取完成",
+      extractCompletedWithVariables: "图片提取完成，已识别 {count} 个本地变量并填入初始值",
+      extractFailed: "图片提取失败",
     },
 
     // 图像生成区域

@@ -19,6 +19,10 @@ export interface UseFunctionModelManagerReturn {
   evaluationModel: Ref<string>
   /** 有效的评估模型（如果未设置则跟随当前全局优化模型） */
   effectiveEvaluationModel: ComputedRef<string>
+  /** 图片识别模型 */
+  imageRecognitionModel: Ref<string>
+  /** 有效的图片识别模型（图片提取功能要求显式设置） */
+  effectiveImageRecognitionModel: ComputedRef<string>
   /** 是否正在加载 */
   isLoading: Ref<boolean>
   /** 是否已初始化 */
@@ -26,8 +30,12 @@ export interface UseFunctionModelManagerReturn {
 
   /** 设置评估模型 */
   setEvaluationModel: (modelId: string) => Promise<void>
+  /** 设置图片识别模型 */
+  setImageRecognitionModel: (modelId: string) => Promise<void>
   /** 获取有效评估模型（兼容旧 API） */
   getEffectiveEvaluationModel: () => ComputedRef<string>
+  /** 获取有效图片识别模型（兼容旧 API） */
+  getEffectiveImageRecognitionModel: () => ComputedRef<string>
 
   /** 初始化 */
   initialize: () => Promise<void>
@@ -71,6 +79,7 @@ export function useFunctionModelManager(
   const isLoading = ref(false)
   const isInitialized = ref(false)
   const evaluationModel = ref('')
+  const imageRecognitionModel = ref('')
   const globalOptimizeModelFallback = ref('')
   let initPromise: Promise<void> | null = null
 
@@ -86,6 +95,10 @@ export function useFunctionModelManager(
       globalOptimizeModelKeyRef?.value ||
       globalOptimizeModelFallback.value
     )
+  })
+
+  const effectiveImageRecognitionModel = computed(() => {
+    return imageRecognitionModel.value
   })
 
   // 初始化
@@ -115,6 +128,12 @@ export function useFunctionModelManager(
         )
         evaluationModel.value = savedEvaluationModel
 
+        const savedImageRecognitionModel = await getPreference(
+          FUNCTION_MODEL_KEYS.IMAGE_RECOGNITION_MODEL,
+          ''
+        )
+        imageRecognitionModel.value = savedImageRecognitionModel
+
         isInitialized.value = true
       } finally {
         isLoading.value = false
@@ -136,9 +155,18 @@ export function useFunctionModelManager(
     await setPreference(FUNCTION_MODEL_KEYS.EVALUATION_MODEL, modelId)
   }
 
+  const setImageRecognitionModel = async (modelId: string): Promise<void> => {
+    imageRecognitionModel.value = modelId
+    await setPreference(FUNCTION_MODEL_KEYS.IMAGE_RECOGNITION_MODEL, modelId)
+  }
+
   // 获取有效评估模型（返回同一个 computed 实例）
   const getEffectiveEvaluationModel = (): ComputedRef<string> => {
     return effectiveEvaluationModel
+  }
+
+  const getEffectiveImageRecognitionModel = (): ComputedRef<string> => {
+    return effectiveImageRecognitionModel
   }
 
   // 监听服务变化，自动初始化
@@ -155,10 +183,14 @@ export function useFunctionModelManager(
   instance = {
     evaluationModel,
     effectiveEvaluationModel,
+    imageRecognitionModel,
+    effectiveImageRecognitionModel,
     isLoading,
     isInitialized,
     setEvaluationModel,
+    setImageRecognitionModel,
     getEffectiveEvaluationModel,
+    getEffectiveImageRecognitionModel,
     initialize,
     refresh,
   }
