@@ -6,6 +6,7 @@ import type {
   TextModel,
   TextModelConfig,
   Message,
+  ImageUnderstandingRequest,
   LLMResponse,
   StreamHandlers,
   ToolDefinition,
@@ -534,54 +535,115 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
 
     try {
       const response: any = await openai.chat.completions.create(completionConfig)
-
-      // 处理原始 SSE 字符串响应（某些 API 返回未解析的 SSE 格式）
-      if (typeof response === 'string') {
-        return this.parseSSEResponse(response, config.modelMeta.id)
-      }
-
-      // 检测是否为流式响应（某些 API 强制返回流式响应）
-      if (this.isStreamResponse(response)) {
-        return await this.consumeStreamResponse(response as AsyncIterable<any>, config.modelMeta.id)
-      }
-
-      // 处理响应中的 reasoning_content 和普通 content
-      if (!response.choices || response.choices.length === 0) {
-        throw new APIError('API returned invalid response: choices is empty or missing')
-      }
-
-      const choice = response.choices[0]
-      if (!choice?.message) {
-        throw new APIError('No valid response received')
-      }
-
-      let content = choice.message.content || ''
-      let reasoning = ''
-
-      // 处理推理内容（如果存在）
-      // SiliconFlow 等提供商在 choice.message 中并列提供 reasoning_content 字段
-      if ((choice.message as any).reasoning_content) {
-        reasoning = (choice.message as any).reasoning_content
-      } else {
-        // 检测并分离content中的think标签
-        const processed = this.processThinkTags(content)
-        content = processed.content
-        reasoning = processed.reasoning || ''
-      }
-
-      const result: LLMResponse = {
-        content: content,
-        reasoning: reasoning || undefined,
-        metadata: {
-          model: config.modelMeta.id,
-          finishReason: choice.finish_reason || undefined
-        }
-      }
-
-      return result
+      return await this.parseCompletionResponse(response, config.modelMeta.id)
     } catch (error) {
       console.error('[OpenAIAdapter] API call failed:', error)
       throw error // 保留原始错误堆栈，不包装
+    }
+  }
+
+  protected async doSendImageUnderstanding(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig
+  ): Promise<LLMResponse> {
+    const openai = this.createOpenAIInstance(config, false)
+    const mergedParams = {
+      ...(config.paramOverrides || {}),
+      ...(request.paramOverrides || {})
+    } as Record<string, unknown>
+
+    const {
+      timeout,
+      model: _paramModel,
+      messages: _paramMessages,
+      stream: _paramStream,
+      responseMimeType: _responseMimeType,
+      ...restParams
+    } = mergedParams as any
+
+    const content = [
+      {
+        type: 'text',
+        text: request.userPrompt
+      },
+      ...request.images.map((image) => ({
+        type: 'image_url',
+        image_url: {
+          url: `data:${image.mimeType || 'image/png'};base64,${image.b64}`
+        }
+      }))
+    ]
+
+    const messages: any[] = []
+    if (request.systemPrompt?.trim()) {
+      messages.push({
+        role: 'system',
+        content: request.systemPrompt
+      })
+    }
+
+    messages.push({
+      role: 'user',
+      content
+    })
+
+    const completionConfig: any = {
+      model: config.modelMeta.id,
+      messages,
+      ...restParams
+    }
+
+    try {
+      const response: any = await openai.chat.completions.create(completionConfig)
+      return await this.parseCompletionResponse(response, config.modelMeta.id)
+    } catch (error) {
+      console.error('[OpenAIAdapter] Image understanding request failed:', error)
+      throw error
+    }
+  }
+
+  protected async parseCompletionResponse(response: any, modelId: string): Promise<LLMResponse> {
+    // 处理原始 SSE 字符串响应（某些 API 返回未解析的 SSE 格式）
+    if (typeof response === 'string') {
+      return this.parseSSEResponse(response, modelId)
+    }
+
+    // 检测是否为流式响应（某些 API 强制返回流式响应）
+    if (this.isStreamResponse(response)) {
+      return await this.consumeStreamResponse(response as AsyncIterable<any>, modelId)
+    }
+
+    // 处理响应中的 reasoning_content 和普通 content
+    if (!response.choices || response.choices.length === 0) {
+      throw new APIError('API returned invalid response: choices is empty or missing')
+    }
+
+    const choice = response.choices[0]
+    if (!choice?.message) {
+      throw new APIError('No valid response received')
+    }
+
+    let content = choice.message.content || ''
+    let reasoning = ''
+
+    // 处理推理内容（如果存在）
+    // SiliconFlow 等提供商在 choice.message 中并列提供 reasoning_content 字段
+    if ((choice.message as any).reasoning_content) {
+      reasoning = (choice.message as any).reasoning_content
+    } else {
+      // 检测并分离content中的think标签
+      const processed = this.processThinkTags(content)
+      content = processed.content
+      reasoning = processed.reasoning || ''
+    }
+
+    return {
+      content: content,
+      reasoning: reasoning || undefined,
+      metadata: {
+        model: modelId,
+        finishReason: choice.finish_reason || undefined
+      }
     }
   }
 

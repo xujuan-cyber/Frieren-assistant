@@ -4,6 +4,7 @@ import type {
   TextModel,
   TextModelConfig,
   Message,
+  ImageUnderstandingRequest,
   LLMResponse,
   StreamHandlers,
   ToolDefinition,
@@ -72,6 +73,19 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
    */
   protected abstract getDefaultParameterValues(modelId: string): Record<string, unknown>
 
+  /**
+   * Send image-understanding request - concrete implementation.
+   * Adapters can override this to support multimodal text understanding.
+   */
+  protected async doSendImageUnderstanding(
+    _request: ImageUnderstandingRequest,
+    _config: TextModelConfig
+  ): Promise<LLMResponse> {
+    throw new RequestConfigError(
+      `${this.getProvider().name} does not support image understanding requests`
+    )
+  }
+
   // ===== 模板方法（公共接口） =====
 
   /**
@@ -123,6 +137,14 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
     await this.doSendMessageStream(messages, config, callbacks)
   }
 
+  public async sendImageUnderstanding(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig
+  ): Promise<LLMResponse> {
+    this.validateImageUnderstandingRequest(request)
+    return await this.doSendImageUnderstanding(request, config)
+  }
+
   // ===== 公共验证方法 =====
 
   /**
@@ -152,6 +174,30 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
         throw new RequestConfigError('Message content must be a string')
       }
     }
+  }
+
+  protected validateImageUnderstandingRequest(request: ImageUnderstandingRequest): void {
+    if (!request || typeof request !== 'object') {
+      throw new RequestConfigError('Image understanding request cannot be empty')
+    }
+
+    if (typeof request.userPrompt !== 'string' || !request.userPrompt.trim()) {
+      throw new RequestConfigError('Image understanding user prompt cannot be empty')
+    }
+
+    if (!Array.isArray(request.images) || request.images.length === 0) {
+      throw new RequestConfigError('Image understanding request requires at least one image')
+    }
+
+    request.images.forEach((image, index) => {
+      if (!image || typeof image !== 'object') {
+        throw new RequestConfigError(`Image at index ${index} is invalid`)
+      }
+
+      if (typeof image.b64 !== 'string' || !image.b64.trim()) {
+        throw new RequestConfigError(`Image at index ${index} is missing base64 data`)
+      }
+    })
   }
 
   // ===== 工具方法 =====

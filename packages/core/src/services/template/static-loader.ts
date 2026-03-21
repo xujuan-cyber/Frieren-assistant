@@ -20,7 +20,8 @@ export type TemplateType =
   | 'conversation-message-optimize'
   | 'context-user-optimize'
   | 'context-iterate'
-  | 'evaluation';
+  | 'evaluation'
+  | 'image-prompt-extraction';
 export type Language = 'zh' | 'en';
 
 export interface StaticTemplateCollection {
@@ -79,7 +80,8 @@ export class StaticLoader {
         'conversation-message-optimize': { zh: {}, en: {} },
         'context-user-optimize': { zh: {}, en: {} },
         'context-iterate': { zh: {}, en: {} },
-        'evaluation': { zh: {}, en: {} }
+        'evaluation': { zh: {}, en: {} },
+        'image-prompt-extraction': { zh: {}, en: {} }
       };
 
       // 处理每个模板
@@ -122,6 +124,9 @@ export class StaticLoader {
           case 'evaluation':
             normalizedType = 'evaluation';
             break;
+          case 'image-prompt-extraction':
+            normalizedType = 'image-prompt-extraction';
+            break;
           case 'iterate':
           case 'optimize':
           default:
@@ -155,7 +160,8 @@ export class StaticLoader {
         'conversation-message-optimize': Object.keys(byType['conversation-message-optimize'].zh).length + Object.keys(byType['conversation-message-optimize'].en).length,
         'context-user-optimize': Object.keys(byType['context-user-optimize'].zh).length + Object.keys(byType['context-user-optimize'].en).length,
         'context-iterate': Object.keys(byType['context-iterate'].zh).length + Object.keys(byType['context-iterate'].en).length,
-        evaluation: Object.keys(byType.evaluation.zh).length + Object.keys(byType.evaluation.en).length
+        evaluation: Object.keys(byType.evaluation.zh).length + Object.keys(byType.evaluation.en).length,
+        'image-prompt-extraction': Object.keys(byType['image-prompt-extraction'].zh).length + Object.keys(byType['image-prompt-extraction'].en).length
       });
 
       StaticLoader.templateCache = result;

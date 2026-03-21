@@ -24,7 +24,8 @@ export interface TemplateMetadata {
     | 'contextSystemOptimize'
     | 'evaluation'
     | 'variable-extraction'
-    | 'variable-value-generation'; // 模板类型标识（包含向后兼容的旧值）
+    | 'variable-value-generation'
+    | 'image-prompt-extraction'; // 模板类型标识（包含向后兼容的旧值）
   language?: 'zh' | 'en';   // 模板语言（可选，主要用于内置模板语言切换）
   [key: string]: any;       // 允许任意额外字段
 }
@@ -152,6 +153,7 @@ export const templateSchema = z.object({
       'evaluation',
       'variable-extraction',
       'variable-value-generation',
+      'image-prompt-extraction',
     ]),  // 🔧 向后兼容：保留旧枚举值
     language: z.enum(['zh', 'en']).optional()
   }).passthrough(), // 允许额外字段通过验证

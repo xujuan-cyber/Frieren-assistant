@@ -216,6 +216,10 @@ export * from './services/evaluation/types'
 export * from './services/evaluation/errors'
 export { EvaluationService, createEvaluationService } from './services/evaluation/service'
 
+// 导出图像理解服务相关
+export * from './services/image-understanding/types'
+export { ImageUnderstandingService, createImageUnderstandingService } from './services/image-understanding/service'
+
 // 🆕 导出变量提取服务相关
 export * from './services/variable-extraction/types'
 export * from './services/variable-extraction/errors'

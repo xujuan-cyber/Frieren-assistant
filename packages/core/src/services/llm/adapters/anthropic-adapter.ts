@@ -6,6 +6,7 @@ import type {
   TextModel,
   TextModelConfig,
   Message,
+  ImageUnderstandingRequest,
   LLMResponse,
   StreamHandlers,
   ParameterDefinition,
@@ -286,6 +287,90 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
       const response = await client.messages.create(requestParams)
 
       // 提取 thinking 内容
+      const reasoning = this.extractThinking(response)
+
+      return {
+        content: this.extractContent(response),
+        reasoning,
+        metadata: {
+          model: response.model,
+          finishReason: response.stop_reason || undefined,
+          tokens: response.usage ? (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0) : undefined
+        }
+      }
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  protected async doSendImageUnderstanding(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig
+  ): Promise<LLMResponse> {
+    const client = this.createClient(config)
+
+    try {
+      const mergedParams = {
+        ...(config.paramOverrides || {}),
+        ...(request.paramOverrides || {})
+      } as Record<string, unknown>
+
+      const {
+        max_tokens,
+        temperature,
+        top_p,
+        top_k,
+        thinking_budget_tokens,
+        responseMimeType: _responseMimeType,
+        ...otherParams
+      } = mergedParams as any
+
+      const requestParams: any = {
+        model: config.modelMeta.id,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: request.userPrompt
+              },
+              ...request.images.map((image) => ({
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: image.mimeType || 'image/png',
+                  data: image.b64
+                }
+              }))
+            ]
+          }
+        ],
+        max_tokens: max_tokens ?? DEFAULT_MAX_TOKENS
+      }
+
+      if (temperature !== undefined) {
+        requestParams.temperature = temperature
+      }
+      if (top_p !== undefined) {
+        requestParams.top_p = top_p
+      }
+      if (top_k !== undefined) {
+        requestParams.top_k = top_k
+      }
+      if (request.systemPrompt?.trim()) {
+        requestParams.system = request.systemPrompt
+      }
+      if (thinking_budget_tokens !== undefined && thinking_budget_tokens >= 1024) {
+        requestParams.thinking = {
+          type: 'enabled',
+          budget_tokens: thinking_budget_tokens
+        }
+      }
+
+      Object.assign(requestParams, otherParams)
+
+      const response = await client.messages.create(requestParams)
       const reasoning = this.extractThinking(response)
 
       return {

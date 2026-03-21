@@ -114,6 +114,10 @@ import { variableExtractionTemplateEn } from './variable-extraction';
 import { variableValueGenerationTemplate } from './variable-value-generation';
 import { variableValueGenerationTemplateEn } from './variable-value-generation';
 
+// 图片 JSON 提取模板
+import { imagePromptExtractionTemplate } from './image-prompt-extraction';
+import { imagePromptExtractionTemplateEn } from './image-prompt-extraction';
+
 // 简单的模板集合 - 模板自身已包含完整信息（id、name、language、type等）
 export const ALL_TEMPLATES = {
   general_optimize,
@@ -214,4 +218,7 @@ export const ALL_TEMPLATES = {
   // 变量值生成模板
   variableValueGenerationTemplate,
   variableValueGenerationTemplateEn,
+  // 图片 JSON 提取模板
+  imagePromptExtractionTemplate,
+  imagePromptExtractionTemplateEn,
 };

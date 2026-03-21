@@ -5,6 +5,7 @@ import type {
   TextModel,
   TextModelConfig,
   Message,
+  ImageUnderstandingRequest,
   LLMResponse,
   StreamHandlers,
   ParameterDefinition,
@@ -516,57 +517,103 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
         contents,
         config: generationConfig
       })
-
-      // 提取文本内容和思考内容
-      let textContent = ''
-      let reasoning: string | undefined
-
-      // 优先使用新版 SDK 推荐的 response.text 属性
-      if ((response as any).text) {
-        textContent = (response as any).text
-      } else if (response.candidates?.[0]?.content?.parts) {
-        // 回退到 parts 提取（用于旧版响应格式或特殊情况）
-        const contentParts: string[] = []
-        const reasoningParts: string[] = []
-
-        for (const part of response.candidates[0].content.parts) {
-          // 提取文本内容
-          if ((part as any).text) {
-            const text = (part as any).text
-            // 如果这部分是思考过程，加到 reasoning，否则加到 content
-            if ((part as any).thought) {
-              reasoningParts.push(text)
-            } else {
-              contentParts.push(text)
-            }
-          }
-        }
-
-        textContent = contentParts.join('')
-        if (reasoningParts.length > 0) {
-          reasoning = reasoningParts.join('')
-        }
-      } else if (response.candidates?.[0]?.content) {
-        // 最后尝试直接访问 content 字段
-        const content = response.candidates[0].content
-        if (typeof content === 'string') {
-          textContent = content
-        } else if ((content as any).text) {
-          textContent = (content as any).text
-        }
-      }
-
-      return {
-        content: textContent,
-        reasoning,
-        metadata: {
-          model: config.modelMeta.id,
-          finishReason: response.candidates?.[0]?.finishReason
-        }
-      }
+      return this.extractResponsePayload(response, config.modelMeta.id)
     } catch (error) {
       console.error('[GeminiAdapter] API call failed:', error)
       throw error // 保留原始错误堆栈
+    }
+  }
+
+  protected async doSendImageUnderstanding(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig
+  ): Promise<LLMResponse> {
+    try {
+      const client = this.createClient(config)
+      const mergedParams = {
+        ...(config.paramOverrides || {}),
+        ...(request.paramOverrides || {})
+      } as Record<string, unknown>
+
+      const generationConfig = this.buildGenerationConfig(
+        mergedParams,
+        request.systemPrompt
+      )
+
+      if (request.responseMimeType) {
+        ;(generationConfig as any).responseMimeType = request.responseMimeType
+      }
+
+      const contents: Content[] = [
+        {
+          role: 'user',
+          parts: [
+            { text: request.userPrompt },
+            ...request.images.map((image) => ({
+              inlineData: {
+                mimeType: image.mimeType || 'image/png',
+                data: image.b64
+              }
+            }))
+          ]
+        }
+      ]
+
+      const response = await client.models.generateContent({
+        model: config.modelMeta.id,
+        contents,
+        config: generationConfig
+      })
+
+      return this.extractResponsePayload(response, config.modelMeta.id)
+    } catch (error) {
+      console.error('[GeminiAdapter] Image understanding request failed:', error)
+      throw error
+    }
+  }
+
+  private extractResponsePayload(response: any, modelId: string): LLMResponse {
+    let textContent = ''
+    let reasoning: string | undefined
+
+    // 优先使用新版 SDK 推荐的 response.text 属性
+    if ((response as any).text) {
+      textContent = (response as any).text
+    } else if (response.candidates?.[0]?.content?.parts) {
+      const contentParts: string[] = []
+      const reasoningParts: string[] = []
+
+      for (const part of response.candidates[0].content.parts) {
+        if ((part as any).text) {
+          const text = (part as any).text
+          if ((part as any).thought) {
+            reasoningParts.push(text)
+          } else {
+            contentParts.push(text)
+          }
+        }
+      }
+
+      textContent = contentParts.join('')
+      if (reasoningParts.length > 0) {
+        reasoning = reasoningParts.join('')
+      }
+    } else if (response.candidates?.[0]?.content) {
+      const content = response.candidates[0].content
+      if (typeof content === 'string') {
+        textContent = content
+      } else if ((content as any).text) {
+        textContent = (content as any).text
+      }
+    }
+
+    return {
+      content: textContent,
+      reasoning,
+      metadata: {
+        model: modelId,
+        finishReason: response.candidates?.[0]?.finishReason
+      }
     }
   }
 
