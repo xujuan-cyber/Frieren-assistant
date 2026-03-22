@@ -9,9 +9,9 @@ import type { IModelManager } from '../model/types';
 import type { ITemplateManager, Template } from '../template/types';
 import { TemplateProcessor, type TemplateContext } from '../template/processor';
 import {
-  compareJsonContractEn,
-  compareJsonContractZh,
-} from '../template/default-templates/evaluation/builders';
+  buildStructuredComparePairJudgeMessages,
+  buildStructuredCompareSynthesisMessages,
+} from './structured-compare-prompts';
 import {
   type IEvaluationService,
   type EvaluationRequest,
@@ -42,10 +42,6 @@ import {
   EvaluationParseError,
 } from './errors';
 import { jsonrepair } from 'jsonrepair';
-
-const jsonFence = (content: string) => `\`\`\`json
-${content}
-\`\`\``;
 
 type ComparePromptLanguage = 'zh' | 'en';
 
@@ -973,8 +969,9 @@ export class EvaluationService implements IEvaluationService {
 
     const signalSnapshot = this.summarizeStructuredCompareJudgeSignals(judgeResults);
     const hasOverfitWarnings = judgeResults.some((item) => item.overfitWarnings.length > 0);
-    const hasLowOverfitEvidence =
-      signalSnapshot.promptValidity === 'supported' ||
+    const hasExplicitLowOverfitEvidence =
+      !hasOverfitWarnings &&
+      signalSnapshot.promptValidity === 'supported' &&
       signalSnapshot.stability === 'stable';
 
     const overfitRisk: CompareStopSignals['overfitRisk'] = (() => {
@@ -991,7 +988,7 @@ export class EvaluationService implements IEvaluationService {
       ) {
         return 'medium';
       }
-      if (hasLowOverfitEvidence) {
+      if (hasExplicitLowOverfitEvidence) {
         return 'low';
       }
       return undefined;
@@ -1932,119 +1929,37 @@ export class EvaluationService implements IEvaluationService {
       }, new Map<string, NormalizedEvaluationTestCase>()).values()
     );
     const focus = request.focus?.content?.trim() || '';
-    const pairJudgeJsonContract = jsonFence(`{
-  "pairKey": "${planItem.key}",
-  "pairType": "${planItem.pairType}",
-  "verdict": "left-better | right-better | mixed | similar",
-  "winner": "left | right | none",
-  "confidence": "low | medium | high",
-  "pairSignal": "${planItem.allowedSignals.join(' | ')}",
-  "analysis": "<one short paragraph>",
-  "evidence": ["<evidence-grounded difference>"],
-  "learnableSignals": ["<reusable structural signal>"],
-  "overfitWarnings": ["<sample-specific or overfit risk>"]
-}`);
+    void this.buildStructuredCompareDebugArtifacts({
+      roleBindings: normalizedCompare.compareRoleBindings,
+      testCases: relevantTestCases,
+      snapshots: [planItem.left, planItem.right],
+      language,
+    });
 
-    const systemContent =
-      language === 'en'
-        ? `# Role: Structured_Compare_Pair_Judge
-
-## Goal
-- Judge exactly one structured compare pair and compress the evidence into a reusable intermediate result for a later synthesis step.
-
-## Rules
-1. Only use the test inputs and the two snapshots in this pair.
-2. verdict must be one of: left-better, right-better, mixed, similar.
-3. winner must be one of: left, right, none.
-4. confidence must be one of: low, medium, high.
-5. pairSignal must use only the allowed values for this pair. If uncertain, use "unclear".
-6. learnableSignals must stay reusable and structural. Do not write sample-specific content hacks.
-7. overfitWarnings must explicitly call out any sign that the stronger side only fits this specific input better.
-8. Return valid JSON only.
-
-## Pair-Specific Guidance
-${this.renderStructuredComparePairGuidance(planItem, language)}
-
-## Output Contract
-${pairJudgeJsonContract}
-
-## Initialization
-You are the pair judge for structured compare. Return valid JSON only.`
-        : `# Role: 结构化对比成对判断专家
-
-## Goal
-- 只判断一个 structured compare pair，并把证据压缩成供后续综合阶段使用的中间结果。
-
-## Rules
-1. 只能使用当前 pair 的测试输入和这两个执行快照。
-2. verdict 只允许：left-better、right-better、mixed、similar。
-3. winner 只允许：left、right、none。
-4. confidence 只允许：low、medium、high。
-5. pairSignal 只能使用本 pair 允许的枚举；如果不确定，写 unclear。
-6. learnableSignals 只能保留可复用、结构性的信号，不得写只对当前样例有效的内容补丁。
-7. overfitWarnings 必须显式指出任何“只是更贴合当前输入”的风险。
-8. 只返回合法 JSON。
-
-## 当前 Pair 专项判断
-${this.renderStructuredComparePairGuidance(planItem, language)}
-
-## Output Contract
-${pairJudgeJsonContract}
-
-## Initialization
-你是结构化对比的成对判断专家，只返回合法 JSON。`;
-
-    const userContent =
-      language === 'en'
-        ? `${this.renderStructuredCompareRoleBindings(
-            normalizedCompare.compareRoleBindings,
-            language
-          )}## Pair
-- Pair Key: ${planItem.key}
-- Pair Label: ${planItem.label}
-- Purpose: ${planItem.purpose}
-- Signal Name: ${planItem.signalName}
-- Allowed Signal Values: ${planItem.allowedSignals.join(' | ')}
-
-${this.renderStructuredCompareTestCases(relevantTestCases, language)}## Left Snapshot
-${this.renderStructuredCompareSnapshot(planItem.left, language)}
-
-## Right Snapshot
-${this.renderStructuredCompareSnapshot(planItem.right, language)}
-
-${focus ? `## Focus Brief
-${focus}
-
-` : ''}---
-
-Judge this pair only and return strict JSON.`
-        : `${this.renderStructuredCompareRoleBindings(
-            normalizedCompare.compareRoleBindings,
-            language
-          )}## 当前 Pair
-- Pair Key：${planItem.key}
-- Pair Label：${planItem.label}
-- Purpose：${planItem.purpose}
-- Signal Name：${planItem.signalName}
-- Allowed Signal Values：${planItem.allowedSignals.join(' | ')}
-
-${this.renderStructuredCompareTestCases(relevantTestCases, language)}## Left Snapshot
-${this.renderStructuredCompareSnapshot(planItem.left, language)}
-
-## Right Snapshot
-${this.renderStructuredCompareSnapshot(planItem.right, language)}
-
-${focus ? `## Focus Brief
-${focus}
-
-` : ''}---
-
-请只判断这一个 pair，并返回严格 JSON。`;
-
-    return [
-      { role: 'system', content: systemContent },
-      { role: 'user', content: userContent },
-    ];
+    return buildStructuredComparePairJudgeMessages({
+      language,
+      pairGuidance: this.renderStructuredComparePairGuidance(planItem, language),
+      payload: {
+        scenario: {
+          language,
+          pairKey: planItem.key,
+          pairType: planItem.pairType,
+          pairLabel: planItem.label,
+          purpose: planItem.purpose,
+          signalName: planItem.signalName,
+          allowedSignalValues: planItem.allowedSignals,
+          ...(focus ? { focusBrief: focus } : {}),
+        },
+        roleBindings: this.toStructuredCompareRoleBindingPayloads(
+          normalizedCompare.compareRoleBindings
+        ),
+        testCases: relevantTestCases.map((testCase) =>
+          this.toStructuredCompareTestCasePayload(testCase)
+        ),
+        leftSnapshot: this.toStructuredCompareSnapshotPayload(planItem.left),
+        rightSnapshot: this.toStructuredCompareSnapshotPayload(planItem.right),
+      },
+    });
   }
 
   private renderStructuredComparePairGuidance(
@@ -2057,13 +1972,15 @@ ${focus}
           return [
             '- This pair decides whether the current target is actually worth keeping instead of the previous version.',
             '- Do not reward cosmetic rewrites, longer wording, or more confident tone if task completion, boundary control, or required structure got weaker.',
-            '- If the stronger side wins only by fitting this sample more tightly, downgrade the verdict or surface that risk in overfitWarnings.',
+            '- If the target is genuinely more helpful on this sample but the gain mainly comes from sample-tied wording, keywords, or one-off rules, prefer pairSignal=improved or flat first, then expose the fragility in overfitWarnings instead of defaulting to unclear.',
+            '- Only use unclear when you truly cannot determine the direction after weighing both sides, not merely because overfit risk exists.',
           ].join('\n');
         case 'targetReference':
           return [
             '- This pair is for learnable gap analysis, not raw model worship.',
             '- Separate transferable prompt-side structure from differences that mainly look like model ceiling or raw reasoning ability.',
             '- Only use "major" when the reference shows a clear structural advantage that the target could realistically learn from.',
+            '- If your evidence says the reference missed a required action or violated the prompt-side rule while the target followed it, do not still conclude "right-better". Downgrade or flip the verdict so it matches the evidence.',
           ].join('\n');
         case 'referenceBaseline':
           return [
@@ -2075,6 +1992,7 @@ ${focus}
           return [
             '- This pair checks stability across repeated executions with the same target prompt.',
             '- Treat requirement-preserving variation as acceptable, but mark "unstable" when key boundaries, task structure, or output intent drift across runs.',
+            '- If one run obeys an explicit output-only contract and another adds prose, markdown, code fences, renamed fields, extra keys, or wrapper text, that is instability rather than harmless variation.',
             '- Do not confuse one lucky output with reliable stability.',
           ].join('\n');
         default:
@@ -2087,13 +2005,15 @@ ${focus}
         return [
           '- 这一组决定当前 target 是否真的值得替换上一版本，而不是只看起来更“像优化版”。',
           '- 如果 left 只是写得更长、语气更强或表面更完整，但任务完成度、边界控制或关键结构更差，不能判成 left-better。',
-          '- 如果更强一侧只是更贴合当前样例，而不是结构上更稳，应降级 verdict，或在 overfitWarnings 中明确指出。',
+          '- 如果 target 在当前样例下确实更有帮助，但收益主要来自样例关键词、一次性规则或特定触发条件，优先先判断 pairSignal=improved 或 flat，再把脆弱性写进 overfitWarnings，不要直接因为有过拟合风险就退成 unclear。',
+          '- 只有在你综合两侧后仍无法判断方向时，才允许写 unclear；“存在过拟合风险”本身不等于“没有方向”。',
         ].join('\n');
       case 'targetReference':
         return [
           '- 这一组是为了找“可学习差距”，不是为了盲目崇拜更强模型。',
           '- 要区分“可迁移的提示词结构优势”和“纯模型能力上限”造成的差异。',
           '- 只有当 reference 展示出 target 可以现实学习的清晰结构优势时，才应给出 major。',
+          '- 如果 evidence 已经表明 reference 漏掉了必须动作、没遵守 prompt 规则，而 target 做到了，就不能继续写成 right-better；结论必须和证据一致。',
         ].join('\n');
       case 'referenceBaseline':
         return [
@@ -2105,6 +2025,7 @@ ${focus}
         return [
           '- 这一组用于判断同一个 target prompt 在重复执行下是否稳定。',
           '- 如果只是措辞波动但仍满足同样边界与任务要求，可视为稳定；如果关键边界、结构或输出意图飘移，应判为 unstable。',
+          '- 如果一次执行严格满足 output-only 约束，而另一次多出解释、Markdown、code fence、字段改名、额外键或包裹文本，这属于不稳定，不是无害波动。',
           '- 不要把一次走运的输出误判成稳定收益。',
         ].join('\n');
       default:
@@ -2119,85 +2040,220 @@ ${focus}
     language: ComparePromptLanguage,
     subject: ComparePromptSubjectConfig
   ): Message[] {
-    const compareJsonContract =
-      language === 'en' ? compareJsonContractEn : compareJsonContractZh;
-    const systemContent =
-      language === 'en'
-        ? `# Role: ${subject.roleName}
-
-## Goal
-- Synthesize multiple pairwise judge results into one final structured compare evaluation for the editable ${subject.subjectLabel}.
-
-## Rules
-1. Target is the only optimization focus.
-2. Use only the provided pairwise judge results and explicit snapshot-role bindings as evidence. Do not invent raw evidence.
-3. summary must answer, in order when evidence exists: whether target improved over baseline, whether target still trails the reference, whether the prompt change also works on the reference side, and whether replicas reveal instability.
-4. improvements must keep only reusable structural guidance. Drop or down-rank sample-specific advice.
-5. If pairwise evidence conflicts or is weak, prefer conservative conclusions and set stopRecommendation to "review".
-6. compareStopSignals must be conservative and evidence-grounded.
-7. Return valid JSON only.
-
-## Output Contract
-${compareJsonContract}
-
-## Initialization
-You are the structured compare synthesizer. Return valid JSON only.`
-        : `# Role: ${subject.roleName}
-
-## Goal
-- 基于多条成对判断结果，为可编辑${subject.subjectLabel}输出最终的 structured compare 评估结果。
-
-## Rules
-1. Target 是唯一优化焦点。
-2. 只能使用提供的 pairwise judge 结果和明确的快照角色绑定，不能重新杜撰原始证据。
-3. summary 在有证据时必须依次回答：target 相比 baseline 是否进步；target 与 reference 是否仍有差距；prompt 改动在 reference 侧是否也成立；如果存在 replica，稳定性如何。
-4. improvements 只保留可复用、结构性的改进方向；明显只适配当前样例的建议要剔除或降权。
-5. 如果多条 pairwise 结果互相冲突或证据偏弱，应采取保守结论，并把 stopRecommendation 设为 review。
-6. compareStopSignals 必须保守且有证据支撑。
-7. 只返回合法 JSON。
-
-## Output Contract
-${compareJsonContract}
-
-## Initialization
-你是结构化对比综合专家，只返回合法 JSON。`;
-
     const focus = request.focus?.content?.trim() || '';
-    const userContent =
-      language === 'en'
-        ? `${this.renderStructuredCompareRoleBindings(
-            normalizedCompare.compareRoleBindings,
-            language
-          )}## Compare Scenario
-- Shared Compare Inputs: ${normalizedCompare.sharedCompareInputs ? 'yes' : 'no'}
-- Same Prompt Across Snapshots: ${normalizedCompare.samePromptAcrossSnapshots ? 'yes' : 'no'}
-- Cross-Model Comparison: ${normalizedCompare.crossModelComparison ? 'yes' : 'no'}
+    const signalSnapshot = this.summarizeStructuredCompareJudgeSignals(judgeResults);
+    const derivedStopSignals = this.deriveCompareStopSignalsFromJudgements(judgeResults);
+    const learnableSignals = this.collectRankedCompareStrings(
+      judgeResults.flatMap((item) => item.learnableSignals),
+      4
+    );
+    const overfitWarnings = this.collectRankedCompareStrings(
+      judgeResults.flatMap((item) => item.overfitWarnings),
+      4
+    );
+    const conflictSignals = this.buildCompareConflictSignals(judgeResults).map((signal) => ({
+      key: signal,
+      description: this.renderCompareConflictSignal(signal, language),
+    }));
+    void this.buildStructuredCompareDebugArtifacts({
+      roleBindings: normalizedCompare.compareRoleBindings,
+      testCases: normalizedCompare.renderedTestCases,
+      snapshots: normalizedCompare.normalizedSnapshots,
+      judgeResults,
+      language,
+    });
 
-${this.renderStructuredCompareSynthesisHints(judgeResults, language)}${this.renderStructuredCompareJudgeResults(judgeResults, language)}${focus ? `## Focus Brief
-${focus}
+    return buildStructuredCompareSynthesisMessages({
+      language,
+      payload: {
+        scenario: {
+          language,
+          roleName: subject.roleName,
+          subjectLabel: subject.subjectLabel,
+          sharedCompareInputs: normalizedCompare.sharedCompareInputs,
+          samePromptAcrossSnapshots: normalizedCompare.samePromptAcrossSnapshots,
+          crossModelComparison: normalizedCompare.crossModelComparison,
+          ...(focus ? { focusBrief: focus } : {}),
+        },
+        roleBindings: this.toStructuredCompareRoleBindingPayloads(
+          normalizedCompare.compareRoleBindings
+        ),
+        deterministicHints: {
+          priorityOrder: [
+            'targetBaseline',
+            'targetReference',
+            'referenceBaseline',
+            'targetReplica',
+          ],
+          signalSnapshot: {
+            ...(signalSnapshot.progress ? { progress: signalSnapshot.progress } : {}),
+            ...(signalSnapshot.gap ? { gap: signalSnapshot.gap } : {}),
+            ...(signalSnapshot.promptValidity ? { promptValidity: signalSnapshot.promptValidity } : {}),
+            ...(signalSnapshot.stability ? { stability: signalSnapshot.stability } : {}),
+          },
+          ...(derivedStopSignals ? { derivedStopSignals } : {}),
+          learnableSignals,
+          overfitWarnings,
+          conflictSignals,
+        },
+        judgeResults: judgeResults.map((item) => ({
+          pairKey: item.pairKey,
+          pairType: item.pairType,
+          pairLabel: item.pairLabel,
+          leftSnapshotId: item.leftSnapshotId,
+          leftSnapshotLabel: item.leftSnapshotLabel,
+          ...(item.leftRole ? { leftRole: item.leftRole } : {}),
+          rightSnapshotId: item.rightSnapshotId,
+          rightSnapshotLabel: item.rightSnapshotLabel,
+          ...(item.rightRole ? { rightRole: item.rightRole } : {}),
+          verdict: item.verdict,
+          winner: item.winner,
+          confidence: item.confidence,
+          pairSignal: item.pairSignal,
+          analysis: item.analysis,
+          evidence: item.evidence,
+          learnableSignals: item.learnableSignals,
+          overfitWarnings: item.overfitWarnings,
+        })),
+      },
+    });
+  }
 
-` : ''}---
+  private buildStructuredCompareDebugArtifacts(params: {
+    roleBindings: StructuredCompareRoleBinding[];
+    testCases: NormalizedEvaluationTestCase[];
+    snapshots: NormalizedEvaluationSnapshot[];
+    judgeResults?: StructuredCompareJudgeResult[];
+    language: ComparePromptLanguage;
+  }): {
+    roleBindingsMarkdown: string;
+    testCasesMarkdown: string;
+    snapshotsMarkdown: string[];
+    judgeResultsMarkdown?: string;
+    synthesisHintsMarkdown?: string;
+  } {
+    return {
+      roleBindingsMarkdown: this.renderStructuredCompareRoleBindings(
+        params.roleBindings,
+        params.language
+      ),
+      testCasesMarkdown: this.renderStructuredCompareTestCases(
+        params.testCases,
+        params.language
+      ),
+      snapshotsMarkdown: params.snapshots.map((snapshot) =>
+        this.renderStructuredCompareSnapshot(snapshot, params.language)
+      ),
+      ...(params.judgeResults
+        ? {
+            judgeResultsMarkdown: this.renderStructuredCompareJudgeResults(
+              params.judgeResults,
+              params.language
+            ),
+            synthesisHintsMarkdown: this.renderStructuredCompareSynthesisHints(
+              params.judgeResults,
+              params.language
+            ),
+          }
+        : {}),
+    };
+  }
 
-Synthesize the final structured compare evaluation JSON. Do not re-expand the full raw snapshots.`
-        : `${this.renderStructuredCompareRoleBindings(
-            normalizedCompare.compareRoleBindings,
-            language
-          )}## 对比场景
-- Shared Compare Inputs：${normalizedCompare.sharedCompareInputs ? 'yes' : 'no'}
-- Same Prompt Across Snapshots：${normalizedCompare.samePromptAcrossSnapshots ? 'yes' : 'no'}
-- Cross-Model Comparison：${normalizedCompare.crossModelComparison ? 'yes' : 'no'}
+  private toStructuredCompareRoleBindingPayloads(
+    roleBindings: StructuredCompareRoleBinding[]
+  ): Array<{
+    snapshotId: string;
+    snapshotLabel: string;
+    role: string;
+    roleLabel: string;
+  }> {
+    return roleBindings.map((binding) => ({
+      snapshotId: binding.snapshotId,
+      snapshotLabel: binding.snapshotLabel,
+      role: binding.role,
+      roleLabel: binding.roleLabel,
+    }));
+  }
 
-${this.renderStructuredCompareSynthesisHints(judgeResults, language)}${this.renderStructuredCompareJudgeResults(judgeResults, language)}${focus ? `## Focus Brief
-${focus}
+  private toStructuredCompareTestCasePayload(
+    testCase: NormalizedEvaluationTestCase
+  ): {
+    id: string;
+    label?: string;
+    input: {
+      kind: string;
+      label: string;
+      content: string;
+      summary?: string;
+    };
+    settingsSummary?: string;
+  } {
+    return {
+      id: testCase.id,
+      ...(testCase.hasLabel ? { label: testCase.label } : {}),
+      input: {
+        kind: testCase.inputKind,
+        label: testCase.inputLabel,
+        content: testCase.inputContent,
+        ...(testCase.hasInputSummary ? { summary: testCase.inputSummary } : {}),
+      },
+      ...(testCase.hasSettingsSummary ? { settingsSummary: testCase.settingsSummary } : {}),
+    };
+  }
 
-` : ''}---
-
-请综合这些成对判断结果，输出最终 structured compare JSON。不要重新展开原始快照全文。`;
-
-    return [
-      { role: 'system', content: systemContent },
-      { role: 'user', content: userContent },
-    ];
+  private toStructuredCompareSnapshotPayload(
+    snapshot: NormalizedEvaluationSnapshot
+  ): {
+    id: string;
+    label: string;
+    role?: string;
+    roleLabel?: string;
+    testCaseId: string;
+    testCaseLabel?: string;
+    promptRef: {
+      kind: string;
+      label: string;
+    };
+    promptText: string;
+    modelKey?: string;
+    versionLabel?: string;
+    output: string;
+    reasoning?: string;
+    executionInput?: {
+      kind: string;
+      label: string;
+      content: string;
+      summary?: string;
+    };
+  } {
+    return {
+      id: snapshot.id,
+      label: snapshot.label,
+      ...(snapshot.hasRole ? { role: snapshot.role, roleLabel: snapshot.roleLabel } : {}),
+      testCaseId: snapshot.testCaseId,
+      ...(snapshot.testCaseLabel ? { testCaseLabel: snapshot.testCaseLabel } : {}),
+      promptRef: {
+        kind: snapshot.promptRefKind,
+        label: snapshot.promptRefLabel,
+      },
+      promptText: snapshot.promptText,
+      ...(snapshot.hasModelKey ? { modelKey: snapshot.modelKey } : {}),
+      ...(snapshot.hasVersionLabel ? { versionLabel: snapshot.versionLabel } : {}),
+      output: snapshot.output,
+      ...(snapshot.hasReasoning ? { reasoning: snapshot.reasoning } : {}),
+      ...(snapshot.hasExecutionInput
+        ? {
+            executionInput: {
+              kind: 'custom',
+              label: snapshot.executionInputLabel,
+              content: snapshot.executionInputContent,
+              ...(snapshot.hasExecutionInputSummary
+                ? { summary: snapshot.executionInputSummary }
+                : {}),
+            },
+          }
+        : {}),
+    };
   }
 
   private renderStructuredCompareSynthesisHints(
@@ -2321,28 +2377,33 @@ ${conflictSection}
           continue;
         }
 
-        const verdict =
-          payload.verdict === 'left-better' ||
-          payload.verdict === 'right-better' ||
-          payload.verdict === 'mixed' ||
-          payload.verdict === 'similar'
-            ? payload.verdict
-            : fallback.verdict;
-        const winner =
-          payload.winner === 'left' || payload.winner === 'right' || payload.winner === 'none'
-            ? payload.winner
-            : fallback.winner;
+        const payloadVerdict =
+          typeof payload.verdict === 'string' ? payload.verdict.trim() : undefined;
+        const payloadPairSignal =
+          typeof payload.pairSignal === 'string' ? payload.pairSignal.trim() : undefined;
+        const pairSignal =
+          payloadPairSignal && planItem.allowedSignals.includes(payloadPairSignal)
+            ? payloadPairSignal
+            : payloadVerdict && planItem.allowedSignals.includes(payloadVerdict)
+              ? payloadVerdict
+              : fallback.pairSignal;
+        const verdict = this.normalizeStructuredCompareJudgeVerdict(
+          payloadVerdict,
+          pairSignal,
+          planItem
+        );
+        const winner = this.normalizeStructuredCompareJudgeWinner(
+          typeof payload.winner === 'string' ? payload.winner.trim() : undefined,
+          verdict,
+          pairSignal,
+          planItem
+        );
         const confidence =
           payload.confidence === 'low' ||
           payload.confidence === 'medium' ||
           payload.confidence === 'high'
             ? payload.confidence
             : fallback.confidence;
-        const pairSignal =
-          typeof payload.pairSignal === 'string' &&
-          planItem.allowedSignals.includes(payload.pairSignal)
-            ? payload.pairSignal
-            : fallback.pairSignal;
 
         return {
           // Pair identity is determined by the judge plan, not by model echo fields.
@@ -2388,6 +2449,69 @@ ${conflictSection}
     }
 
     return fallback;
+  }
+
+  private normalizeStructuredCompareJudgeVerdict(
+    rawVerdict: string | undefined,
+    pairSignal: string,
+    planItem: StructuredCompareJudgePlanItem
+  ): StructuredCompareJudgeResult['verdict'] {
+    if (
+      rawVerdict === 'left-better' ||
+      rawVerdict === 'right-better' ||
+      rawVerdict === 'mixed' ||
+      rawVerdict === 'similar'
+    ) {
+      return rawVerdict;
+    }
+
+    switch (planItem.pairType) {
+      case 'targetBaseline':
+        if (pairSignal === 'improved') return 'left-better';
+        if (pairSignal === 'regressed') return 'right-better';
+        if (pairSignal === 'flat') return 'similar';
+        return 'mixed';
+      case 'targetReference':
+        if (pairSignal === 'minor' || pairSignal === 'major') return 'right-better';
+        if (pairSignal === 'none') return 'similar';
+        return 'mixed';
+      case 'referenceBaseline':
+        if (pairSignal === 'supported') return 'left-better';
+        if (pairSignal === 'unsupported') return 'right-better';
+        return 'mixed';
+      case 'targetReplica':
+        if (pairSignal === 'stable') return 'similar';
+        return 'mixed';
+      default:
+        return 'mixed';
+    }
+  }
+
+  private normalizeStructuredCompareJudgeWinner(
+    rawWinner: string | undefined,
+    verdict: StructuredCompareJudgeResult['verdict'],
+    pairSignal: string,
+    planItem: StructuredCompareJudgePlanItem
+  ): StructuredCompareJudgeResult['winner'] {
+    if (rawWinner === 'left' || rawWinner === 'right' || rawWinner === 'none') {
+      return rawWinner;
+    }
+
+    if (verdict === 'left-better') {
+      return 'left';
+    }
+    if (verdict === 'right-better') {
+      return 'right';
+    }
+    if (verdict === 'similar') {
+      return 'none';
+    }
+
+    if (planItem.pairType === 'targetReplica' && pairSignal === 'stable') {
+      return 'none';
+    }
+
+    return 'none';
   }
 
   private findStructuredCompareJudgePayload(
@@ -2438,14 +2562,15 @@ ${conflictSection}
     const hasCoreConfidence =
       typeof record.confidence === 'string' &&
       (record.confidence === 'low' || record.confidence === 'medium' || record.confidence === 'high');
+    const hasCorePairSignal = typeof record.pairSignal === 'string';
     const hasSupportingField =
-      typeof record.pairSignal === 'string' ||
+      hasCorePairSignal ||
       typeof record.analysis === 'string' ||
       Array.isArray(record.evidence) ||
       Array.isArray(record.learnableSignals) ||
       Array.isArray(record.overfitWarnings);
 
-    return hasCoreVerdict && hasCoreWinner && hasCoreConfidence && hasSupportingField;
+    return (hasCoreVerdict || hasCorePairSignal) && hasCoreWinner && hasCoreConfidence && hasSupportingField;
   }
 
   private renderStructuredCompareRoleBindings(

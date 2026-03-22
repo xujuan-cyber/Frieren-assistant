@@ -2145,6 +2145,7 @@ export default {
     improvements: "改進建議",
     applyToIterate: "迭代優化",
     rewriteFromEvaluation: "智慧重寫",
+    rewriteSkipped: "目前評估建議保持提示詞不變，暫不發起智慧重寫。",
     applySuccess: "正在應用改進建議...",
     noResult: "暫無評估結果，點擊評估按鈕開始評估",
     viewDetails: "檢視詳情",

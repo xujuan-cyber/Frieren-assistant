@@ -907,27 +907,32 @@ describe('Result/compare evaluation evidence behavior', () => {
     expect(llm.sendMessageCalls).toHaveLength(3)
 
     const firstJudgePrompt = llm.sendMessageCalls[0].map((message) => message.content).join('\n\n')
-    expect(firstJudgePrompt).toContain('Structured Compare 角色')
-    expect(firstJudgePrompt).toContain('快照 A（snap-a）：Target')
-    expect(firstJudgePrompt).toContain('快照 B（snap-b）：Baseline')
-    expect(firstJudgePrompt).toContain('快照 C（snap-c）：Reference')
-    expect(firstJudgePrompt).toContain('Pair Key：target-vs-baseline')
-    expect(firstJudgePrompt).toContain('对比角色：Target')
-    expect(firstJudgePrompt).toContain('对比角色：Baseline')
+    expect(firstJudgePrompt).toContain('# Role: 结构化对比成对判断专家')
+    expect(firstJudgePrompt).toContain('Pair Judge Evidence Payload (JSON):')
+    expect(firstJudgePrompt).toContain('"pairKey": "target-vs-baseline"')
+    expect(firstJudgePrompt).toContain('"snapshotId": "snap-a"')
+    expect(firstJudgePrompt).toContain('"role": "target"')
+    expect(firstJudgePrompt).toContain('"snapshotId": "snap-b"')
+    expect(firstJudgePrompt).toContain('"role": "baseline"')
+    expect(firstJudgePrompt).toContain('"snapshotId": "snap-c"')
+    expect(firstJudgePrompt).toContain('"role": "reference"')
     expect(firstJudgePrompt).toContain('## 当前 Pair 专项判断')
     expect(firstJudgePrompt).toContain('这一组决定当前 target 是否真的值得替换上一版本')
     expect(firstJudgePrompt).toContain('不能判成 left-better')
 
     const secondJudgePrompt = llm.sendMessageCalls[1].map((message) => message.content).join('\n\n')
-    expect(secondJudgePrompt).toContain('Pair Key：target-vs-reference')
-    expect(secondJudgePrompt).toContain('对比角色：Reference')
+    expect(secondJudgePrompt).toContain('"pairKey": "target-vs-reference"')
+    expect(secondJudgePrompt).toContain('"role": "reference"')
     expect(secondJudgePrompt).toContain('要区分“可迁移的提示词结构优势”和“纯模型能力上限”造成的差异')
 
     const synthesisPrompt = llm.sendMessageCalls[2].map((message) => message.content).join('\n\n')
-    expect(synthesisPrompt).toContain('## 综合提示（确定性）')
-    expect(synthesisPrompt).toContain('Priority Order：targetBaseline > targetReference > referenceBaseline > targetReplica')
-    expect(synthesisPrompt).toContain('Derived Stop Recommendation：n/a')
-    expect(synthesisPrompt).toContain('成对判断结果')
+    expect(synthesisPrompt).toContain('# Role: 结构化系统提示词对比综合专家')
+    expect(synthesisPrompt).toContain('Synthesis Payload (JSON):')
+    expect(synthesisPrompt).toContain('"priorityOrder": [')
+    expect(synthesisPrompt).toContain('"targetBaseline"')
+    expect(synthesisPrompt).toContain('"targetReference"')
+    expect(synthesisPrompt).toContain('"conflictSignals": []')
+    expect(synthesisPrompt).toContain('"judgeResults": [')
     expect(synthesisPrompt).toContain('target-vs-baseline')
     expect(synthesisPrompt).toContain('target-vs-reference')
     expect(synthesisPrompt).toContain('compareStopSignals 必须保守且有证据支撑')
@@ -1166,6 +1171,99 @@ describe('Result/compare evaluation evidence behavior', () => {
         analysis: 'real baseline judgement',
         confidence: 'high',
         pairSignal: 'improved',
+      })
+    )
+  })
+
+  it('structured compare recovers target-baseline semantics when a judge writes regressed into verdict', async () => {
+    const { modelKey, service } = createService({
+      responseQueue: [
+        JSON.stringify({
+          verdict: 'regressed',
+          winner: 'right',
+          confidence: 'high',
+          pairSignal: 'regressed',
+          analysis: 'target drifted from the required output contract',
+          evidence: ['target renamed fields and wrapped the payload'],
+          learnableSignals: ['keep the original contract stable'],
+          overfitWarnings: [],
+        }),
+        JSON.stringify({
+          score: {
+            overall: 42,
+            dimensions: [
+              { key: 'goalAchievementRobustness', label: '目标达成稳定性', score: 42 },
+            ],
+          },
+          improvements: ['restore the original output contract'],
+          summary: 'target regressed because it drifted from the required structure',
+        }),
+      ],
+    })
+
+    const result = await service.evaluate({
+      type: 'compare',
+      evaluationModelKey: modelKey,
+      mode: { functionMode: 'basic', subMode: 'system' },
+      target: {
+        workspacePrompt: '你是一个结构化输出助手。',
+      },
+      testCases: [
+        {
+          id: 'tc-judge-signal-recovery-1',
+          input: {
+            kind: 'text',
+            label: '测试内容',
+            content: '请抽取 audience, pain_points, tone。',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'signal-a',
+          label: 'A',
+          testCaseId: 'tc-judge-signal-recovery-1',
+          promptRef: { kind: 'workspace', label: '工作区' },
+          promptText: 'Prompt A',
+          output: '{"result":{"audience":"设计师"}}',
+          modelKey: 'qwen3-32b',
+        },
+        {
+          id: 'signal-b',
+          label: 'B',
+          testCaseId: 'tc-judge-signal-recovery-1',
+          promptRef: { kind: 'version', version: 1, label: 'v1' },
+          promptText: 'Prompt B',
+          output: '{"audience":"设计师","pain_points":["版本混乱"],"tone":"专业可信"}',
+          modelKey: 'qwen3-32b',
+        },
+      ],
+      compareHints: {
+        mode: 'structured',
+        snapshotRoles: {
+          'signal-a': 'target',
+          'signal-b': 'baseline',
+        },
+        hasSharedTestCases: true,
+        hasSamePromptSnapshots: false,
+        hasCrossModelComparison: false,
+      },
+    })
+
+    expect(result.metadata?.compareJudgements).toEqual([
+      expect.objectContaining({
+        pairType: 'targetBaseline',
+        pairSignal: 'regressed',
+        verdict: 'right-better',
+        winner: 'right',
+        analysis: 'target drifted from the required output contract',
+      }),
+    ])
+    expect(result.metadata?.compareInsights?.progressSummary).toEqual(
+      expect.objectContaining({
+        pairType: 'targetBaseline',
+        pairSignal: 'regressed',
+        verdict: 'right-better',
       })
     )
   })

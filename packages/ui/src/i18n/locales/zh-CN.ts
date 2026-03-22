@@ -2165,6 +2165,7 @@ export default {
     improvements: "改进建议",
     applyToIterate: "迭代优化",
     rewriteFromEvaluation: "智能重写",
+    rewriteSkipped: "当前评估建议保持提示词不变，暂不发起智能重写。",
     applySuccess: "正在应用改进建议...",
     noResult: "暂无评估结果，点击评估按钮开始评估",
     viewDetails: "查看详情",

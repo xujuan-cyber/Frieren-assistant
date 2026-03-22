@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { computed, nextTick, reactive, ref } from 'vue'
 import { useEvaluationHandler } from '../../../src/composables/prompt/useEvaluationHandler'
 import type {
@@ -14,6 +14,27 @@ import type {
   ProEvaluationContext,
   ResultEvaluationRequest,
 } from '@prompt-optimizer/core'
+import { buildRewritePayload, buildRewritePromptFromEvaluation } from '@prompt-optimizer/core'
+
+const toast = {
+  info: vi.fn(),
+}
+
+vi.mock('@prompt-optimizer/core', () => ({
+  buildRewritePayload: vi.fn(() => ({
+    compressedEvaluation: {
+      rewriteGuidance: {
+        recommendation: 'rewrite',
+      },
+    },
+  })),
+  buildRewritePromptFromEvaluation: vi.fn(() => 'mock rewrite input'),
+  normalizeRewriteLocaleLanguage: vi.fn(() => 'zh'),
+}))
+
+vi.mock('../../../src/composables/ui/useToast', () => ({
+  useToast: () => toast,
+}))
 
 vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()
@@ -21,6 +42,7 @@ vi.mock('vue-i18n', async (importOriginal) => {
     ...actual,
     useI18n: () => ({
       locale: { value: 'zh-CN' },
+      t: (key: string) => key,
     }),
   }
 })
@@ -237,6 +259,10 @@ const createResultTarget = (overrides: Partial<ResultEvaluationRequest> = {}) =>
 })
 
 describe('useEvaluationHandler', () => {
+  beforeEach(() => {
+    toast.info.mockReset()
+  })
+
   it('routes result, compare, and prompt analysis requests with the right context', async () => {
     const analysisContext: ProEvaluationContext = {
       variables: [{ name: 'schemaOnly', source: 'temporary' }],
@@ -856,6 +882,14 @@ describe('useEvaluationHandler', () => {
       evaluationModelKey: ref('eval-model'),
       functionMode: ref('basic'),
       subMode: ref('system'),
+      comparePayload: ref({
+        target: {
+          workspacePrompt: 'Workspace prompt from compare target',
+          referencePrompt: 'Previous prompt from compare target',
+        },
+        testCases: [],
+        snapshots: [],
+      }),
       externalEvaluation: mockEvaluation,
     })
 
@@ -920,7 +954,20 @@ describe('useEvaluationHandler', () => {
     })
 
     expect(runIterateWithInput).toHaveBeenCalledTimes(1)
-
+    expect(buildRewritePayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'compare',
+        workspacePrompt: 'Workspace prompt from compare target',
+        referencePrompt: 'Previous prompt from compare target',
+      }),
+    )
+    expect(buildRewritePromptFromEvaluation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'compare',
+        workspacePrompt: 'Workspace prompt from compare target',
+        referencePrompt: 'Previous prompt from compare target',
+      }),
+    )
     expect(runIterateWithInput).toHaveBeenCalledWith(expect.any(String))
     expect(mockEvaluation.closePanel).toHaveBeenCalledTimes(1)
   })
@@ -950,5 +997,54 @@ describe('useEvaluationHandler', () => {
 
     expect(runIterateWithInput).toHaveBeenCalledTimes(1)
     expect(mockEvaluation.closePanel).not.toHaveBeenCalled()
+  })
+
+  it('short-circuits compare direct rewrite when rewrite guidance recommends skip', () => {
+    const payloadCallCountBefore = vi.mocked(buildRewritePayload).mock.calls.length
+    const promptCallCountBefore = vi.mocked(buildRewritePromptFromEvaluation).mock.calls.length
+
+    vi.mocked(buildRewritePayload).mockReturnValueOnce({
+      compressedEvaluation: {
+        rewriteGuidance: {
+          recommendation: 'skip',
+        },
+      },
+    } as ReturnType<typeof buildRewritePayload>)
+
+    const mockEvaluation = createMockEvaluation()
+    const runIterateWithInput = vi.fn(() => true)
+    const promptPanelRef = ref({
+      runIterateWithInput,
+    })
+
+    const handler = useEvaluationHandler({
+      services: ref(null),
+      analysisOptimizedPrompt: ref('Prompt'),
+      evaluationModelKey: ref('eval-model'),
+      functionMode: ref('basic'),
+      subMode: ref('system'),
+      comparePayload: ref({
+        target: {
+          workspacePrompt: 'Workspace prompt from compare target',
+          referencePrompt: 'Previous prompt from compare target',
+        },
+        testCases: [],
+        snapshots: [],
+      }),
+      externalEvaluation: mockEvaluation,
+    })
+
+    const rewriteFromEvaluation = handler.createRewriteFromEvaluationHandler(promptPanelRef)
+
+    rewriteFromEvaluation({
+      type: 'compare',
+      result: createEvaluationResponse(82, 'compare'),
+    })
+
+    expect(vi.mocked(buildRewritePayload).mock.calls.length).toBe(payloadCallCountBefore + 1)
+    expect(vi.mocked(buildRewritePromptFromEvaluation).mock.calls.length).toBe(promptCallCountBefore)
+    expect(runIterateWithInput).not.toHaveBeenCalled()
+    expect(mockEvaluation.closePanel).not.toHaveBeenCalled()
+    expect(toast.info).toHaveBeenCalledWith('evaluation.rewriteSkipped')
   })
 })

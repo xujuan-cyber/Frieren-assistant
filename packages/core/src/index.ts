@@ -215,6 +215,7 @@ export * from './types/advanced'
 export * from './services/evaluation/types'
 export * from './services/evaluation/errors'
 export { EvaluationService, createEvaluationService } from './services/evaluation/service'
+export * from './services/evaluation/rewrite-from-evaluation'
 
 // 导出图像理解服务相关
 export * from './services/image-understanding/types'

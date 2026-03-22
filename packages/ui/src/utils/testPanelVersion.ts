@@ -1,3 +1,5 @@
+import type { SelectOption } from 'naive-ui'
+
 export type DynamicTestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 
 export interface TestPanelVersionEntryLike {
@@ -10,7 +12,7 @@ export interface TestPanelVersionLabels {
   original: string
 }
 
-export interface TestPanelVersionOption {
+export interface TestPanelVersionOption extends SelectOption {
   label: string
   fullLabel: string
   value: DynamicTestPanelVersionValue

@@ -114,6 +114,11 @@
   - 复用 iterate 链路的增强通用重写能力
   - 重写输入会对评估结果做去重、分层与 compare 焦点压缩
   - 重写输入已显式纳入 `conflictSignals`
+  - 重写输入已新增 machine-readable `rewriteGuidance`
+  - 当前已落地第一版 rewrite gating：
+    - `flat + no-gap` 场景默认倾向 `skip`
+    - `improved + no-gap + low-headroom` 场景默认倾向 `minor-rewrite`
+    - 仍存在明显回退 / 不稳定 / 不被支持改动时，继续走 `rewrite`
 - 当前仍未落地的，主要是上层复用能力：
   - 更独立的通用智能重写协议 / 模板
 
@@ -316,6 +321,9 @@
 - 结果面板已支持基于整份评估结果的一键“智能重写”，并直接复用 iterate 版本链路。
 - 智能重写当前会显式消费 `compareStopSignals + compareInsights + conflictSignals`。
 - compare 结果元数据在 UI 侧已统一抽成共享消费模块，避免 `useEvaluation / EvaluationPanel / rewrite` 多处漂移。
+- rewrite payload 当前已包含 `rewriteGuidance.recommendation`，用于约束 `skip / minor-rewrite / rewrite` 三类行为。
+- rewrite payload 当前还会附带 `rewriteGuidance.focusAreas / priorityMoves`，用于把 `instability / contract-repair / generalization` 转成更可执行的专项改写指令。
+- UI 侧当前已识别 `rewriteGuidance.recommendation = skip`，会在“智能重写”入口直接短路，不再无意义发起 iterate 请求。
 
 ## 8. 当前剩余问题
 

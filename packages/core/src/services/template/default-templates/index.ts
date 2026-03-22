@@ -113,6 +113,21 @@ import { variableExtractionTemplateEn } from './variable-extraction';
 // 变量值生成模板
 import { variableValueGenerationTemplate } from './variable-value-generation';
 import { variableValueGenerationTemplateEn } from './variable-value-generation';
+// 基于评估结果的智能改写模板
+import { template as evaluation_rewrite_basic_system } from './evaluation-rewrite/basic-system';
+import { template as evaluation_rewrite_basic_system_en } from './evaluation-rewrite/basic-system_en';
+import { template as evaluation_rewrite_basic_user } from './evaluation-rewrite/basic-user';
+import { template as evaluation_rewrite_basic_user_en } from './evaluation-rewrite/basic-user_en';
+import { template as evaluation_rewrite_pro_multi } from './evaluation-rewrite/pro-multi';
+import { template as evaluation_rewrite_pro_multi_en } from './evaluation-rewrite/pro-multi_en';
+import { template as evaluation_rewrite_pro_variable } from './evaluation-rewrite/pro-variable';
+import { template as evaluation_rewrite_pro_variable_en } from './evaluation-rewrite/pro-variable_en';
+import { template as evaluation_rewrite_generic } from './evaluation-rewrite/generic';
+import { template as evaluation_rewrite_generic_en } from './evaluation-rewrite/generic_en';
+import { template as evaluation_structured_compare_pair_judge } from './evaluation-structured-compare/pair-judge';
+import { template as evaluation_structured_compare_pair_judge_en } from './evaluation-structured-compare/pair-judge_en';
+import { template as evaluation_structured_compare_synthesis } from './evaluation-structured-compare/synthesis';
+import { template as evaluation_structured_compare_synthesis_en } from './evaluation-structured-compare/synthesis_en';
 
 // 图片 JSON 提取模板
 import { imagePromptExtractionTemplate } from './image-prompt-extraction';
@@ -218,6 +233,21 @@ export const ALL_TEMPLATES = {
   // 变量值生成模板
   variableValueGenerationTemplate,
   variableValueGenerationTemplateEn,
+  // 基于评估结果的智能改写模板
+  evaluation_rewrite_basic_system,
+  evaluation_rewrite_basic_system_en,
+  evaluation_rewrite_basic_user,
+  evaluation_rewrite_basic_user_en,
+  evaluation_rewrite_pro_multi,
+  evaluation_rewrite_pro_multi_en,
+  evaluation_rewrite_pro_variable,
+  evaluation_rewrite_pro_variable_en,
+  evaluation_rewrite_generic,
+  evaluation_rewrite_generic_en,
+  evaluation_structured_compare_pair_judge,
+  evaluation_structured_compare_pair_judge_en,
+  evaluation_structured_compare_synthesis,
+  evaluation_structured_compare_synthesis_en,
   // 图片 JSON 提取模板
   imagePromptExtractionTemplate,
   imagePromptExtractionTemplateEn,

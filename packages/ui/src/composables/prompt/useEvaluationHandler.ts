@@ -11,14 +11,17 @@ import { computed, watch, type Ref, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useEvaluation, type UseEvaluationReturn, type ScoreLevel } from './useEvaluation'
 import type { CompareEvaluationPayload } from './compareEvaluation'
+import { useToast } from '../ui/useToast'
 import {
-  buildRewriteFromEvaluationInput,
+  buildRewritePayload,
+  buildRewritePromptFromEvaluation,
   normalizeRewriteLocaleLanguage,
-} from './rewriteFromEvaluation'
+} from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
 import type {
   EvaluationType,
   EvaluationResponse,
+  EvaluationSubMode,
   EvaluationContentBlock,
   EvaluationTarget,
   EvaluationTestCase,
@@ -253,7 +256,11 @@ const toDesignContextBlock = (
 export function useEvaluationHandler(
   options: UseEvaluationHandlerOptions
 ): UseEvaluationHandlerReturn {
-  const { locale } = useI18n() as unknown as { locale: Ref<string> }
+  const { locale, t } = useI18n() as unknown as {
+    locale: Ref<string>
+    t: (key: string) => string
+  }
+  const toast = useToast()
   const {
     services,
     analysisOptimizedPrompt,
@@ -486,10 +493,47 @@ export function useEvaluationHandler(
     return (payload: { result: EvaluationResponse; type: EvaluationType }): void => {
       if (!payload.result) return
 
-      const rewriteInput = buildRewriteFromEvaluationInput(
-        payload,
-        normalizeRewriteLocaleLanguage(locale.value)
-      )
+      const compareTarget = comparePayload?.value?.target
+      const workspacePrompt =
+        payload.type === 'compare'
+          ? compareTarget?.workspacePrompt || analysisOptimizedPrompt.value || ''
+          : analysisOptimizedPrompt.value || ''
+      const referencePrompt =
+        payload.type === 'compare'
+          ? compareTarget?.referencePrompt
+          : undefined
+      const language = normalizeRewriteLocaleLanguage(locale.value)
+      const rewritePayload = buildRewritePayload({
+        result: payload.result,
+        type: payload.type,
+        mode: {
+          functionMode: options.functionMode.value as 'basic' | 'pro' | 'image',
+          subMode: options.subMode.value as EvaluationSubMode,
+        },
+        language,
+        workspacePrompt,
+        referencePrompt,
+      })
+
+      if (
+        payload.type === 'compare' &&
+        rewritePayload.compressedEvaluation.rewriteGuidance.recommendation === 'skip'
+      ) {
+        toast.info(t('evaluation.rewriteSkipped'))
+        return
+      }
+
+      const rewriteInput = buildRewritePromptFromEvaluation({
+        result: payload.result,
+        type: payload.type,
+        mode: {
+          functionMode: options.functionMode.value as 'basic' | 'pro' | 'image',
+          subMode: options.subMode.value as EvaluationSubMode,
+        },
+        language,
+        workspacePrompt,
+        referencePrompt,
+      })
       const started = promptPanelRef.value?.runIterateWithInput?.(rewriteInput) || false
 
       if (started) {

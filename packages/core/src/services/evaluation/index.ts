@@ -10,3 +10,4 @@ export * from './errors';
 
 // 导出服务类和工厂函数
 export { EvaluationService, createEvaluationService } from './service';
+export * from './rewrite-from-evaluation';

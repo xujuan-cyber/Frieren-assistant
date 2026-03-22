@@ -9,8 +9,10 @@
 1. [current-spec.md](./current-spec.md)
 2. [manual-acceptance.md](./manual-acceptance.md)
 3. [manual-test-playbook.md](./manual-test-playbook.md)
-4. [real-api-samples/review-summary.md](./real-api-samples/review-summary.md)
-5. `real-api-samples/*/rendered-messages.md`
+4. [protocol-migration-minimal-plan.md](./protocol-migration-minimal-plan.md)
+5. [auto-compare-rewrite-effect-analysis.md](./auto-compare-rewrite-effect-analysis.md)
+6. [real-api-samples/review-summary.md](./real-api-samples/review-summary.md)
+7. `real-api-samples/*/rendered-messages.md`
 
 ## 当前目录结构
 
@@ -23,6 +25,12 @@
 - `manual-test-playbook.md`
   当前最适合直接照着操作的一份手测步骤文档。
   如果你要逐步验证 compare 阶段功能，优先看这份。
+- `protocol-migration-minimal-plan.md`
+  compare / rewrite 从 Markdown 协议层迁移到 JSON payload 协议层的最小实现方案与落地说明。
+  如果你准备继续做协议层收敛或复盘这次迁移，优先看这份。
+- `auto-compare-rewrite-effect-analysis.md`
+  基于真实 calibration 产物整理的效果分析。
+  如果你想判断“当前自动对比评估 + 智能改写到底有没有实际价值”，优先看这份。
 - `real-api-samples/`
   真实模型请求样例。
   这是判断“现在到底发了什么给模型”的最高优先级证据。
@@ -37,6 +45,7 @@
 - 右侧多个输出一起比的是“对比评估”。
 - 左侧只看设计态输入，右侧只看执行态证据。
 - 文本模式当前主线已经基本完成。
+- compare / rewrite 的 LLM 协议层已经迁移为“规则说明 + JSON payload”，Markdown 现在主要保留给 docs / calibration 调试视图。
 - image 右侧评估链路仍未纳入本轮范围。
 
 ## 当前真实样例覆盖

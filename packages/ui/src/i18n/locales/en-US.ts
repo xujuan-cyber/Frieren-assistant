@@ -2243,6 +2243,7 @@ export default {
     improvements: "Improvements",
     applyToIterate: "Iterate",
     rewriteFromEvaluation: "Rewrite",
+    rewriteSkipped: "The evaluation recommends keeping the current prompt unchanged, so rewrite was skipped.",
     applySuccess: "Applying improvement...",
     noResult: "No evaluation result yet. Click the evaluate button to start.",
     viewDetails: "View Details",
