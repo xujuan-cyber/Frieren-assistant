@@ -88,21 +88,11 @@ jobs:
             Write-Host "🚀 Detected stable release version"
           }
 
-          # 5. 设置 publish 配置 (固定为公开仓库)
-          $publishConfig = @{ 
-            provider = "github"
-            owner = $repoOwner
-            repo = $repoName
-            private = $False
-          }
-          $pkgJson.build.publish = $publishConfig
-          Write-Host "✅ Set publish config (owner: $repoOwner, repo: $repoName, private: false)"
-
-          # 6. 将修改写回文件
+          # 5. 将修改写回文件
           $pkgJson | ConvertTo-Json -Depth 10 | Set-Content $pkgPath -Encoding UTF8
           Write-Host "✅ package.json updated successfully"
 
-          # 7. 输出配置摘要
+          # 6. 输出配置摘要
           Write-Host ""
           Write-Host "📋 Configuration Summary:"
           Write-Host "   Version: $tagVersion"
@@ -117,9 +107,7 @@ jobs:
         run: pnpm install
 
       - name: 构建 Desktop 应用
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATER }}
-        run: pnpm build:desktop
+        run: pnpm build:desktop:ci
 
       - name: 验证构建产物
         shell: bash
@@ -217,14 +205,13 @@ jobs:
             echo "🚀 Detected stable release version"
           fi
           
-          # 5. 使用 jq 更新 package.json
+          # 5. 使用 jq 更新 package.json（保留 publish 配置，避免构建阶段提前发布）
           jq --arg version "$TAG_VERSION" \
              --arg repo_url "$REPO_URL" \
              --arg repo_owner "$REPO_OWNER" \
              --arg repo_name "$REPO_NAME" \
              '.version = $version | 
-              .repository.url = $repo_url | 
-              .build.publish = {provider: "github", owner: $repo_owner, repo: $repo_name, private: false}' \
+              .repository.url = $repo_url' \
              "$PKG_PATH" > "${PKG_PATH}.tmp" && mv "${PKG_PATH}.tmp" "$PKG_PATH"
           
           echo "✅ package.json updated successfully"
@@ -244,9 +231,7 @@ jobs:
         run: pnpm install
 
       - name: 构建 Desktop 应用
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATER }}
-        run: pnpm build:desktop
+        run: pnpm build:desktop:ci
 
       - name: 验证构建产物
         run: |
@@ -343,14 +328,13 @@ jobs:
             echo "🚀 Detected stable release version"
           fi
           
-          # 5. 使用 jq 更新 package.json
+          # 5. 使用 jq 更新 package.json（保留 publish 配置，避免构建阶段提前发布）
           jq --arg version "$TAG_VERSION" \
              --arg repo_url "$REPO_URL" \
              --arg repo_owner "$REPO_OWNER" \
              --arg repo_name "$REPO_NAME" \
              '.version = $version | 
-              .repository.url = $repo_url | 
-              .build.publish = {provider: "github", owner: $repo_owner, repo: $repo_name, private: false}' \
+              .repository.url = $repo_url' \
              "$PKG_PATH" > "${PKG_PATH}.tmp" && mv "${PKG_PATH}.tmp" "$PKG_PATH"
           
           echo "✅ package.json updated successfully"
@@ -370,9 +354,7 @@ jobs:
         run: pnpm install
 
       - name: 构建 Desktop 应用
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATER }}
-        run: pnpm build:desktop
+        run: pnpm build:desktop:ci
 
       - name: 验证构建产物
         run: |
@@ -667,3 +649,28 @@ jobs:
           prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 验证 Release 元数据
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_JSON=$(gh release view "${{ steps.version.outputs.version }}" \
+            --repo "${{ github.repository }}" \
+            --json name,body,url)
+
+          echo "Release metadata:"
+          echo "$RELEASE_JSON"
+
+          EXPECTED_NAME="${{ steps.version.outputs.release_name_prefix }}${{ steps.version.outputs.version }}"
+          RELEASE_NAME=$(echo "$RELEASE_JSON" | jq -r '.name')
+          RELEASE_BODY=$(echo "$RELEASE_JSON" | jq -r '.body')
+
+          if [ "$RELEASE_NAME" != "$EXPECTED_NAME" ]; then
+            echo "Release name mismatch: expected '$EXPECTED_NAME', got '$RELEASE_NAME'"
+            exit 1
+          fi
+
+          if [ -z "$RELEASE_BODY" ] || [ "$RELEASE_BODY" = "null" ]; then
+            echo "Release body is empty"
+            exit 1
+          fi
