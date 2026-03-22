@@ -1,88 +1,158 @@
-# 欢迎使用 Prompt Optimizer
-
-<div align="center">
-
-[![GitHub stars](https://img.shields.io/github/stars/linshenkx/prompt-optimizer)](https://github.com/linshenkx/prompt-optimizer/stargazers)
-![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/cakkkhboolfnadechdlgdcnjammejlna)
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/linshenkx/prompt-optimizer/blob/main/LICENSE)
-
-**一个强大的 AI 提示词优化工具，帮助你编写更好的 AI 提示词，提升 AI 输出质量**
-
-[🚀 快速开始](user/quick-start.md) | [📖 在线体验](https://prompt.always200.com)
-
-</div>
-
-## ✨ 核心特性
-
-- **🎯 智能优化** - 一键优化提示词，支持多轮迭代改进，提升AI回复准确度
-- **📝 双模式优化** - 支持系统提示词优化和用户提示词优化，满足不同使用场景
-- **🔄 对比测试** - 支持原始提示词和优化后提示词的实时对比，直观展示优化效果
-- **⚡ 高级功能** - 变量管理系统、工具调用支持、多轮会话测试
-- **🤖 多模型集成** - 支持OpenAI、Gemini、DeepSeek、智谱AI、SiliconFlow等主流AI模型
-- **🔒 安全架构** - 纯客户端处理，数据直接与AI服务商交互，不经过中间服务器
-- **📱 多端支持** - 同时提供Web应用、桌面应用、Chrome插件和Docker部署四种使用方式
-
-## 🎬 功能演示
-
-### 1. 角色扮演对话：激发小模型潜力
-在追求成本效益的生产或注重隐私的本地化场景中，结构化的提示词能让小模型稳定地进入角色，提供沉浸式、高一致性的角色扮演体验。
-
-![角色扮演演示](../assets/images/demo/cat-maid-roleplay.png)
-
-### 2. 知识图谱提取：保障生产环境的稳定性  
-在需要程序化处理的生产环境中，高质量的提示词能显著降低对模型智能程度的要求，使得更经济的小模型也能稳定输出可靠的指定格式。
-
-![知识图谱提取演示](../assets/images/demo/knowledge-graph-extractor.png)
-
-### 3. 诗歌写作：辅助创意探索与需求定制
-帮助用户将模糊的灵感细化为具体需求，辅助探索、发掘并精确表达创意，与AI共创独一无二的作品。
-
-![诗歌创作演示](../assets/images/demo/poetry-writing.png)
-
-## 🚀 快速开始
-
-### 在线版本（推荐）
-直接访问：[https://prompt.always200.com](https://prompt.always200.com)
-
-项目是纯前端应用，所有数据只存储在浏览器本地，不会上传至任何服务器，因此直接使用在线版本也是安全可靠的。
-
-### 其他使用方式
-- **🌐 [Web版部署](deployment/web.md)** - Vercel一键部署或Docker部署
-- **🖥️ [桌面应用](deployment/desktop.md)** - 下载安装包，无跨域限制
-- **🐳 [Docker部署](deployment/docker-basic.md)** - 容器化部署，支持MCP服务
-- **🔌 [Chrome插件](deployment/extension.md)** - 浏览器插件，随时可用
-
-## 📚 文档导航
-
-### 👤 用户指南
-- **[🚀 快速开始](user/quick-start.md)** - 5分钟快速上手指南
-- **[❓ 帮助支持](help/common-questions.md)** - 问题解决和故障排除
-
-### 🚀 部署指南  
-- **[🌐 Web版部署](deployment/web.md)** - 在线版使用和Vercel部署
-- **[🖥️ 桌面应用](deployment/desktop.md)** - 桌面应用安装和使用
-- **[🐳 Docker部署](deployment/docker-basic.md)** - Docker运行和环境配置
-- **[🔗 MCP服务器](user/mcp-server.md)** - Model Context Protocol集成
-
-### ⚙️ 高级配置
-
-### 💡 使用案例
-- **[🎭 演示案例](guide/media.md)** - 功能演示和媒体资源
-
-## 🤝 参与贡献
-
-我们欢迎各种形式的贡献：
-- 🐛 报告问题
-- 💡 提出功能建议  
-- 📝 改进文档
-- 🔧 提交代码
-
-更多信息请查看 [GitHub 仓库](https://github.com/linshenkx/prompt-optimizer)。
-
-## 📄 开源协议
-
-本项目采用 [GNU Affero General Public License v3.0](https://github.com/linshenkx/prompt-optimizer/blob/main/LICENSE) 协议开源。
-
+---
+hide:
+  - toc
 ---
 
-如果这个项目对你有帮助，请考虑给它一个 Star ⭐️
+<div class="po-docs-home">
+  <section class="po-docs-hero">
+    <div class="po-docs-badge">Prompt Optimizer Docs</div>
+    <div class="po-docs-hero-main">
+      <div class="po-docs-hero-copy">
+        <h1>先配模型，<br>再跑工作流</h1>
+        <p class="po-docs-lead">
+          第一次使用，先配置 1 个文本模型，再进入工作区跑一次优化、测试和评估。
+        </p>
+        <div class="po-docs-actions">
+          <a class="md-button md-button--primary" href="basic/models/">先配置模型</a>
+          <a class="md-button" href="user/quick-start/">快速开始</a>
+          <a class="md-button" href="user/choose-workspace/">选择工作区</a>
+        </div>
+      </div>
+      <div class="po-docs-hero-aside">
+        <div class="po-docs-hero-note">
+          <span>01</span>
+          <div>
+            <strong>必做：先配 1 个文本模型</strong>
+            <p>不先配模型，就不能开始。</p>
+          </div>
+        </div>
+        <div class="po-docs-hero-note">
+          <span>02</span>
+          <div>
+            <strong>必做：先跑一次结果</strong>
+            <p>先完成优化、测试和评估。</p>
+          </div>
+        </div>
+        <div class="po-docs-hero-note">
+          <span>03</span>
+          <div>
+            <strong>再看：工作区和评估语义</strong>
+            <p>跑通后再区分细节。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="po-docs-section po-docs-section--starter">
+    <div class="po-docs-section-head">
+      <h2>第一次使用</h2>
+      <p>按这个顺序走，最不容易卡住。</p>
+    </div>
+    <div class="po-docs-step-strip">
+      <a class="po-docs-step" href="basic/models/">
+        <span class="po-docs-step-index">01</span>
+        <div>
+          <h3>先配置模型</h3>
+          <p>先配 1 个文本模型。</p>
+        </div>
+      </a>
+      <a class="po-docs-step" href="user/quick-start/">
+        <span class="po-docs-step-index">02</span>
+        <div>
+          <h3>快速开始</h3>
+          <p>先跑通一次完整流程。</p>
+        </div>
+      </a>
+      <a class="po-docs-step" href="user/choose-workspace/">
+        <span class="po-docs-step-index">03</span>
+        <div>
+          <h3>选择工作区</h3>
+          <p>看清输入结构差异。</p>
+        </div>
+      </a>
+      <a class="po-docs-step" href="user/testing-evaluation/">
+        <span class="po-docs-step-index">04</span>
+        <div>
+          <h3>测试与评估</h3>
+          <p>分清分析、评估、对比评估。</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="po-docs-section po-docs-section--workspace">
+    <div class="po-docs-section-head">
+      <h2>按工作区进入</h2>
+      <p>不同工作区，对应不同输入结构。</p>
+    </div>
+    <div class="po-docs-index-list">
+      <a class="po-docs-index-row" href="basic/system-optimization/">
+        <div>
+          <h3>系统提示词工作区</h3>
+          <p>优化角色、规则、边界与输出规范。</p>
+        </div>
+        <code>/basic/system</code>
+      </a>
+      <a class="po-docs-index-row" href="basic/user-optimization/">
+        <div>
+          <h3>用户提示词工作区</h3>
+          <p>优化直接发给模型的一条任务提示词。</p>
+        </div>
+        <code>/basic/user</code>
+      </a>
+      <a class="po-docs-index-row" href="advanced/variables/">
+        <div>
+          <h3>变量工作区</h3>
+          <p>把提示词沉淀成模板，分离固定结构与可变输入。</p>
+        </div>
+        <code>/advanced/variables</code>
+      </a>
+      <a class="po-docs-index-row" href="advanced/context/">
+        <div>
+          <h3>多消息工作区</h3>
+          <p>在完整上下文里优化某条消息，而不是脱离会话单看一句话。</p>
+        </div>
+        <code>/advanced/context</code>
+      </a>
+      <a class="po-docs-index-row" href="image/text2image-workspace/">
+        <div>
+          <h3>文生图工作区</h3>
+          <p>围绕图像生成结果比较不同提示词的效果。</p>
+        </div>
+        <code>/image/text2image</code>
+      </a>
+      <a class="po-docs-index-row" href="image/image2image-workspace/">
+        <div>
+          <h3>图生图工作区</h3>
+          <p>结合参考图继续优化生成方向与风格控制。</p>
+        </div>
+        <code>/image/image2image</code>
+      </a>
+    </div>
+  </section>
+
+  <section class="po-docs-section po-docs-section--deep">
+    <div class="po-docs-section-head">
+      <h2>继续深入</h2>
+      <p>跑通第一次使用后，再看部署、排障和集成。</p>
+    </div>
+    <div class="po-docs-link-shelf">
+      <a class="po-docs-link-tile" href="deployment/desktop/">
+        <div class="po-docs-link-meta">部署</div>
+        <h3>桌面版与部署方式</h3>
+        <p>查看 Web、桌面版、Docker、Chrome 插件和 MCP 的部署方式。</p>
+      </a>
+      <a class="po-docs-link-tile" href="help/common-questions/">
+        <div class="po-docs-link-meta">排障</div>
+        <h3>常见问题与排障</h3>
+        <p>从连接问题、故障排除到技术支持入口，先查这里。</p>
+      </a>
+      <a class="po-docs-link-tile" href="user/mcp-server/">
+        <div class="po-docs-link-meta">集成</div>
+        <h3>MCP 服务器</h3>
+        <p>了解如何把 Prompt Optimizer 能力暴露给外部客户端或自动化流程。</p>
+      </a>
+    </div>
+  </section>
+</div>

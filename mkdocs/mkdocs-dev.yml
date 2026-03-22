@@ -11,19 +11,24 @@ site_dir: site
 # 主题：Material（精简配置）
 theme:
   name: material
+  custom_dir: overrides
+  font: false
   logo: assets/images/logo.png
   favicon: assets/images/favicon.png
   features:
     - content.code.copy
+    - navigation.instant
     - navigation.top
     - navigation.footer
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: custom
+      accent: custom
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: custom
+      accent: custom
 
 # 精简插件配置 - 包含基本i18n支持
 plugins:
@@ -124,6 +129,9 @@ markdown_extensions:
   - pymdownx.highlight:
       use_pygments: false  # 使用客户端高亮，加快构建速度
   - attr_list
+
+extra_css:
+  - assets/stylesheets/brand-home.css
 
 # 导航配置已移至 i18n 插件内，为每种语言提供本地化导航
 

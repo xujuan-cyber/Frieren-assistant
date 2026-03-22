@@ -1,6 +1,12 @@
-# 文档开发与预览（Conda 版）
+# Prompt Optimizer 文档站
 
-本工程在仓库根目录下的 `mkdocs/` 子目录中，完全独立于应用项目。
+本目录是独立的文档工程。
+
+## 目录职责
+
+- 技术栈：MkDocs Material + i18n
+- 部署目标：独立 Vercel 项目
+- Vercel Root Directory：`mkdocs/`
 
 ## 前置条件
 
@@ -23,7 +29,18 @@ conda activate prompt-optimizer-docs
 python -m pip install -r requirements.txt
 ```
 
-## 本地预览
+## 本地运行
+
+最常用的是完整多语言预览：
+
+```bash
+mkdocs serve -f mkdocs.yml
+```
+
+启动后默认访问：
+
+- 中文首页：`http://127.0.0.1:8000/`
+- 英文首页：`http://127.0.0.1:8000/en/`
 
 提供多种配置文件满足不同需求：
 
@@ -63,8 +80,8 @@ mkdocs serve -f mkdocs.yml
 - **`mkdocs-zh.yml`** - 中文专版，直接指向zh目录，无i18n复杂性
 - **`mkdocs.yml`** - 完整功能版，支持多语言和所有插件
 
-默认访问 `http://127.0.0.1:8000/`。默认语言为中文，可在右上角切换英文（若存在对应页面）。
-如需连同"版本切换器"一并预览，请使用：
+默认访问 `http://127.0.0.1:8000/`。根路径为中文文档首页，英文位于 `/en/`。
+如需连同历史版本能力一并预览，请使用：
 
 ```bash
 mike serve -F mkdocs.yml
@@ -78,15 +95,27 @@ mkdocs build --strict -f mkdocs.yml
 
 `--strict` 会将链接/引用等问题作为错误处理，便于在提交前尽早发现问题。
 
-## 版本与标签（mike）
+如需验证 Vercel 产物对应的静态内容，可在构建后执行：
 
-本项目使用 `mike` 管理多版本（Material 原生支持）。常用命令在 `mkdocs/` 目录内执行：
+```bash
+python -m http.server 8012 -d site
+```
+
+然后访问：
+
+- `http://127.0.0.1:8012/`
+- `http://127.0.0.1:8012/en/`
+
+## 版本与标签（mike，可选）
+
+当前对外公开的文档 URL 已去版本化，根路径直接提供当前中文文档。
+如果后续需要恢复版本化文档，可继续使用 `mike`。常用命令在 `mkdocs/` 目录内执行：
 
 ```bash
 # 首次发布一个版本，并同时更新/创建别名 latest
 mike deploy -F mkdocs.yml 0.1 latest
 
-# 将默认版本设置为 latest（访问根路径时优先该版本）
+# 将默认版本设置为 latest
 mike set-default -F mkdocs.yml latest
 
 # 查看已发布版本列表
@@ -103,13 +132,14 @@ mike deploy --branch vercel-docs --push -F mkdocs.yml 0.1 latest
 mike set-default --branch vercel-docs --push -F mkdocs.yml latest
 ```
 
-> 说明：i18n 与 mike 组合时，URL 通常为 `/<version>/<lang>/...`，如 `/latest/zh/`。
+> 说明：若重新启用版本化入口，i18n 与 mike 组合时，URL 通常为 `/<version>/<lang>/...`，如 `/latest/zh/`。
 
 ## 常见问题
 
 - 中文搜索命中率不佳：已启用 `search.lang: [zh, en]`；如仍不理想，可按需启用 `lunr-languages` 并在 `mkdocs.yml` 的 `extra_javascript` 中加载。
 - 版本列表不显示：确保先用 `mike deploy` 发布至少一个版本，并用 `mike set-default` 设置默认版本。
 - `mike` 命令不可用：请确认已在当前 Conda 环境安装依赖；或尝试 `python -m mike` 形式运行。
+- 如果只想改官网，请不要在这里改首页；官网已经迁移到仓库根目录下的 `site/`。
 
 ## 清理环境（可选）
 
