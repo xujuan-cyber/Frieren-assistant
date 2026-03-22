@@ -6,6 +6,5 @@ mkdocs-material
 mkdocs-static-i18n
 pymdown-extensions
 mike
-mkdocs-glightbox
 mkdocs-mermaid2-plugin
 
