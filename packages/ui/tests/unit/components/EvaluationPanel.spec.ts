@@ -87,6 +87,11 @@ const naiveStubs = {
     template: '<span class="n-tag"><slot /></span>',
     props: ['type', 'size', 'round', 'bordered'],
   },
+  NTooltip: {
+    name: 'NTooltip',
+    template: '<div class="n-tooltip"><slot name="trigger" /><slot /></div>',
+    props: ['trigger', 'disabled'],
+  },
 }
 
 const baseResult = {
@@ -122,6 +127,7 @@ describe('EvaluationPanel stale state', () => {
           InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
           FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })
@@ -154,6 +160,7 @@ describe('EvaluationPanel stale state', () => {
             props: ['modelValue', 'showActions', 'disabled'],
           },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })
@@ -167,7 +174,7 @@ describe('EvaluationPanel stale state', () => {
     expect(wrapper.emitted('evaluate-with-feedback')).toBeFalsy()
   })
 
-  it('renders structured compare metadata when compare stop signals are present', () => {
+  it('renders structured compare metadata when compare stop signals are present', async () => {
     const wrapper = mount(EvaluationPanel, {
       props: {
         show: true,
@@ -175,6 +182,7 @@ describe('EvaluationPanel stale state', () => {
         currentType: 'compare',
         result: {
           ...baseResult,
+          improvements: ['Keep the explicit task decomposition.'],
           metadata: {
             compareMode: 'structured',
             snapshotRoles: {
@@ -249,38 +257,36 @@ describe('EvaluationPanel stale state', () => {
           InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
           FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })
 
-    expect(wrapper.text()).toContain('Compare Metadata')
-    expect(wrapper.text()).toContain('Compare Decision')
-    expect(wrapper.text()).toContain('Continue')
-    expect(wrapper.text()).toContain('The target is moving in the right direction, but there is still actionable improvement headroom.')
-    expect(wrapper.text()).toContain('Key Evidence')
-    expect(wrapper.text()).toContain('Next Actions')
-    expect(wrapper.text()).toContain('Learn from the stronger reference-side structure before the next rewrite.')
-    expect(wrapper.text()).toContain('If you continue rewriting, focus only on the highest-signal gap instead of broad changes.')
-    expect(wrapper.text()).toContain('Structured')
-    expect(wrapper.text()).toContain('a')
-    expect(wrapper.text()).toContain('Target')
-    expect(wrapper.text()).toContain('Target vs Baseline')
-    expect(wrapper.text()).toContain('Improved')
-    expect(wrapper.text()).toContain('Stop Reasons')
-    expect(wrapper.text()).toContain('headroom remains')
-    expect(wrapper.text()).toContain('Pairwise Judgements')
-    expect(wrapper.text()).toContain('Left Better')
-    expect(wrapper.text()).toContain('High Confidence')
-    expect(wrapper.text()).toContain('Compare Insights')
-    expect(wrapper.text()).toContain('Focused Findings')
-    expect(wrapper.text()).toContain('Progress Summary')
-    expect(wrapper.text()).toContain('Pair Highlights')
-    expect(wrapper.text()).toContain('Evidence Highlights')
-    expect(wrapper.text()).toContain('Conflict Checks')
-    expect(wrapper.text()).toContain('Evidence')
+    expect(wrapper.text()).toContain('Iteration Advice')
+    expect(wrapper.text()).toContain('Keep Iterating')
+    expect(wrapper.text()).toContain('The optimization target is moving in the right direction, but there is still actionable improvement headroom.')
+    expect(wrapper.text()).toContain('summary')
+    expect(wrapper.get('[data-testid="evaluation-panel-summary-card"]').text()).toBe('summary')
+    expect(wrapper.get('[data-testid="evaluation-panel-compare-secondary-headline"]').text())
+      .toContain('The optimization target is moving in the right direction')
+    expect(wrapper.find('.score-section').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Previous')
+    expect(wrapper.text()).toContain('Teacher')
+    expect(wrapper.text()).not.toContain('Stability and Overfit Risk')
     expect(wrapper.text()).toContain('Keep the explicit task decomposition.')
-    expect(wrapper.text()).toContain('Do not add sample-specific rules.')
-    expect(wrapper.text()).toContain('When reusable gains and sample-fitting gains coexist, prefer conservative conclusions and keep the overfit risk visible.')
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-context"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-metadata"]').exists()).toBe(false)
+    const roleText = wrapper.find('[data-testid="evaluation-panel-compare-context-roles"]').text()
+    expect(roleText).toContain('Optimization Target')
+    expect(roleText).toContain('Previous Version')
+    expect(roleText).toContain('Teacher')
+    expect(roleText.indexOf('A')).toBeLessThan(roleText.indexOf('B'))
+    expect(roleText.indexOf('B')).toBeLessThan(roleText.indexOf('C'))
+    expect(wrapper.text()).not.toContain('Comparison Mode')
+    expect(wrapper.text()).not.toContain('Smart Compare')
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-metadata-stop-signals"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-insights"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-judgements"]').exists()).toBe(false)
   })
 
   it('surfaces a review-oriented compare decision when the target regresses', () => {
@@ -326,19 +332,24 @@ describe('EvaluationPanel stale state', () => {
           InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
           FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })
 
-    expect(wrapper.text()).toContain('Compare Decision')
-    expect(wrapper.text()).toContain('Review')
-    expect(wrapper.text()).toContain('The target appears to have regressed relative to the previous version; do not accept this rewrite directly.')
-    expect(wrapper.text()).toContain('Inspect what the new version removed or weakened before attempting another rewrite.')
-    expect(wrapper.text()).toContain('Review the conflicting evidence first, then decide whether to rewrite or keep the current version.')
-    expect(wrapper.text()).toContain('Filter out sample-specific rules and keep only reusable guidance.')
+    expect(wrapper.text()).toContain('Iteration Advice')
+    expect(wrapper.text()).toContain('Needs Review')
+    expect(wrapper.text()).toContain('The optimization target appears to have regressed relative to the previous version; do not accept this rewrite directly.')
+    expect(wrapper.get('[data-testid="evaluation-panel-summary-card"]').text()).toBe('summary')
+    expect(wrapper.get('[data-testid="evaluation-panel-compare-secondary-headline"]').text())
+      .toContain('The optimization target appears to have regressed relative to the previous version')
+    expect(wrapper.find('.score-section').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Previous')
+    expect(wrapper.text()).toContain('Teacher')
+    expect(wrapper.text()).not.toContain('Stability and Overfit Risk')
   })
 
-  it('adds a prompt-validity action when compare conflict signals show unsupported reference evidence', () => {
+  it('adds a prompt-validity action when compare conflict signals show unsupported reference evidence', async () => {
     const wrapper = mount(EvaluationPanel, {
       props: {
         show: true,
@@ -390,13 +401,14 @@ describe('EvaluationPanel stale state', () => {
           InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
           FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })
 
-    expect(wrapper.text()).toContain('Conflict Checks')
-    expect(wrapper.text()).toContain('The target improved over baseline, but the same prompt change is not supported on the reference side.')
-    expect(wrapper.text()).toContain('Check whether the prompt change is actually transferable, because the reference-side evidence does not currently support it.')
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-context"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-metadata"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="evaluation-panel-compare-insights"]').exists()).toBe(false)
   })
 
   it('emits rewrite-from-evaluation when the rewrite action is clicked', async () => {
@@ -417,6 +429,7 @@ describe('EvaluationPanel stale state', () => {
           InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
           FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })
@@ -452,6 +465,7 @@ describe('EvaluationPanel stale state', () => {
           InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
           FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
           ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
         },
       },
     })

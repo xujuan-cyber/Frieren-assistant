@@ -11,7 +11,8 @@
       <div class="hover-card-scroll">
         <NAlert
           v-if="stale"
-          type="warning"
+          type="info"
+          :show-icon="false"
           :bordered="false"
           class="stale-alert"
         >
@@ -19,7 +20,14 @@
         </NAlert>
 
         <!-- 总分 + 等级 -->
-        <NSpace align="center" :size="12" class="score-header">
+        <button
+          type="button"
+          class="score-header-button"
+          :title="t('evaluation.viewDetails')"
+          data-testid="evaluation-hover-score-summary"
+          @click="handleShowDetail"
+        >
+          <NSpace align="center" :size="12" class="score-header">
           <NProgress
             type="circle"
             :percentage="result.score.overall"
@@ -36,7 +44,8 @@
               {{ getScoreLevelText(result.score.overall) }}
             </NTag>
           </div>
-        </NSpace>
+          </NSpace>
+        </button>
 
         <!-- 维度分数 -->
         <NCard embedded size="small" :bordered="false" class="section-card">
@@ -351,6 +360,26 @@ const handleApplyPatch = (operation: PatchOperation) => {
 /* 分数头部 */
 .score-header {
   margin-bottom: 10px;
+}
+
+.score-header-button {
+  width: 100%;
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.score-header-button:hover {
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.score-header-button:focus-visible {
+  outline: 2px solid var(--n-primary-color);
+  outline-offset: 2px;
 }
 
 .stale-alert {

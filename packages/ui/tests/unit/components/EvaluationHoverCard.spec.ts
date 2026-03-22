@@ -120,6 +120,15 @@ const createWrapper = () =>
   })
 
 describe('EvaluationHoverCard feedback editor interaction', () => {
+  it('clicking the score summary should emit show-detail', async () => {
+    const wrapper = createWrapper()
+
+    await wrapper.get('[data-testid="evaluation-hover-score-summary"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.emitted('show-detail')).toEqual([[]])
+  })
+
   it('默认应展示反馈编辑器', async () => {
     const wrapper = createWrapper()
 

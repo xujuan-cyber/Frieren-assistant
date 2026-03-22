@@ -194,7 +194,7 @@ export function useCompareRoleConfig<Id extends string = string>(
       return false
     }
 
-    return !Object.values(validManualRoles.value).includes('target')
+    return !Object.values(effectiveRoles.value).includes('target')
   })
 
   const requiresManualRoleReview = computed(

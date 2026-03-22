@@ -380,7 +380,11 @@ describe('buildCompareEvaluationPayload', () => {
 
     expect(payload).not.toBeNull()
     expect(payload?.compareHints).toEqual({
-      mode: 'generic',
+      mode: 'structured',
+      snapshotRoles: {
+        a: 'target',
+        b: 'reference',
+      },
       hasSharedTestCases: true,
       hasSamePromptSnapshots: true,
       hasCrossModelComparison: true,
@@ -604,6 +608,107 @@ describe('buildCompareEvaluationPayload', () => {
       hasSharedTestCases: true,
       hasSamePromptSnapshots: false,
       hasCrossModelComparison: false,
+    })
+  })
+
+  it('defaults the first workspace snapshot to the optimization target when multiple workspaces exist', () => {
+    const snapshotRoles = inferCompareSnapshotRoles([
+      {
+        id: 'a',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt current',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'b',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt current',
+        modelKey: 'deepseek-chat',
+      },
+      {
+        id: 'c',
+        promptRef: { kind: 'version', version: 2 },
+        promptText: 'Prompt previous',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'd',
+        promptRef: { kind: 'version', version: 1 },
+        promptText: 'Teacher previous',
+        modelKey: 'deepseek-chat',
+      },
+    ])
+
+    expect(snapshotRoles).toEqual({
+      a: 'target',
+      b: 'reference',
+      c: 'baseline',
+      d: 'referenceBaseline',
+    })
+  })
+
+  it('prioritizes the dynamic previous alias as baseline when multiple same-model candidates exist', () => {
+    const snapshotRoles = inferCompareSnapshotRoles([
+      {
+        id: 'target',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt current with local edits',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'previous',
+        promptRef: { kind: 'version', version: 3, dynamicAlias: 'previous' },
+        promptText: 'Prompt current',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'older',
+        promptRef: { kind: 'version', version: 2 },
+        promptText: 'Prompt old',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'teacher',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt current with local edits',
+        modelKey: 'deepseek-chat',
+      },
+    ])
+
+    expect(snapshotRoles).toEqual({
+      target: 'target',
+      previous: 'baseline',
+      older: 'auxiliary',
+      teacher: 'reference',
+    })
+  })
+
+  it('treats a previous alias with identical prompt text as a replica stability check', () => {
+    const snapshotRoles = inferCompareSnapshotRoles([
+      {
+        id: 'target',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt current',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'previous',
+        promptRef: { kind: 'version', version: 3, dynamicAlias: 'previous' },
+        promptText: 'Prompt current',
+        modelKey: 'qwen3-32b',
+      },
+      {
+        id: 'teacher',
+        promptRef: { kind: 'workspace' },
+        promptText: 'Prompt current',
+        modelKey: 'deepseek-chat',
+      },
+    ])
+
+    expect(snapshotRoles).toEqual({
+      target: 'target',
+      previous: 'replica',
+      teacher: 'reference',
     })
   })
 

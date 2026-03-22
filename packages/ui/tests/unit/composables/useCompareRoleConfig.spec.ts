@@ -108,7 +108,11 @@ describe('useCompareRoleConfig', () => {
     expect(config.staleManualRoles.value).toEqual({
       b: 'target',
     })
-    expect(config.requiresExplicitTargetSelection.value).toBe(true)
+    expect(config.requiresExplicitTargetSelection.value).toBe(false)
+    expect(config.inferredRoles.value).toEqual({
+      a: 'target',
+      b: 'baseline',
+    })
     expect(config.entries.value.every((entry) => entry.roleSource !== 'manual')).toBe(true)
     expect(config.entries.value.find((entry) => entry.id === 'b')?.staleManualRole).toBe('target')
   })

@@ -869,6 +869,54 @@ describe('useEvaluationHandler', () => {
     expect(mockEvaluation.clearResult).toHaveBeenCalledWith('compare')
   })
 
+  it('exposes compare rewrite guidance through panel props', () => {
+    vi.mocked(buildRewritePayload).mockReturnValueOnce({
+      compressedEvaluation: {
+        rewriteGuidance: {
+          recommendation: 'skip',
+          reasons: ['Keep the current structure stable first.'],
+        },
+      },
+    } as ReturnType<typeof buildRewritePayload>)
+
+    const mockEvaluation = createMockEvaluation({
+      compare: createEvaluationResponse(84, 'compare'),
+    })
+    mockEvaluation.state.activeDetail = {
+      type: 'compare',
+    }
+    mockEvaluation.isPanelVisible.value = true
+
+    const handler = useEvaluationHandler({
+      services: ref(null),
+      analysisOptimizedPrompt: ref('Prompt'),
+      evaluationModelKey: ref('eval-model'),
+      functionMode: ref('basic'),
+      subMode: ref('system'),
+      comparePayload: ref({
+        target: {
+          workspacePrompt: 'Workspace prompt from compare target',
+          referencePrompt: 'Previous prompt from compare target',
+        },
+        testCases: [],
+        snapshots: [],
+      }),
+      externalEvaluation: mockEvaluation,
+    })
+
+    expect(handler.panelProps.value.rewriteRecommendation).toBe('skip')
+    expect(handler.panelProps.value.rewriteReasons).toEqual([
+      'Keep the current structure stable first.',
+    ])
+    expect(buildRewritePayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'compare',
+        workspacePrompt: 'Workspace prompt from compare target',
+        referencePrompt: 'Previous prompt from compare target',
+      }),
+    )
+  })
+
   it('passes the evaluation result into the direct rewrite entry and closes the panel on success', () => {
     const mockEvaluation = createMockEvaluation()
     const runIterateWithInput = vi.fn(() => true)

@@ -79,6 +79,32 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
     vi.useRealTimers()
   })
 
+  it('clicking the score badge should open detail directly when a result exists', async () => {
+    const wrapper = mount(EvaluationScoreBadge, {
+      props: {
+        score: 88,
+        level: 'good',
+        loading: false,
+        result: baseResult,
+        type: 'result',
+      },
+      global: {
+        stubs: {
+          NPopover: NPopoverStub,
+          NButton: NButtonStub,
+          EvaluationHoverCard: EvaluationHoverCardStub,
+        },
+      },
+    })
+
+    const badgeButton = wrapper.find('[data-testid="score-badge-result"]')
+    await badgeButton.trigger('click')
+    await nextTick()
+
+    expect(wrapper.emitted('show-detail')).toEqual([[]])
+    expect(wrapper.find('.hover-card-wrapper').exists()).toBe(false)
+  })
+
   it('focus within popover should prevent hover auto-close while typing', async () => {
     vi.useFakeTimers()
 
@@ -213,7 +239,7 @@ describe('EvaluationScoreBadge popover focus interaction', () => {
     })
 
     const badgeButton = wrapper.find('[data-testid="score-badge-result"]')
-    await badgeButton.trigger('click')
+    await badgeButton.trigger('mouseenter')
     await nextTick()
 
     const hoverCard = wrapper.findComponent({ name: 'EvaluationHoverCard' })

@@ -55,10 +55,14 @@
                 type="result"
                 :label="t('evaluation.evaluate')"
                 :loading="isEvaluatingPrimary"
-                :button-props="{ size: 'tiny', secondary: true }"
+                :button-props="{ size: 'small', type: 'tertiary' }"
                 @evaluate="handleEvaluatePrimary"
                 @evaluate-with-feedback="handleEvaluateWithFeedback"
-              />
+              >
+                <template #icon>
+                  <AnalyzeActionIcon />
+                </template>
+              </FocusAnalyzeButton>
             </div>
           </div>
         </template>
@@ -108,10 +112,14 @@
                 type="result"
                 :label="t('evaluation.evaluate')"
                 :loading="isEvaluatingSecondary"
-                :button-props="{ size: 'tiny', secondary: true }"
+                :button-props="{ size: 'small', type: 'tertiary' }"
                 @evaluate="handleEvaluateSecondary"
                 @evaluate-with-feedback="handleEvaluateWithFeedback"
-              />
+              >
+                <template #icon>
+                  <AnalyzeActionIcon />
+                </template>
+              </FocusAnalyzeButton>
             </div>
           </div>
         </template>
@@ -163,10 +171,14 @@
               type="result"
               :label="t('evaluation.evaluate', '评估')"
               :loading="isEvaluatingSecondary"
-              :button-props="{ size: 'tiny', secondary: true }"
+              :button-props="{ size: 'small', type: 'tertiary' }"
               @evaluate="handleEvaluateSecondary"
               @evaluate-with-feedback="handleEvaluateWithFeedback"
-            />
+            >
+              <template #icon>
+                <AnalyzeActionIcon />
+              </template>
+            </FocusAnalyzeButton>
           </div>
         </div>
       </template>
@@ -189,7 +201,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NFlex, NCard, NText } from 'naive-ui'
 import ToolCallDisplay from './ToolCallDisplay.vue'
-import { EvaluationScoreBadge, FocusAnalyzeButton } from './evaluation'
+import { AnalyzeActionIcon, EvaluationScoreBadge, FocusAnalyzeButton } from './evaluation'
 import type { AdvancedTestResult, EvaluationResponse, EvaluationType, PatchOperation } from '@prompt-optimizer/core'
 import type { ScoreLevel } from './evaluation/types'
 

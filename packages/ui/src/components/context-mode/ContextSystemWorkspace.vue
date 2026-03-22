@@ -192,30 +192,6 @@
 
                             <NFlex align="center" justify="end" :size="8" :wrap="false">
                                 <NButton
-                                    v-if="activeVariantIds.length >= 2"
-                                    size="small"
-                                    quaternary
-                                    @click="openCompareRoleConfig"
-                                >
-                                    {{ t('evaluation.compareConfig.button') }}
-                                </NButton>
-                                <NTag
-                                    v-if="compareRoleConfig.requiresExplicitTargetSelection.value"
-                                    size="small"
-                                    type="warning"
-                                    :bordered="false"
-                                >
-                                    {{ t('evaluation.compareConfig.targetNeededShort') }}
-                                </NTag>
-                                <NTag
-                                    v-if="compareRoleConfig.requiresManualRoleReview.value"
-                                    size="small"
-                                    type="warning"
-                                    :bordered="false"
-                                >
-                                    {{ t('evaluation.compareConfig.reviewNeededShort') }}
-                                </NTag>
-                                <NButton
                                     type="primary"
                                     size="small"
                                     :loading="isAnyVariantRunning"
@@ -250,11 +226,24 @@
                                         :label="t('evaluation.compareEvaluate')"
                                         :disabled="!canEvaluateCompare"
                                         :loading="isEvaluatingCompare"
-                                        :button-props="{ size: 'small', quaternary: true }"
+                                        :button-props="{ size: 'small', type: 'tertiary' }"
                                         @evaluate="() => handleEvaluate('compare')"
                                         @evaluate-with-feedback="handleEvaluateWithFeedback"
-                                    />
+                                    >
+                                        <template #icon>
+                                            <AnalyzeActionIcon />
+                                        </template>
+                                    </FocusAnalyzeButton>
                                 </template>
+                                <CompareHelpButton v-if="activeVariantIds.length >= 2" />
+                                <NTag
+                                    v-if="compareToolbarStatus"
+                                    size="small"
+                                    :type="compareToolbarStatus.type"
+                                    :bordered="false"
+                                >
+                                    {{ compareToolbarStatus.label }}
+                                </NTag>
                             </NFlex>
                         </div>
                     </NCard>
@@ -271,33 +260,12 @@
                                         <NTag size="small" :bordered="false" class="variant-cell__label">
                                             {{ getVariantLabel(id) }}
                                         </NTag>
-                                        <NTag
-                                            v-if="compareRoleEntryMap[id]?.effectiveRole"
-                                            size="small"
-                                            :type="getCompareRoleTagType(compareRoleEntryMap[id]?.effectiveRole)"
-                                            :bordered="false"
-                                            class="variant-cell__role"
-                                        >
-                                            {{ t(`evaluation.compareConfig.roleValues.${compareRoleEntryMap[id]?.effectiveRole}`) }}
-                                        </NTag>
-                                        <NTag
-                                            v-if="compareRoleEntryMap[id]?.workspaceChangedManualRole"
-                                            size="small"
-                                            type="warning"
-                                            :bordered="false"
-                                            class="variant-cell__role"
-                                        >
-                                            {{ t('evaluation.compareConfig.reviewNeededShort') }}
-                                        </NTag>
-                                        <NTag
-                                            v-if="isVariantStale(id)"
-                                            size="small"
-                                            type="warning"
-                                            :bordered="false"
-                                            class="variant-cell__stale"
-                                        >
-                                            {{ t('test.layout.stale') }}
-                                        </NTag>
+                                        <CompareRoleBadge
+                                            v-if="activeVariantIds.length >= 2"
+                                            :entry="compareRoleEntryMap[id]"
+                                            clickable
+                                            @click="openCompareRoleConfig"
+                                        />
                                     </div>
 
                                     <div class="variant-cell__actions">
@@ -408,13 +376,18 @@
                                                         <FocusAnalyzeButton
                                                             v-else
                                                             type="result"
+                                                            variant="toolbar"
                                                             :label="t('evaluation.evaluate')"
                                                             :disabled="!canEvaluateResult"
                                                             :loading="getResultEvaluationProps(id).isEvaluating"
-                                                            :button-props="{ size: 'small', quaternary: true }"
+                                                            :button-props="{ size: 'small', quaternary: true, circle: true }"
                                                             @evaluate="() => handleEvaluateResult(id)"
                                                             @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
-                                                        />
+                                                        >
+                                                            <template #icon>
+                                                                <AnalyzeActionIcon />
+                                                            </template>
+                                                        </FocusAnalyzeButton>
                                                 </div>
                                             </template>
                                         </OutputDisplay>
@@ -435,6 +408,8 @@
             :error="panelProps.error"
             :current-type="panelProps.currentType"
             :score-level="panelProps.scoreLevel"
+            :rewrite-recommendation="panelProps.rewriteRecommendation"
+            :rewrite-reasons="panelProps.rewriteReasons"
             :stale="activeEvaluationStale"
             :stale-message="activeEvaluationStaleMessage"
             :disable-evaluate="activeEvaluationDisableEvaluate"
@@ -509,7 +484,16 @@ import OutputDisplay from "../OutputDisplay.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ToolCallDisplay from "../ToolCallDisplay.vue";
-import { CompareRoleConfigDialog, EvaluationPanel, EvaluationScoreBadge, FocusAnalyzeButton } from '../evaluation'
+import {
+    AnalyzeActionIcon,
+    CompareHelpButton,
+    CompareRoleBadge,
+    CompareRoleConfigDialog,
+    EvaluationPanel,
+    EvaluationScoreBadge,
+    FocusAnalyzeButton,
+} from '../evaluation'
+import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
 import { useConversationOptimization } from '../../composables/prompt/useConversationOptimization'
 import { usePromptDisplayAdapter } from '../../composables/prompt/usePromptDisplayAdapter'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
@@ -521,9 +505,10 @@ import { OptionAccessors } from '../../utils/data-transformer'
 import { useToast } from "../../composables/ui/useToast";
 import { useElementSize } from '@vueuse/core'
 import {
+    buildTestPanelVersionPromptRef,
     buildTestPanelVersionOptions,
     formatTestPanelVersionSelectionLabel,
-    resolvePreviousSavedVersionNumber,
+    resolveTestPanelVersionSelection,
 } from '../../utils/testPanelVersion'
 import {
     buildConversationExecutionContext,
@@ -541,7 +526,6 @@ import {
     type OptimizationMode,
     type PromptRecord,
     type PromptRecordChain,
-    type StructuredCompareRole,
     type Template,
     type ToolDefinition,
     type ProSystemEvaluationContext,
@@ -1071,6 +1055,11 @@ const versionOptions = computed(() => {
     return buildTestPanelVersionOptions(
         conversationOptimization.currentVersions.value || [],
         getTestPanelVersionLabels(),
+        {
+            currentVersionId: displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentVersionId.value,
+            workspacePrompt: displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || '',
+            originalPrompt: conversationOptimization.selectedMessage.value?.originalContent || conversationOptimization.selectedMessage.value?.content || '',
+        },
     )
 })
 
@@ -1101,28 +1090,18 @@ const resolveSelectedMessageContent = (
     selection: TestPanelVersionValue,
 ): ResolvedSelectedMessage => {
     const selectedMsg = conversationOptimization.selectedMessage.value
-    const v0 = selectedMsg?.originalContent || selectedMsg?.content || ''
-    const workspace = displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || ''
-    const versions = conversationOptimization.currentVersions.value || []
+    const resolved = resolveTestPanelVersionSelection({
+        selection,
+        versions: conversationOptimization.currentVersions.value || [],
+        currentVersionId: displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentVersionId.value,
+        workspacePrompt: displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || '',
+        originalPrompt: selectedMsg?.originalContent || selectedMsg?.content || '',
+    })
 
-    if (selection === 'workspace') {
-        return { text: workspace, resolvedVersion: -1 }
+    return {
+        text: resolved.text,
+        resolvedVersion: resolved.resolvedVersion,
     }
-
-    const resolvedSelection = selection === 'previous'
-        ? resolvePreviousSavedVersionNumber(versions)
-        : selection
-
-    if (resolvedSelection === 0) {
-        return { text: v0, resolvedVersion: 0 }
-    }
-
-    const target = versions.find((v) => v.version === resolvedSelection)
-    if (target) {
-        return { text: target.optimizedPrompt || '', resolvedVersion: target.version }
-    }
-
-    return { text: '', resolvedVersion: -1 }
 }
 
 const resolvedOriginalTestPrompt = computed(() =>
@@ -1295,6 +1274,15 @@ const compareRoleConfig = useCompareRoleConfig({
 })
 const compareRoleEntryMap = computed(() =>
     Object.fromEntries(compareRoleConfig.entries.value.map((entry) => [entry.id, entry]))
+)
+const compareToolbarStatus = computed(() =>
+    activeVariantIds.value.length >= 2
+        ? buildCompareToolbarStatus(
+            t,
+            compareRoleConfig.requiresExplicitTargetSelection.value,
+            compareRoleConfig.requiresManualRoleReview.value,
+        )
+        : null
 )
 const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
     a: '',
@@ -1533,23 +1521,15 @@ const buildEvaluationTarget = () => {
 
 const buildVariantPromptRef = (id: TestVariantId) => {
     const selection = variantVersionModels[id].value
-    const resolved = resolveSelectedMessageContent(selection)
-    const versionLabel = formatTestPanelVersionSelectionLabel(
+    const selectedMsg = conversationOptimization.selectedMessage.value
+    const resolved = resolveTestPanelVersionSelection({
         selection,
-        resolved.resolvedVersion,
-        getTestPanelVersionLabels(),
-    )
-    if (selection === 'workspace') {
-        return { kind: 'workspace' as const, label: t('test.layout.workspace') }
-    }
-    if (resolved.resolvedVersion === 0) {
-        return { kind: 'original' as const, label: versionLabel }
-    }
-    return {
-        kind: 'version' as const,
-        version: resolved.resolvedVersion >= 1 ? resolved.resolvedVersion : 0,
-        label: versionLabel,
-    }
+        versions: conversationOptimization.currentVersions.value || [],
+        currentVersionId: displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentVersionId.value,
+        workspacePrompt: displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || '',
+        originalPrompt: selectedMsg?.originalContent || selectedMsg?.content || '',
+    })
+    return buildTestPanelVersionPromptRef(resolved, getTestPanelVersionLabels())
 }
 
 const buildConversationTestCaseDraft = (
@@ -1834,20 +1814,6 @@ const showDetail = (type: 'compare') => {
 
 const openCompareRoleConfig = () => {
     compareRoleConfig.openDialog()
-}
-
-const getCompareRoleTagType = (role?: StructuredCompareRole) => {
-    switch (role) {
-        case 'target':
-            return 'success'
-        case 'baseline':
-        case 'referenceBaseline':
-            return 'warning'
-        case 'reference':
-            return 'info'
-        default:
-            return 'default'
-    }
 }
 
 const handleCompareRoleConfigConfirm = async (
@@ -2215,7 +2181,9 @@ defineExpose({
 .output-evaluation-entry {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     white-space: nowrap;
+    margin-right: -2px;
 }
 
 .variant-results-wrap {

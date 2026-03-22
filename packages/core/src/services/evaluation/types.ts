@@ -156,6 +156,8 @@ export interface EvaluationPromptRef {
   version?: number;
   /** 展示标签 */
   label?: string;
+  /** 动态别名来源（如“上一版”） */
+  dynamicAlias?: 'previous';
 }
 
 /**

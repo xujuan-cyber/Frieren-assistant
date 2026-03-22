@@ -1,6 +1,31 @@
 <template>
-  <NButtonGroup class="focus-analyze-group" :data-evaluation-type="type">
+  <NButtonGroup
+    class="focus-analyze-group"
+    :class="{ 'focus-analyze-group--toolbar': isToolbarVariant }"
+    :data-evaluation-type="type"
+  >
+    <NTooltip v-if="isToolbarVariant" trigger="hover">
+      <template #trigger>
+        <NButton
+          v-bind="buttonPropsMerged"
+          :disabled="isDisabled"
+          :loading="loading"
+          class="focus-analyze-main focus-analyze-main--toolbar"
+          :aria-label="label"
+          :title="label"
+          data-testid="focus-analyze-main"
+          @click="handleEvaluate"
+        >
+          <template #icon>
+            <slot v-if="$slots.icon" name="icon" />
+            <AnalyzeActionIcon v-else />
+          </template>
+        </NButton>
+      </template>
+      {{ label }}
+    </NTooltip>
     <NButton
+      v-else
       v-bind="buttonPropsMerged"
       :disabled="isDisabled"
       :loading="loading"
@@ -107,11 +132,13 @@ import {
 import type { EvaluationType } from '@prompt-optimizer/core'
 import { Focus2 } from '@vicons/tabler'
 import FeedbackEditor from './FeedbackEditor.vue'
+import AnalyzeActionIcon from './AnalyzeActionIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     type: EvaluationType
     label: string
+    variant?: 'default' | 'toolbar'
     disabled?: boolean
     loading?: boolean
     /**
@@ -121,6 +148,7 @@ const props = withDefaults(
     buttonProps?: Record<string, unknown>
   }>(),
   {
+    variant: 'default',
     disabled: false,
     loading: false,
     buttonProps: () => ({}),
@@ -137,6 +165,7 @@ const { t } = useI18n()
 const focusVisible = ref(false)
 const focusDraft = ref('')
 
+const isToolbarVariant = computed(() => props.variant === 'toolbar')
 const isDisabled = computed(() => props.disabled || props.loading)
 const loading = computed(() => !!props.loading)
 
@@ -188,11 +217,71 @@ const handleStart = () => {
 <style scoped>
 .focus-analyze-group {
   display: inline-flex;
+  align-items: stretch;
+  border-radius: 999px;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease;
+}
+
+.focus-analyze-group:hover,
+.focus-analyze-group:focus-within {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.focus-analyze-group:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.focus-analyze-group--toolbar,
+.focus-analyze-group--toolbar:hover,
+.focus-analyze-group--toolbar:focus-within,
+.focus-analyze-group--toolbar:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.focus-analyze-group--toolbar {
+  flex-shrink: 0;
+}
+
+.focus-analyze-group :deep(.n-button) {
+  font-weight: 600;
+}
+
+.focus-analyze-main {
+  min-width: 40px;
+}
+
+.focus-analyze-main--toolbar {
+  min-width: auto;
 }
 
 .focus-analyze-trigger {
   min-width: 34px;
   padding: 0 8px;
+}
+
+.focus-analyze-group--toolbar .focus-analyze-trigger {
+  min-width: auto;
+  padding: 0;
+}
+
+.focus-analyze-group--toolbar :deep(.n-button) {
+  font-weight: 500;
+}
+
+.focus-analyze-group--toolbar :deep(.n-button__icon) {
+  margin: 0;
+}
+
+.focus-analyze-main:focus-visible,
+.focus-analyze-trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .focus-popover-card {

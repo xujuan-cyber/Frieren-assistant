@@ -106,6 +106,8 @@ export interface UseEvaluationHandlerReturn {
     currentType: EvaluationType | null
     currentVariantId: string | null
     scoreLevel: ScoreLevel | null
+    rewriteRecommendation: 'skip' | 'minor-rewrite' | 'rewrite' | null
+    rewriteReasons: string[]
   }>
 }
 
@@ -456,15 +458,45 @@ export function useEvaluationHandler(
 
   const panelProps = computed(() => {
     const active = evaluation.state.activeDetail
+    const activeResult = evaluation.activeResult.value
+    const rewriteGuidance = (() => {
+      if (!active || !activeResult) return null
+
+      const compareTarget = comparePayload?.value?.target
+      const workspacePrompt =
+        active.type === 'compare'
+          ? compareTarget?.workspacePrompt || analysisOptimizedPrompt.value || ''
+          : analysisOptimizedPrompt.value || ''
+      const referencePrompt =
+        active.type === 'compare'
+          ? compareTarget?.referencePrompt
+          : undefined
+      const language = normalizeRewriteLocaleLanguage(locale.value)
+
+      return buildRewritePayload({
+        result: activeResult,
+        type: active.type,
+        mode: {
+          functionMode: options.functionMode.value as 'basic' | 'pro' | 'image',
+          subMode: options.subMode.value as EvaluationSubMode,
+        },
+        language,
+        workspacePrompt,
+        referencePrompt,
+      }).compressedEvaluation.rewriteGuidance
+    })()
+
     return {
       show: evaluation.isPanelVisible.value,
       isEvaluating: getIsEvaluatingForActive(),
-      result: evaluation.activeResult.value,
+      result: activeResult,
       streamContent: evaluation.activeStreamContent.value,
       error: evaluation.activeError.value,
       currentType: active?.type ?? null,
       currentVariantId: active?.variantId ?? null,
       scoreLevel: evaluation.activeScoreLevel.value,
+      rewriteRecommendation: rewriteGuidance?.recommendation ?? null,
+      rewriteReasons: rewriteGuidance?.reasons || [],
     }
   })
 

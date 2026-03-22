@@ -120,6 +120,7 @@ export const buildCompareRoleCandidateSignature = (
   const promptVersion = candidate.promptRef.kind === 'version'
     ? String(candidate.promptRef.version ?? '')
     : ''
+  const promptDynamicAlias = candidate.promptRef.dynamicAlias || ''
   const modelKey = (candidate.modelKey || '').trim()
   const normalizedPromptText = normalizeInlineText(candidate.promptText)
   const promptTextSignature = candidate.promptRef.kind === 'workspace'
@@ -129,6 +130,7 @@ export const buildCompareRoleCandidateSignature = (
   return JSON.stringify({
     promptKind,
     promptVersion,
+    promptDynamicAlias,
     modelKey,
     promptTextSignature,
   })
@@ -422,9 +424,14 @@ const getComparePromptVersionRank = (
   promptRef: CompareRoleCandidate['promptRef'],
 ): number => typeof promptRef.version === 'number' ? promptRef.version : -1
 
+const getComparePromptDynamicAliasPriority = (
+  promptRef: CompareRoleCandidate['promptRef'],
+): number => promptRef.dynamicAlias === 'previous' ? 1 : 0
+
 const buildBaselineCandidateScore = (
   candidate: RankedCompareRoleCandidate,
 ): number[] => [
+  getComparePromptDynamicAliasPriority(candidate.promptRef),
   getComparePromptKindPriority(candidate.promptRef, 'preferVersion'),
   getComparePromptVersionRank(candidate.promptRef),
   -candidate.index,
@@ -461,7 +468,7 @@ export const inferCompareSnapshotRoles = (
   )
   const targetSnapshot = seededTargetSnapshots.length === 1
     ? seededTargetSnapshots[0]
-    : workspaceSnapshots.length === 1
+    : seededTargetSnapshots.length === 0 && workspaceSnapshots.length >= 1
       ? workspaceSnapshots[0]
       : null
 

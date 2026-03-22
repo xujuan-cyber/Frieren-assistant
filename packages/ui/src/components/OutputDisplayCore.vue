@@ -38,9 +38,9 @@
         </NButtonGroup>
         
         <!-- 右侧：操作按钮 -->
-        <NFlex align="center" :size="8" :wrap="false">
+        <NFlex align="center" :size="6" :wrap="false" class="output-toolbar-actions">
           <slot name="toolbar-right-extra"></slot>
-          <NButtonGroup>
+          <NButtonGroup class="output-toolbar-action-group">
           <NButton
             v-if="isActionEnabled('favorite')"
             @click="handleFavorite"
@@ -571,3 +571,13 @@ watch(() => props.mode, (newMode) => {
 
 defineExpose({ resetReasoningState, forceRefreshContent, forceExitEditing })
 </script>
+
+<style scoped>
+.output-toolbar-actions {
+  flex-shrink: 0;
+}
+
+.output-toolbar-action-group {
+  flex-shrink: 0;
+}
+</style>
