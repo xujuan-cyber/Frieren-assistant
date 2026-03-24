@@ -1050,13 +1050,17 @@ const getTestPanelVersionLabels = () => ({
     original: t('test.layout.original'),
 })
 
+const compareVersionContextCurrentVersionId = computed(
+    () => displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentRecordId.value,
+)
+
 // 版本选项：默认显示“工作区”与“原始(v0)”；存在可用上一版时显示“上一版(vN)”动态别名。
 const versionOptions = computed(() => {
     return buildTestPanelVersionOptions(
         conversationOptimization.currentVersions.value || [],
         getTestPanelVersionLabels(),
         {
-            currentVersionId: displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentVersionId.value,
+            currentVersionId: compareVersionContextCurrentVersionId.value,
             workspacePrompt: displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || '',
             originalPrompt: conversationOptimization.selectedMessage.value?.originalContent || conversationOptimization.selectedMessage.value?.content || '',
         },
@@ -1093,7 +1097,7 @@ const resolveSelectedMessageContent = (
     const resolved = resolveTestPanelVersionSelection({
         selection,
         versions: conversationOptimization.currentVersions.value || [],
-        currentVersionId: displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentVersionId.value,
+        currentVersionId: compareVersionContextCurrentVersionId.value,
         workspacePrompt: displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || '',
         originalPrompt: selectedMsg?.originalContent || selectedMsg?.content || '',
     })
@@ -1525,7 +1529,7 @@ const buildVariantPromptRef = (id: TestVariantId) => {
     const resolved = resolveTestPanelVersionSelection({
         selection,
         versions: conversationOptimization.currentVersions.value || [],
-        currentVersionId: displayAdapter.displayedCurrentVersionId.value || conversationOptimization.currentVersionId.value,
+        currentVersionId: compareVersionContextCurrentVersionId.value,
         workspacePrompt: displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || '',
         originalPrompt: selectedMsg?.originalContent || selectedMsg?.content || '',
     })
