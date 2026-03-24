@@ -504,6 +504,7 @@
  * ```
  */
 import { ref, reactive, computed, inject, nextTick, watch, onMounted, onUnmounted, toRef, type Ref } from 'vue'
+import { storeToRefs } from 'pinia'
 
 import { useI18n } from "vue-i18n";
 import { NCard, NFlex, NText, NIcon, NButton, NRadioGroup, NRadioButton, NTooltip, NTag } from "naive-ui";
@@ -863,6 +864,7 @@ onUnmounted(() => {
 
     if (typeof window !== 'undefined') {
         window.removeEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+        window.removeEventListener('pro-workspace-refresh-templates', refreshTemplatesHandler)
     }
 })
 
@@ -1125,9 +1127,13 @@ watch(
 const resolvedOriginalTestPrompt = computed(() => resolveTestPrompt(variantAVersionModel.value))
 const resolvedOptimizedTestPrompt = computed(() => resolveTestPrompt(variantBVersionModel.value))
 
-// Pinia setup store 会自动解包 refs，这里是直接可变的响应式对象（非 Ref）
-const variantResults = proVariableSession.testVariantResults
-const variantLastRunFingerprint = proVariableSession.testVariantLastRunFingerprint
+// Pinia setup store 会自动解包 refs。
+// testVariantResults / testVariantLastRunFingerprint 在 restoreSession 时会被整对象替换，
+// 这里必须通过 storeToRefs 持有 Ref，避免组件继续写入旧对象。
+const {
+    testVariantResults: variantResults,
+    testVariantLastRunFingerprint: variantLastRunFingerprint,
+} = storeToRefs(proVariableSession)
 
 const variantRunning = reactive<Record<TestVariantId, boolean>>({
     a: false,
@@ -1160,8 +1166,8 @@ const getVariantOutputTestId = (id: TestVariantId) => {
     return `pro-variable-test-variant-${id}-output`
 }
 
-const getVariantResult = (id: TestVariantId) => variantResults[id]
-const hasVariantResult = (id: TestVariantId) => !!(variantResults[id]?.result || '').trim()
+const getVariantResult = (id: TestVariantId) => variantResults.value[id]
+const hasVariantResult = (id: TestVariantId) => !!(variantResults.value[id]?.result || '').trim()
 
 const getVariantFingerprint = (id: TestVariantId) => {
     const selection = variantVersionModels[id].value
@@ -1181,7 +1187,7 @@ const getVariantFingerprint = (id: TestVariantId) => {
 
 const isVariantStale = (id: TestVariantId) => {
     if (!hasVariantResult(id)) return false
-    const prev = variantLastRunFingerprint[id]
+    const prev = variantLastRunFingerprint.value[id]
     if (!prev) return false
     return prev !== getVariantFingerprint(id)
 }
@@ -1316,7 +1322,7 @@ const runVariant = async (
         evaluationHandler.clearBeforeTest()
     }
 
-    variantResults[id] = { result: '', reasoning: '' }
+    variantResults.value[id] = { result: '', reasoning: '' }
     variantRunning[id] = true
 
     try {
@@ -1333,12 +1339,12 @@ const runVariant = async (
             },
             {
                 onToken: (token: string) => {
-                    const prev = variantResults[id]
-                    variantResults[id] = { ...prev, result: (prev.result || '') + token }
+                    const prev = variantResults.value[id]
+                    variantResults.value[id] = { ...prev, result: (prev.result || '') + token }
                 },
                 onReasoningToken: (token: string) => {
-                    const prev = variantResults[id]
-                    variantResults[id] = { ...prev, reasoning: (prev.reasoning || '') + token }
+                    const prev = variantResults.value[id]
+                    variantResults.value[id] = { ...prev, reasoning: (prev.reasoning || '') + token }
                 },
                 onComplete: () => {
                     // 由 finally 统一收尾
@@ -1360,7 +1366,7 @@ const runVariant = async (
         return false
     } finally {
         variantRunning[id] = false
-        variantLastRunFingerprint[id] = getVariantFingerprint(id)
+        variantLastRunFingerprint.value[id] = getVariantFingerprint(id)
         if (opts?.persist !== false) {
             void proVariableSession.saveSession()
         }
@@ -1408,12 +1414,22 @@ const refreshTextModelsHandler = async () => {
     }
 }
 
+const refreshTemplatesHandler = async () => {
+    try {
+        await templateSelection.refreshOptimizeTemplates()
+        await templateSelection.refreshIterateTemplates()
+    } catch (e) {
+        console.warn('[ContextUserWorkspace] Failed to refresh templates after template manager update:', e)
+    }
+}
+
 onMounted(() => {
     // ✅ 刷新模型列表
     void refreshTextModelsHandler()
 
     if (typeof window !== 'undefined') {
         window.addEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+        window.addEventListener('pro-workspace-refresh-templates', refreshTemplatesHandler)
     }
 });
 
@@ -1607,8 +1623,8 @@ const comparePayload = computed(() =>
             testCaseId: 'shared-variable-test-case',
             promptRef: buildVariantPromptRef(id),
             promptText: resolveTestPrompt(variantVersionModels[id].value).text,
-            output: variantResults[id]?.result || '',
-            reasoning: variantResults[id]?.reasoning || '',
+            output: variantResults.value[id]?.result || '',
+            reasoning: variantResults.value[id]?.reasoning || '',
             modelKey: variantModelKeyModels[id].value,
             versionLabel: getVariantVersionLabel(id),
         })),
@@ -1635,23 +1651,23 @@ const resultEvaluationTargets = computed(() =>
             {
                 variantId: id,
                 target: buildEvaluationTarget(),
-                    testCase: {
-                        id: `${id}-variable-test-case`,
+                testCase: {
+                    id: `${id}-variable-test-case`,
+                    label: t('variables.management.variables'),
+                    input: {
+                        kind: 'variables' as const,
                         label: t('variables.management.variables'),
-                        input: {
-                            kind: 'variables' as const,
-                            label: t('variables.management.variables'),
-                            content: buildResultVariableTestCaseContent(id),
-                        },
+                        content: buildResultVariableTestCaseContent(id),
                     },
+                },
                 snapshot: {
                     id,
                     label: getVariantLabel(id),
                     testCaseId: `${id}-variable-test-case`,
                     promptRef: buildVariantPromptRef(id),
                     promptText: resolveTestPrompt(variantVersionModels[id].value).text,
-                    output: variantResults[id]?.result || '',
-                    reasoning: variantResults[id]?.reasoning || '',
+                    output: variantResults.value[id]?.result || '',
+                    reasoning: variantResults.value[id]?.reasoning || '',
                     modelKey: variantModelKeyModels[id].value || undefined,
                     versionLabel: getVariantVersionLabel(id),
                 },

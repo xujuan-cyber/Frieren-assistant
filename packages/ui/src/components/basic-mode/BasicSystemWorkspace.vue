@@ -443,6 +443,7 @@
  * - 内联基础模式工作区布局（与 BasicUserWorkspace 保持一致）
  */
 import { ref, reactive, computed, toRef, inject, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../../composables/ui/useToast'
 import {
@@ -839,9 +840,13 @@ const resolveTestPrompt = (selection: TestPanelVersionValue): ResolvedTestPrompt
   }
 }
 
-// Pinia setup store 会自动解包 refs，这里是直接可变的响应式对象（非 Ref）
-const variantResults = session.testVariantResults
-const variantLastRunFingerprint = session.testVariantLastRunFingerprint
+// Pinia setup store 会自动解包 refs。
+// testVariantResults / testVariantLastRunFingerprint 在 restoreSession 时会被整对象替换，
+// 这里必须通过 storeToRefs 持有 Ref，避免组件继续写入旧对象。
+const {
+  testVariantResults: variantResults,
+  testVariantLastRunFingerprint: variantLastRunFingerprint,
+} = storeToRefs(session)
 
 const variantRunning = reactive<Record<TestVariantId, boolean>>({
   a: false,
@@ -874,8 +879,8 @@ const getVariantOutputTestId = (id: TestVariantId) => {
   return `basic-system-test-variant-${id}-output`
 }
 
-const getVariantResult = (id: TestVariantId) => variantResults[id]
-const hasVariantResult = (id: TestVariantId) => !!(variantResults[id]?.result || '').trim()
+const getVariantResult = (id: TestVariantId) => variantResults.value[id]
+const hasVariantResult = (id: TestVariantId) => !!(variantResults.value[id]?.result || '').trim()
 
 // 用于 stale 判定：生成短且稳定的指纹，避免把长文本写入持久化存储
 const hashString = (input: string): string => {
@@ -898,7 +903,7 @@ const getVariantFingerprint = (id: TestVariantId) => {
 
 const isVariantStale = (id: TestVariantId) => {
   if (!hasVariantResult(id)) return false
-  const prev = variantLastRunFingerprint[id]
+  const prev = variantLastRunFingerprint.value[id]
   if (!prev) return false
   return prev !== getVariantFingerprint(id)
 }
@@ -1040,18 +1045,18 @@ const runVariant = async (
     evaluationHandler.clearBeforeTest()
   }
 
-  variantResults[id] = { result: '', reasoning: '' }
+  variantResults.value[id] = { result: '', reasoning: '' }
   variantRunning[id] = true
 
   try {
     await promptService.testPromptStream(input.systemPrompt, input.userPrompt, input.modelKey, {
       onToken: (token: string) => {
-        const prev = variantResults[id]
-        variantResults[id] = { ...prev, result: (prev.result || '') + token }
+        const prev = variantResults.value[id]
+        variantResults.value[id] = { ...prev, result: (prev.result || '') + token }
       },
       onReasoningToken: (token: string) => {
-        const prev = variantResults[id]
-        variantResults[id] = { ...prev, reasoning: (prev.reasoning || '') + token }
+        const prev = variantResults.value[id]
+        variantResults.value[id] = { ...prev, reasoning: (prev.reasoning || '') + token }
       },
       onComplete: () => {
         // 由 finally 统一收尾
@@ -1072,7 +1077,7 @@ const runVariant = async (
     return false
   } finally {
     variantRunning[id] = false
-    variantLastRunFingerprint[id] = getVariantFingerprint(id)
+    variantLastRunFingerprint.value[id] = getVariantFingerprint(id)
     if (opts?.persist !== false) {
       void session.saveSession()
     }
@@ -1169,8 +1174,8 @@ const resultEvaluationTargets = computed(() =>
           testCaseId: `${id}-test-case`,
           promptRef: buildVariantPromptRef(id),
           promptText: resolveTestPrompt(variantVersionModels[id].value).text,
-          output: variantResults[id]?.result || '',
-          reasoning: variantResults[id]?.reasoning || '',
+          output: variantResults.value[id]?.result || '',
+          reasoning: variantResults.value[id]?.reasoning || '',
           modelKey: variantModelKeyModels[id].value || undefined,
           versionLabel: getVariantVersionLabel(id),
         },
@@ -1190,8 +1195,8 @@ const comparePayload = computed(() =>
       testCaseId: 'shared-test-case',
       promptRef: buildVariantPromptRef(id),
       promptText: resolveTestPrompt(variantVersionModels[id].value).text,
-      output: variantResults[id]?.result || '',
-      reasoning: variantResults[id]?.reasoning || '',
+      output: variantResults.value[id]?.result || '',
+      reasoning: variantResults.value[id]?.reasoning || '',
       modelKey: variantModelKeyModels[id].value,
       versionLabel: getVariantVersionLabel(id),
     })),

@@ -456,6 +456,7 @@ import {
     onUnmounted,
     type Ref,
 } from 'vue'
+import { storeToRefs } from 'pinia'
 
 import { useI18n } from "vue-i18n";
 import {
@@ -839,6 +840,15 @@ const refreshTextModelsHandler = async () => {
     }
 }
 
+const refreshTemplatesHandler = async () => {
+    try {
+        await templateSelection.refreshOptimizeTemplates()
+        await templateSelection.refreshIterateTemplates()
+    } catch (e) {
+        console.warn('[ContextSystemWorkspace] Failed to refresh templates after template manager update:', e)
+    }
+}
+
 // 🆕 从 session store 恢复测试结果（只恢复稳定字段，不恢复过程态）
  onMounted(() => {
     // ✅ 刷新模型列表
@@ -846,6 +856,7 @@ const refreshTextModelsHandler = async () => {
 
     if (typeof window !== 'undefined') {
         window.addEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+        window.addEventListener('pro-workspace-refresh-templates', refreshTemplatesHandler)
     }
 
      // Pro Multi：初始态保持“未选择消息”，让用户明确选择要优化的消息。
@@ -941,6 +952,7 @@ onUnmounted(() => {
 
     if (typeof window !== 'undefined') {
         window.removeEventListener('pro-workspace-refresh-text-models', refreshTextModelsHandler)
+        window.removeEventListener('pro-workspace-refresh-templates', refreshTemplatesHandler)
     }
 })
 
@@ -1115,9 +1127,13 @@ const resolvedOptimizedTestPrompt = computed(() =>
     resolveSelectedMessageContent(variantBVersionModel.value),
 )
 
-// Pinia setup store 会自动解包 refs，这里是直接可变的响应式对象（非 Ref）
-const variantResults = proMultiSession.testVariantResults
-const variantLastRunFingerprint = proMultiSession.testVariantLastRunFingerprint
+// Pinia setup store 会自动解包 refs。
+// testVariantResults / testVariantLastRunFingerprint 在 restoreSession 时会被整对象替换，
+// 这里必须通过 storeToRefs 持有 Ref，避免组件继续写入旧对象。
+const {
+    testVariantResults: variantResults,
+    testVariantLastRunFingerprint: variantLastRunFingerprint,
+} = storeToRefs(proMultiSession)
 
 const variantRunning = reactive<Record<TestVariantId, boolean>>({
     a: false,
@@ -1159,8 +1175,8 @@ const getVariantOutputTestId = (id: TestVariantId) => {
     return `pro-multi-test-variant-${id}-output`
 }
 
-const getVariantResult = (id: TestVariantId) => variantResults[id]
-const hasVariantResult = (id: TestVariantId) => !!(variantResults[id]?.result || '').trim()
+const getVariantResult = (id: TestVariantId) => variantResults.value[id]
+const hasVariantResult = (id: TestVariantId) => !!(variantResults.value[id]?.result || '').trim()
 
 const formatConversationAsText = (messages: ConversationMessage[]): string => {
     if (!messages || messages.length === 0) return ''
@@ -1236,7 +1252,7 @@ const getVariantFingerprint = (id: TestVariantId) => {
 
 const isVariantStale = (id: TestVariantId) => {
     if (!hasVariantResult(id)) return false
-    const prev = variantLastRunFingerprint[id]
+    const prev = variantLastRunFingerprint.value[id]
     if (!prev) return false
     return prev !== getVariantFingerprint(id)
 }
@@ -1395,7 +1411,7 @@ const runVariant = async (
         evaluationHandler.clearBeforeTest()
     }
 
-    variantResults[id] = { result: '', reasoning: '' }
+    variantResults.value[id] = { result: '', reasoning: '' }
     variantToolCalls[id] = []
     variantRunning[id] = true
 
@@ -1409,12 +1425,12 @@ const runVariant = async (
             },
             {
                 onToken: (token: string) => {
-                    const prev = variantResults[id]
-                    variantResults[id] = { ...prev, result: (prev.result || '') + token }
+                    const prev = variantResults.value[id]
+                    variantResults.value[id] = { ...prev, result: (prev.result || '') + token }
                 },
                 onReasoningToken: (token: string) => {
-                    const prev = variantResults[id]
-                    variantResults[id] = { ...prev, reasoning: (prev.reasoning || '') + token }
+                    const prev = variantResults.value[id]
+                    variantResults.value[id] = { ...prev, reasoning: (prev.reasoning || '') + token }
                 },
                 onToolCall: (toolCall: ToolCall) => {
                     const toolCallResult: ToolCallResult = {
@@ -1444,7 +1460,7 @@ const runVariant = async (
         return false
     } finally {
         variantRunning[id] = false
-        variantLastRunFingerprint[id] = getVariantFingerprint(id)
+        variantLastRunFingerprint.value[id] = getVariantFingerprint(id)
         if (opts?.persist !== false) {
             void proMultiSession.saveSession()
         }
@@ -1566,8 +1582,8 @@ const comparePayload = computed(() =>
                 testCaseId: `${id}-conversation-test-case`,
                 promptRef: buildVariantPromptRef(id),
                 promptText: resolveSelectedMessageContent(selection).text,
-                output: variantResults[id]?.result || '',
-                reasoning: variantResults[id]?.reasoning || '',
+                output: variantResults.value[id]?.result || '',
+                reasoning: variantResults.value[id]?.reasoning || '',
                 modelKey: variantModelKeyModels[id].value,
                 versionLabel: getVariantVersionLabel(id),
             }
@@ -1602,8 +1618,8 @@ const resultEvaluationTargets = computed(() =>
                     testCaseId: `${id}-conversation-test-case`,
                     promptRef: buildVariantPromptRef(id),
                     promptText: resolveSelectedMessageContent(variantVersionModels[id].value).text,
-                    output: variantResults[id]?.result || '',
-                    reasoning: variantResults[id]?.reasoning || '',
+                    output: variantResults.value[id]?.result || '',
+                    reasoning: variantResults.value[id]?.reasoning || '',
                     modelKey: variantModelKeyModels[id].value || undefined,
                     versionLabel: getVariantVersionLabel(id),
                 },

@@ -439,7 +439,8 @@
  * - templateType 为 'userOptimize'（而非 'optimize'）
  * - optimizationMode 为 'user'（而非 'system'）
  */
- import { ref, reactive, computed, toRef, inject, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue'
+import { ref, reactive, computed, toRef, inject, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../../composables/ui/useToast'
 import {
@@ -765,8 +766,13 @@ const resolveTestPrompt = (selection: TestPanelVersionValue): ResolvedTestPrompt
 
 // ==================== 测试区：多列 variant（最多 4 列） ====================
 
-// Pinia setup store 会自动解包 refs，这里是直接可变的响应式对象（非 Ref）
-const variantResults = session.testVariantResults
+// Pinia setup store 会自动解包 refs。
+// testVariantResults / testVariantLastRunFingerprint 在 restoreSession 时会被整对象替换，
+// 这里必须通过 storeToRefs 持有 Ref，避免组件继续写入旧对象。
+const {
+  testVariantResults: variantResults,
+  testVariantLastRunFingerprint: variantLastRunFingerprint,
+} = storeToRefs(session)
 
 const variantRunning = reactive<Record<TestVariantId, boolean>>({
   a: false,
@@ -774,8 +780,6 @@ const variantRunning = reactive<Record<TestVariantId, boolean>>({
   c: false,
   d: false,
 })
-
-const variantLastRunFingerprint = session.testVariantLastRunFingerprint
 
 const isAnyVariantRunning = computed(() => activeVariantIds.value.some((id) => !!variantRunning[id]))
 
@@ -801,9 +805,9 @@ const getVariantOutputTestId = (id: TestVariantId) => {
   return `basic-user-test-variant-${id}-output`
 }
 
-const getVariantResult = (id: TestVariantId) => variantResults[id]
+const getVariantResult = (id: TestVariantId) => variantResults.value[id]
 
-const hasVariantResult = (id: TestVariantId) => !!(variantResults[id]?.result || '').trim()
+const hasVariantResult = (id: TestVariantId) => !!(variantResults.value[id]?.result || '').trim()
 
 const getVariantFingerprint = (id: TestVariantId) => {
   const selection = variantVersionModels[id].value
@@ -815,7 +819,7 @@ const getVariantFingerprint = (id: TestVariantId) => {
 
 const isVariantStale = (id: TestVariantId) => {
   if (!hasVariantResult(id)) return false
-  const prev = variantLastRunFingerprint[id]
+  const prev = variantLastRunFingerprint.value[id]
   if (!prev) return false
   return prev !== getVariantFingerprint(id)
 }
@@ -947,21 +951,21 @@ const runVariant = async (
   }
 
   // 清空该列结果并开始流式写入
-  variantResults[id] = { result: '', reasoning: '' }
+  variantResults.value[id] = { result: '', reasoning: '' }
   variantRunning[id] = true
 
   try {
     await promptService.testPromptStream('', input.prompt, input.modelKey, {
       onToken: (token: string) => {
-        const prev = variantResults[id]
-        variantResults[id] = {
+        const prev = variantResults.value[id]
+        variantResults.value[id] = {
           ...prev,
           result: (prev.result || '') + token,
         }
       },
       onReasoningToken: (token: string) => {
-        const prev = variantResults[id]
-        variantResults[id] = {
+        const prev = variantResults.value[id]
+        variantResults.value[id] = {
           ...prev,
           reasoning: (prev.reasoning || '') + token,
         }
@@ -985,7 +989,7 @@ const runVariant = async (
     return false
   } finally {
     variantRunning[id] = false
-    variantLastRunFingerprint[id] = getVariantFingerprint(id)
+    variantLastRunFingerprint.value[id] = getVariantFingerprint(id)
 
     // best-effort: 仅在一次运行结束时持久化，避免流式过程中频繁写入
     if (opts?.persist !== false) {
@@ -1157,8 +1161,8 @@ const resultEvaluationTargets = computed(() =>
           testCaseId: `${id}-test-case`,
           promptRef: buildVariantPromptRef(id),
           promptText: resolveTestPrompt(variantVersionModels[id].value).text,
-          output: variantResults[id]?.result || '',
-          reasoning: variantResults[id]?.reasoning || '',
+          output: variantResults.value[id]?.result || '',
+          reasoning: variantResults.value[id]?.reasoning || '',
           modelKey: variantModelKeyModels[id].value || undefined,
           versionLabel: getVariantVersionLabel(id),
         },
@@ -1178,8 +1182,8 @@ const comparePayload = computed(() =>
       testCaseId: 'shared-test-case',
       promptRef: buildVariantPromptRef(id),
       promptText: resolveTestPrompt(variantVersionModels[id].value).text,
-      output: variantResults[id]?.result || '',
-      reasoning: variantResults[id]?.reasoning || '',
+      output: variantResults.value[id]?.result || '',
+      reasoning: variantResults.value[id]?.reasoning || '',
       modelKey: variantModelKeyModels[id].value,
       versionLabel: getVariantVersionLabel(id),
     })),

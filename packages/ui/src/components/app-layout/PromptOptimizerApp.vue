@@ -1869,6 +1869,8 @@ const handleTemplateLanguageChanged = (_newLanguage: string) => {
     if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("basic-workspace-refresh-templates"));
         window.dispatchEvent(new Event("basic-workspace-refresh-iterate-select"));
+        window.dispatchEvent(new Event("pro-workspace-refresh-templates"));
+        window.dispatchEvent(new Event("image-workspace-refresh-templates"));
         window.dispatchEvent(new Event("image-workspace-refresh-iterate-select"));
     }
 };
@@ -1885,6 +1887,7 @@ const handleTemplateManagerClosed = () => {
     }
     if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("basic-workspace-refresh-templates"));
+        window.dispatchEvent(new Event("pro-workspace-refresh-templates"));
         window.dispatchEvent(new Event("image-workspace-refresh-templates"));
     }
 };
