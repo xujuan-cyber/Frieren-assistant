@@ -1,142 +1,122 @@
-# Electron 应用图标更新指南
+# 项目图标资产指南
 
-本文档说明如何为 Electron 应用更新图标文件。
+本文档说明 Prompt Optimizer 当前的图标资产结构、唯一源文件，以及更新图标时应同步处理的目标文件。
 
-## 📁 当前图标结构
+## 唯一源文件
 
-```
-packages/desktop/icons/
-├── app-icon.ico     # Windows 图标 (多分辨率)
-├── app-icon.icns    # macOS 图标 (Apple 标准格式)
-├── app-icon.png     # Linux 备用图标
-├── 16x16.png        # 小图标 (托盘、工具栏)
-├── 32x32.png        # 标准桌面图标
-├── 48x48.png        # 大图标视图
-├── 64x64.png        # 高 DPI 小图标
-├── 128x128.png      # 中等 DPI 图标
-├── 256x256.png      # 高 DPI 大图标
-├── 512x512.png      # Retina 显示器
-└── 1024x1024.png    # 超高清显示器
-```
+当前图标体系的唯一源文件是：
 
-## 🛠️ 使用工具
+- `images/logo/1024-1024.svg`
 
-**electron-icon-builder** - 专门为 Electron 应用设计的图标生成工具
+对应的位图参考文件是：
 
-### 安装
-```bash
-npm install -g electron-icon-builder
-```
+- `images/logo/1024-1024.png`
 
-## 🔄 图标更新流程
+约定：
 
-### 准备工作
-1. 准备新的源图片 (推荐 1024x1024 PNG 格式)
-2. 确保图片质量高，背景透明
+- 所有对外发布使用的图标与展示 Logo，都应从上述 SVG 导出
+- 不再使用历史位图作为导出入口
+- 不再在目标目录中维护独立的“第二份 SVG 源文件”
 
-### Windows 系统
-```powershell
-# 删除旧图标目录并重新生成
-rmdir /s /q packages\desktop\icons
-electron-icon-builder --input=images\logo\v2.png --output=packages\desktop --flatten
-ren packages\desktop\icons\icon.ico app-icon.ico
-ren packages\desktop\icons\icon.icns app-icon.icns
-copy images\logo\v2.png packages\desktop\icons\app-icon.png
-```
+## 当前产物分组
 
-### Linux/macOS 系统
-```bash
-# 删除旧图标目录并重新生成
-rm -rf packages/desktop/icons
-electron-icon-builder --input=images/logo/v2.png --output=packages/desktop --flatten
-mv packages/desktop/icons/icon.ico packages/desktop/icons/app-icon.ico
-mv packages/desktop/icons/icon.icns packages/desktop/icons/app-icon.icns
-cp images/logo/v2.png packages/desktop/icons/app-icon.png
-```
+### 1. 桌面应用图标
 
-## 📋 配置说明
+目录：`packages/desktop/icons/`
 
-### package.json 配置
-```json
-{
-  "build": {
-    "win": { "icon": "icons/app-icon.ico" },    // Windows: 专用 ICO 文件
-    "mac": { "icon": "icons/app-icon.icns" },   // macOS: 专用 ICNS 文件  
-    "linux": { "icon": "icons/" }               // Linux: 目录模式，自动选择
-  }
-}
-```
+主要文件：
 
-### 应用内图标配置
-main.js 会根据平台自动选择合适的图标：
-- Windows: 使用 app-icon.ico
-- macOS: 使用 app-icon.icns  
-- Linux: 优先使用 512x512.png 或 256x256.png
+- `app-icon.ico`
+- `app-icon.icns`
+- `app-icon.png`
+- `16x16.png`
+- `24x24.png`
+- `32x32.png`
+- `48x48.png`
+- `64x64.png`
+- `128x128.png`
+- `256x256.png`
+- `512x512.png`
+- `1024x1024.png`
 
-## ⚠️ 注意事项
+说明：
 
-### 源文件要求
-- **格式**: PNG
-- **尺寸**: 1024x1024 像素 (推荐)
-- **质量**: 高清无损
-- **背景**: 透明
+- Windows 使用 `app-icon.ico`
+- macOS 使用 `app-icon.icns`
+- Linux 优先使用 `512x512.png` / `256x256.png`
+- 这些文件是已提交的发布产物，不应被视为新的设计源文件
 
-### 注意事项
-- ✅ 使用高质量源图片 (1024x1024 PNG)
-- ✅ 确保背景透明
-- ✅ 删除重建比复制更可靠
+### 2. Chrome 扩展图标
 
-## 🧪 测试构建
+目录：`packages/extension/public/icons/`
 
-更新图标后，测试各平台构建：
+主要文件：
 
-```bash
-# 测试 Windows 构建
-cd packages/desktop
-pnpm run build
+- `icon16.png`
+- `icon48.png`
+- `icon128.png`
 
-# 或测试跨平台构建
-pnpm run build:cross-platform
-```
+额外文件：
 
-## 📝 一键更新命令
+- `packages/extension/public/favicon.ico`
 
-假设您有新的图标文件 `images/logo/v2.png`：
+说明：
 
-### Windows 一键更新
-```powershell
-rmdir /s /q packages\desktop\icons && electron-icon-builder --input=images\logo\v2.png --output=packages\desktop --flatten && ren packages\desktop\icons\icon.ico app-icon.ico && ren packages\desktop\icons\icon.icns app-icon.icns && copy images\logo\v2.png packages\desktop\icons\app-icon.png
-```
+- `manifest.json` 当前引用的就是这三张 PNG
+- 扩展图标应与桌面端对应尺寸 PNG 保持一致
 
-### Linux/macOS 一键更新
-```bash
-rm -rf packages/desktop/icons && electron-icon-builder --input=images/logo/v2.png --output=packages/desktop --flatten && mv packages/desktop/icons/icon.ico packages/desktop/icons/app-icon.ico && mv packages/desktop/icons/icon.icns packages/desktop/icons/app-icon.icns && cp images/logo/v2.png packages/desktop/icons/app-icon.png
-```
+### 3. Web / 文档 / 展示 Logo
 
----
+主要文件：
 
-**最后更新**: 2026-03-01  
-**生成工具**: electron-icon-builder  
-**当前源文件**: images/logo/1024-1024.svg（保留同名 PNG 作为位图参考）  
-**SVG 转 PNG（圆角透明蒙版，推荐作为跨平台统一输入）**:
+- `packages/web/public/favicon.ico`
+- `packages/ui/src/assets/logo.png`
+- `mkdocs/docs/assets/images/logo.png`
+- `mkdocs/docs/assets/images/favicon.png`
+- `site/public/images/logo.png`
 
-```bash
-magick images/logo/1024-1024.svg -alpha set -colorspace sRGB -strip -resize 1024x1024! images/logo/_tmp-icon-square.png
-magick images/logo/_tmp-icon-square.png \
-  \( -size 1024x1024 xc:none -fill white -draw "roundrectangle 0,0 1024,1024 224,224" \) \
-  -alpha off -compose CopyOpacity -composite images/logo/1024-1024.png
-rm -f images/logo/_tmp-icon-square.png
-```
+说明：
 
-macOS Dock 图标建议使用圆角（避免直角黑底在 Dock 上显得突兀）：
+- 这些文件面向站点、文档和应用头部展示
+- 它们不是设计源文件，而是从统一源图导出的展示资产
 
-```bash
-# 生成圆角临时 PNG，然后用 electron-icon-builder 产出 icns
-magick images/logo/1024-1024.png \
-  \( -size 1024x1024 xc:none -fill white -draw "roundrectangle 0,0 1024,1024 224,224" \) \
-  -alpha off -compose CopyOpacity -composite images/logo/_mac-icon-src.png
+## 历史遗留
 
-electron-icon-builder --input=images/logo/_mac-icon-src.png --output=images/logo/_icon-build-mac-tmp --flatten
-cp images/logo/_icon-build-mac-tmp/icons/icon.icns packages/desktop/icons/app-icon.icns
-rm -rf images/logo/_icon-build-mac-tmp images/logo/_mac-icon-src.png
-```
+以下旧文件已不再作为当前图标流程的一部分：
+
+- `images/logo/v2.png`
+- `images/logo/v3.png`
+
+如果需要回溯历史设计，请从 Git 历史中查看；不要再把它们重新引入当前导出流程。
+
+## 更新规则
+
+当图标需要更新时，遵循以下规则：
+
+1. 只修改 `images/logo/1024-1024.svg`
+2. 从该 SVG 导出 `images/logo/1024-1024.png`
+3. 同步更新桌面应用图标产物
+4. 同步更新扩展图标产物
+5. 同步更新 Web / UI / 文档 / 站点展示 Logo
+6. 提交时将这些导出结果一并纳入版本控制
+
+## 最低同步范围
+
+若只做一次常规品牌更新，至少需要同步这些文件：
+
+- `images/logo/1024-1024.svg`
+- `images/logo/1024-1024.png`
+- `packages/desktop/icons/*`
+- `packages/extension/public/icons/*`
+- `packages/extension/public/favicon.ico`
+- `packages/web/public/favicon.ico`
+- `packages/ui/src/assets/logo.png`
+- `mkdocs/docs/assets/images/logo.png`
+- `mkdocs/docs/assets/images/favicon.png`
+- `site/public/images/logo.png`
+
+## 备注
+
+- 当前仓库中的桌面端图标、扩展图标和 Web favicon 已完成统一
+- 展示类 Logo 也应继续跟随这套统一源文件更新
+- 若后续引入自动化导出脚本，应继续保持 `images/logo/1024-1024.svg` 为唯一输入
