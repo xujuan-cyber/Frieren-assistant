@@ -345,8 +345,52 @@ describe('EvaluationPanel stale state', () => {
       .toContain('The optimization target appears to have regressed relative to the previous version')
     expect(wrapper.find('.score-section').exists()).toBe(true)
     expect(wrapper.text()).toContain('Previous')
-    expect(wrapper.text()).toContain('Teacher')
+    expect(wrapper.text()).not.toContain('Teacher')
     expect(wrapper.text()).not.toContain('Stability and Overfit Risk')
+  })
+
+  it('hides teacher-gap UI when compare metadata has no reference role', () => {
+    const wrapper = mount(EvaluationPanel, {
+      props: {
+        show: true,
+        isEvaluating: false,
+        currentType: 'compare',
+        result: {
+          ...baseResult,
+          metadata: {
+            compareMode: 'generic',
+            snapshotRoles: {
+              a: 'baseline',
+              b: 'target',
+            },
+            compareStopSignals: {
+              targetVsBaseline: 'improved',
+              targetVsReferenceGap: 'minor',
+              overfitRisk: 'medium',
+              stopRecommendation: 'review',
+            },
+          },
+        },
+        streamContent: '',
+        error: null,
+        scoreLevel: 'good',
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
+          FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
+          ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
+        },
+      },
+    })
+
+    const decisionCard = wrapper.get('[data-testid="evaluation-panel-compare-decision"]')
+
+    expect(decisionCard.text()).toContain('Previous: Improved')
+    expect(decisionCard.text()).not.toContain('Teacher Gap')
+    expect(decisionCard.text()).not.toContain('Teacher')
   })
 
   it('adds a prompt-validity action when compare conflict signals show unsupported reference evidence', async () => {

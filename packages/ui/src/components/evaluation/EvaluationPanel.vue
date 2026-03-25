@@ -659,6 +659,12 @@ const compareSnapshotDisplayEntries = computed(() =>
   )
 )
 
+const hasCompareReferenceContext = computed(() =>
+  compareSnapshotRoleEntries.value.some((entry) =>
+    entry.role === 'reference' || entry.role === 'referenceBaseline'
+  )
+)
+
 const shouldShowCompareModeChip = computed(() => compareMode.value === 'generic')
 
 const formatStopSignalValue = (key: string, value: string): string => {
@@ -863,7 +869,6 @@ const compareDecisionSummary = computed<CompareDecisionSummary | null>(() => {
   if (!stopSignals && !insights) return null
 
   const targetVsBaseline = stopSignals?.targetVsBaseline
-  const targetVsReferenceGap = stopSignals?.targetVsReferenceGap
   const improvementHeadroom = stopSignals?.improvementHeadroom
   const overfitRisk = stopSignals?.overfitRisk
 
@@ -890,7 +895,13 @@ const compareDecisionSummary = computed<CompareDecisionSummary | null>(() => {
     'overfitRisk',
   ]
 
-  const visibleSignalKeys: CompareSignalChipKey[] = preferredSignalKeys.filter((key) => !!stopSignals?.[key])
+  const visibleSignalKeys: CompareSignalChipKey[] = preferredSignalKeys.filter((key) => {
+    if (key === 'targetVsReferenceGap' && !hasCompareReferenceContext.value) {
+      return false
+    }
+
+    return !!stopSignals?.[key]
+  })
   if (!visibleSignalKeys.length && improvementHeadroom) {
     visibleSignalKeys.push('improvementHeadroom')
   }
@@ -983,8 +994,10 @@ const compareReasonCards = computed<CompareReasonCard[]>(() => {
     }
   }
 
-  const targetVsReferenceGap = stopSignals?.targetVsReferenceGap
-  if (insights?.referenceGapSummary || targetVsReferenceGap) {
+  const targetVsReferenceGap = hasCompareReferenceContext.value
+    ? stopSignals?.targetVsReferenceGap
+    : undefined
+  if (hasCompareReferenceContext.value && (insights?.referenceGapSummary || targetVsReferenceGap)) {
     const body = insights?.referenceGapSummary?.analysis || (() => {
       switch (targetVsReferenceGap) {
         case 'none':
