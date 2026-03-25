@@ -27,24 +27,24 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 ### 🎥 Feature Demonstration
 
 <div align="center">
-  <p><b>1. Role-playing Dialogue: Unleashing the Potential of Small Models</b></p>
-  <p>In cost-effective production scenarios or privacy-focused local deployments, structured prompts enable small models to consistently enter character roles, providing immersive and highly consistent role-playing experiences that effectively unleash their potential.</p>
-  <img src="images/demo/cat-maid-roleplay.png" alt="Cat Maid Role-playing Demo" width="85%">
+  <p><b>1. Hard-Nosed Reviewer: Turn Agreement into Useful Critique</b></p>
+  <p>Starting from a minimal English role prompt, optimization pushes a small model away from generic pushback and toward a clearer, more structured review that surfaces weak assumptions, evidence gaps, and concrete revision advice.</p>
+  <img src="images/demo/hard-nosed-reviewer-fullpage-en.png" alt="Hard-nosed reviewer full-page demo" width="85%">
   <br>
-  <p><b>2. Knowledge Graph Extraction: Ensuring Production Environment Stability</b></p>
-  <p>In production environments requiring programmatic processing, high-quality prompts can significantly reduce requirements for model intelligence, enabling more economical small models to stably output reliable specified formats. This tool aims to assist developers in quickly achieving this goal, thereby accelerating development, ensuring stability, and achieving cost reduction and efficiency improvement.</p>
-  <img src="images/demo/knowledge-graph-extractor.png" alt="Knowledge Graph Extraction Demo" width="85%">
+  <p><b>2. Marketplace Bargaining Reply: Let Variables Change the Strategy</b></p>
+  <p>With a single reusable prompt template, you can swap in item details, price anchors, buyer offers, tone, and negotiation goals for different marketplace conversations. After optimization, the same small model does a better job turning those variables into a clearer, more transaction-ready reply instead of a generic helper-style response.</p>
+  <img src="images/demo/pro-variable-bargaining-reply-en.png" alt="Marketplace bargaining reply variable-mode demo" width="85%">
   <br>
-  <p><b>3. Poetry Writing: Assisting Creative Exploration and Requirement Customization</b></p>
-  <p>When facing a powerful AI, our goal is not just to get a "good" answer, but to get a "desired" unique answer. This tool can help users refine vague inspiration (like "write a poem") into specific requirements (about what theme, what imagery, what emotions), assisting you in exploring, discovering, and precisely expressing your creativity to co-create unique works with AI.</p>
-  <img src="images/demo/poetry-writing.png" alt="Poetry Writing Demo" width="85%">
+  <p><b>3. Text-to-Image: Optimize a One-Line Idea into a More Directable Key Visual Prompt</b></p>
+  <p>This is not just prompt expansion. Starting from a vague one-line idea, Prompt Optimizer adds clearer subject cues, spatial relationships, and mood anchors. The left side is simply “a floating library in the night sky,” while the optimized version gives the model a more directed fantasy composition that feels closer to a reusable key visual than a lucky generic image.</p>
+  <img src="images/demo/text2image-floating-library-creative-en.png" alt="Floating library text-to-image demo" width="85%">
 </div>
 
 ## ✨ Core Features
 
 - 🎯 **Intelligent Optimization**: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
 - 📝 **Dual Mode Optimization**: Support for both system prompt optimization and user prompt optimization to meet different usage scenarios
-- 🔄 **Comparison Testing**: Real-time comparison between original and optimized prompts for intuitive demonstration of optimization effects
+- 🔄 **Analysis and Compare Evaluation**: Supports analysis, single-result evaluation, and multi-result compare evaluation to help determine whether a prompt has truly improved
 - 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, etc.
 - 🖼️ **Image Generation**: Support for Text-to-Image (T2I) and Image-to-Image (I2I) with models like Gemini, Seedream
 - 📊 **Advanced Testing Mode**: Context variable management, multi-turn conversation testing, Function Calling support
@@ -66,7 +66,7 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 📊 **Context Variable Management**: Custom variables, batch replacement, variable preview
 - 💬 **Multi-turn Conversation Testing**: Simulate real conversation scenarios to test prompt performance in multi-turn interactions
 - 🛠️ **Function Calling Support**: Function Calling integration with support for OpenAI and Gemini tool calling
-- 🎯 **Flexible Debugging**: Enhanced prompt testing and debugging capabilities
+- 🔍 **Analysis and Evaluation Pipeline**: Supports analysis, evaluation, compare evaluation, and evaluation-driven smart rewrite in text modes
 
 For detailed usage instructions, please refer to the [Image Mode Documentation](docs/image-mode.md)
 
@@ -323,10 +323,10 @@ pnpm dev:fresh        # Complete reset and restart development environment
 - [x] MCP service release
 - [x] Advanced mode: Variable management, context testing, function calling
 - [x] Image generation: Text-to-Image (T2I) and Image-to-Image (I2I) support
+- [x] Prompt favorites and template management
 - [ ] Support for workspace/project management
-- [ ] Support for prompt favorites and template management
 
-For detailed project status, see [Project Status Document](docs/project-status.md)
+For detailed project status, see [Project Status Document](docs/project/project-status.md)
 
 ## 📖 Related Documentation
 
@@ -439,6 +439,10 @@ Thanks to all the developers who have contributed to this project!
 <a href="https://github.com/linshenkx/prompt-optimizer/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=linshenkx/prompt-optimizer" alt="Contributors" />
 </a>
+
+## 🙏 Acknowledgements
+
+This project was partly inspired by [LangGPT](https://github.com/langgptai/LangGPT) in prompt engineering and structured prompt design. Thanks to the LangGPT project and community for their open-source sharing and continued exploration.
 
 ## 📄 License
 
