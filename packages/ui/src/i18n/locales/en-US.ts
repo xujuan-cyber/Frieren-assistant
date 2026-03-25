@@ -118,9 +118,17 @@ export default {
     favorites: "Favorite Library",
     advancedMode: "Advanced Mode",
     variableManager: "Variable Manager",
+    about: "About",
     basicMode: "Basic",
     contextMode: "Context",
     imageMode: "Image",
+  },
+  about: {
+    title: "Prompt Optimizer",
+    website: "Website",
+    websiteLabel: "always200.com",
+    documentation: "Docs",
+    documentationLabel: "docs.always200.com",
   },
   contextMode: {
     optimizationMode: {

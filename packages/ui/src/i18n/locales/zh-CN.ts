@@ -117,9 +117,17 @@ export default {
     favorites: "收藏夹",
     advancedMode: "高级模式",
     variableManager: "变量管理",
+    about: "关于",
     basicMode: "基础",
     contextMode: "上下文",
     imageMode: "图像",
+  },
+  about: {
+    title: "提示词优化器",
+    website: "官网",
+    websiteLabel: "always200.com",
+    documentation: "文档站",
+    documentationLabel: "docs.always200.com",
   },
   contextMode: {
     optimizationMode: {

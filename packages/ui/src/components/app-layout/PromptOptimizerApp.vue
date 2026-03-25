@@ -48,6 +48,9 @@
                         @open-favorites="showFavoriteManager = true"
                         @open-data-manager="showDataManager = true"
                         @open-variables="handleOpenVariableManager()"
+                        :app-version="appVersion"
+                        @open-website="openOfficialWebsite"
+                        @open-docs="openDocumentationSite"
                         @open-github="openGithubRepo"
                     />
                 </template>
@@ -256,6 +259,7 @@ import ContextEditor from '../context-mode/ContextEditor.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
 import AppHeaderActions from './AppHeaderActions.vue'
 import AppCoreNav from './AppCoreNav.vue'
+import rootPackageJson from '../../../../../package.json'
 
 // Composables - 使用 barrel exports
 import {
@@ -1793,10 +1797,7 @@ watch(
     { immediate: false },
 );
 
-// 打开GitHub仓库
-const openGithubRepo = async () => {
-    const url = "https://github.com/linshenkx/prompt-optimizer";
-
+const openExternalUrl = async (url: string) => {
     if (typeof window !== "undefined" && window.electronAPI?.shell) {
         try {
             await window.electronAPI.shell.openExternal(url);
@@ -1807,6 +1808,21 @@ const openGithubRepo = async () => {
     } else {
         window.open(url, "_blank");
     }
+};
+
+const appVersion = `v${rootPackageJson.version}`;
+
+const openOfficialWebsite = async () => {
+    await openExternalUrl("https://always200.com");
+};
+
+const openDocumentationSite = async () => {
+    await openExternalUrl("https://docs.always200.com");
+};
+
+// 打开GitHub仓库
+const openGithubRepo = async () => {
+    await openExternalUrl("https://github.com/linshenkx/prompt-optimizer");
 };
 
 const normalizeTemplateTypeForManager = (
