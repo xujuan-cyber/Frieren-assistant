@@ -1,7 +1,7 @@
 import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
-  id: 'image2image-json-structured-optimize_en',
+  id: 'image2image-json-structured-optimize-en',
   name: 'JSON Structured Prompt (Img2Img / Generic)',
   content: [
     {

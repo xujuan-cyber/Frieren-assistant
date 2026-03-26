@@ -1,7 +1,7 @@
 import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
-  id: 'image-json-structured-optimize_en',
+  id: 'image-json-structured-optimize-en',
   name: 'JSON Structured Prompt (Generic)',
   content: [
     {
