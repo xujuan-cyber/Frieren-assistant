@@ -267,7 +267,8 @@ describe('Result/compare evaluation evidence behavior', () => {
     expect(promptText).not.toContain('## 参考提示词')
     expect(promptText).toContain('评估执行快照中该执行提示词本身的表现')
     expect(promptText).toContain('## 执行快照 A')
-    expect(promptText).toContain('### 执行提示词')
+    expect(promptText).toContain('### 执行快照证据（JSON）')
+    expect(promptText).toContain('"promptText": "写一首诗"')
     expect(promptText).toContain('写一首诗')
     expect(promptText).not.toContain('patchPlan')
   })
@@ -410,11 +411,11 @@ describe('Result/compare evaluation evidence behavior', () => {
 
     const promptText = llm.lastMessages.map((message) => message.content).join('\n\n')
     expect(promptText).toContain('## 测试用例输入（变量输入')
-    expect(promptText).toContain('风格&#x3D;中文古典')
-    expect(promptText).toContain('主题&#x3D;程序员加班')
-    expect(promptText).toContain('### 执行提示词')
+    expect(promptText).toContain('"content": "风格=中文古典\\n主题=程序员加班"')
+    expect(promptText).toContain('### 执行快照证据（JSON）')
+    expect(promptText).toContain('"promptText": "你是一位{{风格}}的诗人。请写一首关于“{{主题}}”的诗，不要解释。"')
     expect(promptText).toContain('你是一位{{风格}}的诗人。请写一首关于“{{主题}}”的诗，不要解释。')
-    expect(promptText).not.toContain('### 额外执行输入')
+    expect(promptText).toContain('"executionInput": null')
     expect(promptText).not.toContain('中文古典的诗人')
   })
 
@@ -473,10 +474,11 @@ describe('Result/compare evaluation evidence behavior', () => {
     expect(promptText).toContain('## 公共测试用例（1）')
     expect(promptText).toContain('system: 【当前执行提示词见下方快照】')
     expect(promptText).toContain('user: 我想做一个给团队用的笔记系统。')
-    expect(promptText).toContain('#### 执行提示词')
+    expect(promptText).toContain('#### 快照证据（JSON）')
+    expect(promptText).toContain('"promptText": "作为 system 消息，给出建议"')
     expect(promptText).toContain('作为 system 消息，给出建议')
     expect(promptText).toContain('作为 system 消息，要求 assistant 先澄清用户目标，再给出建议，且不要抢答。')
-    expect(promptText).not.toContain('#### 额外执行输入')
+    expect(promptText).toContain('"executionInput": null')
   })
 
   it('basic-system result evaluation keeps user test input separate from executed system prompt', async () => {
@@ -518,9 +520,10 @@ describe('Result/compare evaluation evidence behavior', () => {
     expect(promptText).not.toContain('## 参考提示词')
     expect(promptText).toContain('## 测试用例输入（测试内容')
     expect(promptText).toContain('用户说：订单超过一周还没发货，我很着急。')
-    expect(promptText).toContain('### 执行提示词')
+    expect(promptText).toContain('### 执行快照证据（JSON）')
+    expect(promptText).toContain('"promptText": "你是一个客服助手。请先判断问题类型，再给出建议回复。"')
     expect(promptText).toContain('你是一个客服助手。请先判断问题类型，再给出建议回复。')
-    expect(promptText).not.toContain('### 额外执行输入')
+    expect(promptText).toContain('"executionInput": null')
   })
 
   it('basic-system compare evaluation uses shared test content once without re-injecting workspace prompt', async () => {

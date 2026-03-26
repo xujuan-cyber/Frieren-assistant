@@ -109,8 +109,8 @@ class RuleBasedEvaluationLLM implements ILLMService {
     const text = messages.map((m) => m.content).join('\n\n')
 
     const hasWorkspacePrompt = text.includes('## 当前工作区系统提示词')
-    const hasIterateRequirement = text.includes('## 迭代要求')
-    const hasFocusBrief = text.includes('## Focus Brief')
+    const hasIterateRequirement = text.includes('"iterateRequirement":')
+    const hasFocusBrief = text.includes('"focusBrief":')
 
     return JSON.stringify({
       score: {
@@ -214,8 +214,9 @@ describe('Prompt-iterate template behavior', () => {
 
     const promptText = llm.lastMessages.map((m) => m.content).join('\n\n')
     expect(promptText).toContain('## 当前工作区系统提示词')
-    expect(promptText).toContain('## 迭代要求')
-    expect(promptText).toContain('## Focus Brief')
+    expect(promptText).toContain('### 分析证据（JSON）')
+    expect(promptText).toContain('"iterateRequirement":')
+    expect(promptText).toContain('"focusBrief":')
     expect(promptText).toContain('需要简化最终输出结构')
     expect(promptText).toContain('优先检查输出结构是否过重')
 

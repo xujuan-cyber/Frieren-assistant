@@ -79,7 +79,8 @@ describe('Prompt-iterate evaluation templates', () => {
       expect(system).toContain('只输出合法 JSON')
 
       expect(user).toContain('## 当前工作区')
-      expect(user).toContain('## Focus Brief')
+      expect(user).toContain('### 分析证据（JSON）')
+      expect(user).toContain('"focusBrief":')
     }
   })
 
@@ -102,7 +103,8 @@ describe('Prompt-iterate evaluation templates', () => {
       expect(system).toContain('valid JSON')
 
       expect(user).toContain('## Current Workspace')
-      expect(user).toContain('## Focus Brief')
+      expect(user).toContain('### Analysis Evidence (JSON)')
+      expect(user).toContain('"focusBrief":')
     }
   })
 })
