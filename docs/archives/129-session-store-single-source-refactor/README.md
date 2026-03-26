@@ -49,7 +49,7 @@
 
 ## 后续规划
 
-Logic → Operations 迁移指南已移回 `docs/workspace/architecture-migration-guide.md`，包含：
+Logic → Operations 迁移规划已归档至 `docs/archives/132-architecture-migration-and-session-persistence-plans/architecture-migration-guide.md`，包含：
 - Phase 1: 基础设施准备
 - Phase 2: Basic 模式迁移
 - Phase 3: Context 模式迁移

@@ -23,7 +23,7 @@
 - 架构补充：`docs/architecture/structured-compare-and-evaluation-rewrite.md`
 - SPO 架构补充：`docs/architecture/spo-thin-loop-ui-and-stop-rules.md`
 - 对比评估现状：`docs/workspace/compare-evaluation-analysis/current-spec.md`
-- 现有测试区版本/模型选择：`docs/workspace/test-area-version-model-selection/`
+- 现有测试区版本/模型选择设计：`docs/architecture/test-area-version-model-selection.md`
 
 ## 当前范围
 

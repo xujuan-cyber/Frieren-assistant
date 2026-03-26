@@ -57,13 +57,20 @@
 
 ### UI优化系列 (已完成)
 - [124-navigation-optimization](./124-navigation-optimization/) - 导航栏优化项目 ✅
+- [125-test-area-refactor](./125-test-area-refactor/) - TestArea 组件系统重构 ✅
 
 ### 状态管理系列 (已完成)
 - [126-submode-persistence](./126-submode-persistence/) - 子模式持久化功能 ✅
+- [129-session-store-single-source-refactor](./129-session-store-single-source-refactor/) - Session Store 单一真源架构重构 ✅
+- [130-test-area-version-model-selection](./130-test-area-version-model-selection/) - 测试区版本/模型选择过程归档 ✅
+- [132-architecture-migration-and-session-persistence-plans](./132-architecture-migration-and-session-persistence-plans/) - 架构迁移与 Session 持久化规划归档 ✅
 
 ### 上下文模式系列 (已完成)
 - [127-multi-turn-dialogue-mode-optimization](./127-multi-turn-dialogue-mode-optimization/) - 多轮对话模式优化（Pro-System / Conversation） ✅
 - [128-context-ui-and-variable-system-refactor](./128-context-ui-and-variable-system-refactor/) - 上下文 UI 改造与变量系统重构 ✅
+
+### 测试体系系列 (已完成)
+- [131-testing-redesign](./131-testing-redesign/) - 测试体系重构、VCR 与 UI 错误门禁归档 ✅
 
 ## 📋 文档结构
 
@@ -94,6 +101,7 @@
 - **状态管理系列**：126
 - **上下文模式系列**：127
 - **上下文模式系列**：127, 128
+- **测试体系系列**：131
 
 ### 按状态查找
 - **已完成**：101, 102, 103, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 126, 127, 128
@@ -109,7 +117,7 @@
 
 ## 🔄 维护说明
 
-- **新功能归档**：从125开始继续编号
+- **新功能归档**：从当前最大编号继续递增（当前建议下一个编号为 132）
 - **文档更新**：功能完成后及时更新状态和经验总结
 - **交叉引用**：在相关功能点之间建立引用关系
 - **合并原则**：当同一功能领域有3个以上相关文档时考虑合并
@@ -133,10 +141,7 @@
 └── troubleshooting.md (排查清单，可选)
 ```
 
-## 📊 统计信息
+## 📊 当前编号信息
 
-- **总归档数**: 25
-- **已完成**: 20
-- **进行中**: 3
-- **计划中**: 2
-- **下一个编号**: 127
+- **当前最大编号**: 131
+- **下一个建议编号**: 132

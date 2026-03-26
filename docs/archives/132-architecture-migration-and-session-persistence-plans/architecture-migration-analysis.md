@@ -464,4 +464,4 @@ Context 模式优先迁移（中期）
 - **Basic Logic**: `packages/ui/src/composables/workspaces/useBasicWorkspaceLogic.ts` (597 行)
 - **Context Tester**: `packages/ui/src/composables/prompt/useConversationTester.ts`
 - **Image Session**: `packages/ui/src/stores/session/useImageText2ImageSession.ts`
-- **迁移指南**: `docs/workspace/architecture-migration-guide.md` (20 KB)
+- **迁移指南**: `docs/archives/132-architecture-migration-and-session-persistence-plans/architecture-migration-guide.md` (20 KB)

@@ -13,9 +13,9 @@
 ### 任务 1: 创建规划文件结构
 
 **执行**:
-- [x] 创建 `docs/workspace/testing-redesign/task_plan.md`
-- [x] 创建 `docs/workspace/testing-redesign/findings.md`
-- [x] 创建 `docs/workspace/testing-redesign/progress.md`
+- [x] 创建 `docs/archives/131-testing-redesign/task_plan.md`
+- [x] 创建 `docs/archives/131-testing-redesign/findings.md`
+- [x] 创建 `docs/archives/131-testing-redesign/progress.md`
 
 ### 任务 2: 技术选型调研
 
@@ -105,7 +105,7 @@
 
 **执行**:
 - [x] 提交所有未跟踪的测试文件到 git 暂存区
-  - 文档：`docs/testing/`、`docs/workspace/testing-redesign/`
+  - 文档：`docs/testing/`、`docs/archives/131-testing-redesign/`
   - VCR 基础设施：`packages/core/tests/fixtures/`、`packages/core/tests/utils/`
   - 测试用例：`packages/ui/tests/integration/`、`packages/ui/tests/unit/stores/session/`
   - E2E 测试：`tests/e2e/fixtures.ts`、`tests/e2e/workflows/`
@@ -131,7 +131,7 @@
 - [x] 创建详细补充计划文档
 
 **输出**:
-- `docs/workspace/testing-redesign/phase4-补充计划.md` - 详细补充计划
+- `docs/archives/131-testing-redesign/phase4-补充计划.md` - 详细补充计划
 
 **优先级划分**:
 - 🔴 P0（高）: LLM 服务集成测试、Basic 完整工作流测试
