@@ -57,4 +57,19 @@ describe('Minimal Template Solution (Mustache)', () => {
     });
     expect(result).toBe('Alice lives in New York');
   });
+
+  it('should support section lambdas for JSON-safe string rendering', () => {
+    const result = Mustache.render(
+      '{{#helpers.toJson}}{{{value}}}{{/helpers.toJson}}',
+      {
+        value: 'Line 1\n"value"\n<xml>{{item}}</xml>',
+        helpers: {
+          toJson: () => (text: string, renderText: (template: string) => string) =>
+            JSON.stringify(renderText(text)),
+        },
+      },
+    );
+
+    expect(result).toBe('"Line 1\\n\\"value\\"\\n<xml>{{item}}</xml>"');
+  });
 });

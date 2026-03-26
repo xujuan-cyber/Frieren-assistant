@@ -33,6 +33,12 @@ export interface TemplateContext {
   [key: string]: any;
 }
 
+type MustacheLambdaRender = (template: string) => string;
+
+interface BuiltInTemplateHelpers {
+  toJson: () => (text: string, render: MustacheLambdaRender) => string;
+}
+
 /**
  * Simplified template processor with organized methods
  */
@@ -92,6 +98,8 @@ export class TemplateProcessor {
 
     // Advanced template: 使用 Mustache 渲染
     if (Array.isArray(template.content)) {
+      const renderContext = this.createRenderContext(context);
+
       return template.content.map((msg) => {
         // 统一使用 Mustache 渲染
         // Mustache 会：
@@ -102,7 +110,7 @@ export class TemplateProcessor {
         // 但是我们需要区分“不存在”和“空数组”吗？对于 {{^var}} 来说，undefined/null/empty array 都是 true（取反）
         // 只要保证 context 中传递了正确的 key 即可。
 
-        const renderedContent = Mustache.render(msg.content, context);
+        const renderedContent = Mustache.render(msg.content, renderContext);
 
         return {
           role: msg.role,
@@ -150,6 +158,22 @@ export class TemplateProcessor {
     }
 
     return extendedContext;
+  }
+
+  private static createRenderContext(
+    context: TemplateContext,
+  ): TemplateContext & { helpers: BuiltInTemplateHelpers } {
+    return {
+      ...context,
+      helpers: this.createBuiltInHelpers(),
+    };
+  }
+
+  private static createBuiltInHelpers(): BuiltInTemplateHelpers {
+    return {
+      toJson: () => (text: string, render: MustacheLambdaRender) =>
+        JSON.stringify(render(text)),
+    };
   }
 
   /**

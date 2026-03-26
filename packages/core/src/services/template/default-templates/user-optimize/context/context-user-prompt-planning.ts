@@ -7,8 +7,10 @@ export const template: Template = {
     { role: 'system', content: `你是“上下文驱动的用户提示词规划专家”。在上下文/工具约束下，将 originalPrompt 优化为“目标清楚、阶段明确、依赖与验收可追踪”的用户提示词。仅输出优化后的提示词文本。
 
 {{#conversationContext}}
-[会话上下文]
-{{conversationContext}}
+[会话上下文证据（JSON）]
+{
+  "conversationContext": {{#helpers.toJson}}{{{conversationContext}}}{{/helpers.toJson}}
+}
 - 明确阶段性目标、输入输出、依赖/先决条件、资源与时序约束。
 {{/conversationContext}}
 {{^conversationContext}}
@@ -17,8 +19,10 @@ export const template: Template = {
 {{/conversationContext}}
 
 {{#toolsContext}}
-[可用工具]
-{{toolsContext}}
+[可用工具证据（JSON）]
+{
+  "toolsContext": {{#helpers.toJson}}{{{toolsContext}}}{{/helpers.toJson}}
+}
 - 指定在哪些阶段可用工具、参数与输出映射、失败降级与重试策略。
 {{/toolsContext}}
 {{^toolsContext}}
@@ -35,8 +39,10 @@ export const template: Template = {
 - 规划包含：阶段/里程碑、每阶段输入/输出/验收标准、风险与回退路径；严禁执行任务与解释。
 - 必须保留所有双花括号格式的变量占位符，不要替换或删除它们。
 ` },
-    { role: 'user', content: `原始用户提示词：
-{{originalPrompt}}
+    { role: 'user', content: `原始用户提示词证据（JSON）：
+{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}
 ` }
   ] as MessageTemplate[],
   metadata: {
@@ -46,4 +52,3 @@ export const template: Template = {
   },
   isBuiltin: true
 };
-

@@ -7,8 +7,10 @@ export const template: Template = {
     { role: 'system', content: `You are a "context-driven user prompt planning expert". Under context/tool constraints, optimize originalPrompt into a staged, traceable, and verifiable plan. Output ONLY the refined prompt.
 
 {{#conversationContext}}
-[Conversation Context]
-{{conversationContext}}
+[Conversation Context Evidence (JSON)]
+{
+  "conversationContext": {{#helpers.toJson}}{{{conversationContext}}}{{/helpers.toJson}}
+}
 - Clarify milestones, stage inputs/outputs, dependencies/prerequisites, resources and scheduling constraints.
 {{/conversationContext}}
 {{^conversationContext}}
@@ -17,8 +19,10 @@ export const template: Template = {
 {{/conversationContext}}
 
 {{#toolsContext}}
-[Available Tools]
-{{toolsContext}}
+[Available Tools Evidence (JSON)]
+{
+  "toolsContext": {{#helpers.toJson}}{{{toolsContext}}}{{/helpers.toJson}}
+}
 - Specify tool usage per stage, params/output mapping, failure fallbacks and retry.
 {{/toolsContext}}
 {{^toolsContext}}
@@ -35,8 +39,10 @@ Output Requirements
 - Plan must cover: stages/milestones, per-stage I/O & acceptance, risks and rollbacks; never execute tasks nor explain.
 - You MUST preserve all double-curly-brace placeholders - do not replace or delete them.
 ` },
-    { role: 'user', content: `Original user prompt:
-{{originalPrompt}}
+    { role: 'user', content: `Original user prompt evidence (JSON):
+{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}
 ` }
   ] as MessageTemplate[],
   metadata: {
@@ -46,4 +52,3 @@ Output Requirements
   },
   isBuiltin: true
 };
-

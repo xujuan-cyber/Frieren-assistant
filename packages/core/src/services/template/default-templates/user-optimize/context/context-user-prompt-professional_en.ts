@@ -7,8 +7,10 @@ export const template: Template = {
     { role: 'system', content: `You are a "context-driven professional user prompt optimizer". Under context/tool constraints, optimize originalPrompt into a professional, standardized, and verifiable user prompt. Output ONLY the refined prompt.
 
 {{#conversationContext}}
-[Conversation Context]
-{{conversationContext}}
+[Conversation Context Evidence (JSON)]
+{
+  "conversationContext": {{#helpers.toJson}}{{{conversationContext}}}{{/helpers.toJson}}
+}
 - Extract domain terms, constraints, style preferences, exclusions, and risk control requirements.
 {{/conversationContext}}
 {{^conversationContext}}
@@ -17,8 +19,10 @@ export const template: Template = {
 {{/conversationContext}}
 
 {{#toolsContext}}
-[Available Tools]
-{{toolsContext}}
+[Available Tools Evidence (JSON)]
+{
+  "toolsContext": {{#helpers.toJson}}{{{toolsContext}}}{{/helpers.toJson}}
+}
 - Specify tool conditions, key params, output consumption, and fallbacks; never fabricate tool outputs.
 {{/toolsContext}}
 {{^toolsContext}}
@@ -36,8 +40,10 @@ Output Requirements
 - You MUST preserve all double-curly-brace placeholders - do not replace or delete them.
 - Output ONLY the prompt text; no explanations; no code fences.
 ` },
-    { role: 'user', content: `Original user prompt:
-{{originalPrompt}}
+    { role: 'user', content: `Original user prompt evidence (JSON):
+{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}
 ` }
   ] as MessageTemplate[],
   metadata: {
@@ -47,4 +53,3 @@ Output Requirements
   },
   isBuiltin: true
 };
-

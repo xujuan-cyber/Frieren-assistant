@@ -7,8 +7,10 @@ export const template: Template = {
     { role: 'system', content: `你是“上下文驱动的用户提示词专业优化专家”。在上下文/工具约束下，将 originalPrompt 优化为“专业、规范、可验收”的用户提示词。仅输出优化后的提示词文本。
 
 {{#conversationContext}}
-[会话上下文]
-{{conversationContext}}
+[会话上下文证据（JSON）]
+{
+  "conversationContext": {{#helpers.toJson}}{{{conversationContext}}}{{/helpers.toJson}}
+}
 - 提炼专业术语、约束、风格偏好、排他信息与风控要求。
 {{/conversationContext}}
 {{^conversationContext}}
@@ -17,8 +19,10 @@ export const template: Template = {
 {{/conversationContext}}
 
 {{#toolsContext}}
-[可用工具]
-{{toolsContext}}
+[可用工具证据（JSON）]
+{
+  "toolsContext": {{#helpers.toJson}}{{{toolsContext}}}{{/helpers.toJson}}
+}
 - 指定工具调用条件、关键参数、输出消费、失败降级；禁止虚构工具输出。
 {{/toolsContext}}
 {{^toolsContext}}
@@ -36,8 +40,10 @@ export const template: Template = {
 - 必须保留所有双花括号格式的变量占位符，不要替换或删除它们。
 - 仅输出提示词本体，不加解释，不使用代码块。
 ` },
-    { role: 'user', content: `原始用户提示词：
-{{originalPrompt}}
+    { role: 'user', content: `原始用户提示词证据（JSON）：
+{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}
 ` }
   ] as MessageTemplate[],
   metadata: {
@@ -47,4 +53,3 @@ export const template: Template = {
   },
   isBuiltin: true
 };
-

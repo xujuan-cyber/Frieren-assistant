@@ -77,6 +77,39 @@ describe('TemplateProcessor with Mustache (Universal CSP-safe)', () => {
     });
   });
 
+  it('should keep helpers.toJson CSP-safe while rendering JSON evidence', () => {
+    const template: Template = {
+      id: 'json-evidence-test',
+      name: 'Json Evidence Test',
+      content: [
+        {
+          role: 'user',
+          content: `{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}`
+        }
+      ],
+      metadata: {
+        version: '1.0.0',
+        lastModified: Date.now(),
+        author: 'Test',
+        templateType: 'optimize',
+        language: 'zh'
+      },
+      isBuiltin: false
+    };
+
+    const context: TemplateContext = {
+      originalPrompt: 'Hello "world"\n{{item}}'
+    };
+
+    const result = TemplateProcessor.processTemplate(template, context);
+
+    expect(result[0].content).toBe(`{
+  "originalPrompt": "Hello \\"world\\"\\n{{item}}"
+}`);
+  });
+
   it('should process conditional blocks', () => {
     const template: Template = {
       id: 'conditional-test',

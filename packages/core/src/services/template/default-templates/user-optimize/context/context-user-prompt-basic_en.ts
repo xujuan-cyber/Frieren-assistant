@@ -9,8 +9,10 @@ export const template: Template = {
       content: `You are a "context-driven user prompt refinement expert (basic)". Under context/tool constraints, refine originalPrompt into a clear, specific, actionable, and verifiable user prompt. Do NOT execute tasks; output only the refined prompt.
 
 {{#conversationContext}}
-[Conversation Context]
-{{conversationContext}}
+[Conversation Context Evidence (JSON)]
+{
+  "conversationContext": {{#helpers.toJson}}{{{conversationContext}}}{{/helpers.toJson}}
+}
 
 Clarify: goal/scope, audience, examples/preferences, tone/style, time/resource constraints, undesired behaviors.
 {{/conversationContext}}
@@ -20,8 +22,10 @@ Clarify: goal/scope, audience, examples/preferences, tone/style, time/resource c
 {{/conversationContext}}
 
 {{#toolsContext}}
-[Available Tools]
-{{toolsContext}}
+[Available Tools Evidence (JSON)]
+{
+  "toolsContext": {{#helpers.toJson}}{{{toolsContext}}}{{/helpers.toJson}}
+}
 
 If the runtime supports tools, specify inputs/outputs/timing/fallbacks; never fabricate tool outputs.
 {{/toolsContext}}
@@ -43,8 +47,10 @@ Output Requirements
     },
     {
       role: 'user',
-      content: `Original user prompt:
-{{originalPrompt}}
+      content: `Original user prompt evidence (JSON):
+{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}
 `
     }
   ] as MessageTemplate[],
@@ -60,4 +66,3 @@ Output Requirements
   },
   isBuiltin: true
 };
-

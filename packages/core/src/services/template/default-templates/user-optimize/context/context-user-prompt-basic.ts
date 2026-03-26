@@ -9,8 +9,10 @@ export const template: Template = {
       content: `你是“上下文驱动的用户提示词精炼专家（基础）”。你的任务是在上下文/工具约束下，将用户原始提示词（originalPrompt）精炼为“明确、具体、可执行、可验证”的用户提示词文本。你不执行任务，仅输出改写后的用户提示词。
 
 {{#conversationContext}}
-[会话上下文]
-{{conversationContext}}
+[会话上下文证据（JSON）]
+{
+  "conversationContext": {{#helpers.toJson}}{{{conversationContext}}}{{/helpers.toJson}}
+}
 
 从上下文中明确：目标/范围、对象、示例偏好、风格与语气、时间/资源限制、不期望行为。
 {{/conversationContext}}
@@ -20,8 +22,10 @@ export const template: Template = {
 {{/conversationContext}}
 
 {{#toolsContext}}
-[可用工具]
-{{toolsContext}}
+[可用工具证据（JSON）]
+{
+  "toolsContext": {{#helpers.toJson}}{{{toolsContext}}}{{/helpers.toJson}}
+}
 
 若最终将运行于可调用工具的环境，需在提示词中明确工具相关输入/输出/调用时机与降级策略；禁止虚构工具输出。
 {{/toolsContext}}
@@ -43,8 +47,10 @@ export const template: Template = {
     },
     {
       role: 'user',
-      content: `原始用户提示词：
-{{originalPrompt}}
+      content: `原始用户提示词证据（JSON）：
+{
+  "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
+}
 `
     }
   ] as MessageTemplate[],
@@ -60,4 +66,3 @@ export const template: Template = {
   },
   isBuiltin: true
 };
-

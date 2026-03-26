@@ -74,6 +74,67 @@ describe('TemplateProcessor (Simplified)', () => {
       });
     });
 
+    it('should expose helpers.toJson for safe JSON string injection', () => {
+      const template: Template = {
+        id: 'test-helper-to-json',
+        name: 'Test Helper ToJson',
+        content: [
+          {
+            role: 'user',
+            content: '{"originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}}'
+          }
+        ],
+        metadata: {
+          version: '1.0',
+          lastModified: Date.now(),
+          templateType: 'optimize'
+        }
+      };
+
+      const context: TemplateContext = {
+        originalPrompt: 'Line 1\n"quoted"\n<xml>{{item}}</xml>'
+      };
+
+      const result = TemplateProcessor.processTemplate(template, context);
+
+      expect(result[0]).toEqual({
+        role: 'user',
+        content: '{"originalPrompt": "Line 1\\n\\"quoted\\"\\n<xml>{{item}}</xml>"}'
+      });
+    });
+
+    it('should not allow context to override built-in helpers namespace', () => {
+      const template: Template = {
+        id: 'test-helper-namespace',
+        name: 'Test Helper Namespace',
+        content: [
+          {
+            role: 'user',
+            content: '{{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}'
+          }
+        ],
+        metadata: {
+          version: '1.0',
+          lastModified: Date.now(),
+          templateType: 'optimize'
+        }
+      };
+
+      const context: TemplateContext = {
+        originalPrompt: 'override-check',
+        helpers: {
+          toJson: 'not-a-function'
+        }
+      };
+
+      const result = TemplateProcessor.processTemplate(template, context);
+
+      expect(result[0]).toEqual({
+        role: 'user',
+        content: '"override-check"'
+      });
+    });
+
     // 注：TemplateProcessor 不再负责迭代上下文检查
     // 该检查已移至 PromptService.iteratePrompt/iteratePromptStream 入口处
 
