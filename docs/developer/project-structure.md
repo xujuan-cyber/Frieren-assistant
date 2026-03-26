@@ -27,7 +27,6 @@ prompt-optimizer/
 - `.env.example` - 环境变量示例
 - `package.json` - 项目配置
 - `.vscode/` - VSCode配置目录
-- `.cursorrules` - Cursor IDE配置
 - `.gitignore` - Git忽略配置
 
 ### 1.3 工作区文件
@@ -240,4 +239,4 @@ src/
 ├── @prompt-optimizer/core  # 依赖核心包
 ├── @prompt-optimizer/ui    # 依赖UI组件包
 └── vue ^3.5.x             # Vue框架
-``` 
+```

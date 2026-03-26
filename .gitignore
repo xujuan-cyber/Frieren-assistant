@@ -187,16 +187,16 @@ prompt-optimizer-data
 nul
 .spec-workflow
 .trae
-.cursor/rules/bmad
-CLAUDE.md
 .vscode
 .mcp.json
 .kilocode
 .serena
 .kiro
 .agents/
+.ace-tool/
+.cursor/rules/bmad/
+CLAUDE.md
+CLAUDE.local.md
 .codex/
 .codex-run/
 .codex-tmp/
-# BMAD (local only)
-.ace-tool/
