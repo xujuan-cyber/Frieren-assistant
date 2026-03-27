@@ -20,7 +20,7 @@
   "devDependencies": {
     "cross-env": "^10.1.0",
     "electron": "^41.1.0",
-    "electron-builder": "^26.8.1"
+    "electron-builder": "^26.8.2"
   },
   "dependencies": {
     "@prompt-optimizer/core": "workspace:*",
