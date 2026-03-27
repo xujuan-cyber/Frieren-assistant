@@ -1,3 +1,6 @@
+import forms from '@tailwindcss/forms'
+import typography from '@tailwindcss/typography'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -18,8 +21,8 @@ export default {
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
+    forms,
+    typography,
     function({ addVariant, e }) {
       // 添加自定义主题变体
       addVariant('theme-blue', ['.theme-blue &', ':root.theme-blue &'])

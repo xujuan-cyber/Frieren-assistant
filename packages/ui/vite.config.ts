@@ -39,7 +39,8 @@ export default defineConfig({
       }
     },
     cssCodeSplit: false,
-    emptyOutDir: false
+    // UI types are emitted in a separate build step after Vite finishes.
+    emptyOutDir: true
   },
   assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.svg']
 }) 

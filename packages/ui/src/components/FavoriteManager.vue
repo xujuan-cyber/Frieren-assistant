@@ -965,6 +965,8 @@ defineExpose({
 </script>
 
 <style scoped>
+@reference "../styles/index.css";
+
 /* 固定工具栏 */
 .toolbar {
   @apply p-4 border-b border-gray-200 dark:border-gray-700;

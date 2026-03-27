@@ -227,6 +227,8 @@ const handleActionSelect = (key: string) => {
 </script>
 
 <style scoped>
+@reference "../styles/index.css";
+
 .favorite-list-item {
   @apply transition-colors duration-200;
   @apply hover:bg-gray-50 dark:hover:bg-gray-800;

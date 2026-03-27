@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@prompt-optimizer/ui": "workspace:*",
-    "uuid": "^11.1.0",
     "vue": "^3.5.31"
   },
   "devDependencies": {
@@ -21,9 +20,6 @@
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/tsconfig": "^0.9.1",
-    "dotenv": "^17.3.1",
-    "js-yaml": "^4.1.1",
-    "typescript": "^6.0.2",
     "vite": "^8.0.3",
     "vitest": "^4.1.2"
   }

@@ -6,11 +6,11 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/src/index.d.ts",
   "style": "./dist/style.css",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/src/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
@@ -23,8 +23,10 @@
   "readme": "在Windows环境下，请使用分号(;)而不是&&作为命令分隔符，或使用build:win脚本",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:win": "vite build",
+    "build:bundle": "vite build",
+    "build:types": "vue-tsc -p tsconfig.build.json",
+    "build": "pnpm run build:bundle && pnpm run build:types",
+    "build:win": "pnpm run build",
     "test": "vitest run",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src --ext .ts,.vue",
@@ -44,12 +46,14 @@
     "markdown-it": "^14.1.1",
     "naive-ui": "^2.44.1",
     "pinia": "^3.0.4",
-    "uuid": "^11.1.0",
+    "uuid": "^13.0.0",
     "vue": "^3.5.31",
-    "vue-router": "^4.6.4"
+    "vue-i18n": "^11.3.0",
+    "vue-router": "^5.0.4"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/postcss": "^4.2.2",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^22.19.15",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
@@ -57,15 +61,13 @@
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.9.1",
-    "autoprefixer": "^10.4.27",
     "eslint": "^10.1.0",
     "eslint-plugin-vue": "^10.8.0",
     "jsdom": "^29.0.1",
     "postcss": "^8.5.8",
-    "tailwindcss": "^3.4.19",
+    "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "vite": "^8.0.3",
-    "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.1.2",
     "vue-tsc": "^3.2.6"
   }

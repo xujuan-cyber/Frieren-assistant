@@ -520,6 +520,8 @@ watch(() => services?.value?.favoriteManager, (favoriteManager) => {
 </script>
 
 <style scoped>
+@reference "../styles/index.css";
+
 .category-manager {
   @apply flex flex-col h-full;
 }

@@ -166,6 +166,8 @@ defineExpose({ forceRefreshContent, forceExitEditing });
 </script>
 
 <style scoped>
+@reference "../styles/index.css";
+
 .output-display {
   @apply flex flex-col h-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 relative;
 }
@@ -195,7 +197,7 @@ defineExpose({ forceRefreshContent, forceExitEditing });
 .toolbar-btn {
   @apply flex items-center gap-1 px-2 py-1 text-sm rounded transition-colors;
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50;
+  @apply focus:outline-hidden focus:ring-2 focus:ring-blue-500/50;
 }
 
 /* 悬浮工具栏动画 */
