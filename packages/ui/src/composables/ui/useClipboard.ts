@@ -44,7 +44,7 @@ export function useClipboard(): ClipboardHooks {
       const errorMessage = err instanceof Error ? err.message : 'Failed to copy to clipboard'
       error.value = errorMessage
       console.error('[useClipboard] Failed to copy text:', err)
-      throw new Error(errorMessage)
+      throw new Error(errorMessage, { cause: err })
     } finally {
       isLoading.value = false
     }
@@ -68,7 +68,7 @@ export function useClipboard(): ClipboardHooks {
       const errorMessage = err instanceof Error ? err.message : 'Failed to read from clipboard'
       error.value = errorMessage
       console.error('[useClipboard] Failed to read text:', err)
-      throw new Error(errorMessage)
+      throw new Error(errorMessage, { cause: err })
     } finally {
       isLoading.value = false
     }

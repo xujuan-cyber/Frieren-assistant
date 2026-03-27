@@ -540,22 +540,16 @@ const handleExtractionConfirm = (data: {
 
     const placeholder = `{{${data.variableName}}}`;
     const text = editorView.state.doc.toString();
-    let newValue = text;
-
-    if (data.replaceAll && occurrenceCount.value > 1) {
-        // 全部替换
-        newValue = replaceAllOccurrencesOutsideVariables(
-            text,
-            currentSelection.value.rawText,
-            placeholder,
-        );
-    } else {
-        // 仅替换当前选中的文本
-        newValue =
-            text.substring(0, currentSelection.value.start) +
-            placeholder +
-            text.substring(currentSelection.value.end);
-    }
+    const newValue =
+        data.replaceAll && occurrenceCount.value > 1
+            ? replaceAllOccurrencesOutsideVariables(
+                  text,
+                  currentSelection.value.rawText,
+                  placeholder,
+              )
+            : text.substring(0, currentSelection.value.start) +
+              placeholder +
+              text.substring(currentSelection.value.end);
 
     // 更新编辑器内容
     editorView.dispatch({

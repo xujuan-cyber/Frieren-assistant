@@ -125,7 +125,10 @@ export class DataImportExportManager implements DataImportExport {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Export to file failed:', error)
-      throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error }
+      )
     }
   }
 

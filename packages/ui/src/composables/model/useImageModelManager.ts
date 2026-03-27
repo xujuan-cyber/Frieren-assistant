@@ -431,7 +431,10 @@ export function useImageModelManager() {
           const adapter = registry.getAdapter(selectedProviderId.value)
           selectedModel = adapter.buildDefaultModel(configForm.value.modelId)
         } catch (error) {
-          throw new Error(`无法构建模型 ${configForm.value.modelId}: ${error instanceof Error ? error.message : String(error)}`)
+          throw new Error(
+            `无法构建模型 ${configForm.value.modelId}: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error }
+          )
         }
       }
 
@@ -615,7 +618,10 @@ export function useImageModelManager() {
           const adapter = registry.getAdapter(selectedProviderId.value)
           cachedModel = adapter.buildDefaultModel(selectedModelId.value)
         } catch (error) {
-          throw new Error(`无法构建模型 ${selectedModelId.value}: ${error instanceof Error ? error.message : String(error)}`)
+          throw new Error(
+            `无法构建模型 ${selectedModelId.value}: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error }
+          )
         }
       }
 

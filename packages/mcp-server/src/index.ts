@@ -35,7 +35,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ListToolsRequestSchema, CallToolRequestSchema, isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { CoreServicesManager } from './adapters/core-services.js';
-import { loadConfig } from './config/environment.js';
+import { loadConfig, type MCPServerConfig } from './config/environment.js';
 import * as logger from './utils/logging.js';
 import { ParameterValidator } from './adapters/parameter-adapter.js';
 import { getTemplateOptions, getDefaultTemplateId } from './config/templates.js';
@@ -43,7 +43,7 @@ import { randomUUID } from 'node:crypto';
 import express from 'express';
 
 // 创建服务器实例的工厂函数
-async function createServerInstance(config: any) {
+async function createServerInstance(config: MCPServerConfig) {
   // 创建 MCP Server 实例 - 使用正确的 API
   const server = new Server({
     name: 'prompt-optimizer-mcp-server',

@@ -289,7 +289,7 @@ function parseJsonObject(rawText: string): Record<string, unknown> {
     if (error instanceof Error && error.message === 'Model response is not a valid JSON object') {
       throw error
     }
-    throw new Error('Model response is not valid JSON')
+    throw new Error('Model response is not valid JSON', { cause: error })
   }
 }
 

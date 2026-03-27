@@ -108,7 +108,7 @@ export class CoreServicesManager {
       // 检查是否有任何可用的模型配置
       this.showEnvironmentHint();
 
-      throw new Error(`Core services initialization failed: ${(error as Error).message}`);
+      throw new Error(`Core services initialization failed: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -134,7 +134,7 @@ export class CoreServicesManager {
         logger.info(`Default model configured with preferred provider: ${config.preferredModelProvider || 'auto-selected'}`);
       }
     } catch (error) {
-      throw new Error(`Failed to setup default model: ${(error as Error).message}`);
+      throw new Error(`Failed to setup default model: ${(error as Error).message}`, { cause: error });
     }
   }
 

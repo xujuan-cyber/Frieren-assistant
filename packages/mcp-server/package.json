@@ -33,14 +33,16 @@
     "express": "^5.2.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/debug": "^4.1.13",
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.15",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
     "eslint": "^10.1.0",
+    "globals": "^17.4.0",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.2"
   },
   "engines": {

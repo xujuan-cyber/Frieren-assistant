@@ -58,7 +58,7 @@ export function useVariableDetection(
 
       // 分类变量并获取值
       let source: DetectedVariable["source"];
-      let value = "";
+      let value: string;
 
       // 优先级: 预定义 > 全局 > 临时 > 缺失
       if (predefinedVariables.value[name] !== undefined) {

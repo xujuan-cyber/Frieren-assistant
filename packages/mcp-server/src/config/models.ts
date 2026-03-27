@@ -3,7 +3,7 @@
  * 完全复用 core 包的模型管理功能
  */
 
-import { ModelManager } from '@prompt-optimizer/core';
+import { ModelManager, type TextModelConfig } from '@prompt-optimizer/core';
 
 /**
  * 为 MCP 服务器设置默认模型
@@ -23,7 +23,7 @@ export async function setupDefaultModel(
     throw new Error('No enabled models found in core defaultModels');
   }
 
-  let selectedModel: [string, any] | undefined;
+  let selectedModel: [string, TextModelConfig] | undefined;
 
   // 1. 如果指定了 preferredProvider，尝试匹配
   if (preferredProvider) {
@@ -64,4 +64,3 @@ export async function setupDefaultModel(
     await modelManager.addModel(mcpModelKey, finalConfig);
   }
 }
-
