@@ -18,18 +18,17 @@
     "logs:clean": "node -e \"const fs=require('fs');const path=require('path');const os=require('os');const logDir=path.join(os.homedir(),'AppData','Roaming','PromptOptimizer','logs');if(fs.existsSync(logDir)){fs.rmSync(logDir,{recursive:true});console.log('日志已清理');}else{console.log('日志目录不存在');}\""
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
-    "electron": "^39.2.6",
-    "electron-builder": "^26.0.12",
-    "electron-builder-squirrel-windows": "^26.0.12"
+    "cross-env": "^10.1.0",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
+    "electron-builder-squirrel-windows": "^26.8.1"
   },
   "dependencies": {
     "@prompt-optimizer/core": "workspace:*",
-    "dotenv": "^16.0.0",
-    "electron-log": "^5.4.1",
-    "electron-updater": "6.6.2",
-    "node-fetch": "^2.7.0",
-    "undici": "^6.19.8"
+    "dotenv": "^17.3.1",
+    "electron-log": "^5.4.3",
+    "electron-updater": "6.8.3",
+    "undici": "^7.24.6"
   },
   "build": {
     "appId": "com.promptoptimizer.desktop",

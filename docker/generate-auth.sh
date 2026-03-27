@@ -6,7 +6,7 @@ if [ -n "$ACCESS_PASSWORD" ]; then
     if [ "$ACCESS_PASSWORD" = "" ]; then
         echo "警告: 设置了空密码，不安全。不启用Basic认证"
         # 创建空的auth配置（禁用认证）
-        cat > /etc/nginx/conf.d/auth.conf << EOF
+        cat > /etc/nginx/http.d/auth.conf << EOF
 # Basic认证未启用 - 密码为空
 auth_basic off;
 EOF
@@ -28,7 +28,7 @@ EOF
     chmod -R a+r /etc/nginx/auth
     
     # 创建启用认证的配置
-    cat > /etc/nginx/conf.d/auth.conf << EOF
+    cat > /etc/nginx/http.d/auth.conf << EOF
 # 此文件由generate-auth.sh脚本自动生成
 auth_basic "请输入访问凭据 (Please enter your credentials)";
 auth_basic_user_file /etc/nginx/auth/.htpasswd;
@@ -39,8 +39,8 @@ else
     echo "未设置ACCESS_PASSWORD环境变量，不启用Basic认证"
     
     # 创建空的auth配置（禁用认证）
-    cat > /etc/nginx/conf.d/auth.conf << EOF
+    cat > /etc/nginx/http.d/auth.conf << EOF
 # Basic认证未启用
 auth_basic off;
 EOF
-fi 
+fi

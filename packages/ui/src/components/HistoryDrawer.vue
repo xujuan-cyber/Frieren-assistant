@@ -240,7 +240,7 @@ const emit = defineEmits<{
   (e: 'deleteChain', chainId: string): void
 }>()
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _toast = useToast()
 const expandedVersions = ref<Record<string, boolean>>({})
 const searchQuery = ref('')
@@ -274,7 +274,7 @@ const filteredHistory = computed(() => {
 })
 
 // 切换版本展开/收起状态
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _toggleVersion = (recordId: string) => {
   expandedVersions.value = {
     ...expandedVersions.value,

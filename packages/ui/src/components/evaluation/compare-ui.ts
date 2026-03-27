@@ -216,8 +216,11 @@ export const buildCompareRoleTooltipCopy = (
   warning: string | null
   action: string
 } | null => {
-  const unresolved =
-    !entry.effectiveRole || entry.effectiveRole === 'auxiliary'
+  const effectiveRole =
+    entry.effectiveRole && entry.effectiveRole !== 'auxiliary'
+      ? entry.effectiveRole
+      : null
+  const unresolved = !effectiveRole
 
   const label = unresolved
     ? tOr(
@@ -225,7 +228,7 @@ export const buildCompareRoleTooltipCopy = (
         'evaluation.compareShared.unresolved.label',
         'Not Clear Yet'
       )
-    : getCompareRoleLabel(t, entry.effectiveRole)
+    : getCompareRoleLabel(t, effectiveRole)
 
   const description = unresolved
     ? tOr(
@@ -233,7 +236,7 @@ export const buildCompareRoleTooltipCopy = (
         'evaluation.compareShared.unresolved.description',
         'This column is not clearly assigned to a core compare role yet.'
       )
-    : getCompareRoleDescription(t, entry.effectiveRole)
+    : getCompareRoleDescription(t, effectiveRole)
 
   const source = unresolved
     ? tOr(

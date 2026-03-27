@@ -1355,6 +1355,7 @@ const variantResults = computed(
 const variantLastRunFingerprint = computed(
     () => session.testVariantLastRunFingerprint as unknown as Record<TestVariantId, string>,
 )
+void variantLastRunFingerprint.value
 
 const variantRunning = reactive<Record<TestVariantId, boolean>>({
     a: false,
@@ -1510,13 +1511,6 @@ const getVariantFingerprint = (id: TestVariantId) => {
     }
     const varsHash = hashVariables(varsForFingerprint)
     return `${String(selection)}:${resolved.resolvedVersion}:${modelKey}:${promptHash}:${varsHash}:${imgSig}`
-}
-
-const isVariantStale = (id: TestVariantId) => {
-    if (!hasVariantResult(id)) return false
-    const prev = variantLastRunFingerprint.value[id]
-    if (!prev) return false
-    return prev !== getVariantFingerprint(id)
 }
 
 const getVariantRequest = (id: TestVariantId): Image2ImageRequest | null => {

@@ -815,7 +815,7 @@ const processedContent = computed(() => {
 ## 6. 开发环境要求
 
 ### 6.1 开发环境
-- Node.js >= 18.0.0
+- Node.js 22.x
 - pnpm >= 8.15.0
 - VS Code
   - Volar 1.8.x

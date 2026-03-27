@@ -231,11 +231,11 @@ const openBrandWebsite = async () => {
   min-height: 32px;
 }
 
-.core-navigation :deep(.function-mode-selector) {
+.core-navigation .function-mode-selector {
   transform: scale(1.05);
 }
 
-.core-navigation :deep(.n-radio-group) {
+.core-navigation .n-radio-group {
   background: var(--modal-color, #fff);
   border-radius: 8px;
   padding: 4px;
@@ -243,21 +243,21 @@ const openBrandWebsite = async () => {
   border: 1px solid var(--border-color, rgba(239, 239, 245, 0.6));
 }
 
-.core-navigation :deep(.n-radio-button) {
+.core-navigation .n-radio-button {
   font-weight: 500;
   min-width: 60px;
   border-radius: 6px !important;
   transition: all 0.2s ease;
 }
 
-.core-navigation :deep(.n-radio-button--checked) {
+.core-navigation .n-radio-button--checked {
   background: var(--primary-color) !important;
   color: white !important;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
-.core-navigation :deep(.n-radio-button:not(.n-radio-button--checked):hover) {
+.core-navigation .n-radio-button:not(.n-radio-button--checked):hover {
   background: var(--hover-color, rgba(0, 0, 0, 0.06));
 }
 
@@ -272,11 +272,11 @@ const openBrandWebsite = async () => {
     padding-left: 8px;
   }
 
-  .core-navigation :deep(.function-mode-selector) {
+  .core-navigation .function-mode-selector {
     transform: scale(0.95);
   }
 
-  .core-navigation :deep(.n-radio-button) {
+  .core-navigation .n-radio-button {
     min-width: 48px;
     font-size: 12px;
   }

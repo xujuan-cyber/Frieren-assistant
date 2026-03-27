@@ -323,7 +323,7 @@ import { type IPromptService, type PromptRecordChain, type PatchOperation, type 
 // 1. 基础 composables
 const hljsInstance = hljs;
 const i18n = useI18n();
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const t = i18n.t;  // 在模板中使用
 const toast = useToast();
 
@@ -404,11 +404,11 @@ const { services, isInitializing } = useAppInitializer();
 // 🔧 修复：保存 composable 返回值，避免在 watch 回调中重复调用（导致 inject() 错误）
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const functionModeApi = useFunctionMode(services);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const basicSubModeApi = useBasicSubMode(services);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const proSubModeApi = useProSubMode(services);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const imageSubModeApi = useImageSubMode(services);
 
 // 3.5. 🔧 Step A: 建立路由驱动的单一真源（优先于 state，避免双真源）

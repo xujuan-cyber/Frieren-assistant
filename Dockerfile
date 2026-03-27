@@ -1,4 +1,4 @@
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g corepack@latest && corepack enable
@@ -10,15 +10,15 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
 RUN pnpm mcp:build
 
-FROM nginx:stable-alpine
+FROM node:22-alpine
 # 安装htpasswd工具、dos2unix和supervisor
-RUN apk add --no-cache apache2-utils dos2unix supervisor nodejs npm gettext curl
+RUN apk add --no-cache nginx apache2-utils dos2unix supervisor gettext curl
 
 # 安装pnpm
 RUN npm install -g pnpm
 
 # 复制Nginx配置
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
 # 复制Web应用
 COPY --from=build /app/packages/web/dist /usr/share/nginx/html

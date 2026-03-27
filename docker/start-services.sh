@@ -5,8 +5,8 @@ mkdir -p /var/log/supervisor
 
 # 处理nginx配置文件中的环境变量
 echo "Processing nginx configuration with environment variables..."
-envsubst '${NGINX_PORT}' < /etc/nginx/conf.d/default.conf > /tmp/nginx.conf
-mv /tmp/nginx.conf /etc/nginx/conf.d/default.conf
+envsubst '${NGINX_PORT}' < /etc/nginx/http.d/default.conf > /tmp/nginx.conf
+mv /tmp/nginx.conf /etc/nginx/http.d/default.conf
 echo "Nginx configuration updated with NGINX_PORT=${NGINX_PORT}"
 
 # 运行原有的nginx初始化脚本

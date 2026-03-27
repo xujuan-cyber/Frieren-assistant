@@ -37,4 +37,4 @@
 
 ## Security & Configuration
 - Do not commit secrets. Use `.env.local` (see `env.local.example`).
-- Node >= 18 (18/20/22 supported). Local dev and deploy can use Docker/Vercel; see `dev.md` and `docs/`.
+- Node 22.x is required. Local dev and deploy can use Docker/Vercel; see `dev.md` and `docs/`.

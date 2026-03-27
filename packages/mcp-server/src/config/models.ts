@@ -44,7 +44,7 @@ export async function setupDefaultModel(
     selectedModel = availableModels[0];
   }
 
-  const [modelKey, modelConfig] = selectedModel;
+  const [, modelConfig] = selectedModel;
 
   // 3. 使用 core 的模型配置，确保模型启用
   const finalConfig = {
@@ -59,10 +59,9 @@ export async function setupDefaultModel(
   try {
     // 尝试更新现有模型
     await modelManager.updateModel(mcpModelKey, finalConfig);
-  } catch (error) {
+  } catch {
     // 如果模型不存在，则添加新模型
     await modelManager.addModel(mcpModelKey, finalConfig);
   }
 }
-
 

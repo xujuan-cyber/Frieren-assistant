@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* 基础样式设置 */
 :root {
   font-size: 16px;  /* 确保基础字体大小 */
@@ -19,4 +15,4 @@ body {
   text-rendering: optimizeLegibility;  /* 优化文本渲染 */
   -webkit-font-smoothing: antialiased;  /* 字体平滑 */
   -moz-osx-font-smoothing: grayscale;
-} 
+}

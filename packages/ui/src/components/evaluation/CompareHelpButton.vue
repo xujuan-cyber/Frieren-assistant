@@ -65,8 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NButton, NIcon, NModal, NTooltip } from 'naive-ui'
 import MarkdownRenderer from '../MarkdownRenderer.vue'

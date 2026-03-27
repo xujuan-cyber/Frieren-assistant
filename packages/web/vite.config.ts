@@ -44,10 +44,6 @@ export default defineConfig(({ mode }) => {
         '@prompt-optimizer/extension': path.resolve(__dirname, '../extension')
       }
     },
-    optimizeDeps: {
-      // 预构建依赖
-      include: ['element-plus'],
-    },
     define: {
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development'),

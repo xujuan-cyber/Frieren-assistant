@@ -425,8 +425,6 @@ import type { EvaluationResponse, EvaluationType, PatchOperation } from '@prompt
 import {
   getCompareEvaluationMetadata,
   getCompareInsights,
-  type CompareInsightRecord,
-  type CompareJudgementRecord,
 } from '../../composables/prompt/compareResultMetadata'
 import InlineDiff from './InlineDiff.vue'
 import FeedbackEditor from './FeedbackEditor.vue'
@@ -768,66 +766,10 @@ const getStopSignalType = (key: string, value: string): 'success' | 'warning' | 
   return 'default'
 }
 
-const formatCompareJudgementVerdict = (value: CompareJudgementRecord['verdict']): string => {
-  return tOr(`evaluation.compareMetadata.verdictValues.${value}`, {
-    'left-better': 'Left Better',
-    'right-better': 'Right Better',
-    mixed: 'Mixed',
-    similar: 'Similar',
-  }[value] || value)
-}
-
-const formatCompareJudgementConfidence = (value: CompareJudgementRecord['confidence']): string => {
-  return tOr(`evaluation.compareMetadata.confidenceValues.${value}`, {
-    low: 'Low Confidence',
-    medium: 'Medium Confidence',
-    high: 'High Confidence',
-  }[value] || value)
-}
-
-const getCompareJudgementVerdictType = (
-  verdict: CompareJudgementRecord['verdict']
-): 'success' | 'warning' | 'error' | 'info' | 'default' => {
-  if (verdict === 'left-better') return 'success'
-  if (verdict === 'right-better') return 'warning'
-  if (verdict === 'mixed') return 'info'
-  return 'default'
-}
-
 const compareInsights = computed(() =>
   props.currentType === 'compare'
     ? getCompareInsights(props.result)
     : undefined
-)
-
-const compareInsightOverfitWarnings = computed(() =>
-  compareInsights.value?.overfitWarnings || []
-)
-
-const formatCompareConflictSignal = (
-  signal: NonNullable<CompareInsightRecord['conflictSignals']>[number]
-): string => {
-  const fallbackMap: Record<NonNullable<CompareInsightRecord['conflictSignals']>[number], string> = {
-    improvementNotSupportedOnReference:
-      'The target improved over baseline, but the same prompt change is not supported on the reference side.',
-    improvementUnstableAcrossReplicas:
-      'The target improved in one comparison, but replica evidence suggests the gain may be unstable.',
-    regressionOutweighsCosmeticGains:
-      'Regression against the baseline should outweigh cosmetic improvements elsewhere.',
-    sampleOverfitRiskVisible:
-      'When reusable gains and sample-fitting gains coexist, prefer conservative conclusions and keep the overfit risk visible.',
-  }
-
-  return tOr(
-    `evaluation.compareMetadata.conflictSignalValues.${signal}`,
-    fallbackMap[signal] || signal
-  )
-}
-
-const compareInsightConflictSignals = computed(() =>
-  (compareInsights.value?.conflictSignals || []).map((signal) =>
-    formatCompareConflictSignal(signal)
-  )
 )
 
 const getCompareDecisionHeadline = (

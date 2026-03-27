@@ -27,13 +27,12 @@ export default defineConfig({
     } : null,
     sourcemap: true,
     rollupOptions: {
-      external: ['vue', 'vue-router', '@prompt-optimizer/core', 'element-plus', 'element-plus/dist/index.css', 'uuid'],
+      external: ['vue', 'vue-router', '@prompt-optimizer/core', 'uuid'],
       output: {
         globals: {
           vue: 'Vue',
           'vue-router': 'VueRouter',
           '@prompt-optimizer/core': 'PromptOptimizerCore',
-          'element-plus': 'ElementPlus',
           'uuid': 'uuid'
         },
         assetFileNames: 'style.css'

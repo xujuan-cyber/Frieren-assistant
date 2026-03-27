@@ -588,7 +588,7 @@ export function useTextModelManager() {
     return adapter.getProvider()
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const ensureModelMeta = (providerId: string, modelId: string, _existing?: TextModel) => {
     const adapter = textAdapterRegistry.getAdapter(providerId)
     const staticModels = adapter.getModels()
