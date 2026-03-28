@@ -116,6 +116,23 @@ export interface EvaluationContentBlock {
   content: string;
   /** 可选摘要 */
   summary?: string;
+  /** 可选多媒体证据 */
+  media?: EvaluationMediaItem[];
+}
+
+/**
+ * 评估多媒体证据项
+ * - 固定支持 assetId 或 b64 二选一
+ */
+export interface EvaluationMediaItem {
+  /** 展示标签 */
+  label: string;
+  /** 图像资源引用 */
+  assetId?: string;
+  /** base64 图像数据（不含 data URL 前缀） */
+  b64?: string;
+  /** 图像 MIME 类型 */
+  mimeType?: string;
 }
 
 /**
@@ -176,6 +193,8 @@ export interface EvaluationSnapshot {
   promptText: string;
   /** 执行输出 */
   output: string;
+  /** 可选输出证据块（如图片结果） */
+  outputBlock?: EvaluationContentBlock;
   /** 可选推理 */
   reasoning?: string;
   /** 模型 key */

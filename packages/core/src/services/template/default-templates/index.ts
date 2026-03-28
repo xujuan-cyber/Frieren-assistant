@@ -102,6 +102,10 @@ import { template as evaluation_pro_user_prompt_iterate_en } from './evaluation/
 // 评估模板 - 图像模式/文生图
 import { template as evaluation_image_text2image_prompt_only } from './evaluation/image/text2image/evaluation-prompt-only';
 import { template as evaluation_image_text2image_prompt_only_en } from './evaluation/image/text2image/evaluation-prompt-only_en';
+import { template as evaluation_image_text2image_result } from './evaluation/image/text2image/evaluation-result';
+import { template as evaluation_image_text2image_result_en } from './evaluation/image/text2image/evaluation-result_en';
+import { template as evaluation_image_text2image_compare } from './evaluation/image/text2image/evaluation-compare';
+import { template as evaluation_image_text2image_compare_en } from './evaluation/image/text2image/evaluation-compare_en';
 // 评估模板 - 图像模式/图生图
 import { template as evaluation_image_image2image_prompt_only } from './evaluation/image/image2image/evaluation-prompt-only';
 import { template as evaluation_image_image2image_prompt_only_en } from './evaluation/image/image2image/evaluation-prompt-only_en';
@@ -224,6 +228,10 @@ export const ALL_TEMPLATES = {
   // 评估模板 - 图像模式/文生图
   evaluation_image_text2image_prompt_only,
   evaluation_image_text2image_prompt_only_en,
+  evaluation_image_text2image_result,
+  evaluation_image_text2image_result_en,
+  evaluation_image_text2image_compare,
+  evaluation_image_text2image_compare_en,
   // 评估模板 - 图像模式/图生图
   evaluation_image_image2image_prompt_only,
   evaluation_image_image2image_prompt_only_en,

@@ -6,8 +6,11 @@
 
 import type { ILLMService, Message, StreamHandlers } from '../llm/types';
 import type { IModelManager } from '../model/types';
+import type { TextModelConfig } from '../model/types';
 import type { ITemplateManager, Template } from '../template/types';
 import { TemplateProcessor, type TemplateContext } from '../template/processor';
+import type { IImageStorageService } from '../image/types';
+import type { IImageUnderstandingService } from '../image-understanding/types';
 import {
   buildStructuredComparePairJudgeMessages,
   buildStructuredCompareSynthesisMessages,
@@ -24,6 +27,7 @@ import {
   type PatchOperation,
   type PatchOperationType,
   type EvaluationContentBlock,
+  type EvaluationMediaItem,
   type EvaluationSnapshot,
   type EvaluationTestCase,
   type StructuredCompareRole,
@@ -151,22 +155,47 @@ interface NormalizedCompareContext {
   judgePlan: StructuredCompareJudgePlanItem[];
 }
 
+interface EvaluationServiceDependencies {
+  imageStorageService?: IImageStorageService;
+  imageUnderstandingService?: IImageUnderstandingService;
+}
+
+interface ResolvedEvaluationMedia {
+  label: string;
+  role: string;
+  snapshotId: string;
+  snapshotLabel: string;
+  blockLabel: string;
+  promptRefKind: EvaluationSnapshot['promptRef']['kind'];
+  testCaseLabel: string;
+  description: string;
+  b64: string;
+  mimeType?: string;
+}
+
 /**
  * 评估服务实现类
  */
 export class EvaluationService implements IEvaluationService {
+  private readonly imageStorageService?: IImageStorageService;
+  private readonly imageUnderstandingService?: IImageUnderstandingService;
+
   constructor(
     private llmService: ILLMService,
     private modelManager: IModelManager,
-    private templateManager: ITemplateManager
-  ) {}
+    private templateManager: ITemplateManager,
+    dependencies: EvaluationServiceDependencies = {}
+  ) {
+    this.imageStorageService = dependencies.imageStorageService;
+    this.imageUnderstandingService = dependencies.imageUnderstandingService;
+  }
 
   /**
    * 执行评估（非流式）
    */
   async evaluate(request: EvaluationRequest): Promise<EvaluationResponse> {
     this.validateRequest(request);
-    await this.validateModel(request.evaluationModelKey);
+    const modelConfig = await this.validateModel(request.evaluationModelKey);
 
     let normalizedCompare: NormalizedCompareContext | undefined;
     if (request.type === 'compare') {
@@ -182,6 +211,21 @@ export class EvaluationService implements IEvaluationService {
 
     const startTime = Date.now();
     try {
+      if (this.shouldUseMultimodalEvaluation(request)) {
+        const responseMetadata = this.buildResponseMetadata(
+          request,
+          {
+            model: request.evaluationModelKey,
+            timestamp: Date.now(),
+            duration: 0,
+          },
+          normalizedCompare
+        );
+        const content = await this.executeMultimodalEvaluation(request, messages, modelConfig);
+        responseMetadata.duration = Date.now() - startTime;
+        return this.parseEvaluationResult(content, request.type, responseMetadata);
+      }
+
       const result = await this.llmService.sendMessage(messages, request.evaluationModelKey);
       const duration = Date.now() - startTime;
       const responseMetadata = this.buildResponseMetadata(
@@ -218,12 +262,18 @@ export class EvaluationService implements IEvaluationService {
     }
 
     try {
-      await this.validateModel(request.evaluationModelKey);
+      const modelConfig = await this.validateModel(request.evaluationModelKey);
+      await this.evaluateStreamInternal(request, callbacks, modelConfig);
     } catch (error) {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
-      return;
     }
+  }
 
+  private async evaluateStreamInternal(
+    request: EvaluationRequest,
+    callbacks: EvaluationStreamHandlers,
+    modelConfig: TextModelConfig
+  ): Promise<void> {
     let normalizedCompare: NormalizedCompareContext | undefined;
     if (request.type === 'compare') {
       normalizedCompare = this.normalizeCompareRequest(request);
@@ -247,10 +297,33 @@ export class EvaluationService implements IEvaluationService {
 
     const context = this.buildTemplateContext(request, normalizedCompare);
     const messages = TemplateProcessor.processTemplate(template, context);
-
-    let fullContent = '';
     const startTime = Date.now();
 
+    if (this.shouldUseMultimodalEvaluation(request)) {
+      try {
+        const content = await this.executeMultimodalEvaluation(request, messages, modelConfig);
+        callbacks.onToken(content);
+        const response = this.parseEvaluationResult(
+          content,
+          request.type,
+          this.buildResponseMetadata(
+            request,
+            {
+              model: request.evaluationModelKey,
+              timestamp: Date.now(),
+              duration: Date.now() - startTime,
+            },
+            normalizedCompare
+          )
+        );
+        callbacks.onComplete(response);
+      } catch (error) {
+        callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      }
+      return;
+    }
+
+    let fullContent = '';
     const streamHandlers: StreamHandlers = {
       onToken: (token) => {
         fullContent += token;
@@ -324,6 +397,11 @@ export class EvaluationService implements IEvaluationService {
             'Result evaluation snapshot testCaseId must match testCase.id.'
           );
         }
+        if (this.isImageText2ImageMode(request) && !this.hasSnapshotOutputMedia(request.snapshot)) {
+          throw new EvaluationValidationError(
+            'Image result evaluation requires at least one output image evidence item.'
+          );
+        }
         break;
 
       case 'compare':
@@ -356,6 +434,21 @@ export class EvaluationService implements IEvaluationService {
             );
           }
         });
+        if (this.isImageText2ImageMode(request)) {
+          const snapshotsWithMedia = request.snapshots.filter((snapshot) =>
+            this.hasSnapshotOutputMedia(snapshot)
+          );
+          if (snapshotsWithMedia.length < 2) {
+            throw new EvaluationValidationError(
+              'Image compare evaluation requires at least two snapshots with output image evidence.'
+            );
+          }
+          if (snapshotsWithMedia.length !== request.snapshots.length) {
+            throw new EvaluationValidationError(
+              'Image compare evaluation requires every compared snapshot to include output image evidence.'
+            );
+          }
+        }
         break;
 
       case 'prompt-only':
@@ -381,11 +474,12 @@ export class EvaluationService implements IEvaluationService {
   /**
    * 验证评估模型
    */
-  private async validateModel(modelKey: string): Promise<void> {
+  private async validateModel(modelKey: string): Promise<TextModelConfig> {
     const model = await this.modelManager.getModel(modelKey);
     if (!model) {
       throw new EvaluationModelError(modelKey);
     }
+    return model;
   }
 
   /**
@@ -482,6 +576,194 @@ export class EvaluationService implements IEvaluationService {
       compareMode: compare.compareMode,
       ...(compare.snapshotRoles ? { snapshotRoles: compare.snapshotRoles } : {}),
     };
+  }
+
+  private isImageText2ImageMode(request: Pick<EvaluationRequest, 'mode'>): boolean {
+    return request.mode.functionMode === 'image' && request.mode.subMode === 'text2image';
+  }
+
+  private shouldForceGenericCompare(
+    request: Extract<EvaluationRequest, { type: 'compare' }>
+  ): boolean {
+    return this.isImageText2ImageMode(request);
+  }
+
+  private shouldUseMultimodalEvaluation(
+    request: EvaluationRequest
+  ): request is Extract<EvaluationRequest, { type: 'result' | 'compare' }> {
+    if (!this.isImageText2ImageMode(request)) {
+      return false;
+    }
+
+    if (request.type === 'result') {
+      return this.hasSnapshotOutputMedia(request.snapshot);
+    }
+
+    if (request.type === 'compare') {
+      return request.snapshots.some((snapshot) => this.hasSnapshotOutputMedia(snapshot));
+    }
+
+    return false;
+  }
+
+  private async executeMultimodalEvaluation(
+    request: Extract<EvaluationRequest, { type: 'result' | 'compare' }>,
+    messages: Message[],
+    modelConfig: TextModelConfig
+  ): Promise<string> {
+    if (!this.imageUnderstandingService) {
+      throw new EvaluationExecutionError(
+        'Image understanding service is not available for multimodal evaluation.'
+      );
+    }
+
+    const { systemPrompt, userPrompt } = this.splitEvaluationMessages(messages);
+    const resolvedMedia = await this.resolveEvaluationMedia(request);
+    const manifest = this.buildImageEvidenceManifest(resolvedMedia);
+
+    const result = await this.imageUnderstandingService.understand({
+      modelConfig,
+      systemPrompt,
+      userPrompt: `${userPrompt}\n\n${manifest}`.trim(),
+      images: resolvedMedia.map((item) => ({
+        b64: item.b64,
+        mimeType: item.mimeType,
+      })),
+    });
+
+    return result.content;
+  }
+
+  private splitEvaluationMessages(messages: Message[]): {
+    systemPrompt: string;
+    userPrompt: string;
+  } {
+    const systemPrompt = messages
+      .filter((message) => message.role === 'system')
+      .map((message) => message.content.trim())
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
+
+    const userPrompt = messages
+      .filter((message) => message.role !== 'system')
+      .map((message) => {
+        const content = message.content.trim();
+        if (!content) {
+          return '';
+        }
+        return message.role === 'user'
+          ? content
+          : `${message.role.toUpperCase()}:\n${content}`;
+      })
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
+
+    return {
+      systemPrompt,
+      userPrompt,
+    };
+  }
+
+  private async resolveEvaluationMedia(
+    request: Extract<EvaluationRequest, { type: 'result' | 'compare' }>
+  ): Promise<ResolvedEvaluationMedia[]> {
+    const testCaseLabelMap =
+      request.type === 'compare'
+        ? new Map(request.testCases.map((testCase) => [testCase.id.trim(), testCase.label?.trim() || '']))
+        : new Map([[request.testCase.id.trim(), request.testCase.label?.trim() || '']]);
+
+    const snapshots = request.type === 'compare'
+      ? request.snapshots.filter((snapshot) => this.hasSnapshotOutputMedia(snapshot))
+      : [request.snapshot];
+
+    const resolvedMedia: ResolvedEvaluationMedia[] = [];
+
+    for (const snapshot of snapshots) {
+      const block = snapshot.outputBlock;
+      if (!block?.media?.length) {
+        continue;
+      }
+
+      for (const mediaItem of block.media) {
+        const media = await this.resolveEvaluationMediaItem(mediaItem);
+        resolvedMedia.push({
+          label: mediaItem.label.trim(),
+          role: request.type === 'compare' ? 'compare-output-image' : 'result-output-image',
+          snapshotId: snapshot.id.trim(),
+          snapshotLabel: snapshot.label.trim(),
+          blockLabel: block.label.trim(),
+          promptRefKind: snapshot.promptRef.kind,
+          testCaseLabel:
+            testCaseLabelMap.get(snapshot.testCaseId.trim()) ||
+            snapshot.testCaseId.trim(),
+          description: block.content?.trim() || snapshot.output.trim(),
+          b64: media.b64,
+          mimeType: media.mimeType,
+        });
+      }
+    }
+
+    if (!resolvedMedia.length) {
+      throw new EvaluationExecutionError('No valid image evidence could be resolved for evaluation.');
+    }
+
+    return resolvedMedia;
+  }
+
+  private async resolveEvaluationMediaItem(
+    mediaItem: EvaluationMediaItem
+  ): Promise<{ b64: string; mimeType?: string }> {
+    const label = mediaItem.label?.trim() || 'image';
+    const inlineB64 = mediaItem.b64?.trim() || '';
+    const assetId = mediaItem.assetId?.trim() || '';
+
+    if (inlineB64) {
+      return {
+        b64: inlineB64,
+        mimeType: mediaItem.mimeType?.trim() || 'image/png',
+      };
+    }
+
+    if (!assetId) {
+      throw new EvaluationExecutionError(
+        `Evaluation image evidence "${label}" is missing both assetId and b64 data.`
+      );
+    }
+
+    if (!this.imageStorageService) {
+      throw new EvaluationExecutionError(
+        `Image storage service is required to resolve evaluation image asset "${assetId}".`
+      );
+    }
+
+    const storedImage = await this.imageStorageService.getImage(assetId);
+    if (!storedImage?.data?.trim()) {
+      throw new EvaluationExecutionError(
+        `Failed to resolve evaluation image asset "${assetId}".`
+      );
+    }
+
+    return {
+      b64: storedImage.data,
+      mimeType: mediaItem.mimeType?.trim() || storedImage.metadata?.mimeType || 'image/png',
+    };
+  }
+
+  private buildImageEvidenceManifest(mediaItems: ResolvedEvaluationMedia[]): string {
+    const lines = [
+      '## Image Evidence Manifest',
+      'Use the attached images in the exact order listed below when grounding the evaluation.',
+    ];
+
+    mediaItems.forEach((item, index) => {
+      lines.push(
+        `${index + 1}. role=${item.role}; snapshot=${item.snapshotLabel} (${item.snapshotId}); testCase=${item.testCaseLabel}; promptRef=${item.promptRefKind}; block=${item.blockLabel}; media=${item.label}; description=${item.description}`
+      );
+    });
+
+    return lines.join('\n');
   }
 
   private normalizeStructuredCompareRole(value: unknown): StructuredCompareRole | undefined {
@@ -1231,6 +1513,44 @@ export class EvaluationService implements IEvaluationService {
     return mergedReasons.length ? mergedReasons : undefined;
   }
 
+  private hasBlockMedia(block: EvaluationContentBlock | null | undefined): boolean {
+    return Array.isArray(block?.media) && block.media.some((item) => this.hasMediaPayload(item));
+  }
+
+  private hasSnapshotOutputMedia(snapshot: EvaluationSnapshot | null | undefined): boolean {
+    return this.hasBlockMedia(snapshot?.outputBlock);
+  }
+
+  private hasMediaPayload(mediaItem: EvaluationMediaItem | null | undefined): boolean {
+    const assetId = mediaItem?.assetId?.trim() || '';
+    const b64 = mediaItem?.b64?.trim() || '';
+    return !!assetId || !!b64;
+  }
+
+  private validateMediaItems(mediaItems: EvaluationMediaItem[], label: string): void {
+    mediaItems.forEach((item, index) => {
+      const itemLabel = item?.label?.trim() || '';
+      const assetId = item?.assetId?.trim() || '';
+      const b64 = item?.b64?.trim() || '';
+
+      if (!itemLabel) {
+        throw new EvaluationValidationError(`${label} #${index + 1} label must not be empty.`);
+      }
+
+      if (!assetId && !b64) {
+        throw new EvaluationValidationError(
+          `${label} #${index + 1} must provide either assetId or b64.`
+        );
+      }
+
+      if (assetId && b64) {
+        throw new EvaluationValidationError(
+          `${label} #${index + 1} must not provide both assetId and b64.`
+        );
+      }
+    });
+  }
+
   private validateContentBlock(
     block: EvaluationContentBlock | undefined,
     label: string
@@ -1241,8 +1561,13 @@ export class EvaluationService implements IEvaluationService {
     if (!block.label?.trim()) {
       throw new EvaluationValidationError(`${label} label must not be empty.`);
     }
-    if (!block.content?.trim()) {
+    const hasContent = !!block.content?.trim();
+    const hasMedia = this.hasBlockMedia(block);
+    if (!hasContent && !hasMedia) {
       throw new EvaluationValidationError(`${label} content must not be empty.`);
+    }
+    if (block.media) {
+      this.validateMediaItems(block.media, `${label} media`);
     }
   }
 
@@ -1275,12 +1600,15 @@ export class EvaluationService implements IEvaluationService {
     if (snapshot.executionInput) {
       this.validateContentBlock(snapshot.executionInput, `${label} executionInput`);
     }
+    if (snapshot.outputBlock) {
+      this.validateContentBlock(snapshot.outputBlock, `${label} outputBlock`);
+    }
   }
 
   private normalizeContentBlock(block?: EvaluationContentBlock): NormalizedContentBlock | undefined {
     const label = block?.label?.trim() || '';
     const content = block?.content?.trim() || '';
-    if (!label || !content) {
+    if (!label || (!content && !this.hasBlockMedia(block))) {
       return undefined;
     }
 
@@ -1549,13 +1877,17 @@ export class EvaluationService implements IEvaluationService {
             .filter(Boolean)
         ).size > 1
       );
+    const forceGenericCompare = this.shouldForceGenericCompare(request);
     const requestedStructured = request.compareHints?.mode === 'structured';
     const hasStructuredRoleConflicts = this.hasStructuredSingletonRoleConflicts(rawSnapshotRoles);
     const provisionalJudgePlan = requestedStructured && !hasStructuredRoleConflicts
       ? this.buildStructuredCompareJudgePlan(snapshotsWithRoles)
       : [];
     const compareMode =
-      requestedStructured && !hasStructuredRoleConflicts && provisionalJudgePlan.length > 0
+      !forceGenericCompare &&
+      requestedStructured &&
+      !hasStructuredRoleConflicts &&
+      provisionalJudgePlan.length > 0
         ? 'structured'
         : 'generic';
     const snapshotRoles = compareMode === 'structured' ? rawSnapshotRoles : undefined;
@@ -3288,7 +3620,8 @@ ${sections.join('\n\n')}
 export function createEvaluationService(
   llmService: ILLMService,
   modelManager: IModelManager,
-  templateManager: ITemplateManager
+  templateManager: ITemplateManager,
+  dependencies: EvaluationServiceDependencies = {}
 ): IEvaluationService {
-  return new EvaluationService(llmService, modelManager, templateManager);
+  return new EvaluationService(llmService, modelManager, templateManager, dependencies);
 }

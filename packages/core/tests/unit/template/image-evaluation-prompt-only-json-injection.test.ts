@@ -7,11 +7,15 @@ import { template as image2imagePromptOnlyEn } from '../../../src/services/templ
 
 describe('image evaluation prompt-only templates JSON evidence injection', () => {
   const baseContext: TemplateContext = {
-    originalPrompt: '原始提示词含 {{subject_name}}。\n```json\n{"negative_prompt":["crowded"]}\n```',
-    optimizedPrompt: '工作区提示词含 {{style_hint}}。\n## Notes\n- keep cinematic realism',
-    userFeedback: '优先关注：不要让输出出现代码块；保持 {{subject_name}}。',
-    hasOriginalPrompt: true,
-    hasUserFeedback: true,
+    workspacePrompt: '工作区提示词含 {{style_hint}}。\n## Notes\n- keep cinematic realism',
+    referencePrompt: '原始提示词含 {{subject_name}}。\n```json\n{"negative_prompt":["crowded"]}\n```',
+    hasReferencePrompt: true,
+    hasDesignContext: true,
+    designContextLabel: '生成意图',
+    designContextSummary: '优先突出主体与氛围',
+    designContextContent: '用户想要 {{subject_name}} 在夕阳海边，避免过度拥挤。',
+    hasFocus: true,
+    focusBrief: '优先修正主体清晰度，不要输出代码块；保持 {{subject_name}}。',
   };
 
   it.each([
@@ -22,9 +26,10 @@ describe('image evaluation prompt-only templates JSON evidence injection', () =>
   ])('should render %s image evaluation prompt-only template with JSON-wrapped evidence', (_label, template) => {
     const messages = TemplateProcessor.processTemplate(template, baseContext);
 
-    expect(messages[1].content).toContain('"originalPrompt": ');
-    expect(messages[1].content).toContain('"optimizedPrompt": ');
-    expect(messages[1].content).toContain('"userFeedback": ');
+    expect(messages[1].content).toContain('"workspacePrompt": ');
+    expect(messages[1].content).toContain('"referencePrompt": ');
+    expect(messages[1].content).toContain('"designContext": ');
+    expect(messages[1].content).toContain('"focusBrief": ');
     expect(messages[1].content).toContain('{{subject_name}}');
     expect(messages[1].content).toContain('{{style_hint}}');
     expect(messages[1].content).toContain('\\"negative_prompt\\"');
