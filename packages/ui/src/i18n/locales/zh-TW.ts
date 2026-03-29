@@ -2379,6 +2379,10 @@ export default {
         title: "對比評估教學",
         tooltip: "什麼是對比評估？",
       },
+      compareUnavailable: {
+        missingWorkspace:
+          "對比評估至少需要一個工作區測試結果，因為系統會圍繞目前工作區提示詞給出改進建議。請先執行工作區欄位後再進行對比。",
+      },
       compareSummary: {
         decision: {
           title: "迭代建議",

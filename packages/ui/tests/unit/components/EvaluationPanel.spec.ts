@@ -2,6 +2,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import EvaluationPanel from '../../../src/components/evaluation/EvaluationPanel.vue'
 
+vi.mock('@prompt-optimizer/core', () => ({
+  createCompareService: vi.fn(() => ({
+    compareTexts: vi.fn(() => ({
+      fragments: [],
+    })),
+  })),
+}))
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
@@ -172,6 +180,33 @@ describe('EvaluationPanel stale state', () => {
     await reEvaluateButton.trigger('click')
     expect(wrapper.emitted('re-evaluate')).toBeFalsy()
     expect(wrapper.emitted('evaluate-with-feedback')).toBeFalsy()
+  })
+
+  it('shows the disabled compare reason when re-evaluate is unavailable', () => {
+    const wrapper = mount(EvaluationPanel, {
+      props: {
+        show: true,
+        isEvaluating: false,
+        currentType: 'compare',
+        result: baseResult,
+        streamContent: '',
+        error: null,
+        scoreLevel: 'good',
+        disableEvaluate: true,
+        disableEvaluateReason: '对比评估至少需要一个工作区测试结果。',
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
+          FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
+          ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('对比评估至少需要一个工作区测试结果。')
   })
 
   it('renders structured compare metadata when compare stop signals are present', async () => {
@@ -517,5 +552,31 @@ describe('EvaluationPanel stale state', () => {
     expect(
       wrapper.get('[data-testid="evaluation-panel-rewrite-from-evaluation"]').attributes('disabled')
     ).toBeDefined()
+  })
+
+  it('does not render rewrite-from-evaluation when the parent disables the rewrite entry', () => {
+    const wrapper = mount(EvaluationPanel, {
+      props: {
+        show: true,
+        isEvaluating: false,
+        currentType: 'compare',
+        result: baseResult,
+        streamContent: '',
+        error: null,
+        scoreLevel: 'good',
+        canRewriteFromEvaluation: false,
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          InlineDiff: { name: 'InlineDiff', template: '<div class="inline-diff" />' },
+          FeedbackEditor: { name: 'FeedbackEditor', template: '<div class="feedback-editor" />' },
+          ChartBar: { name: 'ChartBar', template: '<svg />' },
+          CompareHelpButton: { name: 'CompareHelpButton', template: '<div class="compare-help-button" />' },
+        },
+      },
+    })
+
+    expect(wrapper.find('[data-testid="evaluation-panel-rewrite-from-evaluation"]').exists()).toBe(false)
   })
 })

@@ -12,6 +12,7 @@ import {
   createCompareService,
   createContextRepo,
   createEvaluationService,
+  createImageUnderstandingService,
   createVariableExtractionService,
   createVariableValueGenerationService,
   ElectronContextRepoProxy,
@@ -158,7 +159,12 @@ export function useAppInitializer(): {
         favoriteManager = new FavoriteManagerElectronProxy();
 
         // 🆕 创建评估服务（使用代理的 llmService, modelManager, templateManager）
-        evaluationService = createEvaluationService(llmService, modelManager, templateManager);
+        evaluationService = createEvaluationService(llmService, modelManager, templateManager, {
+          imageStorageService,
+          imageUnderstandingService: createImageUnderstandingService({
+            registry: textAdapterRegistryInstance,
+          }),
+        });
 
         // 🆕 创建变量提取服务（使用代理的 llmService, modelManager, templateManager）
         variableExtractionService = createVariableExtractionService(llmService, modelManager, templateManager);
@@ -357,7 +363,12 @@ export function useAppInitializer(): {
         favoriteManager = new FavoriteManager(storageProvider);
 
         // 🆕 创建评估服务
-        evaluationService = createEvaluationService(llmService, modelManagerAdapter, templateManagerAdapter);
+        evaluationService = createEvaluationService(llmService, modelManagerAdapter, templateManagerAdapter, {
+          imageStorageService,
+          imageUnderstandingService: createImageUnderstandingService({
+            registry: textAdapterRegistryInstance,
+          }),
+        });
 
         // 🆕 创建变量提取服务
         variableExtractionService = createVariableExtractionService(llmService, modelManagerAdapter, templateManagerAdapter);

@@ -18,6 +18,15 @@
         >
           {{ staleMessage || t('evaluation.stale.default') }}
         </NAlert>
+        <NAlert
+          v-if="disableEvaluate && disableEvaluateReason"
+          type="warning"
+          :show-icon="false"
+          :bordered="false"
+          class="stale-alert"
+        >
+          {{ disableEvaluateReason }}
+        </NAlert>
 
         <!-- 总分 + 等级 -->
         <button
@@ -187,6 +196,15 @@
 
     <!-- 无结果 -->
     <div v-else class="hover-card-empty">
+      <NAlert
+        v-if="disableEvaluate && disableEvaluateReason"
+        type="warning"
+        :show-icon="false"
+        :bordered="false"
+        class="stale-alert"
+      >
+        {{ disableEvaluateReason }}
+      </NAlert>
       <NEmpty :description="t('evaluation.noResult')">
         <template #extra>
           <NSpace justify="center" :size="8">
@@ -239,6 +257,7 @@ const props = defineProps<{
   stale?: boolean
   staleMessage?: string
   disableEvaluate?: boolean
+  disableEvaluateReason?: string
   /** 由父组件传入，用于在 popover 关闭时重置内部编辑器状态 */
   visible?: boolean
 }>()

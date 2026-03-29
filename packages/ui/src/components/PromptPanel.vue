@@ -379,6 +379,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    evaluationTypeOverride: {
+        type: String as () => "prompt-only" | "prompt-iterate" | undefined,
+        default: undefined,
+    },
     showApplyButton: {
         type: Boolean,
         default: false,
@@ -403,6 +407,9 @@ const showEvaluation = computed(() => !!evaluation);
 
 // 判断当前使用的评估类型：有迭代需求用 prompt-iterate，否则用 prompt-only
 const evaluationType = computed<'prompt-only' | 'prompt-iterate'>(() => {
+    if (props.evaluationTypeOverride) {
+        return props.evaluationTypeOverride;
+    }
     const hasIterateNote = currentIterationNote.value.trim().length > 0;
     return hasIterateNote ? 'prompt-iterate' : 'prompt-only';
 });

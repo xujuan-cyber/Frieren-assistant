@@ -1,9 +1,15 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
+  resolve: {
+    alias: {
+      '@prompt-optimizer/core': resolve(__dirname, '../core/src/index.ts'),
+    },
+  },
   test: {
     // 全局超时设置为5秒
     testTimeout: 5000,
@@ -34,4 +40,4 @@ export default defineConfig({
       ],
     },
   },
-}) 
+})

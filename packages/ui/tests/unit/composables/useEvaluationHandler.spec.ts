@@ -435,6 +435,34 @@ describe('useEvaluationHandler', () => {
     })
   })
 
+  it('allows prompt-only analysis targets to inject image-specific reference evidence', async () => {
+    const mockEvaluation = createMockEvaluation()
+
+    const handler = useEvaluationHandler({
+      services: ref(null),
+      analysisOptimizedPrompt: ref('Optimized image prompt'),
+      analysisTargetResolver: (defaultTarget) => ({
+        ...defaultTarget,
+        referencePrompt: 'Original image intent',
+      }),
+      evaluationModelKey: ref('eval-model'),
+      functionMode: ref('image'),
+      subMode: ref('text2image'),
+      externalEvaluation: mockEvaluation,
+    })
+
+    await handler.handleEvaluate('prompt-only')
+
+    expect(mockEvaluation.evaluatePromptOnly).toHaveBeenCalledWith({
+      target: {
+        workspacePrompt: 'Optimized image prompt',
+        referencePrompt: 'Original image intent',
+        designContext: undefined,
+      },
+      focus: undefined,
+    })
+  })
+
   it('routes prompt-iterate to prompt-only when requirement is empty and to prompt-iterate when present', async () => {
     const mockEvaluation = createMockEvaluation()
     const iterateRequirement = ref('   ')

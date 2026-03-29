@@ -47,6 +47,15 @@
             >
               {{ staleMessage || t('evaluation.stale.default') }}
             </NAlert>
+            <NAlert
+              v-if="evaluationDisableMessage"
+              type="warning"
+              :show-icon="false"
+              :bordered="false"
+              class="stale-alert"
+            >
+              {{ evaluationDisableMessage }}
+            </NAlert>
 
             <!-- 总分展示 -->
             <div class="score-section">
@@ -319,6 +328,15 @@
       <!-- 空状态 -->
       <template v-else>
         <NSpace vertical :size="12" style="width: 100%;">
+          <NAlert
+            v-if="evaluationDisableMessage"
+            type="warning"
+            :show-icon="false"
+            :bordered="false"
+            class="stale-alert"
+          >
+            {{ evaluationDisableMessage }}
+          </NAlert>
           <NEmpty :description="t('evaluation.noResult')">
             <template #icon>
               <NIcon :size="48" :depth="3" aria-hidden="true">
@@ -377,16 +395,29 @@
               </template>
               <span>{{ rewriteHintMessage }}</span>
             </NTooltip>
-            <NButton
+            <NTooltip
               v-if="currentType"
-              type="primary"
-              :disabled="isActionDisabled"
-              :loading="isEvaluating"
-              data-testid="evaluation-panel-re-evaluate"
-              @click="handleReEvaluateClick"
+              trigger="hover"
+              :disabled="!evaluationDisableMessage"
+              :theme-overrides="tooltipThemeOverrides"
+              :overlay-style="tooltipOverlayStyle"
+              :content-style="tooltipContentStyle"
             >
-              {{ t('evaluation.reEvaluate') }}
-            </NButton>
+              <template #trigger>
+                <span class="evaluation-panel-action-trigger">
+                  <NButton
+                    type="primary"
+                    :disabled="isActionDisabled"
+                    :loading="isEvaluating"
+                    data-testid="evaluation-panel-re-evaluate"
+                    @click="handleReEvaluateClick"
+                  >
+                    {{ t('evaluation.reEvaluate') }}
+                  </NButton>
+                </span>
+              </template>
+              <span>{{ evaluationDisableMessage }}</span>
+            </NTooltip>
             <NButton @click="handleClose">
               {{ t('common.close') }}
             </NButton>
@@ -462,6 +493,7 @@ const props = defineProps<{
   stale?: boolean
   staleMessage?: string
   disableEvaluate?: boolean
+  disableEvaluateReason?: string
   canRewriteFromEvaluation?: boolean
   rewriteRecommendation?: 'skip' | 'minor-rewrite' | 'rewrite' | null
   rewriteReasons?: string[]
@@ -501,6 +533,9 @@ const streamScrollbarRef = ref<ScrollbarInst | null>(null)
 const feedbackDraft = ref('')
 const activeCompareReasonKey = ref<string | null>(null)
 const isActionDisabled = computed(() => props.isEvaluating || !!props.disableEvaluate)
+const evaluationDisableMessage = computed(() =>
+  isActionDisabled.value ? (props.disableEvaluateReason || '').trim() : ''
+)
 const currentEvaluationType = computed<EvaluationType>(() =>
   props.currentType || props.result?.type || 'prompt-only'
 )
@@ -1232,6 +1267,10 @@ watch(() => props.show, (visible) => {
   border-radius: 50%;
   border: 4px solid currentColor;
   margin-bottom: 12px;
+}
+
+.evaluation-panel-action-trigger {
+  display: inline-flex;
 }
 
 .score-value {

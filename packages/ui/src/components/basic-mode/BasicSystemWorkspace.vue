@@ -222,6 +222,7 @@
                                         :stale="isCompareEvaluationStale"
                                         :stale-message="t('evaluation.stale.compare')"
                                         :disable-evaluate="!canEvaluateCompare"
+                                        :disable-evaluate-reason="compareDisabledReason"
                                         size="small"
                                         @show-detail="() => showDetail('compare')"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -234,6 +235,7 @@
                                         type="compare"
                                         :label="t('evaluation.compareEvaluate')"
                                         :disabled="!canEvaluateCompare"
+                                        :disabled-reason="compareDisabledReason"
                                         :loading="isEvaluatingCompare"
                                         :button-props="{ size: 'small', type: 'tertiary' }"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -411,6 +413,7 @@
             :stale="activeEvaluationStale"
             :stale-message="activeEvaluationStaleMessage"
             :disable-evaluate="activeEvaluationDisableEvaluate"
+            :disable-evaluate-reason="activeEvaluationDisableReason"
             :can-rewrite-from-evaluation="true"
             @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
@@ -980,6 +983,10 @@ const isCompareEvaluationStale = computed(() => {
   return compareEvaluationFingerprint.value !== buildCompareEvaluationFingerprint()
 })
 
+const hasWorkspaceCompareCandidate = computed(() =>
+  compareReadyVariantIds.value.some((id) => buildVariantPromptRef(id).kind === 'workspace')
+)
+
 type VariantTestInput = {
   systemPrompt: string
   userPrompt: string
@@ -1209,6 +1216,17 @@ const canEvaluateResult = computed(() =>
   hasEvaluationWorkspacePrompt.value && hasEvaluationTestContent.value
 )
 const canEvaluateCompare = computed(() => !!comparePayload.value)
+const compareDisabledReason = computed(() => {
+  if (canEvaluateCompare.value) {
+    return ''
+  }
+
+  if ((hasCompareCandidates.value || hasCompareEvaluation.value) && !hasWorkspaceCompareCandidate.value) {
+    return t('evaluation.compareUnavailable.missingWorkspace')
+  }
+
+  return ''
+})
 
 const evaluationHandler = useEvaluationHandler({
   services,
@@ -1281,6 +1299,13 @@ const activeEvaluationDisableEvaluate = computed(() => {
   }
 
   return false
+})
+const activeEvaluationDisableReason = computed(() => {
+  if (panelProps.value.currentType === 'compare') {
+    return compareDisabledReason.value
+  }
+
+  return ''
 })
 
 const analyzing = ref(false)

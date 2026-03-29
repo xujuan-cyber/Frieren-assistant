@@ -2477,6 +2477,10 @@ export default {
         title: "Compare Evaluation Guide",
         tooltip: "What is compare evaluation?",
       },
+      compareUnavailable: {
+        missingWorkspace:
+          "Compare evaluation requires at least one workspace test result because the system needs to produce guidance for the current workspace prompt. Run the workspace column first, then compare again.",
+      },
       compareSummary: {
         decision: {
           title: "Iteration Advice",

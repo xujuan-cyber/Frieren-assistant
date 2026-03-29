@@ -1,6 +1,7 @@
 import type {
   CompareAnalysisHints,
   EvaluationContentBlock,
+  EvaluationMediaItem,
   EvaluationSnapshot,
   EvaluationTarget,
   EvaluationTestCase,
@@ -21,6 +22,7 @@ export interface CompareEvaluationSnapshotDraft {
   promptRef: EvaluationSnapshot['promptRef']
   promptText?: string
   output?: string
+  outputBlock?: EvaluationContentBlock | null
   reasoning?: string
   modelKey?: string
   versionLabel?: string
@@ -205,7 +207,34 @@ const normalizeContentBlock = (
 ): EvaluationContentBlock | undefined => {
   const label = block?.label?.trim() || ''
   const content = block?.content?.trim() || ''
-  if (!label || !content) return undefined
+  const media: EvaluationMediaItem[] = []
+
+  for (const item of block?.media || []) {
+    const itemLabel = item?.label?.trim() || ''
+    const assetId = item?.assetId?.trim() || ''
+    const b64 = item?.b64?.trim() || ''
+    if (!itemLabel || (!assetId && !b64) || (assetId && b64)) {
+      continue
+    }
+
+    const mimeType = item?.mimeType?.trim() || undefined
+    if (assetId) {
+      media.push({
+        label: itemLabel,
+        assetId,
+        mimeType,
+      })
+      continue
+    }
+
+    media.push({
+      label: itemLabel,
+      b64,
+      mimeType,
+    })
+  }
+
+  if (!label || (!content && !media.length)) return undefined
 
   const summary = block?.summary?.trim() || ''
   return {
@@ -213,6 +242,7 @@ const normalizeContentBlock = (
     label,
     content,
     summary: summary || undefined,
+    media: media.length ? media : undefined,
   }
 }
 
@@ -259,6 +289,7 @@ const normalizeSnapshot = (
     promptRef: snapshot.promptRef,
     promptText,
     output,
+    outputBlock: normalizeContentBlock(snapshot.outputBlock),
     reasoning: snapshot.reasoning?.trim() || undefined,
     modelKey: snapshot.modelKey?.trim() || undefined,
     versionLabel: snapshot.versionLabel?.trim() || undefined,
@@ -620,6 +651,10 @@ const deriveCompareHints = (
   }
 }
 
+export const hasWorkspaceCompareSnapshot = (
+  snapshots: Array<Pick<EvaluationSnapshot, 'promptRef'>> | null | undefined
+): boolean => (snapshots || []).some((snapshot) => snapshot.promptRef.kind === 'workspace')
+
 export const buildCompareEvaluationPayload = (params: {
   target: EvaluationTarget
   testCases: Array<CompareEvaluationTestCaseDraft | null | undefined>
@@ -653,6 +688,10 @@ export const buildCompareEvaluationPayload = (params: {
     .filter((snapshot): snapshot is EvaluationSnapshot => !!snapshot)
 
   if (snapshots.length < 2) {
+    return null
+  }
+
+  if (!hasWorkspaceCompareSnapshot(snapshots)) {
     return null
   }
 

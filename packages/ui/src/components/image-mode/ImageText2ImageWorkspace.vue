@@ -379,6 +379,7 @@
                     :optimization-mode="optimizationMode"
                     :advanced-mode-enabled="advancedModeEnabled"
                     :show-preview="true"
+                    evaluation-type-override="prompt-only"
                     iterate-template-type="imageIterate"
                     @iterate="handleIteratePrompt"
                     @openTemplateManager="onOpenTemplateManager"
@@ -441,6 +442,40 @@
                                 >
                                     {{ t('test.layout.runAll') }}
                                 </NButton>
+
+                                <template v-if="shouldShowCompareEvaluationAction">
+                                    <EvaluationScoreBadge
+                                        v-if="hasCompareEvaluation || isEvaluatingCompare"
+                                        :score="compareScore"
+                                        :level="compareScoreLevel"
+                                        :loading="isEvaluatingCompare"
+                                        :result="compareEvaluationResult"
+                                        type="compare"
+                                        :stale="isCompareEvaluationStale"
+                                        :stale-message="t('evaluation.stale.compare')"
+                                        :disable-evaluate="!canEvaluateCompare"
+                                        :disable-evaluate-reason="compareDisabledReason"
+                                        size="small"
+                                        @show-detail="showCompareDetail"
+                                        @evaluate="handleEvaluateCompare"
+                                        @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
+                                    />
+                                    <FocusAnalyzeButton
+                                        v-else
+                                        type="compare"
+                                        :label="t('evaluation.compareEvaluate')"
+                                        :disabled="!canEvaluateCompare"
+                                        :disabled-reason="compareDisabledReason"
+                                        :loading="isEvaluatingCompare"
+                                        :button-props="{ size: 'small', type: 'tertiary' }"
+                                        @evaluate="handleEvaluateCompare"
+                                        @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
+                                    >
+                                        <template #icon>
+                                            <AnalyzeActionIcon />
+                                        </template>
+                                    </FocusAnalyzeButton>
+                                </template>
                             </NFlex>
                         </div>
                     </NCard>
@@ -530,6 +565,43 @@
                                     <div class="result-body">
                                         <template v-if="hasVariantResult(id)">
                                             <NSpace vertical :size="12" style="padding: 12px;">
+                                                <NFlex justify="end" align="center">
+                                                    <div
+                                                        v-if="shouldShowResultEvaluationAction(id)"
+                                                        class="output-evaluation-entry"
+                                                    >
+                                                        <EvaluationScoreBadge
+                                                            v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
+                                                            :score="getResultEvaluationProps(id).score"
+                                                            :level="getResultEvaluationProps(id).scoreLevel"
+                                                            :loading="getResultEvaluationProps(id).isEvaluating"
+                                                            :result="getResultEvaluationProps(id).evaluationResult"
+                                                            type="result"
+                                                            :stale="isResultEvaluationStale(id)"
+                                                            :stale-message="t('evaluation.stale.result')"
+                                                            :disable-evaluate="!canEvaluateResult(id)"
+                                                            size="small"
+                                                            @show-detail="() => showResultDetail(id)"
+                                                            @evaluate="() => handleEvaluateResult(id)"
+                                                            @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
+                                                        />
+                                                        <FocusAnalyzeButton
+                                                            v-else
+                                                            type="result"
+                                                            variant="toolbar"
+                                                            :label="t('evaluation.evaluate')"
+                                                            :disabled="!canEvaluateResult(id)"
+                                                            :loading="getResultEvaluationProps(id).isEvaluating"
+                                                            :button-props="{ size: 'small', quaternary: true, circle: true }"
+                                                            @evaluate="() => handleEvaluateResult(id)"
+                                                            @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
+                                                        >
+                                                            <template #icon>
+                                                                <AnalyzeActionIcon />
+                                                            </template>
+                                                        </FocusAnalyzeButton>
+                                                    </div>
+                                                </NFlex>
                                                 <NImage
                                                     :data-testid="getVariantImageTestId(id)"
                                                     :src="getImageSrc(getVariantResult(id)?.images?.[0])"
@@ -620,6 +692,27 @@
             </div>
         </div>
 
+        <EvaluationPanel
+            v-model:show="evaluation.isPanelVisible.value"
+            :is-evaluating="panelProps.isEvaluating"
+            :result="panelProps.result"
+            :stream-content="panelProps.streamContent"
+            :error="panelProps.error"
+            :current-type="panelProps.currentType"
+            :score-level="panelProps.scoreLevel"
+            :rewrite-recommendation="panelProps.rewriteRecommendation"
+            :rewrite-reasons="panelProps.rewriteReasons"
+            :stale="activeEvaluationStale"
+            :stale-message="activeEvaluationStaleMessage"
+            :disable-evaluate="activeEvaluationDisableEvaluate"
+            :disable-evaluate-reason="activeEvaluationDisableReason"
+            :can-rewrite-from-evaluation="false"
+            @re-evaluate="handleReEvaluateActive"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
+            @clear="handleClearEvaluation"
+            @retry="handleReEvaluateActive"
+        />
+
         <!-- 原始提示词 - 全屏编辑器 -->
         <FullscreenDialog
             v-model="isFullscreen"
@@ -659,7 +752,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, type Ref } from 'vue'
+import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, toRef, type Ref } from 'vue'
 
 import {
     NCard,
@@ -683,6 +776,7 @@ import PromptPanelUI from "../PromptPanel.vue";
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
+import { AnalyzeActionIcon, EvaluationPanel, EvaluationScoreBadge, FocusAnalyzeButton } from '../evaluation'
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'
 import { OptionAccessors } from "../../utils/data-transformer";
 import type { AppServices } from "../../types/services";
@@ -702,6 +796,8 @@ import { useTemporaryVariables } from '../../composables/variable/useTemporaryVa
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
 import { useSmartVariableValueGeneration } from '../../composables/variable/useSmartVariableValueGeneration'
+import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
+import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager'
 import {
     buildPromptExecutionContext,
@@ -711,6 +807,7 @@ import {
 import {
     buildTestPanelVersionOptions,
     resolveTestPanelVersionSelection,
+    type ResolvedTestPanelVersionSelection,
 } from '../../utils/testPanelVersion'
 import {
     useImageText2ImageSession,
@@ -725,6 +822,14 @@ import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useElementSize } from '@vueuse/core'
+import {
+    buildImageText2ImageComparePayload,
+    buildImageText2ImageResultEvaluationTargets,
+    canEvaluateImageText2ImageCompare,
+    canEvaluateImageText2ImageResult,
+    shouldShowImageText2ImageCompareAction,
+    shouldShowImageText2ImageResultAction,
+} from './imageText2ImageEvaluation'
 import {
     type ContextMode,
     type ImageModelConfig,
@@ -1179,21 +1284,16 @@ watch(
     { immediate: true },
 )
 
-type ResolvedPrompt = { text: string; resolvedVersion: number }
-
-const resolvePromptForSelection = (selection: TestPanelVersionValue): ResolvedPrompt => {
-    const resolved = resolveTestPanelVersionSelection({
+const resolvePromptForSelection = (
+    selection: TestPanelVersionValue,
+): ResolvedTestPanelVersionSelection => {
+    return resolveTestPanelVersionSelection({
         selection,
         versions: currentVersions.value || [],
         currentVersionId: currentVersionId.value,
         workspacePrompt: optimizedPrompt.value || '',
         originalPrompt: originalPrompt.value || '',
     })
-
-    return {
-        text: resolved.text,
-        resolvedVersion: resolved.resolvedVersion,
-    }
 }
 
 // 注意：Pinia setup store 会把 ref 自动解包；直接赋值会丢失响应性。
@@ -1285,7 +1385,7 @@ const handleOpenPromptPreview = () => {
     openPromptPreview(optimizedPrompt.value || '', { renderPhase: 'test' })
 }
 
-const buildRuntimePredefinedVariables = (resolved: ResolvedPrompt): Record<string, string> => {
+const buildRuntimePredefinedVariables = (resolved: ResolvedTestPanelVersionSelection): Record<string, string> => {
     const current = (resolved.text || '').trim()
     return {
         // Align with core PREDEFINED_VARIABLES (packages/core/src/services/context/constants.ts)
@@ -1307,6 +1407,384 @@ const getVariantFingerprint = (id: TestVariantId) => {
     }
     const varsHash = hashVariables(varsForFingerprint)
     return `${String(selection)}:${resolved.resolvedVersion}:${modelKey}:${promptHash}:${varsHash}`
+}
+
+const evaluationVersionLabels = computed(() => getTestPanelVersionLabels())
+
+const evaluationVariants = computed(() =>
+    activeVariantIds.value.map((id) => {
+        const resolvedPrompt = resolvePromptForSelection(variantVersionModels[id].value)
+        return {
+            id,
+            label: getVariantLabel(id),
+            resolvedPrompt,
+            promptText: resolvedPrompt.text,
+            modelKey: (variantModelKeyModels[id].value || '').trim() || undefined,
+            result: getVariantResult(id),
+        }
+    }),
+)
+
+const imageEvaluationContext = computed(() => ({
+    originalIntent: originalPrompt.value || '',
+    workspacePrompt: optimizedPrompt.value || '',
+    referencePrompt: originalPrompt.value || '',
+    versionLabels: evaluationVersionLabels.value,
+}))
+
+const resultEvaluationTargets = computed(() =>
+    buildImageText2ImageResultEvaluationTargets({
+        context: imageEvaluationContext.value,
+        variants: evaluationVariants.value,
+    }),
+)
+
+const comparePayload = computed(() =>
+    buildImageText2ImageComparePayload({
+        context: imageEvaluationContext.value,
+        variants: evaluationVariants.value,
+    }),
+)
+
+const hasImageRecognitionModel = computed(
+    () => !!(effectiveImageRecognitionModelKey.value || '').trim(),
+)
+
+const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
+    a: '',
+    b: '',
+    c: '',
+    d: '',
+})
+const compareEvaluationFingerprint = ref('')
+
+const evaluationHandler = useEvaluationHandler({
+    services,
+    analysisOptimizedPrompt: computed(() => optimizedPrompt.value || ''),
+    analysisTargetResolver: (defaultTarget) => ({
+        ...defaultTarget,
+        referencePrompt: (originalPrompt.value || '').trim() || undefined,
+    }),
+    resultTargets: resultEvaluationTargets,
+    comparePayload,
+    evaluationModelKey: computed(() => selectedTextModelKey.value || ''),
+    resolveEvaluationModelKey: async (type) => {
+        await functionModelManager.initialize()
+
+        if (type === 'result' || type === 'compare') {
+            const modelKey =
+                functionModelManager.effectiveImageRecognitionModel.value || ''
+            if (!modelKey) {
+                throw new Error(t('functionModel.noImageRecognitionModel'))
+            }
+            return modelKey
+        }
+
+        return (
+            functionModelManager.evaluationModel.value ||
+            selectedTextModelKey.value ||
+            functionModelManager.effectiveEvaluationModel.value ||
+            ''
+        )
+    },
+    functionMode: computed(() => 'image'),
+    subMode: computed(() => 'text2image'),
+    persistedResults: toRef(session, 'evaluationResults'),
+})
+
+provideEvaluation(evaluationHandler.evaluation)
+
+const { evaluation, handleEvaluate: handleEvaluateInternal } = evaluationHandler
+const panelProps = evaluationHandler.panelProps
+const getResultEvaluationProps = (variantId: string) =>
+    evaluationHandler.getResultEvaluationProps(variantId)
+
+const isEvaluatingCompare = evaluationHandler.compareEvaluation.isEvaluatingCompare
+const compareScore = computed(
+    () => evaluationHandler.compareEvaluation.compareScore.value ?? 0,
+)
+const hasCompareEvaluation = evaluationHandler.compareEvaluation.hasCompareResult
+const compareEvaluationResult = computed(() => evaluation.state.compare.result)
+const compareScoreLevel = computed(() =>
+    evaluation.getScoreLevel(
+        evaluationHandler.compareEvaluation.compareScore.value ?? null,
+    ),
+)
+
+const compareReadyVariantIds = computed(() =>
+    activeVariantIds.value.filter((id) => !!resultEvaluationTargets.value[id]),
+)
+const hasCompareCandidates = computed(() => compareReadyVariantIds.value.length >= 2)
+const hasWorkspaceCompareCandidate = computed(() =>
+    compareReadyVariantIds.value.some((id) =>
+        evaluationVariants.value.find((variant) => variant.id === id)?.resolvedPrompt.promptKind === 'workspace'
+    ),
+)
+
+const buildCompareEvaluationFingerprint = () =>
+    compareReadyVariantIds.value
+        .map((id) => `${id}:${getVariantFingerprint(id)}`)
+        .join('|')
+
+const isResultEvaluationStale = (id: TestVariantId) => {
+    const props = getResultEvaluationProps(id)
+    if (!props.hasEvaluation) return false
+
+    const storedFingerprint = resultEvaluationFingerprint[id]
+    if (!storedFingerprint) return false
+
+    return storedFingerprint !== getVariantFingerprint(id)
+}
+
+const isCompareEvaluationStale = computed(() => {
+    if (!hasCompareEvaluation.value) return false
+    if (!compareEvaluationFingerprint.value) return false
+    return compareEvaluationFingerprint.value !== buildCompareEvaluationFingerprint()
+})
+
+const shouldShowResultEvaluationAction = (id: TestVariantId) =>
+    shouldShowImageText2ImageResultAction(
+        id,
+        resultEvaluationTargets.value,
+        getResultEvaluationProps(id).hasEvaluation,
+    )
+
+const canEvaluateResult = (id: TestVariantId) =>
+    canEvaluateImageText2ImageResult(
+        id,
+        resultEvaluationTargets.value,
+        hasImageRecognitionModel.value,
+    )
+
+const shouldShowCompareEvaluationAction = computed(() =>
+    shouldShowImageText2ImageCompareAction(
+        comparePayload.value,
+        hasCompareEvaluation.value,
+        hasCompareCandidates.value,
+    ),
+)
+
+const canEvaluateCompare = computed(() =>
+    canEvaluateImageText2ImageCompare(
+        comparePayload.value,
+        hasImageRecognitionModel.value,
+    ),
+)
+const compareDisabledReason = computed(() => {
+    if (canEvaluateCompare.value) {
+        return ''
+    }
+
+    if ((hasCompareCandidates.value || hasCompareEvaluation.value) && !hasWorkspaceCompareCandidate.value) {
+        return t('evaluation.compareUnavailable.missingWorkspace')
+    }
+
+    if ((hasCompareCandidates.value || hasCompareEvaluation.value) && !hasImageRecognitionModel.value) {
+        return t('functionModel.noImageRecognitionModel')
+    }
+
+    return ''
+})
+
+const activeEvaluationStale = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return isCompareEvaluationStale.value
+    }
+
+    if (
+        panelProps.value.currentType === 'result' &&
+        panelProps.value.currentVariantId &&
+        panelProps.value.currentVariantId in resultEvaluationFingerprint
+    ) {
+        return isResultEvaluationStale(
+            panelProps.value.currentVariantId as TestVariantId,
+        )
+    }
+
+    return false
+})
+
+const activeEvaluationStaleMessage = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return t('evaluation.stale.compare')
+    }
+
+    if (panelProps.value.currentType === 'result') {
+        return t('evaluation.stale.result')
+    }
+
+    return t('evaluation.stale.default')
+})
+
+const activeEvaluationDisableEvaluate = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return !canEvaluateCompare.value
+    }
+
+    if (
+        panelProps.value.currentType === 'result' &&
+        panelProps.value.currentVariantId
+    ) {
+        return !canEvaluateResult(
+            panelProps.value.currentVariantId as TestVariantId,
+        )
+    }
+
+    return false
+})
+const activeEvaluationDisableReason = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return compareDisabledReason.value
+    }
+
+    return ''
+})
+
+const ensureImageEvaluationModelReady = (): boolean => {
+    if (hasImageRecognitionModel.value) {
+        return true
+    }
+
+    promptConfigureImageRecognitionModel()
+    return false
+}
+
+const ensureResultEvaluationReady = (variantId: TestVariantId): boolean => {
+    if (!resultEvaluationTargets.value[variantId]) {
+        return false
+    }
+
+    return ensureImageEvaluationModelReady()
+}
+
+const ensureCompareEvaluationReady = (): boolean => {
+    if (!comparePayload.value) {
+        return false
+    }
+
+    return ensureImageEvaluationModelReady()
+}
+
+const updateResultEvaluationFingerprint = (variantId: TestVariantId) => {
+    if (evaluation.state.result[variantId]?.result) {
+        resultEvaluationFingerprint[variantId] = getVariantFingerprint(variantId)
+    }
+}
+
+const updateCompareEvaluationFingerprint = () => {
+    if (evaluation.state.compare.result) {
+        compareEvaluationFingerprint.value = buildCompareEvaluationFingerprint()
+    }
+}
+
+const handleEvaluateResult = async (variantId: TestVariantId) => {
+    if (!ensureResultEvaluationReady(variantId)) return
+
+    await handleEvaluateInternal('result', { variantId })
+    updateResultEvaluationFingerprint(variantId)
+}
+
+const handleResultEvaluateWithFeedbackEvent = async (
+    variantId: TestVariantId,
+    payload: { feedback: string },
+) => {
+    if (!ensureResultEvaluationReady(variantId)) return
+
+    await evaluationHandler.handleEvaluateWithFeedback(
+        'result',
+        payload.feedback,
+        { variantId },
+    )
+    updateResultEvaluationFingerprint(variantId)
+}
+
+const handleEvaluateCompare = async () => {
+    if (!ensureCompareEvaluationReady()) return
+
+    await handleEvaluateInternal('compare')
+    updateCompareEvaluationFingerprint()
+}
+
+const handleCompareEvaluateWithFeedback = async (payload: {
+    feedback: string
+}) => {
+    if (!ensureCompareEvaluationReady()) return
+
+    await evaluationHandler.handleEvaluateWithFeedback(
+        'compare',
+        payload.feedback,
+    )
+    updateCompareEvaluationFingerprint()
+}
+
+const handleReEvaluateActive = async () => {
+    const active = evaluation.state.activeDetail
+    if (!active) return
+
+    if (
+        active.type === 'result' &&
+        (!active.variantId ||
+            !ensureResultEvaluationReady(active.variantId as TestVariantId))
+    ) {
+        return
+    }
+
+    if (active.type === 'compare' && !ensureCompareEvaluationReady()) {
+        return
+    }
+
+    await evaluationHandler.handleReEvaluate()
+
+    if (active.type === 'result' && active.variantId) {
+        updateResultEvaluationFingerprint(active.variantId as TestVariantId)
+    } else if (active.type === 'compare') {
+        updateCompareEvaluationFingerprint()
+    }
+}
+
+const handleEvaluateActiveWithFeedback = async (payload: {
+    feedback: string
+}) => {
+    const active = evaluation.state.activeDetail
+    if (!active) return
+
+    if (
+        active.type === 'result' &&
+        (!active.variantId ||
+            !ensureResultEvaluationReady(active.variantId as TestVariantId))
+    ) {
+        return
+    }
+
+    if (active.type === 'compare' && !ensureCompareEvaluationReady()) {
+        return
+    }
+
+    await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
+
+    if (active.type === 'result' && active.variantId) {
+        updateResultEvaluationFingerprint(active.variantId as TestVariantId)
+    } else if (active.type === 'compare') {
+        updateCompareEvaluationFingerprint()
+    }
+}
+
+const showResultDetail = (variantId: TestVariantId) => {
+    evaluation.showDetail('result', variantId)
+}
+
+const showCompareDetail = () => {
+    evaluation.showDetail('compare')
+}
+
+const handleClearEvaluation = () => {
+    evaluation.closePanel()
+    evaluation.clearAllResults()
+    resultEvaluationFingerprint.a = ''
+    resultEvaluationFingerprint.b = ''
+    resultEvaluationFingerprint.c = ''
+    resultEvaluationFingerprint.d = ''
+    compareEvaluationFingerprint.value = ''
 }
 
 const getVariantRequest = (id: TestVariantId): Text2ImageRequest | null => {
@@ -1368,12 +1846,17 @@ const runVariant = async (
         silentError?: boolean
         persist?: boolean
         allowParallel?: boolean
+        skipClearEvaluation?: boolean
     },
 ): Promise<boolean> => {
     if (variantRunning[id]) return false
 
     const request = getVariantRequest(id)
     if (!request) return false
+
+    if (!opts?.skipClearEvaluation) {
+        evaluationHandler.clearBeforeTest()
+    }
 
     variantRunning[id] = true
     try {
@@ -1415,8 +1898,17 @@ const runAllVariants = async () => {
         if (!getVariantRequest(id)) return
     }
 
+    evaluationHandler.clearBeforeTest()
+
     const results = await Promise.all(
-        ids.map((id) => runVariant(id, { silentSuccess: true, silentError: true, persist: false })),
+        ids.map((id) =>
+            runVariant(id, {
+                silentSuccess: true,
+                silentError: true,
+                persist: false,
+                skipClearEvaluation: true,
+            }),
+        ),
     )
 
     queueSessionSave()

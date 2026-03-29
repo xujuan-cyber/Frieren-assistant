@@ -83,6 +83,44 @@ describe('buildCompareEvaluationPayload', () => {
     expect(payload).toBeNull()
   })
 
+  it('returns null when none of the valid compare snapshots represent the workspace prompt', () => {
+    const payload = buildCompareEvaluationPayload({
+      target: {
+        workspacePrompt: ' Current prompt ',
+      },
+      testCases: [
+        {
+          id: 'tc-1',
+          input: {
+            kind: 'text',
+            label: 'Shared Input',
+            content: 'Input A',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'a',
+          label: 'A',
+          testCaseId: 'tc-1',
+          promptRef: { kind: 'original' },
+          promptText: 'Prompt A',
+          output: 'Output A',
+        },
+        {
+          id: 'b',
+          label: 'B',
+          testCaseId: 'tc-1',
+          promptRef: { kind: 'version', version: 1 },
+          promptText: 'Prompt B',
+          output: 'Output B',
+        },
+      ],
+    })
+
+    expect(payload).toBeNull()
+  })
+
   it('normalizes target, test cases, snapshots, and compare hints', () => {
     const payload = buildCompareEvaluationPayload({
       target: {
@@ -329,6 +367,99 @@ describe('buildCompareEvaluationPayload', () => {
         hasCrossModelComparison: false,
       },
     })
+  })
+
+  it('preserves output image evidence blocks when snapshots provide multimodal results', () => {
+    const payload = buildCompareEvaluationPayload({
+      target: {
+        workspacePrompt: 'Workspace prompt',
+      },
+      testCases: [
+        {
+          id: 'tc-1',
+          input: {
+            kind: 'text',
+            label: '生成意图',
+            content: 'A corgi running on the beach',
+          },
+        },
+      ],
+      snapshots: [
+        {
+          id: 'a',
+          label: 'A',
+          testCaseId: 'tc-1',
+          promptRef: { kind: 'workspace' },
+          promptText: 'Prompt A',
+          output: 'Prompt A image result',
+          outputBlock: {
+            kind: 'image',
+            label: '生成结果',
+            content: 'Prompt A image result',
+            media: [
+              {
+                label: 'A-1',
+                b64: 'ZmFrZS1pbWFnZS1B',
+                mimeType: 'image/png',
+              },
+            ],
+          },
+        },
+        {
+          id: 'b',
+          label: 'B',
+          testCaseId: 'tc-1',
+          promptRef: { kind: 'version', version: 1 },
+          promptText: 'Prompt B',
+          output: 'Prompt B image result',
+          outputBlock: {
+            kind: 'image',
+            label: '生成结果',
+            content: 'Prompt B image result',
+            media: [
+              {
+                label: 'B-1',
+                assetId: 'asset-b',
+                mimeType: 'image/jpeg',
+              },
+            ],
+          },
+        },
+      ],
+    })
+
+    expect(payload?.snapshots).toEqual([
+      expect.objectContaining({
+        id: 'a',
+        outputBlock: {
+          kind: 'image',
+          label: '生成结果',
+          content: 'Prompt A image result',
+          media: [
+            {
+              label: 'A-1',
+              b64: 'ZmFrZS1pbWFnZS1B',
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      }),
+      expect.objectContaining({
+        id: 'b',
+        outputBlock: {
+          kind: 'image',
+          label: '生成结果',
+          content: 'Prompt B image result',
+          media: [
+            {
+              label: 'B-1',
+              assetId: 'asset-b',
+              mimeType: 'image/jpeg',
+            },
+          ],
+        },
+      }),
+    ])
   })
 
   it('treats distinct testCaseIds with the same effective input as shared evidence', () => {

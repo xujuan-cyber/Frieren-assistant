@@ -48,6 +48,7 @@
         :stale="stale"
         :stale-message="staleMessage"
         :disable-evaluate="disableEvaluate"
+        :disable-evaluate-reason="disableEvaluateReason"
         :visible="popoverVisible"
         @show-detail="handleShowDetail"
         @evaluate="handleEvaluate"
@@ -90,6 +91,8 @@ const props = withDefaults(
     staleMessage?: string
     /** 是否禁止重新评估，但仍允许查看已有结果 */
     disableEvaluate?: boolean
+    /** 不可重新评估时的原因说明 */
+    disableEvaluateReason?: string
   }>(),
   {
     score: null,
@@ -101,6 +104,7 @@ const props = withDefaults(
     stale: false,
     staleMessage: '',
     disableEvaluate: false,
+    disableEvaluateReason: '',
   }
 )
 

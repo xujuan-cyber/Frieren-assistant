@@ -2399,6 +2399,10 @@ export default {
       title: "对比评估教程",
       tooltip: "什么是对比评估？",
     },
+    compareUnavailable: {
+      missingWorkspace:
+        "对比评估至少需要一个工作区测试结果，因为系统会围绕当前工作区提示词给出改进建议。请先运行工作区列后再对比。",
+    },
     compareSummary: {
       decision: {
         title: "迭代建议",

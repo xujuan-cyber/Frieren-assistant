@@ -77,6 +77,7 @@ export interface TypedEvaluationState {
  */
 export interface UseEvaluationOptions {
   evaluationModelKey?: Ref<string> | ComputedRef<string>
+  resolveEvaluationModelKey?: (type: EvaluationType) => string | Promise<string>
   language?: Ref<string> | ComputedRef<string>
   functionMode: Ref<string> | ComputedRef<string>
   subMode: Ref<string> | ComputedRef<string>
@@ -258,7 +259,14 @@ export function useEvaluation(
     calculateScoreLevel(activeTargetState.value?.result?.score?.overall ?? null)
   )
 
-  const getModelKey = async (): Promise<string> => {
+  const getModelKey = async (type: EvaluationType): Promise<string> => {
+    if (options.resolveEvaluationModelKey) {
+      const resolvedModelKey = (await options.resolveEvaluationModelKey(type))?.trim() || ''
+      if (resolvedModelKey) {
+        return resolvedModelKey
+      }
+    }
+
     await functionModelManager.initialize()
     if (functionModelManager.evaluationModel.value) {
       return functionModelManager.evaluationModel.value
@@ -342,7 +350,7 @@ export function useEvaluation(
       target: params.target,
       testCase: params.testCase,
       snapshot: params.snapshot,
-      evaluationModelKey: await getModelKey(),
+      evaluationModelKey: await getModelKey('result'),
       variables: { language: getLanguage() },
       mode: getModeConfig(),
       focus: params.focus?.trim()
@@ -373,7 +381,7 @@ export function useEvaluation(
       testCases: params.testCases,
       snapshots: params.snapshots,
       compareHints: params.compareHints,
-      evaluationModelKey: await getModelKey(),
+      evaluationModelKey: await getModelKey('compare'),
       variables: { language: getLanguage() },
       mode: getModeConfig(),
       focus: params.focus?.trim()
@@ -394,7 +402,7 @@ export function useEvaluation(
     const request: PromptOnlyEvaluationRequest = {
       type: 'prompt-only',
       target: params.target,
-      evaluationModelKey: await getModelKey(),
+      evaluationModelKey: await getModelKey('prompt-only'),
       variables: { language: getLanguage() },
       mode: getModeConfig(),
       focus: params.focus?.trim()
@@ -417,7 +425,7 @@ export function useEvaluation(
       type: 'prompt-iterate',
       target: params.target,
       iterateRequirement: params.iterateRequirement,
-      evaluationModelKey: await getModelKey(),
+      evaluationModelKey: await getModelKey('prompt-iterate'),
       variables: { language: getLanguage() },
       mode: getModeConfig(),
       focus: params.focus?.trim()

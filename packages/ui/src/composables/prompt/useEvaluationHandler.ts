@@ -9,7 +9,12 @@
 
 import { computed, watch, type Ref, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useEvaluation, type UseEvaluationReturn, type ScoreLevel } from './useEvaluation'
+import {
+  useEvaluation,
+  type UseEvaluationOptions,
+  type UseEvaluationReturn,
+  type ScoreLevel,
+} from './useEvaluation'
 import type { CompareEvaluationPayload } from './compareEvaluation'
 import { useToast } from '../ui/useToast'
 import {
@@ -39,7 +44,9 @@ export interface UseEvaluationHandlerOptions {
   services: Ref<AppServices | null>
   /** 左侧分析专用：当前工作区提示词 */
   analysisOptimizedPrompt: Ref<string> | ComputedRef<string>
+  analysisTargetResolver?: (defaultTarget: EvaluationTarget) => EvaluationTarget
   evaluationModelKey: Ref<string> | ComputedRef<string>
+  resolveEvaluationModelKey?: UseEvaluationOptions['resolveEvaluationModelKey']
   functionMode: Ref<string> | ComputedRef<string>
   subMode: Ref<string> | ComputedRef<string>
   proContext?: Ref<ProEvaluationContext | undefined> | ComputedRef<ProEvaluationContext | undefined>
@@ -264,7 +271,9 @@ export function useEvaluationHandler(
   const {
     services,
     analysisOptimizedPrompt,
+    analysisTargetResolver,
     evaluationModelKey,
+    resolveEvaluationModelKey,
     functionMode,
     subMode,
     proContext,
@@ -278,6 +287,7 @@ export function useEvaluationHandler(
 
   const evaluation = externalEvaluation ?? useEvaluation(services, {
     evaluationModelKey,
+    resolveEvaluationModelKey,
     functionMode,
     subMode,
   })
@@ -359,13 +369,14 @@ export function useEvaluationHandler(
       functionMode.value,
       subMode.value,
     )
-    const analysisTarget: EvaluationTarget = {
+    const defaultAnalysisTarget: EvaluationTarget = {
       workspacePrompt: analysisOptimized,
       designContext:
         functionMode.value === 'basic'
           ? undefined
           : analysisDesignContext,
     }
+    const analysisTarget = analysisTargetResolver?.(defaultAnalysisTarget) ?? defaultAnalysisTarget
 
     if (type === 'prompt-only') {
       await evaluation.evaluatePromptOnly({

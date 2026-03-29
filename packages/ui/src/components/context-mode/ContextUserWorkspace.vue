@@ -258,6 +258,7 @@
                                         :stale="isCompareEvaluationStale"
                                         :stale-message="t('evaluation.stale.compare')"
                                         :disable-evaluate="!canEvaluateCompare"
+                                        :disable-evaluate-reason="compareDisabledReason"
                                         size="small"
                                         @show-detail="() => showDetail('compare')"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -270,6 +271,7 @@
                                         type="compare"
                                         :label="t('evaluation.compareEvaluate')"
                                         :disabled="!canEvaluateCompare"
+                                        :disabled-reason="compareDisabledReason"
                                         :loading="isEvaluatingCompare"
                                         :button-props="{ size: 'small', type: 'tertiary' }"
                                         @evaluate="() => handleEvaluate('compare')"
@@ -444,6 +446,7 @@
             :stale="activeEvaluationStale"
             :stale-message="activeEvaluationStaleMessage"
             :disable-evaluate="activeEvaluationDisableEvaluate"
+            :disable-evaluate-reason="activeEvaluationDisableReason"
             :can-rewrite-from-evaluation="true"
             @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
@@ -1248,6 +1251,10 @@ const buildCompareEvaluationFingerprint = () =>
         .map((id) => `${id}:${getVariantFingerprint(id)}`)
         .join('|')
 
+const hasWorkspaceCompareCandidate = computed(() =>
+    compareReadyVariantIds.value.some((id) => buildVariantPromptRef(id).kind === 'workspace')
+)
+
 type VariantTestInput = {
     userPrompt: string
     modelKey: string
@@ -1634,6 +1641,17 @@ const comparePayload = computed(() =>
 const hasEvaluationWorkspacePrompt = computed(() => !!contextUserOptimization.optimizedPrompt.trim())
 const canEvaluateResult = computed(() => hasEvaluationWorkspacePrompt.value)
 const canEvaluateCompare = computed(() => !!comparePayload.value)
+const compareDisabledReason = computed(() => {
+    if (canEvaluateCompare.value) {
+        return ''
+    }
+
+    if ((hasCompareCandidates.value || hasCompareEvaluation.value) && !hasWorkspaceCompareCandidate.value) {
+        return t('evaluation.compareUnavailable.missingWorkspace')
+    }
+
+    return ''
+})
 
 // 🆕 计算当前迭代需求（用于 prompt-iterate 的 re-evaluate）
 const currentIterateRequirement = computed(() => {
@@ -1741,6 +1759,13 @@ const activeEvaluationDisableEvaluate = computed(() => {
     }
 
     return false
+})
+const activeEvaluationDisableReason = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return compareDisabledReason.value
+    }
+
+    return ''
 })
 
 const ensureEvaluationWorkspaceReady = (): boolean => {
