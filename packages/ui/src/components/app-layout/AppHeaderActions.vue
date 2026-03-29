@@ -93,9 +93,7 @@
             v-model:show="showAboutPopover"
             trigger="click"
             placement="bottom-end"
-            raw
             :show-arrow="false"
-            content-class="about-popover-content"
         >
             <template #trigger>
                 <NButton
@@ -123,16 +121,18 @@
                 </NButton>
             </template>
 
-            <div class="about-flyout">
-                <span class="about-chip about-chip-version">{{ appVersion }}</span>
+            <div class="about-panel">
+                <div class="about-panel-header">
+                    <NTag round size="small" class="about-version-tag">{{ appVersion }}</NTag>
+                </div>
 
-                <button type="button" class="about-chip about-chip-link" @click="handleOpenWebsite">
-                    <span class="about-chip-text">
-                        <span class="about-chip-label">{{ $t('about.website') }}</span>
-                        <span class="about-chip-value">{{ $t('about.websiteLabel') }}</span>
+                <NButton quaternary block class="about-link-button" @click="handleOpenWebsite">
+                    <span class="about-link-copy">
+                        <span class="about-link-label">{{ $t('about.website') }}</span>
+                        <span class="about-link-value">{{ $t('about.websiteLabel') }}</span>
                     </span>
                     <svg
-                        class="about-chip-icon"
+                        class="about-link-icon"
                         viewBox="0 0 16 16"
                         fill="none"
                         stroke="currentColor"
@@ -144,15 +144,15 @@
                         <path d="M6 4h6v6" />
                         <path d="M12 4 4.75 11.25" />
                     </svg>
-                </button>
+                </NButton>
 
-                <button type="button" class="about-chip about-chip-link" @click="handleOpenDocs">
-                    <span class="about-chip-text">
-                        <span class="about-chip-label">{{ $t('about.documentation') }}</span>
-                        <span class="about-chip-value">{{ $t('about.documentationLabel') }}</span>
+                <NButton quaternary block class="about-link-button" @click="handleOpenDocs">
+                    <span class="about-link-copy">
+                        <span class="about-link-label">{{ $t('about.documentation') }}</span>
+                        <span class="about-link-value">{{ $t('about.documentationLabel') }}</span>
                     </span>
                     <svg
-                        class="about-chip-icon"
+                        class="about-link-icon"
                         viewBox="0 0 16 16"
                         fill="none"
                         stroke="currentColor"
@@ -164,7 +164,7 @@
                         <path d="M6 4h6v6" />
                         <path d="M12 4 4.75 11.25" />
                     </svg>
-                </button>
+                </NButton>
             </div>
         </NPopover>
         <LanguageSwitchDropdown />
@@ -209,7 +209,7 @@ import ActionButtonUI from '../ActionButton.vue'
 import ThemeToggleUI from '../ThemeToggleUI.vue'
 import LanguageSwitchDropdown from '../LanguageSwitchDropdown.vue'
 import UpdaterIcon from '../UpdaterIcon.vue'
-import { NButton, NPopover } from 'naive-ui'
+import { NButton, NPopover, NTag } from 'naive-ui'
 
 interface Props {
     appVersion: string
@@ -277,93 +277,44 @@ const handleOpenDocs = () => {
     margin-left: 6px;
 }
 
-:deep(.about-popover-content) {
-    padding: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border: 0 !important;
-}
-
-.about-flyout {
+.about-panel {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 7px;
-    padding-top: 8px;
+    gap: 6px;
+    min-width: 220px;
+    max-width: 260px;
 }
 
-.about-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
+.about-panel-header {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.about-version-tag {
     max-width: 100%;
-    box-sizing: border-box;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--border-color, rgba(239, 239, 245, 0.82)) 86%, transparent);
-    background: color-mix(in srgb, var(--card-color, #fff) 94%, transparent);
-    color: inherit;
-    backdrop-filter: blur(14px);
-    box-shadow:
-        0 10px 24px rgba(15, 23, 42, 0.08),
-        0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
-.about-chip-version {
-    align-self: flex-end;
-    padding: 4px 9px;
-    font-size: 11px;
-    line-height: 1;
-    color: var(--text-color-3);
-    border-color: color-mix(in srgb, var(--border-color, rgba(239, 239, 245, 0.8)) 68%, transparent);
-    background: color-mix(in srgb, var(--hover-color, rgba(0, 0, 0, 0.03)) 70%, transparent);
-    box-shadow:
-        0 8px 18px rgba(15, 23, 42, 0.06),
-        0 1px 4px rgba(15, 23, 42, 0.03);
+.about-link-button {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.about-chip-link {
-    max-width: 100%;
-    min-width: 0;
-    padding: 8px 12px 8px 13px;
-    text-align: left;
-    cursor: pointer;
-    transition:
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        color 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.about-chip-link:hover {
-    background: color-mix(in srgb, var(--hover-color, rgba(0, 0, 0, 0.04)) 78%, transparent);
-    border-color: color-mix(in srgb, var(--primary-color, #18a058) 22%, var(--border-color, rgba(239, 239, 245, 0.8)));
-    transform: translateY(-1px);
-    box-shadow:
-        0 12px 28px rgba(15, 23, 42, 0.1),
-        0 3px 10px rgba(15, 23, 42, 0.06);
-}
-
-.about-chip-link:focus-visible {
-    outline: none;
-    border-color: color-mix(in srgb, var(--primary-color, #18a058) 28%, var(--border-color, rgba(239, 239, 245, 0.8)));
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #18a058) 14%, transparent);
-}
-
-.about-chip-text {
+.about-link-copy {
     display: inline-flex;
     align-items: baseline;
-    gap: 7px;
+    gap: 8px;
     min-width: 0;
+    text-align: left;
 }
 
-.about-chip-label {
+.about-link-label {
     flex-shrink: 0;
     font-size: 11px;
     color: var(--text-color-3);
 }
 
-.about-chip-value {
+.about-link-value {
     min-width: 0;
     font-size: 12px;
     font-weight: 600;
@@ -373,18 +324,10 @@ const handleOpenDocs = () => {
     white-space: nowrap;
 }
 
-.about-chip-icon {
+.about-link-icon {
     width: 12px;
     height: 12px;
     flex-shrink: 0;
     color: var(--text-color-3);
-    transition:
-        color 0.2s ease,
-        transform 0.2s ease;
-}
-
-.about-chip-link:hover .about-chip-icon {
-    color: var(--text-color-2);
-    transform: translate(1px, -1px);
 }
 </style>

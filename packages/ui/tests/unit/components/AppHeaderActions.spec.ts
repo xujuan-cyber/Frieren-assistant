@@ -25,8 +25,8 @@ vi.mock('naive-ui', async (importOriginal) => {
     }),
     NTag: defineComponent({
       name: 'NTag',
-      setup(_, { slots }) {
-        return () => h('span', { class: 'n-tag-stub' }, slots.default?.())
+      setup(_, { slots, attrs }) {
+        return () => h('span', { class: 'n-tag-stub', ...attrs }, slots.default?.())
       },
     }),
     NText: defineComponent({
@@ -41,7 +41,7 @@ vi.mock('naive-ui', async (importOriginal) => {
 import AppHeaderActions from '../../../src/components/app-layout/AppHeaderActions.vue'
 
 describe('AppHeaderActions about menu layout hooks', () => {
-  it('renders compact chip-style about actions without a product title row', () => {
+  it('renders the about popover with naive-themed panel content', () => {
     const wrapper = mount(AppHeaderActions, {
       props: {
         appVersion: 'v2.7.0',
@@ -77,12 +77,11 @@ describe('AppHeaderActions about menu layout hooks', () => {
       },
     })
 
-    expect(wrapper.find('.about-menu-title').exists()).toBe(false)
-
-    const chips = wrapper.findAll('.about-chip')
-    expect(chips).toHaveLength(3)
-    expect(wrapper.find('.about-chip-version').text()).toContain('v2.7.0')
-    expect(wrapper.findAll('.about-chip-link')).toHaveLength(2)
+    expect(wrapper.find('.about-flyout').exists()).toBe(false)
+    expect(wrapper.findAll('.about-chip')).toHaveLength(0)
+    expect(wrapper.find('.about-panel').exists()).toBe(true)
+    expect(wrapper.find('.about-version-tag').text()).toContain('v2.7.0')
+    expect(wrapper.findAll('.about-link-button')).toHaveLength(2)
     expect(wrapper.text()).toContain('always200.com')
     expect(wrapper.text()).toContain('docs.always200.com')
   })
