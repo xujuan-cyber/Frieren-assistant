@@ -59,4 +59,29 @@ describe('default image models', () => {
     expect(openrouterConfig.model.capabilities.image2image).toBe(true)
     expect(openrouterConfig.model.capabilities.multiImage).toBe(true)
   })
+
+  it('includes Cloudflare configuration when API token and account id are present', () => {
+    process.env.CF_API_TOKEN = 'cloudflare-token'
+    process.env.CF_ACCOUNT_ID = 'cloudflare-account'
+
+    const models = getDefaultImageModels(registry)
+    const cloudflareConfig = models['image-cloudflare-flux-klein']
+
+    expect(cloudflareConfig).toBeDefined()
+    expect(cloudflareConfig.providerId).toBe('cloudflare')
+    expect(cloudflareConfig.modelId).toBe('@cf/black-forest-labs/flux-2-klein-4b')
+    expect(cloudflareConfig.connectionConfig?.apiKey).toBe('cloudflare-token')
+    expect(cloudflareConfig.connectionConfig?.accountId).toBe('cloudflare-account')
+    expect(cloudflareConfig.enabled).toBe(true)
+  })
+
+  it('disables Cloudflare configuration when account id is missing', () => {
+    process.env.CF_API_TOKEN = 'cloudflare-token'
+    delete process.env.CF_ACCOUNT_ID
+
+    const models = getDefaultImageModels(registry)
+
+    expect(models['image-cloudflare-flux-klein']).toBeDefined()
+    expect(models['image-cloudflare-flux-klein'].enabled).toBe(false)
+  })
 })

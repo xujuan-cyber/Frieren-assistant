@@ -66,6 +66,13 @@ describe('TextAdapterRegistry', () => {
       expect(adapter.getProvider().id).toBe('dashscope');
     });
 
+    it('should return Cloudflare adapter for "cloudflare" provider', () => {
+      const adapter = registry.getAdapter('cloudflare');
+
+      expect(adapter).toBeDefined();
+      expect(adapter.getProvider().id).toBe('cloudflare');
+    });
+
     it('should be case-insensitive for provider ID', () => {
       const adapter1 = registry.getAdapter('OpenAI');
       const adapter2 = registry.getAdapter('OPENAI');
@@ -85,11 +92,11 @@ describe('TextAdapterRegistry', () => {
       const providers = registry.getAllProviders();
 
       expect(Array.isArray(providers)).toBe(true);
-      expect(providers.length).toBe(11);
+      expect(providers.length).toBe(12);
 
       const providerIds = providers.map(p => p.id);
       expect(providerIds).toEqual(
-        expect.arrayContaining(['openai', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax'])
+        expect.arrayContaining(['openai', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax', 'cloudflare'])
       );
     });
 

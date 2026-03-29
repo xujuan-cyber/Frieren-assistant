@@ -9,17 +9,36 @@ import { generateDynamicModels } from './model-utils';
  * 新增 Provider 只需在此添加一行
  */
 const PROVIDER_ENV_KEYS = {
-  openai: 'VITE_OPENAI_API_KEY',
-  gemini: 'VITE_GEMINI_API_KEY',
-  anthropic: 'VITE_ANTHROPIC_API_KEY',
-  deepseek: 'VITE_DEEPSEEK_API_KEY',
-  siliconflow: 'VITE_SILICONFLOW_API_KEY',
-  zhipu: 'VITE_ZHIPU_API_KEY',
-  dashscope: 'VITE_DASHSCOPE_API_KEY',
-  openrouter: 'VITE_OPENROUTER_API_KEY',
-  modelscope: 'VITE_MODELSCOPE_API_KEY',
-  minimax: 'VITE_MINIMAX_API_KEY'
+  openai: ['VITE_OPENAI_API_KEY'],
+  gemini: ['VITE_GEMINI_API_KEY'],
+  anthropic: ['VITE_ANTHROPIC_API_KEY'],
+  deepseek: ['VITE_DEEPSEEK_API_KEY'],
+  siliconflow: ['VITE_SILICONFLOW_API_KEY'],
+  zhipu: ['VITE_ZHIPU_API_KEY'],
+  dashscope: ['VITE_DASHSCOPE_API_KEY'],
+  openrouter: ['VITE_OPENROUTER_API_KEY'],
+  modelscope: ['VITE_MODELSCOPE_API_KEY'],
+  minimax: ['VITE_MINIMAX_API_KEY'],
+  cloudflare: ['VITE_CF_API_TOKEN', 'CF_API_TOKEN']
 } as const;
+
+const PROVIDER_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]>> = {
+  cloudflare: {
+    accountId: ['VITE_CF_ACCOUNT_ID', 'CF_ACCOUNT_ID']
+  }
+};
+
+const PROVIDER_REQUIRED_CONNECTION_FIELDS: Record<string, string[]> = {
+  cloudflare: ['apiKey', 'accountId']
+};
+
+function getFirstEnvValue(envKeys: readonly string[]): string {
+  for (const envKey of envKeys) {
+    const value = getEnvVar(envKey).trim();
+    if (value) return value;
+  }
+  return '';
+}
 
 /**
  * 获取所有内置模型的 ID 列表
@@ -43,26 +62,37 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
   const result: Record<string, TextModelConfig> = {};
 
   // 批量生成标准 Provider 配置
-  for (const [providerId, envKey] of Object.entries(PROVIDER_ENV_KEYS)) {
+  for (const [providerId, envKeys] of Object.entries(PROVIDER_ENV_KEYS)) {
     const adapter = adapterRegistry.getAdapter(providerId);
     const provider = adapter.getProvider();
     const models = adapter.getModels();
     const defaultModel = models[0] || adapter.buildDefaultModel(providerId);
-    const apiKey = getEnvVar(envKey).trim();
+    const apiKey = getFirstEnvValue(envKeys);
+    const connectionConfig: Record<string, unknown> = {
+      apiKey,
+      baseURL: provider.defaultBaseURL
+    };
+
+    const extraConnectionFields = PROVIDER_EXTRA_CONNECTION_ENV_KEYS[providerId] || {};
+    for (const [field, fieldEnvKeys] of Object.entries(extraConnectionFields)) {
+      connectionConfig[field] = getFirstEnvValue(fieldEnvKeys);
+    }
 
     // 使用模型的默认参数值初始化 paramOverrides
     const defaultParamValues = defaultModel.defaultParameterValues || {};
+    const requiredConnectionFields = PROVIDER_REQUIRED_CONNECTION_FIELDS[providerId] || ['apiKey'];
+    const enabled = requiredConnectionFields.every((field) => {
+      const value = connectionConfig[field];
+      return typeof value === 'string' ? value.trim().length > 0 : !!value;
+    });
 
     result[providerId] = {
       id: provider.id,
       name: provider.name,
-      enabled: !!apiKey,
+      enabled: enabled,
       providerMeta: provider,
       modelMeta: defaultModel,
-      connectionConfig: {
-        apiKey,
-        baseURL: provider.defaultBaseURL
-      },
+      connectionConfig,
       paramOverrides: { ...defaultParamValues },
       customParamOverrides: {}
     };

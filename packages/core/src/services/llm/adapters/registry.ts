@@ -17,6 +17,7 @@ import { OpenRouterAdapter } from './openrouter-adapter';
 import { ModelScopeAdapter } from './modelscope-adapter';
 import { OllamaAdapter } from './ollama-adapter';
 import { MinimaxAdapter } from './minimax-adapter';
+import { CloudflareAdapter } from './cloudflare-adapter';
 import { RequestConfigError } from '../errors';
 
 /**
@@ -60,6 +61,7 @@ export class TextAdapterRegistry
     const modelscopeAdapter = new ModelScopeAdapter();
     const ollamaAdapter = new OllamaAdapter();
     const minimaxAdapter = new MinimaxAdapter();
+    const cloudflareAdapter = new CloudflareAdapter();
 
     this.adapters.set('openai', openaiAdapter);
     this.adapters.set('deepseek', deepseekAdapter);
@@ -72,6 +74,7 @@ export class TextAdapterRegistry
     this.adapters.set('modelscope', modelscopeAdapter);
     this.adapters.set('ollama', ollamaAdapter);
     this.adapters.set('minimax', minimaxAdapter);
+    this.adapters.set('cloudflare', cloudflareAdapter);
 
     // 预加载静态模型缓存
     this.preloadStaticModels();

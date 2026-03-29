@@ -15,6 +15,7 @@ import { OpenRouterImageAdapter } from './openrouter'
 import { DashScopeImageAdapter } from './dashscope'
 import { ModelScopeImageAdapter } from './modelscope'
 import { OllamaImageAdapter } from './ollama'
+import { CloudflareImageAdapter } from './cloudflare'
 
 /**
  * 图像适配器注册表实现
@@ -50,6 +51,7 @@ export class ImageAdapterRegistry
     const dashscopeAdapter = new DashScopeImageAdapter()
     const modelscopeAdapter = new ModelScopeImageAdapter()
     const ollamaAdapter = new OllamaImageAdapter()
+    const cloudflareAdapter = new CloudflareImageAdapter()
 
     this.adapters.set('gemini', geminiAdapter)
     this.adapters.set('seedream', seedreamAdapter)
@@ -59,6 +61,7 @@ export class ImageAdapterRegistry
     this.adapters.set('dashscope', dashscopeAdapter)
     this.adapters.set('modelscope', modelscopeAdapter)
     this.adapters.set('ollama', ollamaAdapter)
+    this.adapters.set('cloudflare', cloudflareAdapter)
 
     // 预加载静态模型缓存
     this.preloadStaticModels()

@@ -7,13 +7,14 @@ import { getEnvVar } from '../../utils/environment'
  * 新增 Provider 只需在此添加一行
  */
 const IMAGE_PROVIDER_ENV_KEYS = {
-  openrouter: 'VITE_OPENROUTER_API_KEY',
-  gemini: 'VITE_GEMINI_API_KEY',
-  openai: 'VITE_OPENAI_API_KEY',
-  siliconflow: 'VITE_SILICONFLOW_API_KEY',
-  seedream: 'VITE_SEEDREAM_API_KEY',
-  dashscope: 'VITE_DASHSCOPE_API_KEY',
-  modelscope: 'VITE_MODELSCOPE_API_KEY'
+  openrouter: ['VITE_OPENROUTER_API_KEY'],
+  gemini: ['VITE_GEMINI_API_KEY'],
+  openai: ['VITE_OPENAI_API_KEY'],
+  siliconflow: ['VITE_SILICONFLOW_API_KEY'],
+  seedream: ['VITE_SEEDREAM_API_KEY', 'VITE_ARK_API_KEY'],
+  dashscope: ['VITE_DASHSCOPE_API_KEY'],
+  modelscope: ['VITE_MODELSCOPE_API_KEY'],
+  cloudflare: ['VITE_CF_API_TOKEN', 'CF_API_TOKEN']
 } as const
 
 /**
@@ -27,7 +28,8 @@ const IMAGE_CONFIG_IDS: Record<string, string> = {
   siliconflow: 'image-siliconflow-kolors',
   seedream: 'image-seedream',
   dashscope: 'image-dashscope',
-  modelscope: 'image-modelscope'
+  modelscope: 'image-modelscope',
+  cloudflare: 'image-cloudflare-flux-klein'
 }
 
 /**
@@ -36,6 +38,30 @@ const IMAGE_CONFIG_IDS: Record<string, string> = {
 const IMAGE_BASE_URL_ENV_KEYS: Record<string, string> = {
   openai: 'VITE_OPENAI_BASE_URL',
   seedream: 'VITE_SEEDREAM_BASE_URL'
+}
+
+/**
+ * 额外连接字段的环境变量映射
+ */
+const IMAGE_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]>> = {
+  cloudflare: {
+    accountId: ['VITE_CF_ACCOUNT_ID', 'CF_ACCOUNT_ID']
+  }
+}
+
+/**
+ * 某些 Provider 需要多个字段都存在时才视为可用
+ */
+const IMAGE_REQUIRED_CONNECTION_FIELDS: Record<string, string[]> = {
+  cloudflare: ['apiKey', 'accountId']
+}
+
+function getFirstEnvValue(envKeys: readonly string[]): string {
+  for (const envKey of envKeys) {
+    const value = getEnvVar(envKey).trim()
+    if (value) return value
+  }
+  return ''
 }
 
 /**
@@ -52,7 +78,7 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
   const result: Record<string, ImageModelConfig> = {}
 
   // 批量生成配置（与文本模型风格一致）
-  for (const [providerId, envKey] of Object.entries(IMAGE_PROVIDER_ENV_KEYS)) {
+  for (const [providerId, envKeys] of Object.entries(IMAGE_PROVIDER_ENV_KEYS)) {
     const configId = IMAGE_CONFIG_IDS[providerId]
     if (!configId) continue
 
@@ -61,11 +87,8 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
     const models = adapterRegistry.getStaticModels(providerId)
     const defaultModel = models[0] || adapter.buildDefaultModel(providerId)
 
-    // 获取 API Key（Seedream 支持备选环境变量）
-    let apiKey = getEnvVar(envKey).trim()
-    if (!apiKey && providerId === 'seedream') {
-      apiKey = getEnvVar('VITE_ARK_API_KEY').trim()
-    }
+    // 获取 API Key（支持备选环境变量）
+    const apiKey = getFirstEnvValue(envKeys)
 
     // 获取 baseURL（支持环境变量覆盖）
     let baseURL = provider.defaultBaseURL || ''
@@ -81,14 +104,26 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
 
     // 直接从模型获取默认参数值（与文本模型一致）
     const defaultParamValues = defaultModel.defaultParameterValues || {}
+    const connectionConfig: Record<string, unknown> = { apiKey, baseURL }
+    const extraConnectionFields = IMAGE_EXTRA_CONNECTION_ENV_KEYS[providerId] || {}
+
+    for (const [field, fieldEnvKeys] of Object.entries(extraConnectionFields)) {
+      connectionConfig[field] = getFirstEnvValue(fieldEnvKeys)
+    }
+
+    const requiredConnectionFields = IMAGE_REQUIRED_CONNECTION_FIELDS[providerId] || ['apiKey']
+    const enabled = requiredConnectionFields.every(field => {
+      const value = connectionConfig[field]
+      return typeof value === 'string' ? value.trim().length > 0 : !!value
+    })
 
     result[configId] = {
       id: configId,
       name: provider.name,  // 从 provider 获取名称，不再硬编码
       providerId,
       modelId: defaultModel.id,
-      enabled: !!apiKey,
-      connectionConfig: { apiKey, baseURL },
+      enabled,
+      connectionConfig,
       paramOverrides: { ...defaultParamValues },
       customParamOverrides: {},
       provider,
