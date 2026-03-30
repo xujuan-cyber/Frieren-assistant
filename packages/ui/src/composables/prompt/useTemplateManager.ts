@@ -3,7 +3,13 @@ import type { TemplateMetadata } from '@prompt-optimizer/core'
 
 export type TemplateManagerTemplateType = Exclude<
   TemplateMetadata['templateType'],
-  'contextSystemOptimize' | 'evaluation' | 'variable-extraction' | 'variable-value-generation' | 'image-prompt-extraction'
+  | 'contextSystemOptimize'
+  | 'evaluation'
+  | 'variable-extraction'
+  | 'variable-value-generation'
+  | 'image-reference-spec-extraction'
+  | 'image-prompt-composition'
+  | 'image-prompt-migration'
 >
 
 export interface TemplateManagerHooks {

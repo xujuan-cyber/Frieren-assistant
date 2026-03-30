@@ -815,7 +815,7 @@ import type { SelectOption } from "../../types/select-options";
 import { useToast } from "../../composables/ui/useToast";
 import { getI18nErrorMessage } from '../../utils/error'
 import {
-    extractImageStyle,
+    resolveReferencePromptPreview,
 } from '../../services/ImageStyleExtractor'
 import { replaceTemporaryVariablesForPrompt } from '../../utils/image-prompt-extraction'
 import { VariableAwareInput } from '../variable-extraction'
@@ -1818,14 +1818,29 @@ const extractPromptFromReferenceImage = async (imageB64: string, mimeType: strin
         return
     }
 
+    if (!selectedTextModelKey.value) {
+        toast.error(t('toast.error.noOptimizeModel'))
+        return
+    }
+
+    if (!promptService.value) {
+        toast.error(t('toast.error.serviceInit'))
+        return
+    }
+
     const modelConfig = await getImageRecognitionModelConfig()
-    const result = await extractImageStyle(
-        modelConfig,
+    const result = await resolveReferencePromptPreview({
+        mode: 'replicate',
+        originalPrompt: '',
         imageB64,
-        mimeType || 'image/png',
-        'image2image',
-        services.value?.templateManager,
-    )
+        mimeType: mimeType || 'image/png',
+        modelConfig,
+        templateManager: services.value?.templateManager,
+        promptService: promptService.value,
+        variableExtractionService: services.value?.variableExtractionService,
+        modelKey: selectedTextModelKey.value,
+        referenceMode: 'image2image',
+    })
 
     const variableCount = replaceTemporaryVariablesForPrompt(
         result.prompt,

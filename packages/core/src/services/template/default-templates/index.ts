@@ -133,9 +133,13 @@ import { template as evaluation_structured_compare_pair_judge_en } from './evalu
 import { template as evaluation_structured_compare_synthesis } from './evaluation-structured-compare/synthesis';
 import { template as evaluation_structured_compare_synthesis_en } from './evaluation-structured-compare/synthesis_en';
 
-// 图片 JSON 提取模板
-import { imagePromptExtractionTemplate } from './image-prompt-extraction';
-import { imagePromptExtractionTemplateEn } from './image-prompt-extraction';
+// 参考图内部模板
+import { imageReferenceSpecExtractionTemplate } from './image-reference-spec-extraction';
+import { imageReferenceSpecExtractionTemplateEn } from './image-reference-spec-extraction';
+import { imagePromptCompositionTemplate } from './image-prompt-composition';
+import { imagePromptCompositionTemplateEn } from './image-prompt-composition';
+import { imagePromptMigrationTemplate } from './image-prompt-migration';
+import { imagePromptMigrationTemplateEn } from './image-prompt-migration';
 
 // 简单的模板集合 - 模板自身已包含完整信息（id、name、language、type等）
 export const ALL_TEMPLATES = {
@@ -256,7 +260,11 @@ export const ALL_TEMPLATES = {
   evaluation_structured_compare_pair_judge_en,
   evaluation_structured_compare_synthesis,
   evaluation_structured_compare_synthesis_en,
-  // 图片 JSON 提取模板
-  imagePromptExtractionTemplate,
-  imagePromptExtractionTemplateEn,
+  // 参考图内部模板
+  imageReferenceSpecExtractionTemplate,
+  imageReferenceSpecExtractionTemplateEn,
+  imagePromptCompositionTemplate,
+  imagePromptCompositionTemplateEn,
+  imagePromptMigrationTemplate,
+  imagePromptMigrationTemplateEn,
 };

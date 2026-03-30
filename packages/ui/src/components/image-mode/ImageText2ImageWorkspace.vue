@@ -1045,6 +1045,8 @@ const isIterating = ref(false)
 const isExtractingFromImage = ref(false)
 const extractImageInputRef = ref<HTMLInputElement | null>(null)
 const referenceBaseExtraction = ref<ReferenceSpec | null>(null)
+const referenceDialogPendingCount = ref(0)
+const referenceDialogPreviewToken = ref(0)
 
 // 历史管理专用 ref（不写入 session store）
 const currentChainId = ref('')
@@ -1809,6 +1811,7 @@ const extractReferencePromptFromImage = async (
 
 const resolveReferenceDialogPreview = async (
     nextMode: ReferenceApplicationMode = referenceDialog.mode,
+    previewToken: number = referenceDialogPreviewToken.value,
 ) => {
     if (!referenceBaseExtraction.value) {
         return
@@ -1832,7 +1835,26 @@ const resolveReferenceDialogPreview = async (
         referenceMode: 'text2image',
     })
 
+    if (previewToken !== referenceDialogPreviewToken.value) {
+        return
+    }
+
     referenceDialog.setGeneratedPreview(preview)
+}
+
+const beginReferenceDialogTask = () => {
+    referenceDialogPendingCount.value += 1
+    isExtractingFromImage.value = true
+}
+
+const endReferenceDialogTask = () => {
+    referenceDialogPendingCount.value = Math.max(0, referenceDialogPendingCount.value - 1)
+    isExtractingFromImage.value = referenceDialogPendingCount.value > 0
+}
+
+const createReferenceDialogPreviewToken = () => {
+    referenceDialogPreviewToken.value += 1
+    return referenceDialogPreviewToken.value
 }
 
 const openReferenceImageDialog = () => {
@@ -1885,7 +1907,8 @@ const handleReferenceImageFileChange = async (event: Event) => {
         return
     }
 
-    isExtractingFromImage.value = true
+    const previewToken = createReferenceDialogPreviewToken()
+    beginReferenceDialogTask()
 
     try {
         const { base64, mimeType } = await readImageFileAsBase64(file)
@@ -1895,13 +1918,13 @@ const handleReferenceImageFileChange = async (event: Event) => {
             previewUrl: `data:${mimeType || 'image/png'};base64,${base64}`,
         })
         referenceBaseExtraction.value = await extractReferencePromptFromImage(base64, mimeType)
-        await resolveReferenceDialogPreview(referenceDialog.mode)
+        await resolveReferenceDialogPreview(referenceDialog.mode, previewToken)
     } catch (error) {
         toast.error(
             getI18nErrorMessage(error, t('imageWorkspace.input.extractFailed')),
         )
     } finally {
-        isExtractingFromImage.value = false
+        endReferenceDialogTask()
     }
 }
 
@@ -1913,15 +1936,16 @@ const handleReferenceDialogModeChange = async (value: string | number | boolean)
         return
     }
 
-    isExtractingFromImage.value = true
+    const previewToken = createReferenceDialogPreviewToken()
+    beginReferenceDialogTask()
     try {
-        await resolveReferenceDialogPreview(nextMode)
+        await resolveReferenceDialogPreview(nextMode, previewToken)
     } catch (error) {
         toast.error(
             getI18nErrorMessage(error, t('imageWorkspace.input.extractFailed')),
         )
     } finally {
-        isExtractingFromImage.value = false
+        endReferenceDialogTask()
     }
 }
 
