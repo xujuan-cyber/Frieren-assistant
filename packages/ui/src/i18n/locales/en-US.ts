@@ -1995,12 +1995,34 @@ export default {
       modelPlaceholder: "Select model",
       optimizing: "Optimizing...",
       optimizePrompt: "Optimize Prompt",
-      extractFromImage: "Vision Extract",
+      extractFromImage: "Reference Image",
       extracting: "Extracting",
       extractCompleted: "Image extraction completed",
       extractCompletedWithVariables:
         "Image extraction completed and initialized {count} local variables",
       extractFailed: "Image extraction failed",
+    },
+
+    referenceImage: {
+      dialogTitle: "Apply Reference Image",
+      sourceImage: "Reference Image",
+      selectImage: "Upload Reference Image",
+      changeImage: "Change Image",
+      sourceImageHint: "Local PNG/JPEG only, up to 10MB",
+      usageMode: "How To Use This Reference",
+      styleTransfer: "Style Transfer",
+      styleTransferDescription:
+        "Learn from the image style and adapt it on top of your current prompt",
+      replicateImage: "Replicate Image",
+      replicateImageDescription:
+        "Discard the original prompt and infer a matching prompt from the reference image",
+      detectedCurrentPromptTitle: "Detected Current Prompt",
+      generatedPrompt: "Generated Prompt",
+      variablePreview: "Extracted Variables",
+      variableValuePlaceholder: "Enter variable value",
+      noVariables: "No variables have been extracted yet",
+      applyToPrompt: "Apply To Current Prompt",
+      applySuccess: "Reference result has been applied to the current prompt",
     },
 
     // Image generation area
