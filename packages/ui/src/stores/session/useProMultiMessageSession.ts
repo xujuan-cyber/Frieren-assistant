@@ -282,6 +282,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     }
     temporaryVariables.value[name] = value
     lastActiveAt.value = Date.now()
+    void saveSession()
   }
 
   const getTemporaryVariable = (name: string): string | undefined => {
@@ -294,11 +295,13 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     if (!Object.prototype.hasOwnProperty.call(temporaryVariables.value, name)) return
     delete temporaryVariables.value[name]
     lastActiveAt.value = Date.now()
+    void saveSession()
   }
 
   const clearTemporaryVariables = () => {
     temporaryVariables.value = {}
     lastActiveAt.value = Date.now()
+    void saveSession()
   }
 
   /**

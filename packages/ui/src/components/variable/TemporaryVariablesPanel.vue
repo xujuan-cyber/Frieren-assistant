@@ -67,7 +67,10 @@
                         gap: '8px',
                     }"
                 >
-                    <NText :depth="3">{{ t('test.variables.tempCount', { count: displayVariables.length }) }}</NText>
+                    <NText v-if="displayVariables.length > 0" :depth="3">
+                        {{ t('test.variables.tempCount', { count: displayVariables.length }) }}
+                    </NText>
+                    <span v-else />
 
                     <NButton
                         size="small"

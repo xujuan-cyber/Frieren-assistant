@@ -317,6 +317,9 @@ export const useImageText2ImageSession = defineStore('imageText2ImageSession', (
     }
     temporaryVariables.value[name] = value
     lastActiveAt.value = Date.now()
+    saveSession().catch(error => {
+      console.error('[ImageText2ImageSession] 自动保存临时变量失败:', error)
+    })
   }
 
   const getTemporaryVariable = (name: string): string | undefined => {
@@ -329,11 +332,17 @@ export const useImageText2ImageSession = defineStore('imageText2ImageSession', (
     if (!Object.prototype.hasOwnProperty.call(temporaryVariables.value, name)) return
     delete temporaryVariables.value[name]
     lastActiveAt.value = Date.now()
+    saveSession().catch(error => {
+      console.error('[ImageText2ImageSession] 自动保存临时变量失败:', error)
+    })
   }
 
   const clearTemporaryVariables = () => {
     temporaryVariables.value = {}
     lastActiveAt.value = Date.now()
+    saveSession().catch(error => {
+      console.error('[ImageText2ImageSession] 自动保存临时变量失败:', error)
+    })
   }
 
   const reset = () => {

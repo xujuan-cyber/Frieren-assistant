@@ -5,6 +5,43 @@ import { useProVariableSession } from '../../../../src/stores/session/useProVari
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
 
 describe('Session stores (pro) persistence', () => {
+  it('pro-variable clearTemporaryVariables persists the cleared snapshot', async () => {
+    const set = vi.fn(async () => {})
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: async <T,>(_key: string, defaultValue: T) => defaultValue,
+        set,
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any
+    })
+
+    const store = useProVariableSession(pinia)
+    store.setTemporaryVariable('主体', '小猫')
+    set.mockClear()
+
+    store.clearTemporaryVariables()
+    await Promise.resolve()
+
+    expect(store.temporaryVariables).toEqual({})
+    expect(set).toHaveBeenCalled()
+
+    const lastCall = set.mock.calls.at(-1)
+    expect(lastCall?.[0]).toBe('session/v1/pro-variable')
+
+    const raw = lastCall?.[1]
+    const saved =
+      typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw as Record<string, unknown> | undefined) || {}
+    expect(saved.temporaryVariables).toEqual({})
+  })
+
   it('pro-multi saveSession writes snapshot to preferenceService', async () => {
     const set = vi.fn(async () => {})
 

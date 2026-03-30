@@ -367,6 +367,24 @@ describe('TemporaryVariablesPanel', () => {
     expect(wrapper.text()).not.toContain('rules')
   })
 
+  it('空态时只显示一次未检测到变量，不重复显示 0 个临时变量', () => {
+    const fixture = createPanelManagerFixture()
+    fixture.tempVars.value = {}
+
+    const wrapper = mount(TemporaryVariablesPanel, {
+      props: {
+        manager: fixture.manager as any,
+        disabled: false,
+      },
+      global: {
+        stubs: globalStubs,
+      },
+    })
+
+    expect(wrapper.text()).toContain('未检测到变量')
+    expect(wrapper.text()).not.toContain('0 个临时变量')
+  })
+
   it('行内“更多”选择删除会调用 handleDeleteVariable', async () => {
     const fixture = createPanelManagerFixture()
     const wrapper = mount(TemporaryVariablesPanel, {

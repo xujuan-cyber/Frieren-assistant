@@ -223,6 +223,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     }
     temporaryVariables.value[name] = value
     lastActiveAt.value = Date.now()
+    void saveSession()
   }
 
   const getTemporaryVariable = (name: string): string | undefined => {
@@ -235,11 +236,13 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     if (!Object.prototype.hasOwnProperty.call(temporaryVariables.value, name)) return
     delete temporaryVariables.value[name]
     lastActiveAt.value = Date.now()
+    void saveSession()
   }
 
   const clearTemporaryVariables = () => {
     temporaryVariables.value = {}
     lastActiveAt.value = Date.now()
+    void saveSession()
   }
 
   const updateOptimizeModel = (modelKey: string) => {
