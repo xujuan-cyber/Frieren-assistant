@@ -109,7 +109,7 @@ export class ModelManager implements IModelManager {
 
               if (isTextModelConfig(existingModel)) {
                 // 已经是新格式，保留用户配置，仅在缺失关键字段时补齐默认值
-                const updatedModel = { ...existingModel } as TextModelConfig;
+                let updatedModel = { ...existingModel } as TextModelConfig;
                 let patched = false;
 
                 if (!updatedModel.providerMeta && defaultConfig.providerMeta) {
@@ -128,18 +128,34 @@ export class ModelManager implements IModelManager {
                   console.log(`[ModelManager] Patched missing metadata for model: ${key}`);
                 }
 
-                // 检查是否需要自动注入 apiKey 并启用内置模型
-                if (this.shouldAutoEnableBuiltinModel(key, updatedModel, defaultConfig)) {
-                  updatedModels[key] = {
+                const shouldBackfillApiKey = this.shouldBackfillBuiltinModelApiKey(
+                  key,
+                  updatedModel,
+                  defaultConfig
+                );
+                const shouldAutoEnable = this.shouldAutoEnableBuiltinModel(
+                  key,
+                  updatedModel,
+                  defaultConfig
+                );
+
+                // 内置模型在环境变量新增后，需要把缺失的 apiKey 回填到已有存储配置中。
+                if (shouldBackfillApiKey || shouldAutoEnable) {
+                  updatedModel = {
                     ...updatedModel,
                     connectionConfig: {
                       ...(updatedModel.connectionConfig || {}),
                       apiKey: defaultConfig.connectionConfig?.apiKey
                     },
-                    enabled: true
+                    enabled: shouldAutoEnable ? true : updatedModel.enabled
                   };
+                  updatedModels[key] = updatedModel;
                   hasUpdates = true;
-                  console.log(`[ModelManager] Auto-enabled builtin model with new API key: ${key}`);
+                  if (shouldAutoEnable) {
+                    console.log(`[ModelManager] Auto-enabled builtin model with new API key: ${key}`);
+                  } else {
+                    console.log(`[ModelManager] Backfilled missing API key for builtin model: ${key}`);
+                  }
                 }
               } else if (isLegacyConfig(existingModel)) {
                 // 旧格式，尝试使用 Registry 转换为新格式
@@ -602,6 +618,33 @@ export class ModelManager implements IModelManager {
         };
       }
     );
+  }
+
+  /**
+   * 判断是否应该为内置模型回填缺失的 apiKey
+   * 条件：内置模型 + 存储的 apiKey 为空 + 新配置有 apiKey
+   */
+  private shouldBackfillBuiltinModelApiKey(
+    modelId: string,
+    storedConfig: TextModelConfig,
+    defaultConfig: TextModelConfig
+  ): boolean {
+    const builtinIds = getBuiltinModelIds();
+    if (!builtinIds.includes(modelId)) {
+      return false;
+    }
+
+    const storedApiKey = storedConfig.connectionConfig?.apiKey?.trim() || '';
+    if (storedApiKey !== '') {
+      return false;
+    }
+
+    const newApiKey = defaultConfig.connectionConfig?.apiKey?.trim() || '';
+    if (newApiKey === '') {
+      return false;
+    }
+
+    return true;
   }
 
   /**

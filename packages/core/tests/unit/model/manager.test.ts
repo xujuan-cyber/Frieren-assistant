@@ -102,6 +102,39 @@ describe('ModelManager', () => {
   });
 
   describe('initialization behavior', () => {
+    it('should backfill missing builtin apiKey when env key becomes available for an enabled model', async () => {
+      const originalGeminiKey = process.env.VITE_GEMINI_API_KEY
+      process.env.VITE_GEMINI_API_KEY = 'env_gemini_key'
+
+      try {
+        const existing = await modelManager.getModel('gemini')
+        expect(existing).toBeDefined()
+
+        const storedGemini: TextModelConfig = {
+          ...existing!,
+          enabled: true,
+          connectionConfig: {
+            ...existing!.connectionConfig,
+            apiKey: ''
+          }
+        }
+
+        await storageProvider.setItem('models', JSON.stringify({ gemini: storedGemini }))
+
+        const reloadedManager = new ModelManager(storageProvider, new TextAdapterRegistry())
+        const reloaded = await reloadedManager.getModel('gemini')
+
+        expect(reloaded?.enabled).toBe(true)
+        expect(reloaded?.connectionConfig.apiKey).toBe('env_gemini_key')
+      } finally {
+        if (originalGeminiKey === undefined) {
+          delete process.env.VITE_GEMINI_API_KEY
+        } else {
+          process.env.VITE_GEMINI_API_KEY = originalGeminiKey
+        }
+      }
+    })
+
     it('should not overwrite existing model metadata or connection settings when reinitialized', async () => {
       const targetId = 'openai';
       const existing = await modelManager.getModel(targetId);
