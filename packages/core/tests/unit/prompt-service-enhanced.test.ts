@@ -84,6 +84,67 @@ describe('PromptService Enhanced Features', () => {
       expect(mockLLMService.sendMessage).toHaveBeenCalled()
     })
 
+    it('should flatten advancedContext variables for sync optimizePrompt rendering', async () => {
+      mockTemplateManager.getTemplate.mockImplementation((id: string) => {
+        if (id === 'reference-template') {
+          return {
+            id,
+            content: [
+              {
+                role: 'system',
+                content: 'mode={{referenceMode}} seed={{{referencePromptSeedJson}}}',
+              },
+              {
+                role: 'user',
+                content: '{{originalPrompt}}',
+              },
+            ],
+            metadata: {
+              templateType: 'userOptimize',
+              version: '1.0',
+              lastModified: Date.now(),
+              language: 'zh',
+            },
+          }
+        }
+
+        return {
+          id,
+          content: 'test template content {{originalPrompt}}',
+          metadata: { optimizationMode: 'system' },
+        }
+      })
+
+      const request: OptimizationRequest = {
+        optimizationMode: 'user' as const,
+        targetPrompt: '__REFERENCE_PROMPT_SEED_COMPOSITION__',
+        modelKey: 'test-model',
+        templateId: 'reference-template',
+        advancedContext: {
+          variables: {
+            referenceMode: 'text2image',
+            referencePromptSeedJson: '{"风格":"胶片感"}',
+          },
+        },
+      }
+
+      await promptService.optimizePrompt(request)
+
+      expect(mockLLMService.sendMessage).toHaveBeenCalledWith(
+        [
+          {
+            role: 'system',
+            content: 'mode=text2image seed={"风格":"胶片感"}',
+          },
+          {
+            role: 'user',
+            content: '__REFERENCE_PROMPT_SEED_COMPOSITION__',
+          },
+        ],
+        'test-model',
+      )
+    })
+
     it('should optimize user prompt without context successfully', async () => {
       const request: OptimizationRequest = {
         optimizationMode: 'user' as const,

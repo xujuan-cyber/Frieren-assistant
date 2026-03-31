@@ -21,84 +21,54 @@ vi.mock('@prompt-optimizer/core', async () => {
   }
 })
 
-import {
-  extractPromptVariables,
-  resolveReferencePromptPreview,
-} from '../../../src/services/ImageStyleExtractor'
+import { resolveReferencePromptPreview } from '../../../src/services/ImageStyleExtractor'
 
 describe('ImageStyleExtractor reference migration pipeline', () => {
   const modelConfig = {
-    provider: 'mock',
-    model: 'mock-image-understanding',
+    provider: 'gemini',
+    model: 'gemini-2.5-flash',
     apiKey: 'test-key',
   } as any
 
-  const referenceSpec = {
-    风格: {
-      媒介: '胶片插画',
-      光线: '傍晚逆光',
-    },
-    主体观察: {
-      当前主体: '一只金毛犬',
-    },
-  }
-
   beforeEach(() => {
     vi.clearAllMocks()
-
-    mockProcessTemplate.mockReturnValue([
-      { role: 'system', content: 'extract reference spec' },
-      { role: 'user', content: 'describe reference image' },
-    ])
-
-    mockUnderstand.mockResolvedValue({
-      content: JSON.stringify(referenceSpec),
-    })
   })
 
-  it('按参考图生成时，走 extract spec -> compose -> variables', async () => {
+  it('按参考图生成时，单次视觉调用直接返回最终提示词和变量', async () => {
     const templateManager = {
       getTemplate: vi.fn().mockResolvedValue({
-        id: 'image-reference-spec-extraction',
-        name: 'Extract Reference Spec',
+        id: 'image-prompt-from-reference-image',
+        name: 'Generate Prompt From Reference Image',
         content: 'unused',
         metadata: {
           version: '1.0.0',
           lastModified: Date.now(),
-          templateType: 'image-reference-spec-extraction',
+          templateType: 'image-prompt-composition',
           language: 'zh',
         },
       }),
     }
 
-    const promptService = {
-      optimizePrompt: vi.fn().mockResolvedValue(
-        JSON.stringify({
+    mockProcessTemplate.mockReturnValue([
+      { role: 'system', content: 'generate prompt from image' },
+      { role: 'user', content: 'describe the image and return prompt plus defaults' },
+    ])
+
+    mockUnderstand.mockResolvedValue({
+      content: JSON.stringify({
+        prompt: {
           场景: {
-            主体: '一只棕色的猫',
+            主体: '一只{{主体颜色}}的猫',
             风格: '胶片感插画',
           },
-        }),
-      ),
-    }
-
-    const variableExtractionService = {
-      extract: vi.fn().mockResolvedValue({
-        variables: [
-          {
-            name: '主体颜色',
-            value: '棕色',
-            position: {
-              originalText: '棕色',
-              occurrence: 1,
-            },
-            reason: '颜色是主要可调参数',
-          },
-        ],
-        summary: '提取到 1 个变量',
+        },
+        defaults: {
+          主体颜色: '棕色',
+        },
       }),
-    }
+    })
 
+    const phases: string[] = []
     const preview = await resolveReferencePromptPreview({
       mode: 'replicate',
       originalPrompt: '',
@@ -106,81 +76,68 @@ describe('ImageStyleExtractor reference migration pipeline', () => {
       mimeType: 'image/png',
       modelConfig,
       templateManager: templateManager as any,
-      promptService: promptService as any,
-      variableExtractionService: variableExtractionService as any,
-      modelKey: 'text-model',
       referenceMode: 'text2image',
+      onStageChange: (stage) => phases.push(stage),
     })
 
-    expect(templateManager.getTemplate).toHaveBeenCalledWith('image-reference-spec-extraction')
+    expect(templateManager.getTemplate).toHaveBeenCalledWith('image-prompt-from-reference-image')
+    expect(mockUnderstand).toHaveBeenCalledTimes(1)
     expect(mockUnderstand).toHaveBeenCalledWith(
       expect.objectContaining({
         modelConfig,
-        systemPrompt: 'extract reference spec',
-        userPrompt: 'describe reference image',
+        systemPrompt: 'generate prompt from image',
+        userPrompt: 'describe the image and return prompt plus defaults',
         responseMimeType: 'application/json',
-      }),
-    )
-    expect(promptService.optimizePrompt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        templateId: 'image-prompt-from-reference-spec',
-        modelKey: 'text-model',
-        targetPrompt: '',
-        advancedContext: {
-          variables: expect.objectContaining({
-            referenceMode: 'text2image',
-            referenceSpecJson: JSON.stringify(referenceSpec, null, 2),
-          }),
-        },
-      }),
-    )
-    expect(variableExtractionService.extract).toHaveBeenCalledWith({
-      promptContent: JSON.stringify(
-        {
-          场景: {
-            主体: '一只棕色的猫',
-            风格: '胶片感插画',
+        images: [
+          {
+            b64: 'ZmFrZS1pbWFnZQ==',
+            mimeType: 'image/png',
           },
-        },
-        null,
-        2,
-      ),
-      extractionModelKey: 'text-model',
-    })
+        ],
+      }),
+    )
     expect(preview.prompt).toContain('{{主体颜色}}')
     expect(preview.variableDefaults).toEqual({
       主体颜色: '棕色',
     })
+    expect(preview.rawText).toContain('"defaults"')
+    expect(phases).toEqual(['generating-preview'])
   })
 
-  it('保留当前内容时，走 extract spec -> migrate -> variables，且保留原始主体语义', async () => {
-    const promptService = {
-      optimizePrompt: vi.fn().mockResolvedValue(
-        JSON.stringify({
-          场景: {
-            主体: '两只棕色的猫',
-            气氛: '胶片感、傍晚逆光',
-          },
-        }),
-      ),
-    }
-
-    const variableExtractionService = {
-      extract: vi.fn().mockResolvedValue({
-        variables: [
-          {
-            name: '主体颜色',
-            value: '棕色',
-            position: {
-              originalText: '棕色',
-              occurrence: 1,
-            },
-            reason: '颜色是主要可调参数',
-          },
-        ],
-        summary: '提取到 1 个变量',
+  it('风格迁移时，单次视觉调用保留原始主体语义并吸收参考图风格', async () => {
+    const templateManager = {
+      getTemplate: vi.fn().mockResolvedValue({
+        id: 'image-prompt-migration',
+        name: 'Migrate Prompt With Reference Image',
+        content: 'unused',
+        metadata: {
+          version: '1.0.0',
+          lastModified: Date.now(),
+          templateType: 'image-prompt-migration',
+          language: 'zh',
+        },
       }),
     }
+
+    mockProcessTemplate.mockReturnValue([
+      { role: 'system', content: 'migrate prompt with image style' },
+      { role: 'user', content: 'keep original subject, transfer the image style' },
+    ])
+
+    mockUnderstand.mockResolvedValue({
+      content: JSON.stringify({
+        prompt: {
+          场景: {
+            主体: '两只{{主体颜色}}的猫',
+            气氛: '胶片感、傍晚逆光',
+          },
+        },
+        defaults: {
+          主体颜色: '棕色',
+          参考主体: '金毛犬',
+        },
+      }),
+    })
 
     const preview = await resolveReferencePromptPreview({
       mode: 'migrate',
@@ -188,37 +145,12 @@ describe('ImageStyleExtractor reference migration pipeline', () => {
       imageB64: 'ZmFrZS1pbWFnZQ==',
       mimeType: 'image/png',
       modelConfig,
-      templateManager: {
-        getTemplate: vi.fn().mockResolvedValue({
-          id: 'image-reference-spec-extraction',
-          name: 'Extract Reference Spec',
-          content: 'unused',
-          metadata: {
-            version: '1.0.0',
-            lastModified: Date.now(),
-            templateType: 'image-reference-spec-extraction',
-            language: 'zh',
-          },
-        }),
-      } as any,
-      promptService: promptService as any,
-      variableExtractionService: variableExtractionService as any,
-      modelKey: 'text-model',
+      templateManager: templateManager as any,
       referenceMode: 'text2image',
     })
 
-    expect(promptService.optimizePrompt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        templateId: 'image-prompt-migration',
-        targetPrompt: '两只棕色的猫',
-        advancedContext: {
-          variables: expect.objectContaining({
-            referenceSpecJson: JSON.stringify(referenceSpec, null, 2),
-          }),
-        },
-      }),
-    )
-    expect(variableExtractionService.extract).toHaveBeenCalledTimes(1)
+    expect(templateManager.getTemplate).toHaveBeenCalledWith('image-prompt-migration')
+    expect(mockUnderstand).toHaveBeenCalledTimes(1)
     expect(preview.prompt).toContain('两只{{主体颜色}}的猫')
     expect(preview.prompt).toContain('胶片感、傍晚逆光')
     expect(preview.prompt).not.toContain('金毛犬')
@@ -227,114 +159,113 @@ describe('ImageStyleExtractor reference migration pipeline', () => {
     })
   })
 
-  it('变量抽取只保留最终 prompt 中实际出现的变量', async () => {
-    const variableExtractionService = {
-      extract: vi.fn().mockResolvedValue({
-        variables: [
-          {
-            name: '主体颜色',
-            value: '棕色',
-            position: {
-              originalText: '棕色',
-              occurrence: 1,
-            },
-            reason: '主体颜色可复用',
-          },
-          {
-            name: '背景场景',
-            value: '森林',
-            position: {
-              originalText: '森林',
-              occurrence: 1,
-            },
-            reason: '错误提取，不应保留',
-          },
-        ],
-        summary: '提取到 2 个变量',
+  it('只保留 prompt 中实际出现且合法的前 5 个变量默认值', async () => {
+    const templateManager = {
+      getTemplate: vi.fn().mockResolvedValue({
+        id: 'image-prompt-from-reference-image',
+        name: 'Generate Prompt From Reference Image',
+        content: 'unused',
+        metadata: {
+          version: '1.0.0',
+          lastModified: Date.now(),
+          templateType: 'image-prompt-composition',
+          language: 'zh',
+        },
       }),
     }
 
-    const result = await extractPromptVariables({
-      prompt: JSON.stringify(
-        {
+    mockProcessTemplate.mockReturnValue([
+      { role: 'system', content: 'generate prompt from image' },
+      { role: 'user', content: 'return prompt plus defaults' },
+    ])
+
+    mockUnderstand.mockResolvedValue({
+      content: JSON.stringify({
+        prompt: {
           场景: {
-            主体: '一只棕色的猫',
-            背景: '白墙',
+            主体: '{{数量}}只{{颜色}}的{{主体}}在{{场景}}里{{动作}}',
+            光线: '黄昏逆光',
           },
         },
-        null,
-        2,
-      ),
-      rawText: '{"场景":{"主体":"一只棕色的猫","背景":"白墙"}}',
-      modelKey: 'text-model',
-      variableExtractionService: variableExtractionService as any,
+        defaults: {
+          主体: '猫',
+          数量: '两',
+          颜色: '棕色',
+          动作: '奔跑',
+          场景: '草地',
+          光线: '黄昏逆光',
+          '无 效': 'bad',
+        },
+      }),
     })
 
-    expect(result.prompt).toContain('一只{{主体颜色}}的猫')
-    expect(result.prompt).toContain('白墙')
-    expect(result.variableDefaults).toEqual({
-      主体颜色: '棕色',
+    const preview = await resolveReferencePromptPreview({
+      mode: 'replicate',
+      originalPrompt: '',
+      imageB64: 'ZmFrZS1pbWFnZQ==',
+      mimeType: 'image/png',
+      modelConfig,
+      templateManager: templateManager as any,
+      referenceMode: 'text2image',
     })
+
+    expect(preview.variableDefaults).toEqual({
+      主体: '猫',
+      数量: '两',
+      颜色: '棕色',
+      动作: '奔跑',
+      场景: '草地',
+    })
+    expect(preview.variableDefaults).not.toHaveProperty('光线')
+    expect(preview.variableDefaults).not.toHaveProperty('无 效')
   })
 
-  it('变量抽取最多只保留 5 个高优先级变量', async () => {
-    const variableExtractionService = {
-      extract: vi.fn().mockResolvedValue({
-        variables: [
-          {
-            name: '主体',
-            value: '猫',
-            position: { originalText: '猫', occurrence: 1 },
-            reason: '主体可复用',
-          },
-          {
-            name: '数量',
-            value: '两只',
-            position: { originalText: '两只', occurrence: 1 },
-            reason: '数量可复用',
-          },
-          {
-            name: '颜色',
-            value: '棕色',
-            position: { originalText: '棕色', occurrence: 1 },
-            reason: '颜色可复用',
-          },
-          {
-            name: '动作',
-            value: '奔跑',
-            position: { originalText: '奔跑', occurrence: 1 },
-            reason: '动作可复用',
-          },
-          {
-            name: '场景',
-            value: '草地',
-            position: { originalText: '草地', occurrence: 1 },
-            reason: '场景可复用',
-          },
-          {
-            name: '光线',
-            value: '黄昏逆光',
-            position: { originalText: '黄昏逆光', occurrence: 1 },
-            reason: '超过上限后不应保留',
-          },
-        ],
-        summary: '提取到 6 个变量',
+  it('会将单花括号占位规范化为双花括号，并在缺失 defaults 时保留空变量值', async () => {
+    const templateManager = {
+      getTemplate: vi.fn().mockResolvedValue({
+        id: 'image-prompt-migration',
+        name: 'Migrate Prompt With Reference Image',
+        content: 'unused',
+        metadata: {
+          version: '1.0.0',
+          lastModified: Date.now(),
+          templateType: 'image-prompt-migration',
+          language: 'zh',
+        },
       }),
     }
 
-    const result = await extractPromptVariables({
-      prompt: '两只棕色的猫在草地上奔跑，黄昏逆光',
-      modelKey: 'text-model',
-      variableExtractionService: variableExtractionService as any,
+    mockProcessTemplate.mockReturnValue([
+      { role: 'system', content: 'migrate prompt with image style' },
+      { role: 'user', content: 'keep original subject, transfer the image style' },
+    ])
+
+    mockUnderstand.mockResolvedValue({
+      content: JSON.stringify({
+        prompt: {
+          主体: '一辆 {跑车颜色} 的未来感跑车',
+          场景: '{场景主题}',
+          风格: '3D动画渲染，电影级氛围',
+        },
+        defaults: {},
+      }),
     })
 
-    expect(Object.keys(result.variableDefaults)).toHaveLength(5)
-    expect(result.prompt).toContain('{{主体}}')
-    expect(result.prompt).toContain('{{数量}}')
-    expect(result.prompt).toContain('{{颜色}}')
-    expect(result.prompt).toContain('{{动作}}')
-    expect(result.prompt).toContain('{{场景}}')
-    expect(result.prompt).toContain('黄昏逆光')
-    expect(result.variableDefaults).not.toHaveProperty('光线')
+    const preview = await resolveReferencePromptPreview({
+      mode: 'migrate',
+      originalPrompt: '一辆银色的未来感跑车，停在雨夜街头',
+      imageB64: 'ZmFrZS1pbWFnZQ==',
+      mimeType: 'image/png',
+      modelConfig,
+      templateManager: templateManager as any,
+      referenceMode: 'text2image',
+    })
+
+    expect(preview.prompt).toContain('{{跑车颜色}}')
+    expect(preview.prompt).toContain('{{场景主题}}')
+    expect(preview.variableDefaults).toEqual({
+      跑车颜色: '',
+      场景主题: '',
+    })
   })
 })

@@ -1934,15 +1934,13 @@ export default {
 
     referenceImage: {
       dialogTitle: "应用参考图",
-      sourceImage: "参考图",
       selectImage: "上传参考图",
-      changeImage: "更换图片",
-      sourceImageHint: "仅支持本地 PNG/JPEG，最大 10MB",
       usageMode: "怎么使用这张参考图",
       styleTransfer: "风格迁移",
       styleTransferDescription: "在原提示词的基础上学习图片风格进行改造",
       replicateImage: "复刻图片",
       replicateImageDescription: "丢弃原始提示词内容，反推图片对应提示词",
+      generatingPreview: "正在分析参考图并生成提示词",
       detectedCurrentPromptTitle: "检测到当前提示词",
       generatedPrompt: "生成后的提示词",
       variablePreview: "提取到的变量",

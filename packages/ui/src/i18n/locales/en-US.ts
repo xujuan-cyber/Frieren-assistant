@@ -2005,10 +2005,7 @@ export default {
 
     referenceImage: {
       dialogTitle: "Apply Reference Image",
-      sourceImage: "Reference Image",
       selectImage: "Upload Reference Image",
-      changeImage: "Change Image",
-      sourceImageHint: "Local PNG/JPEG only, up to 10MB",
       usageMode: "How To Use This Reference",
       styleTransfer: "Style Transfer",
       styleTransferDescription:
@@ -2016,6 +2013,7 @@ export default {
       replicateImage: "Replicate Image",
       replicateImageDescription:
         "Discard the original prompt and infer a matching prompt from the reference image",
+      generatingPreview: "Analyzing the reference image and generating the prompt",
       detectedCurrentPromptTitle: "Detected Current Prompt",
       generatedPrompt: "Generated Prompt",
       variablePreview: "Extracted Variables",

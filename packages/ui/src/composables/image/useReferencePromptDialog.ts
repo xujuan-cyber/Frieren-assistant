@@ -5,6 +5,15 @@ import type {
   ReferencePromptPreview,
 } from '../../services/ImageStyleExtractor'
 
+export type ReferenceDialogProcessingStage =
+  | 'idle'
+  | 'generating-preview'
+
+interface ReferenceDialogProcessingStageOption {
+  value: Exclude<ReferenceDialogProcessingStage, 'idle'>
+  labelKey: string
+}
+
 interface ReferencePromptDialogOptions {
   getCurrentPrompt: () => string
   getCurrentVariables: () => Record<string, string>
@@ -18,6 +27,12 @@ const cloneVariables = (variables: Record<string, string>): Record<string, strin
 })
 
 const previewMaxLength = 60
+const processingStageOptions: ReferenceDialogProcessingStageOption[] = [
+  {
+    value: 'generating-preview',
+    labelKey: 'imageWorkspace.referenceImage.generatingPreview',
+  },
+]
 
 const createPromptPreview = (prompt: string) => {
   const normalizedPrompt = prompt.replace(/\s+/g, ' ').trim()
@@ -28,25 +43,53 @@ const createPromptPreview = (prompt: string) => {
   return `${normalizedPrompt.slice(0, previewMaxLength - 3).trimEnd()}...`
 }
 
+const resolveGeneratedPrompt = (preview: ReferencePromptPreview) => {
+  const primaryPrompt = preview.prompt?.trim()
+  if (primaryPrompt) {
+    return preview.prompt
+  }
+
+  return preview.rawText?.trim() || ''
+}
+
 export function useReferencePromptDialog(options: ReferencePromptDialogOptions) {
   const showDialog = ref(false)
   const mode = ref<ReferenceApplicationMode>('replicate')
   const detectedOriginalPrompt = ref('')
-  const sourceImageName = ref('')
   const sourceImagePreviewUrl = ref('')
   const generatedPreview = ref<ReferencePromptPreview | null>(null)
   const workingPrompt = ref('')
   const workingVariables = ref<Record<string, string>>({})
   const detectedOriginalPromptPreview = ref('')
+  const processingStage = ref<ReferenceDialogProcessingStage>('idle')
 
   const showModeSwitch = computed(() => detectedOriginalPrompt.value.trim().length > 0)
   const hasGeneratedPreview = computed(() => !!generatedPreview.value)
   const canApply = computed(() => workingPrompt.value.trim().length > 0)
+  const hasProcessingStage = computed(() => processingStage.value !== 'idle')
+  const currentProcessingStageLabelKey = computed(() => {
+    if (processingStage.value === 'idle') {
+      return ''
+    }
+
+    return (
+      processingStageOptions.find((option) => option.value === processingStage.value)?.labelKey ||
+      ''
+    )
+  })
 
   const resetGeneratedPreview = () => {
     generatedPreview.value = null
     workingPrompt.value = ''
     workingVariables.value = {}
+  }
+
+  const setProcessingStage = (stage: ReferenceDialogProcessingStage) => {
+    processingStage.value = stage
+  }
+
+  const clearProcessingStage = () => {
+    processingStage.value = 'idle'
   }
 
   const openDialog = () => {
@@ -55,13 +98,14 @@ export function useReferencePromptDialog(options: ReferencePromptDialogOptions) 
       detectedOriginalPrompt.value,
     )
     mode.value = detectedOriginalPrompt.value ? 'migrate' : 'replicate'
-    sourceImageName.value = ''
     sourceImagePreviewUrl.value = ''
+    clearProcessingStage()
     resetGeneratedPreview()
     showDialog.value = true
   }
 
   const closeDialog = () => {
+    clearProcessingStage()
     showDialog.value = false
   }
 
@@ -70,17 +114,17 @@ export function useReferencePromptDialog(options: ReferencePromptDialogOptions) 
   }
 
   const setImageSource = (payload: { name?: string; previewUrl?: string }) => {
-    sourceImageName.value = payload.name?.trim() || ''
     sourceImagePreviewUrl.value = payload.previewUrl?.trim() || ''
   }
 
   const setGeneratedPreview = (preview: ReferencePromptPreview) => {
+    const resolvedPrompt = resolveGeneratedPrompt(preview)
     generatedPreview.value = {
-      prompt: preview.prompt,
+      prompt: resolvedPrompt,
       variableDefaults: cloneVariables(preview.variableDefaults),
       rawText: preview.rawText,
     }
-    workingPrompt.value = preview.prompt
+    workingPrompt.value = resolvedPrompt
     workingVariables.value = cloneVariables(preview.variableDefaults)
   }
 
@@ -116,11 +160,14 @@ export function useReferencePromptDialog(options: ReferencePromptDialogOptions) 
     mode,
     detectedOriginalPrompt,
     detectedOriginalPromptPreview,
-    sourceImageName,
     sourceImagePreviewUrl,
     generatedPreview,
     workingPrompt,
     workingVariables,
+    processingStage,
+    processingStageOptions,
+    hasProcessingStage,
+    currentProcessingStageLabelKey,
     showModeSwitch,
     hasGeneratedPreview,
     canApply,
@@ -128,6 +175,8 @@ export function useReferencePromptDialog(options: ReferencePromptDialogOptions) 
     closeDialog,
     updateMode,
     setImageSource,
+    setProcessingStage,
+    clearProcessingStage,
     resetGeneratedPreview,
     setGeneratedPreview,
     updatePrompt,

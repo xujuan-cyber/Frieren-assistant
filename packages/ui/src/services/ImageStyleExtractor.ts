@@ -1,10 +1,7 @@
 import {
   createImageUnderstandingService,
-  type ExtractedVariable,
-  type IPromptService,
   TemplateProcessor,
   type ITemplateManager,
-  type IVariableExtractionService,
   type Message,
   type Template,
   type TextModelConfig,
@@ -13,66 +10,64 @@ import { VARIABLE_VALIDATION, isValidVariableName } from '../types/variable'
 
 export type ImagePromptExtractionMode = 'text2image' | 'image2image'
 export type ReferenceApplicationMode = 'replicate' | 'migrate'
+export type ReferencePromptResolutionStage = 'generating-preview'
 
-export interface ReferenceSpec {
-  spec: Record<string, unknown>
-  rawText: string
-}
-
-export interface PromptDraft {
-  prompt: string
-  rawText: string
-}
-
-export interface VariableizedPrompt {
+export interface ReferencePromptPreview {
   prompt: string
   variableDefaults: Record<string, string>
   rawText: string
 }
-
-export type ReferencePromptPreview = VariableizedPrompt
-
-const MAX_REFERENCE_DIALOG_VARIABLES = 5
 
 interface ExtractionPrompts {
   systemPrompt: string
   userPrompt: string
 }
 
-export interface ResolveReferencePromptPreviewOptions {
+interface ResolveReferencePromptPreviewOptions {
   mode: ReferenceApplicationMode
   originalPrompt: string
-  modelKey?: string
-  promptService?: IPromptService | null
-  variableExtractionService?: IVariableExtractionService | null
   referenceMode?: ImagePromptExtractionMode
-  referenceSpec?: ReferenceSpec | null
   modelConfig?: TextModelConfig
   imageB64?: string
   mimeType?: string
   templateManager?: ITemplateManager | null
+  onStageChange?: (stage: ReferencePromptResolutionStage) => void
 }
 
-export interface ExtractPromptVariablesOptions {
-  prompt: string
-  rawText?: string
-  modelKey?: string
-  variableExtractionService?: IVariableExtractionService | null
-}
-
-const IMAGE_REFERENCE_SPEC_EXTRACTION_TEMPLATE_ID = 'image-reference-spec-extraction'
-const IMAGE_PROMPT_COMPOSITION_TEMPLATE_ID = 'image-prompt-from-reference-spec'
+const MAX_REFERENCE_DIALOG_VARIABLES = 5
+const IMAGE_PROMPT_COMPOSITION_TEMPLATE_ID = 'image-prompt-from-reference-image'
 const IMAGE_PROMPT_MIGRATION_TEMPLATE_ID = 'image-prompt-migration'
 const imageUnderstandingService = createImageUnderstandingService()
 
-export async function extractReferenceSpecFromImage(
-  modelConfig: TextModelConfig,
-  imageB64: string,
-  mimeType: string,
-  mode: ImagePromptExtractionMode,
-  templateManager: ITemplateManager | null | undefined,
-): Promise<ReferenceSpec> {
-  const prompts = await buildReferenceSpecPrompts(templateManager, mode)
+export async function resolveReferencePromptPreview(
+  options: ResolveReferencePromptPreviewOptions,
+): Promise<ReferencePromptPreview> {
+  const {
+    mode,
+    originalPrompt,
+    referenceMode = 'text2image',
+    modelConfig,
+    imageB64,
+    mimeType,
+    templateManager,
+    onStageChange,
+  } = options
+
+  if (!modelConfig || !imageB64 || !mimeType) {
+    throw new Error('Reference image and image model are required')
+  }
+
+  const templateId =
+    mode === 'migrate' && originalPrompt.trim()
+      ? IMAGE_PROMPT_MIGRATION_TEMPLATE_ID
+      : IMAGE_PROMPT_COMPOSITION_TEMPLATE_ID
+
+  const prompts = await buildReferencePromptPrompts(templateManager, templateId, {
+    originalPrompt,
+    referenceMode,
+  })
+
+  onStageChange?.('generating-preview')
   const response = await imageUnderstandingService.understand({
     modelConfig,
     systemPrompt: prompts.systemPrompt || undefined,
@@ -91,215 +86,35 @@ export async function extractReferenceSpecFromImage(
 
   const rawText = typeof response.content === 'string' ? response.content.trim() : ''
   if (!rawText) {
-    throw new Error('Model did not return a valid reference spec')
+    throw new Error('Model did not return a valid structured prompt')
   }
 
-  return normalizeReferenceSpecResult(rawText)
+  return normalizeReferencePromptPreview(rawText)
 }
 
-export async function composePromptFromReferenceSpec(options: {
-  promptService?: IPromptService | null
-  modelKey?: string
-  referenceSpec: ReferenceSpec
-  mode?: ImagePromptExtractionMode
-}): Promise<PromptDraft> {
-  const {
-    promptService,
-    modelKey,
-    referenceSpec,
-    mode = 'text2image',
-  } = options
-
-  if (!promptService) {
-    throw new Error('Prompt service is not initialized')
-  }
-
-  if (!modelKey?.trim()) {
-    throw new Error('Text model is required for reference prompt composition')
-  }
-
-  const rawText = await promptService.optimizePrompt({
-    optimizationMode: 'user',
-    targetPrompt: '',
-    templateId: IMAGE_PROMPT_COMPOSITION_TEMPLATE_ID,
-    modelKey: modelKey.trim(),
-    advancedContext: {
-      variables: {
-        referenceSpecJson: JSON.stringify(referenceSpec.spec, null, 2),
-        referenceMode: mode,
-      },
-    },
-  })
-
-  return normalizePromptDraftResult(rawText)
-}
-
-export async function migratePromptWithReferenceSpec(options: {
-  promptService?: IPromptService | null
-  modelKey?: string
-  originalPrompt: string
-  referenceSpec: ReferenceSpec
-  mode?: ImagePromptExtractionMode
-}): Promise<PromptDraft> {
-  const {
-    promptService,
-    modelKey,
-    originalPrompt,
-    referenceSpec,
-    mode = 'text2image',
-  } = options
-
-  if (!promptService) {
-    throw new Error('Prompt service is not initialized')
-  }
-
-  if (!modelKey?.trim()) {
-    throw new Error('Text model is required for reference prompt migration')
-  }
-
-  if (!originalPrompt.trim()) {
-    throw new Error('Original prompt is required for reference prompt migration')
-  }
-
-  const rawText = await promptService.optimizePrompt({
-    optimizationMode: 'user',
-    targetPrompt: originalPrompt,
-    templateId: IMAGE_PROMPT_MIGRATION_TEMPLATE_ID,
-    modelKey: modelKey.trim(),
-    advancedContext: {
-      variables: {
-        referenceSpecJson: JSON.stringify(referenceSpec.spec, null, 2),
-        referenceMode: mode,
-      },
-    },
-  })
-
-  return normalizePromptDraftResult(rawText)
-}
-
-export async function extractPromptVariables(
-  options: ExtractPromptVariablesOptions,
-): Promise<VariableizedPrompt> {
-  const {
-    prompt,
-    rawText = prompt,
-    modelKey,
-    variableExtractionService,
-  } = options
-
-  if (!prompt.trim()) {
-    return {
-      prompt,
-      variableDefaults: {},
-      rawText,
-    }
-  }
-
-  if (!variableExtractionService || !modelKey?.trim()) {
-    return {
-      prompt,
-      variableDefaults: {},
-      rawText,
-    }
-  }
-
-  const result = await variableExtractionService.extract({
-    promptContent: prompt,
-    extractionModelKey: modelKey.trim(),
-  })
-
-  const limitedVariables = result.variables.slice(0, MAX_REFERENCE_DIALOG_VARIABLES)
-  const variableizedPrompt = replaceExtractedVariablesInPrompt(prompt, limitedVariables)
-  const keptVariableNames = scanVariablesFromValue(variableizedPrompt)
-
-  return {
-    prompt: variableizedPrompt,
-    variableDefaults: buildFilteredDefaultsFromExtractedVariables(
-      keptVariableNames,
-      limitedVariables,
-    ),
-    rawText,
-  }
-}
-
-export async function resolveReferencePromptPreview(
-  options: ResolveReferencePromptPreviewOptions,
-): Promise<ReferencePromptPreview> {
-  const {
-    mode,
-    originalPrompt,
-    modelKey,
-    promptService,
-    variableExtractionService,
-    referenceMode = 'text2image',
-  } = options
-
-  const referenceSpec =
-    options.referenceSpec ??
-    (await extractReferenceSpecFromResolveOptions(options, referenceMode))
-
-  const promptDraft =
-    mode === 'migrate' && originalPrompt.trim()
-      ? await migratePromptWithReferenceSpec({
-          promptService,
-          modelKey,
-          originalPrompt,
-          referenceSpec,
-          mode: referenceMode,
-        })
-      : await composePromptFromReferenceSpec({
-          promptService,
-          modelKey,
-          referenceSpec,
-          mode: referenceMode,
-        })
-
-  return extractPromptVariables({
-    prompt: promptDraft.prompt,
-    rawText: promptDraft.rawText,
-    modelKey,
-    variableExtractionService,
-  })
-}
-
-async function extractReferenceSpecFromResolveOptions(
-  options: ResolveReferencePromptPreviewOptions,
-  referenceMode: ImagePromptExtractionMode,
-): Promise<ReferenceSpec> {
-  const { modelConfig, imageB64, mimeType, templateManager } = options
-
-  if (!modelConfig || !imageB64 || !mimeType) {
-    throw new Error('Reference spec or image extraction inputs are required')
-  }
-
-  return extractReferenceSpecFromImage(
-    modelConfig,
-    imageB64,
-    mimeType,
-    referenceMode,
-    templateManager,
-  )
-}
-
-async function buildReferenceSpecPrompts(
+async function buildReferencePromptPrompts(
   templateManager: ITemplateManager | null | undefined,
-  mode: ImagePromptExtractionMode,
+  templateId: string,
+  context: {
+    originalPrompt: string
+    referenceMode: ImagePromptExtractionMode
+  },
 ): Promise<ExtractionPrompts> {
   if (!templateManager) {
     throw new Error('Template manager is not initialized')
   }
 
-  const template = await templateManager.getTemplate(IMAGE_REFERENCE_SPEC_EXTRACTION_TEMPLATE_ID)
+  const template = await templateManager.getTemplate(templateId)
   const messages = TemplateProcessor.processTemplate(
     template,
-    createReferenceSpecTemplateContext(mode, template),
+    createReferencePromptTemplateContext(context, template),
   )
 
   const systemPrompt = collectPromptByRole(messages, 'system')
   const userPrompt = collectPromptByRole(messages, 'user')
 
   if (!userPrompt) {
-    throw new Error('Reference spec extraction template is missing a user prompt')
+    throw new Error('Reference image template is missing a user prompt')
   }
 
   return {
@@ -308,29 +123,83 @@ async function buildReferenceSpecPrompts(
   }
 }
 
-function normalizeReferenceSpecResult(rawText: string): ReferenceSpec {
+function normalizeReferencePromptPreview(rawText: string): ReferencePromptPreview {
   const parsed = parseJsonObject(rawText)
-  const spec = isRecord(parsed.referenceSpec) ? parsed.referenceSpec : parsed
+  const promptObject = normalizePromptObject(
+    resolvePromptObject(parsed.prompt ?? parsed.promptJson ?? parsed),
+  )
+  const formattedPrompt = JSON.stringify(promptObject, null, 2)
+
+  if (!formattedPrompt || formattedPrompt === 'null') {
+    throw new Error('Model response is not a valid JSON prompt object')
+  }
+
+  const variableNames = scanVariablesFromValue(promptObject).slice(0, MAX_REFERENCE_DIALOG_VARIABLES)
+  const defaults = normalizeVariableDefaults(
+    variableNames,
+    isRecord(parsed.defaults)
+      ? parsed.defaults
+      : isRecord(parsed.variableDefaults)
+        ? parsed.variableDefaults
+        : {},
+  )
 
   return {
-    spec,
+    prompt: formattedPrompt,
+    variableDefaults: defaults,
     rawText,
   }
 }
 
-function normalizePromptDraftResult(rawText: string): PromptDraft {
-  const parsed = parseJsonObject(rawText)
-  const promptObject = resolvePromptObject(parsed.prompt ?? parsed)
-  const formattedPrompt = JSON.stringify(promptObject, null, 2)
+function normalizeVariableDefaults(
+  variableNames: string[],
+  defaults: Record<string, unknown>,
+): Record<string, string> {
+  return variableNames.reduce<Record<string, string>>((acc, name) => {
+    if (!isValidVariableName(name)) {
+      return acc
+    }
 
-  if (!formattedPrompt || formattedPrompt === 'null') {
-    throw new Error('Model response is not a valid JSON object')
+    const value = defaults[name]
+    if (typeof value !== 'string') {
+      acc[name] = ''
+      return acc
+    }
+
+    const trimmedValue = value.trim()
+    if (!trimmedValue) {
+      acc[name] = ''
+      return acc
+    }
+
+    acc[name] = trimmedValue
+    return acc
+  }, {})
+}
+
+function normalizePromptObject(value: Record<string, unknown>): Record<string, unknown> {
+  const normalizeString = (content: string): string =>
+    content.replace(/(?<!\{)\{([a-zA-Z0-9_\-\u4e00-\u9fa5]+)\}(?!\})/g, '{{$1}}')
+
+  const normalize = (current: unknown): unknown => {
+    if (typeof current === 'string') {
+      return normalizeString(current)
+    }
+
+    if (Array.isArray(current)) {
+      return current.map((item) => normalize(item))
+    }
+
+    if (isRecord(current)) {
+      return Object.fromEntries(
+        Object.entries(current).map(([key, child]) => [key, normalize(child)]),
+      )
+    }
+
+    return current
   }
 
-  return {
-    prompt: formattedPrompt,
-    rawText,
-  }
+  return normalize(value) as Record<string, unknown>
 }
 
 function resolvePromptObject(value: unknown): Record<string, unknown> {
@@ -350,84 +219,6 @@ function resolvePromptObject(value: unknown): Record<string, unknown> {
   }
 
   throw new Error('Model response is missing a usable JSON prompt object')
-}
-
-function buildFilteredDefaultsFromExtractedVariables(
-  variableNames: string[],
-  variables: ExtractedVariable[],
-): Record<string, string> {
-  const keptNames = new Set(variableNames)
-
-  return variables.reduce<Record<string, string>>((acc, variable) => {
-    const name = variable.name.trim()
-    const value = variable.value.trim()
-
-    if (!name || !value || !keptNames.has(name) || !isValidVariableName(name)) {
-      return acc
-    }
-
-    acc[name] = value
-    return acc
-  }, {})
-}
-
-function findExtractedVariableOccurrenceIndex(
-  text: string,
-  searchText: string,
-  occurrence: number,
-): number {
-  let count = 0
-  let index = -1
-
-  while (count < occurrence) {
-    index = text.indexOf(searchText, index + 1)
-    if (index === -1) {
-      return -1
-    }
-    count += 1
-  }
-
-  return index
-}
-
-export function replaceExtractedVariablesInPrompt(
-  prompt: string,
-  variables: ExtractedVariable[],
-): string {
-  let nextPrompt = prompt
-
-  const sortedVariables = [...variables].sort((a, b) => {
-    const indexA = findExtractedVariableOccurrenceIndex(
-      prompt,
-      a.position.originalText,
-      a.position.occurrence,
-    )
-    const indexB = findExtractedVariableOccurrenceIndex(
-      prompt,
-      b.position.originalText,
-      b.position.occurrence,
-    )
-    return indexB - indexA
-  })
-
-  for (const variable of sortedVariables) {
-    const index = findExtractedVariableOccurrenceIndex(
-      nextPrompt,
-      variable.position.originalText,
-      variable.position.occurrence,
-    )
-
-    if (index === -1) {
-      continue
-    }
-
-    nextPrompt =
-      nextPrompt.slice(0, index) +
-      `{{${variable.name}}}` +
-      nextPrompt.slice(index + variable.position.originalText.length)
-  }
-
-  return nextPrompt
 }
 
 function parseJsonObject(rawText: string): Record<string, unknown> {
@@ -455,72 +246,32 @@ function parseJsonObject(rawText: string): Record<string, unknown> {
   }
 }
 
-function createReferenceSpecTemplateContext(
-  mode: ImagePromptExtractionMode,
+function createReferencePromptTemplateContext(
+  context: {
+    originalPrompt: string
+    referenceMode: ImagePromptExtractionMode
+  },
   template: Template,
 ): Record<string, string> {
   const isEnglish = template.metadata.language === 'en'
-
-  if (mode === 'image2image') {
-    return {
-      modeGoal: isEnglish ? 'image-to-image reference analysis' : '图生图参考分析',
-      modeSpecificRequirement: isEnglish
-        ? 'Focus on what the image is visually doing and what should be preserved or changed when used as a reference for image-to-image editing.'
-        : '重点说明这张图的视觉语言，以及在图生图参考场景下适合保留或改变的部分。',
-      recommendedStructure: isEnglish
-        ? [
-            '{',
-            '  "subject_observation": { },',
-            '  "visual_language": { },',
-            '  "composition_camera": { },',
-            '  "lighting_color": { },',
-            '  "material_medium": { },',
-            '  "reference_guidance": { "preserve": ["..."], "change": ["..."] },',
-            '  "reconstruction_priorities": ["..."]',
-            '}',
-          ].join('\n')
-        : [
-            '{',
-            '  "主体观察": { },',
-            '  "视觉语言": { },',
-            '  "构图镜头": { },',
-            '  "光线色彩": { },',
-            '  "材质媒介": { },',
-            '  "参考图指导": { "保留": ["..."], "改变": ["..."] },',
-            '  "复现重点": ["..."]',
-            '}',
-          ].join('\n'),
-    }
-  }
+  const trimmedOriginalPrompt = context.originalPrompt.trim()
 
   return {
-    modeGoal: isEnglish ? 'text-to-image reference analysis' : '文生图参考分析',
-    modeSpecificRequirement: isEnglish
-      ? 'Focus on the image as a reusable visual direction, so later steps can transfer its style into a new generation prompt.'
-      : '把这张图视为可迁移的视觉方向，为后续生成新的文生图提示词提供参考规格。',
-    recommendedStructure: isEnglish
-      ? [
-          '{',
-          '  "subject_observation": { },',
-          '  "visual_language": { },',
-          '  "composition_camera": { },',
-          '  "lighting_color": { },',
-          '  "material_medium": { },',
-          '  "layout_details": { },',
-          '  "reconstruction_priorities": ["..."]',
-          '}',
-        ].join('\n')
-      : [
-          '{',
-          '  "主体观察": { },',
-          '  "视觉语言": { },',
-          '  "构图镜头": { },',
-          '  "光线色彩": { },',
-          '  "材质媒介": { },',
-          '  "版式细节": { },',
-          '  "复现重点": ["..."]',
-          '}',
-        ].join('\n'),
+    referenceMode: context.referenceMode,
+    originalPrompt: trimmedOriginalPrompt,
+    generationGoal:
+      context.referenceMode === 'image2image'
+        ? isEnglish
+          ? 'image-to-image reference editing'
+          : '图生图参考编辑'
+        : isEnglish
+          ? 'text-to-image reference generation'
+          : '文生图参考生成',
+    promptRequirement: trimmedOriginalPrompt
+      ? trimmedOriginalPrompt
+      : isEnglish
+        ? 'No original prompt is provided. Infer a reusable structured image prompt directly from the reference image.'
+        : '当前没有原始提示词，请直接根据参考图反推一份可复用的结构化生图提示词。',
   }
 }
 

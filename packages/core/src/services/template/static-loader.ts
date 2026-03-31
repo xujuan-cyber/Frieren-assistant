@@ -21,7 +21,6 @@ export type TemplateType =
   | 'context-user-optimize'
   | 'context-iterate'
   | 'evaluation'
-  | 'image-reference-spec-extraction'
   | 'image-prompt-composition'
   | 'image-prompt-migration';
 export type Language = 'zh' | 'en';
@@ -83,7 +82,6 @@ export class StaticLoader {
         'context-user-optimize': { zh: {}, en: {} },
         'context-iterate': { zh: {}, en: {} },
         'evaluation': { zh: {}, en: {} },
-        'image-reference-spec-extraction': { zh: {}, en: {} },
         'image-prompt-composition': { zh: {}, en: {} },
         'image-prompt-migration': { zh: {}, en: {} }
       };
@@ -128,9 +126,6 @@ export class StaticLoader {
           case 'evaluation':
             normalizedType = 'evaluation';
             break;
-          case 'image-reference-spec-extraction':
-            normalizedType = 'image-reference-spec-extraction';
-            break;
           case 'image-prompt-composition':
             normalizedType = 'image-prompt-composition';
             break;
@@ -171,7 +166,6 @@ export class StaticLoader {
         'context-user-optimize': Object.keys(byType['context-user-optimize'].zh).length + Object.keys(byType['context-user-optimize'].en).length,
         'context-iterate': Object.keys(byType['context-iterate'].zh).length + Object.keys(byType['context-iterate'].en).length,
         evaluation: Object.keys(byType.evaluation.zh).length + Object.keys(byType.evaluation.en).length,
-        'image-reference-spec-extraction': Object.keys(byType['image-reference-spec-extraction'].zh).length + Object.keys(byType['image-reference-spec-extraction'].en).length,
         'image-prompt-composition': Object.keys(byType['image-prompt-composition'].zh).length + Object.keys(byType['image-prompt-composition'].en).length,
         'image-prompt-migration': Object.keys(byType['image-prompt-migration'].zh).length + Object.keys(byType['image-prompt-migration'].en).length
       });

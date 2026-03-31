@@ -379,6 +379,7 @@
                     :optimization-mode="optimizationMode"
                     :advanced-mode-enabled="advancedModeEnabled"
                     :show-preview="true"
+                    evaluation-type-override="prompt-only"
                     iterate-template-type="imageIterate"
                     @iterate="handleIteratePrompt"
                     @openTemplateManager="onOpenTemplateManager"
@@ -441,6 +442,40 @@
                                 >
                                     {{ t('test.layout.runAll') }}
                                 </NButton>
+
+                                <template v-if="shouldShowCompareEvaluationAction">
+                                    <EvaluationScoreBadge
+                                        v-if="hasCompareEvaluation || isEvaluatingCompare"
+                                        :score="compareScore"
+                                        :level="compareScoreLevel"
+                                        :loading="isEvaluatingCompare"
+                                        :result="compareEvaluationResult"
+                                        type="compare"
+                                        :stale="isCompareEvaluationStale"
+                                        :stale-message="t('evaluation.stale.compare')"
+                                        :disable-evaluate="!canEvaluateCompare"
+                                        :disable-evaluate-reason="compareDisabledReason"
+                                        size="small"
+                                        @show-detail="showCompareDetail"
+                                        @evaluate="handleEvaluateCompare"
+                                        @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
+                                    />
+                                    <FocusAnalyzeButton
+                                        v-else
+                                        type="compare"
+                                        :label="t('evaluation.compareEvaluate')"
+                                        :disabled="!canEvaluateCompare"
+                                        :disabled-reason="compareDisabledReason"
+                                        :loading="isEvaluatingCompare"
+                                        :button-props="{ size: 'small', type: 'tertiary' }"
+                                        @evaluate="handleEvaluateCompare"
+                                        @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
+                                    >
+                                        <template #icon>
+                                            <AnalyzeActionIcon />
+                                        </template>
+                                    </FocusAnalyzeButton>
+                                </template>
                             </NFlex>
                         </div>
                     </NCard>
@@ -530,6 +565,43 @@
                                     <div class="result-body">
                                         <template v-if="hasVariantResult(id)">
                                             <NSpace vertical :size="12" style="padding: 12px;">
+                                                <NFlex justify="end" align="center">
+                                                    <div
+                                                        v-if="shouldShowResultEvaluationAction(id)"
+                                                        class="output-evaluation-entry"
+                                                    >
+                                                        <EvaluationScoreBadge
+                                                            v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
+                                                            :score="getResultEvaluationProps(id).score"
+                                                            :level="getResultEvaluationProps(id).scoreLevel"
+                                                            :loading="getResultEvaluationProps(id).isEvaluating"
+                                                            :result="getResultEvaluationProps(id).evaluationResult"
+                                                            type="result"
+                                                            :stale="isResultEvaluationStale(id)"
+                                                            :stale-message="t('evaluation.stale.result')"
+                                                            :disable-evaluate="!canEvaluateResult(id)"
+                                                            size="small"
+                                                            @show-detail="() => showResultDetail(id)"
+                                                            @evaluate="() => handleEvaluateResult(id)"
+                                                            @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
+                                                        />
+                                                        <FocusAnalyzeButton
+                                                            v-else
+                                                            type="result"
+                                                            variant="toolbar"
+                                                            :label="t('evaluation.evaluate')"
+                                                            :disabled="!canEvaluateResult(id)"
+                                                            :loading="getResultEvaluationProps(id).isEvaluating"
+                                                            :button-props="{ size: 'small', quaternary: true, circle: true }"
+                                                            @evaluate="() => handleEvaluateResult(id)"
+                                                            @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
+                                                        >
+                                                            <template #icon>
+                                                                <AnalyzeActionIcon />
+                                                            </template>
+                                                        </FocusAnalyzeButton>
+                                                    </div>
+                                                </NFlex>
                                                 <NImage
                                                     :data-testid="getVariantImageTestId(id)"
                                                     :src="getImageSrc(getVariantResult(id)?.images?.[0])"
@@ -636,64 +708,89 @@
 
                 <NSpace vertical :size="16">
                     <NCard size="small" embedded class="reference-dialog-section">
-                        <NSpace vertical :size="8">
-                            <NText :depth="2" strong class="reference-dialog-section__title">
-                                {{ t('imageWorkspace.referenceImage.sourceImage') }}
-                            </NText>
-                            <NFlex
-                                class="reference-dialog-source-row"
-                                align="center"
-                                justify="space-between"
-                                :size="12"
-                                :wrap="true"
+                        <div
+                            class="reference-dialog-source-picker"
+                            :class="{ 'reference-dialog-source-picker--disabled': isExtractingFromImage }"
+                            role="button"
+                            tabindex="0"
+                            @click="triggerReferenceImageUpload"
+                            @keydown.enter.prevent="triggerReferenceImageUpload"
+                            @keydown.space.prevent="triggerReferenceImageUpload"
+                        >
+                            <div
+                                class="reference-dialog-thumbnail"
+                                :class="{ 'reference-dialog-thumbnail--empty': !referenceDialog.sourceImagePreviewUrl }"
                             >
-                                <NFlex align="center" :size="12" class="reference-dialog-source-meta">
-                                    <div
-                                        class="reference-dialog-thumbnail"
-                                        :class="{ 'reference-dialog-thumbnail--empty': !referenceDialog.sourceImagePreviewUrl }"
+                                <NImage
+                                    v-if="referenceDialog.sourceImagePreviewUrl"
+                                    :src="referenceDialog.sourceImagePreviewUrl"
+                                    :alt="t('imageWorkspace.referenceImage.selectImage')"
+                                    object-fit="cover"
+                                    width="100%"
+                                    height="100%"
+                                    preview-disabled
+                                />
+                                <div v-else class="reference-dialog-thumbnail__empty">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                        class="reference-dialog-thumbnail__icon"
                                     >
-                                        <NImage
-                                            v-if="referenceDialog.sourceImagePreviewUrl"
-                                            :src="referenceDialog.sourceImagePreviewUrl"
-                                            :alt="referenceDialog.sourceImageName || t('imageWorkspace.referenceImage.sourceImage')"
-                                            object-fit="cover"
-                                            width="100%"
-                                            height="100%"
-                                            preview-disabled
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z"
                                         />
-                                        <NText v-else depth="3">
-                                            {{ t('imageWorkspace.referenceImage.sourceImage') }}
-                                        </NText>
-                                    </div>
-                                    <NSpace vertical :size="4">
-                                        <NText depth="2">
-                                            {{
-                                                referenceDialog.sourceImageName ||
-                                                t('imageWorkspace.referenceImage.sourceImageHint')
-                                            }}
-                                        </NText>
-                                        <NText depth="3">
-                                            {{ t('imageWorkspace.referenceImage.sourceImageHint') }}
-                                        </NText>
-                                    </NSpace>
-                                </NFlex>
-                                <NButton
-                                    size="small"
-                                    secondary
-                                    :loading="isExtractingFromImage"
-                                    @click="triggerReferenceImageUpload"
-                                >
-                                    {{
-                                        referenceDialog.sourceImageName
-                                            ? t('imageWorkspace.referenceImage.changeImage')
-                                            : t('imageWorkspace.referenceImage.selectImage')
-                                    }}
-                                </NButton>
-                            </NFlex>
-                        </NSpace>
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z"
+                                        />
+                                    </svg>
+                                    <NText depth="3" class="reference-dialog-thumbnail__label">
+                                        {{ t('imageWorkspace.referenceImage.selectImage') }}
+                                    </NText>
+                                </div>
+                            </div>
+                        </div>
                     </NCard>
 
-                    <NCard size="small" embedded class="reference-dialog-section reference-dialog-current-prompt">
+                    <NCard
+                        v-if="referenceDialog.hasProcessingStage"
+                        size="small"
+                        embedded
+                        class="reference-dialog-section reference-dialog-status"
+                    >
+                        <NFlex align="start" :size="12" :wrap="false">
+                            <NSpin size="small" class="reference-dialog-status__spinner" />
+                            <NSpace vertical :size="10" class="reference-dialog-status__body">
+                                <NText :depth="2" strong class="reference-dialog-section__title">
+                                    {{ t(referenceDialog.currentProcessingStageLabelKey) }}
+                                </NText>
+                                <NFlex :size="8" wrap>
+                                    <NTag
+                                        v-for="stage in referenceDialog.processingStageOptions"
+                                        :key="stage.value"
+                                        size="small"
+                                        :type="stage.value === referenceDialog.processingStage ? 'primary' : 'default'"
+                                        :bordered="stage.value !== referenceDialog.processingStage"
+                                    >
+                                        {{ t(stage.labelKey) }}
+                                    </NTag>
+                                </NFlex>
+                            </NSpace>
+                        </NFlex>
+                    </NCard>
+
+                    <NCard
+                        v-if="referenceDialog.showModeSwitch"
+                        size="small"
+                        embedded
+                        class="reference-dialog-section reference-dialog-current-prompt"
+                    >
                         <NSpace vertical :size="8">
                             <NText :depth="2" strong class="reference-dialog-section__title">
                                 {{ t('imageWorkspace.referenceImage.detectedCurrentPromptTitle') }}
@@ -747,19 +844,15 @@
                     <NCard size="small" embedded class="reference-dialog-section">
                         <div class="reference-dialog-results-grid">
                             <NSpace vertical :size="8" class="reference-dialog-prompt-panel">
-                                <NFlex justify="space-between" align="center">
-                                    <NText :depth="2" strong class="reference-dialog-section__title">
-                                        {{ t('imageWorkspace.referenceImage.generatedPrompt') }}
-                                    </NText>
-                                    <NText v-if="isExtractingFromImage" depth="3">
-                                        {{ t('imageWorkspace.input.extracting') }}
-                                    </NText>
-                                </NFlex>
+                                <NText :depth="2" strong class="reference-dialog-section__title">
+                                    {{ t('imageWorkspace.referenceImage.generatedPrompt') }}
+                                </NText>
                                 <NInput
                                     class="reference-dialog-prompt-input"
                                     type="textarea"
                                     :value="referenceDialog.workingPrompt"
                                     data-testid="reference-image-prompt-input"
+                                    :placeholder="''"
                                     :autosize="{ minRows: 8, maxRows: 16 }"
                                     :disabled="isExtractingFromImage"
                                     @update:value="referenceDialog.updatePrompt"
@@ -823,6 +916,27 @@
             </NCard>
         </NModal>
 
+        <EvaluationPanel
+            v-model:show="evaluation.isPanelVisible.value"
+            :is-evaluating="panelProps.isEvaluating"
+            :result="panelProps.result"
+            :stream-content="panelProps.streamContent"
+            :error="panelProps.error"
+            :current-type="panelProps.currentType"
+            :score-level="panelProps.scoreLevel"
+            :rewrite-recommendation="panelProps.rewriteRecommendation"
+            :rewrite-reasons="panelProps.rewriteReasons"
+            :stale="activeEvaluationStale"
+            :stale-message="activeEvaluationStaleMessage"
+            :disable-evaluate="activeEvaluationDisableEvaluate"
+            :disable-evaluate-reason="activeEvaluationDisableReason"
+            :can-rewrite-from-evaluation="false"
+            @re-evaluate="handleReEvaluateActive"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
+            @clear="handleClearEvaluation"
+            @retry="handleReEvaluateActive"
+        />
+
         <!-- 原始提示词 - 全屏编辑器 -->
         <FullscreenDialog
             v-model="isFullscreen"
@@ -862,7 +976,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, type Ref } from 'vue'
+import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, toRef, type Ref } from 'vue'
 
 import {
     NCard,
@@ -882,12 +996,14 @@ import {
     NRadioGroup,
     NRadio,
     NTooltip,
+    NSpin,
 } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
+import { AnalyzeActionIcon, EvaluationPanel, EvaluationScoreBadge, FocusAnalyzeButton } from '../evaluation'
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'
 import { OptionAccessors } from "../../utils/data-transformer";
 import type { AppServices } from "../../types/services";
@@ -897,10 +1013,9 @@ import type { SelectOption } from "../../types/select-options";
 import { useToast } from "../../composables/ui/useToast";
 import { getI18nErrorMessage } from '../../utils/error'
 import {
-    extractReferenceSpecFromImage,
     resolveReferencePromptPreview,
     type ReferenceApplicationMode,
-    type ReferenceSpec,
+    type ReferencePromptResolutionStage,
 } from '../../services/ImageStyleExtractor'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
@@ -909,6 +1024,8 @@ import { useTemporaryVariables } from '../../composables/variable/useTemporaryVa
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
 import { useSmartVariableValueGeneration } from '../../composables/variable/useSmartVariableValueGeneration'
+import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
+import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager'
 import {
     buildPromptExecutionContext,
@@ -918,6 +1035,7 @@ import {
 import {
     buildTestPanelVersionOptions,
     resolveTestPanelVersionSelection,
+    type ResolvedTestPanelVersionSelection,
 } from '../../utils/testPanelVersion'
 import {
     useImageText2ImageSession,
@@ -927,12 +1045,23 @@ import {
     type TestVariantId,
 } from '../../stores/session/useImageText2ImageSession'
 import { useImageGeneration } from '../../composables/image/useImageGeneration'
-import { useReferencePromptDialog } from '../../composables/image/useReferencePromptDialog'
+import {
+    useReferencePromptDialog,
+    type ReferenceDialogProcessingStage,
+} from '../../composables/image/useReferencePromptDialog'
 import ImageTokenUsage from './ImageTokenUsage.vue'
 import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useElementSize } from '@vueuse/core'
+import {
+    buildImageText2ImageComparePayload,
+    buildImageText2ImageResultEvaluationTargets,
+    canEvaluateImageText2ImageCompare,
+    canEvaluateImageText2ImageResult,
+    shouldShowImageText2ImageCompareAction,
+    shouldShowImageText2ImageResultAction,
+} from './imageText2ImageEvaluation'
 import {
     type ContextMode,
     type ImageModelConfig,
@@ -1044,7 +1173,12 @@ const isOptimizing = ref(false)
 const isIterating = ref(false)
 const isExtractingFromImage = ref(false)
 const extractImageInputRef = ref<HTMLInputElement | null>(null)
-const referenceBaseExtraction = ref<ReferenceSpec | null>(null)
+type ReferenceImagePayload = {
+    base64: string
+    mimeType: string
+}
+
+const referenceImagePayload = ref<ReferenceImagePayload | null>(null)
 const referenceDialogPendingCount = ref(0)
 const referenceDialogPreviewToken = ref(0)
 
@@ -1390,21 +1524,16 @@ watch(
     { immediate: true },
 )
 
-type ResolvedPrompt = { text: string; resolvedVersion: number }
-
-const resolvePromptForSelection = (selection: TestPanelVersionValue): ResolvedPrompt => {
-    const resolved = resolveTestPanelVersionSelection({
+const resolvePromptForSelection = (
+    selection: TestPanelVersionValue,
+): ResolvedTestPanelVersionSelection => {
+    return resolveTestPanelVersionSelection({
         selection,
         versions: currentVersions.value || [],
         currentVersionId: currentVersionId.value,
         workspacePrompt: optimizedPrompt.value || '',
         originalPrompt: originalPrompt.value || '',
     })
-
-    return {
-        text: resolved.text,
-        resolvedVersion: resolved.resolvedVersion,
-    }
 }
 
 // 注意：Pinia setup store 会把 ref 自动解包；直接赋值会丢失响应性。
@@ -1496,7 +1625,7 @@ const handleOpenPromptPreview = () => {
     openPromptPreview(optimizedPrompt.value || '', { renderPhase: 'test' })
 }
 
-const buildRuntimePredefinedVariables = (resolved: ResolvedPrompt): Record<string, string> => {
+const buildRuntimePredefinedVariables = (resolved: ResolvedTestPanelVersionSelection): Record<string, string> => {
     const current = (resolved.text || '').trim()
     return {
         // Align with core PREDEFINED_VARIABLES (packages/core/src/services/context/constants.ts)
@@ -1518,6 +1647,384 @@ const getVariantFingerprint = (id: TestVariantId) => {
     }
     const varsHash = hashVariables(varsForFingerprint)
     return `${String(selection)}:${resolved.resolvedVersion}:${modelKey}:${promptHash}:${varsHash}`
+}
+
+const evaluationVersionLabels = computed(() => getTestPanelVersionLabels())
+
+const evaluationVariants = computed(() =>
+    activeVariantIds.value.map((id) => {
+        const resolvedPrompt = resolvePromptForSelection(variantVersionModels[id].value)
+        return {
+            id,
+            label: getVariantLabel(id),
+            resolvedPrompt,
+            promptText: resolvedPrompt.text,
+            modelKey: (variantModelKeyModels[id].value || '').trim() || undefined,
+            result: getVariantResult(id),
+        }
+    }),
+)
+
+const imageEvaluationContext = computed(() => ({
+    originalIntent: originalPrompt.value || '',
+    workspacePrompt: optimizedPrompt.value || '',
+    referencePrompt: originalPrompt.value || '',
+    versionLabels: evaluationVersionLabels.value,
+}))
+
+const resultEvaluationTargets = computed(() =>
+    buildImageText2ImageResultEvaluationTargets({
+        context: imageEvaluationContext.value,
+        variants: evaluationVariants.value,
+    }),
+)
+
+const comparePayload = computed(() =>
+    buildImageText2ImageComparePayload({
+        context: imageEvaluationContext.value,
+        variants: evaluationVariants.value,
+    }),
+)
+
+const hasImageRecognitionModel = computed(
+    () => !!(effectiveImageRecognitionModelKey.value || '').trim(),
+)
+
+const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
+    a: '',
+    b: '',
+    c: '',
+    d: '',
+})
+const compareEvaluationFingerprint = ref('')
+
+const evaluationHandler = useEvaluationHandler({
+    services,
+    analysisOptimizedPrompt: computed(() => optimizedPrompt.value || ''),
+    analysisTargetResolver: (defaultTarget) => ({
+        ...defaultTarget,
+        referencePrompt: (originalPrompt.value || '').trim() || undefined,
+    }),
+    resultTargets: resultEvaluationTargets,
+    comparePayload,
+    evaluationModelKey: computed(() => selectedTextModelKey.value || ''),
+    resolveEvaluationModelKey: async (type) => {
+        await functionModelManager.initialize()
+
+        if (type === 'result' || type === 'compare') {
+            const modelKey =
+                functionModelManager.effectiveImageRecognitionModel.value || ''
+            if (!modelKey) {
+                throw new Error(t('functionModel.noImageRecognitionModel'))
+            }
+            return modelKey
+        }
+
+        return (
+            functionModelManager.evaluationModel.value ||
+            selectedTextModelKey.value ||
+            functionModelManager.effectiveEvaluationModel.value ||
+            ''
+        )
+    },
+    functionMode: computed(() => 'image'),
+    subMode: computed(() => 'text2image'),
+    persistedResults: toRef(session, 'evaluationResults'),
+})
+
+provideEvaluation(evaluationHandler.evaluation)
+
+const { evaluation, handleEvaluate: handleEvaluateInternal } = evaluationHandler
+const panelProps = evaluationHandler.panelProps
+const getResultEvaluationProps = (variantId: string) =>
+    evaluationHandler.getResultEvaluationProps(variantId)
+
+const isEvaluatingCompare = evaluationHandler.compareEvaluation.isEvaluatingCompare
+const compareScore = computed(
+    () => evaluationHandler.compareEvaluation.compareScore.value ?? 0,
+)
+const hasCompareEvaluation = evaluationHandler.compareEvaluation.hasCompareResult
+const compareEvaluationResult = computed(() => evaluation.state.compare.result)
+const compareScoreLevel = computed(() =>
+    evaluation.getScoreLevel(
+        evaluationHandler.compareEvaluation.compareScore.value ?? null,
+    ),
+)
+
+const compareReadyVariantIds = computed(() =>
+    activeVariantIds.value.filter((id) => !!resultEvaluationTargets.value[id]),
+)
+const hasCompareCandidates = computed(() => compareReadyVariantIds.value.length >= 2)
+const hasWorkspaceCompareCandidate = computed(() =>
+    compareReadyVariantIds.value.some((id) =>
+        evaluationVariants.value.find((variant) => variant.id === id)?.resolvedPrompt.promptKind === 'workspace'
+    ),
+)
+
+const buildCompareEvaluationFingerprint = () =>
+    compareReadyVariantIds.value
+        .map((id) => `${id}:${getVariantFingerprint(id)}`)
+        .join('|')
+
+const isResultEvaluationStale = (id: TestVariantId) => {
+    const props = getResultEvaluationProps(id)
+    if (!props.hasEvaluation) return false
+
+    const storedFingerprint = resultEvaluationFingerprint[id]
+    if (!storedFingerprint) return false
+
+    return storedFingerprint !== getVariantFingerprint(id)
+}
+
+const isCompareEvaluationStale = computed(() => {
+    if (!hasCompareEvaluation.value) return false
+    if (!compareEvaluationFingerprint.value) return false
+    return compareEvaluationFingerprint.value !== buildCompareEvaluationFingerprint()
+})
+
+const shouldShowResultEvaluationAction = (id: TestVariantId) =>
+    shouldShowImageText2ImageResultAction(
+        id,
+        resultEvaluationTargets.value,
+        getResultEvaluationProps(id).hasEvaluation,
+    )
+
+const canEvaluateResult = (id: TestVariantId) =>
+    canEvaluateImageText2ImageResult(
+        id,
+        resultEvaluationTargets.value,
+        hasImageRecognitionModel.value,
+    )
+
+const shouldShowCompareEvaluationAction = computed(() =>
+    shouldShowImageText2ImageCompareAction(
+        comparePayload.value,
+        hasCompareEvaluation.value,
+        hasCompareCandidates.value,
+    ),
+)
+
+const canEvaluateCompare = computed(() =>
+    canEvaluateImageText2ImageCompare(
+        comparePayload.value,
+        hasImageRecognitionModel.value,
+    ),
+)
+const compareDisabledReason = computed(() => {
+    if (canEvaluateCompare.value) {
+        return ''
+    }
+
+    if ((hasCompareCandidates.value || hasCompareEvaluation.value) && !hasWorkspaceCompareCandidate.value) {
+        return t('evaluation.compareUnavailable.missingWorkspace')
+    }
+
+    if ((hasCompareCandidates.value || hasCompareEvaluation.value) && !hasImageRecognitionModel.value) {
+        return t('functionModel.noImageRecognitionModel')
+    }
+
+    return ''
+})
+
+const activeEvaluationStale = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return isCompareEvaluationStale.value
+    }
+
+    if (
+        panelProps.value.currentType === 'result' &&
+        panelProps.value.currentVariantId &&
+        panelProps.value.currentVariantId in resultEvaluationFingerprint
+    ) {
+        return isResultEvaluationStale(
+            panelProps.value.currentVariantId as TestVariantId,
+        )
+    }
+
+    return false
+})
+
+const activeEvaluationStaleMessage = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return t('evaluation.stale.compare')
+    }
+
+    if (panelProps.value.currentType === 'result') {
+        return t('evaluation.stale.result')
+    }
+
+    return t('evaluation.stale.default')
+})
+
+const activeEvaluationDisableEvaluate = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return !canEvaluateCompare.value
+    }
+
+    if (
+        panelProps.value.currentType === 'result' &&
+        panelProps.value.currentVariantId
+    ) {
+        return !canEvaluateResult(
+            panelProps.value.currentVariantId as TestVariantId,
+        )
+    }
+
+    return false
+})
+const activeEvaluationDisableReason = computed(() => {
+    if (panelProps.value.currentType === 'compare') {
+        return compareDisabledReason.value
+    }
+
+    return ''
+})
+
+const ensureImageEvaluationModelReady = (): boolean => {
+    if (hasImageRecognitionModel.value) {
+        return true
+    }
+
+    promptConfigureImageRecognitionModel()
+    return false
+}
+
+const ensureResultEvaluationReady = (variantId: TestVariantId): boolean => {
+    if (!resultEvaluationTargets.value[variantId]) {
+        return false
+    }
+
+    return ensureImageEvaluationModelReady()
+}
+
+const ensureCompareEvaluationReady = (): boolean => {
+    if (!comparePayload.value) {
+        return false
+    }
+
+    return ensureImageEvaluationModelReady()
+}
+
+const updateResultEvaluationFingerprint = (variantId: TestVariantId) => {
+    if (evaluation.state.result[variantId]?.result) {
+        resultEvaluationFingerprint[variantId] = getVariantFingerprint(variantId)
+    }
+}
+
+const updateCompareEvaluationFingerprint = () => {
+    if (evaluation.state.compare.result) {
+        compareEvaluationFingerprint.value = buildCompareEvaluationFingerprint()
+    }
+}
+
+const handleEvaluateResult = async (variantId: TestVariantId) => {
+    if (!ensureResultEvaluationReady(variantId)) return
+
+    await handleEvaluateInternal('result', { variantId })
+    updateResultEvaluationFingerprint(variantId)
+}
+
+const handleResultEvaluateWithFeedbackEvent = async (
+    variantId: TestVariantId,
+    payload: { feedback: string },
+) => {
+    if (!ensureResultEvaluationReady(variantId)) return
+
+    await evaluationHandler.handleEvaluateWithFeedback(
+        'result',
+        payload.feedback,
+        { variantId },
+    )
+    updateResultEvaluationFingerprint(variantId)
+}
+
+const handleEvaluateCompare = async () => {
+    if (!ensureCompareEvaluationReady()) return
+
+    await handleEvaluateInternal('compare')
+    updateCompareEvaluationFingerprint()
+}
+
+const handleCompareEvaluateWithFeedback = async (payload: {
+    feedback: string
+}) => {
+    if (!ensureCompareEvaluationReady()) return
+
+    await evaluationHandler.handleEvaluateWithFeedback(
+        'compare',
+        payload.feedback,
+    )
+    updateCompareEvaluationFingerprint()
+}
+
+const handleReEvaluateActive = async () => {
+    const active = evaluation.state.activeDetail
+    if (!active) return
+
+    if (
+        active.type === 'result' &&
+        (!active.variantId ||
+            !ensureResultEvaluationReady(active.variantId as TestVariantId))
+    ) {
+        return
+    }
+
+    if (active.type === 'compare' && !ensureCompareEvaluationReady()) {
+        return
+    }
+
+    await evaluationHandler.handleReEvaluate()
+
+    if (active.type === 'result' && active.variantId) {
+        updateResultEvaluationFingerprint(active.variantId as TestVariantId)
+    } else if (active.type === 'compare') {
+        updateCompareEvaluationFingerprint()
+    }
+}
+
+const handleEvaluateActiveWithFeedback = async (payload: {
+    feedback: string
+}) => {
+    const active = evaluation.state.activeDetail
+    if (!active) return
+
+    if (
+        active.type === 'result' &&
+        (!active.variantId ||
+            !ensureResultEvaluationReady(active.variantId as TestVariantId))
+    ) {
+        return
+    }
+
+    if (active.type === 'compare' && !ensureCompareEvaluationReady()) {
+        return
+    }
+
+    await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
+
+    if (active.type === 'result' && active.variantId) {
+        updateResultEvaluationFingerprint(active.variantId as TestVariantId)
+    } else if (active.type === 'compare') {
+        updateCompareEvaluationFingerprint()
+    }
+}
+
+const showResultDetail = (variantId: TestVariantId) => {
+    evaluation.showDetail('result', variantId)
+}
+
+const showCompareDetail = () => {
+    evaluation.showDetail('compare')
+}
+
+const handleClearEvaluation = () => {
+    evaluation.closePanel()
+    evaluation.clearAllResults()
+    resultEvaluationFingerprint.a = ''
+    resultEvaluationFingerprint.b = ''
+    resultEvaluationFingerprint.c = ''
+    resultEvaluationFingerprint.d = ''
+    compareEvaluationFingerprint.value = ''
 }
 
 const getVariantRequest = (id: TestVariantId): Text2ImageRequest | null => {
@@ -1579,12 +2086,17 @@ const runVariant = async (
         silentError?: boolean
         persist?: boolean
         allowParallel?: boolean
+        skipClearEvaluation?: boolean
     },
 ): Promise<boolean> => {
     if (variantRunning[id]) return false
 
     const request = getVariantRequest(id)
     if (!request) return false
+
+    if (!opts?.skipClearEvaluation) {
+        evaluationHandler.clearBeforeTest()
+    }
 
     variantRunning[id] = true
     try {
@@ -1626,8 +2138,17 @@ const runAllVariants = async () => {
         if (!getVariantRequest(id)) return
     }
 
+    evaluationHandler.clearBeforeTest()
+
     const results = await Promise.all(
-        ids.map((id) => runVariant(id, { silentSuccess: true, silentError: true, persist: false })),
+        ids.map((id) =>
+            runVariant(id, {
+                silentSuccess: true,
+                silentError: true,
+                persist: false,
+                skipClearEvaluation: true,
+            }),
+        ),
     )
 
     queueSessionSave()
@@ -1795,44 +2316,27 @@ const readImageFileAsBase64 = (file: File): Promise<{ base64: string; mimeType: 
         reader.readAsDataURL(file)
     })
 
-const extractReferencePromptFromImage = async (
-    imageB64: string,
-    mimeType: string,
-) => {
-    const modelConfig = await getImageRecognitionModelConfig()
-    return extractReferenceSpecFromImage(
-        modelConfig,
-        imageB64,
-        mimeType || 'image/png',
-        'text2image',
-        services.value?.templateManager,
-    )
-}
-
 const resolveReferenceDialogPreview = async (
     nextMode: ReferenceApplicationMode = referenceDialog.mode,
     previewToken: number = referenceDialogPreviewToken.value,
 ) => {
-    if (!referenceBaseExtraction.value) {
+    if (!referenceImagePayload.value) {
         return
     }
 
-    if (!selectedTextModelKey.value) {
-        throw new Error(t('toast.error.noOptimizeModel'))
-    }
-
-    if (!promptService.value) {
-        throw new Error(t('toast.error.serviceInit'))
-    }
+    const modelConfig = await getImageRecognitionModelConfig()
 
     const preview = await resolveReferencePromptPreview({
         mode: nextMode,
         originalPrompt: originalPrompt.value,
-        referenceSpec: referenceBaseExtraction.value,
-        modelKey: selectedTextModelKey.value,
-        promptService: promptService.value,
-        variableExtractionService: services.value?.variableExtractionService,
+        modelConfig,
+        imageB64: referenceImagePayload.value.base64,
+        mimeType: referenceImagePayload.value.mimeType || 'image/png',
+        templateManager: services.value?.templateManager,
         referenceMode: 'text2image',
+        onStageChange: (stage: ReferencePromptResolutionStage) => {
+            referenceDialog.setProcessingStage(stage)
+        },
     })
 
     if (previewToken !== referenceDialogPreviewToken.value) {
@@ -1850,6 +2354,9 @@ const beginReferenceDialogTask = () => {
 const endReferenceDialogTask = () => {
     referenceDialogPendingCount.value = Math.max(0, referenceDialogPendingCount.value - 1)
     isExtractingFromImage.value = referenceDialogPendingCount.value > 0
+    if (!isExtractingFromImage.value) {
+        referenceDialog.clearProcessingStage()
+    }
 }
 
 const createReferenceDialogPreviewToken = () => {
@@ -1858,7 +2365,7 @@ const createReferenceDialogPreviewToken = () => {
 }
 
 const openReferenceImageDialog = () => {
-    referenceBaseExtraction.value = null
+    referenceImagePayload.value = null
     referenceDialog.openDialog()
 }
 
@@ -1867,7 +2374,7 @@ const closeReferenceImageDialog = () => {
         return
     }
     referenceDialog.closeDialog()
-    referenceBaseExtraction.value = null
+    referenceImagePayload.value = null
 }
 
 const handleReferenceDialogShowChange = (show: boolean) => {
@@ -1877,6 +2384,9 @@ const handleReferenceDialogShowChange = (show: boolean) => {
 }
 
 const triggerReferenceImageUpload = () => {
+    if (isExtractingFromImage.value) {
+        return
+    }
     extractImageInputRef.value?.click()
 }
 
@@ -1909,6 +2419,7 @@ const handleReferenceImageFileChange = async (event: Event) => {
 
     const previewToken = createReferenceDialogPreviewToken()
     beginReferenceDialogTask()
+    referenceDialog.setProcessingStage('generating-preview')
 
     try {
         const { base64, mimeType } = await readImageFileAsBase64(file)
@@ -1917,7 +2428,10 @@ const handleReferenceImageFileChange = async (event: Event) => {
             name: file.name,
             previewUrl: `data:${mimeType || 'image/png'};base64,${base64}`,
         })
-        referenceBaseExtraction.value = await extractReferencePromptFromImage(base64, mimeType)
+        referenceImagePayload.value = {
+            base64,
+            mimeType: mimeType || 'image/png',
+        }
         await resolveReferenceDialogPreview(referenceDialog.mode, previewToken)
     } catch (error) {
         toast.error(
@@ -1932,12 +2446,13 @@ const handleReferenceDialogModeChange = async (value: string | number | boolean)
     const nextMode = value as ReferenceApplicationMode
     referenceDialog.updateMode(nextMode)
 
-    if (!referenceBaseExtraction.value) {
+    if (!referenceImagePayload.value) {
         return
     }
 
     const previewToken = createReferenceDialogPreviewToken()
     beginReferenceDialogTask()
+    referenceDialog.setProcessingStage('generating-preview')
     try {
         await resolveReferenceDialogPreview(nextMode, previewToken)
     } catch (error) {
@@ -1950,12 +2465,22 @@ const handleReferenceDialogModeChange = async (value: string | number | boolean)
 }
 
 const handleReferenceDialogApply = () => {
-    const applied = referenceDialog.applyToCurrentPrompt()
-    if (!applied) {
+    const appliedPrompt =
+        referenceDialog.workingPrompt?.trim() ||
+        referenceDialog.generatedPreview?.prompt?.trim() ||
+        referenceDialog.generatedPreview?.rawText?.trim() ||
+        ''
+
+    if (!appliedPrompt) {
         return
     }
 
-    referenceBaseExtraction.value = null
+    originalPrompt.value = appliedPrompt
+    syncTemporaryVariables(referenceDialog.workingVariables)
+    resetExtractedPromptArtifacts()
+    queueSessionSave()
+    referenceDialog.closeDialog()
+    referenceImagePayload.value = null
     toast.success(t('imageWorkspace.referenceImage.applySuccess'))
 }
 
@@ -2574,13 +3099,37 @@ onUnmounted(() => {
     font-size: 14px;
 }
 
-.reference-dialog-source-row {
-    width: 100%;
-    row-gap: 12px;
+.reference-dialog-status__body {
+    flex: 1;
+    min-width: 0;
 }
 
-.reference-dialog-source-meta {
-    min-width: 0;
+.reference-dialog-status__spinner {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.reference-dialog-source-picker {
+    display: inline-flex;
+    cursor: pointer;
+    border-radius: 14px;
+    outline: none;
+    transition:
+        transform 120ms ease,
+        box-shadow 120ms ease,
+        opacity 120ms ease;
+}
+
+.reference-dialog-source-picker:hover,
+.reference-dialog-source-picker:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.reference-dialog-source-picker--disabled {
+    cursor: progress;
+    pointer-events: none;
+    opacity: 0.72;
 }
 
 .reference-dialog-mode-list {
@@ -2592,12 +3141,13 @@ onUnmounted(() => {
 }
 
 .reference-dialog-thumbnail {
-    width: 72px;
-    height: 72px;
+    width: 88px;
+    height: 88px;
     flex-shrink: 0;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
     background: var(--n-color-embedded);
+    border: 1px solid var(--n-border-color);
 }
 
 .reference-dialog-thumbnail--empty {
@@ -2605,11 +3155,36 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     border: 1px dashed var(--n-border-color);
-    padding: 8px;
+    padding: 10px;
     text-align: center;
 }
 
+.reference-dialog-thumbnail__empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.reference-dialog-thumbnail__icon {
+    width: 22px;
+    height: 22px;
+}
+
+.reference-dialog-thumbnail__label {
+    max-width: 56px;
+    text-align: center;
+    line-height: 1.35;
+}
+
 .reference-dialog-current-prompt {
+    margin: 0;
+}
+
+.reference-dialog-status {
     margin: 0;
 }
 

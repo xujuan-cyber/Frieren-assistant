@@ -204,4 +204,59 @@ describe('useReferencePromptDialog', () => {
     expect(dialog).not.toHaveProperty('showSyncVariablesAction')
     expect(dialog).not.toHaveProperty('markVariablesSynced')
   })
+
+  it('生成结果缺少 prompt 时，会回退到 rawText 作为弹窗编辑内容', () => {
+    const currentPrompt = ref('')
+    const currentVariables = ref<Record<string, string>>({})
+
+    const dialog = useReferencePromptDialog({
+      getCurrentPrompt: () => currentPrompt.value,
+      getCurrentVariables: () => ({ ...currentVariables.value }),
+      applyPrompt: (nextPrompt) => {
+        currentPrompt.value = nextPrompt
+      },
+      applyVariables: (nextVariables) => {
+        currentVariables.value = { ...nextVariables }
+      },
+      resetPromptArtifacts: vi.fn(),
+    })
+
+    dialog.openDialog()
+    dialog.setGeneratedPreview({
+      prompt: '',
+      variableDefaults: {
+        主体颜色: '棕色',
+      },
+      rawText: '{"场景":{"主体":"一只{{主体颜色}}的小猫"}}',
+    })
+
+    expect(dialog.workingPrompt.value).toBe('{"场景":{"主体":"一只{{主体颜色}}的小猫"}}')
+  })
+
+  it('支持展示参考图处理阶段状态，并在完成后自动清空状态', () => {
+    const currentPrompt = ref('两只棕色的猫')
+    const currentVariables = ref<Record<string, string>>({})
+
+    const dialog = useReferencePromptDialog({
+      getCurrentPrompt: () => currentPrompt.value,
+      getCurrentVariables: () => ({ ...currentVariables.value }),
+      applyPrompt: (nextPrompt) => {
+        currentPrompt.value = nextPrompt
+      },
+      applyVariables: (nextVariables) => {
+        currentVariables.value = { ...nextVariables }
+      },
+      resetPromptArtifacts: vi.fn(),
+    })
+
+    dialog.openDialog()
+    dialog.setProcessingStage('generating-preview')
+
+    expect(dialog.processingStage.value).toBe('generating-preview')
+    expect(dialog.hasProcessingStage.value).toBe(true)
+
+    dialog.clearProcessingStage()
+    expect(dialog.processingStage.value).toBe('idle')
+    expect(dialog.hasProcessingStage.value).toBe(false)
+  })
 })

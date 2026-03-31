@@ -7,7 +7,7 @@ export type TemplateManagerTemplateType = Exclude<
   | 'evaluation'
   | 'variable-extraction'
   | 'variable-value-generation'
-  | 'image-reference-spec-extraction'
+  | 'image-reference-prompt-seed-extraction'
   | 'image-prompt-composition'
   | 'image-prompt-migration'
 >

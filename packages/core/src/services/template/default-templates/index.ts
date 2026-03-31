@@ -133,9 +133,6 @@ import { template as evaluation_structured_compare_pair_judge_en } from './evalu
 import { template as evaluation_structured_compare_synthesis } from './evaluation-structured-compare/synthesis';
 import { template as evaluation_structured_compare_synthesis_en } from './evaluation-structured-compare/synthesis_en';
 
-// 参考图内部模板
-import { imageReferenceSpecExtractionTemplate } from './image-reference-spec-extraction';
-import { imageReferenceSpecExtractionTemplateEn } from './image-reference-spec-extraction';
 import { imagePromptCompositionTemplate } from './image-prompt-composition';
 import { imagePromptCompositionTemplateEn } from './image-prompt-composition';
 import { imagePromptMigrationTemplate } from './image-prompt-migration';
@@ -261,8 +258,6 @@ export const ALL_TEMPLATES = {
   evaluation_structured_compare_synthesis,
   evaluation_structured_compare_synthesis_en,
   // 参考图内部模板
-  imageReferenceSpecExtractionTemplate,
-  imageReferenceSpecExtractionTemplateEn,
   imagePromptCompositionTemplate,
   imagePromptCompositionTemplateEn,
   imagePromptMigrationTemplate,

@@ -2,43 +2,60 @@ import type { MessageTemplate, Template } from '../../types';
 
 export const template: Template = {
   id: 'image-prompt-migration',
-  name: 'Migrate Reference Style Into Prompt',
+  name: 'Generate Style Transfer Result From Reference Image',
   content: [
     {
       role: 'system',
-      content: `You are a "ReferenceSpec migration composer (JSON output)".
+      content: `You are a "reference image style transfer result generator (JSON output)".
 
-Your job is to use the current original prompt as the source of subject semantics, and use the reference spec as the source of visual language, then merge them into a new structured JSON prompt for image generation.
+Your task is to use:
+1. the current prompt
+2. the reference image
+
+and directly produce a final structured JSON image prompt, plus a small set of variable defaults.
+The result itself should already be a reusable style transfer prompt, not an analysis note or an intermediate draft.
 
 Output exactly one JSON object that can be parsed by JSON.parse. Do not output explanations, headings, Markdown, code fences, or extra text.
-The top level must be an object, not an array. Use double quotes only, with no comments and no trailing commas.
+The top level must be an object, never an array. Use double quotes only, with no comments and no trailing commas.
 
-Hard constraints:
-1. The original prompt has priority over the subject content from the reference image. Do not copy the reference subject into the final result.
-2. The reference spec should mainly contribute style, lighting, color palette, atmosphere, composition bias, camera language, medium feel, material feel, and layout tendencies.
-3. If the original prompt already specifies subject, quantity, color, key objects, or important actions, preserve them.
-4. If the reference image conflicts with the original prompt, preserve the original subject semantics and only transfer the visual language.
-5. Output the final prompt JSON directly. Do not wrap it in { "prompt": ... } or { "defaults": ... }.
-6. Do not output variable placeholders. Produce a concrete, directly usable draft first.
-7. The JSON structure should stay concrete, visual, and controllable.
+The output shape must be:
+{
+  "prompt": { ...final structured prompt... },
+  "defaults": { ...variable defaults... }
+}
 
-Reference workflow mode: {{referenceMode}}
+Core principles:
+1. The current prompt decides what to draw. The subject semantics, key objects, quantity, color, action, and primary intent must come from the current prompt.
+2. The reference image decides how to draw it. Absorb its style, composition, lighting, palette, camera language, material treatment, atmosphere, design language, and detail behavior.
+3. Do not copy the subject content of the reference image into the result unless the current prompt already expresses the same thing.
+4. The result should visibly inherit the visual direction of the reference image, not just lightly polish the current prompt.
+5. The prompt object structure may be designed freely, but it must stay concrete, visual, directly usable for image generation, and easy to edit later.
+6. Default to Chinese keys, Chinese field values, and Chinese variable names unless the current prompt is clearly written in English.
+7. Use at most 5 variables. Variables should support reuse naturally, prioritizing subject, quantity, color, key objects, key actions, or scene theme.
+8. If variables are output, every defaults key must already appear in the prompt using the {{variableName}} form. Do not use {variable} or any other placeholder style.
+9. Do not turn too many style phrases into variables. If no variables are useful, return {} for defaults.
 
-ReferenceSpec JSON:
-{{referenceSpecJson}}`
+Current workflow mode: {{generationGoal}}`
     },
     {
       role: 'user',
-      content: `Please migrate the following original prompt into a new structured JSON image prompt while absorbing the reference image's visual language:
+      content: `Please use this reference image to perform style transfer on the current prompt, and directly return the final result.
 
-{{originalPrompt}}`
+Current original prompt:
+{{originalPrompt}}
+
+Additional requirements:
+- {{promptRequirement}}
+- Preserve what the current prompt truly wants to depict.
+- Rewrite it using the visual language of the reference image instead of copying the reference image subject.
+- The result should already feel editable and reusable.` 
     }
   ] as MessageTemplate[],
   metadata: {
     version: '1.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: 'Migrate a reference spec into the current original prompt and output structured JSON',
+    description: 'Combine a reference image and the current prompt into a reusable style transfer result',
     templateType: 'image-prompt-migration',
     language: 'en',
     tags: ['image', 'json', 'prompt', 'migration', 'internal'],

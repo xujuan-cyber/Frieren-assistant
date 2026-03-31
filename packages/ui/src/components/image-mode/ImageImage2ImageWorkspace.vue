@@ -1818,16 +1818,6 @@ const extractPromptFromReferenceImage = async (imageB64: string, mimeType: strin
         return
     }
 
-    if (!selectedTextModelKey.value) {
-        toast.error(t('toast.error.noOptimizeModel'))
-        return
-    }
-
-    if (!promptService.value) {
-        toast.error(t('toast.error.serviceInit'))
-        return
-    }
-
     const modelConfig = await getImageRecognitionModelConfig()
     const result = await resolveReferencePromptPreview({
         mode: 'replicate',
@@ -1836,9 +1826,6 @@ const extractPromptFromReferenceImage = async (imageB64: string, mimeType: strin
         mimeType: mimeType || 'image/png',
         modelConfig,
         templateManager: services.value?.templateManager,
-        promptService: promptService.value,
-        variableExtractionService: services.value?.variableExtractionService,
-        modelKey: selectedTextModelKey.value,
         referenceMode: 'image2image',
     })
 

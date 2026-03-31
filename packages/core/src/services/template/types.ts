@@ -25,7 +25,6 @@ export interface TemplateMetadata {
     | 'evaluation'
     | 'variable-extraction'
     | 'variable-value-generation'
-    | 'image-reference-spec-extraction'
     | 'image-prompt-composition'
     | 'image-prompt-migration'; // 模板类型标识
   language?: 'zh' | 'en';   // 模板语言（可选，主要用于内置模板语言切换）
@@ -155,7 +154,6 @@ export const templateSchema = z.object({
       'evaluation',
       'variable-extraction',
       'variable-value-generation',
-      'image-reference-spec-extraction',
       'image-prompt-composition',
       'image-prompt-migration',
     ]),

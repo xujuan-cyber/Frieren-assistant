@@ -1914,15 +1914,13 @@ export default {
 
     referenceImage: {
       dialogTitle: "套用參考圖",
-      sourceImage: "參考圖",
       selectImage: "上傳參考圖",
-      changeImage: "更換圖片",
-      sourceImageHint: "僅支援本地 PNG/JPEG，最大 10MB",
       usageMode: "怎麼使用這張參考圖",
       styleTransfer: "風格遷移",
       styleTransferDescription: "在原提示詞的基礎上學習圖片風格進行改造",
       replicateImage: "復刻圖片",
       replicateImageDescription: "丟棄原始提示詞內容，反推圖片對應提示詞",
+      generatingPreview: "正在分析參考圖並生成提示詞",
       detectedCurrentPromptTitle: "偵測到目前提示詞",
       generatedPrompt: "生成後的提示詞",
       variablePreview: "提取到的變數",

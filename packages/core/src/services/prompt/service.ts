@@ -150,15 +150,18 @@ export class PromptService implements IPromptService {
         );
       }
 
-      const context: TemplateContext = {
+      const baseContext: TemplateContext = {
         originalPrompt: request.targetPrompt,
         optimizationMode: request.optimizationMode,
         contextMode: request.contextMode,
-        // 传递高级上下文信息到模板
-        customVariables: request.advancedContext?.variables,
-        conversationMessages: request.advancedContext?.messages,
         tools: request.advancedContext?.tools,
       };
+
+      const context = TemplateProcessor.createExtendedContext(
+        baseContext,
+        request.advancedContext?.variables,
+        request.advancedContext?.messages,
+      )
 
       // 如果有会话消息，将其格式化为文本并添加到上下文
       if (
