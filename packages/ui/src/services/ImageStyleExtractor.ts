@@ -127,15 +127,16 @@ async function buildReferencePromptPrompts(
 
 function normalizeReferencePromptPreview(rawText: string): ReferencePromptPreview {
   const parsed = parseJsonObject(rawText)
-  const promptObject = normalizePromptObject(
-    resolvePromptObject(parsed.prompt ?? parsed.promptJson ?? parsed),
-  )
   const variableDefaults = normalizeVariableDefaults(
     isRecord(parsed.defaults)
       ? parsed.defaults
       : isRecord(parsed.variableDefaults)
         ? parsed.variableDefaults
         : {},
+  )
+  const promptObject = normalizePromptObject(
+    resolvePromptObject(parsed.prompt ?? parsed.promptJson ?? parsed),
+    Object.keys(variableDefaults),
   )
   const constrainedPromptObject = constrainPromptVariables(promptObject, variableDefaults)
   const formattedPrompt = JSON.stringify(constrainedPromptObject, null, 2)
@@ -177,9 +178,44 @@ function normalizeVariableDefaults(value: unknown): Record<string, string> {
   }, {})
 }
 
-function normalizePromptObject(value: Record<string, unknown>): Record<string, unknown> {
-  const normalizeString = (content: string): string =>
-    content.replace(/(?<!\{)\{([a-zA-Z0-9_\-\u4e00-\u9fa5]+)\}(?!\})/g, '{{$1}}')
+function normalizePromptObject(
+  value: Record<string, unknown>,
+  knownVariableNames: string[] = [],
+): Record<string, unknown> {
+  const knownVariableSet = new Set(
+    knownVariableNames
+      .map((name) => name.trim())
+      .filter((name) => isValidVariableName(name)),
+  )
+
+  const normalizeString = (content: string): string => {
+    let normalized = content.replace(
+      /(?<!\{)\{([a-zA-Z0-9_\-\u4e00-\u9fa5]+)\}(?!\})/g,
+      '{{$1}}',
+    )
+
+    if (knownVariableSet.size === 0) {
+      return normalized
+    }
+
+    normalized = normalized.replace(
+      /「([a-zA-Z0-9_\-\u4e00-\u9fa5]+)」/g,
+      (match, rawVariableName: string) => {
+        const variableName = rawVariableName.trim()
+        return knownVariableSet.has(variableName) ? `{{${variableName}}}` : match
+      },
+    )
+
+    normalized = normalized.replace(
+      /『([a-zA-Z0-9_\-\u4e00-\u9fa5]+)』/g,
+      (match, rawVariableName: string) => {
+        const variableName = rawVariableName.trim()
+        return knownVariableSet.has(variableName) ? `{{${variableName}}}` : match
+      },
+    )
+
+    return normalized
+  }
 
   const normalize = (current: unknown): unknown => {
     if (typeof current === 'string') {

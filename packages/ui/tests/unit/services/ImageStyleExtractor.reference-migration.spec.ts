@@ -328,4 +328,59 @@ describe('ImageStyleExtractor reference migration pipeline', () => {
       场景主题: '',
     })
   })
+
+  it('会将中文书名号包裹的变量占位规范化为双花括号', async () => {
+    const templateManager = {
+      getTemplate: vi.fn().mockResolvedValue({
+        id: 'image-prompt-migration',
+        name: 'Migrate Prompt With Reference Image',
+        content: 'unused',
+        metadata: {
+          version: '1.0.0',
+          lastModified: Date.now(),
+          templateType: 'image-prompt-migration',
+          language: 'zh',
+        },
+      }),
+    }
+
+    mockProcessTemplate.mockReturnValue([
+      { role: 'system', content: 'migrate prompt with image style' },
+      { role: 'user', content: 'keep original subject, transfer the image style' },
+    ])
+
+    mockUnderstand.mockResolvedValue({
+      content: JSON.stringify({
+        prompt: {
+          主体: '一个「主体人物」，「人物动作」',
+          背景: '保留参考图的「背景元素」和灯光结构',
+        },
+        defaults: {
+          主体人物: '年轻男生',
+          人物动作: '戴着耳机，侧脸特写',
+          背景元素: '城市夜景',
+        },
+      }),
+    })
+
+    const preview = await resolveReferencePromptPreview({
+      mode: 'migrate',
+      originalPrompt: '一个戴着耳机的年轻男生侧脸特写',
+      imageB64: 'ZmFrZS1pbWFnZQ==',
+      mimeType: 'image/png',
+      modelConfig,
+      templateManager: templateManager as any,
+      referenceMode: 'text2image',
+    })
+
+    expect(preview.prompt).toContain('{{主体人物}}')
+    expect(preview.prompt).toContain('{{人物动作}}')
+    expect(preview.prompt).toContain('{{背景元素}}')
+    expect(preview.prompt).not.toContain('「主体人物」')
+    expect(preview.variableDefaults).toEqual({
+      主体人物: '年轻男生',
+      人物动作: '戴着耳机，侧脸特写',
+      背景元素: '城市夜景',
+    })
+  })
 })

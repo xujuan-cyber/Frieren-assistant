@@ -37,33 +37,6 @@
                             type="tertiary"
                             size="small"
                             ghost
-                            class="header-utility-button"
-                            data-testid="image-image2image-extract-button"
-                            :loading="isExtractingFromImage"
-                            @click="openExtractImagePicker"
-                            :disabled="
-                                isExtractingFromImage ||
-                                isOptimizing
-                            "
-                        >
-                            <template #icon>
-                                <NIcon>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z" />
-                                    </svg>
-                                </NIcon>
-                            </template>
-                            {{
-                                isExtractingFromImage
-                                    ? t('imageWorkspace.input.extracting')
-                                    : t('imageWorkspace.input.extractFromImage')
-                            }}
-                        </NButton>
-                        <NButton
-                            type="tertiary"
-                            size="small"
-                            ghost
                             round
                             @click="isInputPanelCollapsed = false"
                             :title="t('common.expand')"
@@ -91,47 +64,6 @@
                             }}</NText
                         >
                         <NFlex align="center" :size="8">
-                            <NButton
-                                type="tertiary"
-                                size="small"
-                                ghost
-                                class="header-utility-button"
-                                data-testid="image-image2image-extract-button"
-                                :loading="isExtractingFromImage"
-                                @click="openExtractImagePicker"
-                                :disabled="
-                                    isExtractingFromImage ||
-                                    isOptimizing
-                                "
-                            >
-                                <template #icon>
-                                    <NIcon>
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z"
-                                            />
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z"
-                                            />
-                                        </svg>
-                                    </NIcon>
-                                </template>
-                                {{
-                                    isExtractingFromImage
-                                        ? t('imageWorkspace.input.extracting')
-                                        : t('imageWorkspace.input.extractFromImage')
-                                }}
-                            </NButton>
                             <NButton
                                 type="tertiary"
                                 size="small"
@@ -392,7 +324,6 @@
                                     :loading="isOptimizing"
                                     @click="handleOptimizePrompt"
                                     :disabled="
-                                        isExtractingFromImage ||
                                         isOptimizing ||
                                         !originalPrompt.trim() ||
                                         !selectedTextModelKey ||
@@ -410,14 +341,6 @@
                     </NGrid>
                 </NSpace>
             </NCard>
-
-            <input
-                ref="extractImageInputRef"
-                type="file"
-                accept="image/png,image/jpeg"
-                style="display: none"
-                @change="handleExtractImageFileChange"
-            />
 
             <!-- 优化结果区域 - 使用与基础模式一致的卡片容器 -->
             <NCard
@@ -814,10 +737,6 @@ import type { SelectOption } from "../../types/select-options";
 import { useToast } from "../../composables/ui/useToast";
 import { getI18nErrorMessage } from '../../utils/error'
 import { downloadImageSource } from '../../utils/image-download'
-import {
-    resolveReferencePromptPreview,
-} from '../../services/ImageStyleExtractor'
-import { replaceTemporaryVariablesForPrompt } from '../../utils/image-prompt-extraction'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
@@ -845,7 +764,6 @@ import {
 } from '../../stores/session/useImageImage2ImageSession'
 import { useImageGeneration } from '../../composables/image/useImageGeneration'
 import ImageTokenUsage from './ImageTokenUsage.vue'
-import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useElementSize } from '@vueuse/core'
@@ -860,7 +778,6 @@ import {
     type PromptRecordChain,
     type PromptRecordType,
     type Template,
-    type TextModelConfig,
 } from '@prompt-optimizer/core'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -963,8 +880,6 @@ const promptService = computed(() => services.value?.promptService)
 // 过程态（本地，不持久化）
 const isOptimizing = ref(false)
 const isIterating = ref(false)
-const isExtractingFromImage = ref(false)
-const extractImageInputRef = ref<HTMLInputElement | null>(null)
 const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
 const uploadProgress = ref(0)
 
@@ -1006,8 +921,6 @@ const optimizedReasoning = computed<string>({
 // Text 模型选择（与模板选择对齐：自动刷新 + 兜底写回 session store）
 const modelSelection = useWorkspaceTextModelSelection(services, session)
 const selectedTextModelKey = modelSelection.selectedTextModelKey
-const functionModelManager = useFunctionModelManager(services)
-const effectiveImageRecognitionModelKey = functionModelManager.effectiveImageRecognitionModel
 
 const selectedImageModelKey = computed<string>({
     get: () => session.selectedImageModelKey || '',
@@ -1049,55 +962,6 @@ const previewImageUrl = computed(() => {
     const mimeType = inputImageMime.value || 'image/png'
     return `data:${mimeType};base64,${inputImageB64.value}`
 })
-
-const ensureModelManagerInitializedIfSupported = async (manager: unknown) => {
-    if (!manager || typeof manager !== 'object') return
-
-    const maybeInitializable = manager as { ensureInitialized?: () => Promise<void> }
-    if (typeof maybeInitializable.ensureInitialized === 'function') {
-        await maybeInitializable.ensureInitialized()
-    }
-}
-
-const getImageRecognitionModelConfig = async (): Promise<TextModelConfig> => {
-    const manager = services.value?.modelManager
-    if (!manager) {
-        throw new Error(t('toast.error.serviceInit'))
-    }
-
-    await ensureModelManagerInitializedIfSupported(manager)
-    await functionModelManager.initialize()
-
-    const modelKey = functionModelManager.effectiveImageRecognitionModel.value || ''
-    if (!modelKey) {
-        throw new Error(t('functionModel.noImageRecognitionModel'))
-    }
-
-    const modelConfig = await manager.getModel(modelKey)
-    if (!modelConfig) {
-        throw new Error(t('functionModel.noImageRecognitionModel'))
-    }
-
-    return modelConfig
-}
-
-const openFunctionModelManager = () => {
-    if (appOpenModelManager) {
-        appOpenModelManager('function')
-        return
-    }
-
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-            new CustomEvent('model-manager:set-tab', { detail: 'function' }),
-        )
-    }
-}
-
-const promptConfigureImageRecognitionModel = () => {
-    toast.error(t('functionModel.noImageRecognitionModel'))
-    openFunctionModelManager()
-}
 
 // 固定模板类型
 const templateType = computed(() => "image2imageOptimize" as const)
@@ -1778,122 +1642,6 @@ const promptSummary = computed(() => {
         ? originalPrompt.value.slice(0, 50) + '...'
         : originalPrompt.value;
 });
-
-const resetExtractedPromptArtifacts = () => {
-    currentChainId.value = ''
-    currentVersions.value = []
-    currentVersionId.value = ''
-
-    session.updateOptimizedResult({
-        optimizedPrompt: '',
-        reasoning: '',
-        chainId: '',
-        versionId: '',
-    })
-
-}
-
-const readImageFileAsBase64 = (file: File): Promise<{ base64: string; mimeType: string }> =>
-    new Promise((resolve, reject) => {
-        const reader = new FileReader()
-
-        reader.onload = () => {
-            const dataUrl = reader.result as string
-            const base64 = dataUrl.split(',')[1]
-            resolve({
-                base64,
-                mimeType: file.type || 'image/png',
-            })
-        }
-
-        reader.onerror = () => {
-            reject(new Error(t('imageWorkspace.upload.readFailed')))
-        }
-
-        reader.readAsDataURL(file)
-    })
-
-const extractPromptFromReferenceImage = async (imageB64: string, mimeType: string) => {
-    if (!effectiveImageRecognitionModelKey.value) {
-        toast.error(t('functionModel.noImageRecognitionModel'))
-        return
-    }
-
-    const modelConfig = await getImageRecognitionModelConfig()
-    const result = await resolveReferencePromptPreview({
-        mode: 'replicate',
-        originalPrompt: '',
-        imageB64,
-        mimeType: mimeType || 'image/png',
-        modelConfig,
-        templateManager: services.value?.templateManager,
-        referenceMode: 'image2image',
-    })
-
-    const variableCount = replaceTemporaryVariablesForPrompt(
-        result.prompt,
-        result.variableDefaults,
-        () => tempVarsManager.listVariables(),
-        (name, value) => tempVarsManager.setVariable(name, value),
-        (name) => tempVarsManager.deleteVariable(name),
-    )
-
-    resetExtractedPromptArtifacts()
-    originalPrompt.value = result.prompt
-
-    toast.success(
-        variableCount > 0
-            ? t('imageWorkspace.input.extractCompletedWithVariables', {
-                count: variableCount,
-            })
-            : t('imageWorkspace.input.extractCompleted'),
-    )
-}
-
-const openExtractImagePicker = () => {
-    if (!effectiveImageRecognitionModelKey.value) {
-        promptConfigureImageRecognitionModel()
-        return
-    }
-
-    extractImageInputRef.value?.click()
-}
-
-const handleExtractImageFileChange = async (event: Event) => {
-    const input = event.target as HTMLInputElement | null
-    const file = input?.files?.[0] || null
-
-    if (input) {
-        input.value = ''
-    }
-
-    if (!file || isExtractingFromImage.value) {
-        return
-    }
-
-    if (!/image\/(png|jpeg)/.test(file.type)) {
-        toast.error(t('imageWorkspace.upload.fileTypeNotSupported'))
-        return
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-        toast.error(t('imageWorkspace.upload.fileTooLarge'))
-        return
-    }
-
-    isExtractingFromImage.value = true
-
-    try {
-        const { base64, mimeType } = await readImageFileAsBase64(file)
-        await extractPromptFromReferenceImage(base64, mimeType)
-    } catch (error) {
-        toast.error(
-            getI18nErrorMessage(error, t('imageWorkspace.input.extractFailed')),
-        )
-    } finally {
-        isExtractingFromImage.value = false
-    }
-}
 
 // 注入 App 层统一的 openTemplateManager / openModelManager / handleSaveFavorite 接口
 type TemplateEntryType =
