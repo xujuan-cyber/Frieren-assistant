@@ -84,6 +84,7 @@ export default {
     error: "Error",
     warning: "Warning",
     info: "Info",
+    download: "Download",
     deleteConfirmation: "Are you sure you want to delete this?",
     editingDisabledDuringStream:
       "Editing is disabled while content is being generated",
@@ -2007,23 +2008,23 @@ export default {
     },
 
     referenceImage: {
-      dialogTitle: "Apply Reference Image",
-      selectImage: "Upload Reference Image",
-      usageMode: "How To Use This Reference",
-      styleTransfer: "Style Transfer",
-      styleTransferDescription:
-        "Learn from the image style and adapt it on top of your current prompt",
-      replicateImage: "Replicate Image",
-      replicateImageDescription:
-        "Discard the original prompt and infer a matching prompt from the reference image",
-      generatingPreview: "Analyzing the reference image and generating the prompt",
-      detectedCurrentPromptTitle: "Detected Current Prompt",
+      replicateAction: "Replicate",
+      replicateActionDescription:
+        "Ignore the current prompt and infer a reusable prompt from the reference image",
+      styleLearnAction: "Style Learn",
+      styleLearnActionDescription:
+        "Keep the current subject and learn the style, composition, and color language from the image",
+      styleLearnDisabledHint: "Enter what you want to generate first",
+      processingStatus: "Processing",
+      readyStatus: "Ready",
+      errorStatus: "Failed",
+      resultTitle: "Reference Result",
+      thumbnailAlt: "Reference thumbnail",
       generatedPrompt: "Generated Prompt",
       variablePreview: "Extracted Variables",
-      variableValuePlaceholder: "Enter variable value",
       noVariables: "No variables have been extracted yet",
       applyToPrompt: "Apply To Current Prompt",
-      applySuccess: "Reference result has been applied to the current prompt",
+      applySuccess: "Inserted into the current prompt",
     },
 
     // Image generation area

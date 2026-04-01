@@ -33,33 +33,69 @@
                         </NText>
                     </NFlex>
                     <NFlex align="center" :size="8">
-                        <NButton
-                            type="tertiary"
-                            size="small"
-                            ghost
-                            class="header-utility-button"
-                            data-testid="image-text2image-extract-button"
-                            :loading="isExtractingFromImage"
-                            @click="openReferenceImageDialog"
-                            :disabled="
-                                isExtractingFromImage ||
-                                isOptimizing
-                            "
-                        >
-                            <template #icon>
-                                <NIcon>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z" />
-                                    </svg>
-                                </NIcon>
-                            </template>
-                            {{
-                                isExtractingFromImage
-                                    ? t('imageWorkspace.input.extracting')
-                                    : t('imageWorkspace.input.extractFromImage')
-                            }}
-                        </NButton>
+                        <NFlex align="center" :size="6" class="reference-action-toolbar">
+                            <NTooltip
+                                v-for="button in referenceActionButtons"
+                                :key="button.kind"
+                                trigger="hover"
+                                :overlay-style="referenceActionTooltipOverlayStyle"
+                                :content-style="referenceActionTooltipContentStyle"
+                                :theme-overrides="referenceActionTooltipThemeOverrides"
+                                to="body"
+                                :flip="true"
+                            >
+                                <template #trigger>
+                                    <span class="reference-action-button-wrap">
+                                        <NButton
+                                            type="tertiary"
+                                            size="small"
+                                            ghost
+                                            class="header-utility-button"
+                                            :data-testid="`reference-action-${button.kind}-button`"
+                                            :loading="button.loading"
+                                            :disabled="button.disabled"
+                                            @click="triggerReferenceAction(button.kind)"
+                                        >
+                                            <template #icon>
+                                                <NIcon>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z" />
+                                                    </svg>
+                                                </NIcon>
+                                            </template>
+                                            {{ t(button.labelKey) }}
+                                        </NButton>
+                                    </span>
+                                </template>
+                                {{ t(button.tooltipKey) }}
+                            </NTooltip>
+
+                            <div
+                                v-if="referenceAction.hasSourceImage || referenceAction.status !== 'idle'"
+                                class="reference-action-anchor"
+                            >
+                                <AppPreviewImage
+                                    v-if="referenceAction.sourceImagePreviewUrl"
+                                    class="reference-action-thumbnail"
+                                    :src="referenceAction.sourceImagePreviewUrl"
+                                    :alt="t('imageWorkspace.referenceImage.thumbnailAlt')"
+                                    width="40"
+                                    height="40"
+                                    object-fit="cover"
+                                />
+
+                                <NTag
+                                    v-if="referenceActionStatusLabelKey"
+                                    size="small"
+                                    :bordered="false"
+                                    :type="referenceAction.status === 'error' ? 'error' : 'default'"
+                                    class="reference-action-status"
+                                >
+                                    {{ t(referenceActionStatusLabelKey) }}
+                                </NTag>
+                            </div>
+                        </NFlex>
                         <NButton
                             type="tertiary"
                             size="small"
@@ -91,47 +127,83 @@
                             }}</NText
                         >
                         <NFlex align="center" :size="8">
-                            <NButton
-                                type="tertiary"
-                                size="small"
-                                ghost
-                                class="header-utility-button"
-                                data-testid="image-text2image-extract-button"
-                                :loading="isExtractingFromImage"
-                                @click="openReferenceImageDialog"
-                                :disabled="
-                                    isExtractingFromImage ||
-                                    isOptimizing
-                                "
-                            >
-                                <template #icon>
-                                    <NIcon>
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z"
-                                            />
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z"
-                                            />
-                                        </svg>
-                                    </NIcon>
-                                </template>
-                                {{
-                                    isExtractingFromImage
-                                        ? t('imageWorkspace.input.extracting')
-                                        : t('imageWorkspace.input.extractFromImage')
-                                }}
-                            </NButton>
+                            <NFlex align="center" :size="6" class="reference-action-toolbar">
+                                <NTooltip
+                                    v-for="button in referenceActionButtons"
+                                    :key="button.kind"
+                                    trigger="hover"
+                                    :overlay-style="referenceActionTooltipOverlayStyle"
+                                    :content-style="referenceActionTooltipContentStyle"
+                                    :theme-overrides="referenceActionTooltipThemeOverrides"
+                                    to="body"
+                                    :flip="true"
+                                >
+                                    <template #trigger>
+                                        <span class="reference-action-button-wrap">
+                                            <NButton
+                                                type="tertiary"
+                                                size="small"
+                                                ghost
+                                                class="header-utility-button"
+                                                :data-testid="`reference-action-${button.kind}-button`"
+                                                :loading="button.loading"
+                                                :disabled="button.disabled"
+                                                @click="triggerReferenceAction(button.kind)"
+                                            >
+                                                <template #icon>
+                                                    <NIcon>
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            stroke-width="1.8"
+                                                        >
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z"
+                                                            />
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z"
+                                                            />
+                                                        </svg>
+                                                    </NIcon>
+                                                </template>
+                                                {{ t(button.labelKey) }}
+                                            </NButton>
+                                        </span>
+                                    </template>
+                                    {{ t(button.tooltipKey) }}
+                                </NTooltip>
+
+                                <div
+                                    v-if="referenceAction.hasSourceImage || referenceAction.status !== 'idle'"
+                                    class="reference-action-anchor"
+                                >
+                                    <AppPreviewImage
+                                        v-if="referenceAction.sourceImagePreviewUrl"
+                                        class="reference-action-thumbnail"
+                                        :src="referenceAction.sourceImagePreviewUrl"
+                                        :alt="t('imageWorkspace.referenceImage.thumbnailAlt')"
+                                        width="40"
+                                        height="40"
+                                        object-fit="cover"
+                                    />
+
+                                    <NTag
+                                        v-if="referenceActionStatusLabelKey"
+                                        size="small"
+                                        :bordered="false"
+                                        :type="referenceAction.status === 'error' ? 'error' : 'default'"
+                                        class="reference-action-status"
+                                    >
+                                        {{ t(referenceActionStatusLabelKey) }}
+                                    </NTag>
+                                </div>
+                            </NFlex>
                             <NButton
                                 type="tertiary"
                                 size="small"
@@ -602,7 +674,7 @@
                                                         </FocusAnalyzeButton>
                                                     </div>
                                                 </NFlex>
-                                                <NImage
+                                                <AppPreviewImage
                                                     :data-testid="getVariantImageTestId(id)"
                                                     :src="getImageSrc(getVariantResult(id)?.images?.[0])"
                                                     object-fit="contain"
@@ -692,234 +764,6 @@
             </div>
         </div>
 
-        <NModal
-            :show="referenceDialog.showDialog"
-            :mask-closable="!isExtractingFromImage"
-            @update:show="handleReferenceDialogShowChange"
-        >
-            <NCard
-                class="reference-dialog-card"
-                :bordered="false"
-                data-testid="reference-image-dialog"
-            >
-                <template #header>
-                    {{ t('imageWorkspace.referenceImage.dialogTitle') }}
-                </template>
-
-                <NSpace vertical :size="16">
-                    <NCard size="small" embedded class="reference-dialog-section">
-                        <div
-                            class="reference-dialog-source-picker"
-                            :class="{ 'reference-dialog-source-picker--disabled': isExtractingFromImage }"
-                            role="button"
-                            tabindex="0"
-                            @click="triggerReferenceImageUpload"
-                            @keydown.enter.prevent="triggerReferenceImageUpload"
-                            @keydown.space.prevent="triggerReferenceImageUpload"
-                        >
-                            <div
-                                class="reference-dialog-thumbnail"
-                                :class="{ 'reference-dialog-thumbnail--empty': !referenceDialog.sourceImagePreviewUrl }"
-                            >
-                                <NImage
-                                    v-if="referenceDialog.sourceImagePreviewUrl"
-                                    :src="referenceDialog.sourceImagePreviewUrl"
-                                    :alt="t('imageWorkspace.referenceImage.selectImage')"
-                                    object-fit="cover"
-                                    width="100%"
-                                    height="100%"
-                                    preview-disabled
-                                />
-                                <div v-else class="reference-dialog-thumbnail__empty">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        stroke-width="1.8"
-                                        class="reference-dialog-thumbnail__icon"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M4.5 7.5h3l1.2-1.8A1.5 1.5 0 0110 5h4a1.5 1.5 0 011.3.7l1.2 1.8h3A1.5 1.5 0 0121 9v8.5A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5V9a1.5 1.5 0 011.5-1.5Z"
-                                        />
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M9 12.5a3 3 0 106 0 3 3 0 00-6 0Z"
-                                        />
-                                    </svg>
-                                    <NText depth="3" class="reference-dialog-thumbnail__label">
-                                        {{ t('imageWorkspace.referenceImage.selectImage') }}
-                                    </NText>
-                                </div>
-                            </div>
-                        </div>
-                    </NCard>
-
-                    <NCard
-                        v-if="referenceDialog.hasProcessingStage"
-                        size="small"
-                        embedded
-                        class="reference-dialog-section reference-dialog-status"
-                    >
-                        <NFlex align="start" :size="12" :wrap="false">
-                            <NSpin size="small" class="reference-dialog-status__spinner" />
-                            <NSpace vertical :size="10" class="reference-dialog-status__body">
-                                <NText :depth="2" strong class="reference-dialog-section__title">
-                                    {{ t(referenceDialog.currentProcessingStageLabelKey) }}
-                                </NText>
-                                <NFlex
-                                    v-if="referenceDialog.showProcessingStageOptions"
-                                    :size="8"
-                                    wrap
-                                >
-                                    <NTag
-                                        v-for="stage in referenceDialog.processingStageOptions"
-                                        :key="stage.value"
-                                        size="small"
-                                        :type="stage.value === referenceDialog.processingStage ? 'primary' : 'default'"
-                                        :bordered="stage.value !== referenceDialog.processingStage"
-                                    >
-                                        {{ t(stage.labelKey) }}
-                                    </NTag>
-                                </NFlex>
-                            </NSpace>
-                        </NFlex>
-                    </NCard>
-
-                    <NCard
-                        v-if="referenceDialog.showModeSwitch"
-                        size="small"
-                        embedded
-                        class="reference-dialog-section reference-dialog-current-prompt"
-                    >
-                        <NSpace vertical :size="8">
-                            <NText :depth="2" strong class="reference-dialog-section__title">
-                                {{ t('imageWorkspace.referenceImage.detectedCurrentPromptTitle') }}
-                            </NText>
-                            <NText depth="3">
-                                {{ referenceDialog.detectedOriginalPromptPreview }}
-                            </NText>
-                        </NSpace>
-                    </NCard>
-
-                    <NCard
-                        v-if="referenceDialog.showModeSwitch"
-                        size="small"
-                        embedded
-                        class="reference-dialog-section"
-                    >
-                        <NSpace vertical :size="8">
-                            <NText :depth="2" strong class="reference-dialog-section__title">
-                                {{ t('imageWorkspace.referenceImage.usageMode') }}
-                            </NText>
-                            <NRadioGroup
-                                :value="referenceDialog.mode"
-                                @update:value="handleReferenceDialogModeChange"
-                            >
-                                <NFlex vertical :size="12" class="reference-dialog-mode-list">
-                                    <NRadio value="migrate">
-                                        <NFlex vertical :size="2" class="reference-dialog-mode-option">
-                                            <NText strong>
-                                                {{ t('imageWorkspace.referenceImage.styleTransfer') }}
-                                            </NText>
-                                            <NText depth="3">
-                                                {{ t('imageWorkspace.referenceImage.styleTransferDescription') }}
-                                            </NText>
-                                        </NFlex>
-                                    </NRadio>
-                                    <NRadio value="replicate">
-                                        <NFlex vertical :size="2" class="reference-dialog-mode-option">
-                                            <NText strong>
-                                                {{ t('imageWorkspace.referenceImage.replicateImage') }}
-                                            </NText>
-                                            <NText depth="3">
-                                                {{ t('imageWorkspace.referenceImage.replicateImageDescription') }}
-                                            </NText>
-                                        </NFlex>
-                                    </NRadio>
-                                </NFlex>
-                            </NRadioGroup>
-                        </NSpace>
-                    </NCard>
-
-                    <NCard size="small" embedded class="reference-dialog-section">
-                        <div class="reference-dialog-results-grid">
-                            <NSpace vertical :size="8" class="reference-dialog-prompt-panel">
-                                <NText :depth="2" strong class="reference-dialog-section__title">
-                                    {{ t('imageWorkspace.referenceImage.generatedPrompt') }}
-                                </NText>
-                                <NInput
-                                    class="reference-dialog-prompt-input"
-                                    type="textarea"
-                                    :value="referenceDialog.workingPrompt"
-                                    data-testid="reference-image-prompt-input"
-                                    :placeholder="''"
-                                    :autosize="{ minRows: 8, maxRows: 16 }"
-                                    :disabled="isExtractingFromImage"
-                                    @update:value="referenceDialog.updatePrompt"
-                                />
-                            </NSpace>
-
-                            <NSpace vertical :size="8" class="reference-dialog-variables-panel">
-                                <NText :depth="2" strong class="reference-dialog-section__title">
-                                    {{ t('imageWorkspace.referenceImage.variablePreview') }}
-                                </NText>
-                                <NEmpty
-                                    v-if="referenceDialogVariableEntries.length === 0"
-                                    :description="t('imageWorkspace.referenceImage.noVariables')"
-                                    size="small"
-                                >
-                                </NEmpty>
-                                <div
-                                    v-else
-                                    class="reference-dialog-variables"
-                                >
-                                    <div
-                                        v-for="[name, value] in referenceDialogVariableEntries"
-                                        :key="name"
-                                        class="reference-dialog-variable-row"
-                                    >
-                                        <NText depth="2" class="reference-dialog-variable-name">
-                                            {{ name }}
-                                        </NText>
-                                        <NInput
-                                            :value="value"
-                                            :placeholder="t('imageWorkspace.referenceImage.variableValuePlaceholder')"
-                                            :disabled="isExtractingFromImage"
-                                            @update:value="(nextValue) => referenceDialog.updateVariableValue(name, nextValue)"
-                                        />
-                                    </div>
-                                </div>
-                            </NSpace>
-                        </div>
-                    </NCard>
-
-                    <NFlex justify="end" :size="8">
-                        <NButton
-                            :disabled="isExtractingFromImage"
-                            @click="closeReferenceImageDialog"
-                        >
-                            {{ t('common.cancel') }}
-                        </NButton>
-                        <NButton
-                            type="primary"
-                            data-testid="reference-image-apply-button"
-                            :disabled="
-                                isExtractingFromImage ||
-                                !referenceDialog.canApply
-                            "
-                            @click="handleReferenceDialogApply"
-                        >
-                            {{ t('imageWorkspace.referenceImage.applyToPrompt') }}
-                        </NButton>
-                    </NFlex>
-                </NSpace>
-            </NCard>
-        </NModal>
-
         <EvaluationPanel
             v-model:show="evaluation.isPanelVisible.value"
             :is-evaluating="panelProps.isEvaluating"
@@ -988,19 +832,15 @@ import {
     NInput,
     NEmpty,
     NSpace,
-    NImage,
     NText,
     NFlex,
     NGrid,
     NGridItem,
     NIcon,
     NTag,
-    NModal,
-    NRadioButton,
     NRadioGroup,
-    NRadio,
+    NRadioButton,
     NTooltip,
-    NSpin,
 } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
@@ -1012,6 +852,7 @@ import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPro
 import { OptionAccessors } from "../../utils/data-transformer";
 import type { AppServices } from "../../types/services";
 import { useFullscreen } from "../../composables/ui/useFullscreen";
+import { useTooltipTheme } from '../../composables/ui/useTooltipTheme'
 import FullscreenDialog from "../FullscreenDialog.vue";
 import type { SelectOption } from "../../types/select-options";
 import { useToast } from "../../composables/ui/useToast";
@@ -1019,11 +860,11 @@ import { getI18nErrorMessage } from '../../utils/error'
 import {
     resolveReferencePromptPreview,
     type ReferenceApplicationMode,
-    type ReferencePromptResolutionStage,
 } from '../../services/ImageStyleExtractor'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
+import AppPreviewImage from '../media/AppPreviewImage.vue'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
@@ -1050,9 +891,9 @@ import {
 } from '../../stores/session/useImageText2ImageSession'
 import { useImageGeneration } from '../../composables/image/useImageGeneration'
 import {
-    useReferencePromptDialog,
-    type ReferenceDialogProcessingStage,
-} from '../../composables/image/useReferencePromptDialog'
+    useReferenceImageActions,
+    type ReferenceActionKind,
+} from '../../composables/image/useReferenceImageActions'
 import ImageTokenUsage from './ImageTokenUsage.vue'
 import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
@@ -1086,6 +927,16 @@ const { t } = useI18n();
 
 // Toast
 const toast = useToast();
+const {
+    tooltipThemeOverrides: referenceActionTooltipThemeOverrides,
+    tooltipOverlayStyle: referenceActionTooltipOverlayStyle,
+    tooltipContentStyle: referenceActionTooltipContentStyle,
+} = useTooltipTheme({
+    maxWidth: '220px',
+    whiteSpace: 'normal',
+    overflowWrap: 'break-word',
+    padding: '10px 12px',
+})
 
 // 服务注入
 const services = inject<Ref<AppServices | null>>("services", ref(null));
@@ -1183,8 +1034,8 @@ type ReferenceImagePayload = {
 }
 
 const referenceImagePayload = ref<ReferenceImagePayload | null>(null)
-const referenceDialogPendingCount = ref(0)
-const referenceDialogPreviewToken = ref(0)
+const referenceActionPendingCount = ref(0)
+const referenceActionPreviewToken = ref(0)
 
 // 历史管理专用 ref（不写入 session store）
 const currentChainId = ref('')
@@ -2284,9 +2135,8 @@ const syncTemporaryVariables = (variables: Record<string, string>) => {
     }
 }
 
-const referenceDialog = reactive(useReferencePromptDialog({
+const referenceAction = reactive(useReferenceImageActions({
     getCurrentPrompt: () => originalPrompt.value,
-    getCurrentVariables: () => tempVarsManager.listVariables(),
     applyPrompt: (prompt) => {
         originalPrompt.value = prompt
     },
@@ -2296,9 +2146,40 @@ const referenceDialog = reactive(useReferencePromptDialog({
     resetPromptArtifacts: resetExtractedPromptArtifacts,
 }))
 
-const referenceDialogVariableEntries = computed(() =>
-    Object.entries(referenceDialog.workingVariables),
-)
+const referenceActionButtons = computed(() => ([
+    {
+        kind: 'replicate' as ReferenceActionKind,
+        labelKey: 'imageWorkspace.referenceImage.replicateAction',
+        tooltipKey: 'imageWorkspace.referenceImage.replicateActionDescription',
+        loading: isExtractingFromImage.value && referenceAction.actionKind === 'replicate',
+        disabled: isExtractingFromImage.value || isOptimizing.value,
+    },
+    {
+        kind: 'style-learn' as ReferenceActionKind,
+        labelKey: 'imageWorkspace.referenceImage.styleLearnAction',
+        tooltipKey: referenceAction.canTriggerStyleLearning
+            ? 'imageWorkspace.referenceImage.styleLearnActionDescription'
+            : 'imageWorkspace.referenceImage.styleLearnDisabledHint',
+        loading: isExtractingFromImage.value && referenceAction.actionKind === 'style-learn',
+        disabled: isExtractingFromImage.value || isOptimizing.value || !referenceAction.canTriggerStyleLearning,
+    },
+]))
+
+const referenceActionStatusLabelKey = computed(() => {
+    if (referenceAction.status === 'processing') {
+        return 'imageWorkspace.referenceImage.processingStatus'
+    }
+
+    if (referenceAction.status === 'ready') {
+        return 'imageWorkspace.referenceImage.readyStatus'
+    }
+
+    if (referenceAction.status === 'error') {
+        return 'imageWorkspace.referenceImage.errorStatus'
+    }
+
+    return ''
+})
 
 const readImageFileAsBase64 = (file: File): Promise<{ base64: string; mimeType: string }> =>
     new Promise((resolve, reject) => {
@@ -2320,77 +2201,70 @@ const readImageFileAsBase64 = (file: File): Promise<{ base64: string; mimeType: 
         reader.readAsDataURL(file)
     })
 
-const resolveReferenceDialogPreview = async (
-    nextMode: ReferenceApplicationMode = referenceDialog.mode,
-    previewToken: number = referenceDialogPreviewToken.value,
+const resolveReferenceActionMode = (
+    actionKind: ReferenceActionKind,
+): ReferenceApplicationMode => (actionKind === 'style-learn' ? 'migrate' : 'replicate')
+
+const resolveReferenceActionPreview = async (
+    actionKind: ReferenceActionKind = referenceAction.actionKind,
+    previewToken: number = referenceActionPreviewToken.value,
 ) => {
     if (!referenceImagePayload.value) {
-        return
+        return false
     }
 
     const modelConfig = await getImageRecognitionModelConfig()
 
     const preview = await resolveReferencePromptPreview({
-        mode: nextMode,
-        originalPrompt: originalPrompt.value,
+        mode: resolveReferenceActionMode(actionKind),
+        originalPrompt: referenceAction.currentPromptSnapshot,
         modelConfig,
         imageB64: referenceImagePayload.value.base64,
         mimeType: referenceImagePayload.value.mimeType || 'image/png',
         templateManager: services.value?.templateManager,
         referenceMode: 'text2image',
-        onStageChange: (stage: ReferencePromptResolutionStage) => {
-            referenceDialog.setProcessingStage(stage)
-        },
     })
 
-    if (previewToken !== referenceDialogPreviewToken.value) {
-        return
+    if (previewToken !== referenceActionPreviewToken.value) {
+        return false
     }
 
-    referenceDialog.setGeneratedPreview(preview)
+    referenceAction.setResultPreview(preview)
+    if (!referenceAction.applyToCurrentPrompt()) {
+        return false
+    }
+
+    queueSessionSave()
+    toast.success(t('imageWorkspace.referenceImage.applySuccess'))
+    return true
 }
 
-const beginReferenceDialogTask = () => {
-    referenceDialogPendingCount.value += 1
+const beginReferenceActionTask = () => {
+    referenceActionPendingCount.value += 1
     isExtractingFromImage.value = true
+    referenceAction.beginProcessing()
 }
 
-const endReferenceDialogTask = () => {
-    referenceDialogPendingCount.value = Math.max(0, referenceDialogPendingCount.value - 1)
-    isExtractingFromImage.value = referenceDialogPendingCount.value > 0
-    if (!isExtractingFromImage.value) {
-        referenceDialog.clearProcessingStage()
-    }
+const endReferenceActionTask = () => {
+    referenceActionPendingCount.value = Math.max(0, referenceActionPendingCount.value - 1)
+    isExtractingFromImage.value = referenceActionPendingCount.value > 0
 }
 
-const createReferenceDialogPreviewToken = () => {
-    referenceDialogPreviewToken.value += 1
-    return referenceDialogPreviewToken.value
+const createReferenceActionPreviewToken = () => {
+    referenceActionPreviewToken.value += 1
+    return referenceActionPreviewToken.value
 }
 
-const openReferenceImageDialog = () => {
-    referenceImagePayload.value = null
-    referenceDialog.openDialog()
-}
-
-const closeReferenceImageDialog = () => {
+const triggerReferenceAction = (actionKind: ReferenceActionKind) => {
     if (isExtractingFromImage.value) {
         return
     }
-    referenceDialog.closeDialog()
-    referenceImagePayload.value = null
-}
 
-const handleReferenceDialogShowChange = (show: boolean) => {
-    if (!show) {
-        closeReferenceImageDialog()
-    }
-}
-
-const triggerReferenceImageUpload = () => {
-    if (isExtractingFromImage.value) {
+    if (actionKind === 'style-learn' && !referenceAction.canTriggerStyleLearning) {
         return
     }
+
+    referenceAction.requestAction(actionKind)
     extractImageInputRef.value?.click()
 }
 
@@ -2421,71 +2295,25 @@ const handleReferenceImageFileChange = async (event: Event) => {
         return
     }
 
-    const previewToken = createReferenceDialogPreviewToken()
-    beginReferenceDialogTask()
-    referenceDialog.setProcessingStage('generating-preview')
+    const nextActionKind = referenceAction.actionKind
+    const previewToken = createReferenceActionPreviewToken()
+    beginReferenceActionTask()
 
     try {
         const { base64, mimeType } = await readImageFileAsBase64(file)
-        referenceDialog.resetGeneratedPreview()
-        referenceDialog.setImageSource({
-            name: file.name,
-            previewUrl: `data:${mimeType || 'image/png'};base64,${base64}`,
-        })
+        referenceAction.setSourceImagePreview(`data:${mimeType || 'image/png'};base64,${base64}`)
         referenceImagePayload.value = {
             base64,
             mimeType: mimeType || 'image/png',
         }
-        await resolveReferenceDialogPreview(referenceDialog.mode, previewToken)
+        await resolveReferenceActionPreview(nextActionKind, previewToken)
     } catch (error) {
-        toast.error(
-            getI18nErrorMessage(error, t('imageWorkspace.input.extractFailed')),
-        )
+        const errorMessage = getI18nErrorMessage(error, t('imageWorkspace.input.extractFailed'))
+        referenceAction.setError(errorMessage)
+        toast.error(errorMessage)
     } finally {
-        endReferenceDialogTask()
+        endReferenceActionTask()
     }
-}
-
-const handleReferenceDialogModeChange = async (value: string | number | boolean) => {
-    const nextMode = value as ReferenceApplicationMode
-    referenceDialog.updateMode(nextMode)
-
-    if (!referenceImagePayload.value) {
-        return
-    }
-
-    const previewToken = createReferenceDialogPreviewToken()
-    beginReferenceDialogTask()
-    referenceDialog.setProcessingStage('generating-preview')
-    try {
-        await resolveReferenceDialogPreview(nextMode, previewToken)
-    } catch (error) {
-        toast.error(
-            getI18nErrorMessage(error, t('imageWorkspace.input.extractFailed')),
-        )
-    } finally {
-        endReferenceDialogTask()
-    }
-}
-
-const handleReferenceDialogApply = () => {
-    const appliedPrompt =
-        referenceDialog.workingPrompt?.trim() ||
-        referenceDialog.generatedPreview?.prompt?.trim() ||
-        referenceDialog.generatedPreview?.rawText?.trim() ||
-        ''
-
-    if (!appliedPrompt) {
-        return
-    }
-
-    originalPrompt.value = appliedPrompt
-    syncTemporaryVariables(referenceDialog.workingVariables)
-    resetExtractedPromptArtifacts()
-    queueSessionSave()
-    referenceDialog.closeDialog()
-    referenceImagePayload.value = null
-    toast.success(t('imageWorkspace.referenceImage.applySuccess'))
 }
 
 // 注入 App 层统一的 openTemplateManager / openModelManager / handleSaveFavorite 接口
@@ -3089,152 +2917,34 @@ onUnmounted(() => {
     font-weight: 500;
 }
 
-.reference-dialog-card {
-    width: min(880px, calc(100vw - 32px));
-    max-height: calc(100vh - 40px);
-    overflow: auto;
-}
-
-.reference-dialog-section {
-    margin: 0;
-}
-
-.reference-dialog-section__title {
-    font-size: 14px;
-}
-
-.reference-dialog-status__body {
-    flex: 1;
+.reference-action-toolbar {
     min-width: 0;
+    flex-wrap: wrap;
 }
 
-.reference-dialog-status__spinner {
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.reference-dialog-source-picker {
+.reference-action-button-wrap {
     display: inline-flex;
-    cursor: pointer;
-    border-radius: 14px;
-    outline: none;
-    transition:
-        transform 120ms ease,
-        box-shadow 120ms ease,
-        opacity 120ms ease;
 }
 
-.reference-dialog-source-picker:hover,
-.reference-dialog-source-picker:focus-visible {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-}
-
-.reference-dialog-source-picker--disabled {
-    cursor: progress;
-    pointer-events: none;
-    opacity: 0.72;
-}
-
-.reference-dialog-mode-list {
-    width: 100%;
-}
-
-.reference-dialog-mode-option {
-    padding-top: 2px;
-}
-
-.reference-dialog-thumbnail {
-    width: 88px;
-    height: 88px;
-    flex-shrink: 0;
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--n-color-embedded);
-    border: 1px solid var(--n-border-color);
-}
-
-.reference-dialog-thumbnail--empty {
-    display: flex;
+.reference-action-anchor {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border: 1px dashed var(--n-border-color);
-    padding: 10px;
-    text-align: center;
-}
-
-.reference-dialog-thumbnail__empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     gap: 6px;
-}
-
-.reference-dialog-thumbnail__icon {
-    width: 22px;
-    height: 22px;
-}
-
-.reference-dialog-thumbnail__label {
-    max-width: 56px;
-    text-align: center;
-    line-height: 1.35;
-}
-
-.reference-dialog-current-prompt {
-    margin: 0;
-}
-
-.reference-dialog-status {
-    margin: 0;
-}
-
-.reference-dialog-results-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 12px;
-    align-items: start;
-}
-
-.reference-dialog-prompt-panel {
     min-width: 0;
 }
 
-.reference-dialog-prompt-input :deep(textarea) {
-    min-height: 220px;
+.reference-action-thumbnail {
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid var(--n-border-color);
+    background: var(--n-color-embedded);
+    flex-shrink: 0;
 }
 
-.reference-dialog-variables-panel {
-    min-height: 220px;
-    max-height: 280px;
-    overflow: auto;
-    padding-right: 4px;
-}
-
-.reference-dialog-variables {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.reference-dialog-variable-row {
-    display: grid;
-    grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
-    gap: 12px;
-    align-items: center;
-}
-
-.reference-dialog-variable-name {
-    word-break: break-word;
-}
-
-@media (max-width: 900px) {
-    .reference-dialog-results-grid {
-        grid-template-columns: 1fr;
-    }
+.reference-action-status {
+    border-radius: 999px;
 }
 
 .split-divider {
