@@ -156,6 +156,41 @@ describe('CloudflareImageAdapter', () => {
       expect(result.metadata?.configId).toBe(config.id)
     })
 
+    test('should retry transient 5xx failures and eventually succeed', async () => {
+      const config = createConfig()
+      const request: ImageRequest = {
+        prompt: 'A bright orange cat sitting by the window',
+        configId: config.id,
+        count: 1
+      }
+
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.resolve({
+            errors: [{ message: 'temporary upstream failure' }]
+          })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            result: {
+              image: 'aGVsbG8='
+            }
+          })
+        })
+
+      const result = await adapter.generate(request, config)
+
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(result.images[0]?.b64).toBe('aGVsbG8=')
+    })
+
     test('should send input images as multipart file uploads for image edits', async () => {
       const config = createConfig()
       const request: ImageRequest = {
@@ -192,6 +227,30 @@ describe('CloudflareImageAdapter', () => {
       expect(result.images[0]?.b64).toBe('ZWRpdGVk')
     })
 
+    test('should not retry non-retryable 4xx failures', async () => {
+      const config = createConfig()
+      const request: ImageRequest = {
+        prompt: 'A bright orange cat sitting by the window',
+        configId: config.id,
+        count: 1
+      }
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: () => Promise.resolve({
+          errors: [{ message: 'invalid prompt' }]
+        })
+      })
+
+      await expect(adapter.generate(request, config))
+        .rejects.toMatchObject({ code: IMAGE_ERROR_CODES.GENERATION_FAILED })
+
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
     test('should reject invalid response payloads', async () => {
       const config = createConfig()
       const request: ImageRequest = {
@@ -213,7 +272,7 @@ describe('CloudflareImageAdapter', () => {
     })
   })
 
-  describe.skipIf(!RUN_REAL_API || !process.env.CF_API_TOKEN || !process.env.CF_ACCOUNT_ID)('Real API Integration', () => {
+  describe.skipIf(!RUN_REAL_API || !process.env.VITE_CF_API_TOKEN || !process.env.VITE_CF_ACCOUNT_ID)('Real API Integration', () => {
     test('should perform a real Cloudflare text-to-image request', async () => {
       const realAdapter = new CloudflareImageAdapter()
       const config: ImageModelConfig = {
@@ -223,8 +282,8 @@ describe('CloudflareImageAdapter', () => {
         modelId: MODEL_ID,
         enabled: true,
         connectionConfig: {
-          apiKey: process.env.CF_API_TOKEN!,
-          accountId: process.env.CF_ACCOUNT_ID!
+          apiKey: process.env.VITE_CF_API_TOKEN!,
+          accountId: process.env.VITE_CF_ACCOUNT_ID!
         },
         paramOverrides: {
           width: 512,
@@ -256,8 +315,8 @@ describe('CloudflareImageAdapter', () => {
         modelId: MODEL_ID,
         enabled: true,
         connectionConfig: {
-          apiKey: process.env.CF_API_TOKEN!,
-          accountId: process.env.CF_ACCOUNT_ID!
+          apiKey: process.env.VITE_CF_API_TOKEN!,
+          accountId: process.env.VITE_CF_ACCOUNT_ID!
         },
         paramOverrides: {
           width: 512,

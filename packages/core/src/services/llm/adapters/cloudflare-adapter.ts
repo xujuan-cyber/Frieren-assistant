@@ -42,6 +42,7 @@ export class CloudflareAdapter extends OpenAIAdapter {
       id: 'cloudflare',
       name: 'Cloudflare',
       description: 'Cloudflare Workers AI 文本模型，支持动态检索可用模型，默认推荐 Qwen3。',
+      corsRestricted: true,
       requiresApiKey: true,
       defaultBaseURL: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/v1',
       supportsDynamicModels: true,

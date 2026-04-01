@@ -15,7 +15,7 @@ describe('image reference prompt contracts', () => {
 
     expect(content).toContain('目标是帮助用户尽可能重现这张图')
     expect(content).toContain('宁可保留具体事实，也不要过度抽象成风格总结')
-    expect(content).toContain('不要为了模板感强行塞入变量')
+    expect(content).toContain('优先提取 2 到 5 个高复用变量')
     expect(content).toContain('默认使用中文')
     expect(content).toContain('{{变量名}}')
   })
@@ -27,6 +27,7 @@ describe('image reference prompt contracts', () => {
     expect(content).toContain('参考图决定怎么画')
     expect(content).toContain('不要把参考图里的主体内容直接搬进结果')
     expect(content).toContain('最终结果本身就是一份可复用的风格迁移结果')
+    expect(content).toContain('优先提取 2 到 5 个高复用变量')
     expect(content).toContain('{{变量名}}')
     expect(content).toContain('默认使用中文')
   })

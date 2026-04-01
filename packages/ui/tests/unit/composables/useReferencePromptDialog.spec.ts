@@ -254,6 +254,7 @@ describe('useReferencePromptDialog', () => {
 
     expect(dialog.processingStage.value).toBe('generating-preview')
     expect(dialog.hasProcessingStage.value).toBe(true)
+    expect(dialog.showProcessingStageOptions.value).toBe(false)
 
     dialog.clearProcessingStage()
     expect(dialog.processingStage.value).toBe('idle')

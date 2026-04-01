@@ -826,6 +826,9 @@ export default {
       label: "Provider",
       placeholder: "Select Provider",
     },
+    connection: {
+      accountId: "Account ID",
+    },
     model: {
       section: "Model Configuration",
     },
@@ -2136,6 +2139,11 @@ export default {
         label: "API Base URL",
         description: "Base URL of the service endpoint",
         placeholder: "https://api.example.com/v1",
+      },
+      accountId: {
+        label: "Account ID",
+        description: "Cloudflare account ID",
+        placeholder: "Enter Cloudflare Account ID",
       },
       organization: {
         label: "Organization (optional)",

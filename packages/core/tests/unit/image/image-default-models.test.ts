@@ -9,6 +9,10 @@ describe('default image models', () => {
 
   beforeEach(() => {
     process.env = { ...env }
+    delete process.env.VITE_CF_API_TOKEN
+    delete process.env.VITE_CF_ACCOUNT_ID
+    delete process.env.CF_API_TOKEN
+    delete process.env.CF_ACCOUNT_ID
     registry = new ImageAdapterRegistry()
   })
 
@@ -61,14 +65,15 @@ describe('default image models', () => {
   })
 
   it('includes Cloudflare configuration when API token and account id are present', () => {
-    process.env.CF_API_TOKEN = 'cloudflare-token'
-    process.env.CF_ACCOUNT_ID = 'cloudflare-account'
+    process.env.VITE_CF_API_TOKEN = 'cloudflare-token'
+    process.env.VITE_CF_ACCOUNT_ID = 'cloudflare-account'
 
     const models = getDefaultImageModels(registry)
     const cloudflareConfig = models['image-cloudflare-flux-klein']
 
     expect(cloudflareConfig).toBeDefined()
     expect(cloudflareConfig.providerId).toBe('cloudflare')
+    expect(cloudflareConfig.provider.corsRestricted).toBe(true)
     expect(cloudflareConfig.modelId).toBe('@cf/black-forest-labs/flux-2-klein-4b')
     expect(cloudflareConfig.connectionConfig?.apiKey).toBe('cloudflare-token')
     expect(cloudflareConfig.connectionConfig?.accountId).toBe('cloudflare-account')
@@ -76,12 +81,24 @@ describe('default image models', () => {
   })
 
   it('disables Cloudflare configuration when account id is missing', () => {
-    process.env.CF_API_TOKEN = 'cloudflare-token'
-    delete process.env.CF_ACCOUNT_ID
+    process.env.VITE_CF_API_TOKEN = 'cloudflare-token'
+    delete process.env.VITE_CF_ACCOUNT_ID
 
     const models = getDefaultImageModels(registry)
 
     expect(models['image-cloudflare-flux-klein']).toBeDefined()
+    expect(models['image-cloudflare-flux-klein'].enabled).toBe(false)
+  })
+
+  it('keeps Cloudflare disabled when only legacy CF_* variables are provided', () => {
+    process.env.CF_API_TOKEN = 'legacy-cloudflare-token'
+    process.env.CF_ACCOUNT_ID = 'legacy-cloudflare-account'
+
+    const models = getDefaultImageModels(registry)
+
+    expect(models['image-cloudflare-flux-klein']).toBeDefined()
+    expect(models['image-cloudflare-flux-klein'].connectionConfig?.apiKey).toBe('')
+    expect(models['image-cloudflare-flux-klein'].connectionConfig?.accountId).toBe('')
     expect(models['image-cloudflare-flux-klein'].enabled).toBe(false)
   })
 })

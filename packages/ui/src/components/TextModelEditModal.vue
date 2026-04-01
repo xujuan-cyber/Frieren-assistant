@@ -40,7 +40,7 @@
           <NFormItem
             v-for="field in connectionFields"
             :key="field.name"
-            :label="field.name === 'apiKey' ? t('modelManager.apiKey') : (field.name === 'baseURL' ? t('modelManager.apiUrl') : field.name)"
+            :label="resolveConnectionFieldLabel(field.name)"
           >
             <template v-if="field.name === 'baseURL'" #label>
               <NSpace align="center" :size="4">
@@ -221,6 +221,7 @@ import {
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
 import ExternalLinkIcon from './icons/ExternalLinkIcon.vue'
 import type { TextModelManager } from '../composables/model/useTextModelManager'
+import { resolveTextConnectionFieldLabel } from '../utils/model-connection-label'
 
 const { show } = defineProps({
   show: {
@@ -265,6 +266,10 @@ const isEditing = computed(() => !!manager.editingModelId.value)
 const currentProviderApiKeyUrl = computed(() => {
   return manager.selectedProvider.value?.apiKeyUrl || null
 })
+
+const resolveConnectionFieldLabel = (fieldName: string) => {
+  return resolveTextConnectionFieldLabel(fieldName, t)
+}
 
 const handleTestFormConnection = async () => {
   const runTest = async () => {

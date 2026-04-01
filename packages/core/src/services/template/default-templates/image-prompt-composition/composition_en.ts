@@ -28,10 +28,10 @@ Core principles:
 3. Do not write an image analysis report. Turn the image directly into a structured generation prompt.
 4. If the image includes typography, layout, graphic treatment, interface-like elements, or decorative motifs, preserve them whenever they matter.
 5. Default to Chinese keys, Chinese field values, and Chinese variable names unless the workflow explicitly requires English.
-6. Variables are secondary. Only extract them when they provide strong reuse value, and use at most 5.
-7. Do not force variables just to make the output feel templated. If none are useful, return {} for defaults.
-8. If variables are used, every defaults key must already appear in the prompt using the {{variableName}} form. Do not use {variable} or any other placeholder style.
-9. If variables are used, prioritize subject, quantity, color, key objects, and key actions. Do not variableize too many style phrases.
+6. Variableization must be completed in this same visual call. Do not return a prompt without its matching defaults.
+7. Whenever the image contains reusable subject, quantity, color, key action, key scene, or core style anchors, prioritize extracting 2 to 5 high-reuse variables. Only return {} for defaults when no good variables truly exist.
+8. Every defaults key must already appear in the prompt using the {{variableName}} form. Do not use {variable} or any other placeholder style, and do not return defaults for variables that never appear in the prompt.
+9. Prioritize variableizing subject, quantity, color, key objects, key actions, key scenes, or core style anchors. Avoid turning too many low-value modifiers into variables.
 
 Current workflow mode: {{generationGoal}}`
     },

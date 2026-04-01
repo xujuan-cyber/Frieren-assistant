@@ -67,6 +67,7 @@ export function useReferencePromptDialog(options: ReferencePromptDialogOptions) 
   const hasGeneratedPreview = computed(() => !!generatedPreview.value)
   const canApply = computed(() => workingPrompt.value.trim().length > 0)
   const hasProcessingStage = computed(() => processingStage.value !== 'idle')
+  const showProcessingStageOptions = computed(() => processingStageOptions.length > 1)
   const currentProcessingStageLabelKey = computed(() => {
     if (processingStage.value === 'idle') {
       return ''
@@ -167,6 +168,7 @@ export function useReferencePromptDialog(options: ReferencePromptDialogOptions) 
     processingStage,
     processingStageOptions,
     hasProcessingStage,
+    showProcessingStageOptions,
     currentProcessingStageLabelKey,
     showModeSwitch,
     hasGeneratedPreview,

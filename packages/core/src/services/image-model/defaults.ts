@@ -14,7 +14,7 @@ const IMAGE_PROVIDER_ENV_KEYS = {
   seedream: ['VITE_SEEDREAM_API_KEY', 'VITE_ARK_API_KEY'],
   dashscope: ['VITE_DASHSCOPE_API_KEY'],
   modelscope: ['VITE_MODELSCOPE_API_KEY'],
-  cloudflare: ['VITE_CF_API_TOKEN', 'CF_API_TOKEN']
+  cloudflare: ['VITE_CF_API_TOKEN']
 } as const
 
 /**
@@ -45,7 +45,7 @@ const IMAGE_BASE_URL_ENV_KEYS: Record<string, string> = {
  */
 const IMAGE_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]>> = {
   cloudflare: {
-    accountId: ['VITE_CF_ACCOUNT_ID', 'CF_ACCOUNT_ID']
+    accountId: ['VITE_CF_ACCOUNT_ID']
   }
 }
 

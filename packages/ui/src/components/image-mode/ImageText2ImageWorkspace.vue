@@ -770,7 +770,11 @@
                                 <NText :depth="2" strong class="reference-dialog-section__title">
                                     {{ t(referenceDialog.currentProcessingStageLabelKey) }}
                                 </NText>
-                                <NFlex :size="8" wrap>
+                                <NFlex
+                                    v-if="referenceDialog.showProcessingStageOptions"
+                                    :size="8"
+                                    wrap
+                                >
                                     <NTag
                                         v-for="stage in referenceDialog.processingStageOptions"
                                         :key="stage.value"

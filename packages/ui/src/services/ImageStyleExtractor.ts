@@ -53,17 +53,19 @@ export async function resolveReferencePromptPreview(
     onStageChange,
   } = options
 
+  const effectiveOriginalPrompt = mode === 'migrate' ? originalPrompt.trim() : ''
+
   if (!modelConfig || !imageB64 || !mimeType) {
     throw new Error('Reference image and image model are required')
   }
 
   const templateId =
-    mode === 'migrate' && originalPrompt.trim()
+    mode === 'migrate' && effectiveOriginalPrompt
       ? IMAGE_PROMPT_MIGRATION_TEMPLATE_ID
       : IMAGE_PROMPT_COMPOSITION_TEMPLATE_ID
 
   const prompts = await buildReferencePromptPrompts(templateManager, templateId, {
-    originalPrompt,
+    originalPrompt: effectiveOriginalPrompt,
     referenceMode,
   })
 
@@ -128,21 +130,22 @@ function normalizeReferencePromptPreview(rawText: string): ReferencePromptPrevie
   const promptObject = normalizePromptObject(
     resolvePromptObject(parsed.prompt ?? parsed.promptJson ?? parsed),
   )
-  const formattedPrompt = JSON.stringify(promptObject, null, 2)
-
-  if (!formattedPrompt || formattedPrompt === 'null') {
-    throw new Error('Model response is not a valid JSON prompt object')
-  }
-
-  const variableNames = scanVariablesFromValue(promptObject).slice(0, MAX_REFERENCE_DIALOG_VARIABLES)
-  const defaults = normalizeVariableDefaults(
-    variableNames,
+  const variableDefaults = normalizeVariableDefaults(
     isRecord(parsed.defaults)
       ? parsed.defaults
       : isRecord(parsed.variableDefaults)
         ? parsed.variableDefaults
         : {},
   )
+  const constrainedPromptObject = constrainPromptVariables(promptObject, variableDefaults)
+  const formattedPrompt = JSON.stringify(constrainedPromptObject, null, 2)
+
+  if (!formattedPrompt || formattedPrompt === 'null') {
+    throw new Error('Model response is not a valid JSON prompt object')
+  }
+
+  const variableNames = scanVariablesFromValue(constrainedPromptObject)
+  const defaults = buildFilteredDefaults(variableNames, variableDefaults)
 
   return {
     prompt: formattedPrompt,
@@ -151,28 +154,25 @@ function normalizeReferencePromptPreview(rawText: string): ReferencePromptPrevie
   }
 }
 
-function normalizeVariableDefaults(
-  variableNames: string[],
-  defaults: Record<string, unknown>,
-): Record<string, string> {
-  return variableNames.reduce<Record<string, string>>((acc, name) => {
-    if (!isValidVariableName(name)) {
+function normalizeVariableDefaults(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {}
+
+  return Object.entries(value).reduce<Record<string, string>>((acc, [name, rawValue]) => {
+    const variableName = name.trim()
+    if (!isValidVariableName(variableName)) {
       return acc
     }
 
-    const value = defaults[name]
-    if (typeof value !== 'string') {
-      acc[name] = ''
+    if (typeof rawValue !== 'string') {
       return acc
     }
 
-    const trimmedValue = value.trim()
+    const trimmedValue = rawValue.trim()
     if (!trimmedValue) {
-      acc[name] = ''
       return acc
     }
 
-    acc[name] = trimmedValue
+    acc[variableName] = trimmedValue
     return acc
   }, {})
 }
@@ -219,6 +219,73 @@ function resolvePromptObject(value: unknown): Record<string, unknown> {
   }
 
   throw new Error('Model response is missing a usable JSON prompt object')
+}
+
+function constrainPromptVariables(
+  promptObject: Record<string, unknown>,
+  defaults: Record<string, string>,
+): Record<string, unknown> {
+  const variableNames = scanVariablesFromValue(promptObject)
+  const keptNames = variableNames.slice(0, MAX_REFERENCE_DIALOG_VARIABLES)
+  const keptSet = new Set(keptNames)
+
+  return replacePlaceholdersInValue(promptObject, keptSet, defaults) as Record<string, unknown>
+}
+
+function replacePlaceholdersInValue(
+  value: unknown,
+  keptNames: Set<string>,
+  defaults: Record<string, string>,
+): unknown {
+  if (typeof value === 'string') {
+    VARIABLE_VALIDATION.VARIABLE_SCAN_PATTERN.lastIndex = 0
+
+    return value.replace(
+      VARIABLE_VALIDATION.VARIABLE_SCAN_PATTERN,
+      (match, rawVariableName: string) => {
+        const variableName = rawVariableName.trim()
+
+        if (!isValidVariableName(variableName)) {
+          return match
+        }
+
+        if (keptNames.has(variableName)) {
+          return `{{${variableName}}}`
+        }
+
+        return defaults[variableName] ?? match
+      },
+    )
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replacePlaceholdersInValue(item, keptNames, defaults))
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        replacePlaceholdersInValue(child, keptNames, defaults),
+      ]),
+    )
+  }
+
+  return value
+}
+
+function buildFilteredDefaults(
+  variableNames: string[],
+  defaults: Record<string, string>,
+): Record<string, string> {
+  return variableNames.reduce<Record<string, string>>((acc, name) => {
+    if (!isValidVariableName(name)) {
+      return acc
+    }
+
+    acc[name] = defaults[name] ?? ''
+    return acc
+  }, {})
 }
 
 function parseJsonObject(rawText: string): Record<string, unknown> {

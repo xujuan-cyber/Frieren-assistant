@@ -805,6 +805,9 @@ export default {
       label: "提供商",
       placeholder: "選擇提供商",
     },
+    connection: {
+      accountId: "帳戶 ID",
+    },
     model: {
       section: "模型配置",
     },
@@ -2043,6 +2046,11 @@ export default {
         label: "API 位址",
         description: "服務端點的基礎位址",
         placeholder: "https://api.example.com/v1",
+      },
+      accountId: {
+        label: "帳戶 ID",
+        description: "Cloudflare 帳戶 ID",
+        placeholder: "請輸入 Cloudflare Account ID",
       },
       organization: {
         label: "組織標識（選填）",

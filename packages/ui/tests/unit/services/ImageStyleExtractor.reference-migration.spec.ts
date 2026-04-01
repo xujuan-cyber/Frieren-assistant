@@ -159,6 +159,66 @@ describe('ImageStyleExtractor reference migration pipeline', () => {
     })
   })
 
+  it('复刻图片时即使当前已有原始提示词，也只根据参考图生成结果', async () => {
+    const templateManager = {
+      getTemplate: vi.fn().mockResolvedValue({
+        id: 'image-prompt-from-reference-image',
+        name: 'Generate Prompt From Reference Image',
+        content: 'unused',
+        metadata: {
+          version: '1.0.0',
+          lastModified: Date.now(),
+          templateType: 'image-prompt-composition',
+          language: 'zh',
+        },
+      }),
+    }
+
+    mockProcessTemplate.mockImplementation((_template, context) => {
+      expect(context).toMatchObject({
+        originalPrompt: '',
+      })
+      expect(context.promptRequirement).toContain('当前没有原始提示词')
+
+      return [
+        { role: 'system', content: 'replicate from image only' },
+        { role: 'user', content: 'ignore current prompt and reconstruct from the image' },
+      ]
+    })
+
+    mockUnderstand.mockResolvedValue({
+      content: JSON.stringify({
+        prompt: {
+          场景: {
+            主体: '一只{{主体颜色}}的小猫',
+            构图: '居中近景',
+          },
+        },
+        defaults: {
+          主体颜色: '橘色',
+        },
+      }),
+    })
+
+    const preview = await resolveReferencePromptPreview({
+      mode: 'replicate',
+      originalPrompt: '两只棕色的猫，发在朋友圈',
+      imageB64: 'ZmFrZS1pbWFnZQ==',
+      mimeType: 'image/png',
+      modelConfig,
+      templateManager: templateManager as any,
+      referenceMode: 'text2image',
+    })
+
+    expect(templateManager.getTemplate).toHaveBeenCalledWith('image-prompt-from-reference-image')
+    expect(mockUnderstand).toHaveBeenCalledTimes(1)
+    expect(preview.prompt).toContain('{{主体颜色}}')
+    expect(preview.prompt).not.toContain('朋友圈')
+    expect(preview.variableDefaults).toEqual({
+      主体颜色: '橘色',
+    })
+  })
+
   it('只保留 prompt 中实际出现且合法的前 5 个变量默认值', async () => {
     const templateManager = {
       getTemplate: vi.fn().mockResolvedValue({

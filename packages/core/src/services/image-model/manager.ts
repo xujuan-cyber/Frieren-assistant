@@ -80,19 +80,38 @@ export class ImageModelManager implements IImageModelManager {
           data[key] = cfg
           changed = true
         } else {
-          // 检查是否需要自动注入 apiKey 并启用内置模型
           const existingConfig = data[key]
-          if (this.shouldAutoEnableBuiltinModel(key, existingConfig, cfg)) {
+          const backfillableFields = this.getBackfillableBuiltinConnectionFields(
+            key,
+            existingConfig,
+            cfg
+          )
+          const shouldAutoEnable = this.shouldAutoEnableBuiltinModel(
+            key,
+            existingConfig,
+            cfg,
+            backfillableFields
+          )
+
+          if (backfillableFields.length > 0 || shouldAutoEnable) {
+            const nextConnectionConfig = {
+              ...(existingConfig.connectionConfig || {})
+            }
+            for (const field of backfillableFields) {
+              nextConnectionConfig[field] = cfg.connectionConfig?.[field]
+            }
+
             data[key] = {
               ...existingConfig,
-              connectionConfig: {
-                ...(existingConfig.connectionConfig || {}),
-                apiKey: cfg.connectionConfig?.apiKey
-              },
-              enabled: true
+              connectionConfig: nextConnectionConfig,
+              enabled: shouldAutoEnable ? true : existingConfig.enabled
             }
             changed = true
-            console.log(`[ImageModelManager] Auto-enabled builtin model with new API key: ${key}`)
+            if (shouldAutoEnable) {
+              console.log(`[ImageModelManager] Auto-enabled builtin model with new connection fields: ${key}`)
+            } else {
+              console.log(`[ImageModelManager] Backfilled missing connection fields for builtin model: ${key}`)
+            }
           }
         }
       }
@@ -440,38 +459,63 @@ export class ImageModelManager implements IImageModelManager {
   }
 
   /**
+   * 获取可从默认配置回填到内置模型中的缺失必填连接字段
+   */
+  private getBackfillableBuiltinConnectionFields(
+    configId: string,
+    storedConfig: ImageModelConfig,
+    defaultConfig: ImageModelConfig
+  ): string[] {
+    const builtinIds = getBuiltinImageConfigIds()
+    if (!builtinIds.includes(configId)) {
+      return []
+    }
+
+    const requiredFields = defaultConfig.provider.connectionSchema?.required || ['apiKey']
+    return requiredFields.filter((field) => {
+      const storedValue = storedConfig.connectionConfig?.[field]
+      const defaultValue = defaultConfig.connectionConfig?.[field]
+      return !this.hasConnectionValue(storedValue) && this.hasConnectionValue(defaultValue)
+    })
+  }
+
+  /**
    * 判断是否应该自动启用内置模型
-   * 条件：内置模型 + 存储的 apiKey 为空 + enabled 为 false + 新配置有 apiKey
+   * 条件：内置模型 + 存储的配置为 disabled + 回填后能满足所有必填连接字段
    */
   private shouldAutoEnableBuiltinModel(
     configId: string,
     storedConfig: ImageModelConfig,
-    defaultConfig: ImageModelConfig
+    defaultConfig: ImageModelConfig,
+    backfillableFields?: string[]
   ): boolean {
-    // 1. 必须是内置模型
     const builtinIds = getBuiltinImageConfigIds()
     if (!builtinIds.includes(configId)) {
       return false
     }
 
-    // 2. 存储的配置必须是禁用状态
     if (storedConfig.enabled !== false) {
       return false
     }
 
-    // 3. 存储的 apiKey 必须为空
-    const storedApiKey = storedConfig.connectionConfig?.apiKey?.trim() || ''
-    if (storedApiKey !== '') {
+    const fieldsToBackfill = backfillableFields ?? this.getBackfillableBuiltinConnectionFields(configId, storedConfig, defaultConfig)
+    if (fieldsToBackfill.length === 0) {
       return false
     }
 
-    // 4. 新的默认配置必须有 apiKey
-    const newApiKey = defaultConfig.connectionConfig?.apiKey?.trim() || ''
-    if (newApiKey === '') {
-      return false
+    const requiredFields = defaultConfig.provider.connectionSchema?.required || ['apiKey']
+    const mergedConnectionConfig: Record<string, unknown> = {
+      ...(storedConfig.connectionConfig || {})
+    }
+    for (const field of fieldsToBackfill) {
+      mergedConnectionConfig[field] = defaultConfig.connectionConfig?.[field]
     }
 
-    return true
+    return requiredFields.every((field) => this.hasConnectionValue(mergedConnectionConfig[field]))
+  }
+
+  private hasConnectionValue(value: unknown): boolean {
+    return typeof value === 'string' ? value.trim().length > 0 : !!value
   }
 
   private validateConfig(config: ImageModelConfig): void {

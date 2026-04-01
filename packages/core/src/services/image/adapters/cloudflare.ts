@@ -12,6 +12,7 @@ import { IMAGE_ERROR_CODES } from '../../../constants/error-codes'
 
 const MODEL_ID = '@cf/black-forest-labs/flux-2-klein-4b'
 const DEFAULT_MIME_TYPE = 'image/jpeg'
+const MAX_RETRY_ATTEMPTS = 3
 
 export class CloudflareImageAdapter extends AbstractImageProviderAdapter {
   protected normalizeBaseUrl(base: string): string {
@@ -24,6 +25,7 @@ export class CloudflareImageAdapter extends AbstractImageProviderAdapter {
       id: 'cloudflare',
       name: 'Cloudflare',
       description: 'Cloudflare Workers AI image generation with FLUX.2 [klein] 4B',
+      corsRestricted: true,
       requiresApiKey: true,
       defaultBaseURL: 'https://api.cloudflare.com/client/v4',
       supportsDynamicModels: false,
@@ -105,44 +107,67 @@ export class CloudflareImageAdapter extends AbstractImageProviderAdapter {
   protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {
     const accountId = String(config.connectionConfig?.accountId || '').trim()
     const endpoint = `/accounts/${encodeURIComponent(accountId)}/ai/run/${config.modelId}`
-    const formData = this.buildFormData(request, config)
 
-    const response = await fetch(this.resolveEndpointUrl(config, endpoint), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config.connectionConfig?.apiKey}`
-      },
-      body: formData
-    })
+    let lastTransportError: unknown
 
-    if (!response.ok) {
-      throw new ImageError(
-        IMAGE_ERROR_CODES.GENERATION_FAILED,
-        await this.getErrorMessage(response)
-      )
-    }
+    for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+      let response: Response
+      const formData = this.buildFormData(request, config)
 
-    const data = await response.json()
-    const imageBase64 = data?.result?.image
-    if (typeof imageBase64 !== 'string' || !imageBase64.trim()) {
-      throw new ImageError(IMAGE_ERROR_CODES.INVALID_RESPONSE_FORMAT)
-    }
-
-    const mimeType = DEFAULT_MIME_TYPE
-    return {
-      images: [
-        {
-          b64: imageBase64,
-          mimeType,
-          url: `data:${mimeType};base64,${imageBase64}`
+      try {
+        response = await fetch(this.resolveEndpointUrl(config, endpoint), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${config.connectionConfig?.apiKey}`
+          },
+          body: formData
+        })
+      } catch (error) {
+        lastTransportError = error
+        if (attempt < MAX_RETRY_ATTEMPTS) {
+          continue
         }
-      ],
-      metadata: {
-        providerId: 'cloudflare',
-        modelId: config.modelId,
-        configId: config.id
+        throw error
+      }
+
+      if (!response.ok) {
+        if (this.shouldRetryStatus(response.status) && attempt < MAX_RETRY_ATTEMPTS) {
+          continue
+        }
+
+        throw new ImageError(
+          IMAGE_ERROR_CODES.GENERATION_FAILED,
+          await this.getErrorMessage(response)
+        )
+      }
+
+      const data = await response.json()
+      const imageBase64 = data?.result?.image
+      if (typeof imageBase64 !== 'string' || !imageBase64.trim()) {
+        throw new ImageError(IMAGE_ERROR_CODES.INVALID_RESPONSE_FORMAT)
+      }
+
+      const mimeType = DEFAULT_MIME_TYPE
+      return {
+        images: [
+          {
+            b64: imageBase64,
+            mimeType,
+            url: `data:${mimeType};base64,${imageBase64}`
+          }
+        ],
+        metadata: {
+          providerId: 'cloudflare',
+          modelId: config.modelId,
+          configId: config.id
+        }
       }
     }
+
+    throw new ImageError(
+      IMAGE_ERROR_CODES.GENERATION_FAILED,
+      lastTransportError instanceof Error ? lastTransportError.message : String(lastTransportError ?? 'Unknown Cloudflare image error')
+    )
   }
 
   private getDefaultParameterDefinitions(): ImageParameterDefinition[] {
@@ -241,5 +266,9 @@ export class CloudflareImageAdapter extends AbstractImageProviderAdapter {
         return fallbackMessage
       }
     }
+  }
+
+  private shouldRetryStatus(status: number): boolean {
+    return status >= 500 && status < 600
   }
 }

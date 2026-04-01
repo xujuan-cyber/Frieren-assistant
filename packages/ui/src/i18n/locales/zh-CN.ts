@@ -806,6 +806,9 @@ export default {
       label: "提供商",
       placeholder: "选择提供商",
     },
+    connection: {
+      accountId: "账户 ID",
+    },
     model: {
       section: "模型配置",
     },
@@ -2063,6 +2066,11 @@ export default {
         label: "API 地址",
         description: "服务端点的基础地址",
         placeholder: "https://api.example.com/v1",
+      },
+      accountId: {
+        label: "账户 ID",
+        description: "Cloudflare 账户 ID",
+        placeholder: "请输入 Cloudflare Account ID",
       },
       organization: {
         label: "组织标识（可选）",

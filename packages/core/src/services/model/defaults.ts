@@ -19,12 +19,12 @@ const PROVIDER_ENV_KEYS = {
   openrouter: ['VITE_OPENROUTER_API_KEY'],
   modelscope: ['VITE_MODELSCOPE_API_KEY'],
   minimax: ['VITE_MINIMAX_API_KEY'],
-  cloudflare: ['VITE_CF_API_TOKEN', 'CF_API_TOKEN']
+  cloudflare: ['VITE_CF_API_TOKEN']
 } as const;
 
 const PROVIDER_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]>> = {
   cloudflare: {
-    accountId: ['VITE_CF_ACCOUNT_ID', 'CF_ACCOUNT_ID']
+    accountId: ['VITE_CF_ACCOUNT_ID']
   }
 };
 

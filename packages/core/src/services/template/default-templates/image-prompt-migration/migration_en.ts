@@ -31,9 +31,9 @@ Core principles:
 4. The result should visibly inherit the visual direction of the reference image, not just lightly polish the current prompt.
 5. The prompt object structure may be designed freely, but it must stay concrete, visual, directly usable for image generation, and easy to edit later.
 6. Default to Chinese keys, Chinese field values, and Chinese variable names unless the current prompt is clearly written in English.
-7. Use at most 5 variables. Variables should support reuse naturally, prioritizing subject, quantity, color, key objects, key actions, or scene theme.
-8. If variables are output, every defaults key must already appear in the prompt using the {{variableName}} form. Do not use {variable} or any other placeholder style.
-9. Do not turn too many style phrases into variables. If no variables are useful, return {} for defaults.
+7. Variableization must be completed in this same visual call. Do not return a prompt without its matching defaults.
+8. Whenever the current prompt contains reusable subject, quantity, color, key action, or scene-theme information, prioritize extracting 2 to 5 high-reuse variables. Only return {} for defaults when no good variables truly exist.
+9. Every defaults key must already appear in the prompt using the {{variableName}} form. Do not use {variable} or any other placeholder style. Avoid turning too many style phrases into variables, and do not return defaults for variables that never appear in the prompt.
 
 Current workflow mode: {{generationGoal}}`
     },

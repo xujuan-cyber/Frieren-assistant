@@ -135,6 +135,49 @@ describe('ModelManager', () => {
       }
     })
 
+    it('should auto-enable cloudflare when missing required connection fields become available from env', async () => {
+      const originalCloudflareToken = process.env.VITE_CF_API_TOKEN
+      const originalCloudflareAccountId = process.env.VITE_CF_ACCOUNT_ID
+      process.env.VITE_CF_API_TOKEN = 'env_cloudflare_token'
+      process.env.VITE_CF_ACCOUNT_ID = 'env_cloudflare_account'
+
+      try {
+        const existing = await modelManager.getModel('cloudflare')
+        expect(existing).toBeDefined()
+
+        const storedCloudflare: TextModelConfig = {
+          ...existing!,
+          enabled: false,
+          connectionConfig: {
+            ...existing!.connectionConfig,
+            apiKey: '',
+            accountId: ''
+          }
+        }
+
+        await storageProvider.setItem('models', JSON.stringify({ cloudflare: storedCloudflare }))
+
+        const reloadedManager = new ModelManager(storageProvider, new TextAdapterRegistry())
+        const reloaded = await reloadedManager.getModel('cloudflare')
+
+        expect(reloaded?.enabled).toBe(true)
+        expect(reloaded?.connectionConfig.apiKey).toBe('env_cloudflare_token')
+        expect(reloaded?.connectionConfig.accountId).toBe('env_cloudflare_account')
+      } finally {
+        if (originalCloudflareToken === undefined) {
+          delete process.env.VITE_CF_API_TOKEN
+        } else {
+          process.env.VITE_CF_API_TOKEN = originalCloudflareToken
+        }
+
+        if (originalCloudflareAccountId === undefined) {
+          delete process.env.VITE_CF_ACCOUNT_ID
+        } else {
+          process.env.VITE_CF_ACCOUNT_ID = originalCloudflareAccountId
+        }
+      }
+    })
+
     it('should not overwrite existing model metadata or connection settings when reinitialized', async () => {
       const targetId = 'openai';
       const existing = await modelManager.getModel(targetId);
