@@ -83,7 +83,7 @@
             </NButton>
 
             <!-- 测试结果缩略图 -->
-            <NImage
+            <AppPreviewImage
               v-if="testResults[config.id]?.success && testResults[config.id]?.image"
               :src="getPreviewImageSrc(config.id) || ''"
               width="24"
@@ -167,12 +167,13 @@ import { ref, onMounted, inject, h } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import {
-  NSpace, NCard, NText, NTag, NButton, NEmpty, NImage, useDialog
+  NSpace, NCard, NText, NTag, NButton, NEmpty, useDialog
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/model/useImageModelManager'
 import { useToast } from '../composables/ui/useToast'
 import { getI18nErrorMessage } from '../utils/error'
 import { isRunningInElectron, type IImageService, type ImageModel } from '@prompt-optimizer/core'
+import AppPreviewImage from './media/AppPreviewImage.vue'
 
 const { t } = useI18n()
 const toast = useToast()

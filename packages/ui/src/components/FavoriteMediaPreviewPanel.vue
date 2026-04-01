@@ -7,9 +7,9 @@
   >
     <NSpace vertical :size="10">
       <NText depth="3">{{ t('favorites.manager.preview.media.hint') }}</NText>
-      <NImageGroup>
+      <AppPreviewImageGroup>
         <NSpace :size="8" wrap>
-          <NImage
+          <AppPreviewImage
             v-for="(src, index) in displayImages"
             :key="`${index}-${src.slice(0, 32)}`"
             :src="src"
@@ -18,20 +18,22 @@
             :alt="t('favorites.manager.preview.media.imageAlt', { index: index + 1 })"
           />
         </NSpace>
-      </NImageGroup>
+      </AppPreviewImageGroup>
     </NSpace>
   </NCard>
 </template>
 
 <script setup lang="ts">
 import { computed, inject, ref, watch, type Ref } from 'vue'
-import { NCard, NImage, NImageGroup, NSpace, NText } from 'naive-ui'
+import { NCard, NSpace, NText } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { FavoritePrompt } from '@prompt-optimizer/core'
 
 import type { AppServices } from '../types/services'
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
+import AppPreviewImage from './media/AppPreviewImage.vue'
+import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
 
 const props = defineProps<{
   favorite: FavoritePrompt

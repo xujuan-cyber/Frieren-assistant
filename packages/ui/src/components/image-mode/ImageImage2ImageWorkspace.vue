@@ -237,7 +237,7 @@
                                 v-if="previewImageUrl"
                                 class="thumbnail-container"
                             >
-                                <NImage
+                                <AppPreviewImage
                                     data-testid="image-image2image-input-preview"
                                     :src="previewImageUrl"
                                     :style="{
@@ -590,7 +590,7 @@
                                     <div class="result-body">
                                         <template v-if="hasVariantResult(id)">
                                             <NSpace vertical :size="12" style="padding: 12px;">
-                                                <NImage
+                                                <AppPreviewImage
                                                     :data-testid="getVariantImageTestId(id)"
                                                     :src="getImageSrc(getVariantResult(id)?.images?.[0])"
                                                     object-fit="contain"
@@ -622,7 +622,7 @@
                                                 <NSpace justify="center" :size="8">
                                                     <NButton
                                                         size="small"
-                                                        @click="downloadImageFromResult(getVariantResult(id)?.images?.[0], `variant-${id}`)"
+                                                        @click="downloadImageFromResult(getVariantResult(id)?.images?.[0])"
                                                     >
                                                         <template #icon>
                                                             <NIcon>
@@ -785,7 +785,6 @@ import {
     NSpace,
     NUpload,
     NUploadDragger,
-    NImage,
     NText,
     NFlex,
     NGrid,
@@ -814,6 +813,7 @@ import FullscreenDialog from "../FullscreenDialog.vue";
 import type { SelectOption } from "../../types/select-options";
 import { useToast } from "../../composables/ui/useToast";
 import { getI18nErrorMessage } from '../../utils/error'
+import { downloadImageSource } from '../../utils/image-download'
 import {
     resolveReferencePromptPreview,
 } from '../../services/ImageStyleExtractor'
@@ -821,6 +821,7 @@ import { replaceTemporaryVariablesForPrompt } from '../../utils/image-prompt-ext
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
+import AppPreviewImage from '../media/AppPreviewImage.vue'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
@@ -2389,34 +2390,13 @@ const getImageSrc = (imageItem: ImageResultItem | null | undefined) => {
 }
 
 // 下载图像
-const downloadImageFromResult = async (imageItem: ImageResultItem | null | undefined, prefix: string) => {
+const downloadImageFromResult = async (imageItem: ImageResultItem | null | undefined) => {
     if (!imageItem) return
-
-    const ext = (imageItem.mimeType?.replace('image/', '') || 'png').replace('jpeg', 'jpg')
-    const filename = `${prefix}-image.${ext}`
-
-    if (imageItem.url) {
-        try {
-            const response = await fetch(imageItem.url)
-            const blob = await response.blob()
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = filename
-            a.click()
-            window.URL.revokeObjectURL(url)
-        } catch {
-            toast.error(t('imageWorkspace.results.downloadFailed'))
-        }
-        return
-    }
-
-    if (imageItem.b64) {
-        const a = document.createElement('a')
-        const mime = imageItem.mimeType ?? 'image/png'
-        a.href = `data:${mime};base64,${imageItem.b64}`
-        a.download = filename
-        a.click()
+    const downloaded = await downloadImageSource(getImageSrc(imageItem), {
+        mimeType: imageItem.mimeType ?? null,
+    })
+    if (!downloaded) {
+        toast.error(t('imageWorkspace.results.downloadFailed'))
     }
 }
 

@@ -202,7 +202,7 @@
           </NTag>
 
           <!-- 测试结果图片缩略图 -->
-          <NImage
+          <AppPreviewImage
             v-if="testResult?.image && connectionStatus?.type === 'success'"
             :src="testResult.image.url || (testResult.image.b64?.startsWith('data:') ? testResult.image.b64 : `data:image/png;base64,${testResult.image.b64}`)"
             width="32"
@@ -238,13 +238,14 @@ import { useI18n } from 'vue-i18n'
 import {
   NModal, NSpace, NInput, NInputNumber,
   NCheckbox, NSelect, NButton, NTag, NTooltip, NText,
-  NDivider, NH4, NForm, NFormItem, NImage, useDialog
+  NDivider, NH4, NForm, NFormItem, useDialog
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/model/useImageModelManager'
 import { useToast } from '../composables/ui/useToast'
 import { isRunningInElectron, type ImageModelConfig } from '@prompt-optimizer/core'
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
 import ExternalLinkIcon from './icons/ExternalLinkIcon.vue'
+import AppPreviewImage from './media/AppPreviewImage.vue'
 
 
 const { t } = useI18n()

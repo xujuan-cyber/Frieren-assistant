@@ -91,7 +91,7 @@
         >
           <div data-testid="favorite-garden-cover">
             <NSpace vertical size="small">
-              <NImage
+              <AppPreviewImage
                 v-if="snapshot.coverUrl"
                 :src="snapshot.coverUrl"
                 :alt="t('favorites.manager.preview.garden.cover')"
@@ -153,13 +153,13 @@
                     <NText v-if="showcase.text">{{ showcase.text }}</NText>
                     <NText v-if="showcase.description" depth="3">{{ showcase.description }}</NText>
 
-                    <NImageGroup v-if="showcase.images.length > 0">
+                    <AppPreviewImageGroup v-if="showcase.images.length > 0">
                       <NGrid cols="2 s:3 m:4" responsive="screen" :x-gap="8" :y-gap="8">
                         <NGridItem
                           v-for="(url, imageIndex) in showcase.images"
                           :key="`${showcase.id || index}-image-${imageIndex}`"
                         >
-                          <NImage
+                          <AppPreviewImage
                             :src="url"
                             :alt="t('favorites.manager.preview.garden.showcaseLabel', { index: index + 1 })"
                             object-fit="cover"
@@ -168,7 +168,7 @@
                           />
                         </NGridItem>
                       </NGrid>
-                    </NImageGroup>
+                    </AppPreviewImageGroup>
                   </NSpace>
                 </NCard>
               </template>
@@ -227,13 +227,13 @@
 
                   <template v-if="example.images.length > 0">
                     <NText depth="3">{{ t('favorites.manager.preview.garden.exampleImages') }}</NText>
-                    <NImageGroup>
+                    <AppPreviewImageGroup>
                       <NGrid cols="2 s:3 m:4" responsive="screen" :x-gap="8" :y-gap="8">
                         <NGridItem
                           v-for="(url, imageIndex) in example.images"
                           :key="`${example.id || index}-example-image-${imageIndex}`"
                         >
-                          <NImage
+                          <AppPreviewImage
                             :src="url"
                             :alt="t('favorites.manager.preview.garden.exampleLabel', { index: index + 1 })"
                             object-fit="cover"
@@ -242,7 +242,7 @@
                           />
                         </NGridItem>
                       </NGrid>
-                    </NImageGroup>
+                    </AppPreviewImageGroup>
                   </template>
 
                   <template v-if="parameterEntries(example).length > 0">
@@ -260,13 +260,13 @@
 
                   <template v-if="example.inputImages.length > 0">
                     <NText depth="3">{{ t('favorites.manager.preview.garden.inputImages') }}</NText>
-                    <NImageGroup>
+                    <AppPreviewImageGroup>
                       <NGrid cols="2 s:3 m:4" responsive="screen" :x-gap="8" :y-gap="8">
                         <NGridItem
                           v-for="(url, imageIndex) in example.inputImages"
                           :key="`${example.id || index}-input-image-${imageIndex}`"
                         >
-                          <NImage
+                          <AppPreviewImage
                             :src="url"
                             :alt="t('favorites.manager.preview.garden.inputImages')"
                             object-fit="cover"
@@ -275,7 +275,7 @@
                           />
                         </NGridItem>
                       </NGrid>
-                    </NImageGroup>
+                    </AppPreviewImageGroup>
                   </template>
                 </NSpace>
               </NCard>
@@ -337,8 +337,6 @@ import {
   NEmpty,
   NGrid,
   NGridItem,
-  NImage,
-  NImageGroup,
   NSpace,
   NUpload,
   NTag,
@@ -351,6 +349,8 @@ import type {
   GardenSnapshotPreview,
   GardenSnapshotPreviewAsset,
 } from '../utils/garden-snapshot-preview'
+import AppPreviewImage from './media/AppPreviewImage.vue'
+import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
 
 type SectionKey = 'basicInfo' | 'metaInfo' | 'cover' | 'showcases' | 'examples' | 'variables'
 

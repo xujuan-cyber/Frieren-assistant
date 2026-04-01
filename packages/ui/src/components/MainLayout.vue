@@ -20,7 +20,7 @@
               @click="openBrandWebsite"
             >
               <NFlex align="center" :size="8" :wrap="false">
-                <NImage
+                <AppPreviewImage
                   :src="logoSrc"
                   alt="Logo"
                   :width="logoSize"
@@ -72,9 +72,10 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 import { useI18n } from 'vue-i18n'
-import { NLayout, NLayoutHeader, NLayoutContent, NFlex, NImage, NText } from 'naive-ui'
+import { NLayout, NLayoutHeader, NLayoutContent, NFlex, NText } from 'naive-ui'
 import ToastUI from './Toast.vue'
 import logoImage from '../assets/logo.png'
+import AppPreviewImage from './media/AppPreviewImage.vue'
 
 const { t } = useI18n()
 

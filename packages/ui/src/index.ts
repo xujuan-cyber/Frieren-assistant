@@ -104,6 +104,8 @@ export { default as ContextUserWorkspace } from "./components/context-mode/Conte
 export { default as ContextUserTestPanel } from "./components/context-mode/ContextUserTestPanel.vue";
 export { default as ConversationTestPanel } from "./components/context-mode/ConversationTestPanel.vue";
 export { default as FunctionModelManagerUI } from "./components/FunctionModelManager.vue";
+export { default as AppPreviewImage } from "./components/media/AppPreviewImage.vue";
+export { default as AppPreviewImageGroup } from "./components/media/AppPreviewImageGroup.vue";
 
 // 基础模式组件已移除静态导出（由 router 动态导入，避免打包进主 bundle）
 // 如需直接使用，请在应用层通过 router 注册或按需动态导入

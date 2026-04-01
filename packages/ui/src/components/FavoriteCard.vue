@@ -67,7 +67,7 @@
 
     <!-- 封面图区域：有封面图时显示缩略图 -->
     <div v-if="coverImageSrc" style="margin: -16px -16px 0 -16px;">
-      <NImage
+      <AppPreviewImage
         :src="coverImageSrc"
         object-fit="cover"
         style="width: 100%; aspect-ratio: 16/9; display: block;"
@@ -286,7 +286,6 @@ import {
   NSpace,
   NTooltip,
   NPopconfirm,
-  NImage,
 } from 'naive-ui';
 import {
   Copy,
@@ -301,6 +300,7 @@ import { useTooltipTheme } from '../composables/ui/useTooltipTheme';
 import type { AppServices } from '../types/services';
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media';
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage';
+import AppPreviewImage from './media/AppPreviewImage.vue';
 
 const { t } = useI18n();
 

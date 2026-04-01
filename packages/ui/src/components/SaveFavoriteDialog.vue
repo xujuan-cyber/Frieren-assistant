@@ -134,14 +134,14 @@
                   </n-upload-dragger>
                 </n-upload>
 
-                <n-image-group v-if="mediaDraft.sources.length > 0">
+                <AppPreviewImageGroup v-if="mediaDraft.sources.length > 0">
                   <n-space :size="8" wrap>
                     <div
                       v-for="(source, index) in mediaDraft.sources"
                       :key="`${index}-${source.slice(0, 32)}`"
                       style="display: flex; flex-direction: column; gap: 6px;"
                     >
-                      <n-image
+                      <AppPreviewImage
                         :src="source"
                         width="88"
                         object-fit="cover"
@@ -175,7 +175,7 @@
                       </n-space>
                     </div>
                   </n-space>
-                </n-image-group>
+                </AppPreviewImageGroup>
 
                 <n-button
                   v-if="mediaDraft.sources.length > 0"
@@ -241,13 +241,13 @@ import {
   NGridItem,
   NUpload,
   NUploadDragger,
-  NImage,
-  NImageGroup,
   type UploadFileInfo,
 } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/ui/useToast';
 import { useTagSuggestions } from '../composables/ui/useTagSuggestions';
+import AppPreviewImage from './media/AppPreviewImage.vue';
+import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue';
 import OutputDisplayCore from './OutputDisplayCore.vue';
 import CategoryTreeSelect from './CategoryTreeSelect.vue';
 import type { AppServices } from '../types/services';
