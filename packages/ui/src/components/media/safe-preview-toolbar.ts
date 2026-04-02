@@ -1,5 +1,5 @@
 import { Fragment, h, type Ref, type VNode, type VNodeChild } from 'vue'
-import { NIcon, NTooltip } from 'naive-ui'
+import { NTooltip } from 'naive-ui'
 import type { ImageRenderToolbar, ImageRenderToolbarProps } from 'naive-ui/es/image/src/public-types'
 
 import { downloadImageSource } from '../../utils/image-download'
@@ -74,8 +74,11 @@ export const createSafeImageToolbarRenderer = (
 ): ImageRenderToolbar => {
   const renderDownloadNode = () => {
     const iconNode = h(
-      NIcon,
+      'i',
       {
+        class: `${options.clsPrefixRef.value}-base-icon`,
+        role: 'button',
+        'aria-label': options.downloadLabel,
         onClick: (event: MouseEvent) => {
           event.preventDefault()
           event.stopPropagation()
@@ -85,9 +88,7 @@ export const createSafeImageToolbarRenderer = (
           })
         },
       },
-      {
-        default: renderDownloadIcon,
-      },
+      renderDownloadIcon(),
     )
 
     if (!options.showToolbarTooltip) {
