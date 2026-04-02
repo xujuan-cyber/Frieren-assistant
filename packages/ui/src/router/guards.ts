@@ -39,15 +39,13 @@ export const parseSubModeKey = (path: string): SubModeKey | null => {
  * 2. 重定向非法路由到默认 subMode
  * 3. 兼容旧 pro 路由（/pro/system|/pro/user）
  */
-export const beforeRouteSwitch: NavigationGuard = (to, _from, next) => {
+export const beforeRouteSwitch: NavigationGuard = (to) => {
   // ✅ 兼容旧 pro 路由（/pro/system|/pro/user -> /pro/multi|/pro/variable）
   if (to.path === '/pro/system') {
-    next('/pro/multi')
-    return
+    return '/pro/multi'
   }
   if (to.path === '/pro/user') {
-    next('/pro/variable')
-    return
+    return '/pro/variable'
   }
 
   const subModeKey = parseSubModeKey(to.path)
@@ -67,10 +65,9 @@ export const beforeRouteSwitch: NavigationGuard = (to, _from, next) => {
       }
 
       console.warn(`[Router] 非法 subMode: ${to.path}, 重定向到 /${mode}/${defaultSubMode}`)
-      next(`/${mode}/${defaultSubMode}`)
-      return
+      return `/${mode}/${defaultSubMode}`
     }
   }
 
-  next()
+  return true
 }
