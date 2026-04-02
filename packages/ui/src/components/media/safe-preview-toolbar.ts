@@ -1,7 +1,5 @@
 import { Fragment, h, type Ref, type VNode, type VNodeChild } from 'vue'
-import { NTooltip } from 'naive-ui'
-import { NBaseIcon } from 'naive-ui/es/_internal'
-import { DownloadIcon } from 'naive-ui/es/_internal/icons'
+import { NIcon, NTooltip } from 'naive-ui'
 import type { ImageRenderToolbar, ImageRenderToolbarProps } from 'naive-ui/es/image/src/public-types'
 
 import { downloadImageSource } from '../../utils/image-download'
@@ -39,6 +37,32 @@ const renderDefaultToolbar = (
   return h(Fragment, null, items)
 }
 
+const renderDownloadIcon = () =>
+  h(
+    'svg',
+    {
+      xmlns: 'http://www.w3.org/2000/svg',
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '1.8',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+      'aria-hidden': 'true',
+    },
+    [
+      h('path', {
+        d: 'M12 3v11.25',
+      }),
+      h('path', {
+        d: 'm16.5 10.5-4.5 4.5-4.5-4.5',
+      }),
+      h('path', {
+        d: 'M4.5 16.5v1.125A2.625 2.625 0 0 0 7.125 20.25h9.75A2.625 2.625 0 0 0 19.5 17.625V16.5',
+      }),
+    ],
+  )
+
 export const resolveActivePreviewImageSource = (clsPrefix: string): string | null => {
   if (typeof document === 'undefined') return null
   const image = document.querySelector<HTMLImageElement>(`.${clsPrefix}-image-preview`)
@@ -50,9 +74,8 @@ export const createSafeImageToolbarRenderer = (
 ): ImageRenderToolbar => {
   const renderDownloadNode = () => {
     const iconNode = h(
-      NBaseIcon,
+      NIcon,
       {
-        clsPrefix: options.clsPrefixRef.value,
         onClick: (event: MouseEvent) => {
           event.preventDefault()
           event.stopPropagation()
@@ -63,7 +86,7 @@ export const createSafeImageToolbarRenderer = (
         },
       },
       {
-        default: () => h(DownloadIcon, null),
+        default: renderDownloadIcon,
       },
     )
 
