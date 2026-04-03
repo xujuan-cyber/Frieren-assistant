@@ -57,8 +57,11 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[0]?.content).toContain('保持生成器无关')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"workspacePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"referencePrompt":')
+    expect(promptOnlyTemplate?.content[1]?.content).toContain('"analysisStage":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"designContext":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"focusBrief":')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "original-input"')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "workspace"')
   })
 
   it('registers the zh-CN image prompt-iterate template with iteration evidence', async () => {
@@ -110,8 +113,11 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[0]?.content).toContain('staying generator-agnostic')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"workspacePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"referencePrompt":')
+    expect(promptOnlyTemplate?.content[1]?.content).toContain('"analysisStage":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"designContext":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"focusBrief":')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "original-input"')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "workspace"')
   })
 
   it('registers the en-US image prompt-iterate template with iteration evidence', async () => {

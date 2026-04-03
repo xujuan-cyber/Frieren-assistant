@@ -153,4 +153,59 @@ describe('useEvaluation model selection', () => {
     expect(evaluateStream.mock.calls[1][0].evaluationModelKey).toBe('image-recognition-model')
     expect(evaluateStream.mock.calls[2][0].evaluationModelKey).toBe('image-recognition-model')
   })
+
+  it('merges custom prompt-analysis variables with language', async () => {
+    const evaluateStream = vi.fn(async (_request, handlers) => {
+      handlers.onComplete({
+        type: 'prompt-only',
+        score: {
+          overall: 90,
+          dimensions: [{ key: 'overall', label: 'Overall', score: 90 }],
+        },
+        summary: 'done',
+        improvements: [],
+        patchPlan: [],
+      })
+    })
+
+    const services = ref({
+      evaluationService: {
+        evaluateStream,
+      },
+    } as unknown as AppServices)
+
+    const evaluation = useEvaluation(services, {
+      evaluationModelKey: ref('eval-model'),
+      functionMode: ref('image'),
+      subMode: ref('text2image'),
+    })
+
+    await evaluation.evaluatePromptOnly({
+      target: {
+        workspacePrompt: 'prompt only target',
+      },
+      variables: {
+        analysisStage: 'original-input',
+      },
+    })
+
+    await evaluation.evaluatePromptIterate({
+      target: {
+        workspacePrompt: 'prompt iterate target',
+      },
+      iterateRequirement: 'make it more cinematic',
+      variables: {
+        analysisStage: 'workspace',
+      },
+    })
+
+    expect(evaluateStream.mock.calls[0][0].variables).toEqual({
+      language: 'zh',
+      analysisStage: 'original-input',
+    })
+    expect(evaluateStream.mock.calls[1][0].variables).toEqual({
+      language: 'zh',
+      analysisStage: 'workspace',
+    })
+  })
 })

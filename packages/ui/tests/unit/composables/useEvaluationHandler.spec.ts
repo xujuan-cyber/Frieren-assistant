@@ -534,6 +534,66 @@ describe('useEvaluationHandler', () => {
     })
   })
 
+  it('passes analysis variables only to prompt analysis requests', async () => {
+    const mockEvaluation = createMockEvaluation()
+
+    const handler = useEvaluationHandler({
+      services: ref(null),
+      analysisOptimizedPrompt: ref('Original input prompt'),
+      analysisVariables: ref({
+        analysisStage: 'original-input',
+      }),
+      evaluationModelKey: ref('eval-model'),
+      functionMode: ref('image'),
+      subMode: ref('text2image'),
+      currentIterateRequirement: ref('  make it softer  '),
+      externalEvaluation: mockEvaluation,
+      comparePayload: ref({
+        target: {
+          workspacePrompt: 'workspace prompt',
+        },
+        testCases: [],
+        snapshots: [],
+      }),
+    })
+
+    await handler.handleEvaluate('prompt-only')
+    expect(mockEvaluation.evaluatePromptOnly).toHaveBeenCalledWith({
+      target: {
+        workspacePrompt: 'Original input prompt',
+        designContext: undefined,
+      },
+      focus: undefined,
+      variables: {
+        analysisStage: 'original-input',
+      },
+    })
+
+    await handler.handleEvaluate('prompt-iterate')
+    expect(mockEvaluation.evaluatePromptIterate).toHaveBeenCalledWith({
+      target: {
+        workspacePrompt: 'Original input prompt',
+        designContext: undefined,
+      },
+      iterateRequirement: 'make it softer',
+      focus: undefined,
+      variables: {
+        analysisStage: 'original-input',
+      },
+    })
+
+    await handler.handleEvaluate('compare')
+    expect(mockEvaluation.evaluateCompare).toHaveBeenCalledWith({
+      target: {
+        workspacePrompt: 'workspace prompt',
+      },
+      testCases: [],
+      snapshots: [],
+      compareHints: undefined,
+      focus: undefined,
+    })
+  })
+
   it('formats pro-variable analysis context as minimal variable structure', async () => {
     const analysisContext: ProEvaluationContext = {
       variables: [

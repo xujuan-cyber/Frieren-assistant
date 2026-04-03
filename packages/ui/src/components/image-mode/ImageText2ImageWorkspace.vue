@@ -343,7 +343,7 @@
                         </NGridItem>
 
                         <!-- 优化模板选择 -->
-                        <NGridItem :span="11" :xs="24" :sm="11">
+                        <NGridItem :span="10" :xs="24" :sm="10">
                             <NSpace vertical :size="8">
                                 <NText
                                     :depth="2"
@@ -395,8 +395,28 @@
                         </NGridItem>
 
                         <!-- 优化按钮 -->
-                        <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
+                        <NGridItem :span="7" :xs="24" :sm="7" class="flex items-end justify-end">
                             <NSpace :size="8">
+                                <NButton
+                                    type="default"
+                                    size="medium"
+                                    data-testid="image-text2image-analyze-button"
+                                    :loading="isAnalyzing"
+                                    @click="handleAnalyze"
+                                    :disabled="
+                                        isAnalyzing ||
+                                        isExtractingFromImage ||
+                                        isOptimizing ||
+                                        isIterating ||
+                                        !originalPrompt.trim()
+                                    "
+                                >
+                                    {{
+                                        isAnalyzing
+                                            ? t('promptOptimizer.analyzing')
+                                            : t('promptOptimizer.analyze')
+                                    }}
+                                </NButton>
                                 <NButton
                                     type="primary"
                                     size="medium"
@@ -404,8 +424,10 @@
                                     :loading="isOptimizing"
                                     @click="handleOptimizePrompt"
                                     :disabled="
+                                        isAnalyzing ||
                                         isExtractingFromImage ||
                                         isOptimizing ||
+                                        isIterating ||
                                         !originalPrompt.trim() ||
                                         !selectedTextModelKey ||
                                         !selectedTemplate
@@ -1036,6 +1058,7 @@ const promptService = computed(() => services.value?.promptService)
 // 过程态（本地，不持久化）
 const isOptimizing = ref(false)
 const isIterating = ref(false)
+const isAnalyzing = ref(false)
 const isExtractingFromImage = ref(false)
 const extractImageInputRef = ref<HTMLInputElement | null>(null)
 type ReferenceImagePayload = {
@@ -1563,13 +1586,43 @@ const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
 })
 const compareEvaluationFingerprint = ref('')
 
+const isOriginalInputAnalysis = computed(() => {
+    if ((currentChainId.value || '').trim()) return false
+    if (currentVersions.value.length !== 1) return false
+
+    const [currentVersion] = currentVersions.value
+    if (!currentVersion) return false
+    if (currentVersion.id !== currentVersionId.value) return false
+    if (currentVersion.version !== 0) return false
+
+    const normalizedOriginalPrompt = (originalPrompt.value || '').trim()
+    const normalizedOptimizedPrompt = (optimizedPrompt.value || '').trim()
+
+    if (!normalizedOriginalPrompt) return false
+
+    return (
+        (currentVersion.originalPrompt || '').trim() === normalizedOriginalPrompt &&
+        (currentVersion.optimizedPrompt || '').trim() === normalizedOriginalPrompt &&
+        normalizedOptimizedPrompt === normalizedOriginalPrompt
+    )
+})
+
 const evaluationHandler = useEvaluationHandler({
     services,
     analysisOptimizedPrompt: computed(() => optimizedPrompt.value || ''),
-    analysisTargetResolver: (defaultTarget) => ({
-        ...defaultTarget,
-        referencePrompt: (originalPrompt.value || '').trim() || undefined,
-    }),
+    analysisVariables: computed(() => ({
+        analysisStage: isOriginalInputAnalysis.value
+            ? 'original-input'
+            : 'workspace',
+    })),
+    analysisTargetResolver: (defaultTarget) =>
+        isOriginalInputAnalysis.value
+            ? defaultTarget
+            : {
+                  ...defaultTarget,
+                  referencePrompt:
+                      (originalPrompt.value || '').trim() || undefined,
+              },
     resultTargets: resultEvaluationTargets,
     comparePayload,
     evaluationModelKey: computed(() => selectedTextModelKey.value || ''),
@@ -2597,6 +2650,49 @@ const createHistoryRecord = async () => {
     } catch (e) {
         console.error('[ImageText2ImageWorkspace] Failed to create history record:', e)
         toast.warning(t('toast.error.optimizeCompleteButHistoryFailed'))
+    }
+}
+
+const handleAnalyze = async () => {
+    if (!originalPrompt.value.trim()) return
+    if (isAnalyzing.value || isOptimizing.value || isIterating.value) return
+
+    isAnalyzing.value = true
+
+    const virtualV0Id = uuidv4()
+    const virtualV0: PromptRecordChain['versions'][number] = {
+        id: virtualV0Id,
+        chainId: '',
+        version: 0,
+        originalPrompt: originalPrompt.value,
+        optimizedPrompt: originalPrompt.value,
+        type: 'text2imageOptimize',
+        timestamp: Date.now(),
+        modelKey: '',
+        templateId: '',
+    }
+
+    currentChainId.value = ''
+    currentVersions.value = [virtualV0]
+    currentVersionId.value = virtualV0Id
+
+    session.updateOptimizedResult({
+        optimizedPrompt: originalPrompt.value,
+        reasoning: '',
+        chainId: '',
+        versionId: '',
+    })
+
+    evaluation.clearResult('prompt-only')
+    evaluation.clearResult('prompt-iterate')
+    isInputPanelCollapsed.value = true
+
+    await nextTick()
+
+    try {
+        await handleEvaluateInternal('prompt-only')
+    } finally {
+        isAnalyzing.value = false
     }
 }
 

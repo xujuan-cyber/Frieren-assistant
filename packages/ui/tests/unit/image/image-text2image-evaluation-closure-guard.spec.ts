@@ -25,4 +25,15 @@ describe('image text2image evaluation closure guard', () => {
     expect(source).toContain('@apply-local-patch="handleApplyLocalPatch"')
     expect(source).toContain('@rewrite-from-evaluation="handleRewriteFromEvaluation"')
   })
+
+  it('adds an original-input analyze button and a virtual V0 analysis flow', () => {
+    const source = readWorkspaceSource()
+
+    expect(source).toContain('data-testid="image-text2image-analyze-button"')
+    expect(source).toContain(':loading="isAnalyzing"')
+    expect(source).toContain('@click="handleAnalyze"')
+    expect(source).toContain("evaluation.clearResult('prompt-only')")
+    expect(source).toContain("evaluation.clearResult('prompt-iterate')")
+    expect(source).toContain("await handleEvaluateInternal('prompt-only')")
+  })
 })

@@ -134,11 +134,13 @@ export interface UseEvaluationReturn {
   evaluatePromptOnly: (params: {
     target: EvaluationTarget
     focus?: string
+    variables?: Record<string, string>
   }) => Promise<void>
   evaluatePromptIterate: (params: {
     target: EvaluationTarget
     iterateRequirement: string
     focus?: string
+    variables?: Record<string, string>
   }) => Promise<void>
 
   clearResult: (type: EvaluationType, variantId?: string) => void
@@ -398,12 +400,16 @@ export function useEvaluation(
   const evaluatePromptOnly = async (params: {
     target: EvaluationTarget
     focus?: string
+    variables?: Record<string, string>
   }): Promise<void> => {
     const request: PromptOnlyEvaluationRequest = {
       type: 'prompt-only',
       target: params.target,
       evaluationModelKey: await getModelKey('prompt-only'),
-      variables: { language: getLanguage() },
+      variables: {
+        ...(params.variables || {}),
+        language: getLanguage(),
+      },
       mode: getModeConfig(),
       focus: params.focus?.trim()
         ? {
@@ -420,13 +426,17 @@ export function useEvaluation(
     target: EvaluationTarget
     iterateRequirement: string
     focus?: string
+    variables?: Record<string, string>
   }): Promise<void> => {
     const request: PromptIterateEvaluationRequest = {
       type: 'prompt-iterate',
       target: params.target,
       iterateRequirement: params.iterateRequirement,
       evaluationModelKey: await getModelKey('prompt-iterate'),
-      variables: { language: getLanguage() },
+      variables: {
+        ...(params.variables || {}),
+        language: getLanguage(),
+      },
       mode: getModeConfig(),
       focus: params.focus?.trim()
         ? {

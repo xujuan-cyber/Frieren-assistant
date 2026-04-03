@@ -44,6 +44,7 @@ export interface UseEvaluationHandlerOptions {
   services: Ref<AppServices | null>
   /** 左侧分析专用：当前工作区提示词 */
   analysisOptimizedPrompt: Ref<string> | ComputedRef<string>
+  analysisVariables?: Ref<Record<string, string>> | ComputedRef<Record<string, string>>
   analysisTargetResolver?: (defaultTarget: EvaluationTarget) => EvaluationTarget
   evaluationModelKey: Ref<string> | ComputedRef<string>
   resolveEvaluationModelKey?: UseEvaluationOptions['resolveEvaluationModelKey']
@@ -271,6 +272,7 @@ export function useEvaluationHandler(
   const {
     services,
     analysisOptimizedPrompt,
+    analysisVariables,
     analysisTargetResolver,
     evaluationModelKey,
     resolveEvaluationModelKey,
@@ -364,6 +366,20 @@ export function useEvaluationHandler(
     }
 
     const analysisOptimized = analysisOptimizedPrompt.value || ''
+    const promptAnalysisVariables = (() => {
+      const rawVariables = analysisVariables?.value
+      if (!rawVariables) return undefined
+
+      const entries = Object.entries(rawVariables).filter(([key, value]) => {
+        if (!key?.trim()) return false
+        if (typeof value !== 'string') return false
+        return value.trim().length > 0
+      })
+
+      return entries.length
+        ? Object.fromEntries(entries)
+        : undefined
+    })()
     const analysisDesignContext = toDesignContextBlock(
       promptAnalysisContext,
       functionMode.value,
@@ -382,6 +398,7 @@ export function useEvaluationHandler(
       await evaluation.evaluatePromptOnly({
         target: analysisTarget,
         focus: focus || undefined,
+        variables: promptAnalysisVariables,
       })
       return
     }
@@ -392,6 +409,7 @@ export function useEvaluationHandler(
         await evaluation.evaluatePromptOnly({
           target: analysisTarget,
           focus: focus || undefined,
+          variables: promptAnalysisVariables,
         })
         return
       }
@@ -400,6 +418,7 @@ export function useEvaluationHandler(
         target: analysisTarget,
         iterateRequirement,
         focus: focus || undefined,
+        variables: promptAnalysisVariables,
       })
     }
   }

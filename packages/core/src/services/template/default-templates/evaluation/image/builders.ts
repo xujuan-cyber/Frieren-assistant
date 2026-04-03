@@ -165,9 +165,11 @@ ${dimensionGuide}
 7. Do not use 1-5, 1-10, stars, letter grades, or decimal scales.
 8. improvements and patchPlan must not invent provider-specific command syntax, model names, rendering engines, or control flags such as \`--ar\`, \`--style\`, or model/version tags unless that ecosystem is already named in the current evidence.
 9. When stronger style, ratio, or quality constraints are needed but no ecosystem is named in the evidence, express them in plain prompt language rather than platform-specific shorthand.
+10. If analysisStage = "original-input", treat the current workspace ${subjectLabel} as a first-pass mirror of the user's raw sentence and prioritize diagnosing ambiguity, missing visual direction, and missing controllability constraints.
+11. If analysisStage = "workspace", evaluate prompt quality, controllability, and reusability as a normal current-workspace prompt review.
 {{#hasFocus}}
-10. Focus Brief is the highest-priority user input after iterateRequirement.
-11. If the current evidence is insufficient to support the Focus Brief, state that explicitly.
+12. Focus Brief is the highest-priority user input after iterateRequirement.
+13. If the current evidence is insufficient to support the Focus Brief, state that explicitly.
 {{/hasFocus}}
 
 ## Workflow
@@ -175,9 +177,10 @@ ${dimensionGuide}
 2. Read iterateRequirement and judge whether the current workspace ${subjectLabel} truly responds to it.
 3. Use the reference prompt only when it is present and actually helpful for judging improvement.
 4. Use design context only when it is present and truly helpful as supporting information.
-5. Score the ${subjectLabel} using the design dimensions below.
-6. Summarize the main issues and reusable improvements while staying generator-agnostic unless the evidence already names a specific ecosystem.
-7. Generate patchPlan only when an exact local edit is justified.
+5. Read analysisStage. If it is "original-input", diagnose what the raw input still fails to specify and how to convert it into an executable first draft. If it is "workspace", analyze the current prompt quality and optimization maturity normally.
+6. Score the ${subjectLabel} using the design dimensions below.
+7. Summarize the main issues and reusable improvements while staying generator-agnostic unless the evidence already names a specific ecosystem.
+8. Generate patchPlan only when an exact local edit is justified.
 
 ## Output Contract
 - Return valid JSON only.
@@ -235,18 +238,21 @@ ${dimensionGuide}
 7. If no reference prompt is provided, treat the improvement dimension as optimization maturity of the current workspace prompt instead of inventing a comparison target.
 8. improvements and patchPlan must not invent provider-specific command syntax, model names, rendering engines, or control flags such as \`--ar\`, \`--style\`, or model/version tags unless that ecosystem is already named in the current evidence.
 9. When stronger style, ratio, or quality constraints are needed but no ecosystem is named in the evidence, express them in plain prompt language rather than platform-specific shorthand.
+10. If analysisStage = "original-input", treat the current workspace ${subjectLabel} as a first-pass mirror of the user's raw sentence and prioritize diagnosing ambiguity, missing visual direction, and missing controllability constraints.
+11. If analysisStage = "workspace", evaluate prompt quality, controllability, and reusability as a normal current-workspace prompt review.
 {{#hasFocus}}
-10. Focus Brief is the highest-priority input for this task.
-11. If the current evidence is insufficient to support the Focus Brief, state that explicitly.
+12. Focus Brief is the highest-priority input for this task.
+13. If the current evidence is insufficient to support the Focus Brief, state that explicitly.
 {{/hasFocus}}
 
 ## Workflow
 1. Read the current workspace ${subjectLabel} as the primary analysis object.
 2. Use the reference prompt only when it is present and actually helpful for judging improvement.
 3. Use design context only when it is present and truly helpful as supporting information.
-4. Score the ${subjectLabel} using the design dimensions below.
-5. Summarize the main issues and reusable improvements while staying generator-agnostic unless the evidence already names a specific ecosystem.
-6. Generate patchPlan only when an exact local edit is justified.
+4. Read analysisStage. If it is "original-input", diagnose what the raw input still fails to specify and how to convert it into an executable first draft. If it is "workspace", analyze the current prompt quality and optimization maturity normally.
+5. Score the ${subjectLabel} using the design dimensions below.
+6. Summarize the main issues and reusable improvements while staying generator-agnostic unless the evidence already names a specific ecosystem.
+7. Generate patchPlan only when an exact local edit is justified.
 
 ## Output Contract
 - Return valid JSON only.
@@ -305,9 +311,11 @@ ${dimensionGuide}
 7. 不得使用 1-5、1-10、星级、字母等级或小数分制。
 8. improvements 和 patchPlan 不得凭空引入平台/提供商特定的命令语法、模型名、渲染引擎或控制参数，例如 \`--ar\`、\`--style\`、模型版本标签，除非当前证据里已经明确出现该生态。
 9. 如果需要补充更强的风格、比例或质量约束，但证据里没有明确生态，必须用普通提示词语言表达，而不是平台专属缩写。
+10. 如果 analysisStage = "original-input"，要把当前工作区${subjectLabel}视为用户原始句子的首轮镜像，优先诊断表达模糊点、未拍板的视觉方向和缺失的可控性约束。
+11. 如果 analysisStage = "workspace"，则按正常工作区提示词体检方式评估其质量、可控性与可复用性。
 {{#hasFocus}}
-10. Focus Brief 是 iterateRequirement 之后的最高优先级用户输入。
-11. 如果当前证据不足以支撑 Focus Brief 指向的问题，必须明确说明。
+12. Focus Brief 是 iterateRequirement 之后的最高优先级用户输入。
+13. 如果当前证据不足以支撑 Focus Brief 指向的问题，必须明确说明。
 {{/hasFocus}}
 
 ## Workflow
@@ -315,9 +323,10 @@ ${dimensionGuide}
 2. 读取 iterateRequirement，并判断当前工作区${subjectLabel}是否真正响应了这次修改要求。
 3. 仅在 referencePrompt 存在且确有帮助时，用它辅助判断改进程度。
 4. 仅在 designContext 存在且确有帮助时，把它作为辅助信息使用。
-5. 按下列设计导向维度评分。
-6. 收敛主要问题与可复用改进方向；除非证据已经明确点名某个生图生态，否则保持生成器无关。
-7. 仅在存在精确落点时生成 patchPlan。
+5. 读取 analysisStage。如果它是 "original-input"，重点诊断原始输入还缺什么信息，以及如何改写成可执行首版 prompt；如果它是 "workspace"，则正常评估当前提示词质量与优化成熟度。
+6. 按下列设计导向维度评分。
+7. 收敛主要问题与可复用改进方向；除非证据已经明确点名某个生图生态，否则保持生成器无关。
+8. 仅在存在精确落点时生成 patchPlan。
 
 ## Output Contract
 - 只输出合法 JSON。
@@ -375,18 +384,21 @@ ${dimensionGuide}
 7. 如果没有提供 referencePrompt，应将改进维度理解为当前工作区提示词的优化成熟度，而不是臆造对比对象。
 8. improvements 和 patchPlan 不得凭空引入平台/提供商特定的命令语法、模型名、渲染引擎或控制参数，例如 \`--ar\`、\`--style\`、模型版本标签，除非当前证据里已经明确出现该生态。
 9. 如果需要补充更强的风格、比例或质量约束，但证据里没有明确生态，必须用普通提示词语言表达，而不是平台专属缩写。
+10. 如果 analysisStage = "original-input"，要把当前工作区${subjectLabel}视为用户原始句子的首轮镜像，优先诊断表达模糊点、未拍板的视觉方向和缺失的可控性约束。
+11. 如果 analysisStage = "workspace"，则按正常工作区提示词体检方式评估其质量、可控性与可复用性。
 {{#hasFocus}}
-10. Focus Brief 是本次任务的最高优先级输入。
-11. 如果当前证据不足以支撑 Focus Brief 指向的问题，必须明确说明。
+12. Focus Brief 是本次任务的最高优先级输入。
+13. 如果当前证据不足以支撑 Focus Brief 指向的问题，必须明确说明。
 {{/hasFocus}}
 
 ## Workflow
 1. 读取当前工作区${subjectLabel}，并将其作为本次分析的主对象。
 2. 仅在 referencePrompt 存在且确有帮助时，用它辅助判断改进程度。
 3. 仅在 designContext 存在且确有帮助时，把它作为辅助信息使用。
-4. 按下列设计导向维度评分。
-5. 收敛主要问题与可复用改进方向；除非证据已经明确点名某个生图生态，否则保持生成器无关。
-6. 仅在存在精确落点时生成 patchPlan。
+4. 读取 analysisStage。如果它是 "original-input"，重点诊断原始输入还缺什么信息，以及如何改写成可执行首版 prompt；如果它是 "workspace"，则正常评估当前提示词质量与优化成熟度。
+5. 按下列设计导向维度评分。
+6. 收敛主要问题与可复用改进方向；除非证据已经明确点名某个生图生态，否则保持生成器无关。
+7. 仅在存在精确落点时生成 patchPlan。
 
 ## Output Contract
 - 只输出合法 JSON。
@@ -417,6 +429,7 @@ const buildImageAnalysisUserPrompt = (
 {
   "workspacePrompt": {{#helpers.toJson}}{{{workspacePrompt}}}{{/helpers.toJson}},
   "referencePrompt": {{#hasReferencePrompt}}{{#helpers.toJson}}{{{referencePrompt}}}{{/helpers.toJson}}{{/hasReferencePrompt}}{{^hasReferencePrompt}}null{{/hasReferencePrompt}},
+  "analysisStage": {{#analysisStage}}{{#helpers.toJson}}{{{analysisStage}}}{{/helpers.toJson}}{{/analysisStage}}{{^analysisStage}}"workspace"{{/analysisStage}},
   "iterateRequirement": ${iterate ? '{{#helpers.toJson}}{{{iterateRequirement}}}{{/helpers.toJson}}' : 'null'},
   "designContext": {{#hasDesignContext}}{
     "label": {{#helpers.toJson}}{{{designContextLabel}}}{{/helpers.toJson}},
@@ -438,6 +451,7 @@ Please evaluate against this evidence and return a strict JSON assessment for th
 {
   "workspacePrompt": {{#helpers.toJson}}{{{workspacePrompt}}}{{/helpers.toJson}},
   "referencePrompt": {{#hasReferencePrompt}}{{#helpers.toJson}}{{{referencePrompt}}}{{/helpers.toJson}}{{/hasReferencePrompt}}{{^hasReferencePrompt}}null{{/hasReferencePrompt}},
+  "analysisStage": {{#analysisStage}}{{#helpers.toJson}}{{{analysisStage}}}{{/helpers.toJson}}{{/analysisStage}}{{^analysisStage}}"workspace"{{/analysisStage}},
   "iterateRequirement": ${iterate ? '{{#helpers.toJson}}{{{iterateRequirement}}}{{/helpers.toJson}}' : 'null'},
   "designContext": {{#hasDesignContext}}{
     "label": {{#helpers.toJson}}{{{designContextLabel}}}{{/helpers.toJson}},
