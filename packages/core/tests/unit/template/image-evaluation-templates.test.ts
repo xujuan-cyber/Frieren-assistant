@@ -53,8 +53,8 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[0]?.content).toContain('Focus Brief')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('当前工作区图像生成提示词')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('本任务没有执行结果')
-    expect(promptOnlyTemplate?.content[0]?.content).toContain('不得凭空引入平台/提供商特定的命令语法')
-    expect(promptOnlyTemplate?.content[0]?.content).toContain('保持生成器无关')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('不得凭空引入平台/提供商特定命令语法')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('原始意图句的镜像')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"workspacePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"referencePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"analysisStage":')
@@ -62,6 +62,8 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"focusBrief":')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "original-input"')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "workspace"')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('Stage Contract')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('只输出合法 JSON，禁止 Markdown')
   })
 
   it('registers the zh-CN image prompt-iterate template with iteration evidence', async () => {
@@ -110,7 +112,7 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[0]?.content).toContain('current workspace image-generation prompt')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('this task has no execution result')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('must not invent provider-specific command syntax')
-    expect(promptOnlyTemplate?.content[0]?.content).toContain('staying generator-agnostic')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('raw intent sentence')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"workspacePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"referencePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"analysisStage":')
@@ -118,6 +120,8 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"focusBrief":')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "original-input"')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "workspace"')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('Stage Contract')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('No Markdown, no code fences')
   })
 
   it('registers the en-US image prompt-iterate template with iteration evidence', async () => {
