@@ -451,12 +451,12 @@
                     :optimization-mode="optimizationMode"
                     :advanced-mode-enabled="advancedModeEnabled"
                     :show-preview="true"
-                    evaluation-type-override="prompt-only"
                     iterate-template-type="imageIterate"
                     @iterate="handleIteratePrompt"
                     @openTemplateManager="onOpenTemplateManager"
                     @switchVersion="handleSwitchVersion"
                     @save-favorite="handleSaveFavorite"
+                    @apply-improvement="handleApplyImprovement"
                     @save-local-edit="handleSaveLocalEdit"
                     @open-preview="handleOpenPromptPreview"
                 />
@@ -531,6 +531,8 @@
                                         @show-detail="showCompareDetail"
                                         @evaluate="handleEvaluateCompare"
                                         @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
+                                        @apply-improvement="handleApplyImprovement"
+                                        @apply-patch="handleApplyLocalPatch"
                                     />
                                     <FocusAnalyzeButton
                                         v-else
@@ -656,6 +658,8 @@
                                                             @show-detail="() => showResultDetail(id)"
                                                             @evaluate="() => handleEvaluateResult(id)"
                                                             @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
+                                                            @apply-improvement="handleApplyImprovement"
+                                                            @apply-patch="handleApplyLocalPatch"
                                                         />
                                                         <FocusAnalyzeButton
                                                             v-else
@@ -778,9 +782,12 @@
             :stale-message="activeEvaluationStaleMessage"
             :disable-evaluate="activeEvaluationDisableEvaluate"
             :disable-evaluate-reason="activeEvaluationDisableReason"
-            :can-rewrite-from-evaluation="false"
+            :can-rewrite-from-evaluation="true"
             @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
+            @apply-local-patch="handleApplyLocalPatch"
+            @apply-improvement="handleApplyImprovement"
+            @rewrite-from-evaluation="handleRewriteFromEvaluation"
             @clear="handleClearEvaluation"
             @retry="handleReEvaluateActive"
         />
@@ -909,6 +916,7 @@ import {
     shouldShowImageText2ImageResultAction,
 } from './imageText2ImageEvaluation'
 import {
+    applyPatchOperationsToText,
     type ContextMode,
     type ImageModelConfig,
     type Text2ImageRequest,
@@ -916,6 +924,7 @@ import {
     type ImageResultItem,
     type OptimizationMode,
     type OptimizationRequest,
+    type PatchOperation,
     type PromptRecordChain,
     type PromptRecordType,
     type Template,
@@ -1883,6 +1892,19 @@ const handleClearEvaluation = () => {
     compareEvaluationFingerprint.value = ''
 }
 
+const handleApplyLocalPatch = (payload: { operation: PatchOperation }) => {
+    if (!payload.operation) return
+    const current = optimizedPrompt.value || ''
+    const result = applyPatchOperationsToText(current, payload.operation)
+    if (!result.ok) {
+        toast.warning(t('toast.warning.patchApplyFailed'))
+        return
+    }
+
+    optimizedPrompt.value = result.text
+    toast.success(t('evaluation.diagnose.applyFix'))
+}
+
 const getVariantRequest = (id: TestVariantId): Text2ImageRequest | null => {
     const modelKey = (variantModelKeyModels[id].value || '').trim()
     if (!modelKey) {
@@ -2095,6 +2117,8 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
 
 // PromptPanel 引用，用于在语言切换后刷新迭代模板选择
 const promptPanelRef = ref<InstanceType<typeof PromptPanelUI> | null>(null);
+const handleApplyImprovement = evaluationHandler.createApplyImprovementHandler(promptPanelRef)
+const handleRewriteFromEvaluation = evaluationHandler.createRewriteFromEvaluationHandler(promptPanelRef)
 
 // 输入区折叠状态（初始展开）
 const isInputPanelCollapsed = ref(false);

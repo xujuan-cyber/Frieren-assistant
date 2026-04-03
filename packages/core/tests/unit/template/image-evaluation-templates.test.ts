@@ -61,6 +61,22 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"focusBrief":')
   })
 
+  it('registers the zh-CN image prompt-iterate template with iteration evidence', async () => {
+    vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('zh-CN')
+
+    const promptIterateTemplate = await templateManager.getTemplate('evaluation-image-text2image-prompt-iterate')
+
+    expect(promptIterateTemplate).toBeDefined()
+    expect(promptIterateTemplate?.content[0]?.content).toContain('Focus Brief')
+    expect(promptIterateTemplate?.content[0]?.content).toContain('当前工作区图像生成提示词')
+    expect(promptIterateTemplate?.content[0]?.content).toContain('iterateRequirement')
+    expect(promptIterateTemplate?.content[0]?.content).toContain('只输出合法 JSON')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('"workspacePrompt":')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('"referencePrompt":')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('"iterateRequirement":')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('请基于这些证据')
+  })
+
   it('registers the en-US image result and compare templates', async () => {
     vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('en-US')
 
@@ -96,5 +112,21 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"referencePrompt":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"designContext":')
     expect(promptOnlyTemplate?.content[1]?.content).toContain('"focusBrief":')
+  })
+
+  it('registers the en-US image prompt-iterate template with iteration evidence', async () => {
+    vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('en-US')
+
+    const promptIterateTemplate = await templateManager.getTemplate('evaluation-image-text2image-prompt-iterate')
+
+    expect(promptIterateTemplate).toBeDefined()
+    expect(promptIterateTemplate?.content[0]?.content).toContain('Focus Brief')
+    expect(promptIterateTemplate?.content[0]?.content).toContain('current workspace image-generation prompt')
+    expect(promptIterateTemplate?.content[0]?.content).toContain('iterateRequirement')
+    expect(promptIterateTemplate?.content[0]?.content).toContain('valid JSON')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('"workspacePrompt":')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('"referencePrompt":')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('"iterateRequirement":')
+    expect(promptIterateTemplate?.content[1]?.content).toContain('Please evaluate against this evidence')
   })
 })

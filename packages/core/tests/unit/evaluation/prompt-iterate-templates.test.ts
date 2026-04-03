@@ -57,6 +57,7 @@ const PROMPT_ITERATE_TEMPLATE_IDS = [
   'evaluation-basic-user-prompt-iterate',
   'evaluation-pro-multi-prompt-iterate',
   'evaluation-pro-variable-prompt-iterate',
+  'evaluation-image-text2image-prompt-iterate',
 ] as const
 
 describe('Prompt-iterate evaluation templates', () => {

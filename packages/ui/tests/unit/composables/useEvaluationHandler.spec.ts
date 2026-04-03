@@ -504,6 +504,36 @@ describe('useEvaluationHandler', () => {
     })
   })
 
+  it('allows image prompt-iterate analysis targets to inject reference evidence', async () => {
+    const mockEvaluation = createMockEvaluation()
+
+    const handler = useEvaluationHandler({
+      services: ref(null),
+      analysisOptimizedPrompt: ref('Optimized image prompt'),
+      analysisTargetResolver: (defaultTarget) => ({
+        ...defaultTarget,
+        referencePrompt: 'Original image intent',
+      }),
+      evaluationModelKey: ref('eval-model'),
+      functionMode: ref('image'),
+      subMode: ref('text2image'),
+      currentIterateRequirement: ref('  make the composition more cinematic  '),
+      externalEvaluation: mockEvaluation,
+    })
+
+    await handler.handleEvaluate('prompt-iterate')
+
+    expect(mockEvaluation.evaluatePromptIterate).toHaveBeenCalledWith({
+      target: {
+        workspacePrompt: 'Optimized image prompt',
+        referencePrompt: 'Original image intent',
+        designContext: undefined,
+      },
+      iterateRequirement: 'make the composition more cinematic',
+      focus: undefined,
+    })
+  })
+
   it('formats pro-variable analysis context as minimal variable structure', async () => {
     const analysisContext: ProEvaluationContext = {
       variables: [

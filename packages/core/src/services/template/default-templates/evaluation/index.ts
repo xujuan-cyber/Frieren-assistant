@@ -54,6 +54,8 @@ export {
 export {
   evaluationImageText2ImagePromptOnly,
   evaluationImageText2ImagePromptOnlyEn,
+  evaluationImageText2ImagePromptIterate,
+  evaluationImageText2ImagePromptIterateEn,
 } from './image/text2image';
 
 // 图像模式 - 图生图评估
