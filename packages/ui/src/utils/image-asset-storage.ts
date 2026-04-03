@@ -4,7 +4,7 @@ import { computeStableImageId } from '../stores/session/imageStorageMaintenance'
 
 type ImageSourceType = 'generated' | 'uploaded'
 
-type ImagePayload = {
+export type ImagePayload = {
   b64: string
   mimeType: string
 }
@@ -70,7 +70,9 @@ const fetchImagePayloadFromUrl = async (absoluteUrl: string): Promise<ImagePaylo
   }
 }
 
-const normalizePayloadFromSource = async (source: string): Promise<ImagePayload | null> => {
+export const normalizeImageSourceToPayload = async (
+  source: string,
+): Promise<ImagePayload | null> => {
   const raw = String(source || '').trim()
   if (!raw) return null
 
@@ -82,6 +84,43 @@ const normalizePayloadFromSource = async (source: string): Promise<ImagePayload 
   }
 
   return null
+}
+
+type PersistImagePayloadOptions = {
+  payload: ImagePayload
+  storageService: IImageStorageService | null | undefined
+  sourceType?: ImageSourceType
+  metadata?: {
+    prompt?: string
+    modelId?: string
+    configId?: string
+  }
+}
+
+export const persistImagePayloadAsAssetId = async (
+  opts: PersistImagePayloadOptions,
+): Promise<string | null> => {
+  const { payload, storageService, sourceType = 'uploaded', metadata } = opts
+  if (!storageService || !payload?.b64) return null
+
+  const imageId = await computeStableImageId(payload.b64, payload.mimeType)
+  const existing = await storageService.getMetadata(imageId)
+  if (!existing) {
+    await storageService.saveImage({
+      metadata: {
+        id: imageId,
+        mimeType: payload.mimeType,
+        sizeBytes: Math.floor(payload.b64.length * 0.75),
+        createdAt: Date.now(),
+        accessedAt: Date.now(),
+        source: sourceType,
+        metadata,
+      },
+      data: payload.b64,
+    })
+  }
+
+  return imageId
 }
 
 type PersistImageSourceOptions = {
@@ -104,27 +143,15 @@ export const persistImageSourceAsAssetId = async (
   const { source, storageService, sourceType = 'uploaded', metadata } = opts
   if (!storageService) return null
 
-  const payload = await normalizePayloadFromSource(source)
+  const payload = await normalizeImageSourceToPayload(source)
   if (!payload) return null
 
-  const imageId = await computeStableImageId(payload.b64, payload.mimeType)
-  const existing = await storageService.getMetadata(imageId)
-  if (!existing) {
-    await storageService.saveImage({
-      metadata: {
-        id: imageId,
-        mimeType: payload.mimeType,
-        sizeBytes: Math.floor(payload.b64.length * 0.75),
-        createdAt: Date.now(),
-        accessedAt: Date.now(),
-        source: sourceType,
-        metadata,
-      },
-      data: payload.b64,
-    })
-  }
-
-  return imageId
+  return persistImagePayloadAsAssetId({
+    payload,
+    storageService,
+    sourceType,
+    metadata,
+  })
 }
 
 type PersistImageSourcesOptions = {

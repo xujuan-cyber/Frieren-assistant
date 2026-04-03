@@ -13,6 +13,10 @@ import { getPiniaServices } from '../../plugins/pinia'
 import { isValidVariableName, sanitizeVariableRecord } from '../../types/variable'
 import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
 import {
+  normalizeImageSourceToPayload,
+  persistImagePayloadAsAssetId,
+} from '../../utils/image-asset-storage'
+import {
   isImageRef,
   createImageRef,
   type ImageResult,
@@ -409,36 +413,37 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
         continue
       }
 
-      // 如果有 base64 数据，保存到存储服务并创建引用
-      if (img.b64) {
-        const mimeType = img.mimeType || 'image/png'
-        const imageId = await computeStableImageId(img.b64, mimeType)
+      const payload = img.b64
+        ? {
+            b64: img.b64,
+            mimeType: img.mimeType || 'image/png',
+          }
+        : img.url
+          ? await normalizeImageSourceToPayload(img.url)
+          : null
 
-        const existing = await storageService.getMetadata(imageId)
-        if (!existing) {
-          await storageService.saveImage({
-            metadata: {
-              id: imageId,
-              mimeType,
-              sizeBytes: Math.floor(img.b64.length * 0.75),
-              createdAt: Date.now(),
-              accessedAt: Date.now(),
-              source: 'generated',
-              metadata: {
-                prompt: result.metadata?.prompt,
-                modelId: result.metadata?.modelId,
-                configId: result.metadata?.configId
-              }
-            },
-            data: img.b64
-          })
-        }
-
-        processedImages.push(createImageRef(imageId))
-      } else {
-        // URL 或其他格式，直接保留
+      if (!payload) {
         processedImages.push(img)
+        continue
       }
+
+      const imageId = await persistImagePayloadAsAssetId({
+        payload,
+        storageService,
+        sourceType: 'generated',
+        metadata: {
+          prompt: result.metadata?.prompt,
+          modelId: result.metadata?.modelId,
+          configId: result.metadata?.configId,
+        },
+      })
+
+      if (imageId) {
+        processedImages.push(createImageRef(imageId))
+        continue
+      }
+
+      processedImages.push(img)
     }
 
     return {
@@ -481,6 +486,36 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
           loadedImages.push(img)
         }
       } else {
+        if (img.url && !img.b64) {
+          try {
+            const payload = await normalizeImageSourceToPayload(img.url)
+            if (payload?.b64) {
+              try {
+                await persistImagePayloadAsAssetId({
+                  payload,
+                  storageService,
+                  sourceType: 'generated',
+                  metadata: {
+                    prompt: result.metadata?.prompt,
+                    modelId: result.metadata?.modelId,
+                    configId: result.metadata?.configId,
+                  },
+                })
+              } catch (error) {
+                console.warn('[ImageImage2ImageSession] 恢复 legacy url 图像时写入存储失败:', error)
+              }
+
+              loadedImages.push({
+                b64: payload.b64,
+                mimeType: payload.mimeType,
+              })
+              continue
+            }
+          } catch (error) {
+            console.warn('[ImageImage2ImageSession] 恢复 legacy url 图像失败:', error)
+          }
+        }
+
         // 非引用格式（URL 或 base64），直接保留
         loadedImages.push(img)
       }

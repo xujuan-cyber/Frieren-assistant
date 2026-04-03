@@ -101,6 +101,70 @@ describe('Session stores (image) persistence', () => {
     expect(runtimeAfter?.b64).toBe('AAAA')
   })
 
+  it('image-text2image saveSession converts legacy url results into ImageRef snapshots', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      headers: {
+        get: vi.fn((name: string) => (name.toLowerCase() === 'content-type' ? 'image/png' : null)),
+      },
+      arrayBuffer: async () => Uint8Array.from([104, 101, 108, 108, 111]).buffer,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const set = vi.fn(async (_key: string, _value: any) => {})
+    const saveImage = vi.fn(async (data: any) => data?.metadata?.id || 'img-test')
+    const getMetadata = vi.fn(async () => null)
+    const listAllMetadata = vi.fn(async () => [])
+    const deleteImages = vi.fn(async () => {})
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: async <T,>(_key: string, defaultValue: T) => defaultValue,
+        set,
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: {
+        saveImage,
+        getMetadata,
+        listAllMetadata,
+        deleteImages,
+        getImage: vi.fn(),
+      } as any,
+    })
+
+    const store = useImageText2ImageSession(pinia)
+    store.updatePrompt('p')
+    store.updateOriginalImageResult({
+      images: [{ url: 'https://example.com/runtime-only.png' }],
+      metadata: { prompt: 'p', configId: 'cfg', modelId: 'm' },
+    } as any)
+
+    try {
+      await store.saveSession()
+
+      expect(fetchMock).toHaveBeenCalledWith('https://example.com/runtime-only.png', { method: 'GET' })
+      expect(saveImage).toHaveBeenCalledTimes(1)
+
+      const raw = set.mock.calls[0]?.[1]
+      const saved =
+        typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw as Record<string, any> | undefined) || {}
+
+      expect(saved.originalImageResult.images[0]).toMatchObject({
+        id: expect.any(String),
+        _type: 'image-ref',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('image-text2image saveSession throws when ImageStorageService is missing', async () => {
     const set = vi.fn(async () => {})
 
@@ -222,6 +286,190 @@ describe('Session stores (image) persistence', () => {
     expect(store.inputImageB64).toBe('INPUT_B64')
     expect(store.originalImageResult?.images?.[0]).toMatchObject({ b64: 'RESULT_B64', mimeType: 'image/png' })
     expect(get).toHaveBeenCalledWith('session/v1/image-image2image', null)
+  })
+
+  it('image-text2image restoreSession normalizes legacy url results into runtime base64', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      headers: {
+        get: vi.fn((name: string) => (name.toLowerCase() === 'content-type' ? 'image/png' : null)),
+      },
+      arrayBuffer: async () => Uint8Array.from([104, 101, 108, 108, 111]).buffer,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const get = vi.fn(async (key: string, defaultValue: any) => {
+      if (key !== 'session/v1/image-text2image') return defaultValue
+      return JSON.stringify({
+        originalPrompt: 'p',
+        originalImageResult: { images: [{ url: 'https://example.com/legacy.png' }] },
+        optimizedImageResult: null,
+        isCompareMode: true,
+        selectedTextModelKey: '',
+        selectedImageModelKey: '',
+        selectedTemplateId: null,
+        selectedIterateTemplateId: null,
+        lastActiveAt: Date.now(),
+      })
+    })
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: {
+        saveImage: vi.fn(),
+        getImage: vi.fn(async () => null),
+        getMetadata: vi.fn(async () => null),
+      } as any,
+    })
+
+    const store = useImageText2ImageSession(pinia)
+
+    try {
+      await store.restoreSession()
+
+      expect(fetchMock).toHaveBeenCalledWith('https://example.com/legacy.png', { method: 'GET' })
+      expect(store.originalImageResult?.images?.[0]).toMatchObject({
+        b64: 'aGVsbG8=',
+        mimeType: 'image/png',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('image-image2image saveSession converts legacy url results into ImageRef snapshots', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      headers: {
+        get: vi.fn((name: string) => (name.toLowerCase() === 'content-type' ? 'image/png' : null)),
+      },
+      arrayBuffer: async () => Uint8Array.from([104, 101, 108, 108, 111]).buffer,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const set = vi.fn(async (_key: string, _value: any) => {})
+    const saveImage = vi.fn(async (data: any) => data?.metadata?.id || 'img-test')
+    const getMetadata = vi.fn(async () => null)
+    const listAllMetadata = vi.fn(async () => [])
+    const deleteImages = vi.fn(async () => {})
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: async <T,>(_key: string, defaultValue: T) => defaultValue,
+        set,
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: {
+        saveImage,
+        getMetadata,
+        listAllMetadata,
+        deleteImages,
+        getImage: vi.fn(),
+      } as any,
+    })
+
+    const store = useImageImage2ImageSession(pinia)
+    store.updatePrompt('p')
+    store.updateOriginalImageResult({
+      images: [{ url: 'https://example.com/runtime-only.png' }],
+      metadata: { prompt: 'p', configId: 'cfg', modelId: 'm' },
+    } as any)
+
+    try {
+      await store.saveSession()
+
+      expect(fetchMock).toHaveBeenCalledWith('https://example.com/runtime-only.png', { method: 'GET' })
+      expect(saveImage).toHaveBeenCalledTimes(1)
+
+      const raw = set.mock.calls[0]?.[1]
+      const saved =
+        typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw as Record<string, any> | undefined) || {}
+
+      expect(saved.originalImageResult.images[0]).toMatchObject({
+        id: expect.any(String),
+        _type: 'image-ref',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('image-image2image restoreSession normalizes legacy url results into runtime base64', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      headers: {
+        get: vi.fn((name: string) => (name.toLowerCase() === 'content-type' ? 'image/png' : null)),
+      },
+      arrayBuffer: async () => Uint8Array.from([104, 101, 108, 108, 111]).buffer,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const get = vi.fn(async (key: string, defaultValue: any) => {
+      if (key !== 'session/v1/image-image2image') return defaultValue
+      return JSON.stringify({
+        originalPrompt: 'p',
+        originalImageResult: { images: [{ url: 'https://example.com/legacy.png' }] },
+        optimizedImageResult: null,
+        isCompareMode: true,
+        selectedTextModelKey: '',
+        selectedImageModelKey: '',
+        selectedTemplateId: null,
+        selectedIterateTemplateId: null,
+        lastActiveAt: Date.now(),
+      })
+    })
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: {
+        saveImage: vi.fn(),
+        getImage: vi.fn(async () => null),
+        getMetadata: vi.fn(async () => null),
+      } as any,
+    })
+
+    const store = useImageImage2ImageSession(pinia)
+
+    try {
+      await store.restoreSession()
+
+      expect(fetchMock).toHaveBeenCalledWith('https://example.com/legacy.png', { method: 'GET' })
+      expect(store.originalImageResult?.images?.[0]).toMatchObject({
+        b64: 'aGVsbG8=',
+        mimeType: 'image/png',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('image-image2image saveSession throws when ImageStorageService is missing', async () => {
