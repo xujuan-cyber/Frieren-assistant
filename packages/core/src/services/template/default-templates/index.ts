@@ -58,6 +58,9 @@ import { template as image2image_design_text_edit_optimize } from './image-optim
 import { template as image2image_design_text_edit_optimize_en } from './image-optimize/image2image/design-text-edit-optimize_en';
 import { template as image2image_json_structured_optimize } from './image-optimize/image2image/json-structured-optimize';
 import { template as image2image_json_structured_optimize_en } from './image-optimize/image2image/json-structured-optimize_en';
+// 多图生图
+import { template as multiimage_optimize } from './image-optimize/multiimage/multiimage-optimize';
+import { template as multiimage_optimize_en } from './image-optimize/multiimage/multiimage-optimize_en';
 // 图像迭代
 import { template as image_iterate_general } from './image-optimize/iterate/image-iterate-general';
 import { template as image_iterate_general_en } from './image-optimize/iterate/image-iterate-general_en';
@@ -188,6 +191,8 @@ export const ALL_TEMPLATES = {
   image2image_design_text_edit_optimize_en,
   image2image_json_structured_optimize,
   image2image_json_structured_optimize_en,
+  multiimage_optimize,
+  multiimage_optimize_en,
   // 图像迭代模板
   image_iterate_general,
   image_iterate_general_en,

@@ -1,5 +1,6 @@
 import { PromptRecord } from "../history/types";
 import { StreamHandlers } from "../llm/types";
+import type { ImageInputRef } from "../image/types";
 
 /**
  * 工具调用相关类型
@@ -71,7 +72,7 @@ export type FunctionMode = "basic" | "pro" | "image";
  */
 export type BasicSubMode = "system" | "user"; // 基础模式
 export type ProSubMode = "multi" | "variable"; // Pro 模式（多消息/变量）
-export type ImageSubMode = "text2image" | "image2image"; // 图像模式
+export type ImageSubMode = "text2image" | "image2image" | "multiimage"; // 图像模式
 
 /**
  * 优化请求接口
@@ -81,6 +82,7 @@ export interface OptimizationRequest {
   targetPrompt: string; // 待优化的提示词
   templateId?: string;
   modelKey: string;
+  inputImages?: ImageInputRef[];
   // 🆕 上下文模式（用于变量替换策略）
   contextMode?: import("../context/types").ContextMode;
   // 新增：高级模式上下文（可选，保持向后兼容）

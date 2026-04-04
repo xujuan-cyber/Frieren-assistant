@@ -58,6 +58,7 @@ const {
   createHistoryManager,
   createLLMService,
   createPromptService,
+  createImageUnderstandingService,
   createImageModelManager,
   createImageAdapterRegistry,
   createImageService,
@@ -625,7 +626,13 @@ async function initializeServices() {
     llmService = createLLMService(modelManager);
 
     console.log('[DESKTOP] Creating Prompt service...');
-    promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
+    promptService = createPromptService(
+      modelManager,
+      llmService,
+      templateManager,
+      historyManager,
+      createImageUnderstandingService(),
+    );
     console.log('[DESKTOP] Creating Image service...');
     imageService = createImageService(imageModelManager, imageAdapterRegistry);
     
@@ -1230,6 +1237,16 @@ function setupIPC() {
     }
   })
 
+  ipcMain.handle('image-generateMultiImage', async (e, request) => {
+    try {
+      const safeReq = safeSerialize(request)
+      const res = await imageService.generateMultiImage(safeReq)
+      return createSuccessResponse(res)
+    } catch (error) {
+      return createStructuredErrorResponse(error)
+    }
+  })
+
   ipcMain.handle('image-validateRequest', async (e, request) => {
     try {
       const safeReq = safeSerialize(request)
@@ -1254,6 +1271,16 @@ function setupIPC() {
     try {
       const safeReq = safeSerialize(request)
       const res = await imageService.validateImage2ImageRequest(safeReq)
+      return createSuccessResponse(res)
+    } catch (error) {
+      return createStructuredErrorResponse(error)
+    }
+  })
+
+  ipcMain.handle('image-validateMultiImageRequest', async (e, request) => {
+    try {
+      const safeReq = safeSerialize(request)
+      const res = await imageService.validateMultiImageRequest(safeReq)
       return createSuccessResponse(res)
     } catch (error) {
       return createStructuredErrorResponse(error)

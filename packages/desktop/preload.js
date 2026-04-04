@@ -423,6 +423,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
        }
        return result.data;
      },
+     generateMultiImage: async (request) => {
+       const result = await ipcRenderer.invoke('image-generateMultiImage', request);
+       if (!result.success) {
+         throw createIpcError(result.error);
+       }
+       return result.data;
+     },
  
      validateRequest: async (request) => {
        const result = await ipcRenderer.invoke('image-validateRequest', request);
@@ -440,6 +447,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
      },
      validateImage2ImageRequest: async (request) => {
        const result = await ipcRenderer.invoke('image-validateImage2ImageRequest', request);
+       if (!result.success) {
+         throw createIpcError(result.error);
+       }
+       return result.data;
+     },
+     validateMultiImageRequest: async (request) => {
+       const result = await ipcRenderer.invoke('image-validateMultiImageRequest', request);
        if (!result.success) {
          throw createIpcError(result.error);
        }

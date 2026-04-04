@@ -148,8 +148,10 @@ export const IMAGE_ERROR_CODES = {
   INPUT_IMAGE_INVALID_FORMAT: 'error.image.input_image_invalid_format',
   INPUT_IMAGE_UNSUPPORTED_MIME: 'error.image.input_image_unsupported_mime',
   INPUT_IMAGE_TOO_LARGE: 'error.image.input_image_too_large',
+  MULTI_IMAGE_AT_LEAST_TWO_REQUIRED: 'error.image.multi_image_at_least_two_required',
   MODEL_NOT_SUPPORT_TEXT2IMAGE: 'error.image.model_not_support_text2image',
   MODEL_NOT_SUPPORT_IMAGE2IMAGE: 'error.image.model_not_support_image2image',
+  MODEL_NOT_SUPPORT_MULTI_IMAGE: 'error.image.model_not_support_multi_image',
   MODEL_ONLY_SUPPORTS_IMAGE2IMAGE_NEED_INPUT: 'error.image.model_only_supports_image2image_need_input',
   GENERATION_FAILED: 'error.image.generation_failed',
 } as const;

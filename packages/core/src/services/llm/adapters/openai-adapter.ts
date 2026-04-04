@@ -602,6 +602,94 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     }
   }
 
+  protected async doSendImageUnderstandingStream(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    try {
+      const openai = this.createOpenAIInstance(config, true)
+      const mergedParams = {
+        ...(config.paramOverrides || {}),
+        ...(request.paramOverrides || {})
+      } as Record<string, unknown>
+
+      const {
+        timeout,
+        model: _paramModel,
+        messages: _paramMessages,
+        stream: _paramStream,
+        responseMimeType: _responseMimeType,
+        ...restParams
+      } = mergedParams as any
+
+      const content = [
+        {
+          type: 'text',
+          text: request.userPrompt
+        },
+        ...request.images.map((image) => ({
+          type: 'image_url',
+          image_url: {
+            url: `data:${image.mimeType || 'image/png'};base64,${image.b64}`
+          }
+        }))
+      ]
+
+      const messages: any[] = []
+      if (request.systemPrompt?.trim()) {
+        messages.push({
+          role: 'system',
+          content: request.systemPrompt
+        })
+      }
+
+      messages.push({
+        role: 'user',
+        content
+      })
+
+      const completionConfig: any = {
+        model: config.modelMeta.id,
+        messages,
+        stream: true,
+        ...restParams
+      }
+
+      const stream = await openai.chat.completions.create(completionConfig)
+
+      let accumulatedReasoning = ''
+      let accumulatedContent = ''
+      const thinkState = { isInThinkMode: false, buffer: '' }
+
+      for await (const chunk of stream as any) {
+        const reasoningContent = chunk.choices?.[0]?.delta?.reasoning_content || ''
+        if (reasoningContent) {
+          accumulatedReasoning += reasoningContent
+          callbacks.onReasoningToken?.(reasoningContent)
+        }
+
+        const textContent = chunk.choices?.[0]?.delta?.content || ''
+        if (textContent) {
+          accumulatedContent += textContent
+          this.processStreamContentWithThinkTags(textContent, callbacks, thinkState)
+        }
+      }
+
+      callbacks.onComplete({
+        content: accumulatedContent,
+        reasoning: accumulatedReasoning || undefined,
+        metadata: {
+          model: config.modelMeta.id
+        }
+      })
+    } catch (error) {
+      console.error('[OpenAIAdapter] Image understanding stream failed:', error)
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)))
+      throw error
+    }
+  }
+
   protected async parseCompletionResponse(response: any, modelId: string): Promise<LLMResponse> {
     // 处理原始 SSE 字符串响应（某些 API 返回未解析的 SSE 格式）
     if (typeof response === 'string') {

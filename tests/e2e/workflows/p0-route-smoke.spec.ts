@@ -6,7 +6,8 @@ const ROUTES: Array<{ name: string; hashPath: string }> = [
   { name: 'pro-multi', hashPath: '/#/pro/multi' },
   { name: 'pro-variable', hashPath: '/#/pro/variable' },
   { name: 'image-text2image', hashPath: '/#/image/text2image' },
-  { name: 'image-image2image', hashPath: '/#/image/image2image' }
+  { name: 'image-image2image', hashPath: '/#/image/image2image' },
+  { name: 'image-multiimage', hashPath: '/#/image/multiimage' }
 ]
 
 test.describe('P0 route smoke', () => {

@@ -3,6 +3,7 @@ import type { IImageStorageService, IPreferenceService } from '@prompt-optimizer
 // Session snapshot keys (single source of truth)
 export const IMAGE_TEXT2IMAGE_SESSION_KEY = 'session/v1/image-text2image'
 export const IMAGE_IMAGE2IMAGE_SESSION_KEY = 'session/v1/image-image2image'
+export const IMAGE_MULTIIMAGE_SESSION_KEY = 'session/v1/image-multiimage'
 export const FAVORITES_STORAGE_KEY = 'favorites'
 
 type FavoritesPayloadProvider = () => Promise<unknown> | unknown
@@ -138,20 +139,38 @@ function collectFavoriteAssetIds(value: unknown, out: Set<string>) {
   }
 }
 
+function collectMultiImageInputAssetIds(value: unknown, out: Set<string>) {
+  if (!value || typeof value !== 'object') return
+
+  const obj = value as Record<string, unknown>
+  const inputImages = obj['inputImages']
+  if (!Array.isArray(inputImages)) return
+
+  for (const item of inputImages) {
+    if (!item || typeof item !== 'object') continue
+    const assetId = (item as Record<string, unknown>)['assetId']
+    if (typeof assetId === 'string' && assetId.trim()) {
+      out.add(assetId.trim())
+    }
+  }
+}
+
 async function collectReferencedImageIds(
   preferenceService: IPreferenceService,
   getFavoritesPayload?: FavoritesPayloadProvider | null,
 ): Promise<Set<string>> {
   const referenced = new Set<string>()
 
-  const [rawText2Image, rawImage2Image, rawFavorites] = await Promise.all([
+  const [rawText2Image, rawImage2Image, rawMultiImage, rawFavorites] = await Promise.all([
     preferenceService.get<unknown>(IMAGE_TEXT2IMAGE_SESSION_KEY, null),
     preferenceService.get<unknown>(IMAGE_IMAGE2IMAGE_SESSION_KEY, null),
+    preferenceService.get<unknown>(IMAGE_MULTIIMAGE_SESSION_KEY, null),
     preferenceService.get<unknown>(FAVORITES_STORAGE_KEY, null),
   ])
 
   const text2Image = parseSnapshot(rawText2Image)
   const image2Image = parseSnapshot(rawImage2Image)
+  const multiImage = parseSnapshot(rawMultiImage)
   const favorites = parseStoredValue(rawFavorites)
 
   if (text2Image) {
@@ -164,6 +183,11 @@ async function collectReferencedImageIds(
     if (typeof inputImageId === 'string' && inputImageId) {
       referenced.add(inputImageId)
     }
+  }
+
+  if (multiImage) {
+    collectImageRefIds(multiImage, referenced)
+    collectMultiImageInputAssetIds(multiImage, referenced)
   }
 
   // Backward compatibility: some builds stored favorites inside preference payload.

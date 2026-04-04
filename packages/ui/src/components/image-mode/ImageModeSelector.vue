@@ -18,6 +18,15 @@
     >
       {{ t('imageMode.image2image') }}
     </NButton>
+    <NButton
+      data-testid="image-sub-mode-multiimage"
+      :type="modelValue === 'multiimage' ? 'primary' : 'default'"
+      size="small"
+      @click="handleModeChange('multiimage')"
+      :disabled="disabled"
+    >
+      {{ t('imageMode.multiimage') }}
+    </NButton>
   </NButtonGroup>
 </template>
 
@@ -25,7 +34,7 @@
 import { NButtonGroup, NButton } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
-export type ImageMode = 'text2image' | 'image2image'
+export type ImageMode = 'text2image' | 'image2image' | 'multiimage'
 
 interface Props {
   modelValue: ImageMode

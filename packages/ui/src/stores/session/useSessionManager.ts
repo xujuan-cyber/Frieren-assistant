@@ -24,6 +24,7 @@ import { useProMultiMessageSession } from './useProMultiMessageSession'
 import { useProVariableSession } from './useProVariableSession'
 import { useImageText2ImageSession } from './useImageText2ImageSession'
 import { useImageImage2ImageSession } from './useImageImage2ImageSession'
+import { useImageMultiImageSession } from './useImageMultiImageSession'
 
 /**
  * 子模式 key 映射表
@@ -36,6 +37,7 @@ export type SubModeKey =
   | 'pro-variable'    // Pro-变量模式
   | 'image-text2image'  // 文生图
   | 'image-image2image' // 图生图
+  | 'image-multiimage' // 多图生图
 
 /**
  * 子模式读取器接口（从外部注入）
@@ -210,6 +212,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
         case 'image-image2image':
           await useImageImage2ImageSession().saveSession()
           break
+        case 'image-multiimage':
+          await useImageMultiImageSession().saveSession()
+          break
       }
     } catch (error) {
       console.error(`[SessionManager] 保存 ${key} 会话失败:`, error)
@@ -265,6 +270,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
         case 'image-image2image':
           await useImageImage2ImageSession().restoreSession()
           break
+        case 'image-multiimage':
+          await useImageMultiImageSession().restoreSession()
+          break
       }
     } catch (error) {
       console.error(`[SessionManager] 恢复 ${key} 会话失败:`, error)
@@ -310,6 +318,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
         'pro-variable',
         'image-text2image',
         'image-image2image',
+        'image-multiimage',
       ]
 
       for (const key of keys) {
@@ -362,6 +371,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
         'pro-variable',
         'image-text2image',
         'image-image2image',
+        'image-multiimage',
       ]
       for (const key of keys) {
         await _saveSubModeSessionUnsafe(key)

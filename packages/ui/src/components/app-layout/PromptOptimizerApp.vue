@@ -309,6 +309,7 @@ import { useProVariableSession } from '../../stores/session/useProVariableSessio
 import { useSessionRestoreCoordinator } from '../../composables/session/useSessionRestoreCoordinator'
 import { useImageText2ImageSession } from '../../stores/session/useImageText2ImageSession'
 import { useImageImage2ImageSession } from '../../stores/session/useImageImage2ImageSession'
+import { useImageMultiImageSession } from '../../stores/session/useImageMultiImageSession'
 import { useGlobalSettings } from '../../stores/settings/useGlobalSettings'
 
 import type { TemplateManagerTemplateType } from '../../composables/prompt/useTemplateManager'
@@ -438,7 +439,7 @@ const parseRouteInfo = () => {
     const validSubModes: Record<string, string[]> = {
       basic: ['system', 'user'],
       pro: ['multi', 'variable'],  // ✅ pro 模式支持 multi 和 variable
-      image: ['text2image', 'image2image'],
+      image: ['text2image', 'image2image', 'multiimage'],
     }
 
     const allowed = validSubModes[mode] || []
@@ -466,7 +467,7 @@ const parseRouteInfo = () => {
     proSubMode:
       (functionMode === 'pro' ? subModeInfo.canonicalSubMode : 'variable') as 'multi' | 'variable',
     imageSubMode:
-      (functionMode === 'image' ? subModeInfo.canonicalSubMode : 'text2image') as 'text2image' | 'image2image',
+      (functionMode === 'image' ? subModeInfo.canonicalSubMode : 'text2image') as 'text2image' | 'image2image' | 'multiimage',
     isValid: subModeInfo.isValid,
     canonicalPath: `/${functionMode}/${subModeInfo.canonicalSubMode}`,
   }
@@ -796,6 +797,7 @@ const proMultiMessageSession = useProMultiMessageSession();
 const proVariableSession = useProVariableSession();
 const imageText2ImageSession = useImageText2ImageSession();
 const imageImage2ImageSession = useImageImage2ImageSession();
+const imageMultiImageSession = useImageMultiImageSession();
 
 // 🔧 Step E: 使用 route-computed 代替旧 state
 const activeBasicSession = computed(() =>
@@ -820,7 +822,9 @@ const selectedOptimizeModelKey = computed<string>({
             const session =
                 routeImageSubMode.value === "text2image"
                     ? imageText2ImageSession
-                    : imageImage2ImageSession;
+                    : routeImageSubMode.value === "multiimage"
+                        ? imageMultiImageSession
+                        : imageImage2ImageSession;
             return session.selectedTextModelKey || "";
         }
         return "";
@@ -843,7 +847,9 @@ const selectedOptimizeModelKey = computed<string>({
             const session =
                 routeImageSubMode.value === "text2image"
                     ? imageText2ImageSession
-                    : imageImage2ImageSession;
+                    : routeImageSubMode.value === "multiimage"
+                        ? imageMultiImageSession
+                        : imageImage2ImageSession;
             session.updateTextModel(next);
         }
     },
@@ -1040,7 +1046,11 @@ const getCurrentSession = () => {
     } else if (routeFunctionMode.value === 'pro') {
         return routeProSubMode.value === 'multi' ? proMultiMessageSession : proVariableSession;
     } else if (routeFunctionMode.value === 'image') {
-        return routeImageSubMode.value === 'text2image' ? imageText2ImageSession : imageImage2ImageSession;
+        return routeImageSubMode.value === 'text2image'
+            ? imageText2ImageSession
+            : routeImageSubMode.value === 'multiimage'
+                ? imageMultiImageSession
+                : imageImage2ImageSession;
     }
     return basicSystemSession;
 };
@@ -1051,7 +1061,9 @@ const getCurrentBasicSession = () =>
 const getCurrentImageSession = () =>
     routeImageSubMode.value === 'text2image'
         ? imageText2ImageSession
-        : imageImage2ImageSession;
+        : routeImageSubMode.value === 'multiimage'
+            ? imageMultiImageSession
+            : imageImage2ImageSession;
 
 /**
  * 🔧 方案 A 修复：恢复 Basic 模式的 session 状态（移除冗余赋值）
@@ -1542,6 +1554,7 @@ const SUB_MODE_KEYS: ReadonlyArray<SubModeKey> = [
     "pro-variable",
     "image-text2image",
     "image-image2image",
+    "image-multiimage",
 ];
 
 const navigateToSubModeKeyCompat = (
@@ -1601,6 +1614,7 @@ void registerOptionalIntegrations({
     proVariableSession,
     imageText2ImageSession,
     imageImage2ImageSession,
+    imageMultiImageSession,
     getFavoriteManager: () => services.value?.favoriteManager || null,
     getFavoriteImageStorageService:
       () => services.value?.favoriteImageStorageService || services.value?.imageStorageService || null,
@@ -1641,9 +1655,13 @@ const handleTemplateSelected = (
                 return imageText2ImageSession;
             case "image-image2image-optimize":
                 return imageImage2ImageSession;
+            case "image-multiimage-optimize":
+                return imageMultiImageSession;
             case "image-iterate":
                 return routeImageSubMode.value === "image2image"
                     ? imageImage2ImageSession
+                    : routeImageSubMode.value === "multiimage"
+                        ? imageMultiImageSession
                     : imageText2ImageSession;
             default:
                 return null;
@@ -1845,6 +1863,7 @@ const normalizeTemplateTypeForManager = (
         "iterate",
         "text2imageOptimize",
         "image2imageOptimize",
+        "multiimageOptimize",
         "imageIterate",
         "conversationMessageOptimize",
         "contextUserOptimize",
@@ -2033,7 +2052,7 @@ const parseSubModeKey = (path: string): SubModeKey | null => {
   const validModes: Record<string, string[]> = {
     basic: ['system', 'user'],
     pro: ['multi', 'variable'],
-    image: ['text2image', 'image2image'],
+    image: ['text2image', 'image2image', 'multiimage'],
   };
 
   // 🔧 Pro 模式兼容性映射（与 routeProSubMode computed 保持一致）

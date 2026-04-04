@@ -6,7 +6,9 @@ import type {
   ImageModelConfig,
   ImageModel,
   Text2ImageRequest,
-  Image2ImageRequest
+  Image2ImageRequest,
+  MultiImageGenerationRequest,
+  MultiImageRequest,
 } from './types'
 import { BaseError } from '../llm/errors'
 import { IMAGE_ERROR_CODES } from '../../constants/error-codes'
@@ -16,9 +18,11 @@ type ElectronAPI = {
     generate: (request: ImageRequest) => Promise<ImageResult>
     generateText2Image: (request: Text2ImageRequest) => Promise<ImageResult>
     generateImage2Image: (request: Image2ImageRequest) => Promise<ImageResult>
+    generateMultiImage: (request: MultiImageGenerationRequest) => Promise<ImageResult>
     validateRequest: (request: ImageRequest) => Promise<void>
     validateText2ImageRequest: (request: Text2ImageRequest) => Promise<void>
     validateImage2ImageRequest: (request: Image2ImageRequest) => Promise<void>
+    validateMultiImageRequest: (request: MultiImageRequest) => Promise<void>
     testConnection: (config: ImageModelConfig) => Promise<ImageResult>
     getDynamicModels: (providerId: string, connectionConfig: Record<string, unknown>) => Promise<ImageModel[]>
   }
@@ -63,6 +67,11 @@ export class ElectronImageServiceProxy implements IImageService {
     return await this.electronAPI.image.generateImage2Image(safeReq)
   }
 
+  async generateMultiImage(request: MultiImageGenerationRequest): Promise<ImageResult> {
+    const safeReq = JSON.parse(JSON.stringify(request))
+    return await this.electronAPI.image.generateMultiImage(safeReq)
+  }
+
   async validateRequest(request: ImageRequest): Promise<void> {
     const safeReq = JSON.parse(JSON.stringify(request))
     await this.electronAPI.image.validateRequest(safeReq)
@@ -76,6 +85,11 @@ export class ElectronImageServiceProxy implements IImageService {
   async validateImage2ImageRequest(request: Image2ImageRequest): Promise<void> {
     const safeReq = JSON.parse(JSON.stringify(request))
     await this.electronAPI.image.validateImage2ImageRequest(safeReq)
+  }
+
+  async validateMultiImageRequest(request: MultiImageRequest): Promise<void> {
+    const safeReq = JSON.parse(JSON.stringify(request))
+    await this.electronAPI.image.validateMultiImageRequest(safeReq)
   }
 
   async testConnection(config: ImageModelConfig): Promise<ImageResult> {

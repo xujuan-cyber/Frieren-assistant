@@ -7,7 +7,10 @@ import {
   ImageModelConfig,
   ImageModel,
   Text2ImageRequest,
-  Image2ImageRequest
+  Image2ImageRequest,
+  MultiImageRequest,
+  MultiImageGenerationRequest,
+  ImageInputRef,
 } from './types'
 import { createImageAdapterRegistry } from './adapters/registry'
 import { BaseError } from '../llm/errors'
@@ -30,6 +33,25 @@ export class ImageService implements IImageService {
   }
 
   async validateRequest(request: ImageRequest): Promise<void> {
+    if (Array.isArray(request.inputImages) && request.inputImages.length > 0) {
+      if (request.inputImages.length > 1) {
+        const multiImage: MultiImageRequest = {
+          ...request,
+          inputImage: undefined,
+          inputImages: request.inputImages,
+        }
+        await this.validateMultiImageRequest(multiImage)
+        return
+      }
+
+      const image2image: Image2ImageRequest = {
+        ...request,
+        inputImage: request.inputImage ?? request.inputImages[0],
+      }
+      await this.validateImage2ImageRequest(image2image)
+      return
+    }
+
     // 兼容入口：仍按是否携带 inputImage 判断模式。
     // 注意：这是 legacy 行为；推荐调用方使用显式的 validateText2ImageRequest/validateImage2ImageRequest。
     if (request.inputImage) {
@@ -46,7 +68,11 @@ export class ImageService implements IImageService {
   async validateText2ImageRequest(request: Text2ImageRequest): Promise<void> {
     // 显式文生图：不允许携带 inputImage（即使调用方用 any 绕过类型）
     const unsafeInputImage = (request as unknown as { inputImage?: unknown }).inputImage
+    const unsafeInputImages = (request as unknown as { inputImages?: unknown }).inputImages
     if (unsafeInputImage !== undefined && unsafeInputImage !== null) {
+      throw new ImageError(IMAGE_ERROR_CODES.TEXT2IMAGE_INPUT_IMAGE_NOT_ALLOWED)
+    }
+    if (Array.isArray(unsafeInputImages) && unsafeInputImages.length > 0) {
       throw new ImageError(IMAGE_ERROR_CODES.TEXT2IMAGE_INPUT_IMAGE_NOT_ALLOWED)
     }
 
@@ -110,6 +136,42 @@ export class ImageService implements IImageService {
     }
   }
 
+  async validateMultiImageRequest(request: MultiImageRequest): Promise<void> {
+    await this.validateBaseRequest(request)
+
+    if (!Array.isArray(request.inputImages) || request.inputImages.length < 2) {
+      throw new ImageError(IMAGE_ERROR_CODES.MULTI_IMAGE_AT_LEAST_TWO_REQUIRED)
+    }
+
+    for (const inputImage of request.inputImages) {
+      const unsafeUrl = (inputImage as unknown as { url?: unknown }).url
+      if (typeof unsafeUrl === 'string' && unsafeUrl.trim()) {
+        throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_URL_NOT_SUPPORTED)
+      }
+
+      if (!inputImage.b64 || typeof inputImage.b64 !== 'string' || !inputImage.b64.trim()) {
+        throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_B64_REQUIRED)
+      }
+
+      this.validateInputImage(inputImage)
+    }
+
+    const config = await this.imageModelManager.getConfig(request.configId)
+    if (!config) {
+      throw new ImageError(IMAGE_ERROR_CODES.CONFIG_NOT_FOUND, undefined, { configId: request.configId })
+    }
+
+    const configModel = config.model
+    const staticModels = this.registry.getStaticModels(config.providerId)
+    const staticModel = staticModels.find(m => m.id === config.modelId)
+    const capabilities = configModel?.capabilities ?? staticModel?.capabilities
+    const modelName = configModel?.name ?? staticModel?.name ?? config.modelId
+
+    if (capabilities && !capabilities.multiImage) {
+      throw new ImageError(IMAGE_ERROR_CODES.MODEL_NOT_SUPPORT_MULTI_IMAGE, undefined, { modelName })
+    }
+  }
+
   private async validateBaseRequest(request: Pick<ImageRequest, 'prompt' | 'configId' | 'count'>): Promise<void> {
     // 验证基本字段
     if (!request?.prompt || !request.prompt.trim()) {
@@ -143,7 +205,7 @@ export class ImageService implements IImageService {
     }
   }
 
-  private validateInputImage(inputImage: { b64: string; mimeType?: string }): void {
+  private validateInputImage(inputImage: ImageInputRef): void {
     // validateImage2ImageRequest 已经校验 b64 非空
 
     // 验证输入图像格式
@@ -174,6 +236,11 @@ export class ImageService implements IImageService {
 
   async generateImage2Image(request: Image2ImageRequest): Promise<ImageResult> {
     await this.validateImage2ImageRequest(request)
+    return await this.generateInternal(request)
+  }
+
+  async generateMultiImage(request: MultiImageGenerationRequest): Promise<ImageResult> {
+    await this.validateMultiImageRequest(request)
     return await this.generateInternal(request)
   }
 
@@ -312,6 +379,20 @@ export class ImageService implements IImageService {
       throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_URL_NOT_SUPPORTED)
     }
 
+    const normalizedInputImages = Array.isArray(request.inputImages)
+      ? request.inputImages.map((inputImage) => {
+          const unsafeUrl = (inputImage as unknown as { url?: unknown }).url
+          if (typeof unsafeUrl === 'string' && unsafeUrl.trim()) {
+            throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_URL_NOT_SUPPORTED)
+          }
+
+          return {
+            b64: inputImage.b64,
+            mimeType: inputImage.mimeType,
+          }
+        })
+      : undefined
+
     const schema = config.model?.parameterDefinitions ?? []
 
     // 请求级别的参数覆盖，同样需要考虑旧格式
@@ -329,6 +410,12 @@ export class ImageService implements IImageService {
 
     return {
       ...request,
+      inputImage:
+        request.inputImage ??
+        (normalizedInputImages && normalizedInputImages.length === 1
+          ? normalizedInputImages[0]
+          : undefined),
+      inputImages: normalizedInputImages,
       paramOverrides: normalizedOverrides
     }
   }

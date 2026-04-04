@@ -13,6 +13,7 @@ import type { ProMultiMessageSessionApi } from '../stores/session/useProMultiMes
 import type { ProVariableSessionApi } from '../stores/session/useProVariableSession'
 import type { ImageText2ImageSessionApi } from '../stores/session/useImageText2ImageSession'
 import type { ImageImage2ImageSessionApi } from '../stores/session/useImageImage2ImageSession'
+import type { ImageMultiImageSessionApi } from '../stores/session/useImageMultiImageSession'
 
 export interface SaveFavoriteDialogDraft {
   content: string
@@ -24,7 +25,7 @@ export interface SaveFavoriteDialogDraft {
     tags?: string[]
     functionMode?: 'basic' | 'context' | 'image'
     optimizationMode?: 'system' | 'user'
-    imageSubMode?: 'text2image' | 'image2image'
+    imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
   }
 }
@@ -46,6 +47,7 @@ export interface OptionalIntegrationsContext {
   proVariableSession: ProVariableSessionApi
   imageText2ImageSession: ImageText2ImageSessionApi
   imageImage2ImageSession: ImageImage2ImageSessionApi
+  imageMultiImageSession: ImageMultiImageSessionApi
   optimizerCurrentVersions: Ref<PromptRecordChain['versions']>
 
   /** Lazy getter to avoid hard coupling optional integrations to app service lifecycle. */

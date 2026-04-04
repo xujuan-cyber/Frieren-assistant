@@ -25,6 +25,7 @@ export const template: Template = {
 Your task is to optimize user's image modification requests into natural-language Image-to-Image prompts, ensuring desired modifications are achieved while maintaining core characteristics of the original image.
 
 **Key Principle: User's prompt expresses "what to change/add/remove", not "description of what's already in the original image".**
+**The current image to edit is attached directly with the request, so you must ground your reasoning in that attached image when deciding what to preserve and what to change.**
 
 ## Skills
 1. Modification Intent Recognition (Core Ability)
@@ -91,6 +92,7 @@ Your task is to optimize user's image modification requests into natural-languag
       content: `Please optimize the following image modification request into natural-language Image-to-Image prompt.
 
 Important Notes:
+- The current image to edit is already attached to the request. Inspect that image first, then decide what should be preserved and what should change.
 - **User's prompt is "desired final effect", not "description of original image"**
 - **Key to judging intent**: Do elements user describes exist in original image?
   * If user describes elements not in original → **Addition Intent** (e.g., original has only flower, user says "person holding flower" → need to add person)

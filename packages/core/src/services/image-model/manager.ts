@@ -371,38 +371,47 @@ export class ImageModelManager implements IImageModelManager {
   private ensureSelfContained(config: ImageModelConfig): ImageModelConfig {
     // 如果已经有完整的自包含字段，尽量补齐新增的 provider 字段（保持向后兼容）
     if (config.provider && config.model) {
-      const providerId = (config.provider.id || config.providerId || '').toLowerCase()
+      let nextConfig = config
+
+      try {
+        const adapter = this.registry.getAdapter(config.providerId)
+        const latestProvider = adapter.getProvider()
+        const latestStaticModel = this.registry
+          .getStaticModels(config.providerId)
+          .find(model => model.id === config.modelId)
+
+        nextConfig = {
+          ...nextConfig,
+          provider: {
+            ...nextConfig.provider,
+            ...latestProvider
+          },
+          model: latestStaticModel
+            ? {
+                ...nextConfig.model,
+                ...latestStaticModel
+              }
+            : nextConfig.model
+        }
+      } catch {
+        // ignore - unknown provider or adapter failure
+      }
+
+      const providerId = (nextConfig.provider.id || nextConfig.providerId || '').toLowerCase()
 
       // Historical metadata might incorrectly mark Ollama as CORS-restricted.
       // Ollama can be configured (CORS/reverse-proxy), so we force-disable the tag.
-      if (providerId === 'ollama' && config.provider.corsRestricted !== false) {
+      if (providerId === 'ollama' && nextConfig.provider.corsRestricted !== false) {
         return {
-          ...config,
+          ...nextConfig,
           provider: {
-            ...config.provider,
+            ...nextConfig.provider,
             corsRestricted: false
           }
         }
       }
 
-      // 旧存储数据里 provider 可能缺少新字段；用当前 adapter 的 provider 元数据补齐。
-      if (config.provider.corsRestricted === undefined) {
-        try {
-          const latestProvider = this.registry.getAdapter(config.providerId).getProvider()
-          if (latestProvider.corsRestricted !== undefined) {
-            return {
-              ...config,
-              provider: {
-                ...config.provider,
-                corsRestricted: latestProvider.corsRestricted
-              }
-            }
-          }
-        } catch {
-          // ignore - unknown provider or adapter failure
-        }
-      }
-      return config
+      return nextConfig
     }
 
     try {

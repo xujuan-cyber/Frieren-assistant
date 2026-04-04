@@ -46,7 +46,7 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
         capabilities: {
           text2image: true,
           image2image: true,
-          multiImage: false
+          multiImage: true
         },
         parameterDefinitions: [
           {
@@ -170,25 +170,34 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
   }
 
   protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {
-    // 构建请求体（隐藏多图相关参数，强制单图）
+    // 构建请求体
     const overrides: Record<string, any> = { ...config.paramOverrides, ...request.paramOverrides }
     delete overrides.n
     delete overrides.batch_size
     const payload: any = {
       model: config.modelId,
       prompt: request.prompt,
-      sequential_image_generation: 'disabled', // 固定禁用组图
+      sequential_image_generation: 'disabled', // 固定关闭组图输出，仅返回单张结果
       ...overrides,
       n: 1
     }
 
-    // 图生图支持：添加图像输入
-    if (request.inputImage?.b64) {
+    const inputImages = Array.isArray(request.inputImages)
+      ? request.inputImages.filter((image) => typeof image?.b64 === 'string' && image.b64.trim().length > 0)
+      : []
+
+    if (inputImages.length > 1) {
+      payload.image = inputImages.map((image) => {
+        const mime = image.mimeType || 'image/png'
+        return `data:${mime};base64,${image.b64}`
+      })
+    } else if (request.inputImage?.b64) {
       const mime = request.inputImage.mimeType || 'image/png'
       payload.image = `data:${mime};base64,${request.inputImage.b64}`
+    } else if (inputImages.length === 1) {
+      const mime = inputImages[0].mimeType || 'image/png'
+      payload.image = `data:${mime};base64,${inputImages[0].b64}`
     }
-
-    // 生成数量固定为1（当前不支持多图）
 
     const response = await this.apiCall(config, '/images/generations', {
       method: 'POST',

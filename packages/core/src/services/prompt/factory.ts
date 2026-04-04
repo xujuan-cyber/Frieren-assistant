@@ -3,6 +3,7 @@ import type { IModelManager } from '../model/types';
 import type { ITemplateManager } from '../template/types';
 import type { IHistoryManager } from '../history/types';
 import type { ILLMService } from '../llm/types';
+import type { IImageUnderstandingService } from '../image-understanding/types';
 
 /**
  * 创建PromptService实例
@@ -16,7 +17,14 @@ export function createPromptService(
   modelManager: IModelManager,
   llmService: ILLMService,
   templateManager: ITemplateManager,
-  historyManager: IHistoryManager
+  historyManager: IHistoryManager,
+  imageUnderstandingService?: IImageUnderstandingService,
 ): PromptService {
-  return new PromptService(modelManager, llmService, templateManager, historyManager);
+  return new PromptService(
+    modelManager,
+    llmService,
+    templateManager,
+    historyManager,
+    imageUnderstandingService,
+  );
 }

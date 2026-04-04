@@ -10,7 +10,7 @@ export interface FunctionModeMapping {
   /** 优化模式 (二级分类,仅用于 basic/context 模式) */
   optimizationMode?: 'system' | 'user';
   /** 图像子模式 (二级分类,仅用于 image 模式) */
-  imageSubMode?: 'text2image' | 'image2image';
+  imageSubMode?: 'text2image' | 'image2image' | 'multiimage';
 }
 
 /**
@@ -43,6 +43,13 @@ export class TypeMapper {
       return {
         functionMode: 'image',
         imageSubMode: 'image2image'
+      };
+    }
+
+    if (recordType === 'multiimageOptimize') {
+      return {
+        functionMode: 'image',
+        imageSubMode: 'multiimage'
       };
     }
 
@@ -127,7 +134,7 @@ export class TypeMapper {
       if (!mapping.imageSubMode) {
         return false;
       }
-      if (!['text2image', 'image2image'].includes(mapping.imageSubMode)) {
+      if (!['text2image', 'image2image', 'multiimage'].includes(mapping.imageSubMode)) {
         return false;
       }
       // 图像模式不应有 optimizationMode
@@ -175,6 +182,9 @@ export class TypeMapper {
       }
       if (imageSubMode === 'image2image') {
         return ['image2imageOptimize'];
+      }
+      if (imageSubMode === 'multiimage') {
+        return ['multiimageOptimize'];
       }
     }
 

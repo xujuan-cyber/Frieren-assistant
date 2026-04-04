@@ -231,4 +231,104 @@ describe('AnthropicAdapter', () => {
       expect(callbacks.onError).not.toHaveBeenCalled();
     });
   });
+
+  describe('sendImageUnderstandingStream', () => {
+    it('should stream multimodal content with anthropic image blocks', async () => {
+      const finalMessage = {
+        content: [
+          { type: 'text', text: '视觉分析结果' }
+        ],
+        model: 'claude-sonnet-4-5',
+        stop_reason: 'end_turn',
+        usage: {
+          input_tokens: 18,
+          output_tokens: 36
+        }
+      };
+
+      const mockStream = {
+        on: vi.fn((event: string, callback: any) => {
+          if (event === 'thinking') {
+            setTimeout(() => callback('先观察参考图。'), 5);
+          } else if (event === 'text') {
+            setTimeout(() => callback('视觉'), 10);
+            setTimeout(() => callback('分析结果'), 20);
+          } else if (event === 'message') {
+            setTimeout(() => callback(finalMessage), 30);
+          }
+          return mockStream;
+        }),
+        finalMessage: vi.fn().mockResolvedValue(finalMessage)
+      };
+
+      const mockStreamFn = vi.fn().mockResolvedValue(mockStream);
+      (Anthropic as any).prototype.messages = {
+        create: vi.fn(),
+        stream: mockStreamFn
+      };
+
+      const callbacks: StreamHandlers = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      await adapter.sendImageUnderstandingStream(
+        {
+          systemPrompt: 'system prompt',
+          userPrompt: 'describe images',
+          images: [
+            {
+              b64: 'ZmFrZS1pbWFnZQ==',
+              mimeType: 'image/jpeg'
+            }
+          ]
+        },
+        mockConfig,
+        callbacks
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(mockStreamFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: mockConfig.modelMeta.id,
+          system: 'system prompt',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'describe images'
+                },
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/jpeg',
+                    data: 'ZmFrZS1pbWFnZQ=='
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      );
+      expect(callbacks.onReasoningToken).toHaveBeenCalledWith('先观察参考图。');
+      expect(callbacks.onToken).toHaveBeenCalledWith('视觉');
+      expect(callbacks.onToken).toHaveBeenCalledWith('分析结果');
+      expect(callbacks.onComplete).toHaveBeenCalledWith({
+        content: '视觉分析结果',
+        reasoning: '先观察参考图。',
+        metadata: {
+          model: 'claude-sonnet-4-5',
+          finishReason: 'end_turn',
+          tokens: 54
+        }
+      });
+      expect(callbacks.onError).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { TypeMapper, type FunctionModeMapping } from '../../../src/services/favorite/type-mapper';
 import type { PromptRecordType } from '../../../src/services/history/types';
 
@@ -107,6 +107,14 @@ describe('TypeMapper', () => {
         imageSubMode: 'image2image'
       });
     });
+
+    it('应该将 multiimageOptimize 映射为 image/multiimage', () => {
+      const result = TypeMapper.mapFromRecordType('multiimageOptimize');
+      expect(result).toEqual({
+        functionMode: 'image',
+        imageSubMode: 'multiimage'
+      });
+    });
   });
 
   describe('mapFromRecordType - 未知类型处理', () => {
@@ -173,6 +181,14 @@ describe('TypeMapper', () => {
       const mapping: FunctionModeMapping = {
         functionMode: 'image',
         imageSubMode: 'image2image'
+      };
+      expect(TypeMapper.validateMapping(mapping)).toBe(true);
+    });
+
+    it('应该接受合法的 image/multiimage 映射', () => {
+      const mapping: FunctionModeMapping = {
+        functionMode: 'image',
+        imageSubMode: 'multiimage'
       };
       expect(TypeMapper.validateMapping(mapping)).toBe(true);
     });
@@ -319,6 +335,15 @@ describe('TypeMapper', () => {
       expect(result).toEqual(['image2imageOptimize']);
     });
 
+    it('应该从 image/multiimage 推断出 multiimageOptimize', () => {
+      const mapping: FunctionModeMapping = {
+        functionMode: 'image',
+        imageSubMode: 'multiimage'
+      };
+      const result = TypeMapper.inferRecordTypes(mapping);
+      expect(result).toEqual(['multiimageOptimize']);
+    });
+
     it('应该对非法映射返回空数组', () => {
       const mapping = {
         functionMode: 'basic' as const,
@@ -343,7 +368,8 @@ describe('TypeMapper', () => {
         'contextImageOptimize',
         'imageIterate',
         'text2imageOptimize',
-        'image2imageOptimize'
+        'image2imageOptimize',
+        'multiimageOptimize'
       ];
 
       allTypes.forEach(type => {
@@ -380,6 +406,10 @@ describe('TypeMapper', () => {
         {
           recordType: 'image2imageOptimize',
           mapping: { functionMode: 'image', imageSubMode: 'image2image' }
+        },
+        {
+          recordType: 'multiimageOptimize',
+          mapping: { functionMode: 'image', imageSubMode: 'multiimage' }
         }
       ];
 

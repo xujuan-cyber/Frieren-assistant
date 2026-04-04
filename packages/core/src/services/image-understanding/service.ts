@@ -1,7 +1,7 @@
 import { TextAdapterRegistry } from '../llm/adapters/registry'
 import { RequestConfigError } from '../llm/errors'
 import type { IImageUnderstandingService, ImageUnderstandingExecutionRequest, CreateImageUnderstandingServiceOptions } from './types'
-import type { ITextAdapterRegistry } from '../llm/types'
+import type { ITextAdapterRegistry, StreamHandlers } from '../llm/types'
 
 export class ImageUnderstandingService implements IImageUnderstandingService {
   private readonly registry: ITextAdapterRegistry
@@ -17,6 +17,18 @@ export class ImageUnderstandingService implements IImageUnderstandingService {
     const adapter = this.registry.getAdapter(providerId)
 
     return await adapter.sendImageUnderstanding(request, request.modelConfig)
+  }
+
+  async understandStream(
+    request: ImageUnderstandingExecutionRequest,
+    callbacks: StreamHandlers
+  ) {
+    this.validateRequest(request)
+
+    const providerId = request.modelConfig.providerMeta.id
+    const adapter = this.registry.getAdapter(providerId)
+
+    await adapter.sendImageUnderstandingStream(request, request.modelConfig, callbacks)
   }
 
   private validateRequest(request: ImageUnderstandingExecutionRequest): void {

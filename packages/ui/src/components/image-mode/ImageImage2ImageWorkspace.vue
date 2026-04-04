@@ -326,6 +326,7 @@
                                     :disabled="
                                         isOptimizing ||
                                         !originalPrompt.trim() ||
+                                        !inputImageB64 ||
                                         !selectedTextModelKey ||
                                         !selectedTemplate
                                     "
@@ -1991,6 +1992,10 @@ const createHistoryRecord = async () => {
 // 优化提示词（流式写入 store.state）
 const handleOptimizePrompt = async () => {
     if (!originalPrompt.value.trim() || isOptimizing.value) return
+    if (!inputImageB64.value) {
+        toast.error(t('imageWorkspace.generation.inputImageRequired'))
+        return
+    }
     if (!selectedTemplate.value) {
         toast.error(t('toast.error.noOptimizeTemplate'))
         return
@@ -2016,6 +2021,12 @@ const handleOptimizePrompt = async () => {
             targetPrompt: originalPrompt.value,
             templateId: selectedTemplate.value.id,
             modelKey: selectedTextModelKey.value,
+            inputImages: [
+                {
+                    b64: inputImageB64.value,
+                    mimeType: inputImageMime.value || 'image/png',
+                },
+            ],
         }
 
         await promptService.value.optimizePromptStream(request, {

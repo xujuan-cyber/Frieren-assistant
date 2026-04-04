@@ -387,6 +387,113 @@ export class AnthropicAdapter extends AbstractTextProviderAdapter {
     }
   }
 
+  protected async doSendImageUnderstandingStream(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    const client = this.createClient(config)
+    const thinkState = { isInThinkMode: false, buffer: '' }
+
+    try {
+      const mergedParams = {
+        ...(config.paramOverrides || {}),
+        ...(request.paramOverrides || {})
+      } as Record<string, unknown>
+
+      const {
+        max_tokens,
+        temperature,
+        top_p,
+        top_k,
+        thinking_budget_tokens,
+        responseMimeType: _responseMimeType,
+        ...otherParams
+      } = mergedParams as any
+
+      const requestParams: any = {
+        model: config.modelMeta.id,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: request.userPrompt
+              },
+              ...request.images.map((image) => ({
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: image.mimeType || 'image/png',
+                  data: image.b64
+                }
+              }))
+            ]
+          }
+        ],
+        max_tokens: max_tokens ?? DEFAULT_MAX_TOKENS
+      }
+
+      if (temperature !== undefined) {
+        requestParams.temperature = temperature
+      }
+      if (top_p !== undefined) {
+        requestParams.top_p = top_p
+      }
+      if (top_k !== undefined) {
+        requestParams.top_k = top_k
+      }
+      if (request.systemPrompt?.trim()) {
+        requestParams.system = request.systemPrompt
+      }
+      if (thinking_budget_tokens !== undefined && thinking_budget_tokens >= 1024) {
+        requestParams.thinking = {
+          type: 'enabled',
+          budget_tokens: thinking_budget_tokens
+        }
+      }
+
+      Object.assign(requestParams, otherParams)
+
+      const stream = await client.messages.stream(requestParams)
+
+      let accumulatedReasoning = ''
+
+      ;(stream as any).on('thinking', (thinkingDelta: string) => {
+        accumulatedReasoning += thinkingDelta
+        callbacks.onReasoningToken?.(thinkingDelta)
+      })
+
+      ;(stream as any).on('text', (text: string) => {
+        this.processStreamContentWithThinkTags(text, callbacks, thinkState)
+      })
+
+      ;(stream as any).on('message', (message: any) => {
+        callbacks.onComplete({
+          content: this.extractContent(message),
+          reasoning: accumulatedReasoning || undefined,
+          metadata: {
+            model: message.model,
+            finishReason: message.stop_reason || undefined,
+            tokens: message.usage
+              ? (message.usage.input_tokens || 0) + (message.usage.output_tokens || 0)
+              : undefined
+          }
+        })
+      })
+
+      ;(stream as any).on('error', (error: any) => {
+        callbacks.onError(error)
+      })
+
+      await stream.finalMessage()
+    } catch (error) {
+      callbacks.onError(this.handleError(error))
+      throw error
+    }
+  }
+
   /**
    * 发送流式消息（真正的 SSE 流）
    */

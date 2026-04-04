@@ -10,7 +10,7 @@ export const parseSubModeKey = (path: string): SubModeKey | null => {
   const validSubModes = {
     basic: ['system', 'user'] as const,
     pro: ['multi', 'variable'] as const,
-    image: ['text2image', 'image2image'] as const,
+    image: ['text2image', 'image2image', 'multiimage'] as const,
   } as const
 
   type Mode = keyof typeof validSubModes

@@ -160,16 +160,23 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
 
     // 构建请求内容
     let contents: any
-    if (request.inputImage) {
-      // 图生图：使用数组格式
+    const inputImages =
+      Array.isArray(request.inputImages) && request.inputImages.length > 0
+        ? request.inputImages
+        : request.inputImage
+          ? [request.inputImage]
+          : []
+
+    if (inputImages.length > 0) {
+      // 图生图/多图生图：使用数组格式
       contents = [
         { text: request.prompt },
-        {
+        ...inputImages.map((inputImage) => ({
           inlineData: {
-            mimeType: request.inputImage.mimeType || 'image/png',
-            data: request.inputImage.b64
+            mimeType: inputImage.mimeType || 'image/png',
+            data: inputImage.b64
           }
-        }
+        }))
       ]
     } else {
       // 文生图：直接使用文本

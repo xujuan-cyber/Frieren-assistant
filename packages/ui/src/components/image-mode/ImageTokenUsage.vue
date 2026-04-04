@@ -4,7 +4,21 @@
         <div v-if="hasInputData" class="usage-section">
             <NText depth="3" class="section-label">Input</NText>
             <div class="usage-tags">
-                <NTag v-if="inputImageDimensions" size="small" :bordered="false" type="default">
+                <template v-if="normalizedInputImagesInfo.length > 0">
+                    <NTag
+                        v-for="(item, index) in normalizedInputImagesInfo"
+                        :key="`${index}-${item.mimeType || 'image'}`"
+                        size="small"
+                        :bordered="false"
+                        type="default"
+                    >
+                        图{{ index + 1 }}{{ item.imageType ? ` (${item.imageType})` : '' }}:
+                        {{ item.width }}x{{ item.height }}px,
+                        Aspect: {{ formatAspectRatio(item) }},
+                        Pricing Tier: {{ sizeMultiplier(item) }}
+                    </NTag>
+                </template>
+                <NTag v-else-if="inputImageDimensions" size="small" :bordered="false" type="default">
                     Image{{ inputImageType ? ` (${inputImageType})` : '' }}:
                     {{ inputImageDimensions.width }}x{{ inputImageDimensions.height }}px,
                     Aspect: {{ formatAspectRatio(inputImageDimensions) }},
@@ -66,6 +80,11 @@ interface InputImageInfo {
     mimeType?: string
 }
 
+interface NormalizedInputImageInfo extends Dimensions {
+    mimeType?: string
+    imageType: string
+}
+
 interface NormalizedUsage {
     inputTokens: number | null
     outputTokens: number | null
@@ -82,6 +101,7 @@ const props = defineProps<{
     image?: ImageRefLike | null
     inputImage?: ImageRefLike | null
     inputImageInfo?: InputImageInfo | null
+    inputImagesInfo?: InputImageInfo[] | null
 }>()
 
 interface Dimensions {
@@ -133,6 +153,22 @@ function toDimensions(value: InputImageInfo | null | undefined): Dimensions | nu
         return null
     }
     return { width, height }
+}
+
+function toNormalizedInputImageInfo(value: InputImageInfo | null | undefined): NormalizedInputImageInfo | null {
+    const dimensions = toDimensions(value)
+    if (!dimensions) return null
+
+    return {
+        ...dimensions,
+        mimeType: value?.mimeType,
+        imageType: formatImageType(value?.mimeType),
+    }
+}
+
+function toInputImageInfoList(value: unknown): InputImageInfo[] {
+    if (!Array.isArray(value)) return []
+    return value.filter((item): item is InputImageInfo => !!item && typeof item === 'object')
 }
 
 function pickNumber(record: Record<string, unknown> | null, keys: string[]): number | null {
@@ -212,6 +248,15 @@ resolveImageDimensions(() => props.inputImage, loadedInputImageDimensions)
 const inputImageDimensions = computed(() =>
     toDimensions(props.inputImageInfo) ?? loadedInputImageDimensions.value,
 )
+const normalizedInputImagesInfo = computed<NormalizedInputImageInfo[]>(() => {
+    const source = props.inputImagesInfo && props.inputImagesInfo.length > 0
+        ? props.inputImagesInfo
+        : toInputImageInfoList(props.metadata?.inputImagesInfo)
+
+    return source
+        .map((item) => toNormalizedInputImageInfo(item))
+        .filter((item): item is NormalizedInputImageInfo => item != null)
+})
 
 const usage = computed(() => normalizeUsage(props.metadata?.usage))
 
@@ -224,7 +269,11 @@ const inferenceTime = computed(() => {
     return t != null ? Number(t).toFixed(1) : null
 })
 
-const hasInputData = computed(() => inputImageDimensions.value != null || inputTokens.value != null)
+const hasInputData = computed(() =>
+    normalizedInputImagesInfo.value.length > 0 ||
+    inputImageDimensions.value != null ||
+    inputTokens.value != null,
+)
 const hasOutputData = computed(() =>
     outputImageDimensions.value != null || outputTokens.value != null ||
     thinkingTokens.value != null || inferenceTime.value != null

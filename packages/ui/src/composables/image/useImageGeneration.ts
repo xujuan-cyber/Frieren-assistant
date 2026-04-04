@@ -6,7 +6,9 @@ import type {
   ImageResult,
   ImageModelConfig,
   Text2ImageRequest,
-  Image2ImageRequest
+  Image2ImageRequest,
+  MultiImageGenerationRequest,
+  MultiImageRequest,
 } from '@prompt-optimizer/core'
 import { getI18nErrorMessage } from '../../utils/error'
 import {
@@ -131,6 +133,11 @@ export function useImageGeneration() {
     return await callGenerate(() => services.value!.imageService!.generateImage2Image(req))
   }
 
+  const generateMultiImage = async (req: MultiImageGenerationRequest) => {
+    if (!services?.value?.imageService) throw new Error('Image service not available')
+    return await callGenerate(() => services.value!.imageService!.generateMultiImage(req))
+  }
+
   const validateText2ImageRequest = async (req: Text2ImageRequest) => {
     if (!services?.value?.imageService) throw new Error('Image service not available')
     await services.value.imageService.validateText2ImageRequest(req)
@@ -139,6 +146,11 @@ export function useImageGeneration() {
   const validateImage2ImageRequest = async (req: Image2ImageRequest) => {
     if (!services?.value?.imageService) throw new Error('Image service not available')
     await services.value.imageService.validateImage2ImageRequest(req)
+  }
+
+  const validateMultiImageRequest = async (req: MultiImageRequest) => {
+    if (!services?.value?.imageService) throw new Error('Image service not available')
+    await services.value.imageService.validateMultiImageRequest(req)
   }
 
   return {
@@ -151,8 +163,10 @@ export function useImageGeneration() {
     generate,
     generateText2Image,
     generateImage2Image,
+    generateMultiImage,
     validateText2ImageRequest,
     validateImage2ImageRequest,
+    validateMultiImageRequest,
     loadImageModels
   }
 }

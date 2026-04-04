@@ -11,6 +11,7 @@ import { PromptRecord } from "../history/types";
 import { IModelManager } from "../model/types";
 import { ITemplateManager } from "../template/types";
 import { IHistoryManager } from "../history/types";
+import type { IImageUnderstandingService } from "../image-understanding/types";
 import {
   OptimizationError,
   IterationError,
@@ -37,6 +38,7 @@ export class PromptService implements IPromptService {
     private llmService: ILLMService,
     private templateManager: ITemplateManager,
     private historyManager: IHistoryManager,
+    private imageUnderstandingService?: IImageUnderstandingService,
   ) {
     this.checkDependencies();
   }
@@ -136,60 +138,23 @@ export class PromptService implements IPromptService {
         throw new OptimizationError(request.targetPrompt, "Model not found");
       }
 
-      const template = await this.templateManager.getTemplate(
-        request.templateId ||
-          (await this.getDefaultTemplateId(
-            request.optimizationMode === "user" ? "userOptimize" : "optimize",
-          )),
-      );
+      const messages = await this.resolveOptimizationMessages(request);
 
-      if (!template?.content) {
-        throw new OptimizationError(
-          request.targetPrompt,
-          "Template not found or invalid",
-        );
+      if (this.hasInputImages(request)) {
+        const imageUnderstandingService = this.requireImageUnderstandingService();
+        const { systemPrompt, userPrompt } = this.splitMultimodalMessages(messages);
+        const result = await imageUnderstandingService.understand({
+          modelConfig,
+          systemPrompt,
+          userPrompt,
+          images: request.inputImages,
+        });
+
+        this.validateResponse(result.content, request.targetPrompt);
+        return result.content;
       }
 
-      const baseContext: TemplateContext = {
-        originalPrompt: request.targetPrompt,
-        optimizationMode: request.optimizationMode,
-        contextMode: request.contextMode,
-        tools: request.advancedContext?.tools,
-      };
-
-      const context = TemplateProcessor.createExtendedContext(
-        baseContext,
-        request.advancedContext?.variables,
-        request.advancedContext?.messages,
-      )
-
-      // 如果有会话消息，将其格式化为文本并添加到上下文
-      if (
-        request.advancedContext?.messages &&
-        request.advancedContext.messages.length > 0
-      ) {
-        const conversationText = TemplateProcessor.formatConversationAsText(
-          request.advancedContext.messages,
-        );
-        context.conversationContext = conversationText;
-      }
-
-      // 如果有工具信息，将其格式化为文本并添加到上下文
-      if (
-        request.advancedContext?.tools &&
-        request.advancedContext.tools.length > 0
-      ) {
-        const toolsText = TemplateProcessor.formatToolsAsText(
-          request.advancedContext.tools,
-        );
-        context.toolsContext = toolsText;
-      }
-
-      const messages = TemplateProcessor.processTemplate(template, context);
-      const result = await this.llmService.sendMessage(
-        messages,
-        request.modelKey,
-      );
+      const result = await this.llmService.sendMessage(messages, request.modelKey);
 
       this.validateResponse(result, request.targetPrompt);
       // 注意：历史记录保存由UI层的historyManager.createNewChain方法处理
@@ -538,59 +503,39 @@ export class PromptService implements IPromptService {
         throw new OptimizationError(request.targetPrompt, "Model not found");
       }
 
-      const template = await this.templateManager.getTemplate(
-        request.templateId ||
-          (await this.getDefaultTemplateId(
-            request.optimizationMode === "user" ? "userOptimize" : "optimize",
-          )),
-      );
+      const messages = await this.resolveOptimizationMessages(request);
 
-      if (!template?.content) {
-        throw new OptimizationError(
-          request.targetPrompt,
-          "Template not found or invalid",
+      if (this.hasInputImages(request)) {
+        const imageUnderstandingService = this.requireImageUnderstandingService();
+        const { systemPrompt, userPrompt } = this.splitMultimodalMessages(messages);
+
+        await imageUnderstandingService.understandStream(
+          {
+            modelConfig,
+            systemPrompt,
+            userPrompt,
+            images: request.inputImages,
+          },
+          {
+            onToken: callbacks.onToken,
+            onReasoningToken: callbacks.onReasoningToken,
+            onComplete: async (response) => {
+              try {
+                if (response) {
+                  this.validateResponse(response.content, request.targetPrompt);
+                }
+                callbacks.onComplete(response);
+              } catch (error) {
+                callbacks.onError(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
+              }
+            },
+            onError: callbacks.onError,
+          },
         );
+        return;
       }
-
-      // 创建基础上下文
-      const baseContext: TemplateContext = {
-        originalPrompt: request.targetPrompt,
-        optimizationMode: request.optimizationMode,
-        // 🆕 上下文模式和渲染阶段（用于 ContextPromptRenderer）
-        contextMode: request.contextMode,
-        renderPhase: "optimize", // 优化阶段
-      };
-
-      // 扩展上下文以支持高级功能
-      const context = TemplateProcessor.createExtendedContext(
-        baseContext,
-        request.advancedContext?.variables,
-        request.advancedContext?.messages,
-      );
-
-      // 如果有会话消息，将其格式化为文本并添加到上下文
-      if (
-        request.advancedContext?.messages &&
-        request.advancedContext.messages.length > 0
-      ) {
-        const conversationText = TemplateProcessor.formatConversationAsText(
-          request.advancedContext.messages,
-        );
-        context.conversationContext = conversationText;
-      }
-
-      // 🆕 如果有工具信息，将其格式化为文本并添加到上下文
-      if (
-        request.advancedContext?.tools &&
-        request.advancedContext.tools.length > 0
-      ) {
-        const toolsText = TemplateProcessor.formatToolsAsText(
-          request.advancedContext.tools,
-        );
-        context.toolsContext = toolsText;
-      }
-
-      const messages = TemplateProcessor.processTemplate(template, context);
 
       // 使用新的结构化流式响应
       await this.llmService.sendMessageStream(messages, request.modelKey, {
@@ -878,6 +823,116 @@ export class PromptService implements IPromptService {
     }
   }
 
+  private hasInputImages(request: OptimizationRequest): request is OptimizationRequest & { inputImages: NonNullable<OptimizationRequest["inputImages"]> } {
+    return Array.isArray(request.inputImages) && request.inputImages.length > 0;
+  }
+
+  private requireImageUnderstandingService(): IImageUnderstandingService {
+    if (!this.imageUnderstandingService) {
+      throw new ServiceDependencyError(
+        "ImageUnderstandingService",
+        "Image understanding service is not initialized",
+      );
+    }
+    return this.imageUnderstandingService;
+  }
+
+  private buildInputImagesManifest(request: OptimizationRequest): string {
+    if (!this.hasInputImages(request)) {
+      return "[]";
+    }
+
+    return JSON.stringify(
+      request.inputImages.map((image, index) => ({
+        index: index + 1,
+        label: `图${index + 1}`,
+        mimeType: image.mimeType || "image/png",
+      })),
+    );
+  }
+
+  private async resolveOptimizationMessages(request: OptimizationRequest): Promise<Message[]> {
+    const template = await this.templateManager.getTemplate(
+      request.templateId ||
+        (await this.getDefaultTemplateId(
+          request.optimizationMode === "user" ? "userOptimize" : "optimize",
+        )),
+    );
+
+    if (!template?.content) {
+      throw new OptimizationError(
+        request.targetPrompt,
+        "Template not found or invalid",
+      );
+    }
+
+    const baseContext: TemplateContext = {
+      originalPrompt: request.targetPrompt,
+      optimizationMode: request.optimizationMode,
+      contextMode: request.contextMode,
+      renderPhase: "optimize",
+      tools: request.advancedContext?.tools,
+      hasInputImages: this.hasInputImages(request),
+      inputImageCount: this.hasInputImages(request) ? request.inputImages.length : 0,
+      inputImagesJson: this.buildInputImagesManifest(request),
+    };
+
+    const context = TemplateProcessor.createExtendedContext(
+      baseContext,
+      request.advancedContext?.variables,
+      request.advancedContext?.messages,
+    );
+
+    if (
+      request.advancedContext?.messages &&
+      request.advancedContext.messages.length > 0
+    ) {
+      context.conversationContext = TemplateProcessor.formatConversationAsText(
+        request.advancedContext.messages,
+      );
+    }
+
+    if (
+      request.advancedContext?.tools &&
+      request.advancedContext.tools.length > 0
+    ) {
+      context.toolsContext = TemplateProcessor.formatToolsAsText(
+        request.advancedContext.tools,
+      );
+    }
+
+    return TemplateProcessor.processTemplate(template, context);
+  }
+
+  private splitMultimodalMessages(messages: Message[]): {
+    systemPrompt: string;
+    userPrompt: string;
+  } {
+    const systemPrompt = messages
+      .filter((message) => message.role === "system")
+      .map((message) => message.content.trim())
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+
+    const userPrompt = messages
+      .filter((message) => message.role !== "system")
+      .map((message) => {
+        const content = message.content.trim();
+        if (!content) {
+          return "";
+        }
+        return message.role === "user"
+          ? content
+          : `${message.role.toUpperCase()}:\n${content}`;
+      })
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+
+    return { systemPrompt, userPrompt };
+  }
+
   /**
    * 获取默认模板ID
    */
@@ -887,6 +942,7 @@ export class PromptService implements IPromptService {
       | "userOptimize"
       | "text2imageOptimize"
       | "image2imageOptimize"
+      | "multiimageOptimize"
       | "imageIterate"
       | "iterate"
       | "conversationMessageOptimize"
@@ -913,6 +969,7 @@ export class PromptService implements IPromptService {
         | "userOptimize"
         | "text2imageOptimize"
         | "image2imageOptimize"
+        | "multiimageOptimize"
         | "iterate"
       )[] = [];
 
@@ -935,6 +992,8 @@ export class PromptService implements IPromptService {
         fallbackTypes = ["userOptimize", "optimize"]; // 文生图回退到基础优化
       } else if (templateType === "image2imageOptimize") {
         fallbackTypes = ["text2imageOptimize", "userOptimize", "optimize"]; // 图生图优先回退到文生图
+      } else if (templateType === "multiimageOptimize") {
+        fallbackTypes = ["image2imageOptimize", "text2imageOptimize", "userOptimize", "optimize"];
       } else if (templateType === "imageIterate") {
         fallbackTypes = ["iterate", "text2imageOptimize", "userOptimize"]; // 图像迭代回退到通用迭代/文生图
       }

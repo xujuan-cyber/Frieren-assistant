@@ -282,7 +282,7 @@ interface Props {
     tags?: string[]
     functionMode?: 'basic' | 'context' | 'image'
     optimizationMode?: 'system' | 'user'
-    imageSubMode?: 'text2image' | 'image2image'
+    imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
   }
   /** 要编辑的收藏(仅用于 edit 模式) */
@@ -336,7 +336,7 @@ const formData = reactive({
   tags: [] as string[],
   functionMode: 'basic' as 'basic' | 'context' | 'image',
   optimizationMode: 'system' as 'system' | 'user' | undefined,
-  imageSubMode: undefined as 'text2image' | 'image2image' | undefined
+  imageSubMode: undefined as 'text2image' | 'image2image' | 'multiimage' | undefined
 });
 
 const mediaDraft = reactive({
@@ -608,7 +608,8 @@ const optimizationModeOptions = computed(() => {
 
 const imageSubModeOptions = computed(() => [
   { label: t('favorites.dialog.imageModes.text2image'), value: 'text2image' },
-  { label: t('favorites.dialog.imageModes.image2image'), value: 'image2image' }
+  { label: t('favorites.dialog.imageModes.image2image'), value: 'image2image' },
+  { label: t('imageMode.multiimage'), value: 'multiimage' }
 ]);
 
 // 功能模式切换处理
@@ -758,7 +759,7 @@ const handleSave = async () => {
         tags: string[];
         functionMode: 'basic' | 'context' | 'image';
         optimizationMode?: 'system' | 'user';
-        imageSubMode?: 'text2image' | 'image2image';
+        imageSubMode?: 'text2image' | 'image2image' | 'multiimage';
         metadata?: Record<string, unknown>;
       } = {
         ...basePayload
@@ -840,7 +841,11 @@ watch(() => props.show, async (newShow) => {
       if (prefill?.functionMode === 'image') {
         formData.functionMode = 'image';
         formData.imageSubMode =
-          prefill.imageSubMode === 'image2image' ? 'image2image' : 'text2image';
+          prefill.imageSubMode === 'image2image'
+            ? 'image2image'
+            : prefill.imageSubMode === 'multiimage'
+              ? 'multiimage'
+              : 'text2image';
         formData.optimizationMode = undefined;
       } else if (prefill?.functionMode === 'context' || prefill?.functionMode === 'basic') {
         formData.functionMode = prefill.functionMode;

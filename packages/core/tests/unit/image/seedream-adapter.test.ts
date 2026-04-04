@@ -55,6 +55,13 @@ describe('SeedreamImageAdapter', () => {
       })
     })
 
+    test('should declare multi-image capability for Seedream 4.0', () => {
+      const model = adapter.getModels()[0]
+
+      expect(model.capabilities.image2image).toBe(true)
+      expect(model.capabilities.multiImage).toBe(true)
+    })
+
     test('should include watermark and size parameters', () => {
       const models = adapter.getModels()
       const model = models[0]
@@ -224,6 +231,48 @@ describe('SeedreamImageAdapter', () => {
         expect.any(String),
         expect.objectContaining({
           body: expect.stringContaining('古代中国山水画')
+        })
+      )
+    })
+
+    test('should send multiple reference images as an image array', async () => {
+      const config: ImageModelConfig = {
+        id: 'multi-seedream-config',
+        name: 'Multi Seedream Config',
+        providerId: 'seedream',
+        modelId,
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-api-key',
+          baseURL: 'https://ark.cn-beijing.volces.com/api/v3'
+        },
+        paramOverrides: {}
+      }
+
+      const request: ImageRequest = {
+        prompt: '将两张参考图融合成一张统一画面',
+        configId: config.id,
+        count: 1,
+        inputImages: [
+          { b64: 'AAAA', mimeType: 'image/png' },
+          { b64: 'BBBB', mimeType: 'image/jpeg' }
+        ]
+      }
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          code: 0,
+          data: [{ url: 'https://example.com/multi-image.png' }]
+        })
+      })
+
+      await adapter.generate(request, config)
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"image":["data:image/png;base64,AAAA","data:image/jpeg;base64,BBBB"]')
         })
       )
     })

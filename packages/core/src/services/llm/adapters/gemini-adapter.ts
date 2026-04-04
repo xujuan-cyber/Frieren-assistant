@@ -572,6 +572,93 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
     }
   }
 
+  protected async doSendImageUnderstandingStream(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    try {
+      const client = this.createClient(config)
+      const mergedParams = {
+        ...(config.paramOverrides || {}),
+        ...(request.paramOverrides || {})
+      } as Record<string, unknown>
+
+      const generationConfig = this.buildGenerationConfig(
+        mergedParams,
+        request.systemPrompt
+      )
+
+      if (request.responseMimeType) {
+        ;(generationConfig as any).responseMimeType = request.responseMimeType
+      }
+
+      const contents: Content[] = [
+        {
+          role: 'user',
+          parts: [
+            { text: request.userPrompt },
+            ...request.images.map((image) => ({
+              inlineData: {
+                mimeType: image.mimeType || 'image/png',
+                data: image.b64
+              }
+            }))
+          ]
+        }
+      ]
+
+      const responseStream = await client.models.generateContentStream({
+        model: config.modelMeta.id,
+        contents,
+        config: generationConfig
+      })
+
+      let accumulatedContent = ''
+      let accumulatedReasoning = ''
+
+      for await (const chunk of responseStream) {
+        let emittedContentToken = false
+
+        if (chunk.candidates?.[0]?.content?.parts) {
+          for (const part of chunk.candidates[0].content.parts) {
+            const partText = (part as any).text
+            if (!partText) {
+              continue
+            }
+
+            if ((part as any).thought) {
+              accumulatedReasoning += partText
+              callbacks.onReasoningToken?.(partText)
+            } else {
+              emittedContentToken = true
+              accumulatedContent += partText
+              callbacks.onToken(partText)
+            }
+          }
+        }
+
+        const chunkText = (chunk as any).text
+        if (chunkText && !emittedContentToken) {
+          accumulatedContent += chunkText
+          callbacks.onToken(chunkText)
+        }
+      }
+
+      callbacks.onComplete({
+        content: accumulatedContent,
+        reasoning: accumulatedReasoning || undefined,
+        metadata: {
+          model: config.modelMeta.id
+        }
+      })
+    } catch (error) {
+      console.error('[GeminiAdapter] Image understanding stream failed:', error)
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)))
+      throw error
+    }
+  }
+
   private extractResponsePayload(response: any, modelId: string): LLMResponse {
     let textContent = ''
     let reasoning: string | undefined

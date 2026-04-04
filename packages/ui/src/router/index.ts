@@ -54,6 +54,11 @@ const routes: RouteRecordRaw[] = [
     path: '/image/image2image',
     name: 'image-image2image',
     component: () => import('../components/image-mode/ImageImage2ImageWorkspace.vue')
+  },
+  {
+    path: '/image/multiimage',
+    name: 'image-multiimage',
+    component: () => import('../components/image-mode/ImageMultiImageWorkspace.vue')
   }
 ]
 

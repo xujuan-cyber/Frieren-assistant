@@ -6,10 +6,12 @@
  * 2. withMockPiniaServices() 的清理/恢复行为
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setPiniaServices, getPiniaServices } from '../../src/plugins/pinia'
 import { useTemporaryVariables } from '../../src/composables/variable/useTemporaryVariables'
 import { createTestPinia, withMockPiniaServices, createPreferenceServiceStub } from '../utils/pinia-test-helpers'
+import { useSessionManager } from '../../src/stores/session/useSessionManager'
+import { useImageMultiImageSession } from '../../src/stores/session/useImageMultiImageSession'
 
 describe('Pinia 改进功能测试', () => {
   // 每个测试前清理全局服务
@@ -44,6 +46,30 @@ describe('Pinia 改进功能测试', () => {
       expect(() => {
         useTemporaryVariables()
       }).not.toThrow()
+    })
+
+    it('应该在多图生图子模式下读写 image-multiimage 会话变量', () => {
+      createTestPinia()
+
+      const sessionManager = useSessionManager()
+      sessionManager.injectSubModeReaders({
+        getFunctionMode: () => 'image',
+        getBasicSubMode: () => 'system',
+        getProSubMode: () => 'multi',
+        getImageSubMode: () => 'multiimage',
+      })
+
+      const multiImageSession = useImageMultiImageSession()
+      const tempVars = useTemporaryVariables()
+
+      tempVars.setVariable('subject', '图1中的人物')
+
+      expect(multiImageSession.temporaryVariables.subject).toBe('图1中的人物')
+      expect(tempVars.getVariable('subject')).toBe('图1中的人物')
+
+      tempVars.clearAll()
+
+      expect(multiImageSession.temporaryVariables).toEqual({})
     })
   })
 

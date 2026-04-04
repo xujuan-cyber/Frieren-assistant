@@ -20,7 +20,7 @@ import { getPiniaServices } from '../../plugins/pinia'
 export type FunctionMode = 'basic' | 'pro' | 'image'
 export type BasicSubMode = 'system' | 'user'
 export type ProSubMode = 'multi' | 'variable'
-export type ImageSubMode = 'text2image' | 'image2image'
+export type ImageSubMode = 'text2image' | 'image2image' | 'multiimage'
 
 export interface GlobalSettingsState {
   selectedThemeId: string
@@ -65,7 +65,7 @@ const normalizeLegacyProSubMode = (value: unknown): ProSubMode | null => {
 }
 
 const isImageSubMode = (value: unknown): value is ImageSubMode =>
-  value === 'text2image' || value === 'image2image'
+  value === 'text2image' || value === 'image2image' || value === 'multiimage'
 
 export const useGlobalSettings = defineStore('globalSettings', () => {
   /**

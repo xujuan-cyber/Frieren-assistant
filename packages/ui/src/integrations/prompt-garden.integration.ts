@@ -23,6 +23,7 @@ export const integration: OptionalIntegration = {
       proVariableSession: ctx.proVariableSession,
       imageText2ImageSession: ctx.imageText2ImageSession,
       imageImage2ImageSession: ctx.imageImage2ImageSession,
+      imageMultiImageSession: ctx.imageMultiImageSession,
       getFavoriteManager: () => ctx.getFavoriteManager(),
       getFavoriteImageStorageService: () => ctx.getFavoriteImageStorageService(),
       openSaveFavoriteDialog: (draft) => ctx.openSaveFavoriteDialog?.(draft),

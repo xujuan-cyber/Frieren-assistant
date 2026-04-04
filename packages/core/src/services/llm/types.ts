@@ -323,6 +323,16 @@ export interface ITextProviderAdapter {
   ): Promise<LLMResponse>
 
   /**
+   * Stream an image-understanding request with one or more reference images.
+   * Providers that do not support multimodal streaming should throw at request time.
+   */
+  sendImageUnderstandingStream(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig,
+    callbacks: StreamHandlers
+  ): Promise<void>
+
+  /**
    * 为未知模型ID构建默认元数据（兜底逻辑）
    * @param modelId 模型ID
    * @returns 包含默认capabilities的TextModel对象

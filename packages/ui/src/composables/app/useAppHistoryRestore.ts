@@ -113,7 +113,8 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
             rt === 'contextImageOptimize' ||
             rt === 'imageIterate' ||
             rt === 'text2imageOptimize' ||
-            rt === 'image2imageOptimize'
+            rt === 'image2imageOptimize' ||
+            rt === 'multiimageOptimize'
         ) {
             // 图像模式：使用 navigateToSubModeKey 导航
             // 根据记录类型设置正确的图像子模式
@@ -125,6 +126,8 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                     ? 'text2image'
                     : rt === 'image2imageOptimize'
                       ? 'image2image'
+                      : rt === 'multiimageOptimize'
+                        ? 'multiimage'
                       : hasInputImage
                         ? 'image2image'
                         : 'text2image' // 默认为文生图模式

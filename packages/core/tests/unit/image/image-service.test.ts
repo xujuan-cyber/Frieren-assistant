@@ -6,9 +6,12 @@ import type {
   IImageModelManager,
   ImageModelConfig,
   ImageRequest,
+  MultiImageGenerationRequest,
+  IImageAdapterRegistry,
   ImageProvider,
   ImageModel,
-  ImageResult
+  ImageResult,
+  MultiImageRequest
 } from '../../../src/services/image/types'
 import { IMAGE_ERROR_CODES } from '../../../src/constants/error-codes'
 
@@ -124,6 +127,39 @@ class MockImageModelManager implements IImageModelManager {
           text2image: true,
           image2image: true,
           multiImage: false
+        },
+        parameterDefinitions: [],
+        defaultParameterValues: {}
+      }
+    })
+
+    this.configs.set('test-multiimage-config', {
+      id: 'test-multiimage-config',
+      name: 'Test Multi Image Config',
+      providerId: 'gemini',
+      modelId: 'gemini-2.5-flash-image-preview',
+      enabled: true,
+      connectionConfig: {
+        apiKey: 'test-api-key'
+      },
+      paramOverrides: {},
+      provider: {
+        id: 'gemini',
+        name: 'Gemini',
+        description: 'Gemini provider',
+        requiresApiKey: true,
+        defaultBaseURL: 'https://generativelanguage.googleapis.com',
+        supportsDynamicModels: false
+      },
+      model: {
+        id: 'gemini-2.5-flash-image-preview',
+        name: 'Gemini 2.5 Flash Image Preview',
+        description: 'Gemini multimodal image model',
+        providerId: 'gemini',
+        capabilities: {
+          text2image: true,
+          image2image: true,
+          multiImage: true
         },
         parameterDefinitions: [],
         defaultParameterValues: {}
@@ -453,6 +489,47 @@ describe('ImageService', () => {
          params: { modelName: dashscopeEditModelName }
        })
      })
+
+     test('should validate multi-image requests when the model supports multiple input images', async () => {
+       const request: MultiImageRequest = {
+         prompt: 'merge these references into one scene',
+         configId: 'test-multiimage-config',
+         inputImages: [
+           { b64: 'AAAA', mimeType: 'image/png' },
+           { b64: 'BBBB', mimeType: 'image/jpeg' }
+         ]
+       }
+
+       await expect(imageService.validateMultiImageRequest(request)).resolves.not.toThrow()
+     })
+
+     test('should reject multi-image requests with fewer than two images', async () => {
+       const request: MultiImageRequest = {
+         prompt: 'merge these references into one scene',
+         configId: 'test-multiimage-config',
+         inputImages: [
+           { b64: 'AAAA', mimeType: 'image/png' }
+         ]
+       }
+
+     await expect(imageService.validateMultiImageRequest(request)).rejects.toMatchObject({
+        code: IMAGE_ERROR_CODES.MULTI_IMAGE_AT_LEAST_TWO_REQUIRED
+      })
+     })
+
+     test('should treat single inputImages entry as image2image in compatibility validation', async () => {
+       const request: ImageRequest = {
+         prompt: 'edit this image',
+         configId: 'test-openai-config',
+         inputImages: [
+           { b64: 'AAAA', mimeType: 'image/png' }
+         ]
+       }
+
+       await expect(imageService.validateRequest(request)).rejects.toMatchObject({
+         code: IMAGE_ERROR_CODES.MODEL_NOT_SUPPORT_IMAGE2IMAGE
+       })
+     })
   })
 
   describe('Image Generation', () => {
@@ -550,6 +627,49 @@ describe('ImageService', () => {
       expect(result.metadata?.configId).toBe('test-openai-config')
       expect(result.metadata?.providerId).toBe('openai')
       expect(result.metadata?.modelId).toBe('dall-e-3')
+    })
+
+    test('should generate with ordered multi-image input', async () => {
+      const registry = {
+        getAdapter: vi.fn().mockReturnValue({
+          generate: vi.fn().mockResolvedValue({
+            images: [{ b64: 'aGVsbG8=', mimeType: 'image/png', url: 'data:image/png;base64,aGVsbG8=' }],
+          }),
+        }),
+        getStaticModels: vi.fn().mockReturnValue([
+          {
+            id: 'gemini-2.5-flash-image-preview',
+            name: 'Gemini 2.5 Flash Image Preview',
+            providerId: 'gemini',
+            capabilities: { text2image: true, image2image: true, multiImage: true },
+            parameterDefinitions: [],
+            defaultParameterValues: {},
+          },
+        ]),
+        getDynamicModels: vi.fn(),
+        getModels: vi.fn(),
+        getAllProviders: vi.fn(),
+        getAllStaticModels: vi.fn(),
+        supportsDynamicModels: vi.fn(),
+        validateProviderModel: vi.fn(),
+      } as unknown as IImageAdapterRegistry
+      const multiImageService = new ImageService(mockModelManager, registry)
+
+      const request: MultiImageGenerationRequest = {
+        prompt: 'compose 图1 and 图2 into one cinematic frame',
+        configId: 'test-multiimage-config',
+        inputImages: [
+          { b64: 'AAAA', mimeType: 'image/png' },
+          { b64: 'BBBB', mimeType: 'image/png' }
+        ]
+      }
+
+      const result = await multiImageService.generateMultiImage(request)
+
+      expect(result.images).toHaveLength(1)
+      expect(result.metadata?.configId).toBe('test-multiimage-config')
+      expect(result.metadata?.modelId).toBe('gemini-2.5-flash-image-preview')
+      expect(registry.getAdapter).toHaveBeenCalledWith('gemini')
     })
   })
 

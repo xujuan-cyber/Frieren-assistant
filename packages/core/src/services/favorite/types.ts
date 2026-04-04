@@ -27,7 +27,7 @@ export interface FavoritePrompt {
   /** 优化模式 (二级分类,仅用于 basic/context 模式) */
   optimizationMode?: 'system' | 'user';
   /** 图像子模式 (二级分类,仅用于 image 模式) */
-  imageSubMode?: 'text2image' | 'image2image';
+  imageSubMode?: 'text2image' | 'image2image' | 'multiimage';
 
   /** 元数据 (系统管理,用户不可编辑) */
   metadata?: {

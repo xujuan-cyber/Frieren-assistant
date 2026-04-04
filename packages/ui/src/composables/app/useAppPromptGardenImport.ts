@@ -30,6 +30,7 @@ import type { ProMultiMessageSessionApi } from '../../stores/session/useProMulti
 import type { ProVariableSessionApi } from '../../stores/session/useProVariableSession'
 import type { ImageText2ImageSessionApi } from '../../stores/session/useImageText2ImageSession'
 import type { ImageImage2ImageSessionApi } from '../../stores/session/useImageImage2ImageSession'
+import type { ImageMultiImageSessionApi } from '../../stores/session/useImageMultiImageSession'
 import {
   persistImageSourceAsAssetId,
 } from '../../utils/image-asset-storage'
@@ -42,6 +43,7 @@ type SupportedSubModeKey =
   | 'pro-variable'
   | 'image-text2image'
   | 'image-image2image'
+  | 'image-multiimage'
 
 const SUPPORTED_KEYS: ReadonlyArray<SupportedSubModeKey> = [
   'basic-system',
@@ -49,7 +51,8 @@ const SUPPORTED_KEYS: ReadonlyArray<SupportedSubModeKey> = [
   'pro-multi',
   'pro-variable',
   'image-text2image',
-  'image-image2image'
+  'image-image2image',
+  'image-multiimage'
 ]
 
 const isSupportedKey = (value: string | null | undefined): value is SupportedSubModeKey => {
@@ -179,7 +182,7 @@ type GardenSnapshot = {
 type FavoriteModeMapping =
   | { functionMode: 'basic'; optimizationMode: 'system' | 'user'; imageSubMode?: never }
   | { functionMode: 'context'; optimizationMode: 'system' | 'user'; imageSubMode?: never }
-  | { functionMode: 'image'; imageSubMode: 'text2image' | 'image2image'; optimizationMode?: never }
+  | { functionMode: 'image'; imageSubMode: 'text2image' | 'image2image' | 'multiimage'; optimizationMode?: never }
 
 type SaveToFavoritesMode = 'none' | 'auto' | 'confirm'
 
@@ -214,6 +217,8 @@ const toFavoriteModeMapping = (targetKey: SupportedSubModeKey): FavoriteModeMapp
       return { functionMode: 'image', imageSubMode: 'text2image' }
     case 'image-image2image':
       return { functionMode: 'image', imageSubMode: 'image2image' }
+    case 'image-multiimage':
+      return { functionMode: 'image', imageSubMode: 'multiimage' }
     case 'basic-system':
     default:
       return { functionMode: 'basic', optimizationMode: 'system' }
@@ -360,6 +365,7 @@ const getTemporaryVariablesSession = (
     proVariableSession: ProVariableSessionApi
     imageText2ImageSession: ImageText2ImageSessionApi
     imageImage2ImageSession: ImageImage2ImageSessionApi
+    imageMultiImageSession: ImageMultiImageSessionApi
   },
 ): TemporaryVariablesSessionApi | null => {
   switch (targetKey) {
@@ -371,6 +377,8 @@ const getTemporaryVariablesSession = (
       return api.imageText2ImageSession
     case 'image-image2image':
       return api.imageImage2ImageSession
+    case 'image-multiimage':
+      return api.imageMultiImageSession
     default:
       return null
   }
@@ -383,6 +391,7 @@ const ensureImportedTemporaryVariables = (
     proVariableSession: ProVariableSessionApi
     imageText2ImageSession: ImageText2ImageSessionApi
     imageImage2ImageSession: ImageImage2ImageSessionApi
+    imageMultiImageSession: ImageMultiImageSessionApi
   },
   opts: {
     variables: ImportedVariable[]
@@ -1035,6 +1044,7 @@ const clearSessionForExternalImport = (targetKey: SupportedSubModeKey, api: {
   proVariableSession: ProVariableSessionApi
   imageText2ImageSession: ImageText2ImageSessionApi
   imageImage2ImageSession: ImageImage2ImageSessionApi
+  imageMultiImageSession: ImageMultiImageSessionApi
   optimizerCurrentVersions: Ref<PromptRecordChain['versions']>
 }, content: string) => {
   const resetCommon = (session: {
@@ -1097,6 +1107,15 @@ const clearSessionForExternalImport = (targetKey: SupportedSubModeKey, api: {
     return
   }
 
+  if (targetKey === 'image-multiimage') {
+    api.imageMultiImageSession.updatePrompt(content)
+    resetCommon(api.imageMultiImageSession)
+    api.imageMultiImageSession.replaceInputImages([])
+    api.imageMultiImageSession.updateOriginalImageResult(null)
+    api.imageMultiImageSession.updateOptimizedImageResult(null)
+    return
+  }
+
   // image-image2image
   api.imageImage2ImageSession.updatePrompt(content)
   resetCommon(api.imageImage2ImageSession)
@@ -1115,7 +1134,7 @@ type SaveFavoriteDialogPayload = {
     tags?: string[]
     functionMode?: 'basic' | 'context' | 'image'
     optimizationMode?: 'system' | 'user'
-    imageSubMode?: 'text2image' | 'image2image'
+    imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
   }
 }
@@ -1134,6 +1153,7 @@ export interface AppPromptGardenImportOptions {
   proVariableSession: ProVariableSessionApi
   imageText2ImageSession: ImageText2ImageSessionApi
   imageImage2ImageSession: ImageImage2ImageSessionApi
+  imageMultiImageSession: ImageMultiImageSessionApi
 
   /** Optional getter for auto-save-to-favorites flow. */
   getFavoriteManager?: () => FavoriteManagerLike | null
@@ -1161,6 +1181,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
     proVariableSession,
     imageText2ImageSession,
     imageImage2ImageSession,
+    imageMultiImageSession,
     getFavoriteManager,
     getFavoriteImageStorageService,
     getImageStorageService,
@@ -1256,6 +1277,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
               proVariableSession,
               imageText2ImageSession,
               imageImage2ImageSession,
+              imageMultiImageSession,
               optimizerCurrentVersions,
             },
             content
@@ -1270,6 +1292,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
             proVariableSession,
             imageText2ImageSession,
             imageImage2ImageSession,
+            imageMultiImageSession,
           },
           {
             variables: fetched.variables,
@@ -1284,6 +1307,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
             proVariableSession,
             imageText2ImageSession,
             imageImage2ImageSession,
+            imageMultiImageSession,
           })
 
           const importedVariableNames = new Set(
@@ -1313,6 +1337,40 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
               } catch (e) {
                 console.warn('[PromptGardenImport] Failed to load example input image:', e)
                 toast.warning('示例输入图加载失败（请检查 Prompt Garden /prompt-assets 的 CORS 配置）')
+              }
+            }
+          }
+
+          if (targetKey === 'image-multiimage' && Array.isArray(importedExample.inputImages) && importedExample.inputImages.length > 0) {
+            const inputUrls = importedExample.inputImages
+              .map((url) => resolveGardenUrl({ gardenBaseUrl, url }))
+              .filter((url): url is string => Boolean(url))
+
+            if (inputUrls.length > 0) {
+              const settled = await Promise.allSettled(
+                inputUrls.map(async (url) => {
+                  const img = await fetchImageAsBase64(url)
+                  if (!img?.b64) {
+                    throw new Error(`Missing base64 payload for ${url}`)
+                  }
+                  return {
+                    b64: img.b64,
+                    mimeType: img.mimeType,
+                  }
+                }),
+              )
+
+              const loadedImages = settled.flatMap((result) =>
+                result.status === 'fulfilled' ? [result.value] : [],
+              )
+
+              if (loadedImages.length > 0) {
+                imageMultiImageSession.replaceInputImages(loadedImages)
+              }
+
+              if (loadedImages.length !== inputUrls.length) {
+                console.warn('[PromptGardenImport] Failed to load one or more multi-image example inputs')
+                toast.warning('部分示例输入图加载失败（请检查 Prompt Garden /prompt-assets 的 CORS 配置）')
               }
             }
           }
@@ -1384,6 +1442,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           else if (targetKey === 'pro-multi') await proMultiMessageSession.saveSession()
           else if (targetKey === 'pro-variable') await proVariableSession.saveSession()
           else if (targetKey === 'image-text2image') await imageText2ImageSession.saveSession()
+          else if (targetKey === 'image-multiimage') await imageMultiImageSession.saveSession()
           else await imageImage2ImageSession.saveSession()
         } catch (e) {
           console.warn('[PromptGardenImport] saveSession failed:', e)

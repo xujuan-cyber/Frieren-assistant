@@ -1891,8 +1891,10 @@ export default {
   imageMode: {
     text2image: "文生圖",
     image2image: "圖生圖",
+    multiimage: "多圖生圖",
     text2imageDescription: "從文字描述生成圖像",
     image2imageDescription: "基於現有圖像進行修改",
+    multiimageDescription: "基於多張圖片和提示詞生成新圖像",
     uploadRequired: "圖生圖模式需要先上傳參考圖片",
   },
 
@@ -1948,6 +1950,7 @@ export default {
       missingVariables: "偵測到缺失或未填變數：{vars}",
       forbiddenTemplateSyntax: "不支援使用未轉義 Mustache 語法（如三花括號或 & 標籤），請使用一般變數占位符",
       inputImageRequired: "請先上傳輸入圖像（圖生圖模式需要輸入圖）",
+      multiImageUnsupported: "目前模型不支援多圖輸入，請切換到支援多圖輸入的圖像模型",
       generationCompleted: "圖像生成完成",
     },
 

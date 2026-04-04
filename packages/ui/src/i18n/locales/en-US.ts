@@ -1979,8 +1979,10 @@ export default {
   imageMode: {
     text2image: "Text-to-Image",
     image2image: "Image-to-Image",
+    multiimage: "Multi-Image",
     text2imageDescription: "Generate images from text descriptions",
     image2imageDescription: "Modify based on existing images",
+    multiimageDescription: "Generate from multiple input images and a prompt",
     uploadRequired:
       "Image-to-Image mode requires uploading a reference image first",
   },
@@ -2041,6 +2043,7 @@ export default {
       missingVariables: "Missing or empty variables: {vars}",
       forbiddenTemplateSyntax: "Unescaped Mustache syntax (e.g. triple braces or ampersand tags) is not supported. Please use normal variable placeholders.",
       inputImageRequired: "Please upload an input image (required for image-to-image)",
+      multiImageUnsupported: "This model does not support multi-image input. Please switch to a multi-image capable image model.",
       generationCompleted: "Image generation completed",
     },
 

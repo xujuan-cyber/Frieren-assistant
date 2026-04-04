@@ -12,6 +12,7 @@ import {
   createTemplateManager,
   createHistoryManager,
   createPromptService,
+  createImageUnderstandingService,
   PromptService,
   IPromptService,
   ModelManager,
@@ -92,7 +93,8 @@ export class CoreServicesManager {
         this.modelManager,
         this.llmService,
         this.templateManager,
-        this.historyManager
+        this.historyManager,
+        createImageUnderstandingService(),
       );
 
       // 10. 验证服务健康状态

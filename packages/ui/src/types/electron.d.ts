@@ -128,10 +128,12 @@ interface ImageAPI {
   generate(request: unknown): Promise<unknown>
   generateText2Image(request: unknown): Promise<unknown>
   generateImage2Image(request: unknown): Promise<unknown>
+  generateMultiImage(request: unknown): Promise<unknown>
 
   validateRequest(request: unknown): Promise<unknown>
   validateText2ImageRequest(request: unknown): Promise<unknown>
   validateImage2ImageRequest(request: unknown): Promise<unknown>
+  validateMultiImageRequest(request: unknown): Promise<unknown>
 
   testConnection(config: unknown): Promise<unknown>
   getDynamicModels(providerId: string, connectionConfig: unknown): Promise<unknown[]>

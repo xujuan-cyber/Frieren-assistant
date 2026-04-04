@@ -654,6 +654,7 @@ import { useProMultiMessageSession } from '../stores/session/useProMultiMessageS
 import { useProVariableSession } from '../stores/session/useProVariableSession'
 import { useImageText2ImageSession } from '../stores/session/useImageText2ImageSession'
 import { useImageImage2ImageSession } from '../stores/session/useImageImage2ImageSession'
+import { useImageMultiImageSession } from '../stores/session/useImageMultiImageSession'
 
 const { t } = useI18n()
 
@@ -678,6 +679,7 @@ const props = defineProps<{
     | 'iterate'
     | 'text2imageOptimize'
     | 'image2imageOptimize'
+    | 'multiimageOptimize'
     | 'imageIterate'
     | 'conversationMessageOptimize'
     | 'contextUserOptimize'
@@ -685,7 +687,7 @@ const props = defineProps<{
   show: boolean
   basicSubMode?: 'system' | 'user'
   proSubMode?: 'multi' | 'variable'
-  imageSubMode?: 'text2image' | 'image2image'
+  imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
 }>()
 
 const emit = defineEmits(['close', 'select', 'update:show', 'languageChanged'])
@@ -698,6 +700,7 @@ const proMultiMessageSession = useProMultiMessageSession()
 const proVariableSession = useProVariableSession()
 const imageText2ImageSession = useImageText2ImageSession()
 const imageImage2ImageSession = useImageImage2ImageSession()
+const imageMultiImageSession = useImageMultiImageSession()
 
 const templates = ref<Template[]>([])
 const currentCategory = ref(getCategoryFromProps())
@@ -760,6 +763,8 @@ function getCategoryFromProps() {
       return 'image-text2image-optimize'
     case 'image2imageOptimize':
       return 'image-image2image-optimize'
+    case 'multiimageOptimize':
+      return 'image-multiimage-optimize'
     case 'imageIterate':
       return 'image-iterate'
     case 'conversationMessageOptimize':
@@ -774,7 +779,7 @@ function getCategoryFromProps() {
 }
 
 // 获取当前模板类型 - 根据当前分类而不是props
-function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'imageIterate' | 'conversationMessageOptimize' | 'contextUserOptimize' | 'contextIterate' {
+function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'text2imageOptimize' | 'image2imageOptimize' | 'multiimageOptimize' | 'imageIterate' | 'conversationMessageOptimize' | 'contextUserOptimize' | 'contextIterate' {
   switch (currentCategory.value) {
     case 'system-optimize':
       return 'optimize'
@@ -787,6 +792,8 @@ function getCurrentTemplateType(): 'optimize' | 'userOptimize' | 'iterate' | 'te
       return 'text2imageOptimize'
     case 'image-image2image-optimize':
       return 'image2imageOptimize'
+    case 'image-multiimage-optimize':
+      return 'multiimageOptimize'
     case 'image-iterate':
       return 'imageIterate'
     case 'context-system-optimize':
@@ -823,9 +830,13 @@ function getSelectedTemplateIdForCategory(category: string): string | undefined 
       return imageText2ImageSession.selectedTemplateId || undefined
     case 'image-image2image-optimize':
       return imageImage2ImageSession.selectedTemplateId || undefined
+    case 'image-multiimage-optimize':
+      return imageMultiImageSession.selectedTemplateId || undefined
     case 'image-iterate':
       return props.imageSubMode === 'image2image'
         ? (imageImage2ImageSession.selectedIterateTemplateId || undefined)
+        : props.imageSubMode === 'multiimage'
+          ? (imageMultiImageSession.selectedIterateTemplateId || undefined)
         : (imageText2ImageSession.selectedIterateTemplateId || undefined)
     default:
       return undefined
@@ -851,6 +862,8 @@ function getCurrentCategoryLabel() {
       return t('templateManager.imageText2ImageTemplates')
     case 'image-image2image-optimize':
       return t('templateManager.imageImage2ImageTemplates')
+    case 'image-multiimage-optimize':
+      return t('imageMode.multiimage')
     case 'image-iterate':
       return t('templateManager.imageIterateTemplates')
     case 'context-system-optimize':
@@ -1259,6 +1272,8 @@ const filteredTemplates = computed(() => {
         return templateType === 'text2imageOptimize'
       case 'image-image2image-optimize':
         return templateType === 'image2imageOptimize'
+      case 'image-multiimage-optimize':
+        return templateType === 'multiimageOptimize'
       case 'image-iterate':
         return templateType === 'imageIterate'
 

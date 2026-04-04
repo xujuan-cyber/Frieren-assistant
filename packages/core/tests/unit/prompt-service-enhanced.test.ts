@@ -8,11 +8,17 @@ describe('PromptService Enhanced Features', () => {
   let mockLLMService: any
   let mockTemplateManager: any
   let mockHistoryManager: any
+  let mockImageUnderstandingService: any
 
   beforeEach(() => {
     // Setup mocks
     mockModelManager = {
-      getModel: vi.fn().mockResolvedValue({ id: 'test-model' })
+      getModel: vi.fn().mockResolvedValue({
+        id: 'test-model',
+        enabled: true,
+        providerMeta: { id: 'openai', name: 'OpenAI' },
+        modelMeta: { id: 'gpt-test', name: 'GPT Test' }
+      })
     }
     
     mockLLMService = {
@@ -46,11 +52,17 @@ describe('PromptService Enhanced Features', () => {
       addRecord: vi.fn().mockResolvedValue(undefined)
     }
 
+    mockImageUnderstandingService = {
+      understand: vi.fn().mockResolvedValue({ content: 'multimodal optimized result' }),
+      understandStream: vi.fn()
+    }
+
     promptService = new PromptService(
       mockModelManager,
       mockLLMService,
       mockTemplateManager,
-      mockHistoryManager
+      mockHistoryManager,
+      mockImageUnderstandingService
     )
   })
 
@@ -156,6 +168,37 @@ describe('PromptService Enhanced Features', () => {
 
       expect(result).toBe('optimized result')
       expect(mockLLMService.sendMessage).toHaveBeenCalled()
+    })
+
+    it('should route image-aware optimizePrompt through image understanding service', async () => {
+      const request: OptimizationRequest = {
+        optimizationMode: 'user' as const,
+        targetPrompt: '让人物动作更自然',
+        modelKey: 'test-model',
+        templateId: 'test-template',
+        inputImages: [
+          {
+            b64: 'ZmFrZS1pbWFnZQ==',
+            mimeType: 'image/png',
+          },
+        ],
+      }
+
+      const result = await promptService.optimizePrompt(request)
+
+      expect(result).toBe('multimodal optimized result')
+      expect(mockLLMService.sendMessage).not.toHaveBeenCalled()
+      expect(mockImageUnderstandingService.understand).toHaveBeenCalledTimes(1)
+      expect(mockImageUnderstandingService.understand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelConfig: expect.objectContaining({ id: 'test-model' }),
+          images: request.inputImages,
+        }),
+      )
+
+      const multimodalRequest = mockImageUnderstandingService.understand.mock.calls[0][0]
+      expect(multimodalRequest.userPrompt).not.toContain('ZmFrZS1pbWFnZQ==')
+      expect(multimodalRequest.userPrompt).toContain('让人物动作更自然')
     })
 
     it('should throw error for empty target prompt', async () => {
@@ -264,6 +307,56 @@ describe('PromptService Enhanced Features', () => {
       expect(callbacks.onToken).toHaveBeenCalledWith(' result')
       expect(callbacks.onComplete).toHaveBeenCalled()
       // 注意：历史记录保存由UI层处理，Service层不保存历史记录
+    })
+
+    it('should route image-aware optimizePromptStream through image understanding stream service', async () => {
+      const request: OptimizationRequest = {
+        optimizationMode: 'user' as const,
+        targetPrompt: '请把图中的产品做得更高级',
+        modelKey: 'test-model',
+        templateId: 'test-template',
+        inputImages: [
+          {
+            b64: 'c3RyZWFtLWltYWdl',
+            mimeType: 'image/jpeg',
+          },
+          {
+            b64: 'c3RyZWFtLWltYWdlLTI=',
+            mimeType: 'image/png',
+          },
+        ],
+      }
+
+      const callbacks = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      }
+
+      mockImageUnderstandingService.understandStream.mockImplementation(async (_request: any, streamCallbacks: any) => {
+        streamCallbacks.onToken('视觉')
+        streamCallbacks.onToken('优化结果')
+        streamCallbacks.onReasoningToken?.('分析中')
+        await streamCallbacks.onComplete({
+          content: '视觉优化结果',
+          reasoning: '分析中',
+        })
+      })
+
+      await promptService.optimizePromptStream(request, callbacks)
+
+      expect(mockLLMService.sendMessageStream).not.toHaveBeenCalled()
+      expect(mockImageUnderstandingService.understandStream).toHaveBeenCalledTimes(1)
+      expect(callbacks.onToken).toHaveBeenCalledWith('视觉')
+      expect(callbacks.onToken).toHaveBeenCalledWith('优化结果')
+      expect(callbacks.onReasoningToken).toHaveBeenCalledWith('分析中')
+      expect(callbacks.onComplete).toHaveBeenCalled()
+
+      const multimodalRequest = mockImageUnderstandingService.understandStream.mock.calls[0][0]
+      expect(multimodalRequest.images).toEqual(request.inputImages)
+      expect(multimodalRequest.userPrompt).toContain('请把图中的产品做得更高级')
+      expect(multimodalRequest.userPrompt).not.toContain('c3RyZWFtLWltYWdl')
     })
 
     it('should handle missing model key', async () => {

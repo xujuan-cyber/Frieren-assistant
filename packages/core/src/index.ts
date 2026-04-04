@@ -76,6 +76,8 @@ export type {
   ImageRequest,
   Text2ImageRequest,
   Image2ImageRequest,
+  MultiImageRequest,
+  MultiImageGenerationRequest,
   ImageResult,
   ImageResultItem,
   ImageProgressHandlers,
@@ -90,7 +92,8 @@ export type {
   ImageRef,
   FullImageData,
   ImageStorageConfig,
-  IImageStorageService
+  IImageStorageService,
+  ImageInputRef,
 } from './services/image/types'
 // 导出图像存储相关函数和类型
 export { isImageRef, createImageRef } from './services/image/types'

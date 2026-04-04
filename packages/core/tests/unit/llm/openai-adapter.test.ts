@@ -378,6 +378,76 @@ describe('OpenAIAdapter', () => {
     // 删除"should call onError with preserved stack" - 这是过度测试错误堆栈保留的内部实现细节
   });
 
+  describe('sendImageUnderstandingStream', () => {
+    it('should stream multimodal content with image_url payloads', async () => {
+      const mockStream = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            choices: [{
+              delta: { content: '视觉' },
+              finish_reason: null
+            }]
+          };
+          yield {
+            choices: [{
+              delta: { content: '结果' },
+              finish_reason: 'stop'
+            }]
+          };
+        }
+      };
+
+      mockOpenAIInstance.chat.completions.create.mockResolvedValue(mockStream);
+
+      const callbacks = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      await adapter.sendImageUnderstandingStream(
+        {
+          systemPrompt: 'system prompt',
+          userPrompt: 'describe this image',
+          images: [
+            {
+              b64: 'ZmFrZQ==',
+              mimeType: 'image/png'
+            }
+          ]
+        },
+        mockConfig,
+        callbacks
+      );
+
+      expect(mockOpenAIInstance.chat.completions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stream: true,
+          messages: expect.arrayContaining([
+            expect.objectContaining({ role: 'system', content: 'system prompt' }),
+            expect.objectContaining({
+              role: 'user',
+              content: expect.arrayContaining([
+                expect.objectContaining({ type: 'text', text: 'describe this image' }),
+                expect.objectContaining({
+                  type: 'image_url',
+                  image_url: expect.objectContaining({
+                    url: 'data:image/png;base64,ZmFrZQ=='
+                  })
+                })
+              ])
+            })
+          ])
+        })
+      );
+      expect(callbacks.onToken).toHaveBeenCalledWith('视觉');
+      expect(callbacks.onToken).toHaveBeenCalledWith('结果');
+      expect(callbacks.onComplete).toHaveBeenCalled();
+      expect(callbacks.onError).not.toHaveBeenCalled();
+    });
+  });
+
   describe('error handling', () => {
     it('should throw error when API key is missing', async () => {
       const configWithoutKey = {

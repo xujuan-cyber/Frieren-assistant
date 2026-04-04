@@ -1,4 +1,4 @@
-import type { ImageUnderstandingRequest, LLMResponse, ITextAdapterRegistry } from '../llm/types'
+import type { ImageUnderstandingRequest, LLMResponse, ITextAdapterRegistry, StreamHandlers } from '../llm/types'
 import type { TextModelConfig } from '../model/types'
 
 export interface ImageUnderstandingExecutionRequest extends ImageUnderstandingRequest {
@@ -7,6 +7,7 @@ export interface ImageUnderstandingExecutionRequest extends ImageUnderstandingRe
 
 export interface IImageUnderstandingService {
   understand(request: ImageUnderstandingExecutionRequest): Promise<LLMResponse>
+  understandStream(request: ImageUnderstandingExecutionRequest, callbacks: StreamHandlers): Promise<void>
 }
 
 export interface CreateImageUnderstandingServiceOptions {

@@ -54,7 +54,7 @@
  * - 功能模式切换: Basic / Pro / Image
  * - 基础模式子模式: system / user
  * - Pro 模式子模式: multi / variable
- * - 图像模式子模式: text2image / image2image
+ * - 图像模式子模式: text2image / image2image / multiimage
  *
  * 🔧 路由架构：直接使用 router.push 进行导航
  */
@@ -109,8 +109,8 @@ const proSubMode = computed<ProSubMode>(() => {
 const imageSubMode = computed<ImageSubMode>(() => {
     const rawSubMode = routerInstance.currentRoute.value.path.split('/')[2]
 
-    // ✅ 静态路由映射：text2image 或 image2image
-    if (rawSubMode === 'text2image' || rawSubMode === 'image2image') {
+    // ✅ 静态路由映射：text2image / image2image / multiimage
+    if (rawSubMode === 'text2image' || rawSubMode === 'image2image' || rawSubMode === 'multiimage') {
         return rawSubMode as ImageSubMode
     }
 

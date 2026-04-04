@@ -164,4 +164,78 @@ describe('GeminiAdapter', () => {
       errorSpy.mockRestore();
     });
   });
+
+  describe('sendImageUnderstandingStream', () => {
+    it('streams multimodal responses with inline image data', async () => {
+      const generateContentStream = vi.fn().mockResolvedValue({
+        async *[Symbol.asyncIterator]() {
+          yield {
+            candidates: [{
+              content: {
+                parts: [{ text: '视觉' }],
+              },
+            }],
+          }
+          yield {
+            candidates: [{
+              content: {
+                parts: [{ text: '结果' }],
+              },
+            }],
+          }
+        },
+      })
+
+      ;(adapter as any).createClient = () => ({
+        models: {
+          generateContentStream,
+        },
+      })
+
+      const callbacks = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn(),
+      }
+
+      await (adapter as any).sendImageUnderstandingStream(
+        {
+          systemPrompt: 'system prompt',
+          userPrompt: 'describe this image',
+          images: [
+            {
+              b64: 'ZmFrZQ==',
+              mimeType: 'image/png',
+            },
+          ],
+        },
+        mockConfig,
+        callbacks,
+      )
+
+      expect(generateContentStream).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: mockConfig.modelMeta.id,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: 'describe this image' },
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'ZmFrZQ==',
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      )
+      expect(callbacks.onToken).toHaveBeenCalledWith('视觉')
+      expect(callbacks.onToken).toHaveBeenCalledWith('结果')
+      expect(callbacks.onComplete).toHaveBeenCalled()
+    })
+  })
 });

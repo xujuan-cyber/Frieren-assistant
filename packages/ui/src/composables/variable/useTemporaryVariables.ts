@@ -16,6 +16,7 @@ import { useProVariableSession } from '../../stores/session/useProVariableSessio
 import { useProMultiMessageSession } from '../../stores/session/useProMultiMessageSession'
 import { useImageText2ImageSession } from '../../stores/session/useImageText2ImageSession'
 import { useImageImage2ImageSession } from '../../stores/session/useImageImage2ImageSession'
+import { useImageMultiImageSession } from '../../stores/session/useImageMultiImageSession'
 
 /**
  * 临时变量管理器接口
@@ -92,11 +93,13 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
   const proMultiSession = useProMultiMessageSession()
   const imageText2ImageSession = useImageText2ImageSession()
   const imageImage2ImageSession = useImageImage2ImageSession()
+  const imageMultiImageSession = useImageMultiImageSession()
 
   const { temporaryVariables: proVariableTempVars } = storeToRefs(proVariableSession)
   const { temporaryVariables: proMultiTempVars } = storeToRefs(proMultiSession)
   const { temporaryVariables: imageText2ImageTempVars } = storeToRefs(imageText2ImageSession)
   const { temporaryVariables: imageImage2ImageTempVars } = storeToRefs(imageImage2ImageSession)
+  const { temporaryVariables: imageMultiImageTempVars } = storeToRefs(imageMultiImageSession)
 
   const activeSubModeKey = computed(() => sessionManager.getActiveSubModeKey())
 
@@ -110,6 +113,8 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
         return imageText2ImageTempVars
       case 'image-image2image':
         return imageImage2ImageTempVars
+      case 'image-multiimage':
+        return imageMultiImageTempVars
       default:
         return null
     }
@@ -137,6 +142,9 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
       case 'image-image2image':
         imageImage2ImageSession.setTemporaryVariable(name, value)
         return
+      case 'image-multiimage':
+        imageMultiImageSession.setTemporaryVariable(name, value)
+        return
       default:
         globalStore.setVariable(name, value)
     }
@@ -152,6 +160,8 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
         return imageText2ImageSession.getTemporaryVariable(name)
       case 'image-image2image':
         return imageImage2ImageSession.getTemporaryVariable(name)
+      case 'image-multiimage':
+        return imageMultiImageSession.getTemporaryVariable(name)
       default:
         return globalStore.getVariable(name)
     }
@@ -171,6 +181,9 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
       case 'image-image2image':
         imageImage2ImageSession.deleteTemporaryVariable(name)
         return
+      case 'image-multiimage':
+        imageMultiImageSession.deleteTemporaryVariable(name)
+        return
       default:
         globalStore.deleteVariable(name)
     }
@@ -189,6 +202,9 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
         return
       case 'image-image2image':
         imageImage2ImageSession.clearTemporaryVariables()
+        return
+      case 'image-multiimage':
+        imageMultiImageSession.clearTemporaryVariables()
         return
       default:
         globalStore.clearAll()

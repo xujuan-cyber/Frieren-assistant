@@ -338,7 +338,16 @@ export function useAppInitializer(): {
         // Services that depend on initialized managers
         console.log('[AppInitializer] 创建依赖其他管理器的服务...');
         llmService = createLLMService(modelManagerInstance);
-        promptService = createPromptService(modelManager, llmService, templateManager, historyManager);
+        const imageUnderstandingService = createImageUnderstandingService({
+          registry: textAdapterRegistryInstance,
+        })
+        promptService = createPromptService(
+          modelManager,
+          llmService,
+          templateManager,
+          historyManager,
+          imageUnderstandingService,
+        );
         imageService = createImageService(imageModelManagerInstance, imageAdapterRegistryInstance);
 
         // Ensure image model defaults are seeded (similar to text models)

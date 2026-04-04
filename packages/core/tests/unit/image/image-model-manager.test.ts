@@ -70,4 +70,31 @@ describe('ImageModelManager initialization behavior', () => {
       }
     }
   })
+
+  it('should refresh stored static model metadata to the latest adapter capabilities', async () => {
+    await modelManager.ensureInitialized()
+    const existing = await modelManager.getConfig('image-seedream')
+    expect(existing).toBeDefined()
+
+    const storedSeedream: ImageModelConfig = {
+      ...existing!,
+      model: {
+        ...existing!.model,
+        capabilities: {
+          ...existing!.model.capabilities,
+          multiImage: false
+        }
+      }
+    }
+
+    await storageProvider.setItem(
+      CORE_SERVICE_KEYS.IMAGE_MODELS,
+      JSON.stringify({ 'image-seedream': storedSeedream })
+    )
+
+    const reloadedManager = new ImageModelManager(storageProvider, new ImageAdapterRegistry())
+    const reloaded = await reloadedManager.getConfig('image-seedream')
+
+    expect(reloaded?.model.capabilities.multiImage).toBe(true)
+  })
 })

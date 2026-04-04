@@ -47,7 +47,15 @@ export async function switchModeViaUI(
   // image 子模式使用按钮组，不是 radio-group；分别处理。
   if (mode === 'image') {
     const coreNav = page.getByTestId('core-nav')
-    const id = subMode === 'text2image' ? 'image-sub-mode-text2image' : 'image-sub-mode-image2image'
+    const idMap: Record<string, string> = {
+      text2image: 'image-sub-mode-text2image',
+      image2image: 'image-sub-mode-image2image',
+      multiimage: 'image-sub-mode-multiimage',
+    }
+    const id = idMap[subMode]
+    if (!id) {
+      throw new Error(`Unsupported image sub mode for e2e navigation: ${subMode}`)
+    }
     await coreNav.getByTestId(id).click()
     return
   }

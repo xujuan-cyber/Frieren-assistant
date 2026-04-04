@@ -86,6 +86,20 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
     )
   }
 
+  /**
+   * Stream image-understanding request - concrete implementation.
+   * Adapters can override this to support multimodal streaming text understanding.
+   */
+  protected async doSendImageUnderstandingStream(
+    _request: ImageUnderstandingRequest,
+    _config: TextModelConfig,
+    _callbacks: StreamHandlers
+  ): Promise<void> {
+    throw new RequestConfigError(
+      `${this.getProvider().name} does not support streaming image understanding requests`
+    )
+  }
+
   // ===== 模板方法（公共接口） =====
 
   /**
@@ -143,6 +157,15 @@ export abstract class AbstractTextProviderAdapter implements ITextProviderAdapte
   ): Promise<LLMResponse> {
     this.validateImageUnderstandingRequest(request)
     return await this.doSendImageUnderstanding(request, config)
+  }
+
+  public async sendImageUnderstandingStream(
+    request: ImageUnderstandingRequest,
+    config: TextModelConfig,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    this.validateImageUnderstandingRequest(request)
+    await this.doSendImageUnderstandingStream(request, config, callbacks)
   }
 
   // ===== 公共验证方法 =====

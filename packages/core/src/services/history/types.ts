@@ -15,6 +15,7 @@ export type PromptRecordType =
   | 'imageIterate'
   | 'text2imageOptimize'
   | 'image2imageOptimize'
+  | 'multiimageOptimize'
   | 'conversationMessageOptimize';
 
 /**

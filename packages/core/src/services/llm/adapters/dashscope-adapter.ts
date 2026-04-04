@@ -14,9 +14,9 @@ interface ModelOverride {
  */
 const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
   {
-    id: 'qwen3-32b',
-    name: 'Qwen3-32B',
-    description: '通义千问3代32B模型，性能强劲，推荐使用',
+    id: 'qwen3.5-27b',
+    name: 'Qwen3.5-27B',
+    description: '通义千问3.5 27B 模型，默认用于阿里百炼文本与视觉理解场景',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,

@@ -18,6 +18,7 @@ describe('router guards', () => {
       expect(parseSubModeKey('/basic/system')).toBe('basic-system')
       expect(parseSubModeKey('/pro/multi')).toBe('pro-multi')
       expect(parseSubModeKey('/image/text2image')).toBe('image-text2image')
+      expect(parseSubModeKey('/image/multiimage')).toBe('image-multiimage')
     })
 
     it('returns null for invalid sub mode paths', () => {

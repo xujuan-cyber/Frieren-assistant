@@ -27,6 +27,7 @@ describe('workspace session state usage guards', () => {
     const files = [
       '../../src/components/image-mode/ImageText2ImageWorkspace.vue',
       '../../src/components/image-mode/ImageImage2ImageWorkspace.vue',
+      '../../src/components/image-mode/ImageMultiImageWorkspace.vue',
     ]
 
     for (const file of files) {
