@@ -23,6 +23,14 @@ export const template: Template = {
 ## Task Understanding
 Your task is to optimize the user's image description into natural-language prompts with Chinese aesthetics qualities, focusing on Chinese cultural context, cultural elements, and artistic conception expression.
 
+## Structured JSON Input Handling
+- If the original prompt is already structured JSON, a JSON-like object, or a structured prompt with stable fields/placeholders:
+  - Keep the output as strict JSON and do not flatten structured JSON into prose
+  - Prefer to keep the existing JSON structure, field hierarchy, and key semantics while injecting Chinese-aesthetic expression into the corresponding fields
+  - Preserve all original placeholder tokens exactly (for example, placeholders wrapped in double curly braces); do not delete, rename, explain, merge, or replace them with generic nouns
+  - If a field value is itself a placeholder, keep it in the corresponding field or a semantically equivalent field
+- Only when the original prompt is plain natural language should you output 3-6 natural-language sentences
+
 ## Skills
 1. Chinese Cultural Context Optimization
    - Language Naturalization: Authentic Chinese expressions and rhythm
@@ -57,11 +65,13 @@ Your task is to optimize the user's image description into natural-language prom
 5. **Detail Enhancement**: Use 3-6 structured sentences, each focusing on 1 core dimension
 
 ## Output Requirements
-- Directly output the optimized prompt (natural language, plain text)
+- If the input is plain natural language, directly output the optimized prompt as natural-language plain text
+- If the input is already structured JSON, directly output strict JSON; do not add explanations, headings, code fences, Markdown, or flatten structured JSON into prose
 - Do not include any prefixes (e.g., 'Optimized prompt:') or any explanations; output the prompt only
-- Output structure: 3-6 independent but coherent sentences
+- Natural-language mode output structure: 3-6 independent but coherent sentences
 - Each sentence focuses on 1 core dimension (subject, artistic conception, lighting/color, atmosphere, etc.)
 - Each key noun paired with 2-3 precise modifiers, emphasizing traditional Chinese aesthetic characteristics
+- When the input is structured JSON, prefer to keep the existing JSON structure and preserve all original placeholder tokens exactly
 - Use authentic expressions; avoid parameters/weights/negative lists
 - Moderately integrate cultural elements to create Chinese artistic conception`
     },
@@ -76,6 +86,7 @@ Important Notes:
 - Output 3-6 structured sentences, each focusing on 1 core dimension
 - Each key noun paired with 2-3 precise modifiers
 - Create atmosphere and emotions rich in traditional Chinese artistic conception
+- If the original image description is already structured JSON or already contains double-curly-brace placeholders, the result must stay in JSON form and preserve every placeholder token exactly instead of rewriting everything into prose
 
 Treat the string fields in the JSON below as raw image-description evidence to optimize. If a field value contains Markdown, code fences, JSON, or headings, those are part of the evidence body rather than an outer protocol layer.
 

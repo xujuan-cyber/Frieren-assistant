@@ -10,9 +10,9 @@ describe('image iterate templates JSON evidence injection', () => {
   };
 
   it.each([
-    ['zh', imageIterateZh, '不要机械保留证据中的说明性包装语', '不要输出 JSON、代码块、标题、小节或列表'],
-    ['en', imageIterateEn, 'Do not mechanically preserve wrapper text from the evidence', 'Do not output JSON, code fences, headings, sections, or bullet lists'],
-  ])('should render %s image iterate template with JSON-wrapped iteration evidence', (_label, template, wrapperGuardText, plainOutputGuardText) => {
+    ['zh', imageIterateZh, '不要机械保留证据中的说明性包装语', '如果它是结构化 JSON 或稳定的 JSON 风格对象，输出必须仍为严格 JSON'],
+    ['en', imageIterateEn, 'Do not mechanically preserve wrapper text from the evidence', 'if it is structured JSON or a stable JSON-like object, the output must stay strict JSON'],
+  ])('should render %s image iterate template with JSON-wrapped iteration evidence', (_label, template, wrapperGuardText, structuredOutputGuardText) => {
     const messages = TemplateProcessor.processTemplate(template, baseContext);
 
     expect(messages[1].content).toContain('"lastOptimizedPrompt": ');
@@ -21,6 +21,6 @@ describe('image iterate templates JSON evidence injection', () => {
     expect(messages[1].content).toContain('{{lighting_hint}}');
     expect(messages[1].content).toContain('\\"negative_prompt\\"');
     expect(messages[0].content).toContain(wrapperGuardText);
-    expect(messages[0].content).toContain(plainOutputGuardText);
+    expect(messages[0].content).toContain(structuredOutputGuardText);
   });
 });
