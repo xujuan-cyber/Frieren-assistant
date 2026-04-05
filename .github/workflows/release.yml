@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号（例如: v2.0.3）'
+        description: '当前所选 ref 上待发布的版本号（例如: v2.8.0）'
         required: true
         type: string
 
@@ -19,9 +19,36 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
+  validate-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 校验版本说明文件
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            echo "📝 Using manual input version: $VERSION"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "🏷️ Using git tag version: $VERSION"
+          fi
+
+          echo "Validating release notes for $VERSION"
+          node scripts/release-notes.js check "$VERSION"
+
   # 构建 Windows 版本
   build-windows:
-    needs: test
+    needs: [test, validate-release-notes]
     runs-on: windows-latest
     steps:
       - name: 检出代码
@@ -142,7 +169,7 @@ jobs:
 
   # 构建 macOS 版本
   build-macos:
-    needs: test
+    needs: [test, validate-release-notes]
     runs-on: macos-latest
     steps:
       - name: 检出代码
@@ -265,7 +292,7 @@ jobs:
 
   # 构建 Linux 版本
   build-linux:
-    needs: test
+    needs: [test, validate-release-notes]
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -421,17 +448,17 @@ jobs:
           if [[ $VERSION =~ -(alpha|beta|rc) ]]; then
             IS_PRERELEASE=true
             VERSION_TYPE="prerelease"
-            RELEASE_NAME_PREFIX="Preview "
+            RELEASE_NAME_PREFIX="Preview Prompt Optimizer "
             echo "🧪 Detected prerelease version"
           elif [[ $VERSION =~ -(hotfix|patch) ]]; then
             IS_PRERELEASE=false
             VERSION_TYPE="hotfix"
-            RELEASE_NAME_PREFIX="Hotfix "
+            RELEASE_NAME_PREFIX="Hotfix Prompt Optimizer "
             echo "🔧 Detected hotfix version"
           else
             IS_PRERELEASE=false
             VERSION_TYPE="release"
-            RELEASE_NAME_PREFIX="Release "
+            RELEASE_NAME_PREFIX="Release Prompt Optimizer "
             echo "🚀 Detected stable release version"
           fi
 
@@ -456,191 +483,21 @@ jobs:
           echo "Final artifact list after cleaning:"
           find ./artifacts -type f | sort
 
-      - name: 生成 Release Notes
+      - name: 生成 Release 正文
         id: release_notes
         run: |
-          # 获取当前tag
           CURRENT_TAG=${{ steps.version.outputs.version }}
-          echo "Current tag: $CURRENT_TAG"
-
-          # 获取所有tags并调试输出
-          echo "All tags (sorted):"
-          git tag --sort=-version:refname | head -10
-
-          # 改进的上一个tag获取逻辑
-          # 1. 先尝试获取所有正式版本tag (不包含预览版)
-          STABLE_TAGS=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
-          echo "Stable tags found: $STABLE_TAGS"
-
-          # 2. 获取所有tag (包含预览版)
-          ALL_TAGS=$(git tag --sort=-version:refname)
-
-          # 3. 根据当前tag类型选择合适的比较策略
-          PREVIOUS_TAG=""
-          if [[ $CURRENT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # 当前是正式版，找上一个正式版
-            PREVIOUS_TAG=$(echo "$STABLE_TAGS" | grep -v "^$CURRENT_TAG$" | head -1 || true)
-            echo "Current is stable release, previous stable tag: $PREVIOUS_TAG"
-          else
-            # 当前是预览版，找上一个任意版本
-            PREVIOUS_TAG=$(echo "$ALL_TAGS" | grep -v "^$CURRENT_TAG$" | head -1 || true)
-            echo "Current is prerelease, previous tag: $PREVIOUS_TAG"
-          fi
-
-          # 生成commit历史（处理多行和长commit）
-          COMMITS=""
-          if [ -n "$PREVIOUS_TAG" ] && git rev-parse "$PREVIOUS_TAG" >/dev/null 2>&1 && git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
-            echo "Generating commits from $PREVIOUS_TAG to $CURRENT_TAG"
-            COMMITS=$(git log --pretty=format:"%s|%h" $PREVIOUS_TAG..$CURRENT_TAG | while IFS='|' read -r subject hash; do
-              # 截断过长的commit message（保留前80个字符）
-              if [ ${#subject} -gt 80 ]; then
-                subject="${subject:0:77}..."
-              fi
-              echo "- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash}))"
-            done)
-          elif git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
-            echo "No previous tag found or invalid, showing commits for current tag"
-            COMMITS=$(git log --pretty=format:"%s|%h" --max-count=10 | while IFS='|' read -r subject hash; do
-              # 截断过长的commit message（保留前80个字符）
-              if [ ${#subject} -gt 80 ]; then
-                subject="${subject:0:77}..."
-              fi
-              echo "- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash}))"
-            done)
-          fi
-
-          # 检查是否有commits
-          if [ -z "$COMMITS" ]; then
-            echo "No commits found, using fallback message"
-            COMMITS="- 首次发布"
-          else
-            echo "Generated commits:"
-            echo "$COMMITS"
-          fi
-
-          # 限制commits数量（最多显示20个）
-          COMMITS_LIMITED=$(echo "$COMMITS" | head -20)
-          COMMITS_COUNT=$(echo "$COMMITS" | wc -l)
-
-          if [ $COMMITS_COUNT -gt 20 ]; then
-            COMMITS_LIMITED="$COMMITS_LIMITED
-
-          ... 以及其他 $((COMMITS_COUNT - 20)) 个提交"
-          fi
-
-          # 获取本次发布的贡献者（排除主要作者）
-          CONTRIBUTORS=""
-          if [ -n "$PREVIOUS_TAG" ] && git rev-parse "$PREVIOUS_TAG" >/dev/null 2>&1; then
-            # 获取贡献者列表，排除主要作者和机器人
-            CONTRIBUTORS=$(git log --pretty=format:"%an|%ae" $PREVIOUS_TAG..$CURRENT_TAG 2>/dev/null | \
-              sort -u | \
-              grep -v -E "^(linshen|linshenkx|且炼时光)\|" | \
-              grep -v -E "\[bot\]@" | \
-              grep -v -E "^GitButler\|" | \
-              cut -d'|' -f1 | \
-              sort -u || true)
-          else
-            CONTRIBUTORS=$(git log --pretty=format:"%an|%ae" --max-count=50 2>/dev/null | \
-              sort -u | \
-              grep -v -E "^(linshen|linshenkx|且炼时光)\|" | \
-              grep -v -E "\[bot\]@" | \
-              grep -v -E "^GitButler\|" | \
-              cut -d'|' -f1 | \
-              sort -u || true)
-          fi
-
-          # 格式化贡献者列表
-          CONTRIBUTORS_SECTION=""
-          if [ -n "$CONTRIBUTORS" ]; then
-            CONTRIBUTORS_LIST=$(echo "$CONTRIBUTORS" | while read -r name; do
-              [ -n "$name" ] && echo "- @$name"
-            done | grep -v "^$" || true)
-
-            if [ -n "$CONTRIBUTORS_LIST" ]; then
-              CONTRIBUTORS_SECTION="
-          ### 🙏 致谢
-
-          感谢以下贡献者对本次发布的贡献：
-
-          $CONTRIBUTORS_LIST
-          "
-              echo "Found contributors: $CONTRIBUTORS"
-            fi
-          fi
-
-          # 根据版本类型设置不同的图标和描述
-          VERSION_ICON="🚀"
-          VERSION_DESC="稳定版本"
-          STABILITY_NOTE=""
-
-          if [[ $CURRENT_TAG =~ -(alpha|beta|rc) ]]; then
-            VERSION_ICON="🧪"
-            VERSION_DESC="预览版本"
-            STABILITY_NOTE="
-
-          > ⚠️ **注意**: 这是一个预览版本，可能包含实验性功能。建议在非生产环境中使用。"
-          elif [[ $CURRENT_TAG =~ -(hotfix|patch) ]]; then
-            VERSION_ICON="🔧"
-            VERSION_DESC="紧急修复版本"
-            STABILITY_NOTE="
-
-          > 🔧 **修复版本**: 此版本主要包含重要问题的修复，建议尽快更新。"
-          fi
-
-          # 创建release notes
-          cat > release_notes.md << EOF
-          ## $VERSION_ICON Prompt Optimizer $CURRENT_TAG
-
-          **版本类型**: $VERSION_DESC$STABILITY_NOTE
-
-          ### 📦 下载
-          - **Windows**: \`PromptOptimizer-*-win-x64.exe\` (安装程序) 或 \`PromptOptimizer-*-win-x64.zip\` (便携版)
-          - **macOS (Apple Silicon)**: \`PromptOptimizer-*-darwin-arm64.dmg\` (安装程序) 或 \`PromptOptimizer-*-darwin-arm64.zip\` (便携版)
-          - **macOS (Intel)**: \`PromptOptimizer-*-darwin-x64.dmg\` (安装程序) 或 \`PromptOptimizer-*-darwin-x64.zip\` (便携版)
-          - **Linux**: \`PromptOptimizer-*-linux-x86_64.AppImage\` (便携版) 或 \`PromptOptimizer-*-linux-x64.zip\` (便携版)
-
-          ### 🔧 安装说明
-          - **Windows**:
-            - **安装程序**: 下载 \`.exe\` 文件，双击运行安装向导
-            - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer.exe\`
-          - **macOS**:
-            - **Apple Silicon (M1/M2/M3)**: 下载 \`darwin-arm64\` 版本
-            - **Intel 芯片**: 下载 \`darwin-x64\` 版本
-            - **安装程序**: 下载 \`.dmg\` 文件，双击挂载后拖拽到应用程序文件夹
-            - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer.app\`
-            - ⚠️ **安全提示**: 如果打开应用时提示「已损坏」或「无法验证开发者」，请在终端执行以下命令后重试：
-              \`\`\`bash
-              xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app
-              \`\`\`
-              或者对于 .dmg 文件：
-              \`\`\`bash
-              xattr -rd com.apple.quarantine ~/Downloads/PromptOptimizer-*.dmg
-              \`\`\`
-          - **Linux**:
-            - **AppImage**: 下载 \`.AppImage\` 文件，添加执行权限后直接运行
-            - **便携版**: 下载 \`.zip\` 文件，解压后运行 \`PromptOptimizer\`
-
-          ### 📝 更新内容
-          $COMMITS_LIMITED
-          $CONTRIBUTORS_SECTION
-          ### 🔗 更多信息
-          - **项目主页**: [GitHub Repository](https://github.com/${{ github.repository }})
-          - **问题反馈**: [Issues](https://github.com/${{ github.repository }}/issues)
-          - **讨论交流**: [Discussions](https://github.com/${{ github.repository }}/discussions)
-
-          ---
-          **提示**: 如果需要查看完整的提交历史，请访问项目的 [GitHub Commits](https://github.com/${{ github.repository }}/commits)
-          EOF
-
-          echo "Generated release notes:"
-          cat release_notes.md
+          node scripts/release-notes.js render-body "$CURRENT_TAG" "${{ github.repository }}" > release_body.md
+          echo "release_notes_path=release_body.md" >> "$GITHUB_OUTPUT"
+          echo "Generated release body:"
+          cat release_body.md
 
       - name: 创建 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.release_name_prefix }}${{ steps.version.outputs.version }}
-          body_path: release_notes.md
+          body_path: ${{ steps.release_notes.outputs.release_notes_path }}
           files: |
             ./artifacts/windows-build/*
             ./artifacts/macos-build/*

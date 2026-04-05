@@ -7,6 +7,7 @@
 - [产品需求文档](./prd.md) - 产品功能需求和规格说明
 - [项目状态](./project-status.md) - 当前项目进度和完成情况
 - [版本同步](./version-sync.md) - 版本管理和同步策略
+- [版本说明与 Release 发布](./release-notes.md) - 双语版本说明与发布流程
 
 ## 📊 项目状态
 

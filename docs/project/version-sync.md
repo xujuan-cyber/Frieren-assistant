@@ -44,6 +44,23 @@ pnpm run version:sync
 3. **同步脚本**: `scripts/sync-versions.js` 读取新的版本号并更新其他文件
 4. **git commit**: pnpm 创建包含所有版本号变更的提交和标签
 
+## 与 Release 版本说明的关系
+
+从当前流程开始，版本号同步只是发布准备的一部分。创建正式 tag 之前，还需要补齐并校验版本说明：
+
+```bash
+pnpm release:notes:new
+pnpm release:notes:check
+pnpm version:tag
+```
+
+其中：
+
+- `pnpm release:notes:new` 会同时生成 `releases/vX.Y.Z.en.md` 和 `releases/vX.Y.Z.zh-CN.md` 模板
+- `pnpm release:notes:check` 会校验 `CHANGELOG.md` 以及英文、中文两个版本说明文件
+- `pnpm release:notes:check:entry` 可用于历史版本回填时单独校验某个旧版本条目
+- `pnpm version:tag` 会在打 tag 前再次执行一次校验，避免缺失版本说明就发布
+
 ## 添加新的同步文件
 
 如需添加更多文件的版本同步，编辑 `scripts/sync-versions.js` 文件中的 `versionFiles` 数组：

@@ -1,5 +1,39 @@
 # Changelog
 
+Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
+
+## [2.8.0] - 2026-04-03
+- EN: Text-to-image evaluation, smoother reference-image workflows, and stronger Cloudflare-backed model support. See [Release Notes (EN)](releases/v2.8.0.en.md).
+- 中文：本次发布聚焦文生图评估、更顺畅的参考图工作流，以及更稳健的 Cloudflare 模型支持。参见 [版本说明（中文）](releases/v2.8.0.zh-CN.md)。
+
+## [2.7.0] - 2026-03-25
+- EN: Structured compare evaluation, smoother compare UX, and refreshed docs and website surfaces. See [Release Notes (EN)](releases/v2.7.0.en.md).
+- 中文：本次发布聚焦结构化对比评估、更顺畅的对比体验，以及焕新的文档与站点展示。参见 [版本说明（中文）](releases/v2.7.0.zh-CN.md)。
+
+## [2.6.3] - 2026-03-22
+- EN: Image prompt extraction, stronger image understanding, and a safer desktop release pipeline. See [Release Notes (EN)](releases/v2.6.3.en.md).
+- 中文：本次发布带来图像提示词提取、更强的图像理解能力，以及更稳健的桌面端发布链路。参见 [版本说明（中文）](releases/v2.6.3.zh-CN.md)。
+
+## [2.6.2] - 2026-03-15
+- EN: Reworked evaluation architecture, cleaner workspace/result/compare flows, and more stable variable handling. See [Release Notes (EN)](releases/v2.6.2.en.md).
+- 中文：本次发布重构了评估架构，梳理了工作区 / 结果 / 对比流程，并让变量处理更稳定。参见 [版本说明（中文）](releases/v2.6.2.zh-CN.md)。
+
+## [2.6.1] - 2026-03-12
+- EN: Better model management, richer image generation metadata, and stronger custom model configuration support. See [Release Notes (EN)](releases/v2.6.1.en.md).
+- 中文：本次发布改进了模型管理、补充了更丰富的图像生成元数据，并增强了自定义模型配置能力。参见 [版本说明（中文）](releases/v2.6.1.zh-CN.md)。
+
+## [2.6.0] - 2026-03-09
+- EN: MiniMax provider support, stronger model management, and more usable temporary-variable and XML inspection workflows. See [Release Notes (EN)](releases/v2.6.0.en.md).
+- 中文：本次发布带来 MiniMax provider 支持，进一步强化了模型管理，也让临时变量与 XML 检查体验更顺手。参见 [版本说明（中文）](releases/v2.6.0.zh-CN.md)。
+
+## [2.5.5] - 2026-03-01
+- EN: Media-aware favorites, Prompt Garden asset imports, and more durable preview storage. See [Release Notes (EN)](releases/v2.5.5.en.md).
+- 中文：本次发布让收藏夹支持媒体内容、Prompt Garden 资源导入，并让预览资源存储更可靠。参见 [版本说明（中文）](releases/v2.5.5.zh-CN.md)。
+
+## [2.5.4] - 2026-02-10
+- EN: Feedback-driven evaluation, stronger parsing robustness, and smoother analyze interactions. See [Release Notes (EN)](releases/v2.5.4.en.md).
+- 中文：本次发布强化了反馈驱动评估、结果解析鲁棒性，以及分析交互体验。参见 [版本说明（中文）](releases/v2.5.4.zh-CN.md)。
+
 ## [2.1.0] - 2025-01-19
 
 ### 🎉 Added - 收藏管理重构 (Favorite Management Refactor)
