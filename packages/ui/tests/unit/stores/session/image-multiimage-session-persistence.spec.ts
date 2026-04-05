@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createTestPinia } from '../../../utils/pinia-test-helpers'
 import { useImageMultiImageSession } from '../../../../src/stores/session/useImageMultiImageSession'
+import { IMAGE_MULTIIMAGE_SESSION_KEY } from '../../../../src/stores/session/imageStorageMaintenance'
 
 describe('Session store (image-multiimage) persistence', () => {
   it('persists the ordered multi-image list and restores it with the same order', async () => {
@@ -149,5 +150,97 @@ describe('Session store (image-multiimage) persistence', () => {
     })
     expect(restored.testVariantLastRunFingerprint.a).toBe('fingerprint-a')
     expect(restored.isCompareMode).toBe(false)
+  })
+
+  it('stores generated multi-image results as image refs and restores their payloads from image storage', async () => {
+    const savedSnapshots = new Map<string, unknown>()
+    const imageMap = new Map<string, { data: string; metadata: { mimeType: string } }>()
+
+    const imageStorageService = {
+      saveImage: vi.fn(async (data: any) => {
+        imageMap.set(data.metadata.id, {
+          data: data.data,
+          metadata: { mimeType: data.metadata.mimeType },
+        })
+        return data.metadata.id
+      }),
+      getImage: vi.fn(async (id: string) => imageMap.get(id) ?? null),
+      getMetadata: vi.fn(async (id: string) =>
+        imageMap.has(id)
+          ? {
+              id,
+              mimeType: imageMap.get(id)?.metadata.mimeType || 'image/png',
+              sizeBytes: 4,
+              createdAt: Date.now(),
+              accessedAt: Date.now(),
+              source: 'generated',
+            }
+          : null,
+      ),
+      listAllMetadata: vi.fn(async () => []),
+      deleteImages: vi.fn(async () => {}),
+    }
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: async <T,>(key: string, defaultValue: T) =>
+          (savedSnapshots.has(key) ? savedSnapshots.get(key) : defaultValue) as T,
+        set: async (key: string, value: unknown) => {
+          savedSnapshots.set(key, value)
+        },
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: imageStorageService as any,
+    })
+
+    const store = useImageMultiImageSession(pinia)
+    store.updateOriginalImageResult({
+      images: [{ b64: 'ORIGINAL', mimeType: 'image/png' }],
+      metadata: { providerId: 'provider', modelId: 'model-original', configId: 'image-model-original' },
+    })
+    store.updateOptimizedImageResult({
+      images: [{ b64: 'OPTIMIZED', mimeType: 'image/jpeg' }],
+      metadata: { providerId: 'provider', modelId: 'model-optimized', configId: 'image-model-optimized' },
+    })
+    store.updateTestVariantResult('c', {
+      images: [{ b64: 'VARIANTC', mimeType: 'image/png' }],
+      metadata: { providerId: 'provider', modelId: 'model-c', configId: 'image-model-c' },
+    })
+
+    await store.saveSession()
+
+    const snapshot = savedSnapshots.get(IMAGE_MULTIIMAGE_SESSION_KEY) as Record<string, any>
+
+    expect(snapshot.originalImageResult.images[0]).toMatchObject({ _type: 'image-ref', id: expect.any(String) })
+    expect(snapshot.optimizedImageResult.images[0]).toMatchObject({ _type: 'image-ref', id: expect.any(String) })
+    expect(snapshot.testVariantResults.a.images[0]).toMatchObject({ _type: 'image-ref', id: expect.any(String) })
+    expect(snapshot.testVariantResults.b.images[0]).toMatchObject({ _type: 'image-ref', id: expect.any(String) })
+    expect(snapshot.testVariantResults.c.images[0]).toMatchObject({ _type: 'image-ref', id: expect.any(String) })
+    expect(JSON.stringify(snapshot)).not.toContain('ORIGINAL')
+    expect(JSON.stringify(snapshot)).not.toContain('OPTIMIZED')
+    expect(JSON.stringify(snapshot)).not.toContain('VARIANTC')
+
+    const restored = useImageMultiImageSession(pinia)
+    restored.reset()
+    await restored.restoreSession()
+
+    expect(restored.originalImageResult).toMatchObject({
+      images: [{ b64: 'ORIGINAL', mimeType: 'image/png' }],
+    })
+    expect(restored.optimizedImageResult).toMatchObject({
+      images: [{ b64: 'OPTIMIZED', mimeType: 'image/jpeg' }],
+    })
+    expect(restored.testVariantResults.c).toMatchObject({
+      images: [{ b64: 'VARIANTC', mimeType: 'image/png' }],
+    })
+    expect(imageStorageService.saveImage).toHaveBeenCalledTimes(3)
+    expect(imageStorageService.getImage).toHaveBeenCalled()
   })
 })

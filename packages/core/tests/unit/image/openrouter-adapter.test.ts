@@ -1,13 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { OpenRouterImageAdapter } from '../../../src/services/image/adapters/openrouter'
-import type { ImageModelConfig } from '../../../src/services/image/types'
+import type { ImageModelConfig, ImageRequest } from '../../../src/services/image/types'
 import { IMAGE_ERROR_CODES } from '../../../src/constants/error-codes'
 
 describe('OpenRouterImageAdapter', () => {
   let adapter: OpenRouterImageAdapter
+  const realFetch = global.fetch
 
   beforeEach(() => {
     adapter = new OpenRouterImageAdapter()
+  })
+
+  afterEach(() => {
+    global.fetch = realFetch
   })
 
   describe('Provider Information', () => {
@@ -178,6 +183,68 @@ describe('OpenRouterImageAdapter', () => {
 
       expect(mimeMatch?.[1]).toBe('image/png')
       expect(base64Data).toBe('iVBORw0KGgoAAAANSUhEUgAA')
+    })
+  })
+
+  describe('Image Generation', () => {
+    it('should serialize multiple input images into OpenRouter chat content parts', async () => {
+      const config: ImageModelConfig = {
+        id: 'test-openrouter-multi',
+        name: 'Test OpenRouter Multi',
+        providerId: 'openrouter',
+        modelId: adapter.getModels()[0].id,
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-api-key',
+          baseURL: 'https://openrouter.ai/api/v1'
+        },
+        provider: adapter.getProvider(),
+        model: adapter.getModels()[0]
+      }
+
+      const request: ImageRequest = {
+        prompt: 'combine image 1 and image 2 into one result',
+        configId: config.id,
+        count: 1,
+        inputImages: [
+          { b64: 'AAAA', mimeType: 'image/png' },
+          { b64: 'BBBB', mimeType: 'image/jpeg' }
+        ]
+      }
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                content: 'done',
+                images: [
+                  {
+                    image_url: {
+                      url: 'data:image/png;base64,CCCC'
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        })
+      }) as typeof fetch
+
+      await adapter.generate(request, config)
+
+      expect(fetch).toHaveBeenCalledTimes(1)
+      const fetchOptions = vi.mocked(fetch).mock.calls[0]?.[1]
+      const payload = JSON.parse(String(fetchOptions?.body))
+
+      expect(payload.messages).toHaveLength(1)
+      expect(payload.messages[0].content).toEqual([
+        { type: 'text', text: 'combine image 1 and image 2 into one result' },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } },
+        { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,BBBB' } }
+      ])
     })
   })
 })

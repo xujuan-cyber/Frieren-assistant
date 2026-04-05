@@ -165,13 +165,23 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
       }
     ]
 
-    // 如果有输入图像，添加到消息中
-    if (request.inputImage) {
-      const imageContent = `data:${request.inputImage.mimeType || 'image/png'};base64,${request.inputImage.b64}`
+    const inputImages =
+      Array.isArray(request.inputImages) && request.inputImages.length > 0
+        ? request.inputImages
+        : request.inputImage
+          ? [request.inputImage]
+          : []
 
+    // 如果有输入图像，添加到消息中
+    if (inputImages.length > 0) {
       messages[0].content = [
         { type: 'text', text: request.prompt },
-        { type: 'image_url', image_url: { url: imageContent } }
+        ...inputImages.map((inputImage) => ({
+          type: 'image_url',
+          image_url: {
+            url: `data:${inputImage.mimeType || 'image/png'};base64,${inputImage.b64}`
+          }
+        }))
       ]
     }
 

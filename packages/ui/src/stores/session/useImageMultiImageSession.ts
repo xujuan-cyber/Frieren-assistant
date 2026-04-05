@@ -2,7 +2,17 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
 import { isValidVariableName, sanitizeVariableRecord } from '../../types/variable'
-import type { ImageResult, IImageStorageService, ImageInputRef } from '@prompt-optimizer/core'
+import {
+  isImageRef,
+  createImageRef,
+  type ImageResult,
+  type IImageStorageService,
+  type ImageInputRef,
+} from '@prompt-optimizer/core'
+import {
+  normalizeImageSourceToPayload,
+  persistImagePayloadAsAssetId,
+} from '../../utils/image-asset-storage'
 import {
   IMAGE_MULTIIMAGE_SESSION_KEY,
   computeStableImageId,
@@ -13,6 +23,8 @@ import {
   createDefaultEvaluationResults,
   type PersistedEvaluationResults,
 } from '../../types/evaluation'
+
+type ImageResultItem = ImageResult['images'][number]
 
 export type TestPanelVersionValue = 'workspace' | 'previous' | 0 | number
 export type TestVariantId = 'a' | 'b' | 'c' | 'd'
@@ -139,21 +151,6 @@ const parseTestVariants = (value: unknown): TestVariantConfig[] => {
   )
 }
 
-const parseTestVariantResults = (
-  value: unknown,
-): Record<TestVariantId, ImageResult | null> => {
-  const defaults = createDefaultState().testVariantResults
-  if (!value || typeof value !== 'object') return defaults
-
-  const record = value as Record<string, unknown>
-  return {
-    a: (record.a as ImageResult | null) ?? defaults.a,
-    b: (record.b as ImageResult | null) ?? defaults.b,
-    c: (record.c as ImageResult | null) ?? defaults.c,
-    d: (record.d as ImageResult | null) ?? defaults.d,
-  }
-}
-
 const parseTestVariantFingerprints = (value: unknown): Record<TestVariantId, string> => {
   const defaults = createDefaultState().testVariantLastRunFingerprint
   if (!value || typeof value !== 'object') return defaults
@@ -188,6 +185,129 @@ const saveInputImage = async (
     })
   }
   return stableId
+}
+
+const prepareForSave = async (
+  result: ImageResult | null,
+  storageService: IImageStorageService,
+): Promise<ImageResult | null> => {
+  if (!result || !result.images || result.images.length === 0) {
+    return result
+  }
+
+  const processedImages: ImageResultItem[] = []
+
+  for (const img of result.images) {
+    if (isImageRef(img)) {
+      processedImages.push(img)
+      continue
+    }
+
+    const payload = img.b64
+      ? {
+          b64: img.b64,
+          mimeType: img.mimeType || 'image/png',
+        }
+      : img.url
+        ? await normalizeImageSourceToPayload(img.url)
+        : null
+
+    if (!payload) {
+      processedImages.push(img)
+      continue
+    }
+
+    const imageId = await persistImagePayloadAsAssetId({
+      payload,
+      storageService,
+      sourceType: 'generated',
+      metadata: {
+        prompt: result.metadata?.prompt,
+        modelId: result.metadata?.modelId,
+        configId: result.metadata?.configId,
+      },
+    })
+
+    if (imageId) {
+      processedImages.push(createImageRef(imageId))
+      continue
+    }
+
+    processedImages.push(img)
+  }
+
+  return {
+    ...result,
+    images: processedImages,
+  }
+}
+
+const loadFromRef = async (
+  result: ImageResult | null,
+  storageService: IImageStorageService,
+): Promise<ImageResult | null> => {
+  if (!result || !result.images || result.images.length === 0) {
+    return result
+  }
+
+  const loadedImages: ImageResultItem[] = []
+
+  for (const img of result.images) {
+    if (isImageRef(img)) {
+      try {
+        const fullImageData = await storageService.getImage(img.id)
+        if (fullImageData) {
+          loadedImages.push({
+            b64: fullImageData.data,
+            mimeType: fullImageData.metadata.mimeType,
+          })
+        } else {
+          console.warn(`[ImageMultiImageSession] 图像 ${img.id} 未找到`)
+          loadedImages.push(img)
+        }
+      } catch (error) {
+        console.error(`[ImageMultiImageSession] 加载图像 ${img.id} 失败:`, error)
+        loadedImages.push(img)
+      }
+    } else {
+      if (img.url && !img.b64) {
+        try {
+          const payload = await normalizeImageSourceToPayload(img.url)
+          if (payload?.b64) {
+            try {
+              await persistImagePayloadAsAssetId({
+                payload,
+                storageService,
+                sourceType: 'generated',
+                metadata: {
+                  prompt: result.metadata?.prompt,
+                  modelId: result.metadata?.modelId,
+                  configId: result.metadata?.configId,
+                },
+              })
+            } catch (error) {
+              console.warn('[ImageMultiImageSession] 恢复 legacy url 图像时写入存储失败:', error)
+            }
+
+            loadedImages.push({
+              b64: payload.b64,
+              mimeType: payload.mimeType,
+            })
+            continue
+          }
+        } catch (error) {
+          console.warn('[ImageMultiImageSession] 恢复 legacy url 图像失败:', error)
+        }
+      }
+
+      loadedImages.push(img)
+    }
+  }
+
+  return {
+    ...result,
+    images: loadedImages,
+  }
 }
 
 export const useImageMultiImageSession = defineStore('imageMultiImageSession', () => {
@@ -419,6 +539,20 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
         assetId: persistedImages[index]?.assetId || image.assetId,
       }))
 
+      const baseVariantResults = {
+        a: testVariantResults.value.a ?? originalImageResult.value,
+        b: testVariantResults.value.b ?? optimizedImageResult.value,
+        c: testVariantResults.value.c,
+        d: testVariantResults.value.d,
+      }
+
+      const variantResultsToSave = {
+        a: await prepareForSave(baseVariantResults.a, imageStorageService),
+        b: await prepareForSave(baseVariantResults.b, imageStorageService),
+        c: await prepareForSave(baseVariantResults.c, imageStorageService),
+        d: await prepareForSave(baseVariantResults.d, imageStorageService),
+      }
+
       await $services.preferenceService.set(IMAGE_MULTIIMAGE_SESSION_KEY, {
         originalPrompt: originalPrompt.value,
         optimizedPrompt: optimizedPrompt.value,
@@ -427,11 +561,11 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
         versionId: versionId.value,
         temporaryVariables: sanitizeVariableRecord(temporaryVariables.value),
         inputImages: persistedImages,
-        originalImageResult: originalImageResult.value,
-        optimizedImageResult: optimizedImageResult.value,
+        originalImageResult: variantResultsToSave.a,
+        optimizedImageResult: variantResultsToSave.b,
         layout: layout.value,
         testVariants: testVariants.value,
-        testVariantResults: testVariantResults.value,
+        testVariantResults: variantResultsToSave,
         testVariantLastRunFingerprint: testVariantLastRunFingerprint.value,
         evaluationResults: evaluationResults.value,
         isCompareMode: isCompareMode.value,
@@ -486,6 +620,39 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
       }),
     )
 
+    const rawVariantResults = parsed.testVariantResults
+    let variantResultsLoaded: Record<TestVariantId, ImageResult | null> | null = null
+    if (rawVariantResults && typeof rawVariantResults === 'object') {
+      const record = rawVariantResults as Record<string, unknown>
+      const pick = (id: TestVariantId): ImageResult | null => {
+        const one = record[id]
+        if (!one || typeof one !== 'object') return null
+        return one as ImageResult
+      }
+      variantResultsLoaded = {
+        a: pick('a'),
+        b: pick('b'),
+        c: pick('c'),
+        d: pick('d'),
+      }
+    }
+
+    if (!variantResultsLoaded) {
+      variantResultsLoaded = {
+        a: (parsed.originalImageResult as ImageResult | null) ?? null,
+        b: (parsed.optimizedImageResult as ImageResult | null) ?? null,
+        c: null,
+        d: null,
+      }
+    }
+
+    const loadedVariantResults = {
+      a: await loadFromRef(variantResultsLoaded.a, imageStorageService),
+      b: await loadFromRef(variantResultsLoaded.b, imageStorageService),
+      c: await loadFromRef(variantResultsLoaded.c, imageStorageService),
+      d: await loadFromRef(variantResultsLoaded.d, imageStorageService),
+    }
+
     originalPrompt.value = typeof parsed.originalPrompt === 'string' ? parsed.originalPrompt : ''
     optimizedPrompt.value = typeof parsed.optimizedPrompt === 'string' ? parsed.optimizedPrompt : ''
     reasoning.value = typeof parsed.reasoning === 'string' ? parsed.reasoning : ''
@@ -493,11 +660,11 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     versionId.value = typeof parsed.versionId === 'string' ? parsed.versionId : ''
     temporaryVariables.value = sanitizeVariableRecord(parsed.temporaryVariables)
     inputImages.value = restoredImages
-    originalImageResult.value = (parsed.originalImageResult as ImageResult | null) ?? null
-    optimizedImageResult.value = (parsed.optimizedImageResult as ImageResult | null) ?? null
+    originalImageResult.value = loadedVariantResults.a
+    optimizedImageResult.value = loadedVariantResults.b
     layout.value = parseLayout(parsed.layout)
     testVariants.value = parseTestVariants(parsed.testVariants)
-    testVariantResults.value = parseTestVariantResults(parsed.testVariantResults)
+    testVariantResults.value = loadedVariantResults
     testVariantLastRunFingerprint.value = parseTestVariantFingerprints(
       parsed.testVariantLastRunFingerprint,
     )
