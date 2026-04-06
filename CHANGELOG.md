@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.9.2] - 2026-04-07
+- EN: This release fixes the desktop updater path for both stable and prerelease downloads, hardens invalid preference-key handling, and expands the bilingual image workflow documentation. See [Release Notes (EN)](releases/v2.9.2.en.md).
+- 中文：本次发布修复了桌面端正式版与预览版下载更新链路，强化了无效偏好键处理，并补充了双语图像工作流文档。参见 [版本说明（中文）](releases/v2.9.2.zh-CN.md)。
+
 ## [2.9.1] - 2026-04-06
 - EN: This hotfix restores a more visible remove affordance in the multi-image upload area, replacing the footer text action with a clearer top-right icon button. See [Release Notes (EN)](releases/v2.9.1.en.md).
 - 中文：本次热修复让多图上传区域的删除入口重新变得更直观，用更明显的右上角图标按钮替代底部文字按钮。参见 [版本说明（中文）](releases/v2.9.1.zh-CN.md)。
