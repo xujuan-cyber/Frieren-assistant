@@ -155,21 +155,6 @@ export class ImageService implements IImageService {
 
       this.validateInputImage(inputImage)
     }
-
-    const config = await this.imageModelManager.getConfig(request.configId)
-    if (!config) {
-      throw new ImageError(IMAGE_ERROR_CODES.CONFIG_NOT_FOUND, undefined, { configId: request.configId })
-    }
-
-    const configModel = config.model
-    const staticModels = this.registry.getStaticModels(config.providerId)
-    const staticModel = staticModels.find(m => m.id === config.modelId)
-    const capabilities = configModel?.capabilities ?? staticModel?.capabilities
-    const modelName = configModel?.name ?? staticModel?.name ?? config.modelId
-
-    if (capabilities && !capabilities.multiImage) {
-      throw new ImageError(IMAGE_ERROR_CODES.MODEL_NOT_SUPPORT_MULTI_IMAGE, undefined, { modelName })
-    }
   }
 
   private async validateBaseRequest(request: Pick<ImageRequest, 'prompt' | 'configId' | 'count'>): Promise<void> {

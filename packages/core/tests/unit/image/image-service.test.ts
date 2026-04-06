@@ -503,6 +503,30 @@ describe('ImageService', () => {
        await expect(imageService.validateMultiImageRequest(request)).resolves.not.toThrow()
      })
 
+     test('should not reject multi-image requests only because local capabilities say multiImage is unsupported', async () => {
+       await mockModelManager.updateConfig('test-multiimage-config', {
+         model: {
+           ...(await mockModelManager.getConfig('test-multiimage-config'))!.model,
+           capabilities: {
+             text2image: true,
+             image2image: true,
+             multiImage: false,
+           },
+         },
+       })
+
+       const request: MultiImageRequest = {
+         prompt: 'merge these references into one scene',
+         configId: 'test-multiimage-config',
+         inputImages: [
+           { b64: 'AAAA', mimeType: 'image/png' },
+           { b64: 'BBBB', mimeType: 'image/jpeg' }
+         ]
+       }
+
+       await expect(imageService.validateMultiImageRequest(request)).resolves.not.toThrow()
+     })
+
      test('should reject multi-image requests with fewer than two images', async () => {
        const request: MultiImageRequest = {
          prompt: 'merge these references into one scene',
@@ -670,6 +694,62 @@ describe('ImageService', () => {
       expect(result.metadata?.configId).toBe('test-multiimage-config')
       expect(result.metadata?.modelId).toBe('gemini-2.5-flash-image-preview')
       expect(registry.getAdapter).toHaveBeenCalledWith('gemini')
+    })
+
+    test('should still call the adapter for multi-image generation when local capability metadata is stale', async () => {
+      await mockModelManager.updateConfig('test-multiimage-config', {
+        model: {
+          ...(await mockModelManager.getConfig('test-multiimage-config'))!.model,
+          capabilities: {
+            text2image: true,
+            image2image: true,
+            multiImage: false,
+          },
+        },
+      })
+
+      const adapterGenerate = vi.fn().mockResolvedValue({
+        images: [{ b64: 'aGVsbG8=', mimeType: 'image/png', url: 'data:image/png;base64,aGVsbG8=' }],
+      })
+
+      const registry = {
+        getAdapter: vi.fn().mockReturnValue({
+          generate: adapterGenerate,
+        }),
+        getStaticModels: vi.fn().mockReturnValue([
+          {
+            id: 'gemini-2.5-flash-image-preview',
+            name: 'Gemini 2.5 Flash Image Preview',
+            providerId: 'gemini',
+            capabilities: { text2image: true, image2image: true, multiImage: false },
+            parameterDefinitions: [],
+            defaultParameterValues: {},
+          },
+        ]),
+        getDynamicModels: vi.fn(),
+        getModels: vi.fn(),
+        getAllProviders: vi.fn(),
+        getAllStaticModels: vi.fn(),
+        supportsDynamicModels: vi.fn(),
+        validateProviderModel: vi.fn(),
+      } as unknown as IImageAdapterRegistry
+      const multiImageService = new ImageService(mockModelManager, registry)
+
+      const request: MultiImageGenerationRequest = {
+        prompt: 'compose 图1 and 图2 into one cinematic frame',
+        configId: 'test-multiimage-config',
+        inputImages: [
+          { b64: 'AAAA', mimeType: 'image/png' },
+          { b64: 'BBBB', mimeType: 'image/png' }
+        ]
+      }
+
+      await expect(multiImageService.generateMultiImage(request)).resolves.toMatchObject({
+        metadata: {
+          configId: 'test-multiimage-config',
+        },
+      })
+      expect(adapterGenerate).toHaveBeenCalledTimes(1)
     })
   })
 
