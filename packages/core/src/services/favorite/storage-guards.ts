@@ -14,6 +14,21 @@ const FAVORITES_SOFT_WARNING_HEADROOM_BYTES = 8 * 1024
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 
+const isFunctionMode = (
+  value: unknown,
+): value is FavoritePrompt['functionMode'] =>
+  value === 'basic' || value === 'context' || value === 'image'
+
+const isOptimizationMode = (
+  value: unknown,
+): value is NonNullable<FavoritePrompt['optimizationMode']> =>
+  value === 'system' || value === 'user'
+
+const isImageSubMode = (
+  value: unknown,
+): value is NonNullable<FavoritePrompt['imageSubMode']> =>
+  value === 'text2image' || value === 'image2image' || value === 'multiimage'
+
 const toTrimmedString = (value: unknown): string | undefined => {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
@@ -163,25 +178,29 @@ export const normalizeFavoriteRecord = (
 
   assertFavoriteMetadataHasNoInlineImages(nextMetadata)
 
-  let functionMode = raw.functionMode
-  let optimizationMode = raw.optimizationMode
-  const imageSubMode = raw.imageSubMode
+  let functionMode: FavoritePrompt['functionMode'] = isFunctionMode(raw.functionMode)
+    ? raw.functionMode
+    : 'basic'
+  let optimizationMode: FavoritePrompt['optimizationMode'] = isOptimizationMode(
+    raw.optimizationMode,
+  )
+    ? raw.optimizationMode
+    : undefined
+  let imageSubMode: FavoritePrompt['imageSubMode'] = isImageSubMode(raw.imageSubMode)
+    ? raw.imageSubMode
+    : undefined
 
-  if (
-    functionMode !== 'basic' &&
-    functionMode !== 'context' &&
-    functionMode !== 'image'
-  ) {
-    functionMode = 'basic'
+  if (!isFunctionMode(raw.functionMode)) {
     optimizationMode = 'system'
   }
 
-  if (
-    (functionMode === 'basic' || functionMode === 'context') &&
-    optimizationMode !== 'system' &&
-    optimizationMode !== 'user'
-  ) {
-    optimizationMode = 'system'
+  if (functionMode === 'basic' || functionMode === 'context') {
+    imageSubMode = undefined
+    if (!optimizationMode) {
+      optimizationMode = 'system'
+    }
+  } else {
+    optimizationMode = undefined
   }
 
   const mapping = {

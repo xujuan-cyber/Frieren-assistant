@@ -1,4 +1,4 @@
-import type { MessageTemplate, Template } from '../../types';
+import type { MessageTemplate, Template, TemplateMetadata } from '../../../types';
 
 type Language = 'zh' | 'en';
 
@@ -522,7 +522,7 @@ Please evaluate against this evidence and return a strict JSON assessment for th
 请基于这些证据分析当前工作区${subjectLabel}，并返回严格的 JSON 评估结果。`;
 };
 
-const buildMetadata = (identity: TemplateIdentity) => ({
+const buildMetadata = (identity: TemplateIdentity): TemplateMetadata => ({
   version: '5.0.0',
   lastModified: Date.now(),
   author: 'System',
