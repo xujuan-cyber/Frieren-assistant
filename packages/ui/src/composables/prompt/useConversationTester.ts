@@ -6,7 +6,7 @@ import type { ToolDefinition, ToolCall, ToolCallResult, ConversationMessage } fr
 import type { AppServices } from '../../types/services'
 import type { VariableManagerHooks } from './useVariableManager'
 import type { TestAreaPanelInstance } from '../../components/types/test-area'
-import { runTasksSequentially } from '../../utils/runTasksSequentially'
+import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
   COMPARE_BASELINE_VARIANT_ID,
   COMPARE_CANDIDATE_VARIANT_ID,
@@ -72,7 +72,7 @@ export function useConversationTester(
       }
 
       if (isCompareMode) {
-        await runTasksSequentially(
+        await runTasksWithExecutionMode(
           [COMPARE_BASELINE_VARIANT_ID, COMPARE_CANDIDATE_VARIANT_ID] as const,
           async (variantId) => {
             await state.testConversation(variantId, testVariables, testPanelRef)

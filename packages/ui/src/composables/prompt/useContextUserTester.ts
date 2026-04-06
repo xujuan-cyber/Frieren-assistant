@@ -5,7 +5,7 @@ import { getI18nErrorMessage } from '../../utils/error'
 import type { AppServices } from '../../types/services'
 import type { ConversationMessage } from '../../types/variable'
 import type { VariableManagerHooks } from './useVariableManager'
-import { runTasksSequentially } from '../../utils/runTasksSequentially'
+import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
   COMPARE_BASELINE_VARIANT_ID,
   COMPARE_CANDIDATE_VARIANT_ID,
@@ -99,7 +99,7 @@ export function useContextUserTester(
       }
 
       if (isCompareMode) {
-        await runTasksSequentially(
+        await runTasksWithExecutionMode(
           [COMPARE_BASELINE_VARIANT_ID, COMPARE_CANDIDATE_VARIANT_ID] as const,
           async (variantId) => {
             await state.testPromptWithType(

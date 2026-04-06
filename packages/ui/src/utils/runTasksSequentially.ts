@@ -10,3 +10,33 @@ export async function runTasksSequentially<T, TResult>(
 
   return results
 }
+
+export type TaskExecutionMode = 'parallel' | 'sequential'
+
+export function detectTaskExecutionMode(): TaskExecutionMode {
+  if (import.meta.env.MODE === 'test') {
+    return 'sequential'
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.webdriver) {
+    return 'sequential'
+  }
+
+  return 'parallel'
+}
+
+export async function runTasksWithExecutionMode<T, TResult>(
+  items: readonly T[],
+  task: (item: T, index: number) => Promise<TResult>,
+  options?: {
+    mode?: TaskExecutionMode
+  },
+): Promise<TResult[]> {
+  const mode = options?.mode ?? detectTaskExecutionMode()
+
+  if (mode === 'sequential') {
+    return runTasksSequentially(items, task)
+  }
+
+  return Promise.all(items.map((item, index) => task(item, index)))
+}

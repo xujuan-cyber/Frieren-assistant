@@ -768,7 +768,7 @@ import ImageTokenUsage from './ImageTokenUsage.vue'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useElementSize } from '@vueuse/core'
-import { runTasksSequentially } from '../../utils/runTasksSequentially'
+import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
     type ContextMode,
     type ImageModelConfig,
@@ -1541,7 +1541,7 @@ const runAllVariants = async () => {
         if (!getVariantRequest(id)) return
     }
 
-    const results = await runTasksSequentially(
+    const results = await runTasksWithExecutionMode(
         ids,
         async (id) => runVariant(id, { silentSuccess: true, silentError: true, persist: false }),
     )

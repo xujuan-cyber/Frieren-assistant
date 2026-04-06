@@ -7,7 +7,7 @@ import type { OptimizationMode } from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
 import type { ConversationMessage } from '../../types/variable'
 import type { VariableManagerHooks } from './useVariableManager'
-import { runTasksSequentially } from '../../utils/runTasksSequentially'
+import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
   COMPARE_BASELINE_VARIANT_ID,
   COMPARE_CANDIDATE_VARIANT_ID,
@@ -73,8 +73,8 @@ export function usePromptTester(
       }
 
       if (isCompareMode) {
-        // 保持固定列顺序，避免相同请求在录制/回放环境里互换结果列。
-        await runTasksSequentially(
+        // 产品默认并行；自动化环境回退串行，避免录制/回放把结果落到错误列。
+        await runTasksWithExecutionMode(
           [COMPARE_BASELINE_VARIANT_ID, COMPARE_CANDIDATE_VARIANT_ID] as const,
           async (variantId) => {
             await state.testPromptWithType(

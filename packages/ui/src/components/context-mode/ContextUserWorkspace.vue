@@ -564,7 +564,7 @@ import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useW
 import { OptionAccessors } from '../../utils/data-transformer';
 import { useElementSize } from '@vueuse/core'
 import { buildPromptExecutionContext, hashString, hashVariables } from '../../utils/prompt-variables'
-import { runTasksSequentially } from '../../utils/runTasksSequentially'
+import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
     buildTestPanelVersionPromptRef,
     buildTestPanelVersionOptions,
@@ -1390,7 +1390,7 @@ const runAllVariants = async () => {
     }
 
     evaluationHandler.clearBeforeTest()
-    const results = await runTasksSequentially(
+    const results = await runTasksWithExecutionMode(
         ids,
         async (id) =>
             runVariant(id, {

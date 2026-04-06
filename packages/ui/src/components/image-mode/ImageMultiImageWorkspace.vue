@@ -542,7 +542,7 @@ import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useW
 import { useElementSize } from '@vueuse/core'
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'
 import { buildPromptExecutionContext } from '../../utils/prompt-variables'
-import { runTasksSequentially } from '../../utils/runTasksSequentially'
+import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import { buildTestPanelVersionOptions, resolveTestPanelVersionSelection } from '../../utils/testPanelVersion'
 import { buildMultiImageVariantFingerprint } from '../../utils/multiimage-workspace'
 import { downloadImageSource } from '../../utils/image-download'
@@ -1607,7 +1607,7 @@ const runAllVariants = async () => {
     if (!getVariantRequest(id)) return
   }
 
-  const results = await runTasksSequentially(
+  const results = await runTasksWithExecutionMode(
     ids,
     async (id) => runVariant(id, { silentSuccess: true, silentError: true, persist: false }),
   )
