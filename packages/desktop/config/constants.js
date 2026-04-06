@@ -26,12 +26,14 @@ const IPC_EVENTS = {
 
 // 偏好设置键名常量
 const PREFERENCE_KEYS = {
+  ALLOW_PRERELEASE: 'updater.allowPrerelease',
   IGNORED_VERSIONS: 'updater.ignoredVersions' // 多版本忽略存储
 };
 
 // 默认配置
 const DEFAULT_CONFIG = {
   autoDownload: false,
+  allowPrerelease: false,
   checkInterval: 24 * 60 * 60 * 1000, // 24小时
   timeout: 30000 // 30秒
 };

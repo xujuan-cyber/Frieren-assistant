@@ -139,6 +139,14 @@ describe('PreferenceService', () => {
   });
 
   describe('错误处理', () => {
+    it('should reject undefined preference keys with a clear error', async () => {
+      await mockStorage.setItem('pref:undefined', 'true')
+
+      await expect(
+        preferenceService.get(undefined as unknown as string, false)
+      ).rejects.toThrow('Invalid preference key')
+    })
+
     it('should reject oversized session snapshots on write', async () => {
       const oversizedValue = {
         payload: 'x'.repeat(1024 * 1024 + 128),
