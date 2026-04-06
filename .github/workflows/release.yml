@@ -443,28 +443,22 @@ jobs:
           # 详细的版本类型判断
           IS_PRERELEASE=false
           VERSION_TYPE="release"
-          RELEASE_NAME_PREFIX=""
-
           if [[ $VERSION =~ -(alpha|beta|rc) ]]; then
             IS_PRERELEASE=true
             VERSION_TYPE="prerelease"
-            RELEASE_NAME_PREFIX="Preview Prompt Optimizer "
             echo "🧪 Detected prerelease version"
           elif [[ $VERSION =~ -(hotfix|patch) ]]; then
             IS_PRERELEASE=false
             VERSION_TYPE="hotfix"
-            RELEASE_NAME_PREFIX="Hotfix Prompt Optimizer "
             echo "🔧 Detected hotfix version"
           else
             IS_PRERELEASE=false
             VERSION_TYPE="release"
-            RELEASE_NAME_PREFIX="Release Prompt Optimizer "
             echo "🚀 Detected stable release version"
           fi
 
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "version_type=$VERSION_TYPE" >> $GITHUB_OUTPUT
-          echo "release_name_prefix=$RELEASE_NAME_PREFIX" >> $GITHUB_OUTPUT
 
       - name: 下载所有构建产物
         uses: actions/download-artifact@v7
@@ -496,7 +490,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.release_name_prefix }}${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
           body_path: ${{ steps.release_notes.outputs.release_notes_path }}
           files: |
             ./artifacts/windows-build/*
@@ -518,7 +512,7 @@ jobs:
           echo "Release metadata:"
           echo "$RELEASE_JSON"
 
-          EXPECTED_NAME="${{ steps.version.outputs.release_name_prefix }}${{ steps.version.outputs.version }}"
+          EXPECTED_NAME="${{ steps.version.outputs.version }}"
           RELEASE_NAME=$(echo "$RELEASE_JSON" | jq -r '.name')
           RELEASE_BODY=$(echo "$RELEASE_JSON" | jq -r '.body')
 
