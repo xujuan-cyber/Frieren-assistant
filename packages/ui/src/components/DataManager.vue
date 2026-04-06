@@ -6,44 +6,74 @@
     :title="$t('dataManager.title')"
     size="large"
     :bordered="false"
-    :segmented="true"
-    @update:show="(value: boolean) => !value && close()"
+      :segmented="true"
+      @update:show="(value: boolean) => !value && close()"
   >
     <NSpace vertical :size="24">
-      <!-- Desktop Storage Info -->
-      <div v-if="isRunningInElectron() && storageInfo">
+      <div>
         <NText tag="h3" :depth="1" strong style="font-size: 18px; margin-bottom: 12px;">
           {{ $t('dataManager.storage.title') }}
         </NText>
         <NCard size="small" :bordered="true">
-          <NSpace vertical :size="12">
-            <div>
-              <NText depth="3" style="font-size: 12px">{{ $t('dataManager.storage.path') }}</NText>
-              <div style="word-break: break-all; font-family: monospace; font-size: 12px; margin-top: 4px;">
-                {{ storageInfo.userDataPath }}
-              </div>
-            </div>
-            
-            <NGrid :cols="3" :x-gap="12">
-              <NGridItem>
-                <NStatistic :label="$t('dataManager.storage.mainData')" :value="formatFileSize(storageInfo.mainSizeBytes)">
-                </NStatistic>
+          <NSpace vertical :size="16">
+            <NGrid :cols="2" :x-gap="12" :y-gap="12">
+              <NGridItem :span="2">
+                <NCard size="small" :bordered="true">
+                  <NSpace vertical :size="8">
+                    <NStatistic
+                      :label="$t('dataManager.storage.total')"
+                      :value="storageSummary ? formatFileSize(storageSummary.totalBytes) : '—'"
+                    />
+                    <NText depth="3" style="font-size: 12px;">
+                      {{ $t('dataManager.storage.totalNote') }}
+                    </NText>
+                  </NSpace>
+                </NCard>
               </NGridItem>
-              <NGridItem>
-                <NStatistic :label="$t('dataManager.storage.backup')" :value="formatFileSize(storageInfo.backupSizeBytes)">
-                </NStatistic>
-              </NGridItem>
-              <NGridItem>
-                <NStatistic :label="$t('dataManager.storage.total')" :value="formatFileSize(storageInfo.totalBytes)">
-                </NStatistic>
+
+              <NGridItem
+                v-for="item in storageItems"
+                :key="item.key"
+              >
+                <NCard size="small" :bordered="true">
+                  <NSpace vertical :size="8">
+                    <NStatistic
+                      :label="$t(storageLabelKeys[item.key])"
+                      :value="formatStorageItemBytes(item.bytes)"
+                    />
+                    <NText
+                      v-if="item.key === 'appMainData'"
+                      depth="3"
+                      style="font-size: 12px;"
+                    >
+                      {{ $t('dataManager.storage.appMainDataNote') }}
+                    </NText>
+                  </NSpace>
+                </NCard>
               </NGridItem>
             </NGrid>
 
-            <NSpace>
-              <NButton size="small" @click="openStorageDir">
+            <div v-if="isDesktopRuntime">
+              <NText depth="3" style="font-size: 12px">{{ $t('dataManager.storage.path') }}</NText>
+              <div style="word-break: break-all; font-family: monospace; font-size: 12px; margin-top: 4px;">
+                {{ storageSummary?.desktopInfo?.userDataPath || '—' }}
+              </div>
+            </div>
+
+            <NSpace v-if="isDesktopRuntime">
+              <NButton
+                size="small"
+                @click="openStorageDir"
+                :disabled="!canUseDesktopStorageTools"
+              >
                 {{ $t('dataManager.storage.openDir') }}
               </NButton>
-              <NButton size="small" @click="refreshStorageInfo" :loading="isRefreshingStorage">
+              <NButton
+                size="small"
+                @click="refreshStorageSummary"
+                :loading="isRefreshingStorage"
+                :disabled="!canUseDesktopStorageTools && !isRefreshingStorage"
+              >
                 {{ $t('dataManager.storage.refresh') }}
               </NButton>
             </NSpace>
@@ -223,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, watch, type Ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import {
@@ -233,6 +263,8 @@ import {
 import { isRunningInElectron, type ContextBundle } from '@prompt-optimizer/core'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
+import type { StorageBreakdownItemKey, StorageBreakdownSummary } from '../utils/data-manager-storage'
+import { resolveDataManagerStorageBreakdown } from '../utils/data-manager-storage'
 
 interface Props {
   show: boolean;
@@ -250,6 +282,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const toast = useToast()
+const isDesktopRuntime = isRunningInElectron()
 
 // 统一使用inject获取services
 const services = inject<Ref<AppServices | null>>('services')
@@ -296,20 +329,50 @@ const isContextExporting = ref(false)
 const isContextImporting = ref(false)
 const isContextImportingFromFile = ref(false) // 区分文件和剪贴板导入
 
-// Storage Info State
-const storageInfo = ref<{
-  userDataPath: string
-  mainSizeBytes: number
-  backupSizeBytes: number
-  totalBytes: number
-} | null>(null)
+const storageSummary = ref<StorageBreakdownSummary | null>(null)
 const isRefreshingStorage = ref(false)
 
-const refreshStorageInfo = async () => {
-  if (!isRunningInElectron() || !window.electronAPI?.data) return
+const storageLabelKeys: Record<StorageBreakdownItemKey, string> = {
+  appMainData: 'dataManager.storage.appMainData',
+  imageCache: 'dataManager.storage.imageCache',
+  favoriteImages: 'dataManager.storage.favoriteImages',
+  backupData: 'dataManager.storage.backupData',
+}
+
+const defaultStorageItemKeys = computed<StorageBreakdownItemKey[]>(() =>
+  isDesktopRuntime
+    ? ['appMainData', 'imageCache', 'favoriteImages', 'backupData']
+    : ['appMainData', 'imageCache', 'favoriteImages']
+)
+
+const storageItems = computed(() =>
+  defaultStorageItemKeys.value.map(key =>
+    storageSummary.value?.items.find(item => item.key === key)
+    ?? {
+      key,
+      bytes: null,
+      estimated: key === 'appMainData',
+    }
+  )
+)
+
+const canUseDesktopStorageTools = computed(() =>
+  isDesktopRuntime && Boolean(window.electronAPI?.data)
+)
+
+const refreshStorageSummary = async () => {
   try {
     isRefreshingStorage.value = true
-    storageInfo.value = await window.electronAPI.data.getStorageInfo()
+    const servicesValue = services.value
+    if (!servicesValue) {
+      throw new Error('[DataManager] services未初始化，请确保应用已正确启动')
+    }
+
+    storageSummary.value = await resolveDataManagerStorageBreakdown({
+      services: servicesValue,
+      includeBackupData: isDesktopRuntime,
+      electronDataApi: window.electronAPI?.data ?? null,
+    })
   } catch (error) {
     console.error('Failed to get storage info:', error)
     toast.error(t('dataManager.storage.refreshFailed'))
@@ -319,7 +382,7 @@ const refreshStorageInfo = async () => {
 }
 
 const openStorageDir = () => {
-  if (!isRunningInElectron() || !window.electronAPI?.data) return
+  if (!isDesktopRuntime || !window.electronAPI?.data) return
   window.electronAPI.data.openStorageDirectory()
 }
 
@@ -342,14 +405,21 @@ const handleKeyDown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeyDown)
-  if (isRunningInElectron()) {
-    refreshStorageInfo()
-  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown)
 })
+
+watch(
+  () => props.show,
+  (show) => {
+    if (show) {
+      void refreshStorageSummary()
+    }
+  },
+  { immediate: true }
+)
 
 // 处理导出
 const handleExport = async () => {
@@ -431,6 +501,13 @@ const formatFileSize = (bytes: number): string => {
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatStorageItemBytes = (bytes: number | null): string => {
+  if (bytes === null) {
+    return '—'
+  }
+  return formatFileSize(bytes)
 }
 
 // 处理上下文导出到文件
