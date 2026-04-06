@@ -10,25 +10,18 @@
  * node scripts/smart-e2e.js
  */
 
-const { execSync } = require('child_process')
+const { runGroup } = require('./run-e2e-group')
 
 /**
  * 主函数
  */
 function main() {
-  console.log('\n🎬 使用 VCR auto 模式运行 E2E 测试')
+  console.log('\n🎬 使用 VCR auto 模式运行扩展 E2E 测试')
+  console.log('   - 默认只跑 extended 套件，避免把全部 Playwright 用例都挂到日常链路上')
   console.log('   - 有 fixture 的测试：回放')
   console.log('   - 无 fixture 的测试：录制\n')
 
-  try {
-    // 不设置 E2E_VCR_MODE，使用默认的 auto 模式
-    execSync('playwright test', {
-      stdio: 'inherit',
-      env: process.env // 继承现有环境变量，不覆盖 E2E_VCR_MODE
-    })
-  } catch (error) {
-    process.exit(error.status || 1)
-  }
+  process.exit(runGroup('extended', process.argv.slice(2)))
 }
 
 main()

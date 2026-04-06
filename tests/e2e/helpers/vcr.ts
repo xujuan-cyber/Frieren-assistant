@@ -79,6 +79,58 @@ interface VCRFixture {
   duration?: number
 }
 
+const CURRENT_TEST_VCR_FAILURE_KEY = '__PROMPT_OPTIMIZER_CURRENT_TEST_VCR_FAILURE__'
+
+const getVCRFailureStore = (): { value: string | null } => {
+  const scopedGlobal = globalThis as typeof globalThis & {
+    [CURRENT_TEST_VCR_FAILURE_KEY]?: { value: string | null }
+  }
+
+  if (!scopedGlobal[CURRENT_TEST_VCR_FAILURE_KEY]) {
+    scopedGlobal[CURRENT_TEST_VCR_FAILURE_KEY] = { value: null }
+  }
+
+  return scopedGlobal[CURRENT_TEST_VCR_FAILURE_KEY]!
+}
+
+export function getCurrentTestVCRFailure(): string | null {
+  return getVCRFailureStore().value
+}
+
+export function throwIfCurrentTestHasVCRFailure(): void {
+  const failure = getCurrentTestVCRFailure()
+  if (failure) {
+    throw new Error(failure)
+  }
+}
+
+type WaitForConditionOptions = {
+  timeoutMs: number
+  intervalMs?: number
+  description?: string
+}
+
+export async function waitForConditionOrVCRFailure(
+  check: () => Promise<boolean> | boolean,
+  options: WaitForConditionOptions,
+): Promise<void> {
+  const { timeoutMs, intervalMs = 100, description = 'condition was not met in time' } = options
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeoutMs) {
+    throwIfCurrentTestHasVCRFailure()
+
+    if (await check()) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+
+  throwIfCurrentTestHasVCRFailure()
+  throw new Error(`[VCR wait timeout] ${description}`)
+}
+
 /**
  * E2E VCR 类
  */
@@ -154,6 +206,7 @@ class E2EVCR {
     this.currentTestCase = testCase
     this.recordingEnabled = await this.shouldRecord()
     this.replayConsumedByHash = new Map()
+    getVCRFailureStore().value = null
 
     // In explicit record mode, always start from a clean fixture file to avoid mixing old interactions.
     if (this.config.mode === 'record') {
@@ -432,6 +485,54 @@ class E2EVCR {
     return this.normalizeFixture(raw)
   }
 
+  private async writeMismatchDebugArtifact(payload: {
+    requestHash: string
+    provider: LLMProvider
+    url: string
+    method: string
+    requestBody: any
+    fixture: VCRFixture
+  }): Promise<string | null> {
+    try {
+      const debugDir = path.join(process.cwd(), 'test-results', 'vcr-debug')
+      await fs.mkdir(debugDir, { recursive: true })
+
+      const filename = `${this.sanitizeFilename(this.currentTestName)}-${this.sanitizeFilename(this.currentTestCase)}-mismatch.json`
+      const debugPath = path.join(debugDir, filename)
+
+      const candidateInteractions = payload.fixture.interactions
+        .filter((interaction) => interaction.provider === payload.provider && interaction.method === payload.method && interaction.url.split('?')[0] === payload.url.split('?')[0])
+        .map((interaction, index) => ({
+          index,
+          requestHash: interaction.requestHash,
+          requestBody: interaction.requestBody,
+        }))
+
+      await fs.writeFile(
+        debugPath,
+        JSON.stringify(
+          {
+            testName: this.currentTestName,
+            testCase: this.currentTestCase,
+            requestHash: payload.requestHash,
+            provider: payload.provider,
+            url: payload.url,
+            method: payload.method,
+            requestBody: payload.requestBody,
+            candidateInteractions,
+          },
+          null,
+          2,
+        ),
+        'utf-8',
+      )
+
+      return path.relative(process.cwd(), debugPath)
+    } catch {
+      return null
+    }
+  }
+
   private findReplayInteraction(fixture: VCRFixture, requestHash: string): VCRInteraction | null {
     const consumedCount = this.replayConsumedByHash.get(requestHash) ?? 0
     const candidates = fixture.interactions.filter((it) => it.requestHash === requestHash)
@@ -554,7 +655,8 @@ class E2EVCR {
 
             const hasSSE = /(^|\n)\s*data:\s*/.test(responseBody)
 
-            let rawSSE = responseBody
+            let rawBody = responseBody
+            let responseContentType = contentType || 'application/json'
             let responseJson: any = null
 
             if (hasSSE) {
@@ -594,69 +696,15 @@ class E2EVCR {
                   }]
                 }
               }
+
+              rawBody = responseBody
+              responseContentType = 'text/event-stream'
             } else {
-              // 非 SSE 响应：尝试解析为 JSON，并合成一份可回放的 SSE
-              // 目的：让回放模式不依赖真实 API 的流式实现细节
+              // 非 SSE 响应：保持原始 JSON 载荷与 content-type，确保 record/replay 语义一致。
               try {
-                const parsed = JSON.parse(responseBody)
-                responseJson = parsed
-
-                const content =
-                  parsed?.choices?.[0]?.message?.content ??
-                  parsed?.choices?.[0]?.delta?.content ??
-                  parsed?.content ??
-                  ''
-
-                const created = parsed?.created ?? Math.floor(Date.now() / 1000)
-                const id = parsed?.id ?? `vcr_${created}`
-                const model = parsed?.model ?? 'unknown'
-
-                const baseChunk = {
-                  id,
-                  object: 'chat.completion.chunk',
-                  created,
-                  model,
-                  choices: [{
-                    index: 0,
-                    delta: { role: 'assistant', content: '' },
-                    logprobs: null,
-                    finish_reason: null,
-                  }]
-                }
-
-                const contentChunk = {
-                  id,
-                  object: 'chat.completion.chunk',
-                  created,
-                  model,
-                  choices: [{
-                    index: 0,
-                    delta: { content: String(content) },
-                    logprobs: null,
-                    finish_reason: null,
-                  }]
-                }
-
-                const endChunk = {
-                  id,
-                  object: 'chat.completion.chunk',
-                  created,
-                  model,
-                  choices: [{
-                    index: 0,
-                    delta: {},
-                    logprobs: null,
-                    finish_reason: 'stop',
-                  }]
-                }
-
-                rawSSE =
-                  `data: ${JSON.stringify(baseChunk)}\n\n` +
-                  `data: ${JSON.stringify(contentChunk)}\n\n` +
-                  `data: ${JSON.stringify(endChunk)}\n\n` +
-                  `data: [DONE]\n\n`
+                responseJson = JSON.parse(responseBody)
               } catch {
-                throw new Error('[VCR] LLM API 返回非流式响应，且无法解析为 JSON')
+                responseJson = null
               }
             }
 
@@ -666,11 +714,9 @@ class E2EVCR {
                 JSON.parse(requestBody || '{}'),
                 responseJson,
                 endTime - startTime,
-                rawSSE,
+                rawBody,
                 {
-                  // rawSSE 在这里要么是原始 SSE，要么是我们为非流式 JSON 合成的 SSE。
-                  // replay 时必须按 SSE 回放，否则浏览器端会把 `data: ...` 当 JSON 解析而失败。
-                  'content-type': 'text/event-stream',
+                  'content-type': responseContentType,
                 },
                 method,
                 response.status
@@ -726,17 +772,43 @@ class E2EVCR {
                 body: interaction.rawBody || ''
               })
             } else {
-              if (mode === 'replay') {
-                // replay 模式：没有 fixture 则失败
-                const errorMsg =
-                  `[VCR] ❌ Fixture not found for test: ${this.currentTestName} - ${this.currentTestCase}\n` +
-                  `Request hash: ${requestHash} (${provider} ${method} ${url.split('?')[0]})\n` +
-                  `Run with E2E_VCR_MODE=record to create it.`
+              const shouldFailFast = mode === 'replay' || !this.recordingEnabled
 
+              if (shouldFailFast) {
+                const debugArtifact = await this.writeMismatchDebugArtifact({
+                  requestHash,
+                  provider,
+                  url: url.split('?')[0],
+                  method,
+                  requestBody: parsedRequestBody,
+                  fixture,
+                })
+                const errorMsg =
+                  `[VCR] ❌ Fixture interaction not found for test: ${this.currentTestName} - ${this.currentTestCase}\n` +
+                  `Request hash: ${requestHash} (${provider} ${method} ${url.split('?')[0]})\n` +
+                  `A fixture file already exists for this test, but it does not match the current request.\n` +
+                  `${debugArtifact ? `Debug artifact: ${debugArtifact}\n` : ''}` +
+                  `Run with E2E_VCR_MODE=record to refresh it.`
+
+                getVCRFailureStore().value = errorMsg
                 console.error(errorMsg)
-                await route.abort()
+                await route.fulfill({
+                  status: 400,
+                  headers: {
+                    'content-type': 'application/json',
+                    'access-control-allow-origin': '*',
+                    'access-control-allow-headers': '*',
+                  },
+                  body: JSON.stringify({
+                    error: {
+                      type: 'invalid_request_error',
+                      code: 'vcr_fixture_mismatch',
+                      message: errorMsg,
+                    },
+                  }),
+                })
               } else {
-                // auto 模式：降级到真实 API
+                // auto 模式且当前测试尚无 fixture：允许退回真实 API，以便首次录制
                 console.log(
                   `[VCR] ⚠️  No fixture for requestHash=${requestHash} (${provider} ${method} ${url.split('?')[0]}), calling real API`,
                 )

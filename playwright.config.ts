@@ -99,6 +99,8 @@ export default defineConfig({
     },
     // 为了保证每次测试都使用最新构建产物，默认不复用已有 server。
     reuseExistingServer: false,
-    timeout: 120 * 1000,
+    // Windows 本地冷启动时，core + ui 构建本身就可能超过 120s，
+    // 给到 3 分钟窗口，避免把“构建偏慢”误判成 E2E 失败。
+    timeout: 180 * 1000,
   },
 });

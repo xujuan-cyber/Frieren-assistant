@@ -508,6 +508,7 @@ import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useW
 import { OptionAccessors } from '../../utils/data-transformer'
 import { useToast } from "../../composables/ui/useToast";
 import { useElementSize } from '@vueuse/core'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 import {
     buildTestPanelVersionPromptRef,
     buildTestPanelVersionOptions,
@@ -1483,16 +1484,15 @@ const runAllVariants = async () => {
     }
 
     evaluationHandler.clearBeforeTest()
-    const results = await Promise.all(
-        ids.map((id) =>
+    const results = await runTasksSequentially(
+        ids,
+        async (id) =>
             runVariant(id, {
                 silentSuccess: true,
                 silentError: true,
                 skipClearEvaluation: true,
                 persist: false,
-                allowParallel: true,
             }),
-        ),
     )
 
     void proMultiSession.saveSession()

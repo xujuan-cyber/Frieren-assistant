@@ -7,6 +7,7 @@ import type { OptimizationMode } from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
 import type { ConversationMessage } from '../../types/variable'
 import type { VariableManagerHooks } from './useVariableManager'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 import {
   COMPARE_BASELINE_VARIANT_ID,
   COMPARE_CANDIDATE_VARIANT_ID,
@@ -72,23 +73,19 @@ export function usePromptTester(
       }
 
       if (isCompareMode) {
-        // 对比模式：并发测试原始和优化提示词
-        await Promise.all([
-          state.testPromptWithType(
-            COMPARE_BASELINE_VARIANT_ID,
-            prompt,
-            optimizedPrompt,
-            testContent,
-            testVariables
-          ),
-          state.testPromptWithType(
-            COMPARE_CANDIDATE_VARIANT_ID,
-            prompt,
-            optimizedPrompt,
-            testContent,
-            testVariables
-          )
-        ])
+        // 保持固定列顺序，避免相同请求在录制/回放环境里互换结果列。
+        await runTasksSequentially(
+          [COMPARE_BASELINE_VARIANT_ID, COMPARE_CANDIDATE_VARIANT_ID] as const,
+          async (variantId) => {
+            await state.testPromptWithType(
+              variantId,
+              prompt,
+              optimizedPrompt,
+              testContent,
+              testVariables
+            )
+          }
+        )
       } else {
         // 单一模式：只测试优化后的提示词
         await state.testPromptWithType(

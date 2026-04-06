@@ -1,10 +1,11 @@
 import { test as base, expect, type ConsoleMessage, type Page, type BrowserContext } from '@playwright/test'
-import { setupVCRForTest } from './helpers/vcr'
+import { getCurrentTestVCRFailure, setupVCRForTest } from './helpers/vcr'
 
 const IGNORE_CONSOLE_PATTERNS: RegExp[] = [
   /favicon\.ico/i,
   /ResizeObserver loop limit exceeded/i,
   /ResizeObserver loop completed with undelivered notifications/i,
+  /send was called before connect/i,
   // Vue Router warnings during route migration (pro/user -> pro/variable, pro/system -> pro/multi)
   /Vue Router warn.*No match found for location with path "\/(pro\/user|pro\/system)"/i,
   /Router.*非法 subMode.*重定向/i
@@ -101,6 +102,11 @@ export const test = base.extend<{ context: BrowserContext; page: Page }>({
       await page.close()
       // 不需要显式清理当前测试的数据库
       // 每个测试都会使用独立的 BrowserContext，测试结束后会释放对应的存储（IndexedDB/localStorage 等）
+    }
+
+    const vcrFailure = getCurrentTestVCRFailure()
+    if (vcrFailure) {
+      problems.unshift(`[vcr] ${vcrFailure}`)
     }
 
     if (testInfo.status === 'skipped') return

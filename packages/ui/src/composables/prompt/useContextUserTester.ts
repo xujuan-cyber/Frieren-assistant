@@ -5,6 +5,7 @@ import { getI18nErrorMessage } from '../../utils/error'
 import type { AppServices } from '../../types/services'
 import type { ConversationMessage } from '../../types/variable'
 import type { VariableManagerHooks } from './useVariableManager'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 import {
   COMPARE_BASELINE_VARIANT_ID,
   COMPARE_CANDIDATE_VARIANT_ID,
@@ -98,21 +99,17 @@ export function useContextUserTester(
       }
 
       if (isCompareMode) {
-        // 对比模式：并发测试原始和优化提示词
-        await Promise.all([
-          state.testPromptWithType(
-            COMPARE_BASELINE_VARIANT_ID,
-            prompt,
-            optimizedPrompt,
-            testVariables
-          ),
-          state.testPromptWithType(
-            COMPARE_CANDIDATE_VARIANT_ID,
-            prompt,
-            optimizedPrompt,
-            testVariables
-          )
-        ])
+        await runTasksSequentially(
+          [COMPARE_BASELINE_VARIANT_ID, COMPARE_CANDIDATE_VARIANT_ID] as const,
+          async (variantId) => {
+            await state.testPromptWithType(
+              variantId,
+              prompt,
+              optimizedPrompt,
+              testVariables
+            )
+          }
+        )
       } else {
         // 单一模式：只测试优化后的提示词
         await state.testPromptWithType(

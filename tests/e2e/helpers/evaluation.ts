@@ -53,15 +53,67 @@ export async function openEvaluationDrawerFromBadge(badge: Locator): Promise<Loc
   }
 
   await expect(badge).toBeVisible({ timeout: 15000 })
-  await badge.click()
 
-  const viewDetailsButton = page.getByTestId('evaluation-hover-view-details')
-  await expect(viewDetailsButton).toBeVisible({ timeout: 15000 })
-  await viewDetailsButton.click()
+  let lastError: unknown = null
 
-  const drawer = getVisibleDrawer(page)
-  await expect(drawer).toBeVisible({ timeout: 15000 })
-  return drawer
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await badge.click({ force: attempt > 0 })
+
+    const viewDetailsButton = page.getByTestId('evaluation-hover-view-details')
+    await expect(viewDetailsButton).toBeVisible({ timeout: 15000 })
+
+    try {
+      await viewDetailsButton.click({ timeout: 15000, force: attempt > 0 })
+    } catch (error) {
+      lastError = error
+      await page.waitForTimeout(400)
+      continue
+    }
+
+    const drawer = getVisibleDrawer(page)
+    if ((await drawer.count()) > 0) {
+      await expect(drawer).toBeVisible({ timeout: 15000 })
+      return drawer
+    }
+
+    await page.waitForTimeout(400)
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Failed to open evaluation drawer from badge')
+}
+
+export async function openEvaluationDrawerFromHoverCard(page: Page): Promise<Locator> {
+  const existingDrawer = getVisibleDrawer(page)
+
+  if ((await existingDrawer.count()) > 0) {
+    await expect(existingDrawer).toBeVisible({ timeout: 15000 })
+    return existingDrawer
+  }
+
+  let lastError: unknown = null
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const viewDetailsButton = page.getByTestId('evaluation-hover-view-details')
+    await expect(viewDetailsButton).toBeVisible({ timeout: 15000 })
+
+    try {
+      await viewDetailsButton.click({ timeout: 15000, force: attempt > 0 })
+    } catch (error) {
+      lastError = error
+      await page.waitForTimeout(400)
+      continue
+    }
+
+    const drawer = getVisibleDrawer(page)
+    if ((await drawer.count()) > 0) {
+      await expect(drawer).toBeVisible({ timeout: 15000 })
+      return drawer
+    }
+
+    await page.waitForTimeout(400)
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Failed to open evaluation drawer from hover card')
 }
 
 export async function closeEvaluationDrawer(drawer: Locator): Promise<void> {

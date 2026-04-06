@@ -343,7 +343,7 @@
                         </NGridItem>
 
                         <!-- 优化模板选择 -->
-                        <NGridItem :span="10" :xs="24" :sm="10">
+                        <NGridItem :span="11" :xs="24" :sm="11">
                             <NSpace vertical :size="8">
                                 <NText
                                     :depth="2"
@@ -395,28 +395,8 @@
                         </NGridItem>
 
                         <!-- 优化按钮 -->
-                        <NGridItem :span="7" :xs="24" :sm="7" class="flex items-end justify-end">
+                        <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
                             <NSpace :size="8">
-                                <NButton
-                                    type="default"
-                                    size="medium"
-                                    data-testid="image-text2image-analyze-button"
-                                    :loading="isAnalyzing"
-                                    @click="handleAnalyze"
-                                    :disabled="
-                                        isAnalyzing ||
-                                        isExtractingFromImage ||
-                                        isOptimizing ||
-                                        isIterating ||
-                                        !originalPrompt.trim()
-                                    "
-                                >
-                                    {{
-                                        isAnalyzing
-                                            ? t('promptOptimizer.analyzing')
-                                            : t('promptOptimizer.analyze')
-                                    }}
-                                </NButton>
                                 <NButton
                                     type="primary"
                                     size="medium"
@@ -424,10 +404,8 @@
                                     :loading="isOptimizing"
                                     @click="handleOptimizePrompt"
                                     :disabled="
-                                        isAnalyzing ||
                                         isExtractingFromImage ||
                                         isOptimizing ||
-                                        isIterating ||
                                         !originalPrompt.trim() ||
                                         !selectedTextModelKey ||
                                         !selectedTemplate
@@ -473,12 +451,12 @@
                     :optimization-mode="optimizationMode"
                     :advanced-mode-enabled="advancedModeEnabled"
                     :show-preview="true"
+                    evaluation-type-override="prompt-only"
                     iterate-template-type="imageIterate"
                     @iterate="handleIteratePrompt"
                     @openTemplateManager="onOpenTemplateManager"
                     @switchVersion="handleSwitchVersion"
                     @save-favorite="handleSaveFavorite"
-                    @apply-improvement="handleApplyImprovement"
                     @save-local-edit="handleSaveLocalEdit"
                     @open-preview="handleOpenPromptPreview"
                 />
@@ -553,8 +531,6 @@
                                         @show-detail="showCompareDetail"
                                         @evaluate="handleEvaluateCompare"
                                         @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
-                                        @apply-improvement="handleApplyImprovement"
-                                        @apply-patch="handleApplyLocalPatch"
                                     />
                                     <FocusAnalyzeButton
                                         v-else
@@ -680,8 +656,6 @@
                                                             @show-detail="() => showResultDetail(id)"
                                                             @evaluate="() => handleEvaluateResult(id)"
                                                             @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
-                                                            @apply-improvement="handleApplyImprovement"
-                                                            @apply-patch="handleApplyLocalPatch"
                                                         />
                                                         <FocusAnalyzeButton
                                                             v-else
@@ -804,12 +778,9 @@
             :stale-message="activeEvaluationStaleMessage"
             :disable-evaluate="activeEvaluationDisableEvaluate"
             :disable-evaluate-reason="activeEvaluationDisableReason"
-            :can-rewrite-from-evaluation="true"
+            :can-rewrite-from-evaluation="false"
             @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
-            @apply-local-patch="handleApplyLocalPatch"
-            @apply-improvement="handleApplyImprovement"
-            @rewrite-from-evaluation="handleRewriteFromEvaluation"
             @clear="handleClearEvaluation"
             @retry="handleReEvaluateActive"
         />
@@ -929,6 +900,7 @@ import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useElementSize } from '@vueuse/core'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 import {
     buildImageText2ImageComparePayload,
     buildImageText2ImageResultEvaluationTargets,
@@ -938,7 +910,6 @@ import {
     shouldShowImageText2ImageResultAction,
 } from './imageText2ImageEvaluation'
 import {
-    applyPatchOperationsToText,
     type ContextMode,
     type ImageModelConfig,
     type Text2ImageRequest,
@@ -946,7 +917,6 @@ import {
     type ImageResultItem,
     type OptimizationMode,
     type OptimizationRequest,
-    type PatchOperation,
     type PromptRecordChain,
     type PromptRecordType,
     type Template,
@@ -1058,7 +1028,6 @@ const promptService = computed(() => services.value?.promptService)
 // 过程态（本地，不持久化）
 const isOptimizing = ref(false)
 const isIterating = ref(false)
-const isAnalyzing = ref(false)
 const isExtractingFromImage = ref(false)
 const extractImageInputRef = ref<HTMLInputElement | null>(null)
 type ReferenceImagePayload = {
@@ -1586,43 +1555,13 @@ const resultEvaluationFingerprint = reactive<Record<TestVariantId, string>>({
 })
 const compareEvaluationFingerprint = ref('')
 
-const isOriginalInputAnalysis = computed(() => {
-    if ((currentChainId.value || '').trim()) return false
-    if (currentVersions.value.length !== 1) return false
-
-    const [currentVersion] = currentVersions.value
-    if (!currentVersion) return false
-    if (currentVersion.id !== currentVersionId.value) return false
-    if (currentVersion.version !== 0) return false
-
-    const normalizedOriginalPrompt = (originalPrompt.value || '').trim()
-    const normalizedOptimizedPrompt = (optimizedPrompt.value || '').trim()
-
-    if (!normalizedOriginalPrompt) return false
-
-    return (
-        (currentVersion.originalPrompt || '').trim() === normalizedOriginalPrompt &&
-        (currentVersion.optimizedPrompt || '').trim() === normalizedOriginalPrompt &&
-        normalizedOptimizedPrompt === normalizedOriginalPrompt
-    )
-})
-
 const evaluationHandler = useEvaluationHandler({
     services,
     analysisOptimizedPrompt: computed(() => optimizedPrompt.value || ''),
-    analysisVariables: computed(() => ({
-        analysisStage: isOriginalInputAnalysis.value
-            ? 'original-input'
-            : 'workspace',
-    })),
-    analysisTargetResolver: (defaultTarget) =>
-        isOriginalInputAnalysis.value
-            ? defaultTarget
-            : {
-                  ...defaultTarget,
-                  referencePrompt:
-                      (originalPrompt.value || '').trim() || undefined,
-              },
+    analysisTargetResolver: (defaultTarget) => ({
+        ...defaultTarget,
+        referencePrompt: (originalPrompt.value || '').trim() || undefined,
+    }),
     resultTargets: resultEvaluationTargets,
     comparePayload,
     evaluationModelKey: computed(() => selectedTextModelKey.value || ''),
@@ -1945,19 +1884,6 @@ const handleClearEvaluation = () => {
     compareEvaluationFingerprint.value = ''
 }
 
-const handleApplyLocalPatch = (payload: { operation: PatchOperation }) => {
-    if (!payload.operation) return
-    const current = optimizedPrompt.value || ''
-    const result = applyPatchOperationsToText(current, payload.operation)
-    if (!result.ok) {
-        toast.warning(t('toast.warning.patchApplyFailed'))
-        return
-    }
-
-    optimizedPrompt.value = result.text
-    toast.success(t('evaluation.diagnose.applyFix'))
-}
-
 const getVariantRequest = (id: TestVariantId): Text2ImageRequest | null => {
     const modelKey = (variantModelKeyModels[id].value || '').trim()
     if (!modelKey) {
@@ -2071,15 +1997,15 @@ const runAllVariants = async () => {
 
     evaluationHandler.clearBeforeTest()
 
-    const results = await Promise.all(
-        ids.map((id) =>
+    const results = await runTasksSequentially(
+        ids,
+        async (id) =>
             runVariant(id, {
                 silentSuccess: true,
                 silentError: true,
                 persist: false,
                 skipClearEvaluation: true,
             }),
-        ),
     )
 
     queueSessionSave()
@@ -2170,8 +2096,6 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
 
 // PromptPanel 引用，用于在语言切换后刷新迭代模板选择
 const promptPanelRef = ref<InstanceType<typeof PromptPanelUI> | null>(null);
-const handleApplyImprovement = evaluationHandler.createApplyImprovementHandler(promptPanelRef)
-const handleRewriteFromEvaluation = evaluationHandler.createRewriteFromEvaluationHandler(promptPanelRef)
 
 // 输入区折叠状态（初始展开）
 const isInputPanelCollapsed = ref(false);
@@ -2650,49 +2574,6 @@ const createHistoryRecord = async () => {
     } catch (e) {
         console.error('[ImageText2ImageWorkspace] Failed to create history record:', e)
         toast.warning(t('toast.error.optimizeCompleteButHistoryFailed'))
-    }
-}
-
-const handleAnalyze = async () => {
-    if (!originalPrompt.value.trim()) return
-    if (isAnalyzing.value || isOptimizing.value || isIterating.value) return
-
-    isAnalyzing.value = true
-
-    const virtualV0Id = uuidv4()
-    const virtualV0: PromptRecordChain['versions'][number] = {
-        id: virtualV0Id,
-        chainId: '',
-        version: 0,
-        originalPrompt: originalPrompt.value,
-        optimizedPrompt: originalPrompt.value,
-        type: 'text2imageOptimize',
-        timestamp: Date.now(),
-        modelKey: '',
-        templateId: '',
-    }
-
-    currentChainId.value = ''
-    currentVersions.value = [virtualV0]
-    currentVersionId.value = virtualV0Id
-
-    session.updateOptimizedResult({
-        optimizedPrompt: originalPrompt.value,
-        reasoning: '',
-        chainId: '',
-        versionId: '',
-    })
-
-    evaluation.clearResult('prompt-only')
-    evaluation.clearResult('prompt-iterate')
-    isInputPanelCollapsed.value = true
-
-    await nextTick()
-
-    try {
-        await handleEvaluateInternal('prompt-only')
-    } finally {
-        isAnalyzing.value = false
     }
 }
 

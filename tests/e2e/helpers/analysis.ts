@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { throwIfCurrentTestHasVCRFailure, waitForConditionOrVCRFailure } from './vcr'
 
 /**
  * 工作区模式类型
@@ -126,6 +127,7 @@ export async function getEvaluationScore(
   mode: WorkspaceMode,
   evalType: EvaluationType = 'prompt-only'
 ): Promise<number> {
+  throwIfCurrentTestHasVCRFailure()
   const workspace = getWorkspace(page, mode)
 
   // 使用组合 testid 精确定位：score-badge-analysis, score-badge-original
@@ -133,7 +135,14 @@ export async function getEvaluationScore(
   await expect(scoreBadge).toBeVisible({ timeout: 90000 })
 
   // 等待加载完成
-  await expect(scoreBadge).not.toHaveClass(/loading/, { timeout: 60000 })
+  await waitForConditionOrVCRFailure(
+    async () => !/loading/.test((await scoreBadge.getAttribute('class')) || ''),
+    {
+      timeoutMs: 60000,
+      intervalMs: 100,
+      description: `evaluation score badge ${evalType} should leave loading state`,
+    }
+  )
 
   // 获取分数值
   const scoreValue = scoreBadge.locator('[data-testid="score-value"]')
@@ -181,6 +190,7 @@ export async function verifyAnalyzeButtonDisabledWhenEmpty(
   page: Page,
   mode: WorkspaceMode
 ): Promise<void> {
+  throwIfCurrentTestHasVCRFailure()
   const workspace = getWorkspace(page, mode)
   const button = workspace.locator(`[data-testid="${mode}-analyze-button"]`)
 

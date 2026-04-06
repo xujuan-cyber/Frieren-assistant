@@ -3,6 +3,7 @@ import { navigateToMode } from '../helpers/common'
 import {
   clickEvaluateButtonWithin,
   expectPromptVersionTagVisible,
+  openEvaluationDrawerFromHoverCard,
   expectStructuredCompareDrawer,
   getScoreBadgeValue,
   openEvaluationDrawerFromBadge,
@@ -15,6 +16,10 @@ import {
 } from '../helpers/optimize'
 
 const MODE = 'basic-system' as const
+const STALE_RESULT_MESSAGE =
+  /测试或工作区已变更，建议重新评估。|The test setup or workspace has changed\. Re-run the evaluation if needed\./i
+const STALE_COMPARE_MESSAGE =
+  /测试或工作区已变更，建议重新对比。|The test setup or workspace has changed\. Re-run the comparison if needed\./i
 
 async function openHoverCardFromBadge(badge: import('@playwright/test').Locator) {
   await badge.click()
@@ -150,25 +155,15 @@ test.describe('Basic System - 测试（对比模式）', () => {
 
     await openHoverCardFromBadge(resultBadge)
     await expect(page.getByTestId('evaluation-hover-re-evaluate')).toBeDisabled()
-    await expect(
-      page.getByText(/当前测试配置或工作区内容已变更|The test configuration or workspace content has changed/i)
-    ).toBeVisible()
-    await page.getByTestId('evaluation-hover-view-details').click()
-
-    let drawer = page.locator('.n-drawer:visible').last()
-    await expect(drawer).toBeVisible()
+    await expect(page.locator('.evaluation-hover-card:visible').getByText(STALE_RESULT_MESSAGE)).toBeVisible()
+    let drawer = await openEvaluationDrawerFromHoverCard(page)
     await expect(drawer.getByTestId('evaluation-panel-re-evaluate')).toBeDisabled()
     await drawer.locator('.n-base-close').first().click()
 
     await openHoverCardFromBadge(compareBadge)
     await expect(page.getByTestId('evaluation-hover-re-evaluate')).toBeDisabled()
-    await expect(
-      page.getByText(/当前测试配置或工作区内容已变更|The test configuration or workspace content has changed/i)
-    ).toBeVisible()
-    await page.getByTestId('evaluation-hover-view-details').click()
-
-    drawer = page.locator('.n-drawer:visible').last()
-    await expect(drawer).toBeVisible()
+    await expect(page.locator('.evaluation-hover-card:visible').getByText(STALE_COMPARE_MESSAGE)).toBeVisible()
+    drawer = await openEvaluationDrawerFromHoverCard(page)
     await expect(drawer.getByTestId('evaluation-panel-re-evaluate')).toBeDisabled()
   })
 })

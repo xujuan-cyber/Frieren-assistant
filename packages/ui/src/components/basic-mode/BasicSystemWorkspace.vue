@@ -496,6 +496,7 @@ import {
 } from '@prompt-optimizer/core'
 import type { PersistedCompareSnapshotRoles } from '../../types/evaluation'
 import { useElementSize } from '@vueuse/core'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -1100,16 +1101,15 @@ const runAllVariants = async () => {
   }
 
   evaluationHandler.clearBeforeTest()
-  const results = await Promise.all(
-    ids.map((id) =>
+  const results = await runTasksSequentially(
+    ids,
+    async (id) =>
       runVariant(id, {
         silentSuccess: true,
         silentError: true,
         skipClearEvaluation: true,
         persist: false,
-        allowParallel: true,
       })
-    )
   )
 
   void session.saveSession()

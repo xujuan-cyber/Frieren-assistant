@@ -6,6 +6,7 @@ import type { ToolDefinition, ToolCall, ToolCallResult, ConversationMessage } fr
 import type { AppServices } from '../../types/services'
 import type { VariableManagerHooks } from './useVariableManager'
 import type { TestAreaPanelInstance } from '../../components/types/test-area'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 import {
   COMPARE_BASELINE_VARIANT_ID,
   COMPARE_CANDIDATE_VARIANT_ID,
@@ -71,18 +72,12 @@ export function useConversationTester(
       }
 
       if (isCompareMode) {
-        // 对比模式：并发测试原始和优化会话
-        const originalTestPromise = state.testConversation(
-          COMPARE_BASELINE_VARIANT_ID,
-          testVariables,
-          testPanelRef
+        await runTasksSequentially(
+          [COMPARE_BASELINE_VARIANT_ID, COMPARE_CANDIDATE_VARIANT_ID] as const,
+          async (variantId) => {
+            await state.testConversation(variantId, testVariables, testPanelRef)
+          }
         )
-        const optimizedTestPromise = state.testConversation(
-          COMPARE_CANDIDATE_VARIANT_ID,
-          testVariables,
-          testPanelRef
-        )
-        await Promise.all([originalTestPromise, optimizedTestPromise])
       } else {
         // 单一模式：只测试优化后的会话
         await state.testConversation(COMPARE_CANDIDATE_VARIANT_ID, testVariables, testPanelRef)

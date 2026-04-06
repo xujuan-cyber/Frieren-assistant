@@ -1,30 +1,46 @@
-# 测试运行指南（门禁）
+# 测试运行指南
 
-本项目测试目标是：**自动拦截 UI 控制台错误/未捕获异常**，并通过 VCR 让 LLM 相关测试在 CI 中离线稳定运行。
+本项目的测试入口已收缩为三层：
+
+- `pnpm test`
+  只跑单元测试，适合日常开发的快速反馈。
+- `pnpm test:gate`
+  运行 core/ui 的门禁测试，不含 Playwright E2E，适合 pre-commit。
+- `pnpm test:gate:full`
+  在 `test:gate` 基础上追加关键 E2E 白名单，适合提交前或 CI。
 
 ## 常用命令
 
 ```bash
-# Fast gate（用于 pre-commit）
+# 日常开发：快速反馈
+pnpm test
+
+# pre-commit：core/ui 门禁，不含 E2E
 pnpm test:gate
 
-# Full gate（本地手动/CI 可用，包含 E2E）
+# 提交前 / CI：门禁 + 关键 E2E
 pnpm test:gate:full
 
-# 强制回放（CI 推荐：缺 fixtures/未拦截请求会失败）
-pnpm test:replay
+# 关键 E2E 白名单
+pnpm test:e2e:gate
 
-# 重新录制 fixtures（真实 API，会产生费用）
-pnpm test:record
+# 扩展 E2E（analysis / optimize / compare 等长链路）
+pnpm test:e2e:extended
+
+# 显式跑完整 Playwright 套件（较重）
+pnpm test:e2e
+
+# 重新录制指定 fixture（必须显式传 spec 或 grep）
+pnpm test:e2e:record -- tests/e2e/test/image-image2image-generate.spec.ts
 ```
 
 ## VCR
 
-- 使用说明：`docs/testing/vcr-usage-guide.md`
-- fixtures 默认目录：`packages/core/tests/fixtures/`
+- E2E VCR 入口：`tests/e2e/fixtures.ts`
+- 说明文档：`tests/e2e/e2e-vcr-guide.md`
+- `pnpm test:e2e:record` 不再默认录整套测试，避免无意义地重录大量 fixtures。
 
 ## UI 错误门禁
 
 - Vitest（UI 包）：`packages/ui/tests/utils/error-detection.ts`
 - Playwright（E2E）：`tests/e2e/fixtures.ts`
-

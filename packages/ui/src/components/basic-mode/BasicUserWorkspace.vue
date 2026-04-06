@@ -489,6 +489,7 @@ import type { IteratePayload } from '../../types/workspace'
 import { applyPatchOperationsToText, type EvaluationType, type PatchOperation, type Template } from '@prompt-optimizer/core'
 import type { PersistedCompareSnapshotRoles } from '../../types/evaluation'
 import { useElementSize } from '@vueuse/core'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -1015,16 +1016,15 @@ const runAllVariants = async () => {
   }
 
   evaluationHandler.clearBeforeTest()
-  const results = await Promise.all(
-    ids.map((id) =>
+  const results = await runTasksSequentially(
+    ids,
+    async (id) =>
       runVariant(id, {
         silentSuccess: true,
         silentError: true,
         skipClearEvaluation: true,
         persist: false,
-        allowParallel: true,
       })
-    )
   )
 
   // 所有列执行结束后统一持久化（best-effort）

@@ -57,6 +57,34 @@ async function selectOption(page: any, select: any, matcher?: RegExp) {
   }
 }
 
+async function selectPreferredMultimodalTextModel(page: any, select: any) {
+  const preferredMatchers = [/qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i]
+
+  for (const matcher of preferredMatchers) {
+    const options = await openSelectAndWaitForVisibleOptions(page, select)
+    const target = options.filter({ hasText: matcher }).first()
+
+    if ((await target.count()) > 0) {
+      await target.click({ timeout: 20000 })
+      await expect.poll(async () => (await select.textContent()) || '', { timeout: 10000 }).toMatch(matcher)
+      return
+    }
+
+    await page.keyboard.press('Escape').catch(() => {})
+    await page.waitForTimeout(200)
+  }
+
+  const options = await openSelectAndWaitForVisibleOptions(page, select)
+  const optionTexts = (await options.allTextContents())
+    .map((text: string) => text.trim())
+    .filter(Boolean)
+    .join(' | ')
+  await page.keyboard.press('Escape').catch(() => {})
+  throw new Error(
+    `[E2E] image-image2image text model must support multimodal optimize; expected one of qwen/gemini/dashscope, available options: ${optionTexts}`
+  )
+}
+
 test.describe('Image Image2Image - 生成（SiliconFlow）', () => {
   test('上传输入图并在对比模式下生成 original+optimized 两张图', async ({ page }) => {
     test.setTimeout(900000)
@@ -84,7 +112,7 @@ test.describe('Image Image2Image - 生成（SiliconFlow）', () => {
     // 2) 选择文本模型（用于优化）
     const textModelSelect = page.getByTestId('image-image2image-text-model-select')
     await expect(textModelSelect).toBeVisible({ timeout: 20000 })
-    await selectOption(page, textModelSelect)
+    await selectPreferredMultimodalTextModel(page, textModelSelect)
 
     // 3) 选择优化模板（跳过）
     // 这里不强依赖具体模板（模板列表可能变化，且 focus 会触发刷新导致下拉抖动），

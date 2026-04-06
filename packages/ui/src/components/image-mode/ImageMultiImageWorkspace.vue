@@ -542,6 +542,7 @@ import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useW
 import { useElementSize } from '@vueuse/core'
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'
 import { buildPromptExecutionContext } from '../../utils/prompt-variables'
+import { runTasksSequentially } from '../../utils/runTasksSequentially'
 import { buildTestPanelVersionOptions, resolveTestPanelVersionSelection } from '../../utils/testPanelVersion'
 import { buildMultiImageVariantFingerprint } from '../../utils/multiimage-workspace'
 import { downloadImageSource } from '../../utils/image-download'
@@ -808,6 +809,7 @@ watch(
 )
 const testGridTemplateColumns = computed(() => `repeat(${testColumnCountModel.value}, minmax(0, 1fr))`)
 const isAnyVariantRunning = computed(() => activeVariantIds.value.some((id) => variantRunning[id]))
+const canRunTests = computed(() => session.inputImages.length >= 2 && !!(session.optimizedPrompt || session.originalPrompt).trim())
 
 const createVariantVersionModel = (id: TestVariantId) =>
   computed<TestPanelVersionValue>({
@@ -1605,8 +1607,9 @@ const runAllVariants = async () => {
     if (!getVariantRequest(id)) return
   }
 
-  const results = await Promise.all(
-    ids.map((id) => runVariant(id, { silentSuccess: true, silentError: true, persist: false })),
+  const results = await runTasksSequentially(
+    ids,
+    async (id) => runVariant(id, { silentSuccess: true, silentError: true, persist: false }),
   )
 
   queueSessionSave()

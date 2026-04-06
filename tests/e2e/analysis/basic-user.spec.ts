@@ -44,6 +44,8 @@ import {
  */
 
 const MODE = 'basic-user' as const
+const STALE_COMPARE_MESSAGE =
+  /测试或工作区已变更，建议重新对比。|The test setup or workspace has changed\. Re-run the comparison if needed\./i
 
 test.describe('Basic User - 提示词分析', () => {
   test('分析提示词并显示评估结果', async ({ page }) => {
@@ -143,9 +145,7 @@ test.describe('Basic User - 提示词分析', () => {
     await expect(compareBadge).toHaveClass(/evaluation-score-badge-btn--stale/)
 
     await compareBadge.click()
-    await expect(
-      page.getByText(/当前测试配置或工作区内容已变更|The test configuration or workspace content has changed/i)
-    ).toBeVisible()
+    await expect(page.locator('.evaluation-hover-card:visible').getByText(STALE_COMPARE_MESSAGE)).toBeVisible()
   })
 
   test('点击 V0 后重新分析应回到 prompt-only，而不是沿用旧版本的 iterate 状态', async ({ page }) => {

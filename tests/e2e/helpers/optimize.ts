@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { throwIfCurrentTestHasVCRFailure, waitForConditionOrVCRFailure } from './vcr'
 
 export type OptimizeWorkspaceMode =
   | 'basic-system'
@@ -109,14 +110,20 @@ export async function expectOutputByTestIdNotEmpty(page: Page, testId: string, o
   const output = page.locator(`[data-testid="${testId}"]:visible`)
   const timeoutMs = opts?.timeoutMs ?? 120000
 
+  throwIfCurrentTestHasVCRFailure()
   await ensureOutputSourceView(output)
 
-  await expect
-    .poll(async () => {
+  await waitForConditionOrVCRFailure(
+    async () => {
       const { text } = await readOutputSourceText(output).catch(() => ({ text: '' }))
-      return text
-    }, { timeout: timeoutMs })
-    .toMatch(/\S/)
+      return /\S/.test(text)
+    },
+    {
+      timeoutMs,
+      intervalMs: 120,
+      description: `output ${testId} should become non-empty`,
+    }
+  )
 }
 
 export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWorkspaceMode) {
@@ -127,14 +134,20 @@ export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWo
   const timeoutMs = 180000
 
   try {
+    throwIfCurrentTestHasVCRFailure()
     await ensureOutputSourceView(output)
 
-    await expect
-      .poll(async () => {
+    await waitForConditionOrVCRFailure(
+      async () => {
         const { text } = await readOutputSourceText(output).catch(() => ({ text: '' }))
-        return text
-      }, { timeout: timeoutMs })
-      .toMatch(/\S/)
+        return /\S/.test(text)
+      },
+      {
+        timeoutMs,
+        intervalMs: 120,
+        description: `${mode} optimized output should become non-empty`,
+      }
+    )
 
     // 文本开始流出并不代表优化已完成；尤其是 pro-multi 左侧分析会在流式收尾阶段重建按钮节点。
     // 这里补一层“优化按钮重新可用”的等待，确保后续点击分析/测试时已经脱离 streaming 状态。
@@ -176,12 +189,13 @@ export async function expectOptimizedResultNotEmpty(page: Page, mode: OptimizeWo
     }
 
     // eslint-disable-next-line no-console
-    console.error('[E2E][optimize] output wait timeout diagnostic:', JSON.stringify(debugPayload, null, 2))
+    console.error('[E2E][optimize] output wait failure diagnostic:', JSON.stringify(debugPayload, null, 2))
     throw e
   }
 }
 
 export async function verifyOptimizeButtonDisabledWhenEmpty(page: Page, mode: OptimizeWorkspaceMode) {
+  throwIfCurrentTestHasVCRFailure()
   const workspace = getWorkspace(page, mode)
   const button = workspace.locator(`[data-testid="${mode}-optimize-button"]`)
 
