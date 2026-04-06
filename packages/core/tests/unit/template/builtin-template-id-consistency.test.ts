@@ -7,6 +7,8 @@ import {
   type TemplateLanguageService,
 } from '../../../src/services/template/languageService';
 
+const BUILTIN_TEMPLATE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 describe('builtin template id consistency', () => {
   let templateManager: TemplateManager;
   let languageService: TemplateLanguageService;
@@ -29,6 +31,14 @@ describe('builtin template id consistency', () => {
 
     for (const template of builtinTemplates.filter(item => item.isBuiltin)) {
       await expect(templateManager.getTemplate(template.id)).resolves.toBeDefined();
+    }
+  });
+
+  it('uses kebab-case ids for all builtin templates', async () => {
+    const builtinTemplates = await templateManager.listTemplates();
+
+    for (const template of builtinTemplates.filter(item => item.isBuiltin)) {
+      expect(template.id).toMatch(BUILTIN_TEMPLATE_ID_PATTERN);
     }
   });
 });
