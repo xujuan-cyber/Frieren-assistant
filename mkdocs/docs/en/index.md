@@ -129,6 +129,13 @@ hide:
         </div>
         <code>/image/image2image</code>
       </a>
+      <a class="po-docs-index-row" href="image/multiimage-workspace/">
+        <div>
+          <h3>Multi-Image Workspace</h3>
+          <p>Use multiple ordered input images to constrain subject relationships and the final generation goal.</p>
+        </div>
+        <code>/image/multiimage</code>
+      </a>
     </div>
   </section>
 

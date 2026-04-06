@@ -114,6 +114,22 @@ The right side uses an **image model** for:
 
 Keep the same input image whenever possible. If the input image changes, your comparison baseline changes too.
 
+### Multi-image
+
+In addition to keeping the prompt and model fixed, try to keep these stable too:
+
+- the input image set
+- the input image order
+- the prompt references to each image
+
+If you change the order of `image 1 / image 2 / image 3` without updating the prompt, your comparison becomes unreliable very quickly.
+
+Before comparing versions, a safer sequence is:
+
+1. confirm the order with drag-and-drop
+2. remove mistaken images with the top-right `X`
+3. then compare `original / workspace / vN`
+
 ## Browser vs desktop
 
 If you mainly connect to public HTTPS APIs, the browser version is usually enough.
@@ -141,3 +157,4 @@ If you mainly connect to local or internal services that are affected by browser
 - [Model Management](../basic/models.md)
 - [Text-to-Image Workspace](../image/text2image-workspace.md)
 - [Image-to-Image Workspace](../image/image2image-workspace.md)
+- [Multi-Image Workspace](../image/multiimage-workspace.md)

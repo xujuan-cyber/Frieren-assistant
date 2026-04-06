@@ -68,9 +68,11 @@ The current implementation tries to restore workspace semantics from the saved i
 
 - text favorites jump back to the matching `basic` or `pro` workspace
 - if the favorite includes `system / user` meaning, the app also tries to restore the matching sub-mode
-- image favorites jump back to text-to-image or image-to-image
+- image favorites jump back to text-to-image, image-to-image, or multi-image
 
 So favorites behave more like a reusable entry with workspace context, not just a clipboard slot.
+
+If a favorite was saved from the multi-image workflow, `Use now` also tries to restore that sub-mode and its media context so you do not need to rebuild the image set manually.
 
 ## How favorites and history should work together
 
@@ -94,6 +96,32 @@ A practical workflow is:
 - you need a full backup
 - you need a full migration
 - you want to move models, templates, and history together
+
+## What else can be saved
+
+The save-favorite dialog currently supports:
+
+- title
+- description
+- category
+- tags
+- feature mode
+- optimization mode for text workflows
+- sub-mode for image workflows
+- editing the main content
+- image upload
+- setting a cover image
+- removing attached images
+
+That means a favorite can preserve not just text, but also a small media set related to the prompt.
+
+## About Prompt Garden
+
+The current implementation also supports a pluggable preview area for favorites.
+
+If your deployment enables `Prompt Garden` integration, a favorite preview can also show extra external snapshot information and media content.
+
+This is an optional integration, so it may not appear in every deployment.
 
 ## Practical suggestions
 

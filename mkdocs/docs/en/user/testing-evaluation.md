@@ -73,6 +73,9 @@ If you want to judge whether a prompt actually worked on a real result, use righ
 | User Prompt Workspace | usually no extra input | executed prompt + output |
 | Variable Workspace | shared variable form | executed prompt + variable values + output |
 | Context Workspace | full conversation + shared variables + optional tools | full execution snapshot + output |
+| Text-to-Image Workspace | image model | prompt version + image model + real generated image |
+| Image-to-Image Workspace | input image + image model | input image + prompt version + real generated image |
+| Multi-Image Workspace | ordered input images + image model | image set / image order + prompt version + real generated image |
 
 ## Result Evaluation vs Compare Evaluation
 
@@ -93,6 +96,8 @@ Typical questions:
 - workspace vs `v2`
 - same prompt on different models
 - different saved versions on the same model
+- different image-prompt versions against the same image baseline
+- different image models against the same image prompt version
 
 ## What Compare Evaluation is actually comparing
 
@@ -101,6 +106,12 @@ Compare Evaluation compares **real output evidence**, not version labels.
 - **Same model, different prompt versions**: did the prompt change actually change the result?
 - **Same prompt, different models**: which model interprets the prompt more reliably?
 - **Workspace draft vs saved versions**: is the current draft actually worth saving?
+
+For image workspaces, remember one extra rule:
+
+- **image compare evaluation compares the real generated outputs, not the prompt's self-description**
+
+So if you change the input image, or change the order of multi-image inputs, and then run compare evaluation, the conclusion can become misleading very quickly.
 
 ## What “workspace” means
 

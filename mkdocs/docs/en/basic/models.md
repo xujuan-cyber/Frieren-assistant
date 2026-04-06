@@ -26,6 +26,7 @@ Most first-time users do not need a large model list.
 | Start using text workspaces | 1 text model |
 | Compare results | 2 text models |
 | Use image workspaces | 1 text model + 1 image model |
+| Use reference-image replication or style learning in text-to-image | 1 text model + 1 image model + 1 image recognition model |
 
 ## This is enough to understand at first
 
@@ -76,6 +77,18 @@ Because:
 
 - the left side still uses a text model to improve image prompts
 - the right side uses an image model to generate the actual image
+
+### Case D: you want reference-image actions inside text-to-image
+
+If you want to use:
+
+- reference-image replication
+- style learning
+- prompt-variable extraction from images
+
+you also need an **image recognition model**.
+
+Those actions are not normal image generation. They first require a model that can understand the image and turn it into prompt clues or variables.
 
 ## Recommended setup order
 
@@ -217,6 +230,10 @@ The image-side manager supports:
 - connection testing
 - preview test image
 - provider / model / capability tags
+
+There is also a function-model area for image recognition.
+
+If you want image extraction, reference-image replication, or style learning, do not stop at text and image generation models. Make sure the image recognition model is configured too.
 
 ## How to tell whether setup is already good enough
 

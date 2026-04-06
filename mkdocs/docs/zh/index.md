@@ -129,6 +129,13 @@ hide:
         </div>
         <code>/image/image2image</code>
       </a>
+      <a class="po-docs-index-row" href="image/multiimage-workspace/">
+        <div>
+          <h3>多图生图工作区</h3>
+          <p>用多张输入图共同约束主体关系、顺序语义与最终生成目标。</p>
+        </div>
+        <code>/image/multiimage</code>
+      </a>
     </div>
   </section>
 

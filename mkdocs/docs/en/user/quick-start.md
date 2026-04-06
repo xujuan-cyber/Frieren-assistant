@@ -22,6 +22,7 @@ If you are not sure where to go next:
 
 - text workspaces: at least 1 text model
 - image workspaces: at least 1 text model + 1 image model
+- multi-image generation: also make sure the right-side image model supports multiple input images and prepare at least two images
 
 For most first-time users, the simplest path is:
 
@@ -44,6 +45,7 @@ See [Model Management](../basic/models.md) and [Model Testing Strategy](model-te
 | [Context Workspace](../advanced/context.md) | one target message inside a conversation | full conversation + shared variables + optional tools |
 | [Text-to-Image Workspace](../image/text2image-workspace.md) | image prompt | image model |
 | [Image-to-Image Workspace](../image/image2image-workspace.md) | image-to-image prompt | input image + image model |
+| [Multi-Image Workspace](../image/multiimage-workspace.md) | multi-image relationship prompt | at least two input images + image model |
 
 ## Step 3: understand left vs right
 
@@ -118,6 +120,30 @@ Then:
 1. choose a text model for left-side prompt work
 2. choose an image model on the right
 3. compare prompt versions through real generated images
+
+### Example D: Multi-Image Workspace
+
+Open `/#/image/multiimage`.
+
+Upload at least two images, for example:
+
+- image 1: the character reference
+- image 2: the outfit or style reference
+
+Left side:
+
+```text
+Use image 1 as the main character identity. Preserve the outfit style and material feel from image 2. Generate one cohesive new image instead of mechanically stitching the references together.
+```
+
+Then:
+
+1. drag the cards to confirm the meaning of `image 1 / image 2`
+2. remove the wrong image with the top-right `X`
+3. click **Optimize** on the left
+4. choose multi-image-capable image models on the right
+5. keep one model fixed and compare `original / workspace / vN`
+6. then keep the prompt version fixed and compare image models
 
 ## Common mistakes
 
