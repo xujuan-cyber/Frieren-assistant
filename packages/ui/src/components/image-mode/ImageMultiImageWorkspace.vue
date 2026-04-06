@@ -144,6 +144,25 @@
                     @drop.prevent="handleImageDrop(index)"
                   >
                     <div class="image-card__preview-wrap">
+                      <NButton
+                        class="image-card__remove"
+                        quaternary
+                        circle
+                        size="small"
+                        type="error"
+                        :aria-label="`删除图${index + 1}`"
+                        :title="`删除图${index + 1}`"
+                        @mousedown.stop
+                        @click.stop="removeImage(item.id)"
+                      >
+                        <template #icon>
+                          <NIcon class="image-card__remove-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                            </svg>
+                          </NIcon>
+                        </template>
+                      </NButton>
                       <AppPreviewImage
                         class="image-card__preview"
                         :src="toDataUrl(item)"
@@ -162,20 +181,7 @@
                       @dragend="handleImageDragEnd"
                     >
                       <NText strong class="image-card__label">{{ `图${index + 1}` }}</NText>
-                      <div class="image-card__actions">
-                        <NButton
-                          class="image-card__remove"
-                          quaternary
-                          size="small"
-                          type="error"
-                          :aria-label="`删除图${index + 1}`"
-                          @mousedown.stop
-                          @click.stop="removeImage(item.id)"
-                        >
-                          删除
-                        </NButton>
-                        <span class="image-card__drag-handle" aria-hidden="true">⋮⋮</span>
-                      </div>
+                      <span class="image-card__drag-handle" aria-hidden="true">⋮⋮</span>
                     </div>
                   </div>
 
@@ -811,7 +817,6 @@ watch(
 )
 const testGridTemplateColumns = computed(() => `repeat(${testColumnCountModel.value}, minmax(0, 1fr))`)
 const isAnyVariantRunning = computed(() => activeVariantIds.value.some((id) => variantRunning[id]))
-const canRunTests = computed(() => session.inputImages.length >= 2 && !!(session.optimizedPrompt || session.originalPrompt).trim())
 
 const createVariantVersionModel = (id: TestVariantId) =>
   computed<TestPanelVersionValue>({
@@ -1808,6 +1813,35 @@ onUnmounted(() => {
 .image-card__preview-wrap { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; background: var(--n-color-embedded); }
 .image-card__preview { width: 100%; height: 100%; display: block; }
 .image-card__preview :deep(img) { -webkit-user-drag: none; user-select: none; }
+.image-card__remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(17, 24, 39, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.image-card__remove:hover,
+.image-card__remove:focus-visible {
+  color: #fff;
+  background: rgba(220, 38, 38, 0.92);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 22px rgba(127, 29, 29, 0.36);
+  transform: scale(1.05);
+}
+.image-card__remove-icon {
+  width: 15px;
+  height: 15px;
+}
 .image-card__footer {
   display: flex;
   align-items: center;
@@ -1822,13 +1856,6 @@ onUnmounted(() => {
 .image-card__footer:active {
   cursor: grabbing;
 }
-.image-card__actions {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  min-width: 0;
-}
 .image-card__drag-handle {
   display: inline-flex;
   align-items: center;
@@ -1841,12 +1868,6 @@ onUnmounted(() => {
   letter-spacing: -1px;
 }
 .image-card__label { flex: 1; min-width: 0; text-align: left; }
-.image-card__remove {
-  flex-shrink: 0;
-  min-width: 44px;
-  padding-inline: 10px;
-  border-radius: 999px;
-}
 .image-upload-card { width: 116px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--n-border-color); border-radius: 14px; background: var(--n-color-embedded); color: var(--n-text-color-2); cursor: pointer; appearance: none; font: inherit; text-align: center; transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s ease; }
 .image-upload-card:hover { border-color: var(--n-border-color-hover); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); transform: translateY(-1px); }
 .image-upload-card:focus-visible { outline: none; border-color: var(--n-primary-color); box-shadow: 0 0 0 2px var(--n-primary-color-suppl); }

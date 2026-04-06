@@ -47,28 +47,27 @@ describe('image multiimage input UI guards', () => {
     expect(source).not.toMatch(/preview-disabled/)
   })
 
-  it('keeps an explicit remove action in the card footer instead of relying on a tiny preview overlay', () => {
+  it('keeps a visible remove icon overlay in the preview instead of hiding it in the footer action row', () => {
     const source = readWorkspaceSource()
 
-    expect(source).toMatch(/class="image-card__actions"/)
     expect(source).toMatch(/class="image-card__remove"/)
     expect(source).toMatch(/:aria-label="`删除图\$\{index \+ 1\}`"/)
+    expect(source).toMatch(/class="image-card__remove-icon"/)
 
     const previewWrapIndex = source.indexOf('class="image-card__preview-wrap"')
     const removeIndex = source.indexOf('class="image-card__remove"')
     const footerIndex = source.indexOf('class="image-card__footer"')
-    const actionsIndex = source.indexOf('class="image-card__actions"')
 
     expect(previewWrapIndex).toBeGreaterThan(-1)
     expect(removeIndex).toBeGreaterThan(-1)
     expect(footerIndex).toBeGreaterThan(-1)
-    expect(actionsIndex).toBeGreaterThan(-1)
     expect(footerIndex).toBeGreaterThan(previewWrapIndex)
-    expect(removeIndex).toBeGreaterThan(footerIndex)
-    expect(removeIndex).toBeGreaterThan(actionsIndex)
+    expect(removeIndex).toBeGreaterThan(previewWrapIndex)
+    expect(removeIndex).toBeLessThan(footerIndex)
 
     const previewSegment = source.slice(previewWrapIndex, footerIndex)
-    expect(previewSegment).not.toContain('class="image-card__remove"')
+    expect(previewSegment).toContain('class="image-card__remove"')
+    expect(previewSegment).toContain('class="image-card__remove-icon"')
   })
 
   it('splits the left pane into an input card and a fill-height optimized prompt workspace', () => {
