@@ -9,31 +9,31 @@ const readWorkspaceSource = () =>
   )
 
 describe('image text2image evaluation closure guard', () => {
-  it('does not force prompt-only analysis and wires prompt apply-improvement', () => {
+  it('keeps prompt evaluation scoped to prompt-only and disables panel-side rewrite actions', () => {
     const source = readWorkspaceSource()
 
-    expect(source).not.toContain('evaluation-type-override="prompt-only"')
-    expect(source).toContain('@apply-improvement="handleApplyImprovement"')
+    expect(source).toContain('evaluation-type-override="prompt-only"')
+    expect(source).toContain(':can-rewrite-from-evaluation="false"')
   })
 
-  it('wires result and compare evaluation actions back into optimization', () => {
+  it('wires result and compare evaluation actions to the current evaluation handlers', () => {
     const source = readWorkspaceSource()
 
-    expect(source).toContain('@apply-improvement="handleApplyImprovement"')
-    expect(source).toContain('@apply-patch="handleApplyLocalPatch"')
-    expect(source).toContain(':can-rewrite-from-evaluation="true"')
-    expect(source).toContain('@apply-local-patch="handleApplyLocalPatch"')
-    expect(source).toContain('@rewrite-from-evaluation="handleRewriteFromEvaluation"')
+    expect(source).toContain('@evaluate="handleEvaluateCompare"')
+    expect(source).toContain('@evaluate-with-feedback="handleCompareEvaluateWithFeedback"')
+    expect(source).toContain("@evaluate=\"() => handleEvaluateResult(id)\"")
+    expect(source).toContain('@evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"')
   })
 
-  it('adds an original-input analyze button and a virtual V0 analysis flow', () => {
+  it('routes original-input analysis through reference action buttons instead of the legacy analyze button', () => {
     const source = readWorkspaceSource()
 
-    expect(source).toContain('data-testid="image-text2image-analyze-button"')
-    expect(source).toContain(':loading="isAnalyzing"')
-    expect(source).toContain('@click="handleAnalyze"')
-    expect(source).toContain("evaluation.clearResult('prompt-only')")
-    expect(source).toContain("evaluation.clearResult('prompt-iterate')")
-    expect(source).toContain("await handleEvaluateInternal('prompt-only')")
+    expect(source).toContain('v-for="button in referenceActionButtons"')
+    expect(source).toContain('@click="triggerReferenceAction(button.kind)"')
+    expect(source).toContain("kind: 'replicate' as ReferenceActionKind")
+    expect(source).toContain("kind: 'style-learn' as ReferenceActionKind")
+    expect(source).toContain('referenceAction.requestAction(actionKind)')
+    expect(source).toContain("extractImageInputRef.value?.click()")
+    expect(source).not.toContain('data-testid="image-text2image-analyze-button"')
   })
 })

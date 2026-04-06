@@ -66,7 +66,10 @@ const getSessionCleanupKey = (key: SubModeKey, error: unknown): string | null =>
     return null
   }
 
-  if (maybeError.params?.reason !== 'session_snapshot_too_large') {
+  if (
+    maybeError.params?.reason !== 'session_snapshot_too_large' &&
+    maybeError.params?.reason !== 'session_referenced_image_missing'
+  ) {
     return null
   }
 
@@ -315,7 +318,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
     } catch (error) {
       const cleanupKey = getSessionCleanupKey(key, error)
       if (cleanupKey) {
-        console.info(`[SessionManager] 检测到超限会话快照，准备清理: ${cleanupKey}`)
+        console.info(`[SessionManager] 检测到损坏会话快照，准备清理: ${cleanupKey}`)
       } else {
         console.error(`[SessionManager] 恢复 ${key} 会话失败:`, error)
       }
@@ -331,9 +334,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
 
       try {
         await $services.preferenceService.delete(cleanupKey)
-        console.info(`[SessionManager] 已清理超限会话快照: ${cleanupKey}`)
+        console.info(`[SessionManager] 已清理损坏会话快照: ${cleanupKey}`)
       } catch (cleanupError) {
-        console.error(`[SessionManager] 清理超限会话快照失败 (${cleanupKey}):`, cleanupError)
+        console.error(`[SessionManager] 清理损坏会话快照失败 (${cleanupKey}):`, cleanupError)
       }
     }
   }

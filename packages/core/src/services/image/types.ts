@@ -270,6 +270,7 @@ export interface ImageStorageConfig {
   maxCount?: number            // 最大图像数量，默认 100张
   autoCleanupThreshold?: number  // 自动清理阈值（达到此比例时触发），默认 0.8
   dbName?: string              // IndexedDB 数据库名（默认 PromptOptimizerImageDB）
+  quotaStrategy?: 'evict' | 'reject' // 超额策略：LRU 淘汰 vs 直接报错
 }
 
 /**

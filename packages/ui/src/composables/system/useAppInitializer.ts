@@ -172,7 +172,7 @@ export function useAppInitializer(): {
           maxCacheSize: 200 * 1024 * 1024,      // 200 MB
           maxAge: undefined,
           maxCount: 1000,
-          autoCleanupThreshold: 0.9,
+          quotaStrategy: 'reject',
           dbName: 'PromptOptimizerFavoriteImageDB',
         });
 
@@ -305,7 +305,7 @@ export function useAppInitializer(): {
           maxCacheSize: 200 * 1024 * 1024,      // 200 MB
           maxAge: undefined,
           maxCount: 1000,
-          autoCleanupThreshold: 0.9,
+          quotaStrategy: 'reject',
           dbName: 'PromptOptimizerFavoriteImageDB',
         });
 

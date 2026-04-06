@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { normalizeImageSourceToPayload } from '../../../src/utils/image-asset-storage'
+import {
+  normalizeImageSourceToPayload,
+  persistImagePayloadAsAssetId,
+} from '../../../src/utils/image-asset-storage'
 
 describe('image asset storage utilities', () => {
   afterEach(() => {
@@ -35,5 +38,35 @@ describe('image asset storage utilities', () => {
       mimeType: 'image/png',
       b64: Buffer.from(pngBytes).toString('base64'),
     })
+  })
+
+  it('rejects new asset writes when storage is configured to reject quota overflow', async () => {
+    const storageService = {
+      getMetadata: vi.fn(async () => null),
+      getStorageStats: vi.fn(async () => ({
+        count: 1000,
+        totalBytes: 200 * 1024 * 1024,
+        oldestAt: null,
+        newestAt: null,
+      })),
+      getConfig: vi.fn(() => ({
+        maxCacheSize: 200 * 1024 * 1024,
+        maxCount: 1000,
+        quotaStrategy: 'reject',
+      })),
+      saveImage: vi.fn(async () => 'img_new'),
+    }
+
+    await expect(
+      persistImagePayloadAsAssetId({
+        payload: {
+          b64: 'AAAA',
+          mimeType: 'image/png',
+        },
+        storageService: storageService as any,
+      }),
+    ).rejects.toThrow(/quota/i)
+
+    expect(storageService.saveImage).not.toHaveBeenCalled()
   })
 })

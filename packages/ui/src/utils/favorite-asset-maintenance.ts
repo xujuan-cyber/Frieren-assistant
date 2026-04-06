@@ -6,7 +6,7 @@ import type {
 
 type FavoriteManagerForGc = Pick<
   IFavoriteManager,
-  'getFavorites' | 'getFavorite' | 'updateFavorite' | 'deleteFavorite' | 'deleteFavorites'
+  'getFavorites' | 'getFavorite' | 'updateFavorite' | 'deleteFavorite' | 'deleteFavorites' | 'importFavorites'
 > &
   IFavoriteManager
 
@@ -163,6 +163,14 @@ export const attachFavoriteAssetGc = (
           if (!setsAreEqual(beforeRefs, afterRefs)) {
             await runFavoriteAssetGc(target, favoriteImageStorageService)
           }
+        }
+      }
+
+      if (prop === 'importFavorites') {
+        return async (...args: Parameters<IFavoriteManager['importFavorites']>) => {
+          const result = await target.importFavorites(...args)
+          await runFavoriteAssetGc(target, favoriteImageStorageService)
+          return result
         }
       }
 

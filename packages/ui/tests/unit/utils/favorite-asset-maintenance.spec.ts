@@ -187,4 +187,79 @@ describe('favoriteAssetMaintenance', () => {
     expect(favoriteManager.updateFavorite).toHaveBeenCalled()
     expect(favoriteImageStorageService.deleteImages).toHaveBeenCalledWith(['old-asset'])
   })
+
+  it('runs GC after importing favorites when overwrite changes image references', async () => {
+    const favorites = [
+      {
+        id: 'fav-1',
+        content: 'same-content',
+        metadata: {
+          media: {
+            assetIds: ['old-asset'],
+          },
+        },
+      },
+    ]
+
+    const favoriteManager = {
+      addFavorite: vi.fn(),
+      getFavorites: vi.fn(async () => favorites),
+      getFavorite: vi.fn(async (id: string) => favorites.find((favorite) => favorite.id === id) || null),
+      updateFavorite: vi.fn(),
+      deleteFavorite: vi.fn(),
+      deleteFavorites: vi.fn(),
+      incrementUseCount: vi.fn(),
+      getCategories: vi.fn(),
+      addCategory: vi.fn(),
+      updateCategory: vi.fn(),
+      deleteCategory: vi.fn(),
+      getStats: vi.fn(),
+      searchFavorites: vi.fn(),
+      exportFavorites: vi.fn(),
+      importFavorites: vi.fn(async () => {
+        favorites[0] = {
+          ...favorites[0],
+          metadata: {
+            media: {
+              assetIds: ['new-asset'],
+            },
+          },
+        }
+
+        return {
+          imported: 1,
+          skipped: 0,
+          errors: [],
+        }
+      }),
+      getAllTags: vi.fn(),
+      addTag: vi.fn(),
+      renameTag: vi.fn(),
+      mergeTags: vi.fn(),
+      deleteTag: vi.fn(),
+      reorderCategories: vi.fn(),
+      getCategoryUsage: vi.fn(),
+      ensureDefaultCategories: vi.fn(),
+    }
+
+    const favoriteImageStorageService = {
+      listAllMetadata: vi.fn(async () => [
+        { id: 'old-asset' },
+        { id: 'new-asset' },
+      ]),
+      deleteImages: vi.fn(async (_ids: string[]) => {}),
+    }
+
+    const guardedManager = attachFavoriteAssetGc(
+      favoriteManager as any,
+      favoriteImageStorageService as any,
+    )
+
+    await guardedManager.importFavorites(JSON.stringify({ favorites: [] }), {
+      mergeStrategy: 'overwrite',
+    })
+
+    expect(favoriteManager.importFavorites).toHaveBeenCalled()
+    expect(favoriteImageStorageService.deleteImages).toHaveBeenCalledWith(['old-asset'])
+  })
 })

@@ -155,6 +155,56 @@ type PersistImagePayloadOptions = {
   }
 }
 
+const assertStorageQuotaForPayload = async (
+  storageService: IImageStorageService,
+  imageId: string,
+  payload: ImagePayload,
+): Promise<void> => {
+  const config = typeof storageService.getConfig === 'function'
+    ? storageService.getConfig()
+    : null
+
+  if (!config || config.quotaStrategy !== 'reject') {
+    return
+  }
+
+  const existing = await storageService.getMetadata(imageId)
+  if (existing) {
+    return
+  }
+
+  const stats = typeof storageService.getStorageStats === 'function'
+    ? await storageService.getStorageStats()
+    : null
+
+  if (!stats) {
+    return
+  }
+
+  const nextCount = stats.count + 1
+  const nextTotalBytes = stats.totalBytes + Math.floor(payload.b64.length * 0.75)
+
+  if (
+    typeof config.maxCount === 'number' &&
+    Number.isFinite(config.maxCount) &&
+    nextCount > config.maxCount
+  ) {
+    throw new Error(
+      `Image storage quota exceeded: projected count ${nextCount} exceeds maxCount ${config.maxCount}`,
+    )
+  }
+
+  if (
+    typeof config.maxCacheSize === 'number' &&
+    Number.isFinite(config.maxCacheSize) &&
+    nextTotalBytes > config.maxCacheSize
+  ) {
+    throw new Error(
+      `Image storage quota exceeded: projected size ${nextTotalBytes} exceeds maxCacheSize ${config.maxCacheSize}`,
+    )
+  }
+}
+
 export const persistImagePayloadAsAssetId = async (
   opts: PersistImagePayloadOptions,
 ): Promise<string | null> => {
@@ -162,6 +212,7 @@ export const persistImagePayloadAsAssetId = async (
   if (!storageService || !payload?.b64) return null
 
   const imageId = await computeStableImageId(payload.b64, payload.mimeType)
+  await assertStorageQuotaForPayload(storageService, imageId, payload)
   const existing = await storageService.getMetadata(imageId)
   if (!existing) {
     await storageService.saveImage({

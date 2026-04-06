@@ -243,4 +243,54 @@ describe('Session store (image-multiimage) persistence', () => {
     expect(imageStorageService.saveImage).toHaveBeenCalledTimes(3)
     expect(imageStorageService.getImage).toHaveBeenCalled()
   })
+
+  it('fails restore when a persisted input image asset is missing', async () => {
+    const savedSnapshots = new Map<string, unknown>()
+
+    savedSnapshots.set(IMAGE_MULTIIMAGE_SESSION_KEY, {
+      originalPrompt: '使用两张参考图',
+      inputImages: [
+        {
+          id: 'input-1',
+          assetId: 'missing-asset',
+          mimeType: 'image/png',
+        },
+        {
+          id: 'input-2',
+          assetId: 'existing-asset',
+          mimeType: 'image/jpeg',
+        },
+      ],
+    })
+
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: async <T,>(key: string, defaultValue: T) =>
+          (savedSnapshots.has(key) ? savedSnapshots.get(key) : defaultValue) as T,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: {
+        getImage: vi.fn(async (id: string) =>
+          id === 'existing-asset'
+            ? {
+                data: 'BBBB',
+                metadata: { mimeType: 'image/jpeg' },
+              }
+            : null,
+        ),
+      } as any,
+    })
+
+    const restored = useImageMultiImageSession(pinia)
+
+    await expect(restored.restoreSession()).rejects.toThrow(/missing input image asset/i)
+  })
 })

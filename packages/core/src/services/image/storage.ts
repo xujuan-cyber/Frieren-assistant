@@ -114,6 +114,7 @@ const DEFAULT_CONFIG: ImageStorageConfig = {
   maxCount: 100,                       // 最多 100 张
   autoCleanupThreshold: 0.8,           // 达到 80% 时触发清理
   dbName: 'PromptOptimizerImageDB',
+  quotaStrategy: 'evict',
 }
 
 /**
@@ -141,6 +142,8 @@ export class ImageStorageService implements IImageStorageService {
    */
   async saveImage(data: FullImageData): Promise<string> {
     const now = Date.now()
+
+    await this.assertQuotaForSave(data)
 
     // 准备元数据记录
     const metadataRecord: MetadataRecord = {
@@ -301,6 +304,10 @@ export class ImageStorageService implements IImageStorageService {
       }
     }
 
+    if (this.config.quotaStrategy !== 'evict') {
+      return
+    }
+
     // 重新获取统计（只查询 metadata 表，性能优化）
     const updatedStats = await this.getStorageStats()
 
@@ -417,6 +424,10 @@ export class ImageStorageService implements IImageStorageService {
    * 如果达到阈值，触发清理
    */
   private async autoCleanupIfNeeded(): Promise<void> {
+    if (this.config.quotaStrategy !== 'evict') {
+      return
+    }
+
     const threshold = this.config.autoCleanupThreshold!
     const maxCacheSize = this.config.maxCacheSize!
     const maxCount = this.config.maxCount!
@@ -432,6 +443,36 @@ export class ImageStorageService implements IImageStorageService {
       stats.count > countThreshold
     ) {
       await this.enforceQuota()
+    }
+  }
+
+  private async assertQuotaForSave(data: FullImageData): Promise<void> {
+    if (this.config.quotaStrategy !== 'reject') {
+      return
+    }
+
+    const currentStats = await this.getStorageStats()
+    const existing = await this.db.imageMetadata.get(data.metadata.id)
+    const nextCount = currentStats.count + (existing ? 0 : 1)
+    const nextTotalBytes =
+      currentStats.totalBytes - (existing?.sizeBytes || 0) + data.metadata.sizeBytes
+
+    const maxCount = this.config.maxCount
+    if (typeof maxCount === 'number' && Number.isFinite(maxCount) && nextCount > maxCount) {
+      throw new Error(
+        `Image storage quota exceeded: projected count ${nextCount} exceeds maxCount ${maxCount}`,
+      )
+    }
+
+    const maxCacheSize = this.config.maxCacheSize
+    if (
+      typeof maxCacheSize === 'number' &&
+      Number.isFinite(maxCacheSize) &&
+      nextTotalBytes > maxCacheSize
+    ) {
+      throw new Error(
+        `Image storage quota exceeded: projected size ${nextTotalBytes} exceeds maxCacheSize ${maxCacheSize}`,
+      )
     }
   }
 

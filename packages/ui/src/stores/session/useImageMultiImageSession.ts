@@ -100,6 +100,19 @@ const createDefaultState = (): ImageMultiImageSessionState => ({
 const createRuntimeImageId = () =>
   `multi_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
+const createMissingInputAssetError = (assetId: string) =>
+  Object.assign(
+    new Error(`[ImageMultiImageSession] Missing input image asset: ${assetId}`),
+    {
+      code: 'error.storage.read',
+      params: {
+        reason: 'session_referenced_image_missing',
+        key: IMAGE_MULTIIMAGE_SESSION_KEY,
+        assetId,
+      },
+    },
+  )
+
 const isTestColumnCount = (value: unknown): value is TestColumnCount =>
   value === 2 || value === 3 || value === 4
 
@@ -603,12 +616,21 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
       rawImages.map(async (item) => {
         const record = (item || {}) as Record<string, unknown>
         const assetId = typeof record.assetId === 'string' ? record.assetId : null
-        const mimeType = typeof record.mimeType === 'string' ? record.mimeType : 'image/png'
+        let mimeType = typeof record.mimeType === 'string' ? record.mimeType : 'image/png'
         let b64 = typeof record.b64 === 'string' ? record.b64 : ''
 
         if (!b64 && assetId) {
           const fullImage = await imageStorageService.getImage(assetId)
-          b64 = fullImage?.data || ''
+          if (!fullImage?.data?.trim()) {
+            throw createMissingInputAssetError(assetId)
+          }
+
+          b64 = fullImage.data
+          mimeType = fullImage.metadata?.mimeType || mimeType
+        }
+
+        if (!b64.trim()) {
+          throw new Error('[ImageMultiImageSession] Missing input image base64 data in persisted session')
         }
 
         return {
