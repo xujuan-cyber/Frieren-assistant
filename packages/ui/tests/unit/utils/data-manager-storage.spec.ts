@@ -109,6 +109,30 @@ describe('data-manager storage helpers', () => {
     expect(backups).toBe(512)
   })
 
+  it('preserves image counts for cache and favorite breakdown items', async () => {
+    const services = createServices()
+
+    const summary = await resolveDataManagerStorageBreakdown({
+      services: services as any,
+      includeBackupData: false,
+    })
+
+    expect(summary.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'imageCache',
+          bytes: 2048,
+          count: 3,
+        }),
+        expect.objectContaining({
+          key: 'favoriteImages',
+          bytes: 1024,
+          count: 1,
+        }),
+      ]),
+    )
+  })
+
   it('keeps missing image services as unknown instead of throwing', async () => {
     const services = createServices()
     delete (services as any).imageStorageService

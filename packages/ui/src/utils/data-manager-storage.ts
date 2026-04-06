@@ -10,6 +10,7 @@ export type StorageBreakdownItemKey =
 export interface StorageBreakdownItem {
   key: StorageBreakdownItemKey
   bytes: number | null
+  count: number | null
   estimated: boolean
 }
 
@@ -64,15 +65,26 @@ async function estimateAppMainDataBytes(
   )
 }
 
-async function getImageStorageBytes(
+interface ImageStorageBreakdown {
+  bytes: number | null
+  count: number | null
+}
+
+async function getImageStorageBreakdown(
   storageService?: AppServices['imageStorageService'],
-): Promise<number | null> {
+): Promise<ImageStorageBreakdown> {
   if (!storageService) {
-    return null
+    return {
+      bytes: null,
+      count: null,
+    }
   }
 
   const stats = await storageService.getStorageStats()
-  return typeof stats.totalBytes === 'number' ? stats.totalBytes : null
+  return {
+    bytes: typeof stats.totalBytes === 'number' ? stats.totalBytes : null,
+    count: typeof stats.count === 'number' ? stats.count : null,
+  }
 }
 
 export async function resolveDataManagerStorageBreakdown(
@@ -87,8 +99,8 @@ export async function resolveDataManagerStorageBreakdown(
   const [appMainDataResult, imageCacheResult, favoriteImagesResult, desktopInfoResult] =
     await Promise.allSettled([
       estimateAppMainDataBytes(services),
-      getImageStorageBytes(services.imageStorageService),
-      getImageStorageBytes(services.favoriteImageStorageService),
+      getImageStorageBreakdown(services.imageStorageService),
+      getImageStorageBreakdown(services.favoriteImageStorageService),
       includeBackupData && electronDataApi?.getStorageInfo
         ? electronDataApi.getStorageInfo()
         : Promise.resolve(null),
@@ -101,16 +113,25 @@ export async function resolveDataManagerStorageBreakdown(
     {
       key: 'appMainData',
       bytes: appMainDataResult.status === 'fulfilled' ? appMainDataResult.value : null,
+      count: null,
       estimated: true,
     },
     {
       key: 'imageCache',
-      bytes: imageCacheResult.status === 'fulfilled' ? imageCacheResult.value : null,
+      bytes: imageCacheResult.status === 'fulfilled' ? imageCacheResult.value.bytes : null,
+      count: imageCacheResult.status === 'fulfilled' ? imageCacheResult.value.count : null,
       estimated: false,
     },
     {
       key: 'favoriteImages',
-      bytes: favoriteImagesResult.status === 'fulfilled' ? favoriteImagesResult.value : null,
+      bytes:
+        favoriteImagesResult.status === 'fulfilled'
+          ? favoriteImagesResult.value.bytes
+          : null,
+      count:
+        favoriteImagesResult.status === 'fulfilled'
+          ? favoriteImagesResult.value.count
+          : null,
       estimated: false,
     },
   ]
@@ -119,6 +140,7 @@ export async function resolveDataManagerStorageBreakdown(
     items.push({
       key: 'backupData',
       bytes: desktopInfo?.backupSizeBytes ?? null,
+      count: null,
       estimated: false,
     })
   }

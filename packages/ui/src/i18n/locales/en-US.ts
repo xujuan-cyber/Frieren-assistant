@@ -1517,6 +1517,12 @@ export default {
       invalidContextBundle: "Invalid context bundle format",
       importModeRequired: "Please select import mode",
     },
+    backupWorkspace: {
+      title: "Data Backup",
+      description: "Export or import the full app dataset for migration, backup or recovery.",
+      exportTitle: "Export Current App Data",
+      importTitle: "Import Backup File",
+    },
     storage: {
       title: "Storage Usage",
       total: "Total (Includes Estimate)",
@@ -1525,6 +1531,7 @@ export default {
       appMainDataNote: "Includes models, templates, history, contexts and settings",
       imageCache: "Session/Result Image Cache",
       favoriteImages: "Favorite Images",
+      imageCount: "{count} images",
       backupData: "Backup Data",
       path: "Data directory",
       openDir: "Open directory",

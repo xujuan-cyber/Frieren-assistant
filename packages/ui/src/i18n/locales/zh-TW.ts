@@ -1459,6 +1459,12 @@ export default {
       invalidContextBundle: "無效的情境集合格式",
       importModeRequired: "請選擇匯入模式",
     },
+    backupWorkspace: {
+      title: "資料備份",
+      description: "匯出或匯入整個應用資料，用於遷移、備份或還原目前應用狀態。",
+      exportTitle: "匯出目前應用資料",
+      importTitle: "匯入備份檔案",
+    },
     storage: {
       title: "儲存占用",
       total: "總計（含估算）",
@@ -1467,6 +1473,7 @@ export default {
       appMainDataNote: "包含：模型、模板、歷史、上下文、設定",
       imageCache: "會話/結果圖片快取",
       favoriteImages: "收藏圖片",
+      imageCount: "共 {count} 張圖片",
       backupData: "備份資料",
       path: "資料目錄路徑",
       openDir: "開啟目錄",

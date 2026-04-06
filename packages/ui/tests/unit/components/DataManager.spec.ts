@@ -13,7 +13,7 @@ vi.mock('@prompt-optimizer/core', () => ({
 const naiveStubs = {
   NModal: {
     name: 'NModal',
-    template: '<div v-if="show"><slot /></div>',
+    template: '<div v-if="show" class="n-modal" :style="style"><slot /></div>',
     props: ['show', 'title', 'preset', 'style', 'size', 'bordered', 'segmented'],
     emits: ['update:show'],
   },
@@ -158,12 +158,23 @@ describe('DataManager storage breakdown', () => {
 
     await flushPromises()
 
+    const modal = wrapper.find('.n-modal')
     const text = wrapper.text()
+    expect(modal.attributes('style')).toContain('width: 90vw;')
+    expect(modal.attributes('style')).toContain('max-width: 1200px;')
+    expect(modal.attributes('style')).toContain('max-height: 90vh;')
+    expect(wrapper.findAll('.storage-stat-card')).toHaveLength(4)
     expect(text).toContain('总计（含估算）')
+    expect(text).toContain('数据备份')
     expect(text).toContain('应用主数据（估算）')
     expect(text).toContain('会话/结果图片缓存')
     expect(text).toContain('收藏图片')
     expect(text).toContain('包含：模型、模板、历史、上下文、设置')
+    expect(text).toContain('共 2 张图片')
+    expect(text).toContain('共 1 张图片')
+    expect(text).not.toContain('上下文集合')
+    expect(text).not.toContain('导出上下文集合')
+    expect(text).not.toContain('导入上下文集合')
     expect(text).not.toContain('备份数据')
     expect(text).not.toContain('数据目录路径')
   })
@@ -194,5 +205,18 @@ describe('DataManager storage breakdown', () => {
     expect(text).toContain('C:/PromptOptimizer/data')
     expect(text).toContain('打开目录')
     expect(text).toContain('刷新')
+  })
+
+  it('renders backup export and import as a two-column action layout', async () => {
+    const wrapper = mountComponent()
+
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(wrapper.findAll('.backup-action-card')).toHaveLength(2)
+    expect(text).toContain('导出当前应用数据')
+    expect(text).toContain('导入备份文件')
+    expect(text).not.toContain('导出上下文集合')
+    expect(text).not.toContain('导入上下文集合')
   })
 })

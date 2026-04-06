@@ -1469,6 +1469,12 @@ export default {
       invalidContextBundle: "无效的上下文集合格式",
       importModeRequired: "请选择导入模式",
     },
+    backupWorkspace: {
+      title: "数据备份",
+      description: "导出或导入整个应用数据，用于迁移、备份或恢复当前应用状态。",
+      exportTitle: "导出当前应用数据",
+      importTitle: "导入备份文件",
+    },
     storage: {
       title: "存储占用",
       total: "总计（含估算）",
@@ -1477,6 +1483,7 @@ export default {
       appMainDataNote: "包含：模型、模板、历史、上下文、设置",
       imageCache: "会话/结果图片缓存",
       favoriteImages: "收藏图片",
+      imageCount: "共 {count} 张图片",
       backupData: "备份数据",
       path: "数据目录路径",
       openDir: "打开目录",
