@@ -206,7 +206,8 @@ describe.skipIf(!RUN_REAL_API)('Image Adapters Real API Integration Tests', () =
       expect(result).toBeDefined()
       expect(result.images).toBeDefined()
       expect(result.images.length).toBe(1)
-      expect(result.images[0].url || result.images[0].b64).toBeTruthy()
+      expect(result.images[0].b64).toBeTruthy()
+      expect(result.images[0].url).toBeFalsy()
       expect(result.images[0].mimeType).toBe('image/png') // 验证MIME类型
       expect(result.metadata?.modelId).toBe(seedreamModelId)
     }, 120000) // 增加超时到120秒

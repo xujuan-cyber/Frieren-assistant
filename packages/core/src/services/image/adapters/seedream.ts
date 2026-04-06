@@ -174,10 +174,12 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
     const overrides: Record<string, any> = { ...config.paramOverrides, ...request.paramOverrides }
     delete overrides.n
     delete overrides.batch_size
+    delete overrides.response_format
     const payload: any = {
       model: config.modelId,
       prompt: request.prompt,
       sequential_image_generation: 'disabled', // 固定关闭组图输出，仅返回单张结果
+      response_format: 'b64_json', // 强制返回可持久化的 base64，避免 url-only 结果在浏览器侧二次抓取失败
       ...overrides,
       n: 1
     }
