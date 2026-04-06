@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.9.0] - 2026-04-06
+- EN: End-to-end multi-image generation, stronger storage safety and favorite asset handling, and a clearer data manager storage overview. See [Release Notes (EN)](releases/v2.9.0.en.md).
+- 中文：本次发布带来端到端多图生图、更稳健的存储安全与收藏资源治理，以及更清晰的数据管理存储概览。参见 [版本说明（中文）](releases/v2.9.0.zh-CN.md)。
+
 ## [2.8.0] - 2026-04-03
 - EN: Text-to-image evaluation, smoother reference-image workflows, and stronger Cloudflare-backed model support. See [Release Notes (EN)](releases/v2.8.0.en.md).
 - 中文：本次发布聚焦文生图评估、更顺畅的参考图工作流，以及更稳健的 Cloudflare 模型支持。参见 [版本说明（中文）](releases/v2.8.0.zh-CN.md)。
