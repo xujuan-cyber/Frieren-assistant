@@ -217,6 +217,128 @@ describe('FavoriteManager - 扩展功能', () => {
       expect(favorite.metadata?.customField).toBe('自定义值');
       expect(favorite.metadata?.anotherField).toBe(123);
     });
+
+    it('应该拒绝包含 data URL 封面的收藏 metadata', async () => {
+      await expect(
+        manager.addFavorite({
+          title: '测试',
+          content: '内容',
+          tags: [],
+          functionMode: 'basic',
+          optimizationMode: 'system',
+          metadata: {
+            media: {
+              coverUrl: 'data:image/png;base64,AAAA',
+            },
+          },
+        })
+      ).rejects.toThrow(FavoriteValidationError);
+    });
+
+    it('应该拒绝在更新时写入包含 data URL 的 gardenSnapshot 图片', async () => {
+      const id = await manager.addFavorite({
+        title: '测试',
+        content: '内容',
+        tags: [],
+        functionMode: 'basic',
+        optimizationMode: 'system',
+      });
+
+      await expect(
+        manager.updateFavorite(id, {
+          metadata: {
+            gardenSnapshot: {
+              assets: {
+                showcases: [
+                  {
+                    images: ['data:image/png;base64,BBBB'],
+                  },
+                ],
+              },
+            },
+          },
+        })
+      ).rejects.toThrow(FavoriteValidationError);
+    });
+  });
+
+  describe('favorites 存储防线', () => {
+    const buildFavoriteInput = (overrides: Record<string, unknown> = {}) => ({
+      title: '测试收藏',
+      content: '内容',
+      tags: [],
+      functionMode: 'basic' as const,
+      optimizationMode: 'system' as const,
+      ...overrides,
+    });
+
+    const buildStoredFavorite = (id: string, contentSizeBytes: number, updatedAt = Date.now()) => ({
+      id,
+      title: `收藏 ${id}`,
+      content: 'x'.repeat(contentSizeBytes),
+      tags: [],
+      functionMode: 'basic' as const,
+      optimizationMode: 'system' as const,
+      createdAt: updatedAt,
+      updatedAt,
+      useCount: 0,
+    });
+
+    it('应该拒绝写入超过 512 KiB 的单条收藏', async () => {
+      await expect(
+        manager.addFavorite(
+          buildFavoriteInput({
+            content: 'x'.repeat(520 * 1024),
+          }),
+        ),
+      ).rejects.toThrow(FavoriteValidationError);
+    });
+
+    it('应该拒绝将更新后的单条收藏扩张到超过 512 KiB', async () => {
+      const id = await manager.addFavorite(buildFavoriteInput());
+
+      await expect(
+        manager.updateFavorite(id, {
+          content: 'x'.repeat(520 * 1024),
+        }),
+      ).rejects.toThrow(FavoriteValidationError);
+    });
+
+    it('应该拒绝写入后整体 favorites payload 超过 8 MiB', async () => {
+      const existingFavorites = Array.from({ length: 16 }, (_, index) =>
+        buildStoredFavorite(`fav-${index + 1}`, 500 * 1024, 1_700_000_000_000 + index),
+      );
+      mockStorage.set('favorites', JSON.stringify(existingFavorites));
+
+      await expect(
+        manager.addFavorite(
+          buildFavoriteInput({
+            title: '会超限的收藏',
+            content: 'y'.repeat(500 * 1024),
+          }),
+        ),
+      ).rejects.toThrow(FavoriteValidationError);
+    });
+
+    it('在超过 2 MiB 但未达到 8 MiB 时应该允许写入并记录 warning', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const existingFavorites = Array.from({ length: 4 }, (_, index) =>
+        buildStoredFavorite(`fav-soft-${index + 1}`, 500 * 1024, 1_700_000_100_000 + index),
+      );
+      mockStorage.set('favorites', JSON.stringify(existingFavorites));
+
+      const id = await manager.addFavorite(
+        buildFavoriteInput({
+          title: '接近上限的收藏',
+          content: 'z'.repeat(40 * 1024),
+        }),
+      );
+
+      expect(id).toBeTruthy();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('favorites payload exceeds soft limit'),
+      );
+    });
   });
 
   describe('分类管理 - reorderCategories', () => {

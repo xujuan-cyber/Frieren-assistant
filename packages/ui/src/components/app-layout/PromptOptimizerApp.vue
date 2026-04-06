@@ -386,7 +386,26 @@ const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
 };
 
 // 2. 初始化应用服务
-const { services, isInitializing } = useAppInitializer();
+const { services, isInitializing, startupRepairReport } = useAppInitializer();
+
+const hasShownStartupRepairToast = ref(false)
+
+watch(
+  [isInitializing, startupRepairReport],
+  ([initializing, report]) => {
+    if (initializing || !report || hasShownStartupRepairToast.value) {
+      return
+    }
+
+    if (!Array.isArray(report.actions) || report.actions.length === 0) {
+      return
+    }
+
+    hasShownStartupRepairToast.value = true
+    toast.warning(`启动时已自动修复 ${report.actions.length} 项本地存储异常。`)
+  },
+  { immediate: true },
+)
 
 // 3. 初始化功能模式和子模式（必须在 sessionManager 之前）
 //

@@ -106,6 +106,16 @@ export { DexieStorageProvider } from './services/storage/dexieStorageProvider'
 export { LocalStorageProvider } from './services/storage/localStorageProvider'
 export { MemoryStorageProvider } from './services/storage/memoryStorageProvider'
 export { FileStorageProvider } from './services/storage/fileStorageProvider'
+export {
+  runStorageStartupSafetyCheck,
+  writeStartupRepairReport,
+  STARTUP_REPAIR_REPORT_PREFERENCE_KEY,
+  STARTUP_REPAIR_REPORT_STORAGE_KEY,
+} from './services/storage/startup-safety-check'
+export type {
+  StartupRepairAction,
+  StartupRepairReport,
+} from './services/storage/startup-safety-check'
 
 // 导出提示词服务相关
 export { PromptService } from './services/prompt/service'
@@ -208,6 +218,16 @@ export * from './services/context/constants'
 export { FavoriteManager } from './services/favorite/manager'
 export { FavoriteManagerElectronProxy } from './services/favorite/electron-proxy'
 export { TagTypeConverter } from './services/favorite/type-converter'
+export {
+  FAVORITE_ITEM_HARD_LIMIT_BYTES,
+  FAVORITES_SOFT_LIMIT_BYTES,
+  FAVORITES_HARD_LIMIT_BYTES,
+  INLINE_IMAGE_DATA_URL_RE,
+  assertFavoriteMetadataHasNoInlineImages,
+  assertFavoriteFitsItemBudget,
+  assertFavoritesPayloadWithinBudget,
+  normalizeFavoriteRecord,
+} from './services/favorite/storage-guards'
 export * from './services/favorite/types'
 export * from './services/favorite/errors'
 

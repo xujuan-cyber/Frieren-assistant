@@ -311,7 +311,11 @@ const saveImportedPromptToFavorites = async (opts: {
   }
 
   const modeMapping = toFavoriteModeMapping(targetKey)
-  const snapshot = await buildStorableGardenSnapshot(fetched.gardenSnapshot, imageStorageService)
+  const snapshot = await buildStorableGardenSnapshot(
+    fetched.gardenSnapshot,
+    imageStorageService,
+    { allowImageFallback: false },
+  )
   const media = buildFavoriteMediaFromSnapshot(snapshot)
   const favorites = await manager.getFavorites()
   const existing = favorites.find((favorite) => isSameGardenSnapshotFavorite(favorite, snapshot))
@@ -840,11 +844,22 @@ const persistSourcesToAssetIdsWithFallback = async (opts: {
   sources: string[]
   storageService: IImageStorageService | null | undefined
   metadata?: { prompt?: string }
+  allowSourceFallback?: boolean
 }): Promise<{ assetIds: string[]; fallbackSources: string[] }> => {
-  const { storageService, metadata } = opts
+  const { storageService, metadata, allowSourceFallback = true } = opts
   const normalizedSources = dedupeStrings(opts.sources.map((item) => String(item || '').trim()).filter(Boolean))
 
-  if (!storageService || normalizedSources.length === 0) {
+  if (normalizedSources.length === 0) {
+    return {
+      assetIds: [],
+      fallbackSources: normalizedSources,
+    }
+  }
+
+  if (!storageService) {
+    if (!allowSourceFallback) {
+      throw new Error('Favorite image storage service unavailable')
+    }
     return {
       assetIds: [],
       fallbackSources: normalizedSources,
@@ -865,11 +880,16 @@ const persistSourcesToAssetIdsWithFallback = async (opts: {
 
       if (assetId) {
         assetIds.push(assetId)
+      } else if (!allowSourceFallback) {
+        throw new Error(`Failed to persist snapshot image source: ${source}`)
       } else {
         fallbackSources.push(source)
       }
     } catch (error) {
       console.warn('[PromptGardenImport] Failed to persist snapshot image source:', source, error)
+      if (!allowSourceFallback) {
+        throw error
+      }
       fallbackSources.push(source)
     }
   }
@@ -884,8 +904,9 @@ const persistSnapshotAssetItem = async (opts: {
   item: GardenSnapshotAssetItem
   storageService: IImageStorageService | null | undefined
   metadata?: { prompt?: string }
+  allowSourceFallback?: boolean
 }): Promise<GardenSnapshotAssetItem> => {
-  const { storageService, metadata } = opts
+  const { storageService, metadata, allowSourceFallback = true } = opts
   const next: GardenSnapshotAssetItem = { ...opts.item }
 
   const imageSources = dedupeStrings([
@@ -897,6 +918,7 @@ const persistSnapshotAssetItem = async (opts: {
     sources: imageSources,
     storageService,
     metadata,
+    allowSourceFallback,
   })
 
   const existingImageAssetIds = extractStringArray(next.imageAssetIds)
@@ -915,6 +937,7 @@ const persistSnapshotAssetItem = async (opts: {
     sources: inputSources,
     storageService,
     metadata,
+    allowSourceFallback,
   })
 
   const existingInputAssetIds = extractStringArray(next.inputImageAssetIds)
@@ -927,9 +950,13 @@ const persistSnapshotAssetItem = async (opts: {
 async function buildStorableGardenSnapshot(
   snapshot: GardenSnapshot,
   imageStorageService?: IImageStorageService | null,
+  options?: {
+    allowImageFallback?: boolean
+  },
 ): Promise<GardenSnapshot> {
   const assets = snapshot.assets || {}
   const sourceMetadata = buildAssetSourceMetadata(snapshot)
+  const allowImageFallback = options?.allowImageFallback ?? true
 
   const cover = assets.cover ? { ...assets.cover } : undefined
   if (cover && typeof cover.url === 'string') {
@@ -943,9 +970,14 @@ async function buildStorableGardenSnapshot(
       if (coverAssetId) {
         cover.assetId = coverAssetId
         delete cover.url
+      } else if (!allowImageFallback) {
+        throw new Error(`Failed to persist cover image source: ${cover.url}`)
       }
     } catch (error) {
-      console.warn('[PromptGardenImport] Failed to persist cover image source:', cover.url, error)
+      console.info('[PromptGardenImport] Failed to persist cover image source:', cover.url, error)
+      if (!allowImageFallback) {
+        throw error
+      }
     }
   }
 
@@ -956,6 +988,7 @@ async function buildStorableGardenSnapshot(
             item,
             storageService: imageStorageService,
             metadata: sourceMetadata,
+            allowSourceFallback: allowImageFallback,
           }),
         ),
       )
@@ -968,6 +1001,7 @@ async function buildStorableGardenSnapshot(
             item,
             storageService: imageStorageService,
             metadata: sourceMetadata,
+            allowSourceFallback: allowImageFallback,
           }),
         ),
       )
@@ -1389,7 +1423,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 targetKey,
               })
             } catch (error) {
-              console.warn('[PromptGardenImport] Auto-save to favorites failed:', error)
+              toast.warning('Prompt Garden 导入成功，但收藏未保存。')
             }
           } else {
             console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')
@@ -1406,16 +1440,24 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
               getFavoriteImageStorageService?.() || getImageStorageService?.() || null
 
             let snapshot = fetched.gardenSnapshot
+            let includeMedia = true
             try {
-              snapshot = await buildStorableGardenSnapshot(snapshot, imageStorageService)
+              snapshot = await buildStorableGardenSnapshot(snapshot, imageStorageService, {
+                allowImageFallback: false,
+              })
             } catch (error) {
-              console.warn('[PromptGardenImport] Failed to persist snapshot assets for favorite dialog:', error)
+              console.info('[PromptGardenImport] Failed to persist snapshot assets for favorite dialog:', error)
+              includeMedia = false
             }
 
-            const media = buildFavoriteMediaFromSnapshot(snapshot)
             const metadata: Record<string, unknown> = {
               gardenSnapshot: snapshot,
-              ...(media ? { media } : {}),
+              ...(includeMedia
+                ? (() => {
+                    const media = buildFavoriteMediaFromSnapshot(snapshot)
+                    return media ? { media } : {}
+                  })()
+                : {}),
             }
 
             openSaveFavoriteDialog({

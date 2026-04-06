@@ -251,8 +251,12 @@ export class ImageStorageService implements IImageStorageService {
    * @returns 清理的图像数量
    */
   async cleanupOldImages(): Promise<number> {
+    const maxAge = this.config.maxAge
+    if (typeof maxAge !== 'number' || !Number.isFinite(maxAge) || maxAge <= 0) {
+      return 0
+    }
+
     const now = Date.now()
-    const maxAge = this.config.maxAge!
     const cutoffTime = now - maxAge
 
     // 查找过期图像（基于 accessedAt，而非 createdAt）
@@ -279,20 +283,22 @@ export class ImageStorageService implements IImageStorageService {
    * 3. 超过 maxCacheSize 的部分（删除最旧的）
    */
   async enforceQuota(): Promise<void> {
-    const maxAge = this.config.maxAge!
+    const maxAge = this.config.maxAge
     const maxCount = this.config.maxCount!
     const maxCacheSize = this.config.maxCacheSize!
     const now = Date.now()
 
     // 1. 清理过期图像（基于 accessedAt）
-    const cutoffTime = now - maxAge
-    const expiredImages = await this.db.imageMetadata
-      .where('accessedAt')
-      .below(cutoffTime)
-      .primaryKeys()
+    if (typeof maxAge === 'number' && Number.isFinite(maxAge) && maxAge > 0) {
+      const cutoffTime = now - maxAge
+      const expiredImages = await this.db.imageMetadata
+        .where('accessedAt')
+        .below(cutoffTime)
+        .primaryKeys()
 
-    if (expiredImages.length > 0) {
-      await this.deleteImages(expiredImages)
+      if (expiredImages.length > 0) {
+        await this.deleteImages(expiredImages)
+      }
     }
 
     // 重新获取统计（只查询 metadata 表，性能优化）

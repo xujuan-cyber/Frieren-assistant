@@ -25,6 +25,59 @@ const parseDataUrlPayload = (source: string): ImagePayload | null => {
   return { b64, mimeType }
 }
 
+const inferMimeTypeFromBytes = (bytes: Uint8Array): string | null => {
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'image/png'
+  }
+
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
+    return 'image/jpeg'
+  }
+
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'image/webp'
+  }
+
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) {
+    return 'image/gif'
+  }
+
+  return null
+}
+
 const fetchImagePayloadFromUrl = async (absoluteUrl: string): Promise<ImagePayload> => {
   const resp = await fetch(absoluteUrl, { method: 'GET' })
   if (!resp.ok) {
@@ -33,6 +86,13 @@ const fetchImagePayloadFromUrl = async (absoluteUrl: string): Promise<ImagePaylo
 
   const headerType = resp.headers.get('content-type')
   const mimeType = typeof headerType === 'string' ? headerType.split(';')[0].trim() : ''
+  const ab = await resp.arrayBuffer()
+  const bytes = new Uint8Array(ab)
+  const inferredMimeType = inferMimeTypeFromBytes(bytes)
+  const finalMimeType =
+    mimeType && mimeType !== 'application/octet-stream'
+      ? mimeType
+      : inferredMimeType || mimeType || 'application/octet-stream'
 
   type BufferLike = {
     from: (data: ArrayBuffer) => { toString: (encoding: 'base64') => string }
@@ -40,17 +100,15 @@ const fetchImagePayloadFromUrl = async (absoluteUrl: string): Promise<ImagePaylo
 
   const maybeBuffer = (globalThis as unknown as { Buffer?: BufferLike }).Buffer
   if (maybeBuffer && typeof maybeBuffer.from === 'function') {
-    const ab = await resp.arrayBuffer()
     const b64 = maybeBuffer.from(ab).toString('base64')
-    return { b64, mimeType: mimeType || 'application/octet-stream' }
+    return { b64, mimeType: finalMimeType }
   }
 
   if (typeof FileReader === 'undefined') {
     throw new Error('FileReader is not available to decode image payload')
   }
 
-  const blob = await resp.blob()
-  const actualMime = blob.type || mimeType || 'application/octet-stream'
+  const blob = new Blob([ab], { type: finalMimeType })
 
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -66,7 +124,7 @@ const fetchImagePayloadFromUrl = async (absoluteUrl: string): Promise<ImagePaylo
 
   return {
     b64: parsed.b64,
-    mimeType: parsed.mimeType || actualMime,
+    mimeType: parsed.mimeType || finalMimeType,
   }
 }
 

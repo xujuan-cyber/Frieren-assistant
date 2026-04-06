@@ -67,6 +67,8 @@ const {
   createContextRepo,
   FavoriteManager,
   FileStorageProvider,
+  runStorageStartupSafetyCheck,
+  writeStartupRepairReport,
   // 导入共享的环境变量扫描常量
   CUSTOM_API_PATTERN,
   SUFFIX_PATTERN,
@@ -593,6 +595,8 @@ async function initializeServices() {
     const userDataPath = app.getPath('userData');
     console.log('[DESKTOP] Using standard user data directory for auto-update compatibility:', userDataPath);
     storageProvider = new FileStorageProvider(userDataPath);
+    const startupRepairReport = await runStorageStartupSafetyCheck(storageProvider);
+    await writeStartupRepairReport(storageProvider, startupRepairReport);
     
     await initializePreferenceService(storageProvider);
     

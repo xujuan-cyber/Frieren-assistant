@@ -5,6 +5,40 @@ import { IMPORT_EXPORT_ERROR_CODES } from "../../constants/error-codes";
 import { StorageError } from "../storage/errors";
 import { toErrorWithCode } from "../../utils/error";
 
+const SESSION_KEY_PREFIX = "session/";
+const MAX_SESSION_SNAPSHOT_BYTES = 1024 * 1024;
+
+type SessionStorageOperation = "read" | "write";
+
+const getSerializedValueBytes = (value: string): number =>
+  new TextEncoder().encode(value).byteLength;
+
+const assertSessionSnapshotSize = (
+  key: string,
+  serializedValue: string,
+  operation: SessionStorageOperation,
+): void => {
+  if (!key.startsWith(SESSION_KEY_PREFIX)) {
+    return;
+  }
+
+  const bytes = getSerializedValueBytes(serializedValue);
+  if (bytes <= MAX_SESSION_SNAPSHOT_BYTES) {
+    return;
+  }
+
+  throw new StorageError(
+    `Session snapshot exceeds ${MAX_SESSION_SNAPSHOT_BYTES} bytes`,
+    operation,
+    {
+      reason: "session_snapshot_too_large",
+      key,
+      bytes,
+      limitBytes: MAX_SESSION_SNAPSHOT_BYTES,
+    },
+  );
+};
+
 // 需要导出的UI配置键 - 白名单验证
 const UI_SETTINGS_KEYS = [
   "app:settings:ui:theme-id",
@@ -91,6 +125,7 @@ export class PreferenceService implements IPreferenceService {
       if (storedValue === null) {
         return defaultValue;
       }
+      assertSessionSnapshotSize(key, storedValue, "read");
       // 将键添加到缓存中
       this.keyCache.add(key);
       return JSON.parse(storedValue) as T;
@@ -116,6 +151,7 @@ export class PreferenceService implements IPreferenceService {
     try {
       const prefKey = this.getPrefKey(key);
       const stringValue = JSON.stringify(value);
+      assertSessionSnapshotSize(key, stringValue, "write");
 
       await this.storageProvider.setItem(prefKey, stringValue);
       // 将键添加到缓存中

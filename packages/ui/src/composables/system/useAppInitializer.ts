@@ -2,6 +2,7 @@ import { ref, shallowRef, onMounted, type Ref } from 'vue'
 
 import {
   StorageFactory,
+  STARTUP_REPAIR_REPORT_PREFERENCE_KEY,
   createModelManager,
   createTemplateManager,
   createHistoryManager,
@@ -33,6 +34,8 @@ import {
   createImageAdapterRegistry,
   createTextAdapterRegistry,
   createImageStorageService,
+  runStorageStartupSafetyCheck,
+  writeStartupRepairReport,
   // migrateLegacySessions - 已移除，session 是本次重构新引入
   type IImageModelManager,
   type IImageService,
@@ -49,11 +52,39 @@ import {
   type IVariableExtractionService,
   type IVariableValueGenerationService,
   type IImageStorageService,
+  type StartupRepairReport,
   type ContextMode,
   DEFAULT_CONTEXT_MODE
 } from '@prompt-optimizer/core';
 import type { AppServices } from '../../types/services';
 import { scheduleImageStorageGc } from '../../stores/session/imageStorageMaintenance'
+import {
+  attachFavoriteAssetGc,
+  runFavoriteAssetGc,
+} from '../../utils/favorite-asset-maintenance'
+
+const appendStartupRepairReport = (
+  currentReport: StartupRepairReport | null,
+  nextAction: StartupRepairReport['actions'][number],
+): StartupRepairReport => ({
+  checkedAt: currentReport?.checkedAt ?? Date.now(),
+  actions: [...(currentReport?.actions || []), nextAction],
+})
+
+const consumeStartupRepairReport = async (
+  preferenceService: IPreferenceService,
+): Promise<StartupRepairReport | null> => {
+  const report = await preferenceService.get<StartupRepairReport | null>(
+    STARTUP_REPAIR_REPORT_PREFERENCE_KEY,
+    null,
+  )
+
+  if (report) {
+    await preferenceService.delete(STARTUP_REPAIR_REPORT_PREFERENCE_KEY)
+  }
+
+  return report
+}
 
 /**
  * 应用服务统一初始化器。
@@ -64,10 +95,12 @@ export function useAppInitializer(): {
   services: Ref<AppServices | null>;
   isInitializing: Ref<boolean>;
   error: Ref<Error | null>;
+  startupRepairReport: Ref<StartupRepairReport | null>;
 } {
   const services = shallowRef<AppServices | null>(null);
   const isInitializing = ref(true);
   const error = ref<Error | null>(null);
+  const startupRepairReport = ref<StartupRepairReport | null>(null);
 
   onMounted(async () => {
     try {
@@ -113,6 +146,7 @@ export function useAppInitializer(): {
         llmService = new ElectronLLMProxy();
         promptService = new ElectronPromptServiceProxy();
         preferenceService = new ElectronPreferenceServiceProxy();
+        startupRepairReport.value = await consumeStartupRepairReport(preferenceService)
 
         // 文本模型适配器注册表（本地实例，不需要代理）
         textAdapterRegistryInstance = createTextAdapterRegistry();
@@ -136,7 +170,7 @@ export function useAppInitializer(): {
         // 收藏快照图像存储（独立数据库，避免与 session 图片清理策略耦合）
         favoriteImageStorageService = createImageStorageService({
           maxCacheSize: 200 * 1024 * 1024,      // 200 MB
-          maxAge: 365 * 24 * 60 * 60 * 1000,    // 365 天
+          maxAge: undefined,
           maxCount: 1000,
           autoCleanupThreshold: 0.9,
           dbName: 'PromptOptimizerFavoriteImageDB',
@@ -157,6 +191,22 @@ export function useAppInitializer(): {
         // 创建收藏管理器代理
         const { FavoriteManagerElectronProxy } = await import('@prompt-optimizer/core')
         favoriteManager = new FavoriteManagerElectronProxy();
+        favoriteManager = attachFavoriteAssetGc(favoriteManager as any, favoriteImageStorageService)
+
+        if (favoriteImageStorageService) {
+          const favoriteAssetGcResult = await runFavoriteAssetGc(
+            favoriteManager,
+            favoriteImageStorageService,
+          )
+          if (favoriteAssetGcResult.deletedIds.length > 0) {
+            startupRepairReport.value = appendStartupRepairReport(startupRepairReport.value, {
+              key: 'PromptOptimizerFavoriteImageDB',
+              action: 'removed',
+              reason: 'orphan_assets_removed',
+              deletedCount: favoriteAssetGcResult.deletedIds.length,
+            })
+          }
+        }
 
         // 🆕 创建评估服务（使用代理的 llmService, modelManager, templateManager）
         evaluationService = createEvaluationService(llmService, modelManager, templateManager, {
@@ -220,9 +270,12 @@ export function useAppInitializer(): {
         console.log('[AppInitializer] 检测到Web环境，初始化完整服务...');
         // 在Web环境中，我们创建一套完整的、真实的服务
         const storageProvider = StorageFactory.create('dexie');
+        const stage1StartupRepairReport = await runStorageStartupSafetyCheck(storageProvider)
+        await writeStartupRepairReport(storageProvider, stage1StartupRepairReport)
 
         // 创建基于存储提供器的偏好设置服务，使用core包中的createPreferenceService
         preferenceService = createPreferenceService(storageProvider);
+        startupRepairReport.value = await consumeStartupRepairReport(preferenceService)
 
         const languageService = createTemplateLanguageService(preferenceService);
         
@@ -250,7 +303,7 @@ export function useAppInitializer(): {
         // 收藏快照图像存储（独立数据库，避免与 session 图片清理策略耦合）
         favoriteImageStorageService = createImageStorageService({
           maxCacheSize: 200 * 1024 * 1024,      // 200 MB
-          maxAge: 365 * 24 * 60 * 60 * 1000,    // 365 天
+          maxAge: undefined,
           maxCount: 1000,
           autoCleanupThreshold: 0.9,
           dbName: 'PromptOptimizerFavoriteImageDB',
@@ -370,6 +423,22 @@ export function useAppInitializer(): {
 
         // 创建收藏管理器
         favoriteManager = new FavoriteManager(storageProvider);
+        favoriteManager = attachFavoriteAssetGc(favoriteManager as any, favoriteImageStorageService)
+
+        if (favoriteImageStorageService) {
+          const favoriteAssetGcResult = await runFavoriteAssetGc(
+            favoriteManager,
+            favoriteImageStorageService,
+          )
+          if (favoriteAssetGcResult.deletedIds.length > 0) {
+            startupRepairReport.value = appendStartupRepairReport(startupRepairReport.value, {
+              key: 'PromptOptimizerFavoriteImageDB',
+              action: 'removed',
+              reason: 'orphan_assets_removed',
+              deletedCount: favoriteAssetGcResult.deletedIds.length,
+            })
+          }
+        }
 
         // 🆕 创建评估服务
         evaluationService = createEvaluationService(llmService, modelManagerAdapter, templateManagerAdapter, {
@@ -443,5 +512,5 @@ export function useAppInitializer(): {
     }
   });
 
-  return { services, isInitializing, error };
+  return { services, isInitializing, error, startupRepairReport };
 } 

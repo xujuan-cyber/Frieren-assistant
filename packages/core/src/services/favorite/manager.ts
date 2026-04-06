@@ -17,6 +17,11 @@ import {
 } from './errors';
 import { TypeMapper } from './type-mapper';
 import { TagTypeConverter } from './type-converter';
+import {
+  assertFavoriteFitsItemBudget,
+  assertFavoriteMetadataHasNoInlineImages,
+  assertFavoritesPayloadWithinBudget,
+} from './storage-guards';
 
 /**
  * 收藏管理器实现
@@ -209,6 +214,8 @@ export class FavoriteManager implements IFavoriteManager {
       }
     }
 
+    assertFavoriteMetadataHasNoInlineImages(favorite.metadata);
+
     const favoriteData = {
       title: favorite.title?.trim() || favorite.content.slice(0, 50) + (favorite.content.length > 50 ? '...' : ''),
       content: favorite.content,
@@ -231,13 +238,18 @@ export class FavoriteManager implements IFavoriteManager {
       updatedAt: now,
       useCount: 0
     };
+    assertFavoriteFitsItemBudget(newFavorite);
 
     try {
       await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
         const favoritesList = favorites || [];
         // 🔧 移除重复内容检查 - 允许收藏相同内容但属性不同的提示词
         // 用户可能需要��同一内容设置不同的标题、分类、标签等
-        return [...favoritesList, newFavorite];
+        const nextFavoritesList = [...favoritesList, newFavorite];
+        assertFavoritesPayloadWithinBudget(nextFavoritesList, {
+          warnOnSoftLimit: true,
+        });
+        return nextFavoritesList;
       });
 
       await this.updateStats();
@@ -345,6 +357,10 @@ export class FavoriteManager implements IFavoriteManager {
     await this.ensureInitialized();
 
     try {
+      if (Object.prototype.hasOwnProperty.call(updates, 'metadata')) {
+        assertFavoriteMetadataHasNoInlineImages(updates.metadata);
+      }
+
       await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
         const favoritesList = favorites || [];
         const index = favoritesList.findIndex(f => f.id === id);
@@ -352,11 +368,17 @@ export class FavoriteManager implements IFavoriteManager {
           throw new FavoriteNotFoundError(id);
         }
 
-        favoritesList[index] = {
+        const nextFavorite = {
           ...favoritesList[index],
           ...updates,
           updatedAt: Date.now()
         };
+        assertFavoriteFitsItemBudget(nextFavorite);
+
+        favoritesList[index] = nextFavorite;
+        assertFavoritesPayloadWithinBudget(favoritesList, {
+          warnOnSoftLimit: true,
+        });
 
         return favoritesList;
       });
@@ -1116,6 +1138,7 @@ export class FavoriteManager implements IFavoriteManager {
 
         const normalizeMetadata = (metadata: unknown) => {
           if (metadata && typeof metadata === 'object') {
+            assertFavoriteMetadataHasNoInlineImages(metadata);
             return metadata as Record<string, unknown>;
           }
           return undefined;
@@ -1197,6 +1220,7 @@ export class FavoriteManager implements IFavoriteManager {
               updatedAt,
               useCount
             };
+            assertFavoriteFitsItemBudget(newFavorite);
 
             favoritesList.push(newFavorite);
             timestampOffset++;
@@ -1205,6 +1229,10 @@ export class FavoriteManager implements IFavoriteManager {
             const errorMessage = error instanceof Error ? error.message : String(error);
             result.errors.push(`Failed to import favorite: ${errorMessage}`);
           }
+        });
+
+        assertFavoritesPayloadWithinBudget(favoritesList, {
+          warnOnSoftLimit: true,
         });
 
         return favoritesList;

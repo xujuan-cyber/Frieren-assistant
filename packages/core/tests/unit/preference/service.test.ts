@@ -139,6 +139,40 @@ describe('PreferenceService', () => {
   });
 
   describe('错误处理', () => {
+    it('should reject oversized session snapshots on write', async () => {
+      const oversizedValue = {
+        payload: 'x'.repeat(1024 * 1024 + 128),
+      }
+
+      await expect(
+        preferenceService.set('session/v1/image-multiimage', oversizedValue)
+      ).rejects.toMatchObject({
+        code: 'error.storage.write',
+        params: expect.objectContaining({
+          reason: 'session_snapshot_too_large',
+          key: 'session/v1/image-multiimage',
+        }),
+      })
+    });
+
+    it('should reject oversized session snapshots on read before parsing', async () => {
+      const oversizedRaw = JSON.stringify({
+        payload: 'x'.repeat(1024 * 1024 + 128),
+      })
+
+      await mockStorage.setItem('pref:session/v1/image-multiimage', oversizedRaw)
+
+      await expect(
+        preferenceService.get('session/v1/image-multiimage', null)
+      ).rejects.toMatchObject({
+        code: 'error.storage.read',
+        params: expect.objectContaining({
+          reason: 'session_snapshot_too_large',
+          key: 'session/v1/image-multiimage',
+        }),
+      })
+    });
+
     it('should handle storage errors in get', async () => {
       const mockStorageWithError = {
         getItem: vi.fn().mockRejectedValue(new Error('Storage error')),
