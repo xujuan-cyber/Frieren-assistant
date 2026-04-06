@@ -47,6 +47,30 @@ describe('image multiimage input UI guards', () => {
     expect(source).not.toMatch(/preview-disabled/)
   })
 
+  it('keeps an explicit remove action in the card footer instead of relying on a tiny preview overlay', () => {
+    const source = readWorkspaceSource()
+
+    expect(source).toMatch(/class="image-card__actions"/)
+    expect(source).toMatch(/class="image-card__remove"/)
+    expect(source).toMatch(/:aria-label="`删除图\$\{index \+ 1\}`"/)
+
+    const previewWrapIndex = source.indexOf('class="image-card__preview-wrap"')
+    const removeIndex = source.indexOf('class="image-card__remove"')
+    const footerIndex = source.indexOf('class="image-card__footer"')
+    const actionsIndex = source.indexOf('class="image-card__actions"')
+
+    expect(previewWrapIndex).toBeGreaterThan(-1)
+    expect(removeIndex).toBeGreaterThan(-1)
+    expect(footerIndex).toBeGreaterThan(-1)
+    expect(actionsIndex).toBeGreaterThan(-1)
+    expect(footerIndex).toBeGreaterThan(previewWrapIndex)
+    expect(removeIndex).toBeGreaterThan(footerIndex)
+    expect(removeIndex).toBeGreaterThan(actionsIndex)
+
+    const previewSegment = source.slice(previewWrapIndex, footerIndex)
+    expect(previewSegment).not.toContain('class="image-card__remove"')
+  })
+
   it('splits the left pane into an input card and a fill-height optimized prompt workspace', () => {
     const source = readWorkspaceSource()
 

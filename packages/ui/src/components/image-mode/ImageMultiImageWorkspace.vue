@@ -150,17 +150,6 @@
                         :alt="`图${index + 1}`"
                         object-fit="cover"
                       />
-                      <NButton
-                        class="image-card__remove"
-                        quaternary
-                        circle
-                        type="error"
-                        :aria-label="`删除图${index + 1}`"
-                        @mousedown.stop
-                        @click.stop="removeImage(item.id)"
-                      >
-                        ×
-                      </NButton>
                     </div>
                     <div
                       class="image-card__footer"
@@ -173,7 +162,20 @@
                       @dragend="handleImageDragEnd"
                     >
                       <NText strong class="image-card__label">{{ `图${index + 1}` }}</NText>
-                      <span class="image-card__drag-handle" aria-hidden="true">⋮⋮</span>
+                      <div class="image-card__actions">
+                        <NButton
+                          class="image-card__remove"
+                          quaternary
+                          size="small"
+                          type="error"
+                          :aria-label="`删除图${index + 1}`"
+                          @mousedown.stop
+                          @click.stop="removeImage(item.id)"
+                        >
+                          删除
+                        </NButton>
+                        <span class="image-card__drag-handle" aria-hidden="true">⋮⋮</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1820,19 +1822,31 @@ onUnmounted(() => {
 .image-card__footer:active {
   cursor: grabbing;
 }
+.image-card__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
 .image-card__drag-handle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  min-width: 22px;
+  height: 24px;
   color: var(--n-text-color-2);
   line-height: 1;
   font-size: 14px;
   letter-spacing: -1px;
 }
 .image-card__label { flex: 1; min-width: 0; text-align: left; }
-.image-card__remove { position: absolute; top: 6px; right: 6px; z-index: 1; background: var(--n-color); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); }
+.image-card__remove {
+  flex-shrink: 0;
+  min-width: 44px;
+  padding-inline: 10px;
+  border-radius: 999px;
+}
 .image-upload-card { width: 116px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--n-border-color); border-radius: 14px; background: var(--n-color-embedded); color: var(--n-text-color-2); cursor: pointer; appearance: none; font: inherit; text-align: center; transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s ease; }
 .image-upload-card:hover { border-color: var(--n-border-color-hover); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); transform: translateY(-1px); }
 .image-upload-card:focus-visible { outline: none; border-color: var(--n-primary-color); box-shadow: 0 0 0 2px var(--n-primary-color-suppl); }
