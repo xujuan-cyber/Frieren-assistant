@@ -7,7 +7,7 @@ import * as path from 'path'
 const MODE = 'image-text2image' as const
 
 function isBase64DataUrl(src: string) {
-  return /^data:image\/(png|jpeg);base64,/.test(src)
+  return /^data:image\//.test(src)
 }
 
 async function saveBase64DataUrlAsPng(dataUrl: string, outPath: string) {
@@ -107,7 +107,7 @@ test.describe('Image Text2Image - 生成（SiliconFlow）', () => {
         originalSrc = (await originalImg.getAttribute('src')) || ''
         return originalSrc
       }, { timeout: 240000 })
-      .toMatch(/^data:image\/(png|jpeg);base64,|^https?:\/\//)
+      .toMatch(/^data:image\/|^https?:\/\//)
 
     let optimizedSrc = ''
     await expect
@@ -115,7 +115,14 @@ test.describe('Image Text2Image - 生成（SiliconFlow）', () => {
         optimizedSrc = (await optimizedImg.getAttribute('src')) || ''
         return optimizedSrc
       }, { timeout: 240000 })
-      .toMatch(/^data:image\/(png|jpeg);base64,|^https?:\/\//)
+      .toMatch(/^data:image\/|^https?:\/\//)
+
+    if (process.env.E2E_VCR_MODE === 'replay') {
+      expect(originalSrc).toMatch(/^data:image\//)
+      expect(optimizedSrc).toMatch(/^data:image\//)
+      expect(originalSrc).not.toMatch(/^https?:\/\//)
+      expect(optimizedSrc).not.toMatch(/^https?:\/\//)
+    }
 
     // 在 record 模式下保存一张样例图供 image2image 上传复用。
     // 如果是 base64，直接落盘；如果是 URL（siliconflow 默认返回 url），则通过 Playwright 下载落盘。

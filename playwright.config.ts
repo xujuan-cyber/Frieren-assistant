@@ -94,6 +94,7 @@ export default defineConfig({
         ? {
             VITE_SILICONFLOW_API_KEY: process.env.VITE_SILICONFLOW_API_KEY || 'vcr',
             VITE_DEEPSEEK_API_KEY: process.env.VITE_DEEPSEEK_API_KEY || 'vcr',
+            VITE_DASHSCOPE_API_KEY: process.env.VITE_DASHSCOPE_API_KEY || 'vcr',
           }
         : {}),
     },

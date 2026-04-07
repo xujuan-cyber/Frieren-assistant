@@ -58,7 +58,10 @@ async function selectOption(page: any, select: any, matcher?: RegExp) {
 }
 
 async function selectPreferredMultimodalTextModel(page: any, select: any) {
-  const preferredMatchers = [/qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i]
+  const preferredMatchers =
+    process.env.E2E_VCR_MODE === 'replay'
+      ? [/deepseek/i, /qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i]
+      : [/qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i, /deepseek/i]
 
   for (const matcher of preferredMatchers) {
     const options = await openSelectAndWaitForVisibleOptions(page, select)
@@ -81,7 +84,7 @@ async function selectPreferredMultimodalTextModel(page: any, select: any) {
     .join(' | ')
   await page.keyboard.press('Escape').catch(() => {})
   throw new Error(
-    `[E2E] image-image2image text model must support multimodal optimize; expected one of qwen/gemini/dashscope, available options: ${optionTexts}`
+    `[E2E] image-image2image text model must support multimodal optimize; expected one of deepseek/qwen/gemini/dashscope, available options: ${optionTexts}`
   )
 }
 
@@ -149,10 +152,19 @@ test.describe('Image Image2Image - 生成（SiliconFlow）', () => {
 
     await expect
       .poll(async () => (await originalImg.getAttribute('src')) || '', { timeout: 240000 })
-      .toMatch(/^data:image\/(png|jpeg);base64,|^https?:\/\//)
+      .toMatch(/^data:image\/|^https?:\/\//)
 
     await expect
       .poll(async () => (await optimizedImg.getAttribute('src')) || '', { timeout: 240000 })
-      .toMatch(/^data:image\/(png|jpeg);base64,|^https?:\/\//)
+      .toMatch(/^data:image\/|^https?:\/\//)
+
+    if (process.env.E2E_VCR_MODE === 'replay') {
+      const originalSrc = (await originalImg.getAttribute('src')) || ''
+      const optimizedSrc = (await optimizedImg.getAttribute('src')) || ''
+      expect(originalSrc).toMatch(/^data:image\//)
+      expect(optimizedSrc).toMatch(/^data:image\//)
+      expect(originalSrc).not.toMatch(/^https?:\/\//)
+      expect(optimizedSrc).not.toMatch(/^https?:\/\//)
+    }
   })
 })

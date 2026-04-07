@@ -19,7 +19,7 @@ import * as crypto from 'crypto'
 /**
  * LLM API 提供商
  */
-type LLMProvider = 'openai' | 'deepseek' | 'anthropic' | 'gemini' | 'zhipu' | 'modelscope' | 'siliconflow'
+type LLMProvider = 'openai' | 'deepseek' | 'anthropic' | 'gemini' | 'zhipu' | 'modelscope' | 'siliconflow' | 'dashscope'
 
 /**
  * VCR 模式
@@ -80,6 +80,19 @@ interface VCRFixture {
 }
 
 const CURRENT_TEST_VCR_FAILURE_KEY = '__PROMPT_OPTIMIZER_CURRENT_TEST_VCR_FAILURE__'
+const INLINE_IMAGE_DATA_URL_RE = /^data:image\/([a-z0-9.+-]+)(?:;charset=[^;,]+)?;base64,/iu
+const INLINE_BASE64_FIELD_KEYS = new Set(['b64', 'base64', 'b64_json', 'data'])
+const HTTP_URL_RE = /^https?:\/\//iu
+const REPLAY_PLACEHOLDER_SVG = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">',
+  '<rect width="240" height="160" fill="#f3f4f6"/>',
+  '<path d="M0 0L240 160M240 0L0 160" stroke="#cbd5e1" stroke-width="2"/>',
+  '<rect x="24" y="44" width="192" height="72" rx="12" fill="#e2e8f0" stroke="#94a3b8"/>',
+  '<text x="120" y="77" text-anchor="middle" fill="#334155" font-family="Arial, sans-serif" font-size="16">Image omitted</text>',
+  '<text x="120" y="99" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="12">Replay placeholder</text>',
+  '</svg>',
+].join('')
+const REPLAY_PLACEHOLDER_DATA_URL = `data:image/svg+xml;base64,${Buffer.from(REPLAY_PLACEHOLDER_SVG, 'utf8').toString('base64')}`
 
 const getVCRFailureStore = (): { value: string | null } => {
   const scopedGlobal = globalThis as typeof globalThis & {
@@ -298,6 +311,7 @@ class E2EVCR {
     if (url.includes('open.bigmodel.cn')) return 'zhipu'
     if (url.includes('modelscope.cn')) return 'modelscope'
     if (url.includes('api.siliconflow.cn')) return 'siliconflow'
+    if (url.includes('dashscope.aliyuncs.com')) return 'dashscope'
     return null
   }
 
@@ -320,24 +334,205 @@ class E2EVCR {
     return JSON.stringify(value)
   }
 
+  private isLikelyInlineBase64(value: string): boolean {
+    const trimmed = value.trim()
+    if (trimmed.length < 64) return false
+    return /^[a-z0-9+/=_\r\n-]+$/i.test(trimmed)
+  }
+
+  private normalizePromptTemplateText(content: string, role?: string): string {
+    const normalized = content.replace(/\r\n/g, '\n').trim()
+
+    if (role === 'system') {
+      const roleMatch = normalized.match(/^# Role:\s*(.+)$/m)
+      if (roleMatch) {
+        return `__system_role:${roleMatch[1].trim()}__`
+      }
+    }
+
+    const imageEvidenceMatch = normalized.match(
+      /Image-to-Image modification-request evidence \(JSON\):\s*([\s\S]*?)\n\nPlease output/i,
+    )
+    if (imageEvidenceMatch) {
+      try {
+        const parsedEvidence = JSON.parse(imageEvidenceMatch[1].trim())
+        if (typeof parsedEvidence?.originalPrompt === 'string' && parsedEvidence.originalPrompt.trim()) {
+          return parsedEvidence.originalPrompt.trim()
+        }
+
+        return this.stableStringify(this.normalizeRequestValue(parsedEvidence))
+      } catch {
+        return imageEvidenceMatch[1].trim()
+      }
+    }
+
+    const legacyRequestMatch = normalized.match(
+      /Modification request to optimize:\s*([\s\S]*?)\n\nPlease output/i,
+    )
+    if (legacyRequestMatch) {
+      return legacyRequestMatch[1].trim()
+    }
+
+    return normalized
+  }
+
+  private normalizeChatMessageContent(content: any, role: string): any {
+    if (typeof content === 'string') {
+      return this.normalizePromptTemplateText(content, role)
+    }
+
+    if (Array.isArray(content)) {
+      const textParts = content
+        .map((item) => {
+          if (typeof item === 'string') return item
+          if (!item || typeof item !== 'object') return ''
+          if (item.type === 'text' && typeof item.text === 'string') return item.text
+          return ''
+        })
+        .filter(Boolean)
+
+      const joinedText = textParts.join('\n\n').trim()
+      return joinedText ? this.normalizePromptTemplateText(joinedText, role) : ''
+    }
+
+    return this.normalizeRequestValue(content)
+  }
+
+  private normalizeRequestValue(value: any, key?: string): any {
+    if (typeof value === 'string') {
+      const inlineImageMatch = value.match(INLINE_IMAGE_DATA_URL_RE)
+      if (inlineImageMatch) {
+        return `__inline_image_data_url_${inlineImageMatch[1].toLowerCase()}__`
+      }
+
+      if (key && INLINE_BASE64_FIELD_KEYS.has(key.toLowerCase()) && this.isLikelyInlineBase64(value)) {
+        return '__inline_image_base64__'
+      }
+
+      return value
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.normalizeRequestValue(item, key))
+    }
+
+    if (value && typeof value === 'object') {
+      if (Array.isArray((value as { messages?: any[] }).messages)) {
+        const normalizedMessages = (value as { messages: any[] }).messages.map((message) => {
+          const role = typeof message?.role === 'string' ? message.role : 'unknown'
+          return {
+            ...message,
+            content: this.normalizeChatMessageContent(message?.content, role),
+          }
+        })
+
+        return Object.fromEntries(
+          Object.entries(value).map(([entryKey, entryValue]) => [
+            entryKey,
+            entryKey === 'messages' ? normalizedMessages : this.normalizeRequestValue(entryValue, entryKey),
+          ]),
+        )
+      }
+
+      return Object.fromEntries(
+        Object.entries(value).map(([entryKey, entryValue]) => [
+          entryKey,
+          this.normalizeRequestValue(entryValue, entryKey),
+        ]),
+      )
+    }
+
+    return value
+  }
+
   private computeRequestHash(provider: LLMProvider, url: string, method: string, requestBody: any): string {
     // Normalize url: for some providers, query params (e.g. cache busters) should not affect matching.
     const normalizedUrl = url.split('?')[0]
-
-    // Image2Image requests can embed huge base64 strings; avoid hashing raw bytes.
-    // The hash only needs to distinguish interactions within a test run.
-    const normalizedBody = (() => {
-      if (!requestBody || typeof requestBody !== 'object') return requestBody
-      const cloned = JSON.parse(JSON.stringify(requestBody))
-      const b64 = cloned?.inputImage?.b64
-      if (typeof b64 === 'string' && b64.length > 0) {
-        cloned.inputImage.b64 = `__b64_len_${b64.length}__`
-      }
-      return cloned
-    })()
+    const normalizedBody = this.normalizeRequestValue(requestBody)
 
     const payload = `${provider}|${method}|${normalizedUrl}|${this.stableStringify(normalizedBody)}`
     return crypto.createHash('sha256').update(payload).digest('hex')
+  }
+
+  private rewriteReplayImageEntry(value: any): any {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value
+    }
+
+    if (
+      typeof value.b64 === 'string' ||
+      typeof value.b64_json === 'string' ||
+      typeof value.base64 === 'string'
+    ) {
+      return value
+    }
+
+    const rawUrl = typeof value.url === 'string' ? value.url.trim() : ''
+    if (!HTTP_URL_RE.test(rawUrl)) {
+      return value
+    }
+
+    return {
+      ...value,
+      url: REPLAY_PLACEHOLDER_DATA_URL,
+    }
+  }
+
+  private rewriteReplayImageGenerationPayload(value: any): any {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value
+    }
+
+    let changed = false
+    const next = { ...value }
+
+    for (const key of ['images', 'data']) {
+      const items = (value as Record<string, any>)[key]
+      if (!Array.isArray(items)) {
+        continue
+      }
+
+      const rewrittenItems = items.map((item) => {
+        const rewrittenItem = this.rewriteReplayImageEntry(item)
+        if (rewrittenItem !== item) {
+          changed = true
+        }
+        return rewrittenItem
+      })
+
+      next[key] = rewrittenItems
+    }
+
+    return changed ? next : value
+  }
+
+  private getReplayFulfillBody(interaction: VCRInteraction): string {
+    const contentType = interaction.responseHeaders?.['content-type'] || 'application/json'
+    if (!/[/+]json\b/i.test(contentType)) {
+      return interaction.rawBody || ''
+    }
+
+    const parsedBody =
+      interaction.responseBody && typeof interaction.responseBody === 'object'
+        ? interaction.responseBody
+        : (() => {
+            try {
+              return JSON.parse(interaction.rawBody || '')
+            } catch {
+              return null
+            }
+          })()
+
+    if (!parsedBody) {
+      return interaction.rawBody || ''
+    }
+
+    const rewrittenBody = this.rewriteReplayImageGenerationPayload(parsedBody)
+    if (rewrittenBody === parsedBody && interaction.rawBody) {
+      return interaction.rawBody
+    }
+
+    return JSON.stringify(rewrittenBody)
   }
 
   private normalizeFixture(fixture: VCRFixture | null): VCRFixture {
@@ -350,6 +545,14 @@ class E2EVCR {
           it.responseHeaders = it.responseHeaders || { 'content-type': 'text/event-stream' }
           delete it.rawSSE
         }
+
+        const normalizedMethod = typeof it.method === 'string' && it.method ? it.method : 'POST'
+        const normalizedRequestBody = this.normalizeRequestValue(it.requestBody)
+
+        it.method = normalizedMethod
+        it.requestBody = normalizedRequestBody
+        it.requestHash = this.computeRequestHash(it.provider, it.url, normalizedMethod, normalizedRequestBody)
+        it.status = Number(it.status ?? 200)
       }
       return fixture
     }
@@ -358,7 +561,7 @@ class E2EVCR {
     if (fixture && (fixture as any).rawSSE) {
       const legacyProvider = (fixture as any).provider as LLMProvider
       const legacyUrl = (fixture as any).url as string
-      const legacyRequestBody = (fixture as any).requestBody
+      const legacyRequestBody = this.normalizeRequestValue((fixture as any).requestBody)
       const legacyMethod = 'POST'
       const legacyRequestHash = this.computeRequestHash(legacyProvider, legacyUrl, legacyMethod, legacyRequestBody)
 
@@ -423,22 +626,7 @@ class E2EVCR {
       interactions: [...existing.interactions],
     }
 
-    const sanitizedBody = (() => {
-      try {
-        // Keep the fixture small: drop huge base64 payloads.
-        if (requestBody && typeof requestBody === 'object') {
-          const cloned = JSON.parse(JSON.stringify(requestBody))
-          const b64 = cloned?.inputImage?.b64
-          if (typeof b64 === 'string' && b64.length > 0) {
-            cloned.inputImage.b64 = `__b64_len_${b64.length}__`
-          }
-          return cloned
-        }
-      } catch {
-        // ignore
-      }
-      return requestBody
-    })()
+    const sanitizedBody = this.normalizeRequestValue(requestBody)
 
     fixture.interactions.push({
       provider,
@@ -563,6 +751,7 @@ class E2EVCR {
       /https:\/\/open\.bigmodel\.cn\/.*/,
       /https:\/\/.*\.modelscope\.cn\/.*/,
       /https:\/\/api\.siliconflow\.cn\/.*/,
+      /https:\/\/dashscope\.aliyuncs\.com\/.*/,
     ]
 
     for (const pattern of apiPatterns) {
@@ -754,6 +943,9 @@ class E2EVCR {
               // 直接返回原始 SSE 文本（格式完全一致）
               const contentType = interaction.responseHeaders?.['content-type'] || 'application/json'
               const isSSE = /text\/event-stream/i.test(contentType)
+              const responseBody = isSSE
+                ? interaction.rawBody || ''
+                : this.getReplayFulfillBody(interaction)
 
               await route.fulfill({
                 status: interaction.status || 200,
@@ -769,7 +961,7 @@ class E2EVCR {
                   'access-control-allow-origin': '*',
                   'access-control-allow-headers': '*',
                 },
-                body: interaction.rawBody || ''
+                body: responseBody
               })
             } else {
               const shouldFailFast = mode === 'replay' || !this.recordingEnabled
