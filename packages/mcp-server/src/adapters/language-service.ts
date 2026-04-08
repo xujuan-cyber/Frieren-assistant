@@ -10,7 +10,7 @@ export class SimpleLanguageService implements ITemplateLanguageService {
   private currentLanguage: BuiltinTemplateLanguage;
   private initialized = false;
 
-  constructor(defaultLanguage: string = 'zh-CN') {
+  constructor(defaultLanguage: string = 'en-US') {
     // 映射语言代码到 Core 模块支持的格式
     const languageMap: Record<string, BuiltinTemplateLanguage> = {
       'zh': 'zh-CN',
@@ -21,7 +21,7 @@ export class SimpleLanguageService implements ITemplateLanguageService {
       'english': 'en-US'
     };
 
-    this.currentLanguage = languageMap[defaultLanguage as keyof typeof languageMap] || 'zh-CN';
+    this.currentLanguage = languageMap[defaultLanguage as keyof typeof languageMap] || 'en-US';
   }
 
   async initialize(): Promise<void> {
@@ -51,7 +51,7 @@ export class SimpleLanguageService implements ITemplateLanguageService {
   }
 
   async getSupportedLanguages(): Promise<BuiltinTemplateLanguage[]> {
-    return ['zh-CN', 'en-US'];
+    return ['en-US', 'zh-CN'];
   }
 
   getLanguageDisplayName(language: BuiltinTemplateLanguage): string {
@@ -71,5 +71,5 @@ export class SimpleLanguageService implements ITemplateLanguageService {
 }
 
 export function createSimpleLanguageService(defaultLanguage?: string): SimpleLanguageService {
-  return new SimpleLanguageService(defaultLanguage || 'zh-CN');
+  return new SimpleLanguageService(defaultLanguage || 'en-US');
 }

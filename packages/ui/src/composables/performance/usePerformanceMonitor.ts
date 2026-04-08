@@ -88,19 +88,19 @@ export function usePerformanceMonitor(componentName: string = 'Unknown') {
     const suggestions: string[] = []
     
     if (updateCount.value > 50) {
-      suggestions.push('组件更新过于频繁，考虑使用 debounce 或 throttle')
+      suggestions.push('Component updates are too frequent. Consider using debounce or throttle.')
     }
     
     if (metrics.value.renderTime > 16) {
-      suggestions.push('渲染时间超过 16ms，可能影响 60fps 体验')
+      suggestions.push('Render time exceeds 16ms and may impact a 60fps experience.')
     }
     
     if (memoryUsage.value > 50 * 1024 * 1024) { // 50MB
-      suggestions.push('内存使用量较高，检查是否存在内存泄漏')
+      suggestions.push('Memory usage is high. Check for possible memory leaks.')
     }
     
     if (renderCount.value > 0 && updateCount.value / renderCount.value > 10) {
-      suggestions.push('更新渲染比例过高，考虑优化响应式数据')
+      suggestions.push('The update-to-render ratio is high. Consider optimizing reactive data flow.')
     }
 
     return suggestions
@@ -126,11 +126,11 @@ export function usePerformanceMonitor(componentName: string = 'Unknown') {
     else if (memoryMB > 50) score -= 10
     else if (memoryMB > 25) score -= 5
 
-    if (score >= 90) return { grade: 'A', color: 'success', text: '优秀' }
-    if (score >= 80) return { grade: 'B', color: 'info', text: '良好' }  
-    if (score >= 70) return { grade: 'C', color: 'warning', text: '一般' }
-    if (score >= 60) return { grade: 'D', color: 'warning', text: '较差' }
-    return { grade: 'F', color: 'error', text: '需要优化' }
+    if (score >= 90) return { grade: 'A', color: 'success', text: 'Excellent' }
+    if (score >= 80) return { grade: 'B', color: 'info', text: 'Good' }  
+    if (score >= 70) return { grade: 'C', color: 'warning', text: 'Acceptable' }
+    if (score >= 60) return { grade: 'D', color: 'warning', text: 'Poor' }
+    return { grade: 'F', color: 'error', text: 'Needs Improvement' }
   })
 
   // 开始性能监控

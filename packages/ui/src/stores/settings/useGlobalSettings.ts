@@ -155,7 +155,7 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
 
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[GlobalSettings] PreferenceService 不可用，无法保存全局配置')
+      console.warn('[GlobalSettings] PreferenceService is unavailable; cannot save global settings')
       return
     }
 
@@ -167,7 +167,7 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
         await $services.preferenceService.set(STORAGE_KEY, snapshot)
       } while (saveQueued.value)
     } catch (error) {
-      console.error('[GlobalSettings] 保存全局配置失败:', error)
+      console.error('[GlobalSettings] Failed to save global settings:', error)
     } finally {
       saveInFlight.value = false
     }
@@ -251,7 +251,7 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
         if (isImageSubMode(mode)) state.value.imageSubMode = mode
       }
     } catch (error) {
-      console.warn('[GlobalSettings] 从 UI_SETTINGS_KEYS 迁移失败（忽略）:', error)
+      console.warn('[GlobalSettings] Failed to migrate from UI_SETTINGS_KEYS (ignored):', error)
     }
   }
 
@@ -332,7 +332,7 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
         // 迁移后落盘一次，确保写入新 key（best-effort）
         await saveGlobalSettings()
       } catch (error) {
-        console.error('[GlobalSettings] 恢复全局配置失败:', error)
+        console.error('[GlobalSettings] Failed to restore global settings:', error)
         // 恢复失败时降级为默认值，但不阻止后续继续使用
         reset()
         hasRestored.value = true

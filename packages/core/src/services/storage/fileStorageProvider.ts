@@ -458,8 +458,9 @@ export class FileStorageProvider implements IStorageProvider {
       if (error instanceof Error &&
           (error.name.includes('Error') ||
            error.constructor.name !== 'Error' ||
-           error.message.includes('模型') ||
-           error.message.includes('不存在'))) {
+           error.message.includes('Model') ||
+           error.message.includes('not found') ||
+           error.message.includes('not exist'))) {
         throw error;
       }
       // 只有真正的存储错误才包装为StorageError

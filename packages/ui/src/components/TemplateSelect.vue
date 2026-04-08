@@ -71,19 +71,19 @@ const isReady = ref(false)
 // 通过inject获取services，要求不能为null
 const services = inject<Ref<AppServices | null>>('services')
 if (!services) {
-  throw new Error('[TemplateSelect] services未正确注入，请确保在App组件中正确provide了services')
+  throw new Error('[TemplateSelect] Services were not injected correctly. Make sure App provides the services instance.')
 }
 
 // 从services中获取templateManager
 const templateManager = computed(() => {
   const servicesValue = services.value
   if (!servicesValue) {
-    throw new Error('[TemplateSelect] services未初始化，请确保应用已正确启动')
+    throw new Error('[TemplateSelect] Services are not initialized. Make sure the application has started correctly.')
   }
 
   const manager = servicesValue.templateManager
   if (!manager) {
-    throw new Error('[TemplateSelect] templateManager未初始化，请确保服务已正确配置')
+    throw new Error('[TemplateSelect] TemplateManager is not initialized. Make sure the service is configured correctly.')
   }
 
   console.debug('[TemplateSelect] templateManager computed:', {
@@ -147,7 +147,7 @@ const handleFocus = async () => {
 const ensureTemplateManagerReady = async () => {
   // templateManager的检查已经在computed中进行，这里直接使用
   isReady.value = true
-  console.debug('[TemplateSelect] 模板管理器已就绪')
+  console.debug('[TemplateSelect] Template manager is ready')
   return true
 }
 
@@ -170,7 +170,7 @@ watch(
   () => services.value?.templateManager,
   async (newTemplateManager) => {
     if (newTemplateManager) {
-      console.debug('[TemplateSelect] 检测到模板管理器变化，开始初始化...')
+      console.debug('[TemplateSelect] Detected a template manager change; starting initialization...')
       await ensureTemplateManagerReady()
       await loadTemplatesByType()
     } else {

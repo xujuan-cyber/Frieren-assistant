@@ -155,7 +155,8 @@ export function usePromptTester(
         } else {
           // 系统提示词模式：提示词作为系统消息
           systemPrompt = selectedPrompt
-          userPrompt = testContent || '请按照你的角色设定，展示你的能力并与我互动。'
+          userPrompt =
+            testContent || 'Please follow your role instructions and show your capabilities in the conversation.'
         }
 
         // 变量：合并全局变量 + 测试变量

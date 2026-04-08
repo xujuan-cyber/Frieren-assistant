@@ -1192,15 +1192,15 @@ const formatToolsAsText = (tools: ToolDefinition[]): string => {
     return tools
         .map((tool) => {
             const func = tool.function
-            let text = `工具名称: ${func.name}`
-            if (func.description) text += `\n描述: ${func.description}`
-            if (func.parameters) text += `\n参数结构: ${JSON.stringify(func.parameters, null, 2)}`
+            let text = `Tool name: ${func.name}`
+            if (func.description) text += `\nDescription: ${func.description}`
+            if (func.parameters) text += `\nParameter schema: ${JSON.stringify(func.parameters, null, 2)}`
             return text
         })
         .join('\n\n')
 }
 
-const EXECUTION_PROMPT_MARKER = '【当前执行提示词见下方快照】'
+const EXECUTION_PROMPT_MARKER = '[See the current execution prompt in the snapshot below]'
 
 const buildMessagesForSelection = (
     selection: TestPanelVersionValue,
@@ -1568,7 +1568,7 @@ const buildConversationTestCaseDraft = (
     input: {
         kind: 'conversation' as const,
         label: 'Conversation Snapshot',
-        summary: `目标消息已用“${EXECUTION_PROMPT_MARKER}”标记，实际内容见下方执行提示词。`,
+        summary: `The target message is marked with "${EXECUTION_PROMPT_MARKER}". See the execution prompt below for the full content.`,
         content: buildConversationEvidenceContent(selection),
     },
 })
@@ -1992,7 +1992,7 @@ const restoreFromHistory = async (payload: unknown) => {
             });
             if (mappingCount > 0) {
                 console.log(
-                    `[ContextSystemWorkspace] 已重建 ${mappingCount} 个消息的优化链映射关系`,
+                    `[ContextSystemWorkspace] Rebuilt optimization chain mappings for ${mappingCount} message(s)`,
                 );
             }
         }
@@ -2007,7 +2007,7 @@ const restoreFromHistory = async (payload: unknown) => {
         conversationOptimization.currentRecordId.value = record.id;
         conversationOptimization.optimizedPrompt.value = record.optimizedPrompt;
     } catch (error) {
-        console.error('[ContextSystemWorkspace] 历史记录恢复失败:', error);
+        console.error('[ContextSystemWorkspace] Failed to restore history:', error);
         // 错误会向上传播到 App.vue 的 handleHistoryReuse 中统一处理
         throw error;
     }

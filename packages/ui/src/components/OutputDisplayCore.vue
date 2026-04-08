@@ -399,8 +399,8 @@ const handleCopy = (type: 'content' | 'reasoning' | 'all') => {
       break
     case 'all':
       textToCopy = [
-        displayReasoning.value && `推理过程：\n${displayReasoning.value}`,
-        `主要内容：\n${displayContent.value}`
+        displayReasoning.value && `${t('common.reasoning')}:\n${displayReasoning.value}`,
+        `${t('common.content')}:\n${displayContent.value}`
       ].filter(Boolean).join('\n\n')
       break
   }
@@ -535,7 +535,7 @@ const forceRefreshContent = () => {
 // 收藏相关方法 - 触发保存对话框而不是直接保存
 const handleFavorite = () => {
   if (!props.content) {
-    message.warning('没有内容可以收藏');
+    message.warning(t('toast.error.noContentToSave'));
     return;
   }
 

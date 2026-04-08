@@ -169,7 +169,7 @@
             <FocusAnalyzeButton
               v-else
               type="result"
-              :label="t('evaluation.evaluate', '评估')"
+              :label="t('evaluation.evaluate')"
               :loading="isEvaluatingSecondary"
               :button-props="{ size: 'small', type: 'tertiary' }"
               @evaluate="handleEvaluateSecondary"
@@ -288,15 +288,15 @@ const emit = defineEmits<{
 }>()
 
 const primaryTitle = computed(() =>
-  props.primaryTitle || t('test.compareResultA', '结果 A')
+  props.primaryTitle || t('test.compareResultA')
 )
 
 const secondaryTitle = computed(() =>
-  props.secondaryTitle || t('test.compareResultB', '结果 B')
+  props.secondaryTitle || t('test.compareResultB')
 )
 
 const singleResultTitle = computed(() =>
-  props.singleResultTitle || t('test.testResult', '测试结果')
+  props.singleResultTitle || t('test.testResult')
 )
 
 // 事件处理

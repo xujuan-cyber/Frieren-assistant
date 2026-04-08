@@ -387,7 +387,7 @@ if (import.meta.env.DEV) {
         () => {
             const report = getPerformanceReport();
             if (report.grade.grade === "F") {
-                console.warn("ConversationTestPanel 性能较差:", report);
+                console.warn('ConversationTestPanel performance is poor:', report);
             }
         },
         5000,

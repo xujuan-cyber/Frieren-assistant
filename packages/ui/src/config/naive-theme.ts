@@ -11,7 +11,7 @@ export const currentThemeId = ref<string>('light')
 // 主题类型定义
 export interface ThemeConfig {
   id: string
-  name: string
+  labelKey: string
   naiveTheme: GlobalTheme | null
   themeOverrides: GlobalThemeOverrides
 }
@@ -20,7 +20,7 @@ export interface ThemeConfig {
 export const naiveThemeConfigs: Record<string, ThemeConfig> = {
   light: {
     id: 'light',
-    name: '日间模式',
+    labelKey: 'theme.light',
     naiveTheme: lightTheme,
     themeOverrides: {
       common: {
@@ -155,7 +155,7 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
 
   dark: {
     id: 'dark', 
-    name: '夜间模式',
+    labelKey: 'theme.dark',
     naiveTheme: darkTheme,
     themeOverrides: {
       common: {
@@ -177,7 +177,7 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
 
   blue: {
     id: 'blue',
-    name: '蓝色模式',
+    labelKey: 'theme.blue',
     naiveTheme: lightTheme,
     themeOverrides: {
       common: {
@@ -306,7 +306,7 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
 
   classic: {
     id: 'classic',
-    name: '米杏模式',
+    labelKey: 'theme.classic',
     naiveTheme: lightTheme,
     themeOverrides: {
       common: {
@@ -444,7 +444,7 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
 
   green: {
     id: 'green',
-    name: '绿色模式',
+    labelKey: 'theme.green',
     naiveTheme: darkTheme,
     themeOverrides: {
       common: {
@@ -589,7 +589,7 @@ export const naiveThemeConfigs: Record<string, ThemeConfig> = {
 
   purple: {
     id: 'purple',
-    name: '暗紫模式',
+    labelKey: 'theme.purple',
     naiveTheme: darkTheme,
     themeOverrides: {
       common: {

@@ -108,6 +108,26 @@ export function getI18nErrorMessage(error: unknown, fallback = 'Unknown error'):
   return message
 }
 
+export function formatErrorSummary(summary: string, error: unknown, fallback = 'Unknown error'): string {
+  const normalizedSummary = summary.trim()
+  const detail = getI18nErrorMessage(error, fallback).trim()
+  const hasMeaningfulDetail =
+    detail &&
+    detail !== fallback &&
+    detail !== normalizedSummary &&
+    !/^\[object .+\]$/.test(detail)
+
+  if (!normalizedSummary) {
+    return detail || fallback
+  }
+
+  if (!hasMeaningfulDetail) {
+    return normalizedSummary
+  }
+
+  return `${normalizedSummary}: ${detail}`
+}
+
 
 /**
  * 类型守卫：检查是否为 ExtendedError
@@ -211,9 +231,9 @@ export function createErrorHandler(context: string) {
 
   return {
     handleError(error: unknown) {
-      console.error(`[${context}]错误:`, error)
+      console.error(`[${context}] Error:`, error)
 
-      toast.error(getI18nErrorMessage(error, `${context}过程中发生未知错误`))
+      toast.error(getI18nErrorMessage(error, 'An unexpected error occurred'))
     }
   }
 }
@@ -246,9 +266,9 @@ export function logErrorInDev(context: string, error: unknown): void {
  * 预定义错误消息常量
  */
 export const errorMessages = {
-  SERVICE_NOT_INITIALIZED: '服务未初始化，请稍后重试',
-  TEMPLATE_NOT_SELECTED: '请先选择提示词模板',
-  INCOMPLETE_TEST_INFO: '请填写完整的测试信息',
-  LOAD_TEMPLATE_FAILED: '加载提示词失败',
-  CLEAR_HISTORY_FAILED: '清空历史记录失败'
+  SERVICE_NOT_INITIALIZED: 'Service not initialized. Please try again later.',
+  TEMPLATE_NOT_SELECTED: 'Please select a prompt template first.',
+  INCOMPLETE_TEST_INFO: 'Please fill in the complete test information.',
+  LOAD_TEMPLATE_FAILED: 'Failed to load template.',
+  CLEAR_HISTORY_FAILED: 'Failed to clear history.'
 } as const 

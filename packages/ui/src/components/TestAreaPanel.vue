@@ -452,7 +452,7 @@ if (import.meta.env.DEV) {
         () => {
             const report = getPerformanceReport();
             if (report.grade.grade === "F") {
-                console.warn("TestAreaPanel 性能较差:", report);
+                console.warn('TestAreaPanel performance is poor:', report);
             }
         },
         5000,

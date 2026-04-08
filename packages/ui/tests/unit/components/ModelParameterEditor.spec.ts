@@ -339,4 +339,30 @@ describe('ModelParameterEditor', () => {
     emitted = wrapper.emitted<'update:paramOverrides'>('update:paramOverrides')
     expect(emitted?.[emitted.length - 1][0]).toEqual({})
   })
+
+  it('uses an English fallback when a definition is missing', async () => {
+    const wrapper = mountComponent()
+    const vm = wrapper.vm as unknown as {
+      handleAddDefinition: (name: string) => void
+    }
+
+    vm.handleAddDefinition('missing-definition')
+    await nextTick()
+
+    expect(messageMock.error).toHaveBeenCalledWith('Parameter definition not found')
+  })
+
+  it('uses an English fallback when a parameter already exists', async () => {
+    const wrapper = mountComponent({
+      paramOverrides: { temperature: 0.7 }
+    })
+    const vm = wrapper.vm as unknown as {
+      handleAddDefinition: (name: string) => void
+    }
+
+    vm.handleAddDefinition('temperature')
+    await nextTick()
+
+    expect(messageMock.warning).toHaveBeenCalledWith('Parameter already exists')
+  })
 })

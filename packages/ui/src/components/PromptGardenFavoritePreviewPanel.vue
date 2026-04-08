@@ -273,7 +273,7 @@ const updateGardenSnapshot = async (
     message.success(t('favorites.manager.preview.garden.saveSnapshotSuccess'))
     emit('favorite-updated', props.favorite.id)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '未知错误'
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     message.error(`${t('favorites.manager.preview.garden.saveSnapshotFailed')}: ${errorMessage}`)
   } finally {
     isSaving.value = false

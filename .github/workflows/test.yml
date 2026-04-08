@@ -19,30 +19,30 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 检出代码
+      - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: 安装 pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           run_install: false
 
-      - name: 设置 Node.js 环境
+      - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: pnpm install
 
-      - name: 运行门禁（不含 E2E）
+      - name: Run repo and gate checks
         run: pnpm test:gate
 
-      - name: 安装 Playwright 浏览器
+      - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: 运行门禁 E2E（关键用例，VCR 回放模式）
+      - name: Run gate E2E checks (VCR replay)
         run: pnpm test:gate:e2e
         env:
           E2E_VCR_MODE: replay

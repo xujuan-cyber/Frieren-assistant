@@ -293,7 +293,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
       if (group.length > 1) {
         suggestions.push({
           type: 'merge',
-          description: `考虑合并相似的变量: ${group.join(', ')}`,
+          description: `Consider merging similar variables: ${group.join(', ')}`,
           variables: group,
           confidence: 0.7
         })
@@ -305,7 +305,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
       if (usage.avgLength > 1000 && usage.complexity > 0.8) {
         suggestions.push({
           type: 'split',
-          description: `变量 ${varName} 内容过于复杂，建议拆分`,
+          description: `Variable ${varName} is too complex and may need to be split`,
           variables: [varName],
           confidence: 0.8
         })
@@ -328,16 +328,16 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
 
     if (nameLower.includes('count') || nameLower.includes('number') || nameLower.includes('num')) {
       type = 'number'
-      description = '数值型变量'
+      description = 'Numeric variable'
     } else if (nameLower.includes('is_') || nameLower.includes('has_') || nameLower.includes('enable')) {
       type = 'boolean'
-      description = '布尔型变量'
+      description = 'Boolean variable'
     } else if (nameLower.includes('list') || nameLower.includes('array') || nameLower.includes('items')) {
       type = 'array'
-      description = '数组型变量'
+      description = 'Array variable'
     } else if (nameLower.includes('config') || nameLower.includes('settings') || nameLower.includes('data')) {
       type = 'object'
-      description = '对象型变量'
+      description = 'Object variable'
     }
 
     // 检查是否为必需变量（出现在多个消息中）
@@ -351,7 +351,7 @@ export class EnhancedTemplateProcessor implements TemplateProcessor {
 
     return {
       type,
-      description: description || `${varName} 变量`,
+      description: description || `${varName} variable`,
       defaultValue: this.getDefaultValueForType(type),
       required: usageCount > 1
     }

@@ -271,8 +271,8 @@ export class TemplateManager implements ITemplateManager {
       case 'zh-CN':
         return this.staticLoader.getDefaultTemplates();
       default:
-        console.warn(`Unsupported language: ${language}, falling back to Chinese templates`);
-        return this.staticLoader.getDefaultTemplates();
+        console.warn(`Unsupported language: ${language}, falling back to English templates`);
+        return this.staticLoader.getDefaultTemplatesEn();
     }
   }
 
@@ -385,7 +385,7 @@ export class TemplateManager implements ITemplateManager {
           const timestamp = Date.now();
           const random = Math.random().toString(36).substr(2, 6);
           finalTemplateId = `user-${template.id}-${timestamp}-${random}`;
-          finalTemplateName = `${template.name} (导入副本)`;
+          finalTemplateName = `${template.name} (Imported copy)`;
           console.warn(`Detected conflict with built-in template ID: ${template.id}, renamed to: ${finalTemplateId}`);
         }
 

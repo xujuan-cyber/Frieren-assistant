@@ -443,7 +443,7 @@ export class ImageModelManager implements IImageModelManager {
         provider: {
           id: config.providerId || 'unknown',
           name: `Unknown Provider (${config.providerId || 'unknown'})`,
-          description: '此配置损坏，无法修复',
+          description: 'This configuration is corrupted and cannot be repaired.',
           requiresApiKey: false,
           supportsDynamicModels: false,
           defaultBaseURL: '',
@@ -452,7 +452,7 @@ export class ImageModelManager implements IImageModelManager {
         model: {
           id: config.modelId || 'unknown',
           name: `Unknown Model (${config.modelId || 'unknown'})`,
-          description: '此配置损坏，请删除后重新创建',
+          description: 'This configuration is corrupted. Please delete it and create a new one.',
           providerId: config.providerId || 'unknown',
           capabilities: {
             text2image: false,

@@ -19,8 +19,17 @@ export interface TextSelection {
   /** 是否有效选择 */
   isValid: boolean
   /** 无效原因 */
-  invalidReason?: string
+  invalidReason?: TextSelectionInvalidReason
 }
+
+export const TEXT_SELECTION_ERRORS = {
+  inputNotReady: 'Input is not ready',
+  emptySelection: 'No text selected',
+  crossesVariableBoundary: 'Selection cannot cross variable boundaries',
+} as const
+
+export type TextSelectionInvalidReason =
+  (typeof TEXT_SELECTION_ERRORS)[keyof typeof TEXT_SELECTION_ERRORS]
 
 export function useTextSelection(inputRef: Ref<HTMLInputElement | HTMLTextAreaElement | null>) {
   const selection = ref<TextSelection>({
@@ -41,7 +50,7 @@ export function useTextSelection(inputRef: Ref<HTMLInputElement | HTMLTextAreaEl
         start: 0,
         end: 0,
         isValid: false,
-        invalidReason: '输入框未就绪'
+        invalidReason: TEXT_SELECTION_ERRORS.inputNotReady
       }
     }
 
@@ -71,10 +80,10 @@ export function useTextSelection(inputRef: Ref<HTMLInputElement | HTMLTextAreaEl
     start: number,
     end: number,
     selectedText: string
-  ): { isValid: boolean; reason?: string } => {
+  ): { isValid: boolean; reason?: TextSelectionInvalidReason } => {
     // 检查是否有选中文本
     if (start === end || !selectedText.trim()) {
-      return { isValid: false, reason: '未选中任何文本' }
+      return { isValid: false, reason: TEXT_SELECTION_ERRORS.emptySelection }
     }
 
     // 检查是否跨越变量边界
@@ -85,14 +94,14 @@ export function useTextSelection(inputRef: Ref<HTMLInputElement | HTMLTextAreaEl
     const openBracesBeforeCount = (beforeSelection.match(/\{\{/g) || []).length
     const closeBracesBeforeCount = (beforeSelection.match(/\}\}/g) || []).length
     if (openBracesBeforeCount > closeBracesBeforeCount) {
-      return { isValid: false, reason: '不能跨越变量边界' }
+      return { isValid: false, reason: TEXT_SELECTION_ERRORS.crossesVariableBoundary }
     }
 
     // 检查选中文本后是否有未闭合的 }}
     const openBracesAfterCount = (afterSelection.match(/\{\{/g) || []).length
     const closeBracesAfterCount = (afterSelection.match(/\}\}/g) || []).length
     if (closeBracesAfterCount > openBracesAfterCount) {
-      return { isValid: false, reason: '不能跨越变量边界' }
+      return { isValid: false, reason: TEXT_SELECTION_ERRORS.crossesVariableBoundary }
     }
 
     // 检查选中文本内部是否包含完整的变量占位符
@@ -101,7 +110,7 @@ export function useTextSelection(inputRef: Ref<HTMLInputElement | HTMLTextAreaEl
     if (openBracesInSelection > 0 || closeBracesInSelection > 0) {
       // 如果选中文本包含 {{ 或 }},检查是否是完整的变量
       if (openBracesInSelection !== closeBracesInSelection) {
-        return { isValid: false, reason: '不能跨越变量边界' }
+        return { isValid: false, reason: TEXT_SELECTION_ERRORS.crossesVariableBoundary }
       }
     }
 

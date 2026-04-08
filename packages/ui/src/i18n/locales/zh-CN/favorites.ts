@@ -1,0 +1,341 @@
+const messages = {
+  "favorites": {
+    "title": "我的收藏",
+    "categories": {
+      "default": {
+        "uncategorized": "未分类",
+        "uncategorizedDesc": "默认分类",
+        "creativeWriting": "创意写作",
+        "creativeWritingDesc": "创意写作相关的提示词",
+        "programming": "编程开发",
+        "programmingDesc": "编程开发相关的提示词",
+        "businessAnalysis": "商业分析",
+        "businessAnalysisDesc": "商业分析相关的提示词",
+        "learning": "学习研究",
+        "learningDesc": "学习研究相关的提示词",
+        "dailyAssistant": "日常助手",
+        "dailyAssistantDesc": "日常生活助手类提示词"
+      }
+    },
+    "manager": {
+      "title": "收藏管理",
+      "searchPlaceholder": "搜索收藏...",
+      "allCategories": "全部分类",
+      "allTags": "全部标签",
+      "totalCount": "共 {count} 项",
+      "import": "导入",
+      "add": "添加",
+      "emptySearchResult": "没有找到匹配的收藏",
+      "emptyDescription": "还没有收藏任何提示词",
+      "startOptimize": "优化",
+      "importDialog": {
+        "title": "导入收藏",
+        "selectFile": "选择 JSON 文件",
+        "uploadHint": "点击或拖拽文件到此区域",
+        "supportFormat": "支持 .json 文件",
+        "orPasteJson": "或粘贴导出的收藏 JSON",
+        "pastePlaceholder": "粘贴收藏数据...",
+        "mergeStrategy": "合并策略",
+        "skipDuplicate": "跳过重复",
+        "overwriteDuplicate": "覆盖重复",
+        "createCopy": "创建副本",
+        "cancel": "取消",
+        "import": "导入",
+        "importing": "导入中...",
+        "selectFileOrPaste": "请先选择文件或粘贴导入数据",
+        "importSuccess": "导入完成：成功 {imported} 项，跳过 {skipped} 项",
+        "importPartialFailed": "部分收藏导入失败",
+        "importFailed": "导入失败",
+        "readFileFailed": "读取文件失败"
+      },
+      "categoryManager": {
+        "title": "分类管理"
+      },
+      "actions": {
+        "manageTags": "管理标签",
+        "manageCategories": "管理分类",
+        "export": "导出收藏",
+        "clear": "清空收藏",
+        "exportSuccess": "导出成功",
+        "exportFailed": "导出失败",
+        "clearConfirm": "确定要清空所有收藏吗？此操作不可恢复。",
+        "clearSuccess": "清空成功",
+        "clearFailed": "清空失败",
+        "deleteConfirm": "确定要删除收藏 \"{title}\" 吗？此操作不可恢复。",
+        "deleteSuccess": "删除成功",
+        "deleteFailed": "删除失败",
+        "copySuccess": "已复制到剪贴板",
+        "copyFailed": "复制失败",
+        "copiedOptimized": "已复制优化后的提示词",
+        "copiedReasoning": "已复制推理内容",
+        "copiedAll": "已复制内容",
+        "shareComingSoon": "分享功能即将上线",
+        "categoryManagementComingSoon": "分类管理功能将在后续版本提供"
+      },
+      "preview": {
+        "title": "收藏详情",
+        "updatedAt": "更新于 {time}",
+        "garden": {
+          "snapshotTitle": "Prompt Garden 快照",
+          "snapshotHint": "展示从 Prompt Garden 导入的可视化资源和变量配置",
+          "basicInfo": "基础信息",
+          "metaInfo": "元信息",
+          "importCode": "导入码",
+          "gardenBaseUrl": "Garden 地址",
+          "schema": "Schema",
+          "title": "标题",
+          "description": "描述",
+          "cover": "封面",
+          "showcases": "展示集",
+          "showcaseLabel": "展示 #{index}",
+          "examples": "示例",
+          "exampleLabel": "示例 #{index}",
+          "exampleImages": "示例图片",
+          "parameters": "参数",
+          "inputImages": "输入图片",
+          "variables": "变量定义",
+          "variableName": "名称",
+          "variableType": "类型",
+          "variableRequired": "必填",
+          "variableDefault": "默认值",
+          "variableOptions": "可选项",
+          "variableDescription": "说明",
+          "requiredYes": "是",
+          "requiredNo": "否",
+          "uploadCover": "上传封面图",
+          "uploadShowcaseImages": "上传效果图",
+          "noCover": "暂无封面图",
+          "noShowcases": "暂无效果图",
+          "noExamples": "暂无示例",
+          "saveSnapshotSuccess": "快照已更新",
+          "saveSnapshotFailed": "快照更新失败"
+        },
+        "media": {
+          "title": "图片资源",
+          "hint": "以下图片将随收藏一起展示",
+          "imageAlt": "收藏图片 #{index}"
+        }
+      },
+      "messages": {
+        "unavailable": "收藏功能暂不可用，请稍后再试",
+        "loadFailed": "加载收藏失败",
+        "loadCategoryFailed": "加载分类失败",
+        "managerNotInitialized": "收藏管理器未初始化"
+      },
+      "time": {
+        "justNow": "刚刚",
+        "minutesAgo": "{minutes}分钟前",
+        "hoursAgo": "{hours}小时前",
+        "yesterday": "昨天",
+        "daysAgo": "{days}天前"
+      },
+      "card": {
+        "useCount": "使用次数",
+        "copyContent": "复制内容",
+        "useNow": "立即使用",
+        "edit": "编辑",
+        "toggleCategory": "切换分类",
+        "delete": "删除",
+        "cancel": "取消",
+        "deleteConfirm": "确定删除\"{title}\"吗？",
+        "functionMode": {
+          "basic": "基础",
+          "context": "上下文",
+          "image": "图像"
+        },
+        "optimizationMode": {
+          "system": "系统",
+          "user": "用户"
+        },
+        "imageSubMode": {
+          "text2image": "文生图",
+          "image2image": "图生图"
+        }
+      },
+      "categories": {
+        "default": {
+          "uncategorized": "未分类",
+          "uncategorizedDesc": "默认分类",
+          "creativeWriting": "创意写作",
+          "creativeWritingDesc": "创意写作相关的提示词",
+          "programming": "编程开发",
+          "programmingDesc": "编程开发相关的提示词",
+          "businessAnalysis": "商业分析",
+          "businessAnalysisDesc": "商业分析相关的提示词",
+          "learning": "学习研究",
+          "learningDesc": "学习研究相关的提示词",
+          "dailyAssistant": "日常助手",
+          "dailyAssistantDesc": "日常生活助手类提示词"
+        }
+      },
+      "tagManager": {
+        "title": "标签管理",
+        "searchPlaceholder": "搜索标签...",
+        "totalTags": "共 {count} 个标签",
+        "add": "新增标签",
+        "tagName": "标签名",
+        "useCount": "使用次数",
+        "actions": "操作",
+        "rename": "重命名",
+        "merge": "合并",
+        "mergeTooltip": "将当前标签合并到目标标签中",
+        "delete": "删除",
+        "close": "关闭",
+        "addDialog": {
+          "title": "新增标签",
+          "tagName": "标签名称",
+          "tagNamePlaceholder": "输入标签名称",
+          "emptyWarning": "标签名不能为空",
+          "existWarning": "标签已存在",
+          "confirm": "确认",
+          "cancel": "取消"
+        },
+        "renameDialog": {
+          "title": "重命名标签",
+          "oldName": "原标签名",
+          "newName": "新标签名",
+          "newNamePlaceholder": "输入新的标签名",
+          "currentName": "当前标签名：{name}",
+          "emptyWarning": "标签名不能为空",
+          "confirm": "确认",
+          "cancel": "取消"
+        },
+        "mergeDialog": {
+          "title": "合并标签",
+          "sourceName": "源标签",
+          "targetName": "合并到",
+          "targetPlaceholder": "选择目标标签",
+          "sourceTag": "源标签：{name}",
+          "selectTargetWarning": "请选择目标标签",
+          "confirm": "确认合并",
+          "cancel": "取消",
+          "warning": "合并后，\"{source}\" 标签将被删除，所有使用该标签的收藏将改用 \"{target}\" 标签"
+        },
+        "deleteConfirm": "确定删除标签 \"{name}\"？这将从 {count} 个收藏中移除该标签。",
+        "messages": {
+          "loadFailed": "加载标签列表失败",
+          "addSuccess": "标签添加成功",
+          "addFailed": "标签添加失败",
+          "renameSuccess": "标签重命名成功",
+          "renameFailed": "标签重命名失败",
+          "mergeSuccess": "标签合并成功",
+          "mergeFailed": "标签合并失败",
+          "deleteSuccess": "标签删除成功",
+          "deleteFailed": "标签删除失败"
+        }
+      }
+    },
+    "dialog": {
+      "createTitle": "新建收藏",
+      "editTitle": "编辑收藏",
+      "saveTitle": "保存到收藏夹",
+      "basicInfo": "📋 基础信息",
+      "contentTitle": "📝 正文内容",
+      "titleLabel": "标题",
+      "titlePlaceholder": "为这个提示词起个名字",
+      "categoryLabel": "分类",
+      "categoryPlaceholder": "选择分类（可选）",
+      "functionModeLabel": "功能模式",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "描述这个提示词的用途和特点",
+      "optimizationModeLabel": "优化模式",
+      "optimizationModePlaceholder": "选择优化模式",
+      "imageModeLabel": "图像模式",
+      "imageModePlaceholder": "选择图像模式",
+      "tagsLabel": "标签",
+      "tagsPlaceholder": "输入标签后按回车添加",
+      "imagesLabel": "图片",
+      "imagesUploadHint": "点击或拖拽图片到此区域",
+      "imagesUploadSupport": "支持常见图片格式，可添加多张",
+      "imageAlt": "图片 #{index}",
+      "coverTag": "封面",
+      "setAsCover": "设为封面",
+      "removeImage": "移除",
+      "clearImages": "清空图片",
+      "contentPlaceholder": "在这里输入提示词内容...",
+      "cancel": "取消",
+      "save": "保存",
+      "functionModes": {
+        "basic": "基础",
+        "context": "上下文",
+        "image": "图像"
+      },
+      "optimizationModes": {
+        "system": "系统提示词",
+        "user": "用户提示词"
+      },
+      "imageModes": {
+        "text2image": "文生图",
+        "image2image": "图生图"
+      },
+      "validation": {
+        "titleRequired": "标题不能为空",
+        "contentRequired": "内容不能为空"
+      },
+      "messages": {
+        "editSuccess": "编辑成功",
+        "saveSuccess": "保存到收藏夹成功",
+        "saveFailed": "保存失败",
+        "editFailed": "编辑失败",
+        "imageReadFailed": "读取图片失败",
+        "unavailable": "收藏功能暂不可用,请稍后再试"
+      }
+    },
+    "button": {
+      "addTitle": "添加到收藏",
+      "removeTitle": "取消收藏",
+      "favorite": "收藏",
+      "favorited": "已收藏",
+      "removeSuccess": "已取消收藏"
+    },
+    "categoryManager": {
+      "title": "分类管理",
+      "addRootCategory": "添加根分类",
+      "addSubCategory": "添加子分类",
+      "expandAll": "全部展开",
+      "collapseAll": "全部折叠",
+      "edit": "编辑",
+      "delete": "删除",
+      "editCategory": "编辑分类",
+      "addCategory": "添加分类",
+      "categoryName": "分类名称",
+      "categoryNamePlaceholder": "请输入分类名称",
+      "categoryDescription": "分类描述",
+      "categoryDescriptionPlaceholder": "请输入分类描述",
+      "parentCategory": "父分类",
+      "parentCategoryPlaceholder": "选择父分类（不选则为根分类）",
+      "categoryColor": "分类颜色",
+      "confirmDelete": "确认删除",
+      "deleteWarning": "确定要删除分类 <strong>{name}</strong> 吗？",
+      "deleteChildrenWarning": "警告：该分类下还有 {count} 个子分类，将一并删除！",
+      "deleteUsageWarning": "提示：该分类已被 {count} 个收藏使用，删除后这些收藏将变为未分类。",
+      "deleteSuccess": "删除成功",
+      "deleteFailed": "删除失败",
+      "saveSuccess": "保存成功",
+      "addSuccess": "添加成功",
+      "updateSuccess": "更新成功",
+      "saveFailed": "保存失败",
+      "loadFailed": "加载分类失败",
+      "validation": {
+        "nameRequired": "请输入分类名称",
+        "nameLength": "分类名称长度应在 1-50 之间"
+      },
+      "defaultCategories": {
+        "uncategorized": "未分类",
+        "uncategorizedDesc": "默认分类",
+        "systemPrompt": "系统提示词",
+        "systemPromptDesc": "优化后的系统提示词",
+        "userPrompt": "用户提示词",
+        "userPromptDesc": "优化后的用户提示词",
+        "creativeWriting": "创意写作",
+        "creativeWritingDesc": "创意写作相关的提示词",
+        "programming": "编程开发",
+        "programmingDesc": "编程开发相关的提示词",
+        "businessAnalysis": "商业分析",
+        "businessAnalysisDesc": "商业分析相关的提示词"
+      }
+    }
+  }
+} as const;
+
+export default messages;

@@ -233,7 +233,7 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                     conversationSnapshot =
                         conversationSnapshotRaw as ConversationSnapshotMessage[]
                     console.log(
-                        '[App] 从历史记录恢复会话快照，消息数:',
+                        '[App] Restoring conversation snapshot from history. Message count:',
                         conversationSnapshot.length,
                     )
 
@@ -283,16 +283,16 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                                         }
                                     } else {
                                         console.warn(
-                                            `[App] 消息 ${snapshotMsg.id} 版本 v${snapshotMsg.appliedVersion} 不存在，使用快照内容`,
+                                            `[App] Message ${snapshotMsg.id} version v${snapshotMsg.appliedVersion} was not found. Falling back to snapshot content.`,
                                         )
                                         console.warn(
-                                            `[App] 可用版本:`,
+                                            '[App] Available versions:',
                                             msgChain.versions.map((v) => v.version),
                                         )
                                     }
                                 } catch (error) {
                                     console.warn(
-                                        `[App] 消息 ${snapshotMsg.id} 版本加载失败，使用快照内容:`,
+                                        `[App] Failed to load version for message ${snapshotMsg.id}. Falling back to snapshot content:`,
                                         error,
                                     )
                                 }
@@ -340,17 +340,17 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                     if (targetMessage) {
                         toast.success(t('toast.success.conversationRestored'))
                     } else if (messageId) {
-                        console.warn('[App] 会话快照中未找到被优化的消息 ID:', messageId)
+                        console.warn('[App] Optimized message ID was not found in the conversation snapshot:', messageId)
                         toast.warning(t('toast.warning.messageNotFoundInSnapshot'))
                     }
                 } else if (messageId) {
                     if (targetMessage) {
                         console.log(
-                            '[App] 历史记录无会话快照，尝试在当前会话中查找消息（旧版本数据）',
+                            '[App] No conversation snapshot found in history. Trying to locate the message in the current session (legacy data).',
                         )
                         toast.warning(t('toast.warning.restoredFromLegacyHistory'))
                     } else {
-                        console.warn('[App] 旧版本历史记录中未找到消息 ID:', messageId)
+                        console.warn('[App] Message ID was not found in legacy history data:', messageId)
                         toast.warning(t('toast.warning.messageNotFoundInSnapshot'))
                     }
                 }
@@ -369,7 +369,7 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
             await handleHistoryReuseImpl(context)
         } catch (error) {
             // 捕获历史记录恢复过程中的所有错误
-            console.error('[App] 历史记录恢复失败:', error)
+            console.error('[App] Failed to restore history:', error)
             const errorMessage = error instanceof Error ? error.message : String(error)
             toast.error(t('toast.error.historyRestoreFailed', { error: errorMessage }))
         } finally {

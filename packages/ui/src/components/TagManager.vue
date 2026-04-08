@@ -289,7 +289,7 @@ const loadTags = async () => {
     // 使用统一的类型转换器转换数据格式
     allTags.value = TagTypeConverter.toTagStatistics(tags);
   } catch (error: unknown) {
-    message.error(t('favorites.manager.tagManager.messages.loadFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
+    message.error(t('favorites.manager.tagManager.messages.loadFailed') + `: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
     loading.value = false;
   }
@@ -330,7 +330,7 @@ const handleAddConfirm = async () => {
     showAddDialog.value = false;
     return true;
   } catch (error: unknown) {
-    message.error(t('favorites.manager.tagManager.messages.addFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
+    message.error(t('favorites.manager.tagManager.messages.addFailed') + `: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -367,7 +367,7 @@ const handleRenameConfirm = async () => {
     showRenameDialog.value = false;
     return true;
   } catch (error: unknown) {
-    message.error(t('favorites.manager.tagManager.messages.renameFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
+    message.error(t('favorites.manager.tagManager.messages.renameFailed') + `: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -394,7 +394,7 @@ const handleMergeConfirm = async () => {
     showMergeDialog.value = false;
     return true;
   } catch (error: unknown) {
-    message.error(t('favorites.manager.tagManager.messages.mergeFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
+    message.error(t('favorites.manager.tagManager.messages.mergeFailed') + `: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
@@ -412,7 +412,7 @@ const handleDelete = async (tag: TagStatistics) => {
     await loadTags();
     emit('updated');
   } catch (error: unknown) {
-    message.error(t('favorites.manager.tagManager.messages.deleteFailed') + `: ${error instanceof Error ? error.message : '未知错误'}`);
+    message.error(t('favorites.manager.tagManager.messages.deleteFailed') + `: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 

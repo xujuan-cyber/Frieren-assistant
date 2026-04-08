@@ -154,6 +154,7 @@ import {
 } from '@vicons/tabler';
 import { useToast } from '../composables/ui/useToast';
 import { useI18n } from 'vue-i18n';
+import { getI18nErrorMessage } from '../utils/error';
 import type { FavoriteCategory } from '@prompt-optimizer/core';
 import type { AppServices } from '../types/services';
 
@@ -374,7 +375,7 @@ const handleDeleteCategory = async (category: FavoriteCategory) => {
     try {
       deletingCategoryUsageCount.value = await servicesValue.favoriteManager.getCategoryUsage(category.id);
     } catch (error) {
-      console.error('获取分类使用统计失败:', error);
+      console.error('Failed to fetch category usage count:', error);
       deletingCategoryUsageCount.value = 0;
     }
   }
@@ -388,7 +389,7 @@ const handleConfirmDelete = async () => {
 
   const servicesValue = services?.value;
   if (!servicesValue?.favoriteManager) {
-    message.warning('收藏功能暂不可用');
+    message.warning('Favorites are temporarily unavailable.');
     return;
   }
 
@@ -407,9 +408,8 @@ const handleConfirmDelete = async () => {
     await loadCategories();
     emit('category-updated');
   } catch (error) {
-    console.error('删除分类失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.categoryManager.deleteFailed')}: ${errorMessage}`);
+    console.error('Failed to delete category:', error);
+    message.error(getI18nErrorMessage(error, t('favorites.categoryManager.deleteFailed')));
   } finally {
     deleteDialogVisible.value = false;
     deletingCategory.value = null;
@@ -426,7 +426,7 @@ const handleSaveCategory = async () => {
 
   const servicesValue = services?.value;
   if (!servicesValue?.favoriteManager) {
-    message.warning('收藏功能暂不可用');
+    message.warning(t('favorites.manager.messages.unavailable'));
     return;
   }
 
@@ -457,9 +457,8 @@ const handleSaveCategory = async () => {
     await loadCategories();
     emit('category-updated');
   } catch (error) {
-    console.error('保存分类失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.categoryManager.saveFailed')}: ${errorMessage}`);
+    console.error('Failed to save category:', error);
+    message.error(getI18nErrorMessage(error, t('favorites.categoryManager.saveFailed')));
   } finally {
     saving.value = false;
   }
@@ -494,16 +493,15 @@ const handleUpdateExpandedKeys = (keys: string[]) => {
 const loadCategories = async () => {
   const servicesValue = services?.value;
   if (!servicesValue?.favoriteManager) {
-    console.warn('收藏管理器未初始化');
+    console.warn('Favorite manager is not initialized.');
     return;
   }
 
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
   } catch (error) {
-    console.error('加载分类失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.categoryManager.loadFailed')}: ${errorMessage}`);
+    console.error('Failed to load categories:', error);
+    message.error(getI18nErrorMessage(error, t('favorites.categoryManager.loadFailed')));
   }
 };
 

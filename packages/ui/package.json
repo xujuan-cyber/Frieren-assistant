@@ -20,7 +20,7 @@
   "files": [
     "dist"
   ],
-  "readme": "在Windows环境下，请使用分号(;)而不是&&作为命令分隔符，或使用build:win脚本",
+  "readme": "On Windows, use semicolons (;) instead of && as command separators, or run the build:win script.",
   "scripts": {
     "dev": "vite",
     "build:bundle": "vite build",

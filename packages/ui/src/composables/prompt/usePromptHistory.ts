@@ -65,7 +65,7 @@ export function usePromptHistory(
 
         toast.success(t('toast.success.historyLoaded'))
       } catch (error) {
-        console.error('[History] 加载历史记录失败:', error)
+        console.error('[History] Failed to load history:', error)
         toast.error(t('toast.error.loadHistoryFailed'))
       }
     },

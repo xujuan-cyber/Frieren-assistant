@@ -10,10 +10,10 @@ export class ParameterValidator {
    */
   static validatePrompt(prompt: string): void {
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-      throw new Error('提示词必须是非空字符串');
+      throw new Error('Prompt must be a non-empty string');
     }
     if (prompt.length > 50000) {
-      throw new Error('提示词过长（最大 50,000 字符）');
+      throw new Error('Prompt must not exceed 50,000 characters');
     }
   }
 
@@ -22,7 +22,7 @@ export class ParameterValidator {
    */
   static validateTemplate(template?: string): void {
     if (template !== undefined && (typeof template !== 'string' || template.trim().length === 0)) {
-      throw new Error('模板必须是非空字符串');
+      throw new Error('Template must be a non-empty string');
     }
   }
 
@@ -31,10 +31,10 @@ export class ParameterValidator {
    */
   static validateRequirements(requirements: string): void {
     if (!requirements || typeof requirements !== 'string' || requirements.trim().length === 0) {
-      throw new Error('需求描述必须是非空字符串');
+      throw new Error('Requirements must be a non-empty string');
     }
     if (requirements.length > 10000) {
-      throw new Error('需求描述过长（最大 10,000 字符）');
+      throw new Error('Requirements must not exceed 10,000 characters');
     }
   }
 }

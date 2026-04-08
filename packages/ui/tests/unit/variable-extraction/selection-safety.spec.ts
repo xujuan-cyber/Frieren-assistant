@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
 
+const EMPTY_SELECTION_REASON = 'No text selected'
+const CROSS_VARIABLE_BOUNDARY_REASON = 'Selection cannot cross variable boundaries'
+
 /**
  * 选择安全机制测试
  *
@@ -78,7 +81,7 @@ describe('selection-safety', () => {
     ): { isValid: boolean; reason?: string } => {
       // 是否有有效选择
       if (start === end || !selectedText.trim()) {
-        return { isValid: false, reason: '未选中任何文本' }
+        return { isValid: false, reason: EMPTY_SELECTION_REASON }
       }
 
       // 检查是否跨越变量边界
@@ -88,19 +91,19 @@ describe('selection-safety', () => {
       const openBracesBefore = (beforeSelection.match(/\{\{/g) || []).length
       const closeBracesBefore = (beforeSelection.match(/\}\}/g) || []).length
       if (openBracesBefore > closeBracesBefore) {
-        return { isValid: false, reason: '不能跨越变量边界' }
+        return { isValid: false, reason: CROSS_VARIABLE_BOUNDARY_REASON }
       }
 
       const openBracesAfter = (afterSelection.match(/\{\{/g) || []).length
       const closeBracesAfter = (afterSelection.match(/\}\}/g) || []).length
       if (closeBracesAfter > openBracesAfter) {
-        return { isValid: false, reason: '不能跨越变量边界' }
+        return { isValid: false, reason: CROSS_VARIABLE_BOUNDARY_REASON }
       }
 
       const openBracesInSelection = (selectedText.match(/\{\{/g) || []).length
       const closeBracesInSelection = (selectedText.match(/\}\}/g) || []).length
       if (openBracesInSelection !== closeBracesInSelection) {
-        return { isValid: false, reason: '不能跨越变量边界' }
+        return { isValid: false, reason: CROSS_VARIABLE_BOUNDARY_REASON }
       }
 
       return { isValid: true }
@@ -119,7 +122,7 @@ describe('selection-safety', () => {
       const result = validateSelection(text, 5, 5, '')
 
       expect(result.isValid).toBe(false)
-      expect(result.reason).toBe('未选中任何文本')
+      expect(result.reason).toBe(EMPTY_SELECTION_REASON)
     })
 
     it('应该拒绝仅包含空格的选择', () => {
@@ -127,7 +130,7 @@ describe('selection-safety', () => {
       const result = validateSelection(text, 5, 8, '   ')
 
       expect(result.isValid).toBe(false)
-      expect(result.reason).toBe('未选中任何文本')
+      expect(result.reason).toBe(EMPTY_SELECTION_REASON)
     })
 
     it('应该接受完整变量的选择', () => {
@@ -142,7 +145,7 @@ describe('selection-safety', () => {
       const result = validateSelection(text, 8, 14, 'name}}')
 
       expect(result.isValid).toBe(false)
-      expect(result.reason).toBe('不能跨越变量边界')
+      expect(result.reason).toBe(CROSS_VARIABLE_BOUNDARY_REASON)
     })
 
     it('应该拒绝在变量内部结束的选择', () => {
@@ -150,7 +153,7 @@ describe('selection-safety', () => {
       const result = validateSelection(text, 6, 12, '{{name')
 
       expect(result.isValid).toBe(false)
-      expect(result.reason).toBe('不能跨越变量边界')
+      expect(result.reason).toBe(CROSS_VARIABLE_BOUNDARY_REASON)
     })
 
     it('应该拒绝跨越变量开始边界的选择', () => {
@@ -158,7 +161,7 @@ describe('selection-safety', () => {
       const result = validateSelection(text, 3, 10, 'lo {{na')
 
       expect(result.isValid).toBe(false)
-      expect(result.reason).toBe('不能跨越变量边界')
+      expect(result.reason).toBe(CROSS_VARIABLE_BOUNDARY_REASON)
     })
 
     it('应该拒绝跨越变量结束边界的选择', () => {
@@ -166,7 +169,7 @@ describe('selection-safety', () => {
       const result = validateSelection(text, 10, 17, 'me}} wo')
 
       expect(result.isValid).toBe(false)
-      expect(result.reason).toBe('不能跨越变量边界')
+      expect(result.reason).toBe(CROSS_VARIABLE_BOUNDARY_REASON)
     })
 
     it('应该接受包含多个完整变量的选择', () => {

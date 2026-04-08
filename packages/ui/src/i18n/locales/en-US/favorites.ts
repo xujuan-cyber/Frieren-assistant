@@ -1,0 +1,341 @@
+const messages = {
+  "favorites": {
+    "title": "My Favorites",
+    "categories": {
+      "default": {
+        "uncategorized": "Uncategorized",
+        "uncategorizedDesc": "Default category",
+        "creativeWriting": "Creative Writing",
+        "creativeWritingDesc": "Creative writing prompts",
+        "programming": "Programming",
+        "programmingDesc": "Programming and development prompts",
+        "businessAnalysis": "Business Analysis",
+        "businessAnalysisDesc": "Business analysis prompts",
+        "learning": "Learning & Research",
+        "learningDesc": "Learning and research prompts",
+        "dailyAssistant": "Daily Assistant",
+        "dailyAssistantDesc": "Daily life assistant prompts"
+      }
+    },
+    "manager": {
+      "title": "Favorites Manager",
+      "searchPlaceholder": "Search favorites...",
+      "allCategories": "All Categories",
+      "allTags": "All Tags",
+      "totalCount": "{count} items",
+      "import": "Import",
+      "add": "Add",
+      "emptySearchResult": "No matching favorites found",
+      "emptyDescription": "No favorites yet",
+      "startOptimize": "Optimize",
+      "importDialog": {
+        "title": "Import Favorites",
+        "selectFile": "Select JSON file",
+        "uploadHint": "Click or drag file to this area",
+        "supportFormat": "Supports .json files",
+        "orPasteJson": "Or paste exported favorites JSON",
+        "pastePlaceholder": "Paste favorites data...",
+        "mergeStrategy": "Merge Strategy",
+        "skipDuplicate": "Skip Duplicates",
+        "overwriteDuplicate": "Overwrite Duplicates",
+        "createCopy": "Create Copy",
+        "cancel": "Cancel",
+        "import": "Import",
+        "importing": "Importing...",
+        "selectFileOrPaste": "Please select a file or paste import data first",
+        "importSuccess": "Import completed: {imported} successful, {skipped} skipped",
+        "importPartialFailed": "Some favorites failed to import",
+        "importFailed": "Import failed",
+        "readFileFailed": "Failed to read file"
+      },
+      "categoryManager": {
+        "title": "Category Manager"
+      },
+      "actions": {
+        "manageTags": "Manage Tags",
+        "manageCategories": "Manage Categories",
+        "export": "Export Favorites",
+        "clear": "Clear Favorites",
+        "exportSuccess": "Export successful",
+        "exportFailed": "Export failed",
+        "clearConfirm": "Are you sure you want to clear all favorites? This action cannot be undone.",
+        "clearSuccess": "Cleared successfully",
+        "clearFailed": "Clear failed",
+        "deleteConfirm": "Are you sure you want to delete favorite \"{title}\"? This action cannot be undone.",
+        "deleteSuccess": "Deleted successfully",
+        "deleteFailed": "Delete failed",
+        "copySuccess": "Copied to clipboard",
+        "copyFailed": "Copy failed",
+        "copiedOptimized": "Optimized prompt copied",
+        "copiedReasoning": "Reasoning content copied",
+        "copiedAll": "Content copied",
+        "shareComingSoon": "Share feature coming soon",
+        "categoryManagementComingSoon": "Category management coming in a future version"
+      },
+      "preview": {
+        "title": "Favorite Details",
+        "updatedAt": "Updated {time}",
+        "garden": {
+          "snapshotTitle": "Prompt Garden Snapshot",
+          "snapshotHint": "Imported visual assets and variable settings from Prompt Garden",
+          "basicInfo": "Basic Info",
+          "metaInfo": "Meta",
+          "importCode": "Import Code",
+          "gardenBaseUrl": "Garden Base URL",
+          "schema": "Schema",
+          "title": "Title",
+          "description": "Description",
+          "cover": "Cover",
+          "showcases": "Showcases",
+          "showcaseLabel": "Showcase #{index}",
+          "examples": "Examples",
+          "exampleLabel": "Example #{index}",
+          "exampleImages": "Example Images",
+          "parameters": "Parameters",
+          "inputImages": "Input Images",
+          "variables": "Variables",
+          "variableName": "Name",
+          "variableType": "Type",
+          "variableRequired": "Required",
+          "variableDefault": "Default",
+          "variableOptions": "Options",
+          "variableDescription": "Description",
+          "requiredYes": "Yes",
+          "requiredNo": "No",
+          "uploadCover": "Upload Cover",
+          "uploadShowcaseImages": "Upload Showcase Images",
+          "noCover": "No cover image yet",
+          "noShowcases": "No showcase images yet",
+          "noExamples": "No examples yet",
+          "saveSnapshotSuccess": "Snapshot updated",
+          "saveSnapshotFailed": "Failed to update snapshot"
+        },
+        "media": {
+          "title": "Images",
+          "hint": "These images are attached to this favorite",
+          "imageAlt": "Favorite image #{index}"
+        }
+      },
+      "messages": {
+        "unavailable": "Favorites feature is temporarily unavailable, please try again later",
+        "loadFailed": "Failed to load favorites",
+        "loadCategoryFailed": "Failed to load categories",
+        "managerNotInitialized": "Favorites manager not initialized"
+      },
+      "time": {
+        "justNow": "Just now",
+        "minutesAgo": "{minutes} minutes ago",
+        "hoursAgo": "{hours} hours ago",
+        "yesterday": "Yesterday",
+        "daysAgo": "{days} days ago"
+      },
+      "card": {
+        "useCount": "Use count",
+        "copyContent": "Copy content",
+        "useNow": "Use now",
+        "edit": "Edit",
+        "toggleCategory": "Change category",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "deleteConfirm": "Delete \"{title}\"?",
+        "functionMode": {
+          "basic": "Basic",
+          "context": "Context",
+          "image": "Image"
+        },
+        "optimizationMode": {
+          "system": "System",
+          "user": "User"
+        },
+        "imageSubMode": {
+          "text2image": "Text-to-Image",
+          "image2image": "Image-to-Image"
+        }
+      },
+      "categories": {
+        "default": {
+          "uncategorized": "Uncategorized",
+          "uncategorizedDesc": "Default category",
+          "creativeWriting": "Creative Writing",
+          "creativeWritingDesc": "Creative writing prompts",
+          "programming": "Programming",
+          "programmingDesc": "Programming and development prompts",
+          "businessAnalysis": "Business Analysis",
+          "businessAnalysisDesc": "Business analysis prompts",
+          "learning": "Learning & Research",
+          "learningDesc": "Learning and research prompts",
+          "dailyAssistant": "Daily Assistant",
+          "dailyAssistantDesc": "Daily life assistant prompts"
+        }
+      },
+      "tagManager": {
+        "title": "Tag Manager",
+        "searchPlaceholder": "Search tags...",
+        "totalTags": "Total {count} tags",
+        "add": "Add Tag",
+        "tagName": "Tag Name",
+        "useCount": "Use Count",
+        "actions": "Actions",
+        "rename": "Rename",
+        "merge": "Merge",
+        "mergeTooltip": "Merge current tag into target tag",
+        "delete": "Delete",
+        "close": "Close",
+        "addDialog": {
+          "title": "Add Tag",
+          "tagName": "Tag Name",
+          "tagNamePlaceholder": "Enter tag name",
+          "emptyWarning": "Tag name cannot be empty",
+          "existWarning": "Tag already exists",
+          "confirm": "Confirm",
+          "cancel": "Cancel"
+        },
+        "renameDialog": {
+          "title": "Rename Tag",
+          "oldName": "Original Name",
+          "newName": "New Name",
+          "newNamePlaceholder": "Enter new tag name",
+          "currentName": "Current tag name: {name}",
+          "emptyWarning": "Tag name cannot be empty",
+          "confirm": "Confirm",
+          "cancel": "Cancel"
+        },
+        "mergeDialog": {
+          "title": "Merge Tags",
+          "sourceName": "Source Tag",
+          "targetName": "Merge Into",
+          "targetPlaceholder": "Select target tag",
+          "sourceTag": "Source tag: {name}",
+          "selectTargetWarning": "Please select target tag",
+          "confirm": "Confirm Merge",
+          "cancel": "Cancel",
+          "warning": "After merging, \"{source}\" tag will be deleted, and all favorites using this tag will use \"{target}\" tag instead"
+        },
+        "deleteConfirm": "Are you sure you want to delete tag \"{name}\"? This will remove the tag from {count} favorites.",
+        "messages": {
+          "loadFailed": "Failed to load tag list",
+          "addSuccess": "Tag added successfully",
+          "addFailed": "Failed to add tag",
+          "renameSuccess": "Tag renamed successfully",
+          "renameFailed": "Failed to rename tag",
+          "mergeSuccess": "Tags merged successfully",
+          "mergeFailed": "Failed to merge tags",
+          "deleteSuccess": "Tag deleted successfully",
+          "deleteFailed": "Failed to delete tag"
+        }
+      }
+    },
+    "dialog": {
+      "createTitle": "Create Favorite",
+      "editTitle": "Edit Favorite",
+      "saveTitle": "Save to Favorites",
+      "basicInfo": "📋 Basic Information",
+      "contentTitle": "📝 Content",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Name this prompt",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select category (optional)",
+      "functionModeLabel": "Function Mode",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe the purpose and characteristics of this prompt",
+      "optimizationModeLabel": "Optimization Mode",
+      "optimizationModePlaceholder": "Select optimization mode",
+      "imageModeLabel": "Image Mode",
+      "imageModePlaceholder": "Select image mode",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Enter tags and press Enter to add",
+      "imagesLabel": "Images",
+      "imagesUploadHint": "Click or drag images to this area",
+      "imagesUploadSupport": "Common image formats are supported, multiple files allowed",
+      "imageAlt": "Image #{index}",
+      "coverTag": "Cover",
+      "setAsCover": "Set as cover",
+      "removeImage": "Remove",
+      "clearImages": "Clear images",
+      "contentPlaceholder": "Enter prompt content here...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "functionModes": {
+        "basic": "Basic",
+        "context": "Context",
+        "image": "Image"
+      },
+      "optimizationModes": {
+        "system": "System Prompt",
+        "user": "User Prompt"
+      },
+      "imageModes": {
+        "text2image": "Text-to-Image",
+        "image2image": "Image-to-Image"
+      },
+      "validation": {
+        "titleRequired": "Title is required",
+        "contentRequired": "Content is required"
+      },
+      "messages": {
+        "editSuccess": "Edit successful",
+        "saveSuccess": "Saved to favorites successfully",
+        "saveFailed": "Save failed",
+        "editFailed": "Edit failed",
+        "imageReadFailed": "Failed to read selected image",
+        "unavailable": "Favorites feature is temporarily unavailable, please try again later"
+      }
+    },
+    "button": {
+      "addTitle": "Add to favorites",
+      "removeTitle": "Remove from favorites",
+      "favorite": "Favorite",
+      "favorited": "Favorited",
+      "removeSuccess": "Removed from favorites"
+    },
+    "categoryManager": {
+      "title": "Category Manager",
+      "addRootCategory": "Add Root Category",
+      "addSubCategory": "Add Subcategory",
+      "expandAll": "Expand All",
+      "collapseAll": "Collapse All",
+      "edit": "Edit",
+      "delete": "Delete",
+      "editCategory": "Edit Category",
+      "addCategory": "Add Category",
+      "categoryName": "Category Name",
+      "categoryNamePlaceholder": "Enter category name",
+      "categoryDescription": "Category Description",
+      "categoryDescriptionPlaceholder": "Enter category description",
+      "parentCategory": "Parent Category",
+      "parentCategoryPlaceholder": "Select parent category (leave empty for root)",
+      "categoryColor": "Category Color",
+      "confirmDelete": "Confirm Delete",
+      "deleteWarning": "Are you sure you want to delete category <strong>{name}</strong>?",
+      "deleteChildrenWarning": "Warning: This category has {count} subcategories that will also be deleted!",
+      "deleteUsageWarning": "Note: This category is used by {count} favorites, which will become uncategorized after deletion.",
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Failed to delete",
+      "saveSuccess": "Saved successfully",
+      "addSuccess": "Added successfully",
+      "updateSuccess": "Updated successfully",
+      "saveFailed": "Failed to save",
+      "loadFailed": "Failed to load categories",
+      "validation": {
+        "nameRequired": "Please enter category name",
+        "nameLength": "Category name length should be 1-50 characters"
+      },
+      "defaultCategories": {
+        "uncategorized": "Uncategorized",
+        "uncategorizedDesc": "Default category",
+        "systemPrompt": "System Prompts",
+        "systemPromptDesc": "Optimized system prompts",
+        "userPrompt": "User Prompts",
+        "userPromptDesc": "Optimized user prompts",
+        "creativeWriting": "Creative Writing",
+        "creativeWritingDesc": "Creative writing related prompts",
+        "programming": "Programming",
+        "programmingDesc": "Programming and development related prompts",
+        "businessAnalysis": "Business Analysis",
+        "businessAnalysisDesc": "Business analysis related prompts"
+      }
+    }
+  }
+} as const;
+
+export default messages;

@@ -338,12 +338,12 @@ const customEntries = computed(() => {
 const handleAddDefinition = (name: string) => {
   const definition = schemaMap.value.get(name)
   if (!definition) {
-    message.error(withFallback('modelManager.advancedParameters.validation.unknownParam', '参数定义不存在'))
+    message.error(withFallback('modelManager.advancedParameters.validation.unknownParam', 'Parameter definition not found'))
     return
   }
 
   if (Object.prototype.hasOwnProperty.call(props.paramOverrides, name)) {
-    message.warning(withFallback('modelManager.advancedParameters.validation.duplicateParam', '参数已存在'))
+    message.warning(withFallback('modelManager.advancedParameters.validation.duplicateParam', 'Parameter already exists'))
     return
   }
 

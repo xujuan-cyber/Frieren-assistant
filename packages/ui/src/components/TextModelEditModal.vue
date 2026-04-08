@@ -313,7 +313,7 @@ const handleSubmit = async () => {
     emit('saved', id || undefined)
     handleUpdateShow(false)
   } catch (error) {
-    console.error('保存模型失败:', error)
+    console.error('Failed to save model:', error)
 
     const rawError = error instanceof Error ? error.message : String(error)
     const fallback = isEditing.value

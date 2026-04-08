@@ -191,7 +191,7 @@ export function useResponsiveTestLayout(options: ResponsiveTestLayoutOptions = {
         showPrimary: !isMobile.value
       },
       singleMode: {
-        title: '测试结果',
+        title: 'test.testResult',
         showToolbar: isDesktop.value
       },
       display: {

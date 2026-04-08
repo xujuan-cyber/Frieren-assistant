@@ -354,7 +354,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
   const saveSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[ProVariableSession] PreferenceService 不可用，无法保存会话')
+      console.warn('[ProVariableSession] PreferenceService is unavailable; cannot save session')
       return
     }
 
@@ -387,14 +387,14 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
         sessionState
       )
     } catch (error) {
-      console.error('[ProVariableSession] 保存会话失败:', error)
+      console.error('[ProVariableSession] Failed to save session:', error)
     }
   }
 
   const restoreSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[ProVariableSession] PreferenceService 不可用，无法恢复会话')
+      console.warn('[ProVariableSession] PreferenceService is unavailable; cannot restore session')
       return
     }
 
@@ -536,7 +536,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
         }
       }
     } catch (error) {
-      console.error('[ProVariableSession] 恢复会话失败:', error)
+      console.error('[ProVariableSession] Failed to restore session:', error)
       reset()
     }
   }

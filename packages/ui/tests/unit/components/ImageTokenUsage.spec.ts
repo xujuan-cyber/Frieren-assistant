@@ -51,8 +51,8 @@ describe('ImageTokenUsage', () => {
     })
 
     const text = wrapper.text()
-    expect(text).toContain('图1 (JPEG): 1024x1024px')
-    expect(text).toContain('图2 (PNG): 768x1344px')
+    expect(text).toContain('Image 1 (JPEG): 1024x1024px')
+    expect(text).toContain('Image 2 (PNG): 768x1344px')
     expect(text).toContain('Prompt tokens: 321')
     expect(text).not.toContain('Image (JPEG): 1024x1024px')
   })

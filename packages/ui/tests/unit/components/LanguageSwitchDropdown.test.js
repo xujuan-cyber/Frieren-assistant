@@ -3,11 +3,33 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import LanguageSwitchDropdown from '../../../src/components/LanguageSwitchDropdown.vue'
 
+vi.mock('vue-i18n', async (importOriginal) => {
+  const actual = await importOriginal()
+
+  return {
+    ...actual,
+    useI18n: () => ({
+      t: (key, params = {}) => {
+        const dictionary = {
+          'settings.languageSwitcher.label': 'Switch language',
+          'settings.languageSwitcher.ariaLabel': `Switch language (${params.language ?? ''})`,
+          'settings.languageSwitcher.languages.zh-CN': 'Chinese (Simplified)',
+          'settings.languageSwitcher.languages.zh-TW': 'Chinese (Traditional)',
+          'settings.languageSwitcher.languages.en-US': 'English'
+        }
+
+        return dictionary[key] ?? key
+      }
+    })
+  }
+})
+
 // Mock Naive UI components
 vi.mock('naive-ui', () => ({
   NButton: {
     name: 'NButton',
-    template: '<button><slot name="icon"></slot><slot></slot></button>'
+    template: '<button><slot name="icon"></slot><slot></slot></button>',
+    props: ['title', 'ariaLabel']
   },
   NDropdown: {
     name: 'NDropdown',
@@ -51,13 +73,23 @@ describe('LanguageSwitchDropdown', () => {
       expect(wrapper.vm).toBeDefined()
     })
 
-    it('应该包含正确的语言选项', () => {
+    it('应该通过 locale 提供语言选项文案', () => {
       wrapper = createWrapper()
       const vm = wrapper.vm
       expect(vm.availableLanguages).toHaveLength(3)
       expect(vm.availableLanguages[0].key).toBe('zh-CN')
+      expect(vm.availableLanguages[0].label).toBe('Chinese (Simplified)')
       expect(vm.availableLanguages[1].key).toBe('zh-TW')
+      expect(vm.availableLanguages[1].label).toBe('Chinese (Traditional)')
       expect(vm.availableLanguages[2].key).toBe('en-US')
+      expect(vm.availableLanguages[2].label).toBe('English')
+    })
+
+    it('应该通过 locale 生成当前语言提示文案', () => {
+      wrapper = createWrapper()
+      const vm = wrapper.vm
+
+      expect(vm.currentLanguageLabel).toBe('Switch language (English)')
     })
 
     it('应该能够调用语言切换方法', async () => {

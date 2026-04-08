@@ -64,7 +64,7 @@ export class FavoriteManager implements IFavoriteManager {
       this.initialized = true;
       this.initState = 'initialized';
     } catch (error) {
-      console.error('[FavoriteManager] 初始化失败:', error);
+      console.error('[FavoriteManager] Initialization failed:', error);
       // 即使初始化失败,也标记为已初始化,避免阻塞后续操作
       this.initialized = true;
       this.initState = 'initialized';
@@ -130,7 +130,7 @@ export class FavoriteManager implements IFavoriteManager {
       if (migrated) {
         // 迁移后更新统计信息
         await this.updateStats();
-        console.info('[FavoriteManager] 数据迁移完成，已更新收藏项格式');
+        console.info('[FavoriteManager] Legacy data migration completed; favorite entries updated');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -184,7 +184,7 @@ export class FavoriteManager implements IFavoriteManager {
         await this.storageProvider.setItem('favorite_categories_initialized', 'true');
       }
     } catch (error) {
-      console.warn('[FavoriteManager] 确保默认分类失败:', error);
+      console.warn('[FavoriteManager] Failed to ensure default categories:', error);
     }
   }
 
@@ -444,7 +444,7 @@ export class FavoriteManager implements IFavoriteManager {
       await this.updateFavorite(id, { useCount: (await this.getFavorite(id)).useCount + 1 });
     } catch (error) {
       // 静默处理使用次数增加失败，不影响主要功能
-      console.warn('增加使用次数失败:', error);
+      console.warn('Failed to increment use count:', error);
     }
   }
 
@@ -614,7 +614,7 @@ export class FavoriteManager implements IFavoriteManager {
     try {
       await this.storageProvider.setItem(this.STORAGE_KEYS.STATS, JSON.stringify(stats));
     } catch (error) {
-      console.warn('缓存统计数据失败:', error);
+      console.warn('Failed to cache statistics:', error);
     }
 
     return stats;
@@ -643,7 +643,7 @@ export class FavoriteManager implements IFavoriteManager {
       const independentTags: FavoriteTag[] = storedTags ? JSON.parse(storedTags) : [];
       return independentTags.map(t => t.tag);
     } catch (error) {
-      console.warn('获取独立标签失败:', error);
+      console.warn('Failed to get standalone tags:', error);
       return [];
     }
   }

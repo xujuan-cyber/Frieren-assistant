@@ -293,4 +293,49 @@ describe('Session store (image-multiimage) persistence', () => {
 
     await expect(restored.restoreSession()).rejects.toThrow(/missing input image asset/i)
   })
+
+  it('uses English fallback errors when required services are unavailable', async () => {
+    const { pinia: missingPreferencePinia } = createTestPinia({
+      preferenceService: undefined as any,
+      imageStorageService: {
+        getImage: vi.fn(async () => null),
+        getMetadata: vi.fn(async () => null),
+        saveImage: vi.fn(async () => ''),
+        listAllMetadata: vi.fn(async () => []),
+        deleteImages: vi.fn(async () => {}),
+      } as any,
+    })
+
+    const missingPreferenceStore = useImageMultiImageSession(missingPreferencePinia)
+    await expect(missingPreferenceStore.saveSession()).rejects.toThrow(
+      '[ImageMultiImageSession] PreferenceService is unavailable; cannot save session',
+    )
+    await expect(missingPreferenceStore.restoreSession()).rejects.toThrow(
+      '[ImageMultiImageSession] PreferenceService is unavailable; cannot restore session',
+    )
+
+    const { pinia: missingImageStoragePinia } = createTestPinia({
+      preferenceService: {
+        get: async <T,>(_key: string, defaultValue: T) => defaultValue,
+        set: async () => {},
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+      imageStorageService: undefined as any,
+    })
+
+    const missingImageStorageStore = useImageMultiImageSession(missingImageStoragePinia)
+    await expect(missingImageStorageStore.saveSession()).rejects.toThrow(
+      '[ImageMultiImageSession] ImageStorageService is unavailable; cannot save session',
+    )
+    await expect(missingImageStorageStore.restoreSession()).rejects.toThrow(
+      '[ImageMultiImageSession] ImageStorageService is unavailable; cannot restore session',
+    )
+  })
 })

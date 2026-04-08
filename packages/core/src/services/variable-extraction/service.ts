@@ -146,7 +146,7 @@ export class VariableExtractionService implements IVariableExtractionService {
   private buildTemplateContext(request: VariableExtractionRequest): TemplateContext {
     const context: TemplateContext = {
       promptContent: request.promptContent,
-      existingVariableNames: request.existingVariableNames?.join(', ') || '无',
+      existingVariableNames: request.existingVariableNames?.join(', ') || 'None',
       hasExistingVariables: !!request.existingVariableNames?.length,
     };
 

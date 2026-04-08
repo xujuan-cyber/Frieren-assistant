@@ -434,7 +434,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
   const saveSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[ProMultiMessageSession] PreferenceService 不可用，无法保存会话')
+      console.warn('[ProMultiMessageSession] PreferenceService is unavailable; cannot save session')
       return
     }
 
@@ -468,7 +468,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
         sessionState
       )
     } catch (error) {
-      console.error('[ProMultiMessageSession] 保存会话失败:', error)
+      console.error('[ProMultiMessageSession] Failed to save session:', error)
     }
   }
 
@@ -478,7 +478,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
   const restoreSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[ProMultiMessageSession] PreferenceService 不可用，无法恢复会话')
+      console.warn('[ProMultiMessageSession] PreferenceService is unavailable; cannot restore session')
       return
     }
 
@@ -651,7 +651,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
         }
       }
     } catch (error) {
-      console.error('[ProMultiMessageSession] 恢复会话失败:', error)
+      console.error('[ProMultiMessageSession] Failed to restore session:', error)
       reset()
     }
   }

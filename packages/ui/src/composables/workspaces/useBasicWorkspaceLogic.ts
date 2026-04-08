@@ -209,7 +209,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
               onOptimizeComplete?.(chain)
               toast.success(t('toast.success.optimizeSuccess'))
             } catch (error) {
-              console.error('[useBasicWorkspaceLogic] 创建历史记录失败:', error)
+              console.error('[useBasicWorkspaceLogic] Failed to create the history record:', error)
               currentVersions.value = []
               currentChainId.value = ''
               currentVersionId.value = ''
@@ -342,7 +342,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
               onIterateComplete?.(chain)
               toast.success(t('toast.success.iterateComplete'))
             } catch (error) {
-              console.error('[useBasicWorkspaceLogic] 保存迭代记录失败:', error)
+              console.error('[useBasicWorkspaceLogic] Failed to save the iteration record:', error)
               currentVersions.value = []
               currentChainId.value = ''
               currentVersionId.value = ''
@@ -459,7 +459,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
       onLocalEditComplete?.(chain)
       toast.success(t('toast.success.localEditSaved'))
     } catch (error) {
-      console.error('[useBasicWorkspaceLogic] 保存本地编辑失败:', error)
+      console.error('[useBasicWorkspaceLogic] Failed to save local edits:', error)
       toast.warning(t('toast.warning.saveHistoryFailed'))
     }
   }
@@ -531,7 +531,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
       currentChainId.value = chain.chainId
       currentVersionId.value = sessionStore.versionId || chain.currentRecord.id
     } catch (error) {
-      console.error('[useBasicWorkspaceLogic] 加载版本失败:', error)
+      console.error('[useBasicWorkspaceLogic] Failed to load versions:', error)
       currentVersions.value = []
       currentChainId.value = ''
       currentVersionId.value = ''

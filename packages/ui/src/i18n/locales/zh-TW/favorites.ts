@@ -1,0 +1,341 @@
+const messages = {
+  "favorites": {
+    "title": "我的收藏",
+    "categories": {
+      "default": {
+        "uncategorized": "未分類",
+        "uncategorizedDesc": "預設分類",
+        "creativeWriting": "創意寫作",
+        "creativeWritingDesc": "創意寫作相關的提示詞",
+        "programming": "程式開發",
+        "programmingDesc": "程式開發相關的提示詞",
+        "businessAnalysis": "商業分析",
+        "businessAnalysisDesc": "商業分析相關的提示詞",
+        "learning": "學習研究",
+        "learningDesc": "學習研究相關的提示詞",
+        "dailyAssistant": "日常助手",
+        "dailyAssistantDesc": "日常生活助手類提示詞"
+      }
+    },
+    "manager": {
+      "title": "收藏管理",
+      "searchPlaceholder": "搜尋收藏...",
+      "allCategories": "全部分類",
+      "allTags": "全部標籤",
+      "totalCount": "共 {count} 項",
+      "import": "匯入",
+      "add": "新增",
+      "emptySearchResult": "沒有找到相符的收藏",
+      "emptyDescription": "還沒有收藏任何提示詞",
+      "startOptimize": "優化",
+      "importDialog": {
+        "title": "匯入收藏",
+        "selectFile": "選擇 JSON 檔案",
+        "uploadHint": "點選或拖曳檔案到此區域",
+        "supportFormat": "支援 .json 檔案",
+        "orPasteJson": "或貼上匯出的收藏 JSON",
+        "pastePlaceholder": "貼上收藏資料...",
+        "mergeStrategy": "合併策略",
+        "skipDuplicate": "跳過重複",
+        "overwriteDuplicate": "覆蓋重複",
+        "createCopy": "建立副本",
+        "cancel": "取消",
+        "import": "匯入",
+        "importing": "匯入中...",
+        "selectFileOrPaste": "請先選擇檔案或貼上匯入資料",
+        "importSuccess": "匯入完成：成功 {imported} 項，跳過 {skipped} 項",
+        "importPartialFailed": "部分收藏匯入失敗",
+        "importFailed": "匯入失敗",
+        "readFileFailed": "讀取檔案失敗"
+      },
+      "categoryManager": {
+        "title": "分類管理"
+      },
+      "actions": {
+        "manageTags": "管理標籤",
+        "manageCategories": "管理分類",
+        "export": "匯出收藏",
+        "clear": "清空收藏",
+        "exportSuccess": "匯出成功",
+        "exportFailed": "匯出失敗",
+        "clearConfirm": "確定要清空所有收藏嗎？此操作不可恢復。",
+        "clearSuccess": "清空成功",
+        "clearFailed": "清空失敗",
+        "deleteConfirm": "確定要刪除收藏 \"{title}\" 嗎？此操作不可恢復。",
+        "deleteSuccess": "刪除成功",
+        "deleteFailed": "刪除失敗",
+        "copySuccess": "已複製到剪貼簿",
+        "copyFailed": "複製失敗",
+        "copiedOptimized": "已複製優化後的提示詞",
+        "copiedReasoning": "已複製推理內容",
+        "copiedAll": "已複製內容",
+        "shareComingSoon": "分享功能即將上線",
+        "categoryManagementComingSoon": "分類管理功能將在後續版本提供"
+      },
+      "preview": {
+        "title": "收藏詳情",
+        "updatedAt": "更新於 {time}",
+        "garden": {
+          "snapshotTitle": "Prompt Garden 快照",
+          "snapshotHint": "展示從 Prompt Garden 匯入的可視化資源和變數設定",
+          "basicInfo": "基礎資訊",
+          "metaInfo": "中繼資料",
+          "importCode": "匯入碼",
+          "gardenBaseUrl": "Garden 位址",
+          "schema": "Schema",
+          "title": "標題",
+          "description": "描述",
+          "cover": "封面",
+          "showcases": "展示集",
+          "showcaseLabel": "展示 #{index}",
+          "examples": "範例",
+          "exampleLabel": "範例 #{index}",
+          "exampleImages": "範例圖片",
+          "parameters": "參數",
+          "inputImages": "輸入圖片",
+          "variables": "變數定義",
+          "variableName": "名稱",
+          "variableType": "類型",
+          "variableRequired": "必填",
+          "variableDefault": "預設值",
+          "variableOptions": "可選項",
+          "variableDescription": "說明",
+          "requiredYes": "是",
+          "requiredNo": "否",
+          "uploadCover": "上傳封面圖",
+          "uploadShowcaseImages": "上傳效果圖",
+          "noCover": "暫無封面圖",
+          "noShowcases": "暫無效果圖",
+          "noExamples": "暫無範例",
+          "saveSnapshotSuccess": "快照已更新",
+          "saveSnapshotFailed": "快照更新失敗"
+        },
+        "media": {
+          "title": "圖片資源",
+          "hint": "以下圖片將隨收藏一起展示",
+          "imageAlt": "收藏圖片 #{index}"
+        }
+      },
+      "messages": {
+        "unavailable": "收藏功能暫不可用，請稍後再試",
+        "loadFailed": "載入收藏失敗",
+        "loadCategoryFailed": "載入分類失敗",
+        "managerNotInitialized": "收藏管理器未初始化"
+      },
+      "time": {
+        "justNow": "剛剛",
+        "minutesAgo": "{minutes}分鐘前",
+        "hoursAgo": "{hours}小時前",
+        "yesterday": "昨天",
+        "daysAgo": "{days}天前"
+      },
+      "card": {
+        "useCount": "使用次數",
+        "copyContent": "複製內容",
+        "useNow": "立即使用",
+        "edit": "編輯",
+        "toggleCategory": "切換分類",
+        "delete": "刪除",
+        "cancel": "取消",
+        "deleteConfirm": "確定刪除\"{title}\"嗎？",
+        "functionMode": {
+          "basic": "基礎",
+          "context": "情境",
+          "image": "圖像"
+        },
+        "optimizationMode": {
+          "system": "系統",
+          "user": "使用者"
+        },
+        "imageSubMode": {
+          "text2image": "文生圖",
+          "image2image": "圖生圖"
+        }
+      },
+      "categories": {
+        "default": {
+          "uncategorized": "未分類",
+          "uncategorizedDesc": "預設分類",
+          "creativeWriting": "創意寫作",
+          "creativeWritingDesc": "創意寫作相關的提示詞",
+          "programming": "程式開發",
+          "programmingDesc": "程式開發相關的提示詞",
+          "businessAnalysis": "商業分析",
+          "businessAnalysisDesc": "商業分析相關的提示詞",
+          "learning": "學習研究",
+          "learningDesc": "學習研究相關的提示詞",
+          "dailyAssistant": "日常助手",
+          "dailyAssistantDesc": "日常生活助手類提示詞"
+        }
+      },
+      "tagManager": {
+        "title": "標籤管理",
+        "searchPlaceholder": "搜尋標籤...",
+        "totalTags": "共 {count} 個標籤",
+        "add": "新增標籤",
+        "tagName": "標籤名稱",
+        "useCount": "使用次數",
+        "actions": "操作",
+        "rename": "重新命名",
+        "merge": "合併",
+        "mergeTooltip": "將目前標籤合併到目標標籤中",
+        "delete": "刪除",
+        "close": "關閉",
+        "addDialog": {
+          "title": "新增標籤",
+          "tagName": "標籤名稱",
+          "tagNamePlaceholder": "輸入標籤名稱",
+          "emptyWarning": "標籤名稱不能為空",
+          "existWarning": "標籤已存在",
+          "confirm": "確認",
+          "cancel": "取消"
+        },
+        "renameDialog": {
+          "title": "重新命名標籤",
+          "oldName": "原標籤名稱",
+          "newName": "新標籤名稱",
+          "newNamePlaceholder": "輸入新的標籤名稱",
+          "currentName": "目前標籤名稱：{name}",
+          "emptyWarning": "標籤名稱不能為空",
+          "confirm": "確認",
+          "cancel": "取消"
+        },
+        "mergeDialog": {
+          "title": "合併標籤",
+          "sourceName": "源標籤",
+          "targetName": "合併到",
+          "targetPlaceholder": "選擇目標標籤",
+          "sourceTag": "源標籤：{name}",
+          "selectTargetWarning": "請選擇目標標籤",
+          "confirm": "確認合併",
+          "cancel": "取消",
+          "warning": "合併後，\"{source}\" 標籤將被刪除，所有使用該標籤的收藏將改用 \"{target}\" 標籤"
+        },
+        "deleteConfirm": "確定刪除標籤 \"{name}\"？這將從 {count} 個收藏中移除該標籤。",
+        "messages": {
+          "loadFailed": "載入標籤清單失敗",
+          "addSuccess": "標籤新增成功",
+          "addFailed": "標籤新增失敗",
+          "renameSuccess": "標籤重新命名成功",
+          "renameFailed": "標籤重新命名失敗",
+          "mergeSuccess": "標籤合併成功",
+          "mergeFailed": "標籤合併失敗",
+          "deleteSuccess": "標籤刪除成功",
+          "deleteFailed": "標籤刪除失敗"
+        }
+      }
+    },
+    "dialog": {
+      "createTitle": "新建收藏",
+      "editTitle": "編輯收藏",
+      "saveTitle": "儲存到收藏夾",
+      "basicInfo": "📋 基礎資訊",
+      "contentTitle": "📝 正文內容",
+      "titleLabel": "標題",
+      "titlePlaceholder": "為這個提示詞起個名字",
+      "categoryLabel": "分類",
+      "categoryPlaceholder": "選擇分類（可選）",
+      "functionModeLabel": "功能模式",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "描述這個提示詞的用途和特點",
+      "optimizationModeLabel": "優化模式",
+      "optimizationModePlaceholder": "選擇優化模式",
+      "imageModeLabel": "圖像模式",
+      "imageModePlaceholder": "選擇圖像模式",
+      "tagsLabel": "標籤",
+      "tagsPlaceholder": "輸入標籤後按Enter新增",
+      "imagesLabel": "圖片",
+      "imagesUploadHint": "點選或拖曳圖片到此區域",
+      "imagesUploadSupport": "支援常見圖片格式，可新增多張",
+      "imageAlt": "圖片 #{index}",
+      "coverTag": "封面",
+      "setAsCover": "設為封面",
+      "removeImage": "移除",
+      "clearImages": "清空圖片",
+      "contentPlaceholder": "在這裡輸入提示詞內容...",
+      "cancel": "取消",
+      "save": "儲存",
+      "functionModes": {
+        "basic": "基礎",
+        "context": "情境",
+        "image": "圖像"
+      },
+      "optimizationModes": {
+        "system": "系統提示詞",
+        "user": "使用者提示詞"
+      },
+      "imageModes": {
+        "text2image": "文生圖",
+        "image2image": "圖生圖"
+      },
+      "validation": {
+        "titleRequired": "標題不能為空",
+        "contentRequired": "內容不能為空"
+      },
+      "messages": {
+        "editSuccess": "編輯成功",
+        "saveSuccess": "儲存到收藏夾成功",
+        "saveFailed": "儲存失敗",
+        "editFailed": "編輯失敗",
+        "imageReadFailed": "讀取圖片失敗",
+        "unavailable": "收藏功能暫不可用，請稍後再試"
+      }
+    },
+    "button": {
+      "addTitle": "加入收藏",
+      "removeTitle": "取消收藏",
+      "favorite": "收藏",
+      "favorited": "已收藏",
+      "removeSuccess": "已取消收藏"
+    },
+    "categoryManager": {
+      "title": "分類管理",
+      "addRootCategory": "新增根分類",
+      "addSubCategory": "新增子分類",
+      "expandAll": "全部展開",
+      "collapseAll": "全部摺疊",
+      "edit": "編輯",
+      "delete": "刪除",
+      "editCategory": "編輯分類",
+      "addCategory": "新增分類",
+      "categoryName": "分類名稱",
+      "categoryNamePlaceholder": "請輸入分類名稱",
+      "categoryDescription": "分類描述",
+      "categoryDescriptionPlaceholder": "請輸入分類描述",
+      "parentCategory": "父分類",
+      "parentCategoryPlaceholder": "選擇父分類（不選則為根分類）",
+      "categoryColor": "分類顏色",
+      "confirmDelete": "確認刪除",
+      "deleteWarning": "確定要刪除分類 <strong>{name}</strong> 嗎？",
+      "deleteChildrenWarning": "警告：該分類下還有 {count} 個子分類，將一併刪除！",
+      "deleteUsageWarning": "提示：該分類已被 {count} 個收藏使用，刪除後這些收藏將變為未分類。",
+      "deleteSuccess": "刪除成功",
+      "deleteFailed": "刪除失敗",
+      "saveSuccess": "儲存成功",
+      "addSuccess": "新增成功",
+      "updateSuccess": "更新成功",
+      "saveFailed": "儲存失敗",
+      "loadFailed": "載入分類失敗",
+      "validation": {
+        "nameRequired": "請輸入分類名稱",
+        "nameLength": "分類名稱長度應在 1-50 之間"
+      },
+      "defaultCategories": {
+        "uncategorized": "未分類",
+        "uncategorizedDesc": "預設分類",
+        "systemPrompt": "系統提示詞",
+        "systemPromptDesc": "優化後的系統提示詞",
+        "userPrompt": "使用者提示詞",
+        "userPromptDesc": "優化後的使用者提示詞",
+        "creativeWriting": "創意寫作",
+        "creativeWritingDesc": "創意寫作相關的提示詞",
+        "programming": "程式開發",
+        "programmingDesc": "程式開發相關的提示詞",
+        "businessAnalysis": "商業分析",
+        "businessAnalysisDesc": "商業分析相關的提示詞"
+      }
+    }
+  }
+} as const;
+
+export default messages;

@@ -228,7 +228,7 @@ const selectTestType = (model: ImageModel): 'text2image' | 'image2image' => {
     return 'text2image'  // 两种都支持，优先文生图
   }
 
-  throw new Error('模型不支持任何图像生成功能')
+  throw new Error('The model does not support image generation')
 }
 
 const getPreviewImageSrc = (configId: string): string | null => {
@@ -284,7 +284,7 @@ const testConnection = async (configId: string) => {
 
       // 获取选中的模型信息
       if (!config.model) {
-        throw new Error('选中的模型未找到')
+        throw new Error('The selected model could not be found')
       }
 
       // 根据模型能力确定测试类型
@@ -347,8 +347,8 @@ const toggleConfig = async (config: { id: string; enabled: boolean }) => {
     await loadConfigs()
     toast.success(config.enabled ? t('modelManager.disableSuccess') : t('modelManager.enableSuccess'))
   } catch (error) {
-    console.error('切换模型状态失败:', error)
-    toast.error(t('modelManager.toggleFailed', { error: getI18nErrorMessage(error, 'Unknown error') }))
+    console.error('[ImageModelManager] Failed to toggle model status:', error)
+    toast.error(t('modelManager.toggleFailed', { error: getI18nErrorMessage(error, t('common.error')) }))
   }
 }
 
@@ -359,8 +359,8 @@ const deleteConfig = async (configId: string) => {
       await loadConfigs()
       toast.success(t('modelManager.deleteSuccess'))
     } catch (error) {
-      console.error('删除模型失败:', error)
-      toast.error(t('modelManager.deleteFailed', { error: getI18nErrorMessage(error, 'Unknown error') }))
+      console.error('[ImageModelManager] Failed to delete model:', error)
+      toast.error(t('modelManager.deleteFailed', { error: getI18nErrorMessage(error, t('common.error')) }))
     }
   }
 }
@@ -370,7 +370,7 @@ onMounted(async () => {
   try {
     await initialize()
   } catch (error) {
-    console.error('初始化图像模型管理器失败:', error)
+    console.error('[ImageModelManager] Failed to initialize:', error)
   }
 })
 

@@ -52,8 +52,8 @@ export function useEvaluationContext(): UseEvaluationReturn {
   const evaluation = inject(EvaluationKey)
   if (!evaluation) {
     throw new Error(
-      '[useEvaluationContext] 必须在提供了评估上下文的组件树中使用。' +
-      '请确保父组件调用了 provideEvaluation()。'
+      '[useEvaluationContext] This composable must be used inside a component tree that provides evaluation context. ' +
+      'Make sure the parent component calls provideEvaluation().'
     )
   }
   return evaluation

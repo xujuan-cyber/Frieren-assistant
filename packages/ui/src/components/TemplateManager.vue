@@ -915,10 +915,10 @@ const loadTemplates = async () => {
     // 统一使用异步方法
     const allTemplates = await getTemplateManager.value.listTemplates()
     templates.value = allTemplates
-    console.log('加载到的提示词:', templates.value)
+    console.log('Loaded templates:', templates.value)
   } catch (error) {
-    console.error('加载提示词失败:', error)
-    toast.error('加载提示词失败')
+    console.error('Failed to load templates:', error)
+    toast.error('Failed to load templates')
   }
 }
 
@@ -1180,7 +1180,7 @@ const handleSubmit = async () => {
     toast.success(editingTemplate.value ? t('template.success.updated') : t('template.success.added'))
     cancelEdit()
   } catch (error) {
-    console.error('保存提示词失败:', error)
+    console.error('Failed to save template:', error)
     toast.error(t('template.error.saveFailed'))
   }
 }
@@ -1194,7 +1194,7 @@ const confirmDelete = async (templateId: string) => {
 
       toast.success(t('template.success.deleted'))
     } catch (error) {
-      console.error('删除提示词失败:', error)
+      console.error('Failed to delete template:', error)
       toast.error(t('template.error.deleteFailed'))
     }
   }
@@ -1235,7 +1235,7 @@ const copyTemplate = (template: Template) => {
   const isAdvanced = Array.isArray(template.content)
 
   form.value = {
-    name: `${template.name} - 副本`,
+    name: `${template.name} - Copy`,
     content: isAdvanced ? '' : template.content as string,
     description: template.metadata.description || '',
     isAdvanced,

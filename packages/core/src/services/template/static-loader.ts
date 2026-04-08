@@ -68,7 +68,7 @@ export class StaticLoader {
     }
 
     try {
-      console.log(`🔄 静态导入开始加载模板...`);
+      console.log('Starting static template loading...');
       
       const all: Record<string, Template> = {};
       const byLanguage: Record<Language, Record<string, Template>> = { zh: {}, en: {} };
@@ -95,7 +95,7 @@ export class StaticLoader {
         
         // 验证内置模板必须包含language字段
         if (template.isBuiltin && !language) {
-          console.error(`❌ 内置模板缺少language字段: ${id}`);
+          console.error(`Built-in template is missing the language field: ${id}`);
           throw new TemplateValidationError(
             `Built-in template '${id}' is missing required 'language' field in metadata`,
           );
@@ -157,10 +157,10 @@ export class StaticLoader {
 
       const result = { all, byLanguage, byType };
       
-      console.log(`✅ 成功加载 ${Object.keys(all).length} 个模板`, {
-        '总数': Object.keys(all).length,
-        '中文': Object.keys(byLanguage.zh).length,
-        '英文': Object.keys(byLanguage.en).length,
+      console.log(`Loaded ${Object.keys(all).length} templates successfully`, {
+        total: Object.keys(all).length,
+        chinese: Object.keys(byLanguage.zh).length,
+        english: Object.keys(byLanguage.en).length,
         optimize: Object.keys(byType.optimize.zh).length + Object.keys(byType.optimize.en).length,
         'user-optimize': Object.keys(byType['user-optimize'].zh).length + Object.keys(byType['user-optimize'].en).length,
         text2imageOptimize: Object.keys(byType.text2imageOptimize.zh).length + Object.keys(byType.text2imageOptimize.en).length,
@@ -180,7 +180,7 @@ export class StaticLoader {
       return result;
 
     } catch (error) {
-      console.error('❌ 静态导入加载模板失败:', error);
+      console.error('Failed to load templates via static import:', error);
       throw new TemplateLoadError(
         'static-loader',
         `Failed to load static templates: ${error instanceof Error ? error.message : String(error)}`,

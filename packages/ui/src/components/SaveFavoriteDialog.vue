@@ -690,7 +690,7 @@ const handleSave = async () => {
       } catch (error) {
         // 只忽略"标签已存在"错误，其他错误需要抛出
         if (error && typeof error === 'object' && 'code' in error && error.code !== 'TAG_ALREADY_EXISTS') {
-          console.error('添加标签到独立库失败:', error);
+          console.error('Failed to add tag to the dedicated library:', error);
           throw error;
         }
         // 标签已存在，这是正常情况，继续处理
@@ -775,7 +775,7 @@ const handleSave = async () => {
     emit('update:show', false);
   } catch (error) {
     const failedKey = props.mode === 'edit' ? 'favorites.dialog.messages.editFailed' : 'favorites.dialog.messages.saveFailed';
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     message.error(`${t(failedKey)}: ${errorMessage}`);
   } finally {
     saving.value = false;

@@ -96,6 +96,7 @@ import { useI18n } from "vue-i18n";
 import { useToast } from "../../composables/ui/useToast";
 import { useVariableDetection } from "./useVariableDetection";
 import VariableExtractionDialog from "./VariableExtractionDialog.vue";
+import { TEXT_SELECTION_ERRORS } from "./useTextSelection";
 import {
     variableHighlighter,
     variableAutocompletion,
@@ -322,7 +323,7 @@ const validateSelection = (
 ): { isValid: boolean; reason?: string } => {
     // 是否有有效选择
     if (start === end || !selectedText.trim()) {
-        return { isValid: false, reason: "未选中任何文本" };
+        return { isValid: false, reason: TEXT_SELECTION_ERRORS.emptySelection };
     }
 
     // 检查是否跨越变量边界
@@ -332,19 +333,19 @@ const validateSelection = (
     const openBracesBefore = (beforeSelection.match(/\{\{/g) || []).length;
     const closeBracesBefore = (beforeSelection.match(/\}\}/g) || []).length;
     if (openBracesBefore > closeBracesBefore) {
-        return { isValid: false, reason: "不能跨越变量边界" };
+        return { isValid: false, reason: TEXT_SELECTION_ERRORS.crossesVariableBoundary };
     }
 
     const openBracesAfter = (afterSelection.match(/\{\{/g) || []).length;
     const closeBracesAfter = (afterSelection.match(/\}\}/g) || []).length;
     if (closeBracesAfter > openBracesAfter) {
-        return { isValid: false, reason: "不能跨越变量边界" };
+        return { isValid: false, reason: TEXT_SELECTION_ERRORS.crossesVariableBoundary };
     }
 
     const openBracesInSelection = (selectedText.match(/\{\{/g) || []).length;
     const closeBracesInSelection = (selectedText.match(/\}\}/g) || []).length;
     if (openBracesInSelection !== closeBracesInSelection) {
-        return { isValid: false, reason: "不能跨越变量边界" };
+        return { isValid: false, reason: TEXT_SELECTION_ERRORS.crossesVariableBoundary };
     }
 
     return { isValid: true };
@@ -477,7 +478,7 @@ const checkSelection = () => {
 
         if (
             validation.reason &&
-            validation.reason !== "未选中任何文本"
+            validation.reason !== TEXT_SELECTION_ERRORS.emptySelection
         ) {
             message.warning(validation.reason);
         }

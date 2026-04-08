@@ -227,18 +227,18 @@ const dataManagerModalStyle = {
 
 const services = inject<Ref<AppServices | null>>('services')
 if (!services) {
-  throw new Error('[DataManager] services未正确注入，请确保在App组件中正确provide了services')
+  throw new Error('[DataManager] Services were not injected correctly. Make sure App provides the services instance.')
 }
 
 const getDataManager = computed(() => {
   const servicesValue = services.value
   if (!servicesValue) {
-    throw new Error('[DataManager] services未初始化，请确保应用已正确启动')
+    throw new Error('[DataManager] Services are not initialized. Make sure the application has started correctly.')
   }
 
   const manager = servicesValue.dataManager
   if (!manager) {
-    throw new Error('[DataManager] dataManager未初始化，请确保服务已正确配置')
+    throw new Error('[DataManager] DataManager is not initialized. Make sure the service is configured correctly.')
   }
 
   return manager
@@ -285,7 +285,7 @@ const refreshStorageSummary = async () => {
     isRefreshingStorage.value = true
     const servicesValue = services.value
     if (!servicesValue) {
-      throw new Error('[DataManager] services未初始化，请确保应用已正确启动')
+      throw new Error('[DataManager] Services are not initialized. Make sure the application has started correctly.')
     }
 
     storageSummary.value = await resolveDataManagerStorageBreakdown({
@@ -357,7 +357,7 @@ const handleExport = async () => {
 
     toast.success(t('dataManager.export.success'))
   } catch (error) {
-    console.error('导出失败:', error)
+    console.error('Export failed:', error)
     toast.error(t('dataManager.export.failed'))
   } finally {
     isExporting.value = false
@@ -389,7 +389,7 @@ const handleImport = async () => {
     emit('close')
     clearSelectedFile()
   } catch (error) {
-    console.error('导入失败:', error)
+    console.error('Import failed:', error)
     toast.error(`${t('dataManager.import.failed')}: ${(error as Error).message}`)
   } finally {
     isImporting.value = false

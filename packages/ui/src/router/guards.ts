@@ -64,7 +64,7 @@ export const beforeRouteSwitch: NavigationGuard = (to) => {
         defaultSubMode = 'system'
       }
 
-      console.warn(`[Router] 非法 subMode: ${to.path}, 重定向到 /${mode}/${defaultSubMode}`)
+      console.warn(`[Router] Invalid subMode: ${to.path}. Redirecting to /${mode}/${defaultSubMode}`)
       return `/${mode}/${defaultSubMode}`
     }
   }

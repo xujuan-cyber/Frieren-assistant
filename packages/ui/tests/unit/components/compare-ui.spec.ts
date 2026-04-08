@@ -111,7 +111,9 @@ describe('compare-ui', () => {
       },
     })
 
-    expect(reason).toBe('这是当前唯一的工作区，所以建议作为优化目标。')
+    expect(reason).toBe(
+      'This is the only workspace column, so it is suggested as the optimization target.'
+    )
   })
 
   it('explains when a previous alias matches workspace content and becomes a retest', () => {
@@ -143,6 +145,8 @@ describe('compare-ui', () => {
       },
     })
 
-    expect(reason).toBe('它和工作区当前内容相同，所以建议按复测处理。')
+    expect(reason).toBe(
+      'It matches the current workspace content, so it is suggested as a retest.'
+    )
   })
 })

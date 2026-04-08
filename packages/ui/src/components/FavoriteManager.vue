@@ -128,7 +128,7 @@
         :page-slot="7"
       >
         <template #prefix="{ itemCount }">
-          <NText depth="3">共 {{ itemCount }} 项</NText>
+          <NText depth="3">{{ t('favorites.manager.totalCount', { count: itemCount }) }}</NText>
         </template>
       </NPagination>
     </NSpace>
@@ -280,6 +280,7 @@ import {
 import { useI18n } from 'vue-i18n';
 import { useToast } from '../composables/ui/useToast';
 import { useFavoriteInitializer } from '../composables/storage/useFavoriteInitializer';
+import { getI18nErrorMessage } from '../utils/error';
 import ToastUI from './Toast.vue';
 
 const { t } = useI18n();
@@ -559,6 +560,12 @@ const readFileAsText = (file: File) =>
     reader.readAsText(file);
   });
 
+const buildErrorMessage = (summary: string, error: unknown) => {
+  const fallback = t('common.error');
+  const detail = getI18nErrorMessage(error, fallback);
+  return detail === fallback ? summary : `${summary}: ${detail}`;
+};
+
 const tryCopyToClipboard = async (text: string, successMessage: string) => {
   try {
     if (navigator?.clipboard?.writeText) {
@@ -576,7 +583,7 @@ const tryCopyToClipboard = async (text: string, successMessage: string) => {
     message.success(successMessage);
     return true;
   } catch (error) {
-    console.error('复制失败:', error);
+    console.error('[FavoriteManager] Failed to copy favorite content:', error);
     message.error(t('favorites.manager.actions.copyFailed'));
     return false;
   }
@@ -629,8 +636,7 @@ const handleImportConfirm = async () => {
       try {
         payload = await readFileAsText(file);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '未知错误';
-        message.error(`${t('favorites.manager.importDialog.readFileFailed')}: ${errorMessage}`);
+        message.error(buildErrorMessage(t('favorites.manager.importDialog.readFileFailed'), error));
         return;
       }
     }
@@ -648,13 +654,12 @@ const handleImportConfirm = async () => {
     });
     message.success(t('favorites.manager.importDialog.importSuccess', { imported: result.imported, skipped: result.skipped }));
     if (result.errors.length > 0) {
-      message.warning(`${t('favorites.manager.importDialog.importPartialFailed')}：\n${result.errors.join('\n')}`);
+      message.warning(`${t('favorites.manager.importDialog.importPartialFailed')}:\n${result.errors.join('\n')}`);
     }
     await loadFavorites();
     closeImportDialog();
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.manager.importDialog.importFailed')}: ${errorMessage}`);
+    message.error(buildErrorMessage(t('favorites.manager.importDialog.importFailed'), error));
   } finally {
     importState.importing = false;
   }
@@ -706,9 +711,8 @@ const loadFavorites = async () => {
       previewFavorite.value = updated ? { ...updated } : null;
     }
   } catch (error) {
-    console.error('加载收藏失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.manager.messages.loadFailed')}: ${errorMessage}`);
+    console.error('[FavoriteManager] Failed to load favorites:', error);
+    message.error(buildErrorMessage(t('favorites.manager.messages.loadFailed'), error));
   } finally {
     loading.value = false;
   }
@@ -725,9 +729,8 @@ const loadCategories = async () => {
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
   } catch (error) {
-    console.error('加载分类失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.manager.messages.loadCategoryFailed')}: ${errorMessage}`);
+    console.error('[FavoriteManager] Failed to load categories:', error);
+    message.error(buildErrorMessage(t('favorites.manager.messages.loadCategoryFailed'), error));
   }
 };
 
@@ -773,8 +776,7 @@ const handleDeleteFavorite = (favorite: FavoritePrompt) => {
         message.warning(t('favorites.manager.messages.unavailable'));
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      message.error(`${t('favorites.manager.actions.deleteFailed')}: ${errorMessage}`);
+      message.error(buildErrorMessage(t('favorites.manager.actions.deleteFailed'), error));
     }
   })();
   if (previewFavorite.value?.id === favorite.id) {
@@ -788,7 +790,9 @@ const handleUseFavorite = (favorite: FavoritePrompt) => {
   // 增加使用次数
   const servicesValue = services?.value;
   if (servicesValue?.favoriteManager) {
-    servicesValue.favoriteManager.incrementUseCount(favorite.id).catch(console.error);
+    servicesValue.favoriteManager.incrementUseCount(favorite.id).catch((error) => {
+      console.error('[FavoriteManager] Failed to increment favorite usage count:', error);
+    });
   }
   bumpUseCountLocally(favorite.id);
   if (previewFavorite.value?.id === favorite.id) {
@@ -828,8 +832,7 @@ const handleActionMenuSelect = (key: string) => {
             message.warning(t('favorites.manager.messages.unavailable'));
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : '未知错误';
-          message.error(`${t('favorites.manager.actions.clearFailed')}: ${errorMessage}`);
+          message.error(buildErrorMessage(t('favorites.manager.actions.clearFailed'), error));
         }
       })();
       break;
@@ -856,8 +859,7 @@ const handleExportFavorites = async () => {
       message.warning(t('favorites.manager.messages.unavailable'));
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`${t('favorites.manager.actions.exportFailed')}: ${errorMessage}`);
+    message.error(buildErrorMessage(t('favorites.manager.actions.exportFailed'), error));
   }
 };
 

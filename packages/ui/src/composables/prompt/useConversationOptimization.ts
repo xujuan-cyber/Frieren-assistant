@@ -252,7 +252,7 @@ export function useConversationOptimization(
           if (messageId) {
             restoredMap.set(messageId, value)
             hasMigrated = true
-            console.log(`[ConversationOptimization] 迁移旧格式 key: ${key} → ${messageId}`)
+            console.log(`[ConversationOptimization] Migrated legacy key format: ${key} -> ${messageId}`)
           }
         } else {
           // 新格式 key，直接使用
@@ -264,7 +264,7 @@ export function useConversationOptimization(
 
       // 🔧 如果发生了迁移，立即同步到 session store 以保存新格式
       if (hasMigrated) {
-        console.log('[ConversationOptimization] 检测到旧格式 key，已自动迁移并保存')
+        console.log('[ConversationOptimization] Detected legacy key format; migrated and saved automatically')
         syncMessageChainMapToSession()
       }
     }
@@ -319,7 +319,7 @@ export function useConversationOptimization(
       const latest = chain.versions[chain.versions.length - 1]
       return latest ? latest.version : 0
     } catch (error) {
-      console.warn(`[ConversationOptimization] 获取消息 ${messageId} 版本号失败:`, error)
+      console.warn(`[ConversationOptimization] Failed to get the applied version for message ${messageId}:`, error)
       return 0 // 失败时默认 v0
     }
   }
@@ -363,7 +363,7 @@ export function useConversationOptimization(
         optimizedPrompt.value = chain.currentRecord.optimizedPrompt
         currentRecordId.value = chain.currentRecord.id
       } catch (error) {
-        console.error('[ConversationOptimization] 加载工作链失败:', error)
+        console.error('[ConversationOptimization] Failed to load the working chain:', error)
         toast.error(t('toast.error.loadChainFailed'))
         // 重置为首次优化状态
         currentChainId.value = ''
@@ -519,7 +519,7 @@ export function useConversationOptimization(
               // 显示成功提示
               toast.success(t('toast.success.optimizeAndApply', { version: 'v1' }))
             } catch (error) {
-              console.error('[ConversationOptimization] 保存历史记录失败:', error)
+              console.error('[ConversationOptimization] Failed to save history:', error)
               toast.warning(t('toast.warning.saveHistoryFailed'))
               // 优化结果仍然可用，但未保存历史
             } finally {
@@ -527,14 +527,14 @@ export function useConversationOptimization(
             }
           },
           onError: (error: Error) => {
-            console.error('[ConversationOptimization] 优化失败:', error)
+            console.error('[ConversationOptimization] Optimization failed:', error)
             toast.error(getI18nErrorMessage(error, t('toast.error.optimizeFailed')))
             isOptimizing.value = false
           }
         }
       )
     } catch (error) {
-      console.error('[ConversationOptimization] 优化失败:', error)
+      console.error('[ConversationOptimization] Optimization failed:', error)
       toast.error(getI18nErrorMessage(error, t('toast.error.optimizeFailed')))
       isOptimizing.value = false
     }
@@ -665,14 +665,14 @@ export function useConversationOptimization(
                 toast.success(t('toast.success.optimizeAndApply', { version: `v${versionNumber}` }))
 
              } catch (error) {
-               console.error('[ConversationOptimization] 保存迭代历史失败:', error)
+               console.error('[ConversationOptimization] Failed to save iteration history:', error)
                toast.warning(t('toast.warning.saveHistoryFailed'))
              } finally {
                isOptimizing.value = false
              }
           },
           onError: (error: Error) => {
-            console.error('[ConversationOptimization] 迭代失败:', error)
+            console.error('[ConversationOptimization] Iteration failed:', error)
             toast.error(getI18nErrorMessage(error, t('toast.error.iterateFailed')))
             isOptimizing.value = false
           }
@@ -686,7 +686,7 @@ export function useConversationOptimization(
         },
       )
     } catch (error) {
-      console.error('[ConversationOptimization] 迭代失败:', error)
+      console.error('[ConversationOptimization] Iteration failed:', error)
       toast.error(getI18nErrorMessage(error, t('toast.error.iterateFailed')))
       isOptimizing.value = false
     }
@@ -767,7 +767,7 @@ export function useConversationOptimization(
 
     const removed = removeMessageMapping(messageId)
     if (removed) {
-      console.log('[ConversationOptimization] 已清理消息映射:', messageId)
+      console.log('[ConversationOptimization] Cleaned up the message mapping:', messageId)
     }
 
     if (selectedMessageId.value === messageId) {
@@ -784,7 +784,7 @@ export function useConversationOptimization(
         optimizedPrompt.value = ''
         optimizedReasoning.value = ''
         currentRecordId.value = ''
-        console.log('[ConversationOptimization] 已清空当前选中状态')
+        console.log('[ConversationOptimization] Cleared the current selection state')
       }
     }
   }
@@ -870,7 +870,7 @@ export function useConversationOptimization(
       currentVersions.value = updatedChain.versions
       currentRecordId.value = updatedChain.currentRecord.id
     } catch (error: unknown) {
-      console.error('[useConversationOptimization] 保存本地修改失败:', error)
+      console.error('[useConversationOptimization] Failed to save local edits:', error)
       toast.warning(t('toast.warning.saveHistoryFailed'))
     }
   }

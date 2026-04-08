@@ -9,7 +9,7 @@ import {
   type TextProvider,
   getBuiltinModelIds
 } from '@prompt-optimizer/core'
-import { getI18nErrorMessage } from '../../utils/error'
+import { formatErrorSummary, getI18nErrorMessage } from '../../utils/error'
 import { useModelAdvancedParameters } from './useModelAdvancedParameters'
 import { computeConnectionConfig } from './useConnectionConfig'
 import type { AppServices } from '../../types/services'
@@ -50,6 +50,22 @@ const generateTextModelId = (providerId: string, nonce?: number) => {
 export function useTextModelManager() {
   const { t } = useI18n()
   const toast = useToast()
+
+  const getErrorDetail = (error: unknown, fallback = 'Unknown error') => {
+    return getI18nErrorMessage(error, fallback)
+  }
+
+  const withLocalizedError = (
+    key: string,
+    error: unknown,
+    params: Record<string, unknown> = {},
+    fallback = 'Unknown error'
+  ) => {
+    return t(key, {
+      ...params,
+      error: getErrorDetail(error, fallback),
+    })
+  }
 
   const services = inject<Ref<AppServices | null>>('services', ref(null))
   if (!services.value) {
@@ -211,7 +227,7 @@ export function useTextModelManager() {
       providers.value = textAdapterRegistry?.getAllProviders?.() || []
       providersLoaded.value = true
     } catch (error) {
-      console.error('加载文本模型提供商失败:', error)
+      console.error('Failed to load text model providers:', error)
       toast.error(t('modelManager.loadFailed'))
       providers.value = []
     } finally {
@@ -231,7 +247,7 @@ export function useTextModelManager() {
         label: model.name || model.id
       }))
     } catch (error) {
-      console.error('加载 Provider 模型失败:', error)
+      console.error('Failed to load provider models:', error)
       modelOptions.value = []
     }
   }
@@ -254,7 +270,7 @@ export function useTextModelManager() {
           return a.name.localeCompare(b.name)
         })
     } catch (error) {
-      console.error('加载模型失败:', error)
+      console.error('Failed to load models:', error)
       toast.error(t('modelManager.loadFailed'))
     } finally {
       loadingModels.value = false
@@ -272,13 +288,12 @@ export function useTextModelManager() {
       await llmService.testConnection(id)
       toast.success(t('modelManager.testSuccess', { provider: model.name }))
     } catch (error) {
-      console.error('连接测试失败:', error)
+      console.error('Connection test failed:', error)
       const model = await modelManager.getModel(id)
       const modelName = model?.name || id
-      const errorMessage = getI18nErrorMessage(error, 'Unknown error')
       toast.error(t('modelManager.testFailed', {
         provider: modelName,
-        error: errorMessage
+        error: getErrorDetail(error)
       }))
     } finally {
       delete testingConnections.value[id]
@@ -293,9 +308,8 @@ export function useTextModelManager() {
       await loadModels()
       toast.success(t('modelManager.enableSuccess'))
     } catch (error: unknown) {
-      console.error('启用模型失败:', error)
-      const message = getI18nErrorMessage(error, 'Unknown error')
-      toast.error(t('modelManager.enableFailed', { error: message }))
+      console.error('Failed to enable model:', error)
+      toast.error(withLocalizedError('modelManager.enableFailed', error))
     }
   }
 
@@ -307,9 +321,8 @@ export function useTextModelManager() {
       await loadModels()
       toast.success(t('modelManager.disableSuccess'))
     } catch (error: unknown) {
-      console.error('禁用模型失败:', error)
-      const message = getI18nErrorMessage(error, 'Unknown error')
-      toast.error(t('modelManager.disableFailed', { error: message }))
+      console.error('Failed to disable model:', error)
+      toast.error(withLocalizedError('modelManager.disableFailed', error))
     }
   }
 
@@ -360,9 +373,8 @@ export function useTextModelManager() {
       await loadModels()
       toast.success(t('modelManager.deleteSuccess'))
     } catch (error: unknown) {
-      console.error('删除模型失败:', error)
-      const message = getI18nErrorMessage(error, 'Unknown error')
-      toast.error(t('modelManager.deleteFailed', { error: message }))
+      console.error('Failed to delete model:', error)
+      toast.error(withLocalizedError('modelManager.deleteFailed', error))
     }
   }
 
@@ -485,7 +497,7 @@ export function useTextModelManager() {
       // 编辑时不自动刷新模型列表，避免不必要的网络请求和延迟
       // 用户可以通过手动点击刷新按钮来获取最新模型列表
     } catch (error) {
-      console.error('加载模型失败:', error)
+      console.error('Failed to load models:', error)
       toast.error(t('modelManager.loadFailed'))
     } finally {
       formReady.value = true
@@ -556,11 +568,11 @@ export function useTextModelManager() {
         form.value.modelId = fetchedModels[0].value
       }
     } catch (error: unknown) {
-      console.error('获取模型列表失败:', error)
+      console.error('Failed to fetch model list:', error)
 
       // Keep UX consistent: if dynamic fetch fails, fall back to static models
       // but surface the failure to avoid a misleading "success" toast.
-      const errorMessage = getI18nErrorMessage(error, t('modelManager.loadFailed'))
+      const errorMessage = getErrorDetail(error, t('modelManager.loadFailed'))
 
       let staticCount: number
       try {
@@ -601,12 +613,12 @@ export function useTextModelManager() {
 
   const updateExistingModel = async () => {
     if (!form.value.originalId) {
-      throw new Error('编辑会话无效')
+      throw new Error('Invalid edit session')
     }
 
     const existingConfig = await modelManager.getModel(form.value.originalId)
     if (!existingConfig) {
-      throw new Error('模型不存在')
+      throw new Error('Model not found')
     }
 
     const connectionConfig: TextConnectionConfig = {
@@ -706,7 +718,7 @@ export function useTextModelManager() {
 
     try {
       if (!form.value.providerId || !form.value.modelId) {
-        throw new Error('模型未选择')
+        throw new Error('No model selected')
       }
 
       // 编辑模式下获取现有配置，新增模式下为 undefined
@@ -751,18 +763,19 @@ export function useTextModelManager() {
         try {
           await modelManager.deleteModel(tempConfig.id)
         } catch (cleanupError) {
-          console.warn('清理临时测试模型失败:', cleanupError)
+          console.warn('Failed to clean up temporary test model:', cleanupError)
         }
       }
 
     } catch (error) {
-      console.error('连接测试失败:', error)
+      console.error('Connection test failed:', error)
       const displayName = form.value.name || form.value.modelId
+      const summary = t('modelManager.testConnection')
       formConnectionStatus.value = {
         type: 'error',
-        message: t('modelManager.testFailed', { provider: displayName, error: error instanceof Error ? error.message : 'Unknown error' })
+        message: formatErrorSummary(`${summary} (${displayName})`, error)
       }
-      toast.error(t('modelManager.testFailed', { provider: displayName, error: error instanceof Error ? error.message : 'Unknown error' }))
+      toast.error(withLocalizedError('modelManager.testFailed', error, { provider: displayName }))
     } finally {
       isTestingFormConnection.value = false
     }

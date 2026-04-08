@@ -120,14 +120,14 @@ const computedStyle = computed(() => props.style);
 const loadCategories = async () => {
   const servicesValue = services?.value;
   if (!servicesValue?.favoriteManager) {
-    console.warn('收藏管理器未初始化,跳过分类加载');
+    console.warn('Favorite manager is not initialized; skipping category loading.');
     return;
   }
 
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
   } catch (error) {
-    console.error('加载分类失败:', error);
+    console.error('Failed to load categories:', error);
   }
 };
 

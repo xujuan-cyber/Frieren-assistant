@@ -4,7 +4,7 @@
     :size="size"
     :disabled="loading"
     @click="handleToggleFavorite"
-    :title="isFavorited ? '取消收藏' : '添加到收藏'"
+    :title="isFavorited ? t('favorites.button.removeTitle') : t('favorites.button.addTitle')"
     class="favorite-button"
   >
       <template #icon>
@@ -13,14 +13,14 @@
         <Star v-else />
       </n-icon>
     </template>
-    {{ isFavorited ? '已收藏' : '收藏' }}
+    {{ isFavorited ? t('favorites.button.favorited') : t('favorites.button.favorite') }}
   </n-button>
 
   <!-- 收藏对话框 -->
   <n-modal v-model:show="showFavoriteModal">
     <n-card
       style="max-width: 500px"
-      title="添加到收藏"
+      :title="t('favorites.dialog.saveTitle')"
       :bordered="false"
       size="huge"
       role="dialog"
@@ -32,40 +32,40 @@
         :rules="formRules"
         label-placement="top"
       >
-        <n-form-item label="标题" path="title">
+        <n-form-item :label="t('favorites.dialog.titleLabel')" path="title">
           <n-input
             v-model:value="favoriteForm.title"
-            placeholder="为这个提示词起个名字"
+            :placeholder="t('favorites.dialog.titlePlaceholder')"
             maxlength="100"
             show-count
           />
         </n-form-item>
 
-        <n-form-item label="描述" path="description">
+        <n-form-item :label="t('favorites.dialog.descriptionLabel')" path="description">
           <n-input
             v-model:value="favoriteForm.description"
             type="textarea"
-            placeholder="描述这个提示词的用途和特点"
+            :placeholder="t('favorites.dialog.descriptionPlaceholder')"
             :rows="3"
             maxlength="300"
             show-count
           />
         </n-form-item>
 
-        <n-form-item label="分类" path="category">
+        <n-form-item :label="t('favorites.dialog.categoryLabel')" path="category">
           <n-select
             v-model:value="favoriteForm.category"
             :options="categoryOptions"
-            placeholder="选择分类"
+            :placeholder="t('favorites.dialog.categoryPlaceholder')"
             clearable
           />
         </n-form-item>
 
-        <n-form-item label="标签" path="tags">
+        <n-form-item :label="t('favorites.dialog.tagsLabel')" path="tags">
           <n-dynamic-tags
             v-model:value="favoriteForm.tags"
             :max="10"
-            placeholder="输入标签后按回车添加"
+            :placeholder="t('favorites.dialog.tagsPlaceholder')"
           />
         </n-form-item>
 
@@ -74,14 +74,14 @@
       <template #footer>
         <div class="flex justify-end gap-2">
           <n-button @click="showFavoriteModal = false">
-            取消
+            {{ t('favorites.dialog.cancel') }}
           </n-button>
           <n-button
             type="primary"
             :loading="loading"
             @click="handleSaveFavorite"
           >
-            保存
+            {{ t('favorites.dialog.save') }}
           </n-button>
         </div>
       </template>
@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, inject, watch, type Ref } from 'vue'
 
+import { useI18n } from 'vue-i18n'
 import {
   NButton,
   NIcon,
@@ -106,6 +107,7 @@ import {
   type FormRules
 } from 'naive-ui';
 import { useToast } from '../composables/ui/useToast';
+import { getI18nErrorMessage } from '../utils/error';
 import { Star, Stars } from '@vicons/tabler';
 import type { FavoriteCategory } from '@prompt-optimizer/core';
 import type { AppServices } from '../types/services';
@@ -134,6 +136,7 @@ const emit = defineEmits<{
 const services = inject<Ref<AppServices | null> | null>('services', null);
 
 const message = useToast();
+const { t } = useI18n();
 
 // 表单相关
 const formRef = ref<FormInst | null>(null);
@@ -158,15 +161,8 @@ const formRules: FormRules = {
   title: [
     {
       required: true,
-      message: '请输入标题',
+      message: t('favorites.dialog.validation.titleRequired'),
       trigger: ['input', 'blur']
-    }
-  ],
-  category: [
-    {
-      required: false,
-      message: '请选择分类',
-      trigger: ['change', 'blur']
     }
   ]
 };
@@ -186,7 +182,7 @@ const checkFavoriteStatus = async () => {
   const servicesValue = services?.value;
   if (!servicesValue) return;
   if (!servicesValue.favoriteManager) {
-    console.warn('收藏管理器未初始化，跳过收藏状态检查');
+    console.warn('Favorite manager is not initialized. Skipping favorite status check.');
     return;
   }
 
@@ -202,7 +198,7 @@ const checkFavoriteStatus = async () => {
       favoriteId.value = null;
     }
   } catch (error) {
-    console.error('检查收藏状态失败:', error);
+    console.error('Failed to check favorite status:', error);
   }
 };
 
@@ -212,15 +208,15 @@ const loadCategories = async () => {
   const servicesValue = services?.value;
   if (!servicesValue) return;
   if (!servicesValue.favoriteManager) {
-    console.warn('收藏管理器未初始化，跳过分类加载');
+    console.warn('Favorite manager is not initialized. Skipping category loading.');
     return;
   }
 
   try {
     categories.value = await servicesValue.favoriteManager.getCategories();
   } catch (error) {
-    console.error('加载分类失败:', error);
-    message.error('加载分类失败');
+    console.error('Failed to load categories:', error);
+    message.error(getI18nErrorMessage(error, t('favorites.manager.messages.loadCategoryFailed')));
   }
 };
 
@@ -242,17 +238,10 @@ const initFavoriteForm = () => {
     title += '...';
   }
 
-  // 根据内容智能分类
-  let defaultCategory = '';
-  if (props.originalContent) {
-    // 如果有原始内容，说明是优化后的提示词
-    defaultCategory = categories.value.find(c => c.name === '系统提示词')?.id || '';
-  }
-
   favoriteForm.value = {
     title,
     description: '',
-    category: defaultCategory,
+    category: '',
     tags: []
   };
 };
@@ -263,8 +252,8 @@ const handleSaveFavorite = async () => {
   const servicesValue = services?.value;
   if (!servicesValue) return;
   if (!servicesValue.favoriteManager) {
-    console.warn('收藏管理器未初始化，无法执行收藏操作');
-    message.warning('收藏功能暂不可用，请稍后再试');
+    console.warn('Favorite manager is not initialized. Cannot save favorite.');
+    message.warning(t('favorites.dialog.messages.unavailable'));
     return;
   }
 
@@ -292,12 +281,11 @@ const handleSaveFavorite = async () => {
     favoriteId.value = id;
     showFavoriteModal.value = false;
 
-    message.success('添加到收藏成功');
+    message.success(t('favorites.dialog.messages.saveSuccess'));
     emit('favorited', id);
   } catch (error) {
-    console.error('添加收藏失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`添加收藏失败: ${errorMessage}`);
+    console.error('Failed to save favorite:', error);
+    message.error(getI18nErrorMessage(error, t('favorites.dialog.messages.saveFailed')));
   } finally {
     loading.value = false;
   }
@@ -308,8 +296,8 @@ const handleRemoveFavorite = async () => {
   const servicesValue = services?.value;
   if (!servicesValue || !favoriteId.value) return;
   if (!servicesValue.favoriteManager) {
-    console.warn('收藏管理器未初始化，无法执行取消收藏操作');
-    message.warning('收藏功能暂不可用，请稍后再试');
+    console.warn('Favorite manager is not initialized. Cannot remove favorite.');
+    message.warning(t('favorites.dialog.messages.unavailable'));
     return;
   }
 
@@ -319,12 +307,11 @@ const handleRemoveFavorite = async () => {
     isFavorited.value = false;
     favoriteId.value = null;
 
-    message.success('取消收藏成功');
+    message.success(t('favorites.button.removeSuccess'));
     emit('unfavorited');
   } catch (error) {
-    console.error('取消收藏失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    message.error(`取消收藏失败: ${errorMessage}`);
+    console.error('Failed to remove favorite:', error);
+    message.error(getI18nErrorMessage(error, t('favorites.manager.actions.deleteFailed')));
   }
 };
 

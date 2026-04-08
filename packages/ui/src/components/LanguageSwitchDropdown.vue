@@ -42,12 +42,12 @@
                 font-size="8" 
                 font-weight="bold">A</text>
           
-          <!-- 中文符号 - 清晰的"中"字 -->
+          <!-- Secondary character to hint multi-language support -->
           <text x="8" y="25" 
                 fill="currentColor" 
                 font-family="system-ui" 
                 font-size="7" 
-                font-weight="bold">中</text>
+                font-weight="bold">B</text>
         </svg>
       </template>
     </NButton>
@@ -57,8 +57,9 @@
 <script setup lang="ts">
 import { computed, inject, type Ref } from 'vue'
 
+import { useI18n } from 'vue-i18n'
 import { NButton, NDropdown, type DropdownOption } from 'naive-ui'
-import { i18n } from '../plugins/i18n'
+import { i18n, type SupportedLocale } from '../plugins/i18n'
 import { UI_SETTINGS_KEYS } from '@prompt-optimizer/core'
 import { usePreferences } from '../composables/storage/usePreferenceManager'
 import type { AppServices } from '../types/services'
@@ -66,9 +67,7 @@ import type { AppServices } from '../types/services'
 // 服务注入
 const services = inject<Ref<AppServices | null>>('services')!
 const { setPreference } = usePreferences(services)
-
-// 语言选项配置 - 为未来扩展预留接口
-type SupportedLocale = 'zh-CN' | 'zh-TW' | 'en-US'
+const { t } = useI18n()
 
 interface LanguageOption {
   key: SupportedLocale
@@ -76,35 +75,37 @@ interface LanguageOption {
   locale: SupportedLocale
 }
 
-const availableLanguages: LanguageOption[] = [
+const availableLanguages = computed<LanguageOption[]>(() => [
   {
     key: 'zh-CN',
-    label: '简体中文',
+    label: t('settings.languageSwitcher.languages.zh-CN'),
     locale: 'zh-CN'
   },
   {
     key: 'zh-TW',
-    label: '繁體中文',
+    label: t('settings.languageSwitcher.languages.zh-TW'),
     locale: 'zh-TW'
   },
   {
     key: 'en-US',
-    label: 'English',
+    label: t('settings.languageSwitcher.languages.en-US'),
     locale: 'en-US'
   }
-]
+])
 
 // 当前语言计算属性
-const currentLocale = computed(() => i18n.global.locale.value)
+const currentLocale = computed(() => i18n.global.locale.value as SupportedLocale)
 
 const currentLanguageLabel = computed(() => {
-  const current = availableLanguages.find(lang => lang.locale === currentLocale.value)
-  return current ? `切换语言 / Switch Language (${current.label})` : '切换语言 / Switch Language'
+  const current = availableLanguages.value.find(lang => lang.locale === currentLocale.value)
+  return current
+    ? t('settings.languageSwitcher.ariaLabel', { language: current.label })
+    : t('settings.languageSwitcher.label')
 })
 
 // 为Naive UI Dropdown创建选项
 const dropdownOptions = computed<DropdownOption[]>(() => {
-  return availableLanguages.map(language => ({
+  return availableLanguages.value.map(language => ({
     key: language.key,
     label: language.label
   }))
@@ -116,7 +117,7 @@ const isSupportedLocale = (value: unknown): value is SupportedLocale =>
 // 处理语言选择
 const handleLanguageSelect = async (key: string) => {
   if (!isSupportedLocale(key)) return
-  const selectedLanguage = availableLanguages.find(lang => lang.key === key)
+  const selectedLanguage = availableLanguages.value.find(lang => lang.key === key)
   if (!selectedLanguage) return
 
   // 切换语言

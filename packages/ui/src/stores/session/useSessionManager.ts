@@ -127,7 +127,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
    */
   const getActiveSubModeKey = (): SubModeKey => {
     if (!readers) {
-      console.warn('[SessionManager] 子模式读取器未注入，返回默认值 basic-system')
+      console.warn('[SessionManager] Sub-mode readers have not been injected; falling back to basic-system')
       return 'basic-system'
     }
 
@@ -198,7 +198,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
       // 2. 恢复新模式会话
       await restoreSubModeSession(toKey)
     } catch (error) {
-      console.error('[SessionManager] 模式切换失败:', error)
+      console.error('[SessionManager] Failed to switch mode:', error)
     } finally {
       isSwitching.value = false
     }
@@ -222,7 +222,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
       // 2. 恢复新子模式会话
       await restoreSubModeSession(toKey)
     } catch (error) {
-      console.error('[SessionManager] 子模式切换失败:', error)
+      console.error('[SessionManager] Failed to switch sub-mode:', error)
     } finally {
       isSwitching.value = false
     }
@@ -258,7 +258,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
           break
       }
     } catch (error) {
-      console.error(`[SessionManager] 保存 ${key} 会话失败:`, error)
+      console.error(`[SessionManager] Failed to save ${key} session:`, error)
     }
   }
 
@@ -269,13 +269,13 @@ export const useSessionManager = defineStore('sessionManager', () => {
   const saveSubModeSession = async (key: SubModeKey) => {
     // ✅ 强制检查：必须先恢复才能保存
     if (!hasRestoredAllSessions.value) {
-      console.warn(`[SessionManager] 尝试保存 ${key} 但未完成全局恢复，跳过以避免覆盖持久化数据`)
+      console.warn(`[SessionManager] Attempted to save ${key} before global restore completed; skipping to avoid overwriting persisted data`)
       return
     }
 
     // ⚠️ 并发保护：如果上一次保存还在进行中，跳过本次
     if (saveInFlight.value) {
-      console.warn(`[SessionManager] 保存操作进行中，跳过 ${key} 会话保存`)
+      console.warn(`[SessionManager] A save operation is already in progress; skipping ${key} session save`)
       return
     }
 
@@ -318,9 +318,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
     } catch (error) {
       const cleanupKey = getSessionCleanupKey(key, error)
       if (cleanupKey) {
-        console.info(`[SessionManager] 检测到损坏会话快照，准备清理: ${cleanupKey}`)
+        console.info(`[SessionManager] Detected a corrupted session snapshot; preparing cleanup: ${cleanupKey}`)
       } else {
-        console.error(`[SessionManager] 恢复 ${key} 会话失败:`, error)
+        console.error(`[SessionManager] Failed to restore ${key} session:`, error)
       }
 
       if (!cleanupKey) {
@@ -334,9 +334,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
 
       try {
         await $services.preferenceService.delete(cleanupKey)
-        console.info(`[SessionManager] 已清理损坏会话快照: ${cleanupKey}`)
+        console.info(`[SessionManager] Removed corrupted session snapshot: ${cleanupKey}`)
       } catch (cleanupError) {
-        console.error(`[SessionManager] 清理损坏会话快照失败 (${cleanupKey}):`, cleanupError)
+        console.error(`[SessionManager] Failed to remove corrupted session snapshot (${cleanupKey}):`, cleanupError)
       }
     }
   }
@@ -409,7 +409,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
     while (saveInFlight.value) {
       if (Date.now() - startTime > MAX_WAIT) {
         // ⚠️ 超时时直接返回，不要强制执行（避免误解锁）
-        console.warn('[SessionManager] 等待保存完成超时，放弃本次保存')
+        console.warn('[SessionManager] Timed out while waiting for the current save to finish; aborting this save request')
         return
       }
       // 等待 50ms 后重试
@@ -440,7 +440,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
         await new Promise(resolve => setTimeout(resolve, 0))
       }
     } catch (error) {
-      console.error('[SessionManager] 保存所有会话失败:', error)
+      console.error('[SessionManager] Failed to save all sessions:', error)
     } finally {
       // ✅ 只有我获得的锁，我才释放
       if (acquired) {

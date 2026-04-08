@@ -12,7 +12,7 @@
                         :bordered="false"
                         type="default"
                     >
-                        图{{ index + 1 }}{{ item.imageType ? ` (${item.imageType})` : '' }}:
+                        Image {{ index + 1 }}{{ item.imageType ? ` (${item.imageType})` : '' }}:
                         {{ item.width }}x{{ item.height }}px,
                         Aspect: {{ formatAspectRatio(item) }},
                         Pricing Tier: {{ sizeMultiplier(item) }}

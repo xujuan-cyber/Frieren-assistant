@@ -39,7 +39,7 @@ export function useImageSubMode(services: Ref<AppServices | null>): UseImageSubM
 
   const ensureInitialized = async () => {
     // 路由已初始化，无需额外操作
-    console.log(`[useImageSubMode] 当前子模式（来自路由）: ${imageSubMode.value}`)
+    console.log(`[useImageSubMode] Current sub-mode (from route): ${imageSubMode.value}`)
   }
 
   const setImageSubMode = async (mode: ImageSubMode) => {
@@ -47,7 +47,7 @@ export function useImageSubMode(services: Ref<AppServices | null>): UseImageSubM
     const targetPath = `/image/${mode}`
     if (route.path !== targetPath) {
       await router.push(targetPath)
-      console.log(`[useImageSubMode] 子模式已切换（路由导航）: ${mode}`)
+      console.log(`[useImageSubMode] Sub-mode switched via route navigation: ${mode}`)
     }
   }
 

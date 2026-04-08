@@ -57,15 +57,15 @@ export function useAccessibilityTesting() {
   const testRules = {
     // 图片替代文本
     'img-alt': {
-      name: '图片替代文本',
+      name: 'Image Alternative Text',
       wcagLevel: 'A' as const,
       severity: 'critical' as const,
       test: (element: HTMLImageElement) => {
         if (!element.alt && !element.getAttribute('aria-label') && !element.getAttribute('aria-labelledby')) {
           return {
             passed: false,
-            message: '图片缺少替代文本',
-            suggestion: '为图片添加 alt 属性或 aria-label 属性'
+            message: 'Image is missing alternative text.',
+            suggestion: 'Add an alt attribute or aria-label to the image.'
           }
         }
         return { passed: true }
@@ -74,7 +74,7 @@ export function useAccessibilityTesting() {
     
     // 表单标签
     'form-label': {
-      name: '表单标签',
+      name: 'Form Labels',
       wcagLevel: 'A' as const,
       severity: 'critical' as const,
       test: (element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
@@ -85,8 +85,8 @@ export function useAccessibilityTesting() {
         if (!hasLabel && !hasAriaLabel && !hasAriaLabelledby) {
           return {
             passed: false,
-            message: '表单控件缺少标签',
-            suggestion: '为表单控件添加 <label> 元素或 aria-label 属性'
+            message: 'Form control is missing a label.',
+            suggestion: 'Add a <label> element or aria-label to the form control.'
           }
         }
         return { passed: true }
@@ -95,7 +95,7 @@ export function useAccessibilityTesting() {
     
     // 链接文本
     'link-text': {
-      name: '链接文本',
+      name: 'Link Text',
       wcagLevel: 'A' as const,
       severity: 'serious' as const,
       test: (element: HTMLAnchorElement) => {
@@ -106,18 +106,18 @@ export function useAccessibilityTesting() {
         if (!text && !ariaLabel && !title) {
           return {
             passed: false,
-            message: '链接缺少描述文本',
-            suggestion: '为链接添加描述性文本或 aria-label 属性'
+            message: 'Link is missing descriptive text.',
+            suggestion: 'Add descriptive text or an aria-label to the link.'
           }
         }
         
         // 检查无意义的链接文本
-        const meaninglessText = ['click here', 'read more', 'more', 'link', '点击这里', '更多', '链接']
+        const meaninglessText = ['click here', 'read more', 'more', 'link']
         if (text && meaninglessText.includes(text.toLowerCase())) {
           return {
             passed: false,
-            message: '链接文本不够描述性',
-            suggestion: '使用更具描述性的链接文本，说明链接的目的或目标'
+            message: 'Link text is not descriptive enough.',
+            suggestion: 'Use more descriptive link text that explains the destination or purpose.'
           }
         }
         
@@ -127,7 +127,7 @@ export function useAccessibilityTesting() {
     
     // 按钮文本
     'button-text': {
-      name: '按钮文本',
+      name: 'Button Text',
       wcagLevel: 'A' as const,
       severity: 'critical' as const,
       test: (element: HTMLButtonElement) => {
@@ -138,8 +138,8 @@ export function useAccessibilityTesting() {
         if (!text && !ariaLabel && !ariaLabelledby) {
           return {
             passed: false,
-            message: '按钮缺少文本标签',
-            suggestion: '为按钮添加文本内容或 aria-label 属性'
+            message: 'Button is missing a text label.',
+            suggestion: 'Add visible text or an aria-label to the button.'
           }
         }
         return { passed: true }
@@ -148,7 +148,7 @@ export function useAccessibilityTesting() {
     
     // 颜色对比度
     'color-contrast': {
-      name: '颜色对比度',
+      name: 'Color Contrast',
       wcagLevel: 'AA' as const,
       severity: 'serious' as const,
       test: (element: HTMLElement) => {
@@ -174,7 +174,7 @@ export function useAccessibilityTesting() {
     
     // 焦点指示器
     'focus-indicator': {
-      name: '焦点指示器',
+      name: 'Focus Indicator',
       wcagLevel: 'AA' as const,
       severity: 'serious' as const,
       test: (element: HTMLElement) => {
@@ -187,8 +187,8 @@ export function useAccessibilityTesting() {
         if (outline === 'none' && !boxShadow.includes('0 0 0')) {
           return {
             passed: false,
-            message: '可焦点元素缺少焦点指示器',
-            suggestion: '为可焦点元素添加 :focus-visible 样式'
+            message: 'Focusable element is missing a focus indicator.',
+            suggestion: 'Add a :focus-visible style for the focusable element.'
           }
         }
         
@@ -198,7 +198,7 @@ export function useAccessibilityTesting() {
     
     // 标题层级
     'heading-hierarchy': {
-      name: '标题层级',
+      name: 'Heading Hierarchy',
       wcagLevel: 'A' as const,
       severity: 'moderate' as const,
       test: (element: HTMLHeadingElement, context: { lastHeadingLevel?: number }) => {
@@ -207,8 +207,8 @@ export function useAccessibilityTesting() {
         if (context.lastHeadingLevel && level > context.lastHeadingLevel + 1) {
           return {
             passed: false,
-            message: '标题层级跳跃过大',
-            suggestion: '确保标题层级是递进的，不要跳过级别'
+            message: 'Heading hierarchy skips too many levels.',
+            suggestion: 'Keep heading levels progressive and avoid skipping levels.'
           }
         }
         
@@ -219,7 +219,7 @@ export function useAccessibilityTesting() {
     
     // 语言属性
     'lang-attribute': {
-      name: '语言属性',
+      name: 'Language Attribute',
       wcagLevel: 'A' as const,
       severity: 'moderate' as const,
       test: (element: HTMLHtmlElement) => {
@@ -228,8 +228,8 @@ export function useAccessibilityTesting() {
         if (!lang) {
           return {
             passed: false,
-            message: 'HTML 元素缺少 lang 属性',
-            suggestion: '为 <html> 元素添加 lang 属性，如 lang="zh-CN"'
+            message: 'The HTML element is missing a lang attribute.',
+            suggestion: 'Add a lang attribute to <html>, for example lang="en-US".'
           }
         }
         
@@ -239,7 +239,7 @@ export function useAccessibilityTesting() {
     
     // ARIA 使用
     'aria-usage': {
-      name: 'ARIA 使用',
+      name: 'ARIA Usage',
       wcagLevel: 'A' as const,
       severity: 'serious' as const,
       test: (element: HTMLElement) => {
@@ -257,8 +257,8 @@ export function useAccessibilityTesting() {
           if (!labelElement) {
             return {
               passed: false,
-              message: 'aria-labelledby 引用的元素不存在',
-              suggestion: '确保 aria-labelledby 引用的 ID 对应的元素存在'
+              message: 'The element referenced by aria-labelledby does not exist.',
+              suggestion: 'Make sure the ID referenced by aria-labelledby points to an existing element.'
             }
           }
         }
@@ -303,8 +303,8 @@ export function useAccessibilityTesting() {
             type: rule.severity === 'critical' ? 'error' : rule.severity === 'serious' ? 'warning' : 'info',
             rule: rule.name,
             element,
-            message: ruleResult.message || '无障碍测试失败',
-            suggestion: ruleResult.suggestion || '请检查元素的无障碍属性',
+            message: ruleResult.message || 'Accessibility test failed.',
+            suggestion: ruleResult.suggestion || 'Check the accessibility attributes for this element.',
             severity: rule.severity,
             wcagLevel: rule.wcagLevel,
             xpath: getElementXPath(element)
@@ -499,10 +499,10 @@ export function useAccessibilityTesting() {
       case 'html': {
         return `
           <!DOCTYPE html>
-          <html lang="zh-CN">
+          <html lang="en">
           <head>
             <meta charset="UTF-8">
-            <title>可访问性测试报告</title>
+            <title>Accessibility Test Report</title>
             <style>
               body { font-family: sans-serif; margin: 20px; }
               .score { font-size: 24px; font-weight: bold; margin: 20px 0; }
@@ -517,22 +517,22 @@ export function useAccessibilityTesting() {
             </style>
           </head>
           <body>
-            <h1>可访问性测试报告</h1>
-            <p>测试时间: ${new Date(report.timestamp).toLocaleString('zh-CN')}</p>
+            <h1>Accessibility Test Report</h1>
+            <p>Test Time: ${new Date(report.timestamp).toLocaleString('en-US')}</p>
             <div class="score ${report.summary.passed ? 'passed' : 'failed'}">
-              测试分数: ${report.summary.score}/100 ${report.summary.passed ? '(通过)' : '(未通过)'}
+              Score: ${report.summary.score}/100 ${report.summary.passed ? '(Passed)' : '(Failed)'}
             </div>
-            <h2>问题汇总</h2>
-            <p>总计: ${report.summary.issues.total} | 错误: ${report.summary.issues.errors} | 警告: ${report.summary.issues.warnings} | 信息: ${report.summary.issues.info}</p>
-            <h2>问题详情</h2>
+            <h2>Issue Summary</h2>
+            <p>Total: ${report.summary.issues.total} | Errors: ${report.summary.issues.errors} | Warnings: ${report.summary.issues.warnings} | Info: ${report.summary.issues.info}</p>
+            <h2>Issue Details</h2>
             <table>
               <tr>
-                <th>类型</th>
-                <th>规则</th>
-                <th>消息</th>
-                <th>建议</th>
-                <th>严重程度</th>
-                <th>WCAG级别</th>
+                <th>Type</th>
+                <th>Rule</th>
+                <th>Message</th>
+                <th>Suggestion</th>
+                <th>Severity</th>
+                <th>WCAG Level</th>
               </tr>
               ${report.details.map(issue => `
                 <tr>

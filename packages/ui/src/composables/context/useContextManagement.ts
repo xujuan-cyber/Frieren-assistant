@@ -4,6 +4,7 @@
  */
 
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useToast } from "../ui/useToast";
 import type {
@@ -26,6 +27,7 @@ export interface ContextManagementOptions {
 }
 
 export function useContextManagement(options: ContextManagementOptions) {
+  const { t } = useI18n()
   const {
     services,
     advancedModeEnabled,
@@ -229,7 +231,7 @@ export function useContextManagement(options: ContextManagementOptions) {
     showContextEditor.value = false;
 
     // 显示成功提示
-    useToast().success("上下文已更新");
+    useToast().success(t('contextEditor.saveSuccess'));
   };
 
   // 处理上下文编辑器实时状态更新
@@ -291,7 +293,7 @@ export function useContextManagement(options: ContextManagementOptions) {
         "[useContextManagement] Failed to change context mode:",
         error,
       );
-      useToast().error("切换上下文模式失败");
+      useToast().error(t('contextEditor.switchModeFailed'));
     }
   };
 

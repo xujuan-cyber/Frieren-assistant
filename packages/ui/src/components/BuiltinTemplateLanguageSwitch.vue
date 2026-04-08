@@ -46,18 +46,18 @@ const toast = useToast()
 // 统一使用inject获取services
 const services = inject<Ref<AppServices | null>>('services')
 if (!services) {
-  throw new Error('[BuiltinTemplateLanguageSwitch] services未正确注入，请确保在App组件中正确provide了services')
+  throw new Error('[BuiltinTemplateLanguageSwitch] Services were not injected correctly. Make sure App provides the services dependency.')
 }
 
 const getTemplateManager = computed(() => {
   const servicesValue = services.value
   if (!servicesValue) {
-    throw new Error('[BuiltinTemplateLanguageSwitch] services未初始化，请确保应用已正确启动')
+    throw new Error('[BuiltinTemplateLanguageSwitch] Services are not initialized. Make sure the app has finished bootstrapping.')
   }
 
   const manager = servicesValue.templateManager
   if (!manager) {
-    throw new Error('[BuiltinTemplateLanguageSwitch] templateManager未初始化，请确保服务已正确配置')
+    throw new Error('[BuiltinTemplateLanguageSwitch] Template manager is not initialized. Check the service configuration.')
   }
 
   return manager
@@ -66,21 +66,32 @@ const getTemplateManager = computed(() => {
 const getTemplateLanguageService = computed(() => {
   const servicesValue = services.value
   if (!servicesValue) {
-    throw new Error('[BuiltinTemplateLanguageSwitch] services未初始化，请确保应用已正确启动')
+    throw new Error('[BuiltinTemplateLanguageSwitch] Services are not initialized. Make sure the app has finished bootstrapping.')
   }
 
   const service = servicesValue.templateLanguageService
   if (!service) {
-    throw new Error('[BuiltinTemplateLanguageSwitch] templateLanguageService未初始化，请确保服务已正确配置')
+    throw new Error('[BuiltinTemplateLanguageSwitch] Template language service is not initialized. Check the service configuration.')
   }
 
   return service
 })
 
 // Reactive state
-const currentLanguage = ref<BuiltinTemplateLanguage>('zh-CN')
+const currentLanguage = ref<BuiltinTemplateLanguage>('en-US')
 const supportedLanguages = ref<BuiltinTemplateLanguage[]>([])
 const isChanging = ref(false)
+
+const getLanguageDisplayNameFallback = (language: BuiltinTemplateLanguage): string => {
+  switch (language) {
+    case 'zh-CN':
+      return '中文'
+    case 'en-US':
+      return 'English'
+    default:
+      return language
+  }
+}
 
 // Computed properties
 const getCurrentLanguageShort = computed(() => {
@@ -92,7 +103,7 @@ const getCurrentLanguageShort = computed(() => {
     return service.getLanguageDisplayName(currentLanguage.value)
   } catch (error) {
     console.error('Error getting current language short:', error)
-    return '中文' // fallback to Chinese
+    return getLanguageDisplayNameFallback(currentLanguage.value)
   }
 })
 
@@ -122,8 +133,8 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to initialize builtin template language switch:', error)
     // Set fallback values
-    currentLanguage.value = 'zh-CN'
-    supportedLanguages.value = ['zh-CN', 'en-US']
+    currentLanguage.value = 'en-US'
+    supportedLanguages.value = ['en-US', 'zh-CN']
 
     // Only show toast error if toast is available
     try {

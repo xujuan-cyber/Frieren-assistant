@@ -37,8 +37,8 @@ export interface ImageText2ImageEvaluationContext {
 }
 
 const TEST_CASE_ID = 'image-text2image-intent'
-const TEST_CASE_LABEL = '生成意图'
-const OUTPUT_BLOCK_LABEL = '生成结果'
+const TEST_CASE_LABEL = 'Generation Intent'
+const OUTPUT_BLOCK_LABEL = 'Generated Output'
 
 const normalizeInlineText = (value: string | undefined): string =>
   (value || '').replace(/\s+/gu, ' ').trim()
@@ -116,7 +116,7 @@ const buildOutputBlock = (
   return {
     kind: 'image',
     label: OUTPUT_BLOCK_LABEL,
-    content: `展示 ${variant.label} 列执行 prompt 生成的结果图。`,
+    content: `Show the generated image result for column ${variant.label}.`,
     media,
   }
 }
@@ -141,7 +141,7 @@ const buildSnapshot = (
     testCaseId: TEST_CASE_ID,
     promptRef: buildTestPanelVersionPromptRef(variant.resolvedPrompt, versionLabels),
     promptText,
-    output: `展示 ${variant.label} 列执行 prompt 生成的结果图。`,
+    output: `Show the generated image result for column ${variant.label}.`,
     outputBlock,
     modelKey: variant.modelKey?.trim() || undefined,
     versionLabel: formatTestPanelVersionSelectionLabel(

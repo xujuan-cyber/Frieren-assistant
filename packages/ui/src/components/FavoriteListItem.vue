@@ -28,7 +28,7 @@
               <n-button
                 quaternary
                 @click="$emit('copy', favorite)"
-                title="复制"
+                :title="t('favorites.library.card.copyContent')"
               >
                 <template #icon>
                   <n-icon><Copy /></n-icon>
@@ -37,7 +37,7 @@
               <n-button
                 quaternary
                 @click="$emit('use', favorite)"
-                title="使用"
+                :title="t('favorites.library.card.useNow')"
                 type="primary"
               >
                 <template #icon>
@@ -106,7 +106,8 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
+import { computed, h } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import {
   NListItem,
@@ -142,6 +143,8 @@ const props = withDefaults(defineProps<Props>(), {
   isSelected: false
 });
 
+const { t } = useI18n();
+
 const emit = defineEmits<{
   'select': [favorite: FavoritePrompt, selected: boolean];
   'edit': [favorite: FavoritePrompt];
@@ -152,24 +155,24 @@ const emit = defineEmits<{
   'share': [favorite: FavoritePrompt];
 }>();
 
-const actionMenuOptions = [
+const actionMenuOptions = computed(() => [
   {
-    label: '编辑',
+    label: t('favorites.library.card.edit'),
     key: 'edit',
     icon: () => h(NIcon, null, { default: () => h(Edit) })
   },
   {
-    label: '复制',
+    label: t('favorites.library.card.copyContent'),
     key: 'copy',
     icon: () => h(NIcon, null, { default: () => h(Copy) })
   },
   {
-    label: '分享',
+    label: t('prompt.share'),
     key: 'share',
     icon: () => h(NIcon, null, { default: () => h(Share) })
   },
   {
-    label: '切换分类',
+    label: t('favorites.library.card.toggleCategory'),
     key: 'category',
     icon: () => h(NIcon, null, { default: () => h(Tag) })
   },
@@ -177,11 +180,11 @@ const actionMenuOptions = [
     type: 'divider'
   },
   {
-    label: '删除',
+    label: t('favorites.library.card.delete'),
     key: 'delete',
     icon: () => h(NIcon, null, { default: () => h(Trash) })
   }
-];
+]);
 
 const formatDate = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -193,13 +196,15 @@ const formatDate = (timestamp: number) => {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     if (hours === 0) {
       const minutes = Math.floor(diff / (1000 * 60));
-      return minutes <= 1 ? '刚刚' : `${minutes}分钟前`;
+      return minutes <= 1
+        ? t('favorites.library.time.justNow')
+        : t('favorites.library.time.minutesAgo', { minutes });
     }
-    return `${hours}小时前`;
+    return t('favorites.library.time.hoursAgo', { hours });
   } else if (days === 1) {
-    return '昨天';
+    return t('favorites.library.time.yesterday');
   } else if (days < 7) {
-    return `${days}天前`;
+    return t('favorites.library.time.daysAgo', { days });
   } else {
     return date.toLocaleDateString();
   }

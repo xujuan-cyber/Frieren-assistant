@@ -394,7 +394,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
   const saveSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[BasicSystemSession] PreferenceService 不可用，无法保存会话')
+      console.warn('[BasicSystemSession] PreferenceService is unavailable; cannot save session')
       return
     }
 
@@ -425,7 +425,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         sessionState
       )
     } catch (error) {
-      console.error('[BasicSystemSession] 保存会话失败:', error)
+      console.error('[BasicSystemSession] Failed to save session:', error)
     }
   }
 
@@ -436,7 +436,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
   const restoreSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      console.warn('[BasicSystemSession] PreferenceService 不可用，无法恢复会话')
+      console.warn('[BasicSystemSession] PreferenceService is unavailable; cannot restore session')
       return
     }
 
@@ -568,7 +568,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         }
       }
     } catch (error) {
-      console.error('[BasicSystemSession] 恢复会话失败:', error)
+      console.error('[BasicSystemSession] Failed to restore session:', error)
       // 恢复失败时保持当前状态或重置为默认
       reset()
     }

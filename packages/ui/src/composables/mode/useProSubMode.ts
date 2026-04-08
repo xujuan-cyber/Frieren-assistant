@@ -64,7 +64,7 @@ export function useProSubMode(services: Ref<AppServices | null>): UseProSubModeA
           await setPreference(UI_SETTINGS_KEYS.PRO_SUB_MODE, normalized)
         }
       } catch (e) {
-        console.error(`[useProSubMode] 初始化失败，使用默认值 ${DEFAULT_PRO_SUB_MODE}:`, e)
+        console.error(`[useProSubMode] Failed to initialize. Falling back to the default value ${DEFAULT_PRO_SUB_MODE}:`, e)
         // 读取失败则保持默认值，并尝试持久化
         try {
           await setPreference(UI_SETTINGS_KEYS.PRO_SUB_MODE, DEFAULT_PRO_SUB_MODE)

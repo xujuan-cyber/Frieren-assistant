@@ -182,4 +182,84 @@ describe('Session stores (pro) persistence', () => {
 
     expect(store.testVariants.map((item) => item.version)).toEqual([0, 'workspace', 'workspace', 'workspace'])
   })
+
+  it('uses English warnings when preferenceService is unavailable', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { pinia } = createTestPinia({
+      preferenceService: undefined as any,
+    })
+
+    const proMultiStore = useProMultiMessageSession(pinia)
+    await proMultiStore.saveSession()
+    await proMultiStore.restoreSession()
+
+    const proVariableStore = useProVariableSession(pinia)
+    await proVariableStore.saveSession()
+    await proVariableStore.restoreSession()
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[ProMultiMessageSession] PreferenceService is unavailable; cannot save session',
+    )
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[ProMultiMessageSession] PreferenceService is unavailable; cannot restore session',
+    )
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[ProVariableSession] PreferenceService is unavailable; cannot save session',
+    )
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[ProVariableSession] PreferenceService is unavailable; cannot restore session',
+    )
+
+    consoleWarnSpy.mockRestore()
+  })
+
+  it('uses English error logs when pro session persistence throws', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const error = new Error('boom')
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: vi.fn(async () => {
+          throw error
+        }),
+        set: vi.fn(async () => {
+          throw error
+        }),
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+    })
+
+    const proMultiStore = useProMultiMessageSession(pinia)
+    await proMultiStore.saveSession()
+    await proMultiStore.restoreSession()
+
+    const proVariableStore = useProVariableSession(pinia)
+    await proVariableStore.saveSession()
+    await proVariableStore.restoreSession()
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ProMultiMessageSession] Failed to save session:',
+      error,
+    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ProMultiMessageSession] Failed to restore session:',
+      error,
+    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ProVariableSession] Failed to save session:',
+      error,
+    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ProVariableSession] Failed to restore session:',
+      error,
+    )
+
+    consoleErrorSpy.mockRestore()
+  })
 })

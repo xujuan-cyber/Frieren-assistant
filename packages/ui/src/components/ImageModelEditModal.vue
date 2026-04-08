@@ -517,7 +517,7 @@ const save = async () => {
     emit('saved')
     close()
   } catch (_error) {
-    console.error('保存配置失败:', _error)
+    console.error('[ImageModelEditModal] Failed to save config:', _error)
     toast.error(t('image.config.saveFailed'))
   }
 }
@@ -544,7 +544,7 @@ watch(() => props.show, async (newShow) => {
         }
       }
     } catch (e) {
-      console.error('加载配置失败:', e)
+      console.error('[ImageModelEditModal] Failed to load config:', e)
     }
   } else {
     resetFormData()
@@ -563,7 +563,7 @@ watch(() => ({
         await applyDraftConfig(initialConfig)
       }
     } catch (e) {
-      console.error('处理图像模型弹窗数据变化失败:', e)
+      console.error('[ImageModelEditModal] Failed to process modal data changes:', e)
     }
   }
 }, { immediate: true })

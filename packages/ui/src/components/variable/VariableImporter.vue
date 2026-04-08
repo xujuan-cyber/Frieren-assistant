@@ -100,7 +100,7 @@
             </svg>
           </NIcon>
         </template>
-        已选择文件：{{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(1) }} KB)
+        {{ t('variables.importer.selectedFile') }}: {{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(1) }} KB)
     </NAlert>
 
     <!-- 预览区域 -->

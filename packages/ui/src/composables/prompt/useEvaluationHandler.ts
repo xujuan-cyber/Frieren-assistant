@@ -131,7 +131,7 @@ const summarizeText = (content: string | undefined, maxLength = 80): string => {
     : normalized
 }
 
-const WORKSPACE_PROMPT_MARKER = '【当前工作区要优化的提示词】'
+const WORKSPACE_PROMPT_MARKER = '[Current workspace prompt under optimization]'
 const ANALYSIS_CONVERSATION_CONTEXT_MAX_LINES = 6
 
 const isProUserEvaluationContext = (
@@ -162,8 +162,8 @@ const toVariableDesignContextBlock = (
   return {
     kind: 'variables',
     label: 'Variable Structure',
-    summary: '这里只说明模板变量结构，不包含任何测试值。',
-    content: `变量: ${variableNames.join(', ')}`,
+    summary: 'This block describes the template variable structure only. It does not include test values.',
+    content: `Variables: ${variableNames.join(', ')}`,
   }
 }
 
@@ -214,8 +214,8 @@ const toConversationDesignContextBlock = (
   })()
 
   const contentLines = [
-    `目标消息角色: ${targetRole}`,
-    '会话上下文:',
+    `Target message role: ${targetRole}`,
+    'Conversation context:',
   ]
 
   if (visibleConversationLines.length) {
@@ -225,7 +225,7 @@ const toConversationDesignContextBlock = (
   return {
     kind: 'conversation',
     label: 'Conversation Design Context',
-    summary: `当前分析目标是 ${targetRole} 消息；会话中的该位置已用“${WORKSPACE_PROMPT_MARKER}”标记。`,
+    summary: `The current analysis target is the ${targetRole} message. This position is marked as "${WORKSPACE_PROMPT_MARKER}" in the conversation.`,
     content: contentLines.join('\n'),
   }
 }

@@ -51,7 +51,7 @@ describe('image multiimage input UI guards', () => {
     const source = readWorkspaceSource()
 
     expect(source).toMatch(/class="image-card__remove"/)
-    expect(source).toMatch(/:aria-label="`删除图\$\{index \+ 1\}`"/)
+    expect(source).toMatch(/imageWorkspace\.input\.removeImageAriaLabel/)
     expect(source).toMatch(/class="image-card__remove-icon"/)
 
     const previewWrapIndex = source.indexOf('class="image-card__preview-wrap"')
@@ -74,6 +74,7 @@ describe('image multiimage input UI guards', () => {
     const source = readWorkspaceSource()
 
     expect(source).toMatch(/<VariableAwareInput/)
+    expect(source).toMatch(/imageWorkspace\.input\.multiImagePromptPlaceholder/)
     expect(source).toMatch(/isInputPanelCollapsed/)
     expect(source).toMatch(/openFullscreen/)
     expect(source).toMatch(/<PromptPanelUI/)

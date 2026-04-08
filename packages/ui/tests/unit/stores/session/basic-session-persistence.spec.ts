@@ -139,4 +139,84 @@ describe('Session stores (basic) persistence', () => {
 
     expect(store.testVariants.map((item) => item.version)).toEqual([0, 'workspace', 'workspace', 'workspace'])
   })
+
+  it('uses English warnings when preferenceService is unavailable', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { pinia } = createTestPinia({
+      preferenceService: undefined as any,
+    })
+
+    const basicSystemStore = useBasicSystemSession(pinia)
+    await basicSystemStore.saveSession()
+    await basicSystemStore.restoreSession()
+
+    const basicUserStore = useBasicUserSession(pinia)
+    await basicUserStore.saveSession()
+    await basicUserStore.restoreSession()
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[BasicSystemSession] PreferenceService is unavailable; cannot save session',
+    )
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[BasicSystemSession] PreferenceService is unavailable; cannot restore session',
+    )
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[BasicUserSession] PreferenceService is unavailable; cannot save session',
+    )
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[BasicUserSession] PreferenceService is unavailable; cannot restore session',
+    )
+
+    consoleWarnSpy.mockRestore()
+  })
+
+  it('uses English error logs when basic session persistence throws', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const error = new Error('boom')
+    const { pinia } = createTestPinia({
+      preferenceService: {
+        get: vi.fn(async () => {
+          throw error
+        }),
+        set: vi.fn(async () => {
+          throw error
+        }),
+        delete: async () => {},
+        keys: async () => [],
+        clear: async () => {},
+        getAll: async () => ({}),
+        exportData: async () => ({}),
+        importData: async () => {},
+        getDataType: async () => 'preference',
+        validateData: async () => true,
+      } as any,
+    })
+
+    const basicSystemStore = useBasicSystemSession(pinia)
+    await basicSystemStore.saveSession()
+    await basicSystemStore.restoreSession()
+
+    const basicUserStore = useBasicUserSession(pinia)
+    await basicUserStore.saveSession()
+    await basicUserStore.restoreSession()
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[BasicSystemSession] Failed to save session:',
+      error,
+    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[BasicSystemSession] Failed to restore session:',
+      error,
+    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[BasicUserSession] Failed to save session:',
+      error,
+    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[BasicUserSession] Failed to restore session:',
+      error,
+    )
+
+    consoleErrorSpy.mockRestore()
+  })
 })

@@ -180,22 +180,38 @@ export function useTestModeConfig(
     switch (optimizationMode.value) {
       case 'system':
         return {
-          title: '系统提示词测试模式',
-          description: '在此模式下，原始/优化提示词作为系统消息，您需要提供用户问题进行测试。',
-          requirements: ['需要提供测试内容作为用户问题', '支持对比测试原始和优化版本'],
-          features: ['智能输入框', '对比模式', '全屏编辑', '高级对话管理']
+          title: 'test.modeHelp.system.title',
+          description: 'test.modeHelp.system.description',
+          requirements: [
+            'test.modeHelp.system.requirements.contentRequired',
+            'test.modeHelp.system.requirements.compareSupported',
+          ],
+          features: [
+            'test.modeHelp.common.smartInput',
+            'test.modeHelp.common.compareMode',
+            'test.modeHelp.common.fullscreenEdit',
+            'test.modeHelp.common.advancedConversation',
+          ]
         }
       case 'user':
         return {
-          title: '用户提示词测试模式', 
-          description: '在此模式下，原始/优化提示词直接作为用户消息进行测试。',
-          requirements: ['无需额外测试内容', '直接测试提示词效果'],
-          features: ['简化界面', '对比模式', '全屏编辑', '高级对话管理']
+          title: 'test.modeHelp.user.title',
+          description: 'test.modeHelp.user.description',
+          requirements: [
+            'test.modeHelp.user.requirements.noExtraContent',
+            'test.modeHelp.user.requirements.directPromptTest',
+          ],
+          features: [
+            'test.modeHelp.user.features.simpleLayout',
+            'test.modeHelp.common.compareMode',
+            'test.modeHelp.common.fullscreenEdit',
+            'test.modeHelp.common.advancedConversation',
+          ]
         }
       default:
         return {
-          title: '未知模式',
-          description: '当前模式配置不正确',
+          title: 'test.modeHelp.unknown.title',
+          description: 'test.modeHelp.unknown.description',
           requirements: [],
           features: []
         }
@@ -218,11 +234,11 @@ export function useTestModeConfig(
     const errors: string[] = []
     
     if (!hasPrompt) {
-      errors.push('需要提供提示词')
+      errors.push('test.validation.promptRequired')
     }
     
     if (requiresTestContent.value && !testContent.trim()) {
-      errors.push('需要提供测试内容')
+      errors.push('test.validation.contentRequired')
     }
     
     return {

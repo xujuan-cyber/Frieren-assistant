@@ -47,7 +47,7 @@ export abstract class AbstractAdapterRegistry<
    * 子类可选实现：获取错误消息的提供商类型描述
    */
   protected getProviderTypeDescription(): string {
-    return '提供商';
+    return 'provider';
   }
 
   /**
@@ -196,7 +196,7 @@ export abstract class AbstractAdapterRegistry<
         return mergedModels;
       } catch (error) {
         console.warn(
-          `动态模型加载失败 (${providerId})，回退到静态模型:`,
+          `Failed to load dynamic models (${providerId}); falling back to static models:`,
           error
         );
         // 降级到静态模型

@@ -2489,8 +2489,8 @@ describe('useAppPromptGardenImport', () => {
       expect(favoriteManager.getFavorites).toHaveBeenCalledTimes(1)
       expect(favoriteManager.addFavorite).toHaveBeenCalledTimes(1)
       expect(warningMock).toHaveBeenCalledTimes(1)
-      expect(warningMock.mock.calls[0]?.[0]).toEqual(
-        expect.stringContaining('收藏'),
+      expect(warningMock.mock.calls[0]?.[0]).toBe(
+        'Prompt Garden import succeeded, but saving the favorite failed.',
       )
       expect(errorMock).not.toHaveBeenCalled()
       expect(successMock).toHaveBeenCalled()

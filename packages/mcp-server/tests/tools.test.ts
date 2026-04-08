@@ -23,66 +23,66 @@ describe('MCP Server Tools', () => {
   });
 
   describe('ParameterValidator', () => {
-    it('应该正确验证提示词输入', () => {
-      expect(() => ParameterValidator.validatePrompt('有效的提示词')).not.toThrow();
-      expect(() => ParameterValidator.validatePrompt('')).toThrow('提示词必须是非空字符串');
-      expect(() => ParameterValidator.validatePrompt('   ')).toThrow('提示词必须是非空字符串');
-      expect(() => ParameterValidator.validatePrompt('a'.repeat(60000))).toThrow('提示词过长');
+    it('validates prompt input', () => {
+      expect(() => ParameterValidator.validatePrompt('valid prompt')).not.toThrow();
+      expect(() => ParameterValidator.validatePrompt('')).toThrow('Prompt must be a non-empty string');
+      expect(() => ParameterValidator.validatePrompt('   ')).toThrow('Prompt must be a non-empty string');
+      expect(() => ParameterValidator.validatePrompt('a'.repeat(60000))).toThrow('Prompt must not exceed 50,000 characters');
     });
 
-    it('应该正确验证需求输入', () => {
-      expect(() => ParameterValidator.validateRequirements('有效的需求描述')).not.toThrow();
-      expect(() => ParameterValidator.validateRequirements('')).toThrow('需求描述必须是非空字符串');
-      expect(() => ParameterValidator.validateRequirements('   ')).toThrow('需求描述必须是非空字符串');
-      expect(() => ParameterValidator.validateRequirements('a'.repeat(15000))).toThrow('需求描述过长');
+    it('validates requirements input', () => {
+      expect(() => ParameterValidator.validateRequirements('valid requirements')).not.toThrow();
+      expect(() => ParameterValidator.validateRequirements('')).toThrow('Requirements must be a non-empty string');
+      expect(() => ParameterValidator.validateRequirements('   ')).toThrow('Requirements must be a non-empty string');
+      expect(() => ParameterValidator.validateRequirements('a'.repeat(15000))).toThrow('Requirements must not exceed 10,000 characters');
     });
 
-    it('应该正确验证模板输入', () => {
+    it('validates template input', () => {
       expect(() => ParameterValidator.validateTemplate('valid-template')).not.toThrow();
       expect(() => ParameterValidator.validateTemplate(undefined)).not.toThrow();
-      expect(() => ParameterValidator.validateTemplate('')).toThrow('模板必须是非空字符串');
-      expect(() => ParameterValidator.validateTemplate('   ')).toThrow('模板必须是非空字符串');
+      expect(() => ParameterValidator.validateTemplate('')).toThrow('Template must be a non-empty string');
+      expect(() => ParameterValidator.validateTemplate('   ')).toThrow('Template must be a non-empty string');
     });
   });
 
   describe('MCPErrorHandler', () => {
-    it('应该正确转换验证错误', () => {
-      const error = new Error('提示词必须是非空字符串');
+    it('converts validation errors', () => {
+      const error = new Error('Prompt must be a non-empty string');
       const mcpError = MCPErrorHandler.convertCoreError(error);
 
       expect(mcpError.code).toBe(MCP_ERROR_CODES.INVALID_PARAMS); // -32602
-      expect(mcpError.message).toContain('提示词必须是非空字符串');
+      expect(mcpError.message).toContain('Prompt must be a non-empty string');
     });
 
-    it('应该正确转换优化错误', () => {
-      const error = new Error('优化失败');
+    it('converts optimization errors', () => {
+      const error = new Error('Optimization failed');
       error.name = 'OptimizationError';
       const mcpError = MCPErrorHandler.convertCoreError(error);
 
       expect(mcpError.code).toBe(MCP_ERROR_CODES.PROMPT_OPTIMIZATION_FAILED); // -32001
-      expect(mcpError.message).toContain('提示词优化失败');
+      expect(mcpError.message).toContain('Prompt optimization failed');
     });
 
-    it('应该将未知错误处理为内部错误', () => {
-      const error = new Error('未知错误');
+    it('converts unknown errors to internal errors', () => {
+      const error = new Error('Unknown failure');
       const mcpError = MCPErrorHandler.convertCoreError(error);
 
       expect(mcpError.code).toBe(MCP_ERROR_CODES.INTERNAL_ERROR); // -32000
-      expect(mcpError.message).toContain('内部错误');
+      expect(mcpError.message).toContain('Internal error');
     });
 
-    it('应该正确创建验证错误', () => {
-      const mcpError = MCPErrorHandler.createValidationError('测试验证错误');
+    it('creates validation errors', () => {
+      const mcpError = MCPErrorHandler.createValidationError('Validation issue');
 
       expect(mcpError.code).toBe(MCP_ERROR_CODES.INVALID_PARAMS);
-      expect(mcpError.message).toContain('参数验证失败: 测试验证错误');
+      expect(mcpError.message).toContain('Parameter validation failed: Validation issue');
     });
 
-    it('应该正确创建内部错误', () => {
-      const mcpError = MCPErrorHandler.createInternalError('测试内部错误');
+    it('creates internal errors', () => {
+      const mcpError = MCPErrorHandler.createInternalError('Internal failure');
 
       expect(mcpError.code).toBe(MCP_ERROR_CODES.INTERNAL_ERROR);
-      expect(mcpError.message).toContain('测试内部错误');
+      expect(mcpError.message).toContain('Internal failure');
     });
   });
 });

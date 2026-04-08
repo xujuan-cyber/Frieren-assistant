@@ -35,7 +35,7 @@ export function useSessionRestoreCoordinator(restoreFn: () => Promise<void> | vo
   const executeRestore = async () => {
     // 🔧 互斥检查：如果正在恢复中，设置 pending 标志后返回
     if (isRestoring.value) {
-      console.warn('[SessionRestoreCoordinator] executeRestore 已在执行中，设置 pendingRestore 标志')
+      console.warn('[SessionRestoreCoordinator] executeRestore is already running; setting the pendingRestore flag')
       pendingRestore.value = true
       return
     }
@@ -55,11 +55,11 @@ export function useSessionRestoreCoordinator(restoreFn: () => Promise<void> | vo
       // 🔧 Codex 建议：使用 queueMicrotask 异步排队，避免递归压力（而非 await 递归）
       if (pendingRestore.value) {
         pendingRestore.value = false
-        console.log('[SessionRestoreCoordinator] 检测到 pendingRestore，异步排队补跑恢复')
+        console.log('[SessionRestoreCoordinator] Detected pendingRestore; queueing another restore asynchronously')
         queueMicrotask(() => {
           // 🔧 Codex 修复：组件卸载后跳过恢复，避免无意义工作/日志噪声
           if (isUnmounted.value) {
-            console.log('[SessionRestoreCoordinator] 组件已卸载，跳过 pending restore')
+            console.log('[SessionRestoreCoordinator] Component is unmounted; skipping the pending restore')
             return
           }
           // 🔧 Codex 修复：添加错误处理，避免未处理的 Promise rejection

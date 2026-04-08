@@ -845,7 +845,7 @@ export class PromptService implements IPromptService {
     return JSON.stringify(
       request.inputImages.map((image, index) => ({
         index: index + 1,
-        label: `图${index + 1}`,
+        label: `Image ${index + 1}`,
         mimeType: image.mimeType || "image/png",
       })),
     );

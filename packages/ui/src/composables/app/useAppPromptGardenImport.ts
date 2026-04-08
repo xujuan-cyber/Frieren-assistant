@@ -1370,7 +1370,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 }
               } catch (e) {
                 console.warn('[PromptGardenImport] Failed to load example input image:', e)
-                toast.warning('示例输入图加载失败（请检查 Prompt Garden /prompt-assets 的 CORS 配置）')
+                toast.warning('Failed to load the example input image. Check the Prompt Garden /prompt-assets CORS configuration.')
               }
             }
           }
@@ -1404,7 +1404,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
 
               if (loadedImages.length !== inputUrls.length) {
                 console.warn('[PromptGardenImport] Failed to load one or more multi-image example inputs')
-                toast.warning('部分示例输入图加载失败（请检查 Prompt Garden /prompt-assets 的 CORS 配置）')
+                toast.warning('Some example input images could not be loaded. Check the Prompt Garden /prompt-assets CORS configuration.')
               }
             }
           }
@@ -1423,7 +1423,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 targetKey,
               })
             } catch (error) {
-              toast.warning('Prompt Garden 导入成功，但收藏未保存。')
+              toast.warning('Prompt Garden import succeeded, but saving the favorite failed.')
             }
           } else {
             console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')

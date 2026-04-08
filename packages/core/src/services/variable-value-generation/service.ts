@@ -137,7 +137,7 @@ export class VariableValueGenerationService implements IVariableValueGenerationS
     const variablesText = request.variables
       .map((v, idx) => {
         const parts = [`${idx + 1}. ${v.name}`];
-        if (v.currentValue) parts.push(`（当前值: ${v.currentValue}）`);
+        if (v.currentValue) parts.push(`(current value: ${v.currentValue})`);
         if (v.source) parts.push(`[${v.source}]`);
         return parts.join(' ');
       })
@@ -240,11 +240,11 @@ export class VariableValueGenerationService implements IVariableValueGenerationS
       if (requestedNames.has(val.name)) {
         // 🔧 检测LLM返回的同名重复
         if (valueMap.has(val.name)) {
-          console.warn(`[VariableValueGeneration] LLM返回了重复的变量名: ${val.name}，后者将覆盖前者`);
+          console.warn(`[VariableValueGeneration] LLM returned a duplicate variable name: ${val.name}. The later value will overwrite the earlier one.`);
         }
         valueMap.set(val.name, val);
       } else {
-        console.warn(`[VariableValueGeneration] LLM返回了未请求的变量: ${val.name}`);
+        console.warn(`[VariableValueGeneration] LLM returned a variable that was not requested: ${val.name}`);
       }
     }
 
@@ -253,7 +253,7 @@ export class VariableValueGenerationService implements IVariableValueGenerationS
     for (const req of requestedVariables) {
       const trimmedName = req.name.trim();
       if (seenRequestNames.has(trimmedName)) {
-        console.warn(`[VariableValueGeneration] 请求列表中存在重复的变量名: ${trimmedName}，将返回相同的生成结果`);
+        console.warn(`[VariableValueGeneration] The request list contains a duplicate variable name: ${trimmedName}. The generated result will be reused.`);
       }
       seenRequestNames.add(trimmedName);
     }
@@ -267,11 +267,11 @@ export class VariableValueGenerationService implements IVariableValueGenerationS
         return generated;
       }
       // 缺失的变量用空值补齐
-      console.warn(`[VariableValueGeneration] LLM未返回变量 "${trimmedName}"，已补齐空值`);
+      console.warn(`[VariableValueGeneration] LLM did not return variable "${trimmedName}". Filling it with an empty value.`);
       return {
         name: trimmedName,
         value: '',
-        reason: '（LLM未生成此变量的值）',
+        reason: 'LLM did not generate a value for this variable.',
         confidence: 0,
       };
     });

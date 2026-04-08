@@ -93,7 +93,7 @@
                 data-testid="image-multiimage-input"
                 :model-value="originalPrompt"
                 :readonly="optimizing || isIterating"
-                placeholder="请使用图1 / 图2 / 图3 来描述图片关系和生成目标"
+                :placeholder="t('imageWorkspace.input.multiImagePromptPlaceholder')"
                 :autosize="{ minRows: 4, maxRows: 12 }"
                 clearable
                 show-count
@@ -107,7 +107,7 @@
                 :value="originalPrompt"
                 type="textarea"
                 data-testid="image-multiimage-input"
-                placeholder="请使用图1 / 图2 / 图3 来描述图片关系和生成目标"
+                :placeholder="t('imageWorkspace.input.multiImagePromptPlaceholder')"
                 :autosize="{ minRows: 4, maxRows: 12 }"
                 clearable
                 show-count
@@ -150,8 +150,8 @@
                         circle
                         size="small"
                         type="error"
-                        :aria-label="`删除图${index + 1}`"
-                        :title="`删除图${index + 1}`"
+                        :aria-label="t('imageWorkspace.input.removeImageAriaLabel', { index: index + 1 })"
+                        :title="t('imageWorkspace.input.removeImageAriaLabel', { index: index + 1 })"
                         @mousedown.stop
                         @click.stop="removeImage(item.id)"
                       >
@@ -166,21 +166,21 @@
                       <AppPreviewImage
                         class="image-card__preview"
                         :src="toDataUrl(item)"
-                        :alt="`图${index + 1}`"
+                        :alt="t('imageWorkspace.input.imageAlt', { index: index + 1 })"
                         object-fit="cover"
                       />
                     </div>
                     <div
                       class="image-card__footer"
                       draggable="true"
-                      :title="`拖动调整图${index + 1}顺序`"
-                      :aria-label="`拖动调整图${index + 1}顺序`"
+                      :title="t('imageWorkspace.input.reorderImageAriaLabel', { index: index + 1 })"
+                      :aria-label="t('imageWorkspace.input.reorderImageAriaLabel', { index: index + 1 })"
                       @click.stop
                       @mousedown.stop
                       @dragstart="handleImageDragStart(index, $event)"
                       @dragend="handleImageDragEnd"
                     >
-                      <NText strong class="image-card__label">{{ `图${index + 1}` }}</NText>
+                      <NText strong class="image-card__label">{{ t('imageWorkspace.input.imageLabel', { index: index + 1 }) }}</NText>
                       <span class="image-card__drag-handle" aria-hidden="true">⋮⋮</span>
                     </div>
                   </div>
@@ -504,7 +504,7 @@
       <NInput
         v-model:value="fullscreenValue"
         type="textarea"
-        placeholder="请使用图1 / 图2 / 图3 来描述图片关系和生成目标"
+        :placeholder="t('imageWorkspace.input.multiImagePromptPlaceholder')"
         :autosize="false"
         style="height: 100%; min-height: 0;"
         clearable
@@ -789,12 +789,12 @@ const canOptimize = computed(() =>
 )
 const imageInputHint = computed(() => {
   if (session.inputImages.length >= 2) {
-    return '拖动卡片可调整图1 / 图2 / 图3 的顺序语义'
+    return t('imageWorkspace.input.multiImageHint')
   }
   if (session.inputImages.length === 1) {
-    return '再添加一张图片后即可开始多图生图'
+    return t('imageWorkspace.input.multiImageMinHint')
   }
-  return '请至少上传两张图片，再开始多图生图'
+  return t('imageWorkspace.input.multiImageReadyHint')
 })
 const testColumnCountModel = computed<TestColumnCount>({
   get: () => (session.layout.testColumnCount === 3 || session.layout.testColumnCount === 4 ? session.layout.testColumnCount : 2),

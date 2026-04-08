@@ -18,7 +18,7 @@ export async function getPreference<T>(
   if (services.value?.preferenceService) {
     return services.value.preferenceService.get(key, defaultValue);
   }
-  throw new Error(`[getPreference] preferenceService不可用，无法获取键: ${key}`);
+  throw new Error(`[getPreference] preferenceService is unavailable. Cannot read key: ${key}`);
 }
 
 /**
@@ -36,7 +36,7 @@ export async function setPreference<T>(
   if (services.value?.preferenceService) {
     return services.value.preferenceService.set(key, value);
   }
-  throw new Error(`[setPreference] preferenceService不可用，无法设置键: ${key}`);
+  throw new Error(`[setPreference] preferenceService is unavailable. Cannot write key: ${key}`);
 }
 
 /**

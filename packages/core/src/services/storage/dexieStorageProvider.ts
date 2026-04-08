@@ -97,7 +97,7 @@ export class DexieStorageProvider implements IStorageProvider {
       const record = await this.db.storage.get(key);
       return record?.value ?? null;
     } catch (error) {
-      console.error(`获取存储项失败 (${key}):`, error);
+      console.error(`Failed to get storage item (${key}):`, error);
       throw new StorageError(`Failed to get item: ${key}`, 'read');
     }
   }
@@ -115,7 +115,7 @@ export class DexieStorageProvider implements IStorageProvider {
         timestamp: Date.now()
       });
     } catch (error) {
-      console.error(`设置存储项失败 (${key}):`, error);
+      console.error(`Failed to set storage item (${key}):`, error);
       throw new StorageError(`Failed to set item: ${key}`, 'write');
     }
   }
@@ -129,7 +129,7 @@ export class DexieStorageProvider implements IStorageProvider {
     try {
       await this.db.storage.delete(key);
     } catch (error) {
-      console.error(`删除存储项失败 (${key}):`, error);
+      console.error(`Failed to remove storage item (${key}):`, error);
       throw new StorageError(`Failed to remove item: ${key}`, 'delete');
     }
   }
@@ -143,7 +143,7 @@ export class DexieStorageProvider implements IStorageProvider {
     try {
       await this.db.storage.clear();
     } catch (error) {
-      console.error('清空存储失败:', error);
+      console.error('Failed to clear storage:', error);
       throw new StorageError('Failed to clear storage', 'clear');
     }
   }
@@ -209,7 +209,7 @@ export class DexieStorageProvider implements IStorageProvider {
         return; // 成功，直接返回
       } catch (error) {
         lastError = error as Error;
-        console.warn(`原子更新尝试 ${attempt}/${maxRetries} 失败 (${key}):`, error);
+        console.warn(`Atomic update attempt ${attempt}/${maxRetries} failed (${key}):`, error);
 
         // 如果是事务错误且还有重试机会，等待一段时间后重试
         if (this.isError(error) && error.name === 'PrematureCommitError' && attempt < maxRetries) {
@@ -220,13 +220,13 @@ export class DexieStorageProvider implements IStorageProvider {
 
         // 如果是最后一次尝试或非事务错误，尝试降级到简单更新
         if (attempt === maxRetries) {
-          console.warn(`所有重试失败，尝试降级到简单更新 (${key})`);
+          console.warn(`All retries failed; falling back to simple update (${key})`);
           try {
             await this._performSimpleUpdate(key, updateFn);
-            console.log(`降级更新成功 (${key})`);
+            console.log(`Fallback update succeeded (${key})`);
             return;
           } catch (fallbackError) {
-            console.error(`降级更新也失败 (${key}):`, fallbackError);
+            console.error(`Fallback update also failed (${key}):`, fallbackError);
             throw lastError; // 抛出原始错误
           }
         }
@@ -263,7 +263,7 @@ export class DexieStorageProvider implements IStorageProvider {
         timestamp: Date.now()
       });
     } catch (error) {
-      console.error(`简单更新失败 (${key}):`, error);
+      console.error(`Simple update failed (${key}):`, error);
       throw new StorageError(`Failed to perform simple update: ${key}`, 'write');
     }
   }
@@ -296,12 +296,12 @@ export class DexieStorageProvider implements IStorageProvider {
           });
         } catch (innerError) {
           // 事务内部错误，让事务回滚
-          console.error(`事务内部操作失败 (${key}):`, innerError);
+          console.error(`Transaction operation failed (${key}):`, innerError);
           throw innerError;
         }
       });
     } catch (error) {
-      console.error(`原子更新失败 (${key}):`, error);
+      console.error(`Atomic update failed (${key}):`, error);
 
       // 如果是Dexie事务错误，提供更详细的错误信息
       if (this.isError(error) && error.name === 'PrematureCommitError') {
@@ -353,7 +353,7 @@ export class DexieStorageProvider implements IStorageProvider {
         }
       });
     } catch (error) {
-      console.error('批量更新失败:', error);
+      console.error('Batch update failed:', error);
       throw new StorageError('Failed to perform batch update', 'write');
     }
   }
@@ -387,7 +387,7 @@ export class DexieStorageProvider implements IStorageProvider {
         lastUpdated: lastRecord?.timestamp ?? null
       };
     } catch (error) {
-      console.error('获取存储信息失败:', error);
+      console.error('Failed to get storage information:', error);
       return {
         itemCount: 0,
         estimatedSize: 0,
@@ -412,7 +412,7 @@ export class DexieStorageProvider implements IStorageProvider {
 
       return result;
     } catch (error) {
-      console.error('导出数据失败:', error);
+      console.error('Failed to export data:', error);
       throw new StorageError('Failed to export data', 'read');
     }
   }
@@ -432,7 +432,7 @@ export class DexieStorageProvider implements IStorageProvider {
 
       await this.db.storage.bulkPut(records);
     } catch (error) {
-      console.error('导入数据失败:', error);
+      console.error('Failed to import data:', error);
       throw new StorageError('Failed to import data', 'write');
     }
   }
@@ -444,7 +444,7 @@ export class DexieStorageProvider implements IStorageProvider {
     try {
       await this.db.close();
     } catch (error) {
-      console.error('关闭数据库失败:', error);
+      console.error('Failed to close database:', error);
     }
   }
 } 

@@ -604,7 +604,7 @@ const switchToV0 = async () => {
         outputDisplayRef.value.forceRefreshContent();
     }
 
-    console.log("[PromptPanel] 已切换到 V0（原始内容）");
+    console.log('[PromptPanel] Switched to V0 (original content).');
 };
 
 // 处理评估按钮点击（触发评估）
@@ -776,7 +776,7 @@ const switchVersion = async (version: PromptRecord) => {
         outputDisplayRef.value.forceRefreshContent();
     }
 
-    console.log("[PromptPanel] 版本切换完成，强制刷新内容:", {
+    console.log('[PromptPanel] Version switch completed; forcing content refresh:', {
         versionId: version.id,
         version: version.version,
     });
@@ -798,7 +798,7 @@ watch(
             if (outputDisplayRef.value) {
                 outputDisplayRef.value.forceExitEditing();
                 console.log(
-                    "[PromptPanel] 检测到开始优化/迭代，强制退出编辑状态",
+                    '[PromptPanel] Detected optimization/iteration start; forcing the editor to exit editing mode',
                 );
             }
         }

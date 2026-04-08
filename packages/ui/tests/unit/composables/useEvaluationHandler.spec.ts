@@ -213,8 +213,8 @@ const createVariableDesignContext = (
   return {
     kind: 'variables',
     label: 'Variable Structure',
-    summary: '这里只说明模板变量结构，不包含任何测试值。',
-    content: `变量: ${normalized.join(', ')}`,
+    summary: 'This block describes the template variable structure only. It does not include test values.',
+    content: `Variables: ${normalized.join(', ')}`,
   }
 }
 
@@ -224,10 +224,10 @@ const createConversationDesignContext = (
 ): EvaluationContentBlock => ({
   kind: 'conversation',
   label: 'Conversation Design Context',
-  summary: `当前分析目标是 ${role} 消息；会话中的该位置已用“【当前工作区要优化的提示词】”标记。`,
+  summary: `The current analysis target is the ${role} message. This position is marked as "[Current workspace prompt under optimization]" in the conversation.`,
   content: [
-    `目标消息角色: ${role}`,
-    '会话上下文:',
+    `Target message role: ${role}`,
+    'Conversation context:',
     ...messages.map((message) => `- ${message.role}: ${message.content}`),
   ].join('\n'),
 })
@@ -658,7 +658,7 @@ describe('useEvaluationHandler', () => {
       target: {
         workspacePrompt: 'Optimized system prompt',
         designContext: createConversationDesignContext('system', [
-          { role: 'system', content: '【当前工作区要优化的提示词】' },
+          { role: 'system', content: '[Current workspace prompt under optimization]' },
           { role: 'user', content: 'I need a team wiki for a fast-growing startup team.' },
           { role: 'assistant', content: 'You should first clarify team size and collaboration style.' },
         ]),
@@ -707,7 +707,7 @@ describe('useEvaluationHandler', () => {
           { role: 'user', content: 'm3' },
           { role: 'assistant', content: 'm4' },
           { role: 'user', content: 'm5' },
-          { role: 'system', content: '【当前工作区要优化的提示词】' },
+          { role: 'system', content: '[Current workspace prompt under optimization]' },
           { role: 'user', content: 'm7' },
           { role: 'assistant', content: 'm8' },
         ]),

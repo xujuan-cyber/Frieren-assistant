@@ -16,6 +16,13 @@ export const MCP_ERROR_CODES = {
   INVALID_REQUEST: -32600
 } as const;
 
+const INVALID_PARAM_PATTERNS = [
+  'must be a non-empty string',
+  'must not exceed',
+  'is required',
+  'invalid parameter',
+] as const;
+
 export class MCPErrorHandler {
   /**
    * 转换 Core 模块错误为 MCP 错误
@@ -25,13 +32,13 @@ export class MCPErrorHandler {
     if (error.name.includes('OptimizationError') || error.name.includes('IterationError') || error.name.includes('TestError')) {
       return new McpError(
         MCP_ERROR_CODES.PROMPT_OPTIMIZATION_FAILED,
-        `提示词优化失败: ${error.message}`,
+        `Prompt optimization failed: ${error.message}`,
         { originalError: error.name }
       );
     }
 
     // 参数验证错误
-    if (error.message.includes('必须是') || error.message.includes('不能为空') || error.message.includes('过长')) {
+    if (INVALID_PARAM_PATTERNS.some((pattern) => error.message.toLowerCase().includes(pattern))) {
       return new McpError(
         MCP_ERROR_CODES.INVALID_PARAMS,
         error.message,
@@ -43,7 +50,7 @@ export class MCPErrorHandler {
     if (error.message.includes('Model') || error.message.includes('API key') || error.message.includes('Template')) {
       return new McpError(
         MCP_ERROR_CODES.INTERNAL_ERROR,
-        `配置错误: ${error.message}`,
+        `Configuration error: ${error.message}`,
         { originalError: error.name }
       );
     }
@@ -51,7 +58,7 @@ export class MCPErrorHandler {
     // 默认内部错误
     return new McpError(
       MCP_ERROR_CODES.INTERNAL_ERROR,
-      `内部错误: ${error.message}`,
+      `Internal error: ${error.message}`,
       { originalError: error.name }
     );
   }
@@ -60,7 +67,7 @@ export class MCPErrorHandler {
    * 创建参数验证错误
    */
   static createValidationError(message: string): McpError {
-    return new McpError(MCP_ERROR_CODES.INVALID_PARAMS, `参数验证失败: ${message}`);
+    return new McpError(MCP_ERROR_CODES.INVALID_PARAMS, `Parameter validation failed: ${message}`);
   }
 
   /**

@@ -52,15 +52,15 @@ export function useBasicSubMode(services: Ref<AppServices | null>): UseBasicSubM
           ? saved
           : 'system'
 
-        console.log(`[useBasicSubMode] 初始化完成，当前值: ${singleton!.mode.value}`)
+        console.log(`[useBasicSubMode] Initialization completed. Current value: ${singleton!.mode.value}`)
 
         // 持久化默认值（如果未设置过）
         if (saved !== 'system' && saved !== 'user') {
           await setPreference(UI_SETTINGS_KEYS.BASIC_SUB_MODE, 'system')
-          console.log('[useBasicSubMode] 首次初始化，已持久化默认值: system')
+          console.log('[useBasicSubMode] First initialization complete. Persisted the default value: system')
         }
       } catch (e) {
-        console.error('[useBasicSubMode] 初始化失败，使用默认值 system:', e)
+        console.error('[useBasicSubMode] Failed to initialize. Falling back to the default value system:', e)
         // 读取失败则保持默认 'system'，并尝试持久化
         try {
           await setPreference(UI_SETTINGS_KEYS.BASIC_SUB_MODE, 'system')
@@ -80,7 +80,7 @@ export function useBasicSubMode(services: Ref<AppServices | null>): UseBasicSubM
     await ensureInitialized()
     singleton!.mode.value = mode
     await setPreference(UI_SETTINGS_KEYS.BASIC_SUB_MODE, mode)
-    console.log(`[useBasicSubMode] 子模式已切换并持久化: ${mode}`)
+    console.log(`[useBasicSubMode] Sub-mode switched and persisted: ${mode}`)
   }
 
   const switchToSystem = () => setBasicSubMode('system')

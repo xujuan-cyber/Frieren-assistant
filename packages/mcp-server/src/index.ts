@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * Prompt Optimizer - AI提示词优化工具
+ * Prompt Optimizer - AI prompt optimization toolkit
  * Copyright (C) 2025 linshenkx
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,14 +20,14 @@
 /**
  * MCP Server for Prompt Optimizer
  *
- * 提供3个核心工具：
- * - optimize-user-prompt: 优化用户提示词
- * - optimize-system-prompt: 优化系统提示词
- * - iterate-prompt: 迭代优化成熟提示词
+ * Provides 3 core tools:
+ * - optimize-user-prompt: optimize user prompts
+ * - optimize-system-prompt: optimize system prompts
+ * - iterate-prompt: iterate on existing prompts
  *
- * 支持 stdio 和 HTTP 两种传输方式
+ * Supports both stdio and HTTP transports
  *
- * 注意：环境变量通过 environment.ts 在应用启动时加载
+ * Note: environment variables are loaded by environment.ts during startup
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -65,7 +65,7 @@ async function createServerInstance(config: MCPServerConfig) {
 async function setupServerHandlers(server: Server, coreServices: CoreServicesManager) {
 
   // 获取模板选项和默认模板ID用于工具定义
-  logger.info('获取模板选项...');
+  logger.info('Loading template options...');
   const templateManager = coreServices.getTemplateManager();
   const [userOptimizeOptions, systemOptimizeOptions, iterateOptions, userDefaultId, systemDefaultId, iterateDefaultId] = await Promise.all([
     getTemplateOptions(templateManager, 'userOptimize'),
@@ -77,23 +77,23 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
   ]);
 
   // 注册工具列表处理器
-  logger.info('注册 MCP 工具...');
+  logger.info('Registering MCP tools...');
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
       tools: [
         {
           name: "optimize-user-prompt",
-          description: "优化用户提示词，提升与AI对话的效果。适用于日常对话、问答、创作等场景。\n\n主要功能：\n- 增强表达清晰度和具体性\n- 添加必要的上下文信息\n- 优化语言表达和逻辑结构\n- 提高AI理解准确性\n\n使用场景示例：\n- 将模糊问题转化为具体明确的询问\n- 为创作任务添加详细要求和约束\n- 优化技术问题的描述方式",
+          description: "Optimize a user prompt to improve clarity, specificity, and overall response quality. Best for everyday chat, Q&A, writing, and task-oriented requests.\n\nKey capabilities:\n- Make the request clearer and more specific\n- Add missing context when useful\n- Improve wording and logical structure\n- Help the model understand the goal more accurately\n\nTypical use cases:\n- Turn a vague question into a concrete request\n- Add detailed constraints to a creative task\n- Improve the framing of a technical question",
           inputSchema: {
             type: "object",
             properties: {
               prompt: {
                 type: "string",
-                description: "要优化的用户提示词。例如：'帮我写个文章' 或 '解释一下机器学习'"
+                description: "The user prompt to optimize. For example: 'Help me write an article' or 'Explain machine learning'."
               },
               template: {
                 type: "string",
-                description: `选择优化模板，不同模板适用于不同场景：\n${userOptimizeOptions.map(opt => `- ${opt.label}：${opt.description}`).join('\n')}`,
+                description: `Choose an optimization template. Different templates fit different scenarios:\n${userOptimizeOptions.map(opt => `- ${opt.label}: ${opt.description}`).join('\n')}`,
                 enum: userOptimizeOptions.map(opt => opt.value),
                 default: userDefaultId
               }
@@ -103,17 +103,17 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
         },
         {
           name: "optimize-system-prompt",
-          description: "优化系统提示词，提升AI角色扮演和行为控制效果。适用于定制AI助手、创建专业角色、设计对话系统等场景。\n\n主要功能：\n- 增强角色定义和专业性\n- 优化行为指导和约束\n- 改进指令结构和层次\n- 添加必要的专业知识\n\n使用场景示例：\n- 将简单角色描述转化为专业角色定义\n- 为AI助手添加详细的行为规则和限制\n- 优化特定领域专家的知识框架",
+          description: "Optimize a system prompt to improve role definition, instruction quality, and behavior control. Best for custom assistants, expert roles, and structured dialogue systems.\n\nKey capabilities:\n- Strengthen role definition and professionalism\n- Improve behavioral guidance and constraints\n- Refine instruction structure and hierarchy\n- Add missing domain context when needed\n\nTypical use cases:\n- Turn a simple role description into a professional system prompt\n- Add clearer operating rules for an AI assistant\n- Improve a domain-specific expert prompt",
           inputSchema: {
             type: "object",
             properties: {
               prompt: {
                 type: "string",
-                description: "要优化的系统提示词。例如：'你是一个助手' 或 '你是一个医疗顾问'"
+                description: "The system prompt to optimize. For example: 'You are a helpful assistant' or 'You are a medical advisor'."
               },
               template: {
                 type: "string",
-                description: `选择优化模板，不同模板适用于不同场景：\n${systemOptimizeOptions.map(opt => `- ${opt.label}：${opt.description}`).join('\n')}`,
+                description: `Choose an optimization template. Different templates fit different scenarios:\n${systemOptimizeOptions.map(opt => `- ${opt.label}: ${opt.description}`).join('\n')}`,
                 enum: systemOptimizeOptions.map(opt => opt.value),
                 default: systemDefaultId
               }
@@ -123,21 +123,21 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
         },
         {
           name: "iterate-prompt",
-          description: "基于具体需求迭代改进已有的提示词。适用于已经有基础提示词，但需要针对特定需求进行精细调整的场景。\n\n主要功能：\n- 保持原有提示词的核心功能\n- 根据具体需求进行针对性改进\n- 解决现有提示词的特定问题\n- 适应新的使用场景或要求\n\n使用场景示例：\n- 现有提示词效果不够理想，需要改进\n- 需要适应新的业务需求或使用场景\n- 要解决特定的输出格式或内容问题\n- 需要增强某个特定方面的表现",
+          description: "Iteratively improve an existing prompt based on concrete requirements. Best when you already have a usable prompt but need targeted refinements.\n\nKey capabilities:\n- Preserve the prompt's core intent\n- Improve it against specific requirements\n- Address known weaknesses or output issues\n- Adapt it to new scenarios or constraints\n\nTypical use cases:\n- Improve a prompt that is close but not good enough\n- Adapt a prompt to new business or product needs\n- Fix output formatting or content issues\n- Strengthen a specific aspect of performance",
           inputSchema: {
             type: "object",
             properties: {
               prompt: {
                 type: "string",
-                description: "要迭代改进的现有提示词。应该是一个已经在使用但需要改进的完整提示词"
+                description: "The existing prompt to refine. This should be a complete prompt that is already in use but needs improvement."
               },
               requirements: {
                 type: "string",
-                description: "具体的改进需求或问题描述。例如：'输出格式不够规范' 或 '需要更专业的语言风格' 或 '希望增加创意性'"
+                description: "The concrete improvement requirements or problem statement. For example: 'The output format is inconsistent', 'Use a more professional tone', or 'Increase creativity'."
               },
               template: {
                 type: "string",
-                description: `选择迭代优化模板，不同模板有不同的改进策略：\n${iterateOptions.map(opt => `- ${opt.label}：${opt.description}`).join('\n')}`,
+                description: `Choose an iteration template. Different templates use different refinement strategies:\n${iterateOptions.map(opt => `- ${opt.label}: ${opt.description}`).join('\n')}`,
                 enum: iterateOptions.map(opt => opt.value),
                 default: iterateDefaultId
               }
@@ -152,7 +152,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
   // 注册工具调用处理器
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    logger.info(`处理工具调用请求: ${name}`);
+    logger.info(`Handling tool call request: ${name}`);
 
     try {
       switch (name) {
@@ -164,7 +164,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：缺少必需参数 'prompt'"
+                text: "Error: Missing required parameter 'prompt'"
               }]
             };
           }
@@ -187,7 +187,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：MCP 默认模型未配置或未启用，请检查环境变量配置"
+                text: "Error: The MCP default model is not configured or not enabled. Check the environment configuration."
               }]
             };
           }
@@ -216,7 +216,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：缺少必需参数 'prompt'"
+                text: "Error: Missing required parameter 'prompt'"
               }]
             };
           }
@@ -239,7 +239,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：MCP 默认模型未配置或未启用，请检查环境变量配置"
+                text: "Error: The MCP default model is not configured or not enabled. Check the environment configuration."
               }]
             };
           }
@@ -272,7 +272,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：缺少必需参数 'prompt'"
+                text: "Error: Missing required parameter 'prompt'"
               }]
             };
           }
@@ -282,7 +282,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：缺少必需参数 'requirements'"
+                text: "Error: Missing required parameter 'requirements'"
               }]
             };
           }
@@ -306,7 +306,7 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
               isError: true,
               content: [{
                 type: "text",
-                text: "错误：MCP 默认模型未配置或未启用，请检查环境变量配置"
+                text: "Error: The MCP default model is not configured or not enabled. Check the environment configuration."
               }]
             };
           }
@@ -333,23 +333,23 @@ async function setupServerHandlers(server: Server, coreServices: CoreServicesMan
             isError: true,
             content: [{
               type: "text",
-              text: `错误：未知工具 '${name}'`
+              text: `Error: Unknown tool '${name}'`
             }]
           };
       }
     } catch (error) {
-      logger.error(`工具执行错误 ${name}:`, error as Error);
+      logger.error(`Tool execution error ${name}:`, error as Error);
       return {
         isError: true,
         content: [{
           type: "text",
-          text: `工具执行错误: ${(error as Error).message}`
+          text: `Tool execution error: ${(error as Error).message}`
         }]
       };
     }
   });
 
-  logger.info('MCP 工具注册成功');
+  logger.info('MCP tools registered successfully');
 }
 
 async function main() {

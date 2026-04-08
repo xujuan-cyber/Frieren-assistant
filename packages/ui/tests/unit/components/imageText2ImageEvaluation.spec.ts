@@ -69,10 +69,10 @@ describe('imageText2ImageEvaluation helpers', () => {
       },
       testCase: {
         id: 'image-text2image-intent',
-        label: '生成意图',
+        label: 'Generation Intent',
         input: {
           kind: 'text',
-          label: '生成意图',
+          label: 'Generation Intent',
           content: '一只戴墨镜的柴犬在海滩上奔跑',
         },
       },
@@ -85,11 +85,11 @@ describe('imageText2ImageEvaluation helpers', () => {
           label: '工作区',
         },
         promptText: 'workspace image prompt',
-        output: '展示 B 列执行 prompt 生成的结果图。',
+        output: 'Show the generated image result for column B.',
         outputBlock: {
           kind: 'image',
-          label: '生成结果',
-          content: '展示 B 列执行 prompt 生成的结果图。',
+          label: 'Generated Output',
+          content: 'Show the generated image result for column B.',
           media: [
             {
               label: 'B-1',
@@ -159,10 +159,10 @@ describe('imageText2ImageEvaluation helpers', () => {
       testCases: [
         {
           id: 'image-text2image-intent',
-          label: '生成意图',
+          label: 'Generation Intent',
           input: {
             kind: 'text',
-            label: '生成意图',
+            label: 'Generation Intent',
             content: '一只戴墨镜的柴犬在海滩上奔跑',
           },
         },
@@ -177,11 +177,11 @@ describe('imageText2ImageEvaluation helpers', () => {
             label: '原始',
           },
           promptText: 'original image prompt',
-          output: '展示 A 列执行 prompt 生成的结果图。',
+          output: 'Show the generated image result for column A.',
           outputBlock: {
             kind: 'image',
-            label: '生成结果',
-            content: '展示 A 列执行 prompt 生成的结果图。',
+            label: 'Generated Output',
+            content: 'Show the generated image result for column A.',
             media: [
               {
                 label: 'A-1',
@@ -201,11 +201,11 @@ describe('imageText2ImageEvaluation helpers', () => {
             label: '工作区',
           },
           promptText: 'workspace image prompt',
-          output: '展示 B 列执行 prompt 生成的结果图。',
+          output: 'Show the generated image result for column B.',
           outputBlock: {
             kind: 'image',
-            label: '生成结果',
-            content: '展示 B 列执行 prompt 生成的结果图。',
+            label: 'Generated Output',
+            content: 'Show the generated image result for column B.',
             media: [
               {
                 label: 'B-1',

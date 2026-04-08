@@ -71,7 +71,7 @@ export class DataManager implements IDataManager {
       data['userSettings'] = await this.preferenceService.exportData();
       data['contexts'] = await this.contextRepo.exportData();
     } catch (error) {
-      console.error('导出数据失败:', error);
+      console.error('Failed to export data:', error);
       if (typeof (error as any)?.code === 'string') {
         throw toErrorWithCode(error)
       }

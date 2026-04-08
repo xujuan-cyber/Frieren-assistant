@@ -28,7 +28,7 @@ export function useNaiveTheme() {
   const isCurrentThemeDark = computed(() => isDarkTheme.value)
   
   // 当前主题名称
-  const currentThemeName = computed(() => themeConfig.value.name)
+  const currentThemeLabelKey = computed(() => themeConfig.value.labelKey)
   
   // 主题切换函数
   const changeTheme = (newThemeId: string): boolean => {
@@ -74,7 +74,7 @@ export function useNaiveTheme() {
     themeConfig,
     naiveTheme,
     themeOverrides,
-    currentThemeName,
+    currentThemeLabelKey,
     availableThemes,
     isCurrentThemeDark,
     

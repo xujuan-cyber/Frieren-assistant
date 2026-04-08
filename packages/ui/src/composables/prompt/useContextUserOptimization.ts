@@ -177,8 +177,8 @@ export function useContextUserOptimization(
 
                 toast.success(t('toast.success.optimizeSuccess'))
               } catch (error: unknown) {
-                console.error('创建历史记录失败:', error)
-                toast.error('创建历史记录失败: ' + getI18nErrorMessage(error, t('toast.error.optimizeFailed')))
+                console.error('Failed to create history record:', error)
+                toast.warning(t('toast.warning.saveHistoryFailed'))
               } finally {
                 state.isOptimizing = false
               }
@@ -288,14 +288,14 @@ export function useContextUserOptimization(
 
                 toast.success(t('toast.success.iterateComplete'))
               } catch (error: unknown) {
-                console.error('[History] 迭代记录失败:', error)
+                console.error('[History] Failed to save the iteration record:', error)
                 toast.warning(t('toast.warning.saveHistoryFailed'))
               } finally {
                 state.isIterating = false
               }
             },
             onError: (error: Error) => {
-              console.error('[Iterate] 迭代失败:', error)
+              console.error('[Iterate] Iteration failed:', error)
               toast.error(t('toast.error.iterateFailed'))
               state.isIterating = false
             }
@@ -303,7 +303,7 @@ export function useContextUserOptimization(
           selectedIterateTemplate.value.id,
         )
       } catch (error: unknown) {
-        console.error('[Iterate] 迭代失败:', error)
+        console.error('[Iterate] Iteration failed:', error)
         toast.error(t('toast.error.iterateFailed'))
         state.isIterating = false
       }
@@ -436,7 +436,7 @@ export function useContextUserOptimization(
         state.currentVersions = updatedChain.versions
         state.currentVersionId = updatedChain.currentRecord.id
       } catch (error: unknown) {
-        console.error('[useContextUserOptimization] 保存本地修改失败:', error)
+        console.error('[useContextUserOptimization] Failed to save local edits:', error)
         toast.warning(t('toast.warning.saveHistoryFailed'))
       }
     },

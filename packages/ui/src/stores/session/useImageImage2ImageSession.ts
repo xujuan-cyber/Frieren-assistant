@@ -242,7 +242,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     layout.value = { ...layout.value, testColumnCount: count }
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -253,7 +253,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     layout.value = { ...layout.value, mainSplitLeftPct: next }
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -268,7 +268,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     testVariants.value = nextList
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -291,7 +291,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     selectedTextModelKey.value = modelKey
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -301,7 +301,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     lastActiveAt.value = Date.now()
     // 异步保存完整状态（best-effort）
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -310,7 +310,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     selectedTemplateId.value = templateId
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -319,7 +319,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     selectedIterateTemplateId.value = templateId
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存会话失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save session:', error)
     })
   }
 
@@ -339,7 +339,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     temporaryVariables.value[name] = value
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存临时变量失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save temporary variables:', error)
     })
   }
 
@@ -354,7 +354,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     delete temporaryVariables.value[name]
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存临时变量失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save temporary variables:', error)
     })
   }
 
@@ -362,7 +362,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     temporaryVariables.value = {}
     lastActiveAt.value = Date.now()
     saveSession().catch(error => {
-      console.error('[ImageImage2ImageSession] 自动保存临时变量失败:', error)
+      console.error('[ImageImage2ImageSession] Failed to auto-save temporary variables:', error)
     })
   }
 
@@ -476,12 +476,12 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
               mimeType: fullImageData.metadata.mimeType
             })
           } else {
-            console.warn(`[ImageImage2ImageSession] 图像 ${img.id} 未找到`)
+            console.warn(`[ImageImage2ImageSession] Image ${img.id} was not found`)
             // 图像未找到，保留引用（UI 会显示错误）
             loadedImages.push(img)
           }
         } catch (error) {
-          console.error(`[ImageImage2ImageSession] 加载图像 ${img.id} 失败:`, error)
+          console.error(`[ImageImage2ImageSession] Failed to load image ${img.id}:`, error)
           // 加载失败，保留引用
           loadedImages.push(img)
         }
@@ -502,7 +502,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
                   },
                 })
               } catch (error) {
-                console.warn('[ImageImage2ImageSession] 恢复 legacy url 图像时写入存储失败:', error)
+                console.warn('[ImageImage2ImageSession] Failed to persist legacy URL image during restore:', error)
               }
 
               loadedImages.push({
@@ -512,7 +512,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
               continue
             }
           } catch (error) {
-            console.warn('[ImageImage2ImageSession] 恢复 legacy url 图像失败:', error)
+            console.warn('[ImageImage2ImageSession] Failed to restore legacy URL image:', error)
           }
         }
 
@@ -560,10 +560,10 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
     return await queueImageStorageMaintenance(async () => {
       const $services = getPiniaServices()
       if (!$services?.preferenceService) {
-        throw new Error('[ImageImage2ImageSession] PreferenceService 不可用，无法保存会话')
+        throw new Error('[ImageImage2ImageSession] PreferenceService is unavailable; cannot save session')
       }
       if (!$services?.imageStorageService) {
-        throw new Error('[ImageImage2ImageSession] ImageStorageService 不可用，无法保存会话')
+        throw new Error('[ImageImage2ImageSession] ImageStorageService is unavailable; cannot save session')
       }
 
       // 准备保存的数据
@@ -635,10 +635,10 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
   const restoreSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      throw new Error('[ImageImage2ImageSession] PreferenceService 不可用，无法恢复会话')
+      throw new Error('[ImageImage2ImageSession] PreferenceService is unavailable; cannot restore session')
     }
     if (!$services?.imageStorageService) {
-      throw new Error('[ImageImage2ImageSession] ImageStorageService 不可用，无法恢复会话')
+      throw new Error('[ImageImage2ImageSession] ImageStorageService is unavailable; cannot restore session')
     }
 
     try {
@@ -664,7 +664,7 @@ export const useImageImage2ImageSession = defineStore('imageImage2ImageSession',
               inputImageB64Loaded = fullImageData.data
             }
           } catch (error) {
-            console.error(`[ImageImage2ImageSession] 加载输入图像失败:`, error)
+            console.error('[ImageImage2ImageSession] Failed to load input image:', error)
           }
         } else {
           // 向后兼容：如果有 base64 数据，直接使用

@@ -237,7 +237,7 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
             await handleUseFavoriteImpl(favorite)
         } catch (error) {
             // 捕获收藏加载过程中的所有错误
-            console.error('[App] 收藏加载失败:', error)
+            console.error('[App] Failed to load favorite:', error)
             const errorMessage = error instanceof Error ? error.message : String(error)
             toast.error(t('toast.error.favoriteLoadFailed', { error: errorMessage }))
         } finally {

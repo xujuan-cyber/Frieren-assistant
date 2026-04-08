@@ -402,7 +402,7 @@ watch(
     }
 
     hasShownStartupRepairToast.value = true
-    toast.warning(`启动时已自动修复 ${report.actions.length} 项本地存储异常。`)
+    toast.warning(`Automatically repaired ${report.actions.length} local storage issue(s) during startup.`)
   },
   { immediate: true },
 )
@@ -1043,7 +1043,7 @@ const handleContextEditorSaveSafe = (context?: {
 
         // Best-effort persist the pro-multi session after an explicit save.
         void proMultiMessageSession.saveSession()
-        toast.success('上下文已更新')
+        toast.success('Context updated')
         return
     }
 
@@ -1160,7 +1160,7 @@ const restoreProVariableSessionToUserWorkspace = async () => {
             contextUserOptimization.currentVersions = chain.versions;
             // currentVersionId 已通过 binding 绑定，无需手动赋值
         } catch (error) {
-            console.warn('[PromptOptimizerApp] Pro-user 恢复链失败，使用 session 快照继续:', error);
+            console.warn('[PromptOptimizerApp] Failed to restore the Pro-user chain; continuing with the session snapshot:', error);
         }
     }
 };
@@ -1300,7 +1300,7 @@ watch(
             await restoreSessionToUI();
         } catch (error) {
             // 🔧 错误处理：避免未处理的 Promise rejection 传播到 Vue
-            console.error('[PromptOptimizerApp] 模式切换后恢复会话失败:', error);
+            console.error('[PromptOptimizerApp] Failed to restore the session after switching modes:', error);
         }
     },
     { immediate: false }  // 🔧 改为 false，不在 watch 创建时立即执行
@@ -2135,7 +2135,7 @@ watch(
       // ⚠️ 切换后恢复状态到 UI
       await restoreSessionToUI();
     } catch (error) {
-      console.error(`[PromptOptimizerApp] 路由切换失败: ${fromKey} → ${toKey}`, error);
+      console.error(`[PromptOptimizerApp] Route switch failed: ${fromKey} -> ${toKey}`, error);
     }
   }
 );
@@ -2194,7 +2194,7 @@ let initTimeoutId: number | null = null
 const handlePagehide = () => {
   // 注意：这里不能用 await，因为浏览器不会等异步完成
   sessionManager.saveAllSessions().catch(err => {
-    console.error('[PromptOptimizerApp] pagehide 异步保存失败:', err)
+    console.error('[PromptOptimizerApp] Async save failed during pagehide:', err)
   })
 }
 
@@ -2202,7 +2202,7 @@ const handlePagehide = () => {
 const handleVisibilityChange = () => {
   if (document.visibilityState === 'hidden') {
     sessionManager.saveAllSessions().catch(err => {
-      console.error('[PromptOptimizerApp] visibilitychange 保存失败:', err)
+      console.error('[PromptOptimizerApp] Save failed during visibilitychange:', err)
     })
   }
 }
@@ -2226,7 +2226,7 @@ onMounted(() => {
 
   // 设置超时定时器
   initTimeoutId = window.setTimeout(() => {
-    console.error('[PromptOptimizerApp] Services 初始化超时')
+    console.error('[PromptOptimizerApp] Timed out while initializing services')
     stopWatch?.()
   }, TIMEOUT)
 
@@ -2240,8 +2240,8 @@ onMounted(() => {
     // 理论上 watch(services) 会先执行 setPiniaServices()，但这里添加二次确认
     const $services = getPiniaServices()
     if (!$services) {
-      console.warn('[PromptOptimizerApp] Pinia services 尚未注入，但 services.value 已存在')
-      console.warn('[PromptOptimizerApp] 这可能是时序问题，继续等待下一轮')
+      console.warn('[PromptOptimizerApp] Pinia services are not injected yet, but services.value already exists')
+      console.warn('[PromptOptimizerApp] This may be a timing issue; waiting for the next cycle')
       // 不调用 stopWatch()，继续等待下一轮
       return
     }
@@ -2251,7 +2251,7 @@ onMounted(() => {
     }
 
     // Services 和 Pinia 均已就绪，清除超时定时器并停止监听
-    console.log('[PromptOptimizerApp] Services 和 Pinia 均已就绪，开始恢复会话')
+    console.log('[PromptOptimizerApp] Services and Pinia are ready; starting session restore')
     if (initTimeoutId !== null) {
       window.clearTimeout(initTimeoutId)
       initTimeoutId = null
@@ -2289,7 +2289,7 @@ onMounted(() => {
         document.addEventListener('visibilitychange', handleVisibilityChange)
       }
     } catch (error) {
-      console.error('[PromptOptimizerApp] 初始化过程中发生错误:', error)
+      console.error('[PromptOptimizerApp] An error occurred during initialization:', error)
     } finally {
       // Ensure the app can render even if session restore fails.
       hasRestoredInitialState.value = true

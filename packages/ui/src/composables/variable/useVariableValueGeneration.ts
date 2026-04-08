@@ -7,7 +7,7 @@
 import { ref, type Ref } from 'vue'
 import { useToast } from '../ui/useToast'
 import { useI18n } from 'vue-i18n'
-import { getI18nErrorMessage } from '../../utils/error'
+import { formatErrorSummary } from '../../utils/error'
 import type { AppServices } from '../../types/services'
 import type {
   VariableValueGenerationResponse,
@@ -89,8 +89,7 @@ export function useVariableValueGeneration(
         toast.info(t('test.variableValueGeneration.noValues'))
       }
     } catch (error) {
-      const errorMsg = getI18nErrorMessage(error, 'Unknown error')
-      toast.error(`${t('test.variableValueGeneration.generateFailed')}: ${errorMsg}`)
+      toast.error(formatErrorSummary(t('test.variableValueGeneration.generateFailed'), error))
       console.error('[useVariableValueGeneration] Generate failed:', error)
     } finally {
       isGenerating.value = false

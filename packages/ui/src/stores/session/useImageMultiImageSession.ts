@@ -275,11 +275,11 @@ const loadFromRef = async (
             mimeType: fullImageData.metadata.mimeType,
           })
         } else {
-          console.warn(`[ImageMultiImageSession] 图像 ${img.id} 未找到`)
+          console.warn(`[ImageMultiImageSession] Image ${img.id} was not found`)
           loadedImages.push(img)
         }
       } catch (error) {
-        console.error(`[ImageMultiImageSession] 加载图像 ${img.id} 失败:`, error)
+        console.error(`[ImageMultiImageSession] Failed to load image ${img.id}:`, error)
         loadedImages.push(img)
       }
     } else {
@@ -299,7 +299,7 @@ const loadFromRef = async (
                 },
               })
             } catch (error) {
-              console.warn('[ImageMultiImageSession] 恢复 legacy url 图像时写入存储失败:', error)
+              console.warn('[ImageMultiImageSession] Failed to persist legacy URL image during restore:', error)
             }
 
             loadedImages.push({
@@ -309,7 +309,7 @@ const loadFromRef = async (
             continue
           }
         } catch (error) {
-          console.warn('[ImageMultiImageSession] 恢复 legacy url 图像失败:', error)
+          console.warn('[ImageMultiImageSession] Failed to restore legacy URL image:', error)
         }
       }
 
@@ -532,10 +532,10 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     return await queueImageStorageMaintenance(async () => {
       const $services = getPiniaServices()
       if (!$services?.preferenceService) {
-        throw new Error('[ImageMultiImageSession] PreferenceService 不可用，无法保存会话')
+        throw new Error('[ImageMultiImageSession] PreferenceService is unavailable; cannot save session')
       }
       if (!$services?.imageStorageService) {
-        throw new Error('[ImageMultiImageSession] ImageStorageService 不可用，无法保存会话')
+        throw new Error('[ImageMultiImageSession] ImageStorageService is unavailable; cannot save session')
       }
       const imageStorageService = $services.imageStorageService
 
@@ -596,10 +596,10 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
   const restoreSession = async () => {
     const $services = getPiniaServices()
     if (!$services?.preferenceService) {
-      throw new Error('[ImageMultiImageSession] PreferenceService 不可用，无法恢复会话')
+      throw new Error('[ImageMultiImageSession] PreferenceService is unavailable; cannot restore session')
     }
     if (!$services?.imageStorageService) {
-      throw new Error('[ImageMultiImageSession] ImageStorageService 不可用，无法恢复会话')
+      throw new Error('[ImageMultiImageSession] ImageStorageService is unavailable; cannot restore session')
     }
     const imageStorageService = $services.imageStorageService
 

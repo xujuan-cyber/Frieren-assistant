@@ -201,7 +201,7 @@ const handleAddOption = (value: string | number) => {
 
   const definition = props.parameterDefinitions.find((def) => def.name === value)
   if (!definition) {
-    message.error(withFallback('modelManager.advancedParameters.validation.unknownParam', '参数定义不存在'))
+    message.error(withFallback('modelManager.advancedParameters.validation.unknownParam', 'Parameter definition not found'))
     return
   }
 
@@ -216,20 +216,20 @@ const handleAddOption = (value: string | number) => {
 const handleConfirmCustom = () => {
   const trimmedKey = customForm.key.trim()
   if (!trimmedKey) {
-    message.error(withFallback('modelManager.advancedParameters.validation.customKeyRequired', '参数名称不能为空'))
+    message.error(withFallback('modelManager.advancedParameters.validation.customKeyRequired', 'Parameter name is required'))
     return false
   }
   if (!isSafeCustomKey(trimmedKey)) {
-    message.error(withFallback('modelManager.advancedParameters.validation.dangerousParam', '存在危险的参数名称'))
+    message.error(withFallback('modelManager.advancedParameters.validation.dangerousParam', 'This parameter name is not allowed'))
     return false
   }
   if (Object.prototype.hasOwnProperty.call(props.paramOverrides, trimmedKey)) {
-    message.error(withFallback('modelManager.advancedParameters.validation.duplicateParam', '参数已存在'))
+    message.error(withFallback('modelManager.advancedParameters.validation.duplicateParam', 'Parameter already exists'))
     return false
   }
   const trimmedValue = customForm.value.trim()
   if (!trimmedValue) {
-    message.error(withFallback('modelManager.advancedParameters.validation.customValueRequired', '参数值不能为空'))
+    message.error(withFallback('modelManager.advancedParameters.validation.customValueRequired', 'Parameter value is required'))
     return false
   }
 

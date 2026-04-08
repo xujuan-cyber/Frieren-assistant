@@ -1,4 +1,5 @@
 import { ref, nextTick, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useAccessibility } from './useAccessibility'
 
@@ -26,6 +27,7 @@ export interface FocusState {
 }
 
 export function useFocusManager(options: FocusManagerOptions = {}) {
+  const { t } = useI18n()
   const { announce } = useAccessibility('FocusManager')
   
   // 状态管理
@@ -143,7 +145,7 @@ export function useFocusManager(options: FocusManagerOptions = {}) {
                      element.getAttribute('title') || 
                      `${role} ${currentFocusIndex.value + 1}`
         
-        announce(`已聚焦到 ${label}`, 'polite')
+        announce(t('accessibility.liveRegion.focusMoved', { label }), 'polite')
       }
       
       options.onFocusChange?.(element, currentFocusIndex.value)
@@ -231,7 +233,7 @@ export function useFocusManager(options: FocusManagerOptions = {}) {
     const container = getContainer()
     container.addEventListener('keydown', handleKeyDown)
     
-    announce('焦点已限制在当前区域内', 'assertive')
+    announce(t('accessibility.liveRegion.focusTrapped'), 'assertive')
   }
   
   // 释放焦点陷阱
@@ -251,7 +253,7 @@ export function useFocusManager(options: FocusManagerOptions = {}) {
     }
     
     previousActiveElement.value = null
-    announce('焦点限制已解除', 'polite')
+    announce(t('accessibility.liveRegion.focusReleased'), 'polite')
   }
   
   // 键盘事件处理

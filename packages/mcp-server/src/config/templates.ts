@@ -52,7 +52,7 @@ export async function getTemplateOptions(
     const options = templates.map(template => ({
       value: template.id,
       label: template.name,
-      description: template.metadata.description || (template.isBuiltin ? '内置模板' : '用户模板')
+      description: template.metadata.description || (template.isBuiltin ? 'Built-in template' : 'User template')
     }));
 
     return options;

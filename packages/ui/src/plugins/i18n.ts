@@ -11,9 +11,25 @@ import {
 import { UI_SETTINGS_KEYS } from "@prompt-optimizer/core";
 import type { AppServices } from "../types/services";
 
-// 定义支持的语言类型
-type SupportedLocale = "zh-CN" | "zh-TW" | "en-US";
-const SUPPORTED_LOCALES: SupportedLocale[] = ["zh-CN", "zh-TW", "en-US"];
+export type SupportedLocale = "zh-CN" | "zh-TW" | "en-US";
+
+export const DEFAULT_LOCALE: SupportedLocale = "en-US";
+export const SUPPORTED_LOCALES: SupportedLocale[] = ["zh-CN", "zh-TW", "en-US"];
+
+export function sanitizeSupportedLocale(
+  locale: string | null | undefined,
+  fallback: SupportedLocale = DEFAULT_LOCALE,
+): SupportedLocale {
+  if (locale && SUPPORTED_LOCALES.includes(locale as SupportedLocale)) {
+    return locale as SupportedLocale;
+  }
+
+  return fallback;
+}
+
+export function resolveDefaultLocale(_browserLanguage?: string): SupportedLocale {
+  return DEFAULT_LOCALE;
+}
 
 // 服务引用
 const servicesRef = shallowRef<AppServices | null>(null);
@@ -26,7 +42,7 @@ export function setI18nServices(services: AppServices) {
 // 创建i18n实例
 const i18n = createI18n({
   legacy: false,
-  locale: "zh-CN" as SupportedLocale,
+  locale: DEFAULT_LOCALE,
   fallbackLocale: {
     "zh-TW": ["zh-CN", "en-US"],
     "zh-CN": ["en-US"],
@@ -66,17 +82,12 @@ watch(
 async function initializeLanguage() {
   try {
     if (!servicesRef.value) {
-      console.warn("初始化语言设置时服务不可用，使用默认语言");
+      console.warn("[i18n] Services unavailable during locale initialization. Falling back to default locale.");
+      i18n.global.locale.value = DEFAULT_LOCALE;
       return;
     }
 
-    const defaultLocale: SupportedLocale = navigator.language.startsWith("zh")
-      ? navigator.language === "zh-TW" ||
-        navigator.language === "zh-HK" ||
-        navigator.language.includes("Hant")
-        ? "zh-TW"
-        : "zh-CN"
-      : "en-US";
+    const defaultLocale = resolveDefaultLocale(navigator.language);
     const savedLanguage = await getPreference(
       servicesRef,
       UI_SETTINGS_KEYS.PREFERRED_LANGUAGE,
@@ -94,9 +105,8 @@ async function initializeLanguage() {
       );
     }
   } catch (error) {
-    console.error("初始化语言设置失败:", error);
-    // 降级到默认语言
-    i18n.global.locale.value = "zh-CN";
+    console.error("[i18n] Failed to initialize locale:", error);
+    i18n.global.locale.value = DEFAULT_LOCALE;
   }
 }
 

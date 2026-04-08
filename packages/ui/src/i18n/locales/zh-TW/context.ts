@@ -1,0 +1,273 @@
+const messages = {
+  "contextMode": {
+    "optimizationMode": {
+      "message": "多訊息",
+      "variable": "變數"
+    },
+    "user": {
+      "label": "變數模式",
+      "tooltip": "優化單條用戶提示詞，專注於變數和工具配置"
+    },
+    "system": {
+      "label": "多訊息模式",
+      "tooltip": "優化多條系統訊息，支援完整的對話管理",
+      "selectMessageHint": "請選擇一條 system/user 訊息以查看 V0/V1 結果"
+    },
+    "actions": {
+      "globalVariables": "全局變數",
+      "contextVariables": "情境變數",
+      "tools": "工具管理",
+      "toolManager": "工具管理"
+    },
+    "preview": {
+      "title": "預覽",
+      "stats": "變數統計",
+      "totalVars": "變數總數",
+      "providedVars": "已提供",
+      "missingVars": "缺失",
+      "missingVarsWarning": "偵測到缺失變數",
+      "missingVarsHint": "部分變數未定義，請在變數管理器中設定值，否則這些佔位符將保留在最終輸出中。",
+      "renderedContent": "渲染內容",
+      "emptyContent": "暫無內容可預覽",
+      "modeExplanation": "模式說明",
+      "userOptimizeHint": "使用者優化模式：變數將在優化時替換為實際值。",
+      "systemOptimizeHint": "系統優化模式：多則訊息將作為對話情境發送，變數替換為實際值。",
+      "testPhaseHint": "測試階段：對話將發送到模型進行測試，變數替換為實際值。"
+    }
+  },
+  "contextEditor": {
+    "contextVariables": "情境變數",
+    "contextVariablesDesc": "管理目前情境的變數覆蓋，不影響全域變數",
+    "noContextVariables": "暫無情境變數",
+    "addFirstContextVariable": "新增您的第一個情境變數",
+    "addContextVariable": "新增情境變數",
+    "editContextVariable": "編輯情境變數",
+    "deleteContextVariable": "刪除情境變數",
+    "deleteContextVariableConfirm": "確定要刪除情境變數\"{name}\"嗎？刪除後將回退到全域值。",
+    "contextVariableDeleted": "已刪除情境變數：{name}",
+    "variableSource": "變數來源",
+    "variableStatus": "狀態",
+    "contextOverride": "情境覆蓋",
+    "globalVariable": "全域變數",
+    "predefinedVariable": "預定義變數",
+    "missingVariable": "缺少變數",
+    "variableFromContext": "來自情境",
+    "variableFromGlobal": "來自全域",
+    "variableFromPredefined": "預定義",
+    "predefinedVariableCannotOverride": "預定義變數不可覆蓋",
+    "addVariable": "新增情境變數",
+    "editVariable": "編輯情境變數",
+    "contextVariableHelp": "情境變數會覆蓋全域同名變數，但不能覆蓋預定義變數",
+    "finalVariablesPreview": "最終變數預覽",
+    "contextVariableName": "變數名稱",
+    "contextVariableValue": "變數值",
+    "variableNameRequired": "變數名稱是必需的",
+    "variableNameInvalid": "變數名稱格式無效",
+    "variableNamePredefined": "不能使用預定義變數名稱",
+    "variableNameExists": "變數名稱已存在",
+    "variableValueRequired": "變數值是必需的",
+    "importContextVariables": "匯入情境變數",
+    "exportContextVariables": "匯出情境變數",
+    "contextVariableImported": "已匯入 {count} 個情境變數",
+    "contextVariableSkipped": "跳過 {count} 個預定義變數衝突",
+    "editTool": "編輯工具",
+    "deleteToolConfirm": "確定要刪除工具\"{name}\"嗎？",
+    "toolDeleted": "已刪除工具：{name}",
+    "exampleTemplate": "範例範本",
+    "exampleTemplateDesc": "可從天氣範例開始，或從空白範本開始。",
+    "basicInfo": "基本資訊",
+    "toolNamePlaceholder": "請輸入工具名稱，例如 get_weather",
+    "toolDescPlaceholder": "請輸入工具描述",
+    "parameters": "參數配置",
+    "parametersPlaceholder": "請輸入JSON格式的參數配置",
+    "invalidJson": "無效的 JSON",
+    "useExample": "使用範例",
+    "startEmpty": "從空白開始",
+    "save": "儲存",
+    "toolsTooltip": "工具：{tools}",
+    "toolsCount": "{count} 個工具",
+    "title": "情境編輯器",
+    "systemTemplates": "系統範本",
+    "userTemplates": "使用者範本",
+    "messagesTab": "訊息編輯",
+    "variablesTab": "變數管理",
+    "toolsTab": "工具管理",
+    "messageCount": "{count} 條訊息",
+    "messageItemLabel": "訊息 {index}: {role}",
+    "variableCountLabel": "變數: {count}",
+    "toolCountLabel": "工具: {count}",
+    "variableDetected": "變數: {count}",
+    "missingVariableLabel": "缺失: {count}",
+    "noMessages": "暫無訊息",
+    "addFirstMessage": "新增您的第一則訊息",
+    "addMessage": "新增訊息",
+    "noTools": "暫無工具",
+    "addFirstTool": "新增第一個工具",
+    "addTool": "新增工具",
+    "noDescription": "暫無描述",
+    "parametersCount": "{count} 個參數",
+    "importTitle": "匯入情境資料",
+    "importFormat": "匯入格式：",
+    "selectFile": "選擇檔案",
+    "orPasteText": "或在下方貼上文字",
+    "import": "匯入",
+    "importSuccess": "匯入成功",
+    "importFailed": "匯入失敗",
+    "importDataRequired": "請輸入要匯入的資料",
+    "invalidConversationFormat": "無效的會話格式：必須包含messages陣列",
+    "unsupportedImportFormat": "不支援的匯入格式",
+    "invalidJsonFormat": "資料格式錯誤，請檢查JSON格式",
+    "exportTitle": "匯出情境資料",
+    "exportFormat": "匯出格式：",
+    "exportPreview": "匯出預覽：",
+    "copyToClipboard": "複製到剪貼簿",
+    "saveToFile": "儲存到檔案",
+    "exportSuccess": "匯出成功",
+    "exportFailed": "匯出失敗",
+    "copySuccess": "已複製到剪貼簿",
+    "copyFailed": "複製失敗",
+    "saveSuccess": "情境已更新",
+    "switchModeFailed": "切換情境模式失敗",
+    "variableManagement": "變數管理",
+    "variableManagementHint": "臨時變數僅在目前工作階段有效；全域變數跨工作階段持久保存",
+    "temporaryVariables": "臨時變數",
+    "temporaryVariableCount": "{count} 個臨時變數",
+    "temporaryVariableHint": "僅目前工作階段有效",
+    "globalVariables": "全域: {count}",
+    "globalVariableHint": "跨工作階段持久保存",
+    "noVariables": "暫無變數",
+    "addFirstVariable": "新增第一個變數",
+    "variableName": "變數名稱",
+    "variableValue": "變數值",
+    "variableType": "變數類型",
+    "variableNamePlaceholder": "請輸入變數名稱（不含大括號）",
+    "predefinedVariableWarning": "不能修改預定義變數",
+    "variableValuePlaceholder": "請輸入變數值",
+    "deleteVariableConfirm": "確定要刪除變數\"{name}\"嗎？",
+    "variableDeleted": "已刪除變數：{name}",
+    "predefinedVariableError": "不能修改預定義變數",
+    "variableSaved": "已{action}{type}變數：{name}",
+    "globalVariableEditHint": "全域變數請到變數管理器中編輯",
+    "cannotDeleteGlobalVariable": "無法刪除全域變數",
+    "globalVariableSaveNotSupported": "全域變數儲存功能需要 variableManager（即將支援）",
+    "variableNotFound": "變數不存在",
+    "variableManagerNotReady": "變數管理器未初始化，請稍後再試",
+    "variableSaveFailed": "變數儲存失敗",
+    "variableSourceLabels": {
+      "global": "全域",
+      "temporary": "臨時",
+      "predefined": "系統"
+    },
+    "variableStatusLabels": {
+      "active": "活躍",
+      "overridden": "被覆蓋"
+    },
+    "importFormats": {
+      "smart": {
+        "name": "智慧識別",
+        "description": "自動偵測格式並轉換"
+      },
+      "openai": {
+        "name": "OpenAI",
+        "description": "OpenAI API 請求格式"
+      },
+      "langfuse": {
+        "name": "LangFuse",
+        "description": "LangFuse 追蹤資料格式"
+      },
+      "conversation": {
+        "name": "內部格式",
+        "description": "Prompt Optimizer 內部標準 JSON 結構"
+      }
+    },
+    "exportFormats": {
+      "standard": {
+        "name": "內部格式",
+        "description": "Prompt Optimizer 內部標準資料格式"
+      },
+      "openai": {
+        "name": "OpenAI",
+        "description": "OpenAI API 相容格式"
+      }
+    },
+    "importPlaceholders": {
+      "openai": "OpenAI API 請求格式（下方示例）：",
+      "langfuse": "LangFuse 追蹤資料格式（下方示例）：",
+      "conversation": "標準會話 JSON 格式（下方示例）：",
+      "smart": "貼上任意支援的 JSON（OpenAI、LangFuse 或會話陣列），系統會自動辨識格式。"
+    },
+    "consoleErrors": {
+      "toolEditIndexOutOfRange": "工具編輯失敗：索引 {index} 超出範圍",
+      "toolEditToolNotFound": "工具編輯失敗：索引 {index} 處的工具不存在",
+      "toolSaveMissingFunction": "工具儲存失敗：缺少 function 屬性",
+      "toolDataStructureError": "工具資料結構錯誤：缺少 function 屬性"
+    }
+  },
+  "dataManager": {
+    "title": "資料管理",
+    "export": {
+      "title": "匯出資料",
+      "description": "匯出所有歷史紀錄、模型配置、自訂提示詞和使用者設定（包括主題、語言、模型選擇等）",
+      "button": "匯出資料",
+      "success": "資料匯出成功",
+      "failed": "資料匯出失敗"
+    },
+    "import": {
+      "title": "匯入資料",
+      "description": "匯入之前匯出的資料檔案（將覆蓋現有資料和使用者設定）",
+      "selectFile": "點選選擇檔案或拖曳檔案到此處",
+      "changeFile": "更換檔案",
+      "button": "匯入資料",
+      "success": "資料匯入成功",
+      "failed": "資料匯入失敗",
+      "successWithRefresh": "資料匯入成功，頁面將重新整理以套用所有變更"
+    },
+    "contexts": {
+      "title": "情境集合管理",
+      "description": "匯入或匯出所有情境集合，包括訊息、變數和工具配置。",
+      "exportFile": "匯出到檔案",
+      "exportClipboard": "匯出到剪貼簿",
+      "importFile": "從檔案匯入",
+      "importClipboard": "從剪貼簿匯入",
+      "importMode": "匯入模式",
+      "replaceMode": "替換模式",
+      "appendMode": "追加模式",
+      "mergeMode": "合併模式",
+      "replaceModeDesc": "完全替換現有情境集合",
+      "appendModeDesc": "將匯入內容追加到現有集合（自動處理ID衝突）",
+      "mergeModeDesc": "合併同ID的情境，以匯入內容為準",
+      "importSuccess": "成功匯入 {count} 個情境",
+      "exportSuccess": "成功匯出 {count} 個情境到 {target}",
+      "predefinedVariablesSkipped": "跳過了 {count} 個預定義變數覆蓋",
+      "conflictingIdsRenamed": "{count} 個衝突ID已重新命名",
+      "currentContextRestored": "目前情境已還原為：{contextId}",
+      "noContextsToImport": "沒有有效的情境可匯入",
+      "invalidContextBundle": "無效的情境集合格式",
+      "importModeRequired": "請選擇匯入模式"
+    },
+    "backupWorkspace": {
+      "title": "資料備份",
+      "description": "匯出或匯入整個應用資料，用於遷移、備份或還原目前應用狀態。",
+      "exportTitle": "匯出目前應用資料",
+      "importTitle": "匯入備份檔案"
+    },
+    "storage": {
+      "title": "儲存占用",
+      "total": "總計（含估算）",
+      "totalNote": "主資料為估算值，圖片與備份為實際占用。",
+      "appMainData": "應用主資料（估算）",
+      "appMainDataNote": "包含：模型、模板、歷史、上下文、設定",
+      "imageCache": "會話/結果圖片快取",
+      "favoriteImages": "收藏圖片",
+      "imageCount": "共 {count} 張圖片",
+      "backupData": "備份資料",
+      "path": "資料目錄路徑",
+      "openDir": "開啟目錄",
+      "refresh": "重新整理",
+      "refreshFailed": "重新整理儲存占用失敗"
+    },
+    "warning": "匯入資料將覆蓋現有的歷史紀錄、模型配置、自訂提示詞和所有使用者設定（包括主題、語言偏好等），請確保已備份重要資料。"
+  }
+} as const;
+
+export default messages;

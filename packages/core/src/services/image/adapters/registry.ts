@@ -95,7 +95,7 @@ export class ImageAdapterRegistry
    * 获取错误消息的提供商类型描述
    */
   protected getProviderTypeDescription(): string {
-    return '图像提供商'
+    return 'image provider'
   }
 }
 

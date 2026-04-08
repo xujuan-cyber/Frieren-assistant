@@ -114,7 +114,7 @@ export class TextAdapterRegistry
    * 获取错误消息的提供商类型描述
    */
   protected getProviderTypeDescription(): string {
-    return '文本模型提供商';
+    return 'text model provider';
   }
 }
 

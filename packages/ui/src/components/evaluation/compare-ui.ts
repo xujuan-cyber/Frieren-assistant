@@ -368,21 +368,21 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.target.uniqueWorkspace',
-          '这是当前唯一的工作区，所以建议作为优化目标。'
+          'This is the only workspace column, so it is suggested as the optimization target.'
         )
       }
 
       return tOr(
         t,
         'evaluation.compareConfig.suggestionReasons.target.workspace',
-        '这是当前工作区列，所以建议作为优化目标。'
+        'This is the current workspace column, so it is suggested as the optimization target.'
       )
     case 'baseline':
       if (candidate.promptRef.dynamicAlias === 'previous') {
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.baseline.dynamicPrevious',
-          '这是当前工作区的上一版，所以建议作为上一版。'
+          'This is the previous version of the current workspace, so it is suggested as the baseline.'
         )
       }
 
@@ -394,7 +394,7 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.baseline.sameModelDifferentPrompt',
-          '它与优化目标模型相同、提示词不同，所以建议作为上一版。'
+          'It uses the same model as the optimization target but a different prompt, so it is suggested as the previous version.'
         )
       }
 
@@ -408,7 +408,7 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.reference.samePromptDifferentModel',
-          '这是不同模型的工作区结果，所以建议作为教师。'
+          'This is a workspace result from a different model, so it is suggested as the teacher.'
         )
       }
 
@@ -416,7 +416,7 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.reference.differentModel',
-          '它与优化目标使用不同模型，所以建议作为教师。'
+          'It uses a different model from the optimization target, so it is suggested as the teacher.'
         )
       }
 
@@ -430,7 +430,7 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.referenceBaseline.sameModelDifferentPrompt',
-          '它与教师模型相同、提示词不同，所以建议作为教师的上一版。'
+          "It uses the same model as the teacher but a different prompt, so it is suggested as the teacher's previous version."
         )
       }
 
@@ -443,7 +443,7 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.replica.previousMatchesWorkspace',
-          '它和工作区当前内容相同，所以建议按复测处理。'
+          'It matches the current workspace content, so it is suggested as a retest.'
         )
       }
 
@@ -455,7 +455,7 @@ export const buildCompareRoleSuggestionReason = (
         return tOr(
           t,
           'evaluation.compareConfig.suggestionReasons.replica.samePromptAsTarget',
-          '它与优化目标使用相同提示词，所以建议作为复测。'
+          'It uses the same prompt as the optimization target, so it is suggested as a retest.'
         )
       }
 
@@ -464,13 +464,13 @@ export const buildCompareRoleSuggestionReason = (
       return tOr(
         t,
         'evaluation.compareConfig.suggestionReasons.auxiliary.default',
-        '这列不会进入核心逐组比较，所以保留为其他测试。'
+        'This column will not enter the core pairwise smart compare, so it stays as another test.'
       )
   }
 
   return tOr(
     t,
     'evaluation.compareConfig.suggestionReasons.default',
-    '系统根据当前版本、模型和提示词关系给出这个建议。'
+    'The system inferred this suggestion from the current versions, models, and prompt relationships.'
   )
 }
