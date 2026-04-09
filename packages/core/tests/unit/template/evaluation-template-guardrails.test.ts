@@ -1,23 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..');
+
+const fromWorkspaceRoot = (...segments: string[]): string =>
+  join(workspaceRoot, ...segments);
 
 const templateRoots = [
-  'packages/core/src/services/template/default-templates/evaluation',
-  'packages/core/src/services/template/default-templates/evaluation-rewrite',
-  'packages/core/src/services/template/default-templates/evaluation-structured-compare',
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation'),
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation-rewrite'),
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation-structured-compare'),
 ] as const;
 
 const runtimeGuardTargets = [
-  'packages/core/src/services/evaluation/rewrite-from-evaluation.ts',
-  'packages/core/src/services/evaluation/service.ts',
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'evaluation', 'rewrite-from-evaluation.ts'),
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'evaluation', 'service.ts'),
 ] as const;
 
 const builderGuardTargets = [
-  'packages/core/src/services/template/default-templates/evaluation/builders.ts',
-  'packages/core/src/services/template/default-templates/evaluation/image/builders.ts',
-  'packages/core/src/services/template/default-templates/evaluation-rewrite/builders.ts',
-  'packages/core/src/services/template/default-templates/evaluation-structured-compare/builders.ts',
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation', 'builders.ts'),
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation', 'image', 'builders.ts'),
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation-rewrite', 'builders.ts'),
+  fromWorkspaceRoot('packages', 'core', 'src', 'services', 'template', 'default-templates', 'evaluation-structured-compare', 'builders.ts'),
 ] as const;
 
 const collectTemplateFiles = (root: string): string[] => {

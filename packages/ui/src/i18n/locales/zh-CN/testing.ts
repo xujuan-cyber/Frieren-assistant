@@ -61,8 +61,7 @@ const messages = {
       "startTest": "测试",
       "result": "测试结果",
       "messageCount": "{count} 条消息",
-      "missingVariables": "缺少 {count} 个变量",
-      "title": "高级测试"
+      "missingVariables": "缺少 {count} 个变量"
     },
     "error": {
       "failed": "测试失败",

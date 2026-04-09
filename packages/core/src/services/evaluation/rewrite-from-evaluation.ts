@@ -1,7 +1,6 @@
 import { TemplateProcessor } from '../template/processor';
 import type { TemplateContext } from '../template/processor';
 import type {
-  CompareConflictSignal,
   CompareInsights,
   CompareStopSignals,
   EvaluationModeConfig,

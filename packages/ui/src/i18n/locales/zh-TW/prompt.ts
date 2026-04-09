@@ -220,7 +220,6 @@ const messages = {
     },
     "templates": {
       "simple": "簡單對話",
-      "basic": "基礎對話",
       "roleplay": "角色扮演",
       "analysis": "分析討論",
       "creative": "創意寫作",
@@ -347,6 +346,9 @@ const messages = {
     "iterateDirection": "請輸入需要優化的方向：",
     "iteratePlaceholder": "例如：使提示詞更簡潔、增加特定功能描述等...",
     "confirmOptimize": "確認優化",
+    "saveChanges": "儲存修改",
+    "saveChangesNote": "本地編輯已儲存",
+    "unsavedChangesConfirm": "目前內容有未儲存的變更，切換版本將遺失這些內容。是否繼續？",
     "iterateTitle": "迭代功能提示詞",
     "selectIterateTemplate": "請選擇迭代提示詞：",
     "diff": {

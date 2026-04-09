@@ -149,6 +149,7 @@ const messages = {
       "compareFailed": "對比分析失敗",
       "noVersionsToCompare": "沒有足夠的版本進行對比",
       "noPreviousVersion": "沒有前一版本可供對比",
+      "invalidVersion": "無效的版本",
       "testFailed": "測試失敗",
       "testError": "測試過程中發生錯誤",
       "loadChainFailed": "載入優化歷史失敗",

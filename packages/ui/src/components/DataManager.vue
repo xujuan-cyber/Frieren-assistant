@@ -199,8 +199,12 @@ import {
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
-import type { StorageBreakdownItem, StorageBreakdownItemKey, StorageBreakdownSummary } from '../utils/data-manager-storage'
-import { resolveDataManagerStorageBreakdown } from '../utils/data-manager-storage'
+import {
+  resolveDataManagerStorageBreakdown,
+  type StorageBreakdownItem,
+  type StorageBreakdownItemKey,
+  type StorageBreakdownSummary,
+} from '../utils/data-manager-storage'
 
 interface Props {
   show: boolean

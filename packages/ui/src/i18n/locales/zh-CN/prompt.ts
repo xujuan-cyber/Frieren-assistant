@@ -220,7 +220,6 @@ const messages = {
     },
     "templates": {
       "simple": "简单对话",
-      "basic": "基础对话",
       "roleplay": "角色扮演",
       "analysis": "分析讨论",
       "creative": "创意写作",

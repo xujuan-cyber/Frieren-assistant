@@ -175,7 +175,7 @@ describe('ContextRepo', () => {
       const duplicate = await repo.get(duplicateId);
       
       expect(duplicate.id).not.toBe(original.id);
-      expect(duplicate.title).toBe(`${original.title} (副本)`);
+      expect(duplicate.title).toBe(`${original.title} (Copy)`);
       expect(duplicate.messages).toEqual(original.messages);
       expect(duplicate.variables).toEqual(original.variables);
     });

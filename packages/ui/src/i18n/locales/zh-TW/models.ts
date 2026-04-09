@@ -35,6 +35,7 @@ const messages = {
       "title": "進階參數",
       "noParamsConfigured": "未配置進階參數",
       "customParam": "自訂",
+      "advancedTag": "進階",
       "add": "新增參數",
       "select": "選擇參數",
       "selectTitle": "新增進階參數",
@@ -188,6 +189,14 @@ const messages = {
     "stopSequences": {
       "label": "停止序列",
       "description": "遇到時將停止輸出生成的自訂字串。用逗號分隔多個序列。"
+    },
+    "thinkingBudget": {
+      "label": "思考預算",
+      "description": "分配給模型思考過程的最大令牌數（僅 Gemini 2.5+）。範圍：1-8192 令牌。"
+    },
+    "includeThoughts": {
+      "label": "包含思考過程",
+      "description": "是否在回應中包含模型的思考過程（僅 Gemini 2.5+）。啟用後可以看到模型的推理步驟。"
     },
     "tokens": {
       "unit": "令牌"

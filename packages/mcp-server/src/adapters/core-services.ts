@@ -129,9 +129,9 @@ export class CoreServicesManager {
       // 获取并显示当前使用的模型信息
       const mcpModel = await this.modelManager.getModel('mcp-default');
       if (mcpModel) {
-        logger.info(`✅ Using model: ${mcpModel.name} (${mcpModel.provider})`);
-        logger.info(`   Model: ${mcpModel.defaultModel}`);
-        logger.info(`   Base URL: ${mcpModel.baseURL}`);
+        logger.info(`✅ Using model: ${mcpModel.name} (${mcpModel.providerMeta.id})`);
+        logger.info(`   Model: ${mcpModel.modelMeta.id}`);
+        logger.info(`   Base URL: ${mcpModel.connectionConfig.baseURL || mcpModel.providerMeta.defaultBaseURL}`);
       } else {
         logger.info(`Default model configured with preferred provider: ${config.preferredModelProvider || 'auto-selected'}`);
       }

@@ -227,8 +227,7 @@ describe('PreferenceService Import/Export', () => {
 
       await expect(preferenceService.importData(importData)).resolves.not.toThrow();
 
-      // 验证空键名被跳过
-      expect(await preferenceService.get('', null)).toBe(null);
+      await expect(preferenceService.get('', null)).rejects.toThrow('Invalid preference key');
     });
   });
 });

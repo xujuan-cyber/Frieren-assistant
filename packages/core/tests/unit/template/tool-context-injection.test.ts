@@ -50,9 +50,9 @@ describe('TemplateProcessor Tool Context Injection', () => {
       const singleTool = [sampleTools[0]];
       const result = TemplateProcessor.formatToolsAsText(singleTool);
       
-      expect(result).toContain('工具名称: get_weather');
-      expect(result).toContain('描述: Get current weather information for a specific location');
-      expect(result).toContain('参数结构:');
+      expect(result).toContain('Tool name: get_weather');
+      expect(result).toContain('Description: Get current weather information for a specific location');
+      expect(result).toContain('Parameters:');
       expect(result).toContain('"location"');
       expect(result).toContain('"unit"');
     });
@@ -60,8 +60,8 @@ describe('TemplateProcessor Tool Context Injection', () => {
     it('should format multiple tools correctly', () => {
       const result = TemplateProcessor.formatToolsAsText(sampleTools);
       
-      expect(result).toContain('工具名称: get_weather');
-      expect(result).toContain('工具名称: calculate');
+      expect(result).toContain('Tool name: get_weather');
+      expect(result).toContain('Tool name: calculate');
       expect(result).toContain('Get current weather information');
       expect(result).toContain('Perform basic mathematical calculations');
       
@@ -95,9 +95,9 @@ describe('TemplateProcessor Tool Context Injection', () => {
       }];
 
       const result = TemplateProcessor.formatToolsAsText(toolWithoutDesc);
-      expect(result).toContain('工具名称: simple_tool');
-      expect(result).not.toContain('描述:');
-      expect(result).toContain('参数结构:');
+      expect(result).toContain('Tool name: simple_tool');
+      expect(result).not.toContain('Description:');
+      expect(result).toContain('Parameters:');
     });
 
     it('should handle tools without parameters', () => {
@@ -110,9 +110,9 @@ describe('TemplateProcessor Tool Context Injection', () => {
       }];
 
       const result = TemplateProcessor.formatToolsAsText(toolWithoutParams);
-      expect(result).toContain('工具名称: paramless_tool');
-      expect(result).toContain('描述: A tool without parameters');
-      expect(result).not.toContain('参数结构:');
+      expect(result).toContain('Tool name: paramless_tool');
+      expect(result).toContain('Description: A tool without parameters');
+      expect(result).not.toContain('Parameters:');
     });
   });
 
@@ -142,8 +142,8 @@ describe('TemplateProcessor Tool Context Injection', () => {
       const messages = TemplateProcessor.processTemplate(template, context);
       
       expect(messages).toHaveLength(2);
-      expect(messages[0].content).toContain('工具名称: get_weather');
-      expect(messages[0].content).toContain('工具名称: calculate');
+      expect(messages[0].content).toContain('Tool name: get_weather');
+      expect(messages[0].content).toContain('Tool name: calculate');
       expect(messages[1].content).toBe('Test prompt');
     });
 

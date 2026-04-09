@@ -180,7 +180,7 @@ describe('TemplateManager Import/Export', () => {
       const importedTemplate = userTemplates[0];
       expect(importedTemplate.id).not.toBe(builtinTemplate.id); // ID应该被修改
       expect(importedTemplate.id).toMatch(/^user-.*-\d+-[a-z0-9]+$/); // 应该匹配生成的ID格式
-      expect(importedTemplate.name).toBe('Conflicting Template (导入副本)'); // 名称应该被修改
+      expect(importedTemplate.name).toBe('Conflicting Template (Imported copy)'); // 名称应该被修改
     });
 
     it('should preserve template metadata and set defaults', async () => {

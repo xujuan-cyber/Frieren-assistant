@@ -1,5 +1,7 @@
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import vm from 'node:vm'
 
 import ts from 'typescript'
@@ -59,7 +61,29 @@ export function diffLocaleShape(base, candidate, prefix = '') {
   return { missing, extra, mismatched }
 }
 
-function loadTsDefaultExport(filePath) {
+export function loadTsDefaultExport(filePath) {
+  return loadTsModuleExports(filePath).default
+}
+
+function resolveLocalModulePath(fromFilePath, request) {
+  const candidateBase = path.resolve(path.dirname(fromFilePath), request)
+  const candidates = [
+    candidateBase,
+    `${candidateBase}.ts`,
+    `${candidateBase}.js`,
+    path.join(candidateBase, 'index.ts'),
+    path.join(candidateBase, 'index.js'),
+  ]
+
+  return candidates.find((candidate) => fs.existsSync(candidate))
+}
+
+function loadTsModuleExports(filePath, cache = new Map()) {
+  const resolvedPath = path.resolve(filePath)
+  if (cache.has(resolvedPath)) {
+    return cache.get(resolvedPath)
+  }
+
   const source = fs.readFileSync(filePath, 'utf8')
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -68,13 +92,48 @@ function loadTsDefaultExport(filePath) {
     },
   }).outputText
 
+  const require = createRequire(pathToFileURL(filePath))
+  const module = { exports: {} }
+  cache.set(resolvedPath, module.exports)
+
+  const localRequire = (request) => {
+    if (!request.startsWith('.')) {
+      return require(request)
+    }
+
+    const localModulePath = resolveLocalModulePath(resolvedPath, request)
+    if (!localModulePath) {
+      return require(request)
+    }
+
+    if (localModulePath.endsWith('.ts')) {
+      return loadTsModuleExports(localModulePath, cache)
+    }
+
+    return require(localModulePath)
+  }
+
   const context = {
-    module: { exports: {} },
-    exports: {},
+    module,
+    exports: module.exports,
+    require: localRequire,
+    __dirname: path.dirname(filePath),
+    __filename: filePath,
+    console,
+    process,
   }
 
   vm.runInNewContext(compiled, context)
-  return context.module.exports.default || context.exports.default
+  cache.set(resolvedPath, context.module.exports)
+  return context.module.exports
+}
+
+export function isDirectExecution(importMetaUrl, scriptPath) {
+  if (!scriptPath) {
+    return false
+  }
+
+  return importMetaUrl === pathToFileURL(path.resolve(scriptPath)).href
 }
 
 function getLocaleMessage(locale) {
@@ -129,6 +188,6 @@ function main() {
   console.log('[locale-parity] Locale structures are aligned')
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
+if (isDirectExecution(import.meta.url, process.argv[1])) {
   main()
 }

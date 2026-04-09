@@ -10,18 +10,21 @@ describe('FileStorageProvider - Real File System Integration', () => {
   let storageFile: string;
 
   beforeEach(async () => {
-    // 在项目的tests目录下创建临时测试目录
-    testDir = path.join(__dirname, '..', '..', 'temp-test-storage');
+    // 为每个用例分配独立目录，避免延迟写入跨用例互相干扰
+    testDir = await fs.mkdtemp(path.join(__dirname, '..', '..', 'temp-test-storage-'));
     storageFile = path.join(testDir, 'prompt-optimizer-data.json');
-    
-    // 确保测试目录存在
-    await fs.mkdir(testDir, { recursive: true });
-    
+
     // 创建FileStorageProvider实例
     provider = new FileStorageProvider(testDir);
   });
 
   afterEach(async () => {
+    try {
+      await provider.flush();
+    } catch {
+      // 某些异常场景下 flush 会按预期失败，这里只做尽力清理
+    }
+
     // 清理测试文件和目录
     try {
       await fs.rm(testDir, { recursive: true, force: true });

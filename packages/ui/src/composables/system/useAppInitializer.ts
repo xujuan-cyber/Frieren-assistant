@@ -191,7 +191,7 @@ export function useAppInitializer(): {
         // 创建收藏管理器代理
         const { FavoriteManagerElectronProxy } = await import('@prompt-optimizer/core')
         favoriteManager = new FavoriteManagerElectronProxy();
-        favoriteManager = attachFavoriteAssetGc(favoriteManager as any, favoriteImageStorageService)
+        favoriteManager = attachFavoriteAssetGc(favoriteManager, favoriteImageStorageService)
 
         if (favoriteImageStorageService) {
           const favoriteAssetGcResult = await runFavoriteAssetGc(
@@ -423,7 +423,7 @@ export function useAppInitializer(): {
 
         // 创建收藏管理器
         favoriteManager = new FavoriteManager(storageProvider);
-        favoriteManager = attachFavoriteAssetGc(favoriteManager as any, favoriteImageStorageService)
+        favoriteManager = attachFavoriteAssetGc(favoriteManager, favoriteImageStorageService)
 
         if (favoriteImageStorageService) {
           const favoriteAssetGcResult = await runFavoriteAssetGc(

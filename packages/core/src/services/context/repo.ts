@@ -305,7 +305,7 @@ export class ContextRepoImpl implements ContextRepo {
     const newContext: ContextPackage = {
       ...originalCtx,
       id: newId,
-      title: `${originalCtx.title} ${CONTEXT_UI_LABELS.DUPLICATE_SUFFIX}`,
+      title: `${originalCtx.title}${CONTEXT_UI_LABELS.DUPLICATE_SUFFIX}`,
       mode: options?.mode || originalCtx.mode || DEFAULT_CONTEXT_MODE,
       variables: sanitizedVariables,
       createdAt: now,

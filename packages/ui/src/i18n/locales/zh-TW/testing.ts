@@ -3,6 +3,7 @@ const messages = {
     "title": "歷史紀錄",
     "iterationNote": "迭代說明",
     "optimizedPrompt": "優化後",
+    "searchPlaceholder": "搜尋歷史紀錄...",
     "confirmClear": "確定要清空所有歷史紀錄嗎？此操作無法復原。",
     "confirmDeleteChain": "確定要刪除此條歷史紀錄嗎？此操作無法復原。",
     "cleared": "歷史紀錄已清空",
@@ -12,6 +13,7 @@ const messages = {
   },
   "test": {
     "title": "測試",
+    "areaTitle": "測試區域",
     "content": "測試內容",
     "placeholder": "請輸入要測試的內容...",
     "modes": {
@@ -59,8 +61,7 @@ const messages = {
       "startTest": "測試",
       "result": "測試結果",
       "messageCount": "{count} 則訊息",
-      "missingVariables": "缺少 {count} 個變數",
-      "title": "進階測試"
+      "missingVariables": "缺少 {count} 個變數"
     },
     "error": {
       "failed": "測試失敗",

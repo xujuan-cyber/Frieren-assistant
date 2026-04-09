@@ -5,6 +5,15 @@
 
 import { ModelManager, type TextModelConfig } from '@prompt-optimizer/core';
 
+function getProviderIdentity(config: TextModelConfig): string {
+  return String(
+    config.providerMeta?.id ||
+    config.modelMeta?.providerId ||
+    config.id ||
+    ''
+  ).toLowerCase();
+}
+
 /**
  * 为 MCP 服务器设置默认模型
  * 完全基于 core 的 defaultModels，根据环境变量和配置选择合适的模型
@@ -33,7 +42,7 @@ export async function setupDefaultModel(
       // 直接匹配模型 key（支持 custom_<suffix>）
       key.toLowerCase() === normalizedPreferred ||
       // 匹配 provider id
-      String(config.providerMeta?.id || config.modelMeta?.providerId || config.provider || '').toLowerCase() === normalizedPreferred ||
+      getProviderIdentity(config) === normalizedPreferred ||
       // 兼容通过名称模糊匹配
       String(config.name || '').toLowerCase().includes(normalizedPreferred)
     );
