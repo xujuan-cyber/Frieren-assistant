@@ -11,6 +11,7 @@ import {
   isDirectExecution,
   loadTsDefaultExport,
 } from './check-locale-parity.mjs'
+import { toComparableFileUrl } from './direct-execution.mjs'
 
 test('isPlainObject identifies plain objects only', () => {
   assert.equal(isPlainObject({ a: 1 }), true)
@@ -64,6 +65,14 @@ test('isDirectExecution works with Windows-style script paths', () => {
       'C:\\repo\\scripts\\check-locale-parity.mjs'
     ),
     true
+  )
+})
+
+test('toComparableFileUrl normalizes Windows absolute paths for direct-execution checks', () => {
+  assert.equal(typeof toComparableFileUrl, 'function')
+  assert.equal(
+    toComparableFileUrl('C:\\repo\\scripts\\check-locale-parity.mjs'),
+    'file:///C:/repo/scripts/check-locale-parity.mjs'
   )
 })
 

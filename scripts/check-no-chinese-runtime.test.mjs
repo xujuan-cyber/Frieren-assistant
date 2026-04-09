@@ -9,6 +9,7 @@ import {
   shouldScanPath,
   shouldIgnoreLine,
 } from './check-no-chinese-runtime.mjs'
+import { toComparableFileUrl } from './direct-execution.mjs'
 
 test('containsChinese detects Han characters', () => {
   assert.equal(containsChinese('English only'), false)
@@ -95,6 +96,14 @@ test('isDirectExecution works with Windows-style script paths', () => {
       'C:\\repo\\scripts\\check-no-chinese-runtime.mjs'
     ),
     true
+  )
+})
+
+test('toComparableFileUrl normalizes Windows absolute paths for direct-execution checks', () => {
+  assert.equal(typeof toComparableFileUrl, 'function')
+  assert.equal(
+    toComparableFileUrl('C:\\repo\\scripts\\check-no-chinese-runtime.mjs'),
+    'file:///C:/repo/scripts/check-no-chinese-runtime.mjs'
   )
 })
 

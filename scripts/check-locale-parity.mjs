@@ -6,6 +6,8 @@ import vm from 'node:vm'
 
 import ts from 'typescript'
 
+import { toComparableFileUrl } from './direct-execution.mjs'
+
 export function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -133,7 +135,7 @@ export function isDirectExecution(importMetaUrl, scriptPath) {
     return false
   }
 
-  return importMetaUrl === pathToFileURL(path.resolve(scriptPath)).href
+  return importMetaUrl === toComparableFileUrl(scriptPath)
 }
 
 function getLocaleMessage(locale) {

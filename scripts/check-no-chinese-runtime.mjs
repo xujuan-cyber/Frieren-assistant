@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { pathToFileURL } from 'node:url'
+
+import { toComparableFileUrl } from './direct-execution.mjs'
 
 const ALLOWED_PREFIXES = [
   'docs/',
@@ -271,7 +272,7 @@ export function isDirectExecution(importMetaUrl, argv1) {
     return false
   }
 
-  return importMetaUrl === pathToFileURL(path.resolve(argv1)).href
+  return importMetaUrl === toComparableFileUrl(argv1)
 }
 
 function main() {
