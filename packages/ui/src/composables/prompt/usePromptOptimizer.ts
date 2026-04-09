@@ -327,7 +327,7 @@ export function usePromptOptimizer(
               toast.success(t('toast.success.optimizeSuccess'))
             } catch (error: unknown) {
               console.error('Failed to create the history record:', error)
-              toast.error('Failed to create the history record: ' + getI18nErrorMessage(error, t('toast.error.optimizeFailed')))
+              toast.warning(t('toast.warning.saveHistoryFailed'))
             } finally {
               state.isOptimizing = false
             }

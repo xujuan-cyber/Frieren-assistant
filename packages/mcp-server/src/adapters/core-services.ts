@@ -74,7 +74,7 @@ export class CoreServicesManager {
 
       // 5. 初始化语言服务
       logger.debug('Initializing LanguageService');
-      const defaultLanguage = config.defaultLanguage || process.env.MCP_DEFAULT_LANGUAGE || 'zh';
+      const defaultLanguage = resolveDefaultLanguage(config);
       this.languageService = createSimpleLanguageService(defaultLanguage);
       await this.languageService.initialize();
 
@@ -265,4 +265,8 @@ export class CoreServicesManager {
       }
     };
   }
+}
+
+export function resolveDefaultLanguage(config: Pick<MCPServerConfig, 'defaultLanguage'>): string {
+  return config.defaultLanguage || process.env.MCP_DEFAULT_LANGUAGE || 'en-US';
 }

@@ -25,6 +25,7 @@ import {
   persistImageSourceAsAssetId,
   resolveAssetIdToDataUrl,
 } from '../utils/image-asset-storage'
+import { getI18nErrorMessage } from '../utils/error'
 import GardenSnapshotPreview from './GardenSnapshotPreview.vue'
 
 const props = defineProps<{
@@ -273,7 +274,7 @@ const updateGardenSnapshot = async (
     message.success(t('favorites.manager.preview.garden.saveSnapshotSuccess'))
     emit('favorite-updated', props.favorite.id)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = getI18nErrorMessage(error, t('common.error'))
     message.error(`${t('favorites.manager.preview.garden.saveSnapshotFailed')}: ${errorMessage}`)
   } finally {
     isSaving.value = false

@@ -1370,7 +1370,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 }
               } catch (e) {
                 console.warn('[PromptGardenImport] Failed to load example input image:', e)
-                toast.warning('Failed to load the example input image. Check the Prompt Garden /prompt-assets CORS configuration.')
+                toast.warning(String(i18n.global.t('toast.warning.promptGardenExampleInputImageLoadFailed')))
               }
             }
           }
@@ -1404,7 +1404,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
 
               if (loadedImages.length !== inputUrls.length) {
                 console.warn('[PromptGardenImport] Failed to load one or more multi-image example inputs')
-                toast.warning('Some example input images could not be loaded. Check the Prompt Garden /prompt-assets CORS configuration.')
+                toast.warning(String(i18n.global.t('toast.warning.promptGardenExampleInputImagesPartialLoadFailed')))
               }
             }
           }
@@ -1423,7 +1423,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 targetKey,
               })
             } catch (error) {
-              toast.warning('Prompt Garden import succeeded, but saving the favorite failed.')
+              toast.warning(String(i18n.global.t('toast.warning.promptGardenFavoriteSaveFailed')))
             }
           } else {
             console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')

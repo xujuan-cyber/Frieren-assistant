@@ -218,6 +218,10 @@ const messages = {
       "messageNotFoundInCurrentConversation": "当前会话中未找到被优化的消息，无法恢复",
       "optimizeCompleteButHistoryFailed": "优化完成，但历史记录保存失败，版本管理暂时不可用",
       "iterateCompleteButHistoryFailed": "迭代完成，但历史记录保存失败，版本管理暂时不可用",
+      "promptGardenExampleInputImageLoadFailed": "示例输入图加载失败，请检查 Prompt Garden /prompt-assets 的 CORS 配置。",
+      "promptGardenExampleInputImagesPartialLoadFailed": "部分示例输入图加载失败，请检查 Prompt Garden /prompt-assets 的 CORS 配置。",
+      "promptGardenFavoriteSaveFailed": "Prompt Garden 导入成功，但收藏未保存。",
+      "startupRepair": "启动时已自动修复 {count} 项本地存储异常。",
       "chunkLoadRefreshConfirm": "检测到应用已更新。为继续使用，请刷新页面（不会清除历史记录和设置）。现在刷新吗？",
       "chunkLoadRefreshDeclined": "已取消刷新；部分功能可能无法正常使用。"
     },

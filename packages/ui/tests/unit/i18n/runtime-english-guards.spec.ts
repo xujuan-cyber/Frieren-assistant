@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import enUS from '../../../src/i18n/locales/en-US'
+import zhCN from '../../../src/i18n/locales/zh-CN'
+import zhTW from '../../../src/i18n/locales/zh-TW'
 
 const readUiSource = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8')
@@ -45,6 +48,79 @@ describe('ui runtime english guards', () => {
     expect(focusSource).toMatch(/announce\(t\('accessibility\.liveRegion\.focusReleased'/)
     expect(focusSource).not.toMatch(/已聚焦到/)
     expect(focusSource).not.toMatch(/焦点已限制在当前区域内/)
+  })
+
+  it('keeps app-layout success and startup repair toasts locale-backed', () => {
+    const source = readUiSource('src/components/app-layout/PromptOptimizerApp.vue')
+
+    expect(source).toMatch(/toast\.success\(t\('context\.saveSuccess'\)\)/)
+    expect(source).toMatch(/toast\.warning\(t\('toast\.warning\.startupRepair',\s*\{\s*count:\s*report\.actions\.length\s*\}\)\)/)
+    expect(source).not.toMatch(/toast\.success\('Context updated'\)/)
+    expect(source).not.toMatch(/Automatically repaired .* local storage issue\(s\) during startup\./)
+
+    expect(enUS.toast.warning.startupRepair).toContain('{count}')
+    expect(zhCN.toast.warning.startupRepair).toContain('{count}')
+    expect(zhTW.toast.warning.startupRepair).toContain('{count}')
+  })
+
+  it('keeps template loading failures locale-backed', () => {
+    const source = readUiSource('src/components/TemplateManager.vue')
+
+    expect(source).toMatch(/toast\.error\(t\('toast\.error\.loadTemplatesFailed'\)\)/)
+    expect(source).not.toMatch(/toast\.error\('Failed to load templates'\)/)
+  })
+
+  it('keeps context editor import-export feedback locale-backed', () => {
+    const source = readUiSource('src/composables/context/useContextEditor.ts')
+
+    expect(source).toMatch(/useI18n/)
+    expect(source).toMatch(/contextEditor\.feedback\./)
+    expect(source).not.toMatch(/LangFuse data converted successfully/)
+    expect(source).not.toMatch(/OpenAI data converted successfully/)
+    expect(source).not.toMatch(/No editable data available/)
+    expect(source).not.toMatch(/Template converted successfully/)
+    expect(source).not.toMatch(/Variables applied successfully/)
+    expect(source).not.toMatch(/Clipboard data imported successfully/)
+    expect(source).not.toMatch(/No data available to export/)
+    expect(source).not.toMatch(/Data copied to clipboard/)
+    expect(source).not.toMatch(/Copy failed/)
+  })
+
+  it('keeps Prompt Garden warnings locale-backed', () => {
+    const source = readUiSource('src/composables/app/useAppPromptGardenImport.ts')
+
+    expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenExampleInputImageLoadFailed'\)\)\)/)
+    expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenExampleInputImagesPartialLoadFailed'\)\)\)/)
+    expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenFavoriteSaveFailed'\)\)\)/)
+    expect(source).not.toMatch(/toast\.warning\('Failed to load the example input image\./)
+    expect(source).not.toMatch(/toast\.warning\('Some example input images could not be loaded\./)
+    expect(source).not.toMatch(/toast\.warning\('Prompt Garden import succeeded, but saving the favorite failed\.'\)/)
+  })
+
+  it('keeps favorites management fallbacks locale-backed', () => {
+    const categorySource = readUiSource('src/components/CategoryManager.vue')
+    const tagSource = readUiSource('src/components/TagManager.vue')
+    const saveDialogSource = readUiSource('src/components/SaveFavoriteDialog.vue')
+    const previewSource = readUiSource('src/components/PromptGardenFavoritePreviewPanel.vue')
+
+    expect(categorySource).toMatch(/message\.warning\(t\('favorites\.manager\.messages\.unavailable'\)\)/)
+    expect(categorySource).not.toMatch(/message\.warning\('Favorites are temporarily unavailable\.'\)/)
+
+    expect(tagSource).toMatch(/getI18nErrorMessage/)
+    expect(tagSource).not.toMatch(/'Unknown error'/)
+
+    expect(saveDialogSource).toMatch(/getI18nErrorMessage/)
+    expect(saveDialogSource).not.toMatch(/'Unknown error'/)
+
+    expect(previewSource).toMatch(/getI18nErrorMessage/)
+    expect(previewSource).not.toMatch(/'Unknown error'/)
+  })
+
+  it('keeps text model manager error fallbacks locale-backed', () => {
+    const source = readUiSource('src/composables/model/useTextModelManager.ts')
+
+    expect(source).toMatch(/t\('common\.error'\)/)
+    expect(source).not.toMatch(/'Unknown error'/)
   })
 
   it('keeps prompt testing and test mode config free of hardcoded chinese runtime strings', () => {

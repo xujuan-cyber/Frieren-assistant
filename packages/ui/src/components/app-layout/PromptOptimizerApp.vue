@@ -402,7 +402,7 @@ watch(
     }
 
     hasShownStartupRepairToast.value = true
-    toast.warning(`Automatically repaired ${report.actions.length} local storage issue(s) during startup.`)
+    toast.warning(t('toast.warning.startupRepair', { count: report.actions.length }))
   },
   { immediate: true },
 )
@@ -1043,7 +1043,7 @@ const handleContextEditorSaveSafe = (context?: {
 
         // Best-effort persist the pro-multi session after an explicit save.
         void proMultiMessageSession.saveSession()
-        toast.success('Context updated')
+        toast.success(t('context.saveSuccess'))
         return
     }
 

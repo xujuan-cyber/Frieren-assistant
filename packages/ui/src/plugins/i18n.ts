@@ -16,18 +16,74 @@ export type SupportedLocale = "zh-CN" | "zh-TW" | "en-US";
 export const DEFAULT_LOCALE: SupportedLocale = "en-US";
 export const SUPPORTED_LOCALES: SupportedLocale[] = ["zh-CN", "zh-TW", "en-US"];
 
+function normalizeLocaleCandidate(
+  locale: string | null | undefined,
+): SupportedLocale | null {
+  if (!locale) return null;
+
+  const normalized = String(locale).trim();
+  if (!normalized) return null;
+
+  if (SUPPORTED_LOCALES.includes(normalized as SupportedLocale)) {
+    return normalized as SupportedLocale;
+  }
+
+  const lower = normalized.toLowerCase();
+
+  if (lower === 'en' || lower.startsWith('en-')) {
+    return 'en-US';
+  }
+
+  if (lower === 'zh' || lower.startsWith('zh-')) {
+    if (
+      lower.includes('hant') ||
+      lower.startsWith('zh-tw') ||
+      lower.startsWith('zh-hk') ||
+      lower.startsWith('zh-mo')
+    ) {
+      return 'zh-TW';
+    }
+
+    return 'zh-CN';
+  }
+
+  return null;
+}
+
+function getBrowserPreferredLocale(): SupportedLocale {
+  if (typeof navigator === 'undefined') {
+    return DEFAULT_LOCALE;
+  }
+
+  const candidates =
+    Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages
+      : [navigator.language];
+
+  return resolveDefaultLocale(candidates);
+}
+
 export function sanitizeSupportedLocale(
   locale: string | null | undefined,
   fallback: SupportedLocale = DEFAULT_LOCALE,
 ): SupportedLocale {
-  if (locale && SUPPORTED_LOCALES.includes(locale as SupportedLocale)) {
-    return locale as SupportedLocale;
-  }
-
-  return fallback;
+  return normalizeLocaleCandidate(locale) ?? fallback;
 }
 
-export function resolveDefaultLocale(_browserLanguage?: string): SupportedLocale {
+export function resolveDefaultLocale(
+  browserLanguage?: string | readonly string[],
+): SupportedLocale {
+  const candidates = Array.isArray(browserLanguage)
+    ? browserLanguage
+    : [browserLanguage];
+
+  for (const candidate of candidates) {
+    const resolved = normalizeLocaleCandidate(candidate);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
   return DEFAULT_LOCALE;
 }
 
@@ -42,7 +98,7 @@ export function setI18nServices(services: AppServices) {
 // 创建i18n实例
 const i18n = createI18n({
   legacy: false,
-  locale: DEFAULT_LOCALE,
+  locale: getBrowserPreferredLocale(),
   fallbackLocale: {
     "zh-TW": ["zh-CN", "en-US"],
     "zh-CN": ["en-US"],
@@ -81,32 +137,33 @@ watch(
 // 初始化语言设置
 async function initializeLanguage() {
   try {
+    const browserLocale = getBrowserPreferredLocale();
+
     if (!servicesRef.value) {
       console.warn("[i18n] Services unavailable during locale initialization. Falling back to default locale.");
-      i18n.global.locale.value = DEFAULT_LOCALE;
+      i18n.global.locale.value = browserLocale;
       return;
     }
 
-    const defaultLocale = resolveDefaultLocale(navigator.language);
-    const savedLanguage = await getPreference(
+    const savedLanguage = await getPreference<string | null>(
       servicesRef,
       UI_SETTINGS_KEYS.PREFERRED_LANGUAGE,
-      defaultLocale,
+      null,
     );
+    const resolvedLocale = sanitizeSupportedLocale(savedLanguage, browserLocale);
 
-    if (SUPPORTED_LOCALES.includes(savedLanguage as SupportedLocale)) {
-      i18n.global.locale.value = savedLanguage as SupportedLocale;
-    } else {
-      i18n.global.locale.value = defaultLocale;
+    i18n.global.locale.value = resolvedLocale;
+
+    if (savedLanguage !== resolvedLocale) {
       await setPreference(
         servicesRef,
         UI_SETTINGS_KEYS.PREFERRED_LANGUAGE,
-        defaultLocale,
+        resolvedLocale,
       );
     }
   } catch (error) {
     console.error("[i18n] Failed to initialize locale:", error);
-    i18n.global.locale.value = DEFAULT_LOCALE;
+    i18n.global.locale.value = getBrowserPreferredLocale();
   }
 }
 

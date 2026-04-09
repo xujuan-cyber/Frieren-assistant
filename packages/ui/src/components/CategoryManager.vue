@@ -389,7 +389,7 @@ const handleConfirmDelete = async () => {
 
   const servicesValue = services?.value;
   if (!servicesValue?.favoriteManager) {
-    message.warning('Favorites are temporarily unavailable.');
+    message.warning(t('favorites.manager.messages.unavailable'));
     return;
   }
 

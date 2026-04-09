@@ -918,7 +918,7 @@ const loadTemplates = async () => {
     console.log('Loaded templates:', templates.value)
   } catch (error) {
     console.error('Failed to load templates:', error)
-    toast.error('Failed to load templates')
+    toast.error(t('toast.error.loadTemplatesFailed'))
   }
 }
 

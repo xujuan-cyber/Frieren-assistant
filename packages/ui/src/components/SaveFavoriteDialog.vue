@@ -257,6 +257,7 @@ import {
   persistImageSourceAsAssetId,
   resolveAssetIdToDataUrl,
 } from '../utils/image-asset-storage';
+import { getI18nErrorMessage } from '../utils/error';
 
 const { t } = useI18n();
 const { filterTags, loadTags } = useTagSuggestions();
@@ -775,7 +776,7 @@ const handleSave = async () => {
     emit('update:show', false);
   } catch (error) {
     const failedKey = props.mode === 'edit' ? 'favorites.dialog.messages.editFailed' : 'favorites.dialog.messages.saveFailed';
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = getI18nErrorMessage(error, t('common.error'));
     message.error(`${t(failedKey)}: ${errorMessage}`);
   } finally {
     saving.value = false;

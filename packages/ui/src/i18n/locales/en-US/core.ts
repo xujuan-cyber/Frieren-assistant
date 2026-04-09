@@ -123,8 +123,8 @@ const messages = {
       "label": "Switch language",
       "ariaLabel": "Switch language ({language})",
       "languages": {
-        "zh-CN": "Simplified Chinese",
-        "zh-TW": "Traditional Chinese",
+        "zh-CN": "简体中文",
+        "zh-TW": "繁體中文",
         "en-US": "English"
       }
     },
@@ -218,6 +218,10 @@ const messages = {
       "messageNotFoundInCurrentConversation": "Optimized message not found in current conversation, cannot restore",
       "optimizeCompleteButHistoryFailed": "Optimization complete, but history save failed. Version management temporarily unavailable",
       "iterateCompleteButHistoryFailed": "Iteration complete, but history save failed. Version management temporarily unavailable",
+      "promptGardenExampleInputImageLoadFailed": "Failed to load the example input image. Check the Prompt Garden /prompt-assets CORS configuration.",
+      "promptGardenExampleInputImagesPartialLoadFailed": "Some example input images could not be loaded. Check the Prompt Garden /prompt-assets CORS configuration.",
+      "promptGardenFavoriteSaveFailed": "Prompt Garden import succeeded, but saving the favorite failed.",
+      "startupRepair": "Automatically repaired {count} local storage issue(s) during startup.",
       "chunkLoadRefreshConfirm": "A new version is available. Please refresh the page to continue (this won't clear your history or settings). Refresh now?",
       "chunkLoadRefreshDeclined": "Refresh cancelled; some features may not work properly."
     },

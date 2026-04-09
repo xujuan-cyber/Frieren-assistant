@@ -4,6 +4,7 @@
  */
 
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import type { 
   StandardPromptData,
@@ -21,8 +22,9 @@ import {
 import { useToast } from '../ui/useToast'
 
 export function useContextEditor() {
+  const { t } = useI18n()
   const toast = useToast()
-  const unknownErrorFallback = 'Unknown error'
+  const unknownErrorFallback = t('contextEditor.feedback.unknownError')
   const formatErrorSummary = (summary: string, error: unknown, fallback = unknownErrorFallback) => {
     const detail =
       error instanceof Error
@@ -36,6 +38,22 @@ export function useContextEditor() {
     }
 
     return `${summary}: ${detail}`
+  }
+
+  const localizeError = (summaryKey: string, detail?: unknown) =>
+    formatErrorSummary(t(summaryKey), detail, unknownErrorFallback)
+
+  const getImportFormatLabel = (format: string) => {
+    switch (format) {
+      case 'langfuse':
+        return t('contextEditor.feedback.formatLabels.langfuse')
+      case 'openai':
+        return t('contextEditor.feedback.formatLabels.openai')
+      case 'conversation':
+        return t('contextEditor.feedback.formatLabels.conversation')
+      default:
+        return format.toUpperCase()
+    }
   }
 
   const isOpenAIRequest = (value: unknown): value is OpenAIRequest => {
@@ -89,15 +107,15 @@ export function useContextEditor() {
       const result = converter.fromLangFuse(langfuseData)
       if (result.success && result.data) {
         currentData.value = result.data
-        toast.success('LangFuse data converted successfully')
+        toast.success(t('contextEditor.feedback.langfuseConverted'))
       } else {
-        error.value = result.error || 'Conversion failed'
+        error.value = localizeError('contextEditor.feedback.conversionFailed', result.error)
         toast.error(error.value)
       }
       
       return result
     } catch (err) {
-      const errorMsg = formatErrorSummary('Conversion failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.conversionFailed', err)
       error.value = errorMsg
       toast.error(errorMsg)
       return { success: false, error: errorMsg }
@@ -112,21 +130,24 @@ export function useContextEditor() {
       error.value = null
       
       if (!isOpenAIRequest(openaiData)) {
-        return { success: false, error: 'Invalid OpenAI request: missing model/messages' }
+        const errorMsg = t('contextEditor.feedback.invalidOpenAIRequest')
+        error.value = errorMsg
+        toast.error(errorMsg)
+        return { success: false, error: errorMsg }
       }
 
       const result = converter.fromOpenAI(openaiData)
       if (result.success && result.data) {
         currentData.value = result.data
-        toast.success('OpenAI data converted successfully')
+        toast.success(t('contextEditor.feedback.openaiConverted'))
       } else {
-        error.value = result.error || 'Conversion failed'
+        error.value = localizeError('contextEditor.feedback.conversionFailed', result.error)
         toast.error(error.value)
       }
       
       return result
     } catch (err) {
-      const errorMsg = formatErrorSummary('Conversion failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.conversionFailed', err)
       error.value = errorMsg
       toast.error(errorMsg)
       return { success: false, error: errorMsg }
@@ -150,7 +171,7 @@ export function useContextEditor() {
           break
         case 'openai':
           if (!isOpenAIRequest(data)) {
-            result = { success: false, error: 'Invalid OpenAI request: missing model/messages' }
+            result = { success: false, error: t('contextEditor.feedback.invalidOpenAIRequest') }
           } else {
             result = converter.fromOpenAI(data)
           }
@@ -159,20 +180,23 @@ export function useContextEditor() {
           result = converter.fromConversationMessages(data as Array<Partial<ConversationMessage>>)
           break
         default:
-          result = { success: false, error: `Unsupported data format: ${format}` }
+          result = {
+            success: false,
+            error: t('contextEditor.feedback.unsupportedDataFormat', { format })
+          }
       }
 
       if (result.success && result.data) {
         currentData.value = result.data
-        toast.success(`${format.toUpperCase()} data imported successfully`)
+        toast.success(t('contextEditor.feedback.importSuccess', { format: getImportFormatLabel(format) }))
       } else {
-        error.value = result.error || 'Import failed'
+        error.value = localizeError('contextEditor.feedback.importFailed', result.error)
         toast.error(error.value)
       }
       
       return result
     } catch (err) {
-      const errorMsg = formatErrorSummary('Import failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.importFailed', err)
       error.value = errorMsg
       toast.error(errorMsg)
       return { success: false, error: errorMsg }
@@ -190,7 +214,7 @@ export function useContextEditor() {
     endIndex: number
   ) => {
     if (!currentData.value) {
-      toast.error('No editable data available')
+      toast.error(t('contextEditor.feedback.noEditableData'))
       return false
     }
 
@@ -217,10 +241,10 @@ export function useContextEditor() {
       }
       (metadataRecord.variables as Record<string, string>)[variableName] = result.extractedVariable.value
 
-      toast.success(`Variable ${variableName} extracted successfully`)
+      toast.success(t('contextEditor.feedback.variableExtracted', { name: variableName }))
       return true
     } catch (err) {
-      const errorMsg = formatErrorSummary('Variable extraction failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.variableExtractionFailed', err)
       toast.error(errorMsg)
       return false
     }
@@ -249,16 +273,16 @@ export function useContextEditor() {
   // 模板化处理
   const convertToTemplate = () => {
     if (!currentData.value) {
-      toast.error('No data available to process')
+      toast.error(t('contextEditor.feedback.noDataToProcess'))
       return null
     }
 
     try {
       const result = templateProcessor.toTemplate(currentData.value)
-      toast.success('Template converted successfully')
+      toast.success(t('contextEditor.feedback.templateConverted'))
       return result
     } catch (err) {
-      const errorMsg = formatErrorSummary('Template conversion failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.templateConversionFailed', err)
       toast.error(errorMsg)
       return null
     }
@@ -271,10 +295,10 @@ export function useContextEditor() {
     try {
       const result = templateProcessor.fromTemplate(template, variables)
       currentData.value = result
-      toast.success('Variables applied successfully')
+      toast.success(t('contextEditor.feedback.variablesApplied'))
       return result
     } catch (err) {
-      const errorMsg = formatErrorSummary('Variable application failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.variableApplicationFailed', err)
       toast.error(errorMsg)
       return null
     }
@@ -304,15 +328,15 @@ export function useContextEditor() {
       
       if (result.success && result.data) {
         currentData.value = result.data
-        toast.success('File imported successfully')
+        toast.success(t('contextEditor.feedback.fileImported'))
         return true
       } else {
-        error.value = result.error || 'Import failed'
+        error.value = localizeError('contextEditor.feedback.fileImportFailed', result.error)
         toast.error(error.value)
         return false
       }
     } catch (err) {
-      const errorMsg = formatErrorSummary('File import failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.fileImportFailed', err)
       error.value = errorMsg
       toast.error(errorMsg)
       return false
@@ -327,15 +351,15 @@ export function useContextEditor() {
       
       if (result.success && result.data) {
         currentData.value = result.data
-        toast.success('Clipboard data imported successfully')
+        toast.success(t('contextEditor.feedback.clipboardImported'))
         return true
       } else {
-        error.value = result.error || 'Import failed'
+        error.value = localizeError('contextEditor.feedback.clipboardImportFailed', result.error)
         toast.error(error.value)
         return false
       }
     } catch (err) {
-      const errorMsg = formatErrorSummary('Clipboard import failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.clipboardImportFailed', err)
       error.value = errorMsg
       toast.error(errorMsg)
       return false
@@ -344,16 +368,16 @@ export function useContextEditor() {
 
   const exportToFile = (format: 'standard' | 'openai' | 'template', filename?: string) => {
     if (!currentData.value) {
-      toast.error('No data available to export')
+      toast.error(t('contextEditor.feedback.noDataToExport'))
       return false
     }
 
     try {
       importExportManager.exportToFile(currentData.value, format, filename)
-      toast.success('Data exported to file')
+      toast.success(t('contextEditor.feedback.exportToFileSuccess'))
       return true
     } catch (err) {
-      const errorMsg = formatErrorSummary('Export failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.exportFailed', err)
       toast.error(errorMsg)
       return false
     }
@@ -361,20 +385,20 @@ export function useContextEditor() {
 
   const exportToClipboard = async (format: 'standard' | 'openai' | 'template') => {
     if (!currentData.value) {
-      toast.error('No data available to export')
+      toast.error(t('contextEditor.feedback.noDataToExport'))
       return false
     }
 
     try {
       const success = await importExportManager.exportToClipboard(currentData.value, format)
       if (success) {
-        toast.success('Data copied to clipboard')
+        toast.success(t('contextEditor.feedback.exportToClipboardSuccess'))
       } else {
-        toast.error('Copy failed')
+        toast.error(t('contextEditor.feedback.copyFailed'))
       }
       return success
     } catch (err) {
-      const errorMsg = formatErrorSummary('Export failed', err, unknownErrorFallback)
+      const errorMsg = localizeError('contextEditor.feedback.exportFailed', err)
       toast.error(errorMsg)
       return false
     }

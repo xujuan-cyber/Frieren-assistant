@@ -87,7 +87,7 @@ export function loadConfig(): MCPServerConfig {
   return {
     httpPort: parseInt(process.env.MCP_HTTP_PORT || '3000'),
     logLevel: (process.env.MCP_LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'debug',
-    defaultLanguage: process.env.MCP_DEFAULT_LANGUAGE || 'zh',
+    defaultLanguage: process.env.MCP_DEFAULT_LANGUAGE || 'en-US',
     preferredModelProvider: process.env.MCP_DEFAULT_MODEL_PROVIDER
   };
 }

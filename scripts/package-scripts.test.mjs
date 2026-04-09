@@ -6,18 +6,26 @@ import path from 'node:path'
 const readJson = (relativePath) =>
   JSON.parse(fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8'))
 
-test('root lint includes UI lint plus core and mcp-server checks', () => {
+test('root lint includes isolated UI consumer checks plus existing package lint/typechecks', () => {
   const rootPackage = readJson('package.json')
 
   assert.equal(typeof rootPackage.scripts?.lint, 'string')
   assert.match(rootPackage.scripts.lint, /\blint:ui\b/)
+  assert.match(rootPackage.scripts.lint, /\btypecheck:ui\b/)
   assert.match(rootPackage.scripts.lint, /\blint:mcp-server\b/)
   assert.match(rootPackage.scripts.lint, /\btypecheck:core\b/)
   assert.match(rootPackage.scripts.lint, /\btypecheck:mcp-server\b/)
+  assert.match(rootPackage.scripts.lint, /\bbuild:ui-types\b/)
+  assert.match(rootPackage.scripts.lint, /\btypecheck:web\b/)
+  assert.match(rootPackage.scripts.lint, /\btypecheck:extension\b/)
   assert.equal(typeof rootPackage.scripts?.['lint:ui'], 'string')
+  assert.equal(typeof rootPackage.scripts?.['typecheck:ui'], 'string')
   assert.equal(typeof rootPackage.scripts?.['lint:mcp-server'], 'string')
   assert.equal(typeof rootPackage.scripts?.['typecheck:core'], 'string')
   assert.equal(typeof rootPackage.scripts?.['typecheck:mcp-server'], 'string')
+  assert.equal(typeof rootPackage.scripts?.['build:ui-types'], 'string')
+  assert.equal(typeof rootPackage.scripts?.['typecheck:web'], 'string')
+  assert.equal(typeof rootPackage.scripts?.['typecheck:extension'], 'string')
 })
 
 test('repo checks execute package script coverage tests', () => {
@@ -33,6 +41,24 @@ test('core package exposes a dedicated typecheck script', () => {
   assert.equal(typeof corePackage.scripts?.typecheck, 'string')
   assert.match(corePackage.scripts.typecheck, /\btsc\b/)
   assert.match(corePackage.scripts.typecheck, /--noEmit/)
+})
+
+test('web and extension package typecheck scripts use isolated tsconfig files', () => {
+  const webPackage = readJson(path.join('packages', 'web', 'package.json'))
+  const extensionPackage = readJson(path.join('packages', 'extension', 'package.json'))
+  const webTypecheckConfig = readJson(path.join('packages', 'web', 'tsconfig.typecheck.json'))
+  const extensionTypecheckConfig = readJson(path.join('packages', 'extension', 'tsconfig.typecheck.json'))
+
+  assert.equal(typeof webPackage.scripts?.typecheck, 'string')
+  assert.match(webPackage.scripts.typecheck, /tsconfig\.typecheck\.json/)
+  assert.equal(typeof extensionPackage.scripts?.typecheck, 'string')
+  assert.match(extensionPackage.scripts.typecheck, /tsconfig\.typecheck\.json/)
+
+  assert.equal(webTypecheckConfig.compilerOptions?.paths?.['@prompt-optimizer/ui'], undefined)
+  assert.equal(webTypecheckConfig.compilerOptions?.paths?.['@prompt-optimizer/ui/*'], undefined)
+  assert.equal(extensionTypecheckConfig.compilerOptions?.paths?.['@prompt-optimizer/ui'], undefined)
+  assert.equal(extensionTypecheckConfig.compilerOptions?.paths?.['@prompt-optimizer/ui/*'], undefined)
+  assert.match(extensionTypecheckConfig.include.join(' '), /\benv\.d\.ts\b/)
 })
 
 test('mcp-server bin points to a file that exists before build output is generated', () => {

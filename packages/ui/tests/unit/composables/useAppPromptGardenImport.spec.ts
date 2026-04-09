@@ -19,6 +19,7 @@ import { useImageImage2ImageSession } from '../../../src/stores/session/useImage
 import { useImageMultiImageSession } from '../../../src/stores/session/useImageMultiImageSession'
 import { useAppPromptGardenImport } from '../../../src/composables/app/useAppPromptGardenImport'
 import { setGlobalMessageApi } from '../../../src/composables/ui/useToast'
+import { i18n } from '../../../src/plugins/i18n'
 
 const buildFullPath = (path: string, query: LocationQuery): string => {
   const params = new URLSearchParams()
@@ -2490,7 +2491,7 @@ describe('useAppPromptGardenImport', () => {
       expect(favoriteManager.addFavorite).toHaveBeenCalledTimes(1)
       expect(warningMock).toHaveBeenCalledTimes(1)
       expect(warningMock.mock.calls[0]?.[0]).toBe(
-        'Prompt Garden import succeeded, but saving the favorite failed.',
+        String(i18n.global.t('toast.warning.promptGardenFavoriteSaveFailed')),
       )
       expect(errorMock).not.toHaveBeenCalled()
       expect(successMock).toHaveBeenCalled()

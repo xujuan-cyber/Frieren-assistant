@@ -51,7 +51,7 @@ export function useTextModelManager() {
   const { t } = useI18n()
   const toast = useToast()
 
-  const getErrorDetail = (error: unknown, fallback = 'Unknown error') => {
+  const getErrorDetail = (error: unknown, fallback = t('common.error')) => {
     return getI18nErrorMessage(error, fallback)
   }
 
@@ -59,7 +59,7 @@ export function useTextModelManager() {
     key: string,
     error: unknown,
     params: Record<string, unknown> = {},
-    fallback = 'Unknown error'
+    fallback = t('common.error')
   ) => {
     return t(key, {
       ...params,
