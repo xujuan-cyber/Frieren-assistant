@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.9.3] - 2026-04-10
+- EN: This release establishes an English-first locale baseline, restores localized user feedback across key UI workflows, hardens MCP and repository guardrails, and extracts evaluation prompt assets into maintainable modules. See [Release Notes (EN)](releases/v2.9.3.en.md).
+- 中文：本次发布建立了 English-first locale 基线，补回关键 UI 流程的本地化反馈，并加固了 MCP、仓库守护校验与评估模板资产结构。参见 [版本说明（中文）](releases/v2.9.3.zh-CN.md)。
+
 ## [2.9.2] - 2026-04-07
 - EN: This release fixes the desktop updater path for both stable and prerelease downloads, hardens invalid preference-key handling, and expands the bilingual image workflow documentation. See [Release Notes (EN)](releases/v2.9.2.en.md).
 - 中文：本次发布修复了桌面端正式版与预览版下载更新链路，强化了无效偏好键处理，并补充了双语图像工作流文档。参见 [版本说明（中文）](releases/v2.9.2.zh-CN.md)。
