@@ -1491,6 +1491,7 @@ const runAllVariants = async () => {
                 silentSuccess: true,
                 silentError: true,
                 skipClearEvaluation: true,
+                allowParallel: true,
                 persist: false,
             }),
     )
