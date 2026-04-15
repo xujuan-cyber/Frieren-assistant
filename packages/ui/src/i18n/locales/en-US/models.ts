@@ -23,10 +23,18 @@ const messages = {
     "provider": {
       "section": "Provider Configuration",
       "label": "Provider",
-      "placeholder": "Select Provider"
+      "placeholder": "Select Provider",
+      "openaiHint": "This is the official OpenAI API. If you want a custom base URL, a third-party compatible service, or a local model, choose \"Custom API (OpenAI Compatible)\" instead.",
+      "customApiHint": "Use this for custom OpenAI-compatible endpoints. You can configure the base URL, use your own model name, and choose Chat Completions or Responses as the request style.",
+      "dashscopeHint": "DashScope supports both OpenAI-compatible Chat Completions and Responses APIs. You can switch the request style here directly."
     },
     "connection": {
-      "accountId": "Account ID"
+      "accountId": "Account ID",
+      "requestStyle": "Request Style",
+      "requestStyleOptions": {
+        "chatCompletions": "Chat Completions",
+        "responses": "Responses"
+      }
     },
     "model": {
       "section": "Model Configuration"

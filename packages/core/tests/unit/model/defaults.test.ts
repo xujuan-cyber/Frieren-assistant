@@ -7,6 +7,9 @@ describe('model defaults provider env mapping', () => {
   const originalCloudflareAccountId = process.env.VITE_CF_ACCOUNT_ID
   const originalLegacyCloudflareApiKey = process.env.CF_API_TOKEN
   const originalLegacyCloudflareAccountId = process.env.CF_ACCOUNT_ID
+  const originalCustomApiKey = process.env.VITE_CUSTOM_API_KEY
+  const originalCustomApiBaseUrl = process.env.VITE_CUSTOM_API_BASE_URL
+  const originalCustomApiModel = process.env.VITE_CUSTOM_API_MODEL
 
   beforeEach(() => {
     delete process.env.VITE_ANTHROPIC_API_KEY
@@ -14,6 +17,9 @@ describe('model defaults provider env mapping', () => {
     delete process.env.VITE_CF_ACCOUNT_ID
     delete process.env.CF_API_TOKEN
     delete process.env.CF_ACCOUNT_ID
+    delete process.env.VITE_CUSTOM_API_KEY
+    delete process.env.VITE_CUSTOM_API_BASE_URL
+    delete process.env.VITE_CUSTOM_API_MODEL
   })
 
   afterAll(() => {
@@ -45,6 +51,24 @@ describe('model defaults provider env mapping', () => {
       delete process.env.CF_ACCOUNT_ID
     } else {
       process.env.CF_ACCOUNT_ID = originalLegacyCloudflareAccountId
+    }
+
+    if (originalCustomApiKey === undefined) {
+      delete process.env.VITE_CUSTOM_API_KEY
+    } else {
+      process.env.VITE_CUSTOM_API_KEY = originalCustomApiKey
+    }
+
+    if (originalCustomApiBaseUrl === undefined) {
+      delete process.env.VITE_CUSTOM_API_BASE_URL
+    } else {
+      process.env.VITE_CUSTOM_API_BASE_URL = originalCustomApiBaseUrl
+    }
+
+    if (originalCustomApiModel === undefined) {
+      delete process.env.VITE_CUSTOM_API_MODEL
+    } else {
+      process.env.VITE_CUSTOM_API_MODEL = originalCustomApiModel
     }
   })
 
@@ -105,5 +129,16 @@ describe('model defaults provider env mapping', () => {
     expect(models.cloudflare.enabled).toBe(false)
     expect(models.cloudflare.connectionConfig.apiKey).toBe('')
     expect(models.cloudflare.connectionConfig.accountId).toBe('')
+  })
+
+  it('should expose the custom preset as OpenAI-compatible with chat completions by default', () => {
+    const models = getDefaultTextModels()
+
+    expect(models.custom).toBeDefined()
+    expect(models.custom.providerMeta.id).toBe('openai-compatible')
+    expect(models.custom.providerMeta.name).toBe('Custom API (OpenAI Compatible)')
+    expect(models.custom.enabled).toBe(true)
+    expect(models.custom.connectionConfig.apiKey).toBe('')
+    expect(models.custom.connectionConfig.requestStyle).toBe('chat_completions')
   })
 })

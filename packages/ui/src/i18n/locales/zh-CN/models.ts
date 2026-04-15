@@ -24,10 +24,18 @@ const messages = {
     "provider": {
       "section": "提供商配置",
       "label": "提供商",
-      "placeholder": "选择提供商"
+      "placeholder": "选择提供商",
+      "openaiHint": "官方 OpenAI API 入口。如果你想接入自定义 Base URL、第三方兼容服务或本地模型，请选择“Custom API (OpenAI Compatible)”。",
+      "customApiHint": "用于接入自定义 OpenAI 兼容接口。你可以配置 Base URL、自定义模型名，并选择 Chat Completions 或 Responses 请求风格。",
+      "dashscopeHint": "阿里百炼已支持 OpenAI 兼容的 Chat Completions 与 Responses 接口。当前可直接在这里切换请求风格进行使用。"
     },
     "connection": {
-      "accountId": "账户 ID"
+      "accountId": "账户 ID",
+      "requestStyle": "请求风格",
+      "requestStyleOptions": {
+        "chatCompletions": "Chat Completions",
+        "responses": "Responses"
+      }
     },
     "model": {
       "section": "模型配置"

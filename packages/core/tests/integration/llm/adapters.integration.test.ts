@@ -18,10 +18,18 @@ const RUN_REAL_API = process.env.RUN_REAL_API === '1';
 function createTestConfig(
   adapter: TextAdapter,
   apiKey: string,
-  paramOverrides: Record<string, any> = {}
+  paramOverrides: Record<string, any> = {},
+  options: {
+    modelId?: string
+    connectionConfig?: Record<string, unknown>
+  } = {}
 ): TextModelConfig {
   const models = adapter.getModels();
-  if (models.length === 0) {
+  const selectedModel = options.modelId
+    ? models.find(model => model.id === options.modelId) || adapter.buildDefaultModel(options.modelId)
+    : models[0];
+
+  if (!selectedModel) {
     throw new Error(`No models available for adapter: ${adapter.getProvider().id}`);
   }
 
@@ -30,9 +38,10 @@ function createTestConfig(
     name: adapter.getProvider().name,
     enabled: true,
     providerMeta: adapter.getProvider(),
-    modelMeta: models[0], // 使用第一个可用模型
+    modelMeta: selectedModel,
     connectionConfig: {
-      apiKey
+      apiKey,
+      ...(options.connectionConfig || {})
       // 不覆盖 baseURL，使用 adapter 的默认值
     },
     paramOverrides
@@ -48,6 +57,10 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
 
   describe('OpenAIAdapter Real API', () => {
     const hasApiKey = !!(process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY);
+    const responsesTestModel =
+      process.env.OPENAI_RESPONSES_TEST_MODEL ||
+      process.env.VITE_OPENAI_RESPONSES_TEST_MODEL ||
+      'gpt-5-mini';
 
     it.skipIf(!hasApiKey)('should successfully call OpenAI API with sendMessage', async () => {
       const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
@@ -70,6 +83,37 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       expect(response.content.length).toBeGreaterThan(0);
       expect(response.metadata.model).toBeDefined();
 
+    }, 30000);
+
+    it.skipIf(!hasApiKey)('should successfully call OpenAI Responses API with sendMessage', async () => {
+      const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+      const adapter = registry.getAdapter('openai');
+
+      const config = createTestConfig(
+        adapter,
+        apiKey!,
+        {
+          temperature: 0.3,
+          max_output_tokens: 120
+        },
+        {
+          modelId: responsesTestModel,
+          connectionConfig: {
+            requestStyle: 'responses'
+          }
+        }
+      );
+
+      const messages: Message[] = [
+        { role: 'user', content: '请只用一句中文介绍你自己。' }
+      ];
+
+      const response = await adapter.sendMessage(messages, config);
+
+      expect(response).toBeDefined();
+      expect(typeof response.content).toBe('string');
+      expect(response.content.length).toBeGreaterThan(0);
+      expect(response.metadata.model).toBe(responsesTestModel);
     }, 30000);
 
     it.skipIf(!hasApiKey)('should successfully stream OpenAI API with callbacks', async () => {
@@ -106,6 +150,56 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       expect(contentTokens.length).toBeGreaterThan(0);
       expect(finalResponse).toBeDefined();
       expect(finalResponse.content).toBe(contentTokens);
+    }, 30000);
+
+    it.skipIf(!hasApiKey)('should successfully stream OpenAI Responses API with callbacks', async () => {
+      const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+      const adapter = registry.getAdapter('openai');
+
+      const config = createTestConfig(
+        adapter,
+        apiKey!,
+        {
+          temperature: 0.3,
+          max_output_tokens: 120
+        },
+        {
+          modelId: responsesTestModel,
+          connectionConfig: {
+            requestStyle: 'responses'
+          }
+        }
+      );
+
+      const messages: Message[] = [
+        { role: 'user', content: '请只回复“你好，Responses”。' }
+      ];
+
+      let contentTokens = '';
+      let tokenCount = 0;
+      let finalResponse: any = null;
+      let isCompleted = false;
+
+      await adapter.sendMessageStream(messages, config, {
+        onToken: (token) => {
+          contentTokens += token;
+          tokenCount++;
+        },
+        onComplete: (response) => {
+          finalResponse = response;
+          isCompleted = true;
+        },
+        onError: (error) => {
+          console.error('OpenAI Responses streaming error:', error);
+        }
+      });
+
+      expect(isCompleted).toBe(true);
+      expect(tokenCount).toBeGreaterThan(0);
+      expect(contentTokens.length).toBeGreaterThan(0);
+      expect(finalResponse).toBeDefined();
+      expect(finalResponse.content).toBe(contentTokens);
+      expect(finalResponse.metadata.model).toBe(responsesTestModel);
     }, 30000);
 
     it.skipIf(!hasApiKey)('should handle OpenAI API errors with stack trace', async () => {
@@ -181,6 +275,96 @@ describe.skipIf(!RUN_REAL_API)('Adapter Integration Tests - Real SDK', () => {
       expect(isCompleted).toBe(true);
       expect(tokenCount).toBeGreaterThan(0);
       expect(contentTokens.length).toBeGreaterThan(0);
+    }, 30000);
+  });
+
+  describe('DashScopeAdapter Real API', () => {
+    const hasApiKey = !!(process.env.DASHSCOPE_API_KEY || process.env.VITE_DASHSCOPE_API_KEY);
+    const runResponsesTests = hasApiKey && process.env.RUN_DASHSCOPE_RESPONSES_REAL_API === '1';
+    const responsesTestModel =
+      process.env.DASHSCOPE_RESPONSES_TEST_MODEL ||
+      process.env.VITE_DASHSCOPE_RESPONSES_TEST_MODEL ||
+      'qwen-plus';
+
+    it.skipIf(!runResponsesTests)('should successfully call DashScope Responses API with sendMessage', async () => {
+      const apiKey = process.env.DASHSCOPE_API_KEY || process.env.VITE_DASHSCOPE_API_KEY;
+      const adapter = registry.getAdapter('dashscope');
+
+      const config = createTestConfig(
+        adapter,
+        apiKey!,
+        {
+          temperature: 0.3,
+          max_output_tokens: 120
+        },
+        {
+          modelId: responsesTestModel,
+          connectionConfig: {
+            requestStyle: 'responses'
+          }
+        }
+      );
+
+      const messages: Message[] = [
+        { role: 'user', content: '请只用一句中文介绍你自己。' }
+      ];
+
+      const response = await adapter.sendMessage(messages, config);
+
+      expect(response).toBeDefined();
+      expect(typeof response.content).toBe('string');
+      expect(response.content.length).toBeGreaterThan(0);
+      expect(response.metadata.model).toBe(responsesTestModel);
+    }, 30000);
+
+    it.skipIf(!runResponsesTests)('should successfully stream DashScope Responses API with callbacks', async () => {
+      const apiKey = process.env.DASHSCOPE_API_KEY || process.env.VITE_DASHSCOPE_API_KEY;
+      const adapter = registry.getAdapter('dashscope');
+
+      const config = createTestConfig(
+        adapter,
+        apiKey!,
+        {
+          temperature: 0.3,
+          max_output_tokens: 120
+        },
+        {
+          modelId: responsesTestModel,
+          connectionConfig: {
+            requestStyle: 'responses'
+          }
+        }
+      );
+
+      const messages: Message[] = [
+        { role: 'user', content: '请只回复“你好，百炼 Responses”。' }
+      ];
+
+      let contentTokens = '';
+      let tokenCount = 0;
+      let finalResponse: any = null;
+      let isCompleted = false;
+
+      await adapter.sendMessageStream(messages, config, {
+        onToken: (token) => {
+          contentTokens += token;
+          tokenCount++;
+        },
+        onComplete: (response) => {
+          finalResponse = response;
+          isCompleted = true;
+        },
+        onError: (error) => {
+          console.error('DashScope Responses streaming error:', error);
+        }
+      });
+
+      expect(isCompleted).toBe(true);
+      expect(tokenCount).toBeGreaterThan(0);
+      expect(contentTokens.length).toBeGreaterThan(0);
+      expect(finalResponse).toBeDefined();
+      expect(finalResponse.content).toBe(contentTokens);
+      expect(finalResponse.metadata.model).toBe(responsesTestModel);
     }, 30000);
   });
 

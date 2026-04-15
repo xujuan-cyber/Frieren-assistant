@@ -5,6 +5,10 @@
 
 export interface ProviderMeta {
   defaultBaseURL?: string
+  connectionSchema?: {
+    required: string[]
+    optional: string[]
+  }
 }
 
 /**
@@ -29,6 +33,11 @@ export function computeConnectionConfig(
   providerMeta: ProviderMeta | undefined,
   resetConnectionConfig: boolean
 ): Record<string, unknown> {
+  const schemaFields = [
+    ...(providerMeta?.connectionSchema?.required ?? []),
+    ...(providerMeta?.connectionSchema?.optional ?? [])
+  ]
+
   if (resetConnectionConfig) {
     // 用户手动切换提供商：重置为新提供商默认配置，清空凭证
     // 显式将旧字段设为空字符串，确保 Vue 响应式更新输入框
@@ -41,17 +50,24 @@ export function computeConnectionConfig(
     if (providerMeta?.defaultBaseURL) {
       result.baseURL = providerMeta.defaultBaseURL
     }
+    if (schemaFields.includes('requestStyle')) {
+      result.requestStyle = 'chat_completions'
+    }
     return result
   }
 
   // 编辑弹窗初始化：保留已保存配置，仅补充空缺的 baseURL
-  if (providerMeta?.defaultBaseURL && !currentConfig?.baseURL) {
-    return {
-      ...currentConfig,
-      baseURL: providerMeta.defaultBaseURL
-    }
+  const nextConfig = currentConfig ? { ...currentConfig } : {}
+
+  if (providerMeta?.defaultBaseURL && !nextConfig.baseURL) {
+    nextConfig.baseURL = providerMeta.defaultBaseURL
   }
-  return currentConfig ?? {}
+
+  if (schemaFields.includes('requestStyle') && !nextConfig.requestStyle) {
+    nextConfig.requestStyle = 'chat_completions'
+  }
+
+  return nextConfig
 }
 
 /**

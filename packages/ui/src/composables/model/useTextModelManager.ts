@@ -147,25 +147,41 @@ export function useTextModelManager() {
   const connectionFields = computed(() => {
     if (!selectedProvider.value?.connectionSchema) return []
 
-    const schema = selectedProvider.value.connectionSchema
-    const fields: Array<{ name: string; required: boolean; type: string; placeholder?: string }> = []
+    const provider = selectedProvider.value
+    const schema = provider.connectionSchema!
+    const fields: Array<{
+      name: string
+      required: boolean
+      type: string
+      placeholder?: string
+      options?: Array<{ label: string; value: string }>
+    }> = []
+
+    const buildField = (fieldName: string, required: boolean) => ({
+      name: fieldName,
+      required,
+      type: schema.fieldTypes[fieldName] || 'string',
+      placeholder: fieldName === 'baseURL' ? provider.defaultBaseURL : '',
+      options: fieldName === 'requestStyle'
+        ? [
+            {
+              label: t('modelManager.connection.requestStyleOptions.chatCompletions'),
+              value: 'chat_completions'
+            },
+            {
+              label: t('modelManager.connection.requestStyleOptions.responses'),
+              value: 'responses'
+            }
+          ]
+        : undefined
+    })
 
     for (const fieldName of schema.required) {
-      fields.push({
-        name: fieldName,
-        required: true,
-        type: schema.fieldTypes[fieldName] || 'string',
-        placeholder: fieldName === 'baseURL' ? selectedProvider.value.defaultBaseURL : ''
-      })
+      fields.push(buildField(fieldName, true))
     }
 
     for (const fieldName of schema.optional) {
-      fields.push({
-        name: fieldName,
-        required: false,
-        type: schema.fieldTypes[fieldName] || 'string',
-        placeholder: fieldName === 'baseURL' ? selectedProvider.value.defaultBaseURL : ''
-      })
+      fields.push(buildField(fieldName, false))
     }
 
     return fields
@@ -174,7 +190,7 @@ export function useTextModelManager() {
   const isConnectionConfigured = computed(() => {
     if (!selectedProvider.value?.connectionSchema) return true
 
-    const schema = selectedProvider.value.connectionSchema
+    const schema = selectedProvider.value.connectionSchema!
     const config = form.value.connectionConfig || {}
 
     return schema.required.every(field => !!config[field])

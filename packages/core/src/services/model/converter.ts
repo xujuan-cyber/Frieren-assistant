@@ -38,7 +38,11 @@ export async function convertLegacyToTextModelConfigWithRegistry(
       providerId = 'zhipu';
       break;
     case 'openai':
+      providerId = 'openai';
+      break;
     case 'custom':
+      providerId = 'openai-compatible';
+      break;
     default:
       providerId = 'openai';
       break;
@@ -75,7 +79,8 @@ export async function convertLegacyToTextModelConfigWithRegistry(
       modelMeta: modelMeta,
       connectionConfig: {
         apiKey: legacy.apiKey,
-        baseURL: legacy.baseURL
+        baseURL: legacy.baseURL,
+        requestStyle: providerId === 'openai-compatible' ? 'chat_completions' : undefined
       },
       paramOverrides: builtIn,
       customParamOverrides: custom
@@ -142,7 +147,11 @@ export function convertLegacyToTextModelConfig(
       providerId = 'zhipu';
       break;
     case 'openai':
+      providerId = 'openai';
+      break;
     case 'custom':
+      providerId = 'openai-compatible';
+      break;
     default:
       providerId = 'openai';
       break;
@@ -167,7 +176,8 @@ export function convertLegacyToTextModelConfig(
     modelMeta: modelMeta,
     connectionConfig: {
       apiKey: legacy.apiKey,
-      baseURL: legacy.baseURL
+      baseURL: legacy.baseURL,
+      requestStyle: providerId === 'openai-compatible' ? 'chat_completions' : undefined
     },
     paramOverrides: builtIn,
     customParamOverrides: custom
@@ -270,22 +280,42 @@ function createProviderMeta(providerId: string, legacy: ModelConfig): TextProvid
         }
       }
     };
+  } else if (providerId === 'openai-compatible') {
+    return {
+      id: 'openai-compatible',
+      name: 'Custom API (OpenAI Compatible)',
+      description: 'Custom endpoints that implement OpenAI Chat Completions or Responses APIs',
+      requiresApiKey: false,
+      defaultBaseURL: legacy.baseURL || 'http://localhost:11434/v1',
+      supportsDynamicModels: true,
+      connectionSchema: {
+        required: [],
+        optional: ['baseURL', 'apiKey', 'requestStyle', 'timeout'],
+        fieldTypes: {
+          apiKey: 'string',
+          baseURL: 'string',
+          requestStyle: 'string',
+          timeout: 'number'
+        }
+      }
+    };
   } else {
-    // OpenAI 及兼容 API - 始终使用 'OpenAI' 作为 Provider 名称
+    // Official OpenAI API
     return {
       id: 'openai',
       name: 'OpenAI',
-      description: 'OpenAI GPT models and OpenAI-compatible APIs',
+      description: 'Official OpenAI API for GPT and reasoning models',
       requiresApiKey: true,
       defaultBaseURL: legacy.baseURL || 'https://api.openai.com/v1',
       supportsDynamicModels: true,
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL', 'organization', 'timeout'],
+        optional: ['baseURL', 'organization', 'requestStyle', 'timeout'],
         fieldTypes: {
           apiKey: 'string',
           baseURL: 'string',
           organization: 'string',
+          requestStyle: 'string',
           timeout: 'number'
         }
       }

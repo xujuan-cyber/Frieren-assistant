@@ -51,7 +51,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     minValue: 0.0,
     maxValue: 2.0, // Max for OpenAI; Gemini is often 0-1. UI might need to adjust range based on provider.
     step: 0.1,
-    appliesToProviders: ["openai", "gemini", "deepseek", "custom", "zhipu", "siliconflow"] 
+    appliesToProviders: ["openai", "openai-compatible", "gemini", "deepseek", "custom", "zhipu", "siliconflow"] 
   },
   {
     id: "common_top_p",
@@ -63,7 +63,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     minValue: 0.0,
     maxValue: 1.0,
     step: 0.01,
-    appliesToProviders: ["openai", "deepseek", "custom", "zhipu", "siliconflow"]
+    appliesToProviders: ["openai", "openai-compatible", "deepseek", "custom", "zhipu", "siliconflow"]
   },
   // OpenAI / OpenAI-Compatible Specific
   {
@@ -76,7 +76,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     minValue: 1,
     step: 1,
     unitKey: "params.tokens.unit",
-    appliesToProviders: ["openai", "deepseek", "custom", "zhipu", "siliconflow"]
+    appliesToProviders: ["openai", "openai-compatible", "deepseek", "custom", "zhipu", "siliconflow"]
   },
   {
     id: "openai_presence_penalty",
@@ -88,7 +88,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     minValue: -2.0,
     maxValue: 2.0,
     step: 0.1,
-    appliesToProviders: ["openai", "deepseek", "custom", "zhipu", "siliconflow"]
+    appliesToProviders: ["openai", "openai-compatible", "deepseek", "custom", "zhipu", "siliconflow"]
   },
   {
     id: "openai_frequency_penalty",
@@ -100,7 +100,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     minValue: -2.0,
     maxValue: 2.0,
     step: 0.1,
-    appliesToProviders: ["openai", "deepseek", "custom", "zhipu", "siliconflow"]
+    appliesToProviders: ["openai", "openai-compatible", "deepseek", "custom", "zhipu", "siliconflow"]
   },
   {
     id: "openai_timeout", // This is a client configuration for OpenAI
@@ -112,7 +112,7 @@ export const advancedParameterDefinitions: AdvancedParameterDefinition[] = [
     minValue: 1000,
     step: 1000,
     unit: "ms",
-    appliesToProviders: ["openai", "deepseek", "custom", "zhipu", "siliconflow"] 
+    appliesToProviders: ["openai", "openai-compatible", "deepseek", "custom", "zhipu", "siliconflow"] 
   },
   // Gemini Specific
   {

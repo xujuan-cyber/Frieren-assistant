@@ -37,6 +37,10 @@
             />
           </NFormItem>
 
+          <NText v-if="currentProviderHint" depth="3" style="display: block; margin: -8px 0 12px 0; line-height: 1.5;">
+            {{ currentProviderHint }}
+          </NText>
+
           <NFormItem
             v-for="field in connectionFields"
             :key="field.name"
@@ -71,7 +75,15 @@
               </NSpace>
             </template>
 
-            <template v-if="field.type === 'string'">
+            <template v-if="field.type === 'string' && field.options?.length">
+              <NSelect
+                v-model:value="form.connectionConfig[field.name] as string"
+                :options="field.options"
+                :placeholder="field.placeholder"
+                :required="field.required"
+              />
+            </template>
+            <template v-else-if="field.type === 'string'">
               <NInput
                 v-model:value="form.connectionConfig[field.name] as string"
                 :type="field.name.toLowerCase().includes('key') ? 'password' : 'text'"
@@ -265,6 +277,25 @@ const isEditing = computed(() => !!manager.editingModelId.value)
 // 获取当前选择的 Provider 的 API Key URL
 const currentProviderApiKeyUrl = computed(() => {
   return manager.selectedProvider.value?.apiKeyUrl || null
+})
+
+const currentProviderHint = computed(() => {
+  const provider = manager.selectedProvider.value
+  if (!provider) return ''
+
+  if (provider.id === 'openai-compatible') {
+    return t('modelManager.provider.customApiHint')
+  }
+
+  if (provider.id === 'openai') {
+    return t('modelManager.provider.openaiHint')
+  }
+
+  if (provider.id === 'dashscope') {
+    return t('modelManager.provider.dashscopeHint')
+  }
+
+  return provider.description || ''
 })
 
 const resolveConnectionFieldLabel = (fieldName: string) => {

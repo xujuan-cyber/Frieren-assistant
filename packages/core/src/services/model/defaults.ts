@@ -99,25 +99,26 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
   }
 
   // Custom 单独处理（baseURL 和 model 来自环境变量）
-  const openaiAdapter = adapterRegistry.getAdapter('openai');
+  const openaiCompatibleAdapter = adapterRegistry.getAdapter('openai-compatible');
   const customApiKey = getEnvVar('VITE_CUSTOM_API_KEY').trim();
   const customBaseURL = getEnvVar('VITE_CUSTOM_API_BASE_URL');
   const customModelId = getEnvVar('VITE_CUSTOM_API_MODEL') || 'custom-model';
   const customModelMeta = {
-    ...openaiAdapter.buildDefaultModel(customModelId),
+    ...openaiCompatibleAdapter.buildDefaultModel(customModelId),
     name: customModelId,
     description: 'Custom model via OpenAI-compatible API'
   };
 
   result.custom = {
     id: 'custom',
-    name: 'Custom',
-    enabled: !!customApiKey,
-    providerMeta: openaiAdapter.getProvider(),
+    name: 'Custom API (OpenAI Compatible)',
+    enabled: true,
+    providerMeta: openaiCompatibleAdapter.getProvider(),
     modelMeta: customModelMeta,
     connectionConfig: {
       apiKey: customApiKey,
-      baseURL: customBaseURL || 'http://localhost:11434/v1'
+      baseURL: customBaseURL || 'http://localhost:11434/v1',
+      requestStyle: 'chat_completions'
     },
     paramOverrides: { ...(customModelMeta.defaultParameterValues || {}) },
     customParamOverrides: {}

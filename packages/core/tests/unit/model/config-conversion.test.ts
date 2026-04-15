@@ -225,8 +225,10 @@ describe('Config Conversion', () => {
 
       expect(result.name).toBe('Custom Model');
       expect(result.enabled).toBe(false);
+      expect(result.providerMeta.id).toBe('openai-compatible');
       expect(result.connectionConfig.apiKey).toBe('custom-key');
       expect(result.connectionConfig.baseURL).toBe('https://custom.api.com/v1');
+      expect(result.connectionConfig.requestStyle).toBe('chat_completions');
       expect(result.paramOverrides).toEqual({
         temperature: 0.9,
         max_tokens: 2000

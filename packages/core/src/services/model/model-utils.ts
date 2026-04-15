@@ -39,20 +39,19 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
 
   // OpenAI 兼容 Provider（所有自定义模型都使用 OpenAI 兼容 API）
   const customProvider: TextProvider = {
-    id: 'openai',
-    name: 'OpenAI',
-    description: 'OpenAI-compatible API',
-    requiresApiKey: true,
-    defaultBaseURL: 'https://api.openai.com/v1',
+    id: 'openai-compatible',
+    name: 'Custom API (OpenAI Compatible)',
+    description: 'Custom endpoint using an OpenAI-compatible API',
+    requiresApiKey: false,
+    defaultBaseURL: 'http://localhost:11434/v1',
     supportsDynamicModels: true,
     connectionSchema: {
-      required: ['apiKey'],
-      optional: ['baseURL', 'organization', 'timeout'],
+      required: [],
+      optional: ['baseURL', 'apiKey', 'requestStyle'],
       fieldTypes: {
-        apiKey: 'string',
         baseURL: 'string',
-        organization: 'string',
-        timeout: 'number'
+        apiKey: 'string',
+        requestStyle: 'string'
       }
     }
   };
@@ -62,7 +61,7 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
     id: envConfig.model,
     name: modelName,
     description: `Custom model: ${envConfig.model}`,
-    providerId: 'openai',
+    providerId: 'openai-compatible',
     capabilities: {
       supportsTools: false,
       supportsReasoning: false,
@@ -91,7 +90,8 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
     modelMeta: customModel,
     connectionConfig: {
       apiKey: envConfig.apiKey,
-      baseURL: envConfig.baseURL
+      baseURL: envConfig.baseURL,
+      requestStyle: 'chat_completions'
     },
     paramOverrides: envConfig.params ? { ...envConfig.params } : {}
   };

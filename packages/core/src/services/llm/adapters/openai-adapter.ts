@@ -47,6 +47,8 @@ const OPENAI_STATIC_MODELS: ModelOverride[] = [
   }
 ]
 
+type OpenAIRequestStyle = 'chat_completions' | 'responses'
+
 /**
  * OpenAI SDK适配器实现
  * 同时支持OpenAI官方API和OpenAI兼容API（DeepSeek, Zhipu等）
@@ -68,17 +70,18 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     return {
       id: 'openai',
       name: 'OpenAI',
-      description: 'OpenAI GPT models and OpenAI-compatible APIs',
+      description: 'Official OpenAI API',
       requiresApiKey: true,
       defaultBaseURL: 'https://api.openai.com/v1',
       supportsDynamicModels: true,
       apiKeyUrl: 'https://platform.openai.com/api-keys',
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL'],
+        optional: ['baseURL', 'requestStyle'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string'
+          baseURL: 'string',
+          requestStyle: 'string'
         }
       }
     }
@@ -328,6 +331,283 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     return {}
   }
 
+  protected getRequestStyle(config: TextModelConfig): OpenAIRequestStyle {
+    const rawRequestStyle = String(config.connectionConfig.requestStyle || '').trim().toLowerCase()
+    return rawRequestStyle === 'responses' ? 'responses' : 'chat_completions'
+  }
+
+  private buildResponsesInput(messages: Message[]): any[] {
+    return messages.map((message, index) => {
+      if (message.role === 'tool') {
+        return {
+          type: 'function_call_output',
+          call_id: message.tool_call_id || message.name || `tool_call_${index}`,
+          output: message.content
+        }
+      }
+
+      return {
+        role: message.role,
+        content: message.content
+      }
+    })
+  }
+
+  private normalizeResponsesParams(paramOverrides: Record<string, unknown> | undefined): Record<string, unknown> {
+    const {
+      timeout: _timeout,
+      model: _paramModel,
+      messages: _paramMessages,
+      input: _paramInput,
+      stream: _paramStream,
+      max_tokens,
+      max_completion_tokens,
+      presence_penalty: _presencePenalty,
+      frequency_penalty: _frequencyPenalty,
+      n: _n,
+      seed: _seed,
+      logprobs,
+      ...restParams
+    } = (paramOverrides || {}) as Record<string, unknown>
+
+    const normalizedParams: Record<string, unknown> = { ...restParams }
+    const normalizedMaxOutputTokens =
+      max_completion_tokens ?? max_tokens ?? normalizedParams.max_output_tokens
+
+    if (normalizedMaxOutputTokens !== undefined) {
+      normalizedParams.max_output_tokens = normalizedMaxOutputTokens
+    }
+
+    if (logprobs === true && normalizedParams.include === undefined) {
+      normalizedParams.include = ['message.output_text.logprobs']
+    }
+
+    return normalizedParams
+  }
+
+  private async sendResponsesMessage(
+    openai: OpenAI,
+    messages: Message[],
+    config: TextModelConfig
+  ): Promise<LLMResponse> {
+    const responsesConfig: any = {
+      model: config.modelMeta.id,
+      input: this.buildResponsesInput(messages),
+      ...this.normalizeResponsesParams(config.paramOverrides)
+    }
+
+    const response: any = await openai.responses.create(responsesConfig)
+    return this.parseResponsesResponse(response, config.modelMeta.id)
+  }
+
+  private async sendResponsesMessageStream(
+    openai: OpenAI,
+    messages: Message[],
+    config: TextModelConfig,
+    callbacks: StreamHandlers,
+    tools?: ToolDefinition[]
+  ): Promise<void> {
+    const responsesConfig: any = {
+      model: config.modelMeta.id,
+      input: this.buildResponsesInput(messages),
+      stream: true,
+      ...this.normalizeResponsesParams(config.paramOverrides)
+    }
+
+    if (tools?.length) {
+      responsesConfig.tools = tools
+    }
+
+    const stream = await openai.responses.create(responsesConfig)
+    let accumulatedContent = ''
+    let accumulatedReasoning = ''
+    const thinkState = { isInThinkMode: false, buffer: '' }
+    const toolCalls = new Map<number, any>()
+
+    for await (const event of stream as any) {
+      if (
+        event &&
+        typeof event === 'object' &&
+        !('type' in event) &&
+        typeof event.message === 'string'
+      ) {
+        const providerErrorMessage = typeof event.code === 'string'
+          ? `${event.code}: ${event.message}`
+          : event.message
+        throw new APIError(providerErrorMessage)
+      }
+
+      switch (event.type) {
+        case 'response.output_text.delta': {
+          const delta = event.delta || ''
+          if (delta) {
+            accumulatedContent += delta
+            this.processStreamContentWithThinkTags(delta, callbacks, thinkState)
+          }
+          break
+        }
+        case 'response.reasoning_text.delta':
+        case 'response.reasoning_summary_text.delta': {
+          const delta = event.delta || ''
+          if (delta) {
+            accumulatedReasoning += delta
+            callbacks.onReasoningToken?.(delta)
+          }
+          break
+        }
+        case 'response.output_item.added': {
+          const item = event.item
+          if (item?.type === 'function_call') {
+            toolCalls.set(event.output_index, {
+              id: item.call_id || item.id || '',
+              type: 'function',
+              function: {
+                name: item.name || '',
+                arguments: item.arguments || ''
+              }
+            })
+          }
+          break
+        }
+        case 'response.function_call_arguments.delta': {
+          const currentToolCall = toolCalls.get(event.output_index) || {
+            id: event.item_id || '',
+            type: 'function',
+            function: {
+              name: '',
+              arguments: ''
+            }
+          }
+
+          currentToolCall.function.arguments += event.delta || ''
+          toolCalls.set(event.output_index, currentToolCall)
+
+          if (callbacks.onToolCall) {
+            try {
+              JSON.parse(currentToolCall.function.arguments)
+              callbacks.onToolCall(currentToolCall)
+            } catch {
+              // Ignore incomplete JSON deltas until the payload becomes valid.
+            }
+          }
+          break
+        }
+        case 'response.completed': {
+          const completedResponse = event.response
+          if (!accumulatedContent && completedResponse?.output_text) {
+            accumulatedContent = completedResponse.output_text
+          }
+          if (!accumulatedReasoning) {
+            accumulatedReasoning = this.extractResponsesReasoning(completedResponse?.output)
+          }
+          break
+        }
+        case 'response.failed': {
+          throw new APIError('Responses API request failed')
+        }
+        case 'response.error': {
+          throw new APIError(event.error?.message || 'Responses API request failed')
+        }
+        default:
+          break
+      }
+    }
+
+    callbacks.onComplete({
+      content: accumulatedContent,
+      reasoning: accumulatedReasoning || undefined,
+      toolCalls: toolCalls.size > 0 ? Array.from(toolCalls.values()) : undefined,
+      metadata: {
+        model: config.modelMeta.id
+      }
+    })
+  }
+
+  private extractResponsesText(outputItems: any[] | undefined): string {
+    if (!Array.isArray(outputItems)) {
+      return ''
+    }
+
+    const segments: string[] = []
+
+    for (const item of outputItems) {
+      if (item?.type !== 'message' || !Array.isArray(item.content)) {
+        continue
+      }
+
+      for (const content of item.content) {
+        if (content?.type === 'output_text' && typeof content.text === 'string') {
+          segments.push(content.text)
+        }
+      }
+    }
+
+    return segments.join('')
+  }
+
+  private extractResponsesReasoning(outputItems: any[] | undefined): string {
+    if (!Array.isArray(outputItems)) {
+      return ''
+    }
+
+    const segments: string[] = []
+
+    for (const item of outputItems) {
+      if (item?.type !== 'reasoning') {
+        continue
+      }
+
+      if (typeof item.content === 'string') {
+        segments.push(item.content)
+      }
+
+      if (Array.isArray(item.summary)) {
+        for (const summaryPart of item.summary) {
+          if (typeof summaryPart?.text === 'string') {
+            segments.push(summaryPart.text)
+          }
+        }
+      }
+    }
+
+    return segments.join('\n').trim()
+  }
+
+  private extractResponsesToolCalls(outputItems: any[] | undefined): LLMResponse['toolCalls'] {
+    if (!Array.isArray(outputItems)) {
+      return undefined
+    }
+
+    const toolCalls = outputItems
+      .filter((item) => item?.type === 'function_call')
+      .map((item) => ({
+        id: item.call_id || item.id || '',
+        type: 'function' as const,
+        function: {
+          name: item.name || '',
+          arguments: item.arguments || ''
+        }
+      }))
+
+    return toolCalls.length > 0 ? toolCalls : undefined
+  }
+
+  private parseResponsesResponse(response: any, modelId: string): LLMResponse {
+    const content = typeof response?.output_text === 'string'
+      ? response.output_text
+      : this.extractResponsesText(response?.output)
+    const reasoning = this.extractResponsesReasoning(response?.output)
+
+    return {
+      content,
+      reasoning: reasoning || undefined,
+      toolCalls: this.extractResponsesToolCalls(response?.output),
+      metadata: {
+        model: modelId
+      }
+    }
+  }
+
   // ===== 错误检测辅助方法 =====
 
   /**
@@ -432,6 +712,25 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     return sanitized
   }
 
+  private stripAuthorizationHeader(headers?: HeadersInit): Headers | undefined {
+    if (!headers) {
+      return undefined
+    }
+
+    const source = new Headers(headers)
+    const sanitized = new Headers()
+
+    source.forEach((value, key) => {
+      if (key.toLowerCase() === 'authorization') {
+        return
+      }
+
+      sanitized.set(key, value)
+    })
+
+    return sanitized
+  }
+
   // ===== SDK实例创建（从service.ts迁移） =====
 
   /**
@@ -446,6 +745,7 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
   // without re-implementing the whole chat/stream/tool plumbing.
   protected createOpenAIInstance(config: TextModelConfig, isStream: boolean = false): OpenAI {
     const apiKey = config.connectionConfig.apiKey || ''
+    const hasApiKey = typeof apiKey === 'string' && apiKey.trim().length > 0
 
     // 处理baseURL，如果以'/chat/completions'结尾则去掉
     let processedBaseURL = config.connectionConfig.baseURL || this.getProvider().defaultBaseURL
@@ -467,20 +767,19 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
       maxRetries: isStream ? 2 : 3
     }
 
-    // 浏览器环境检测
-    if (typeof window !== 'undefined') {
-      sdkConfig.dangerouslyAllowBrowser = true
+    const runtimeFetch =
+      typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : undefined
 
-      const runtimeFetch =
-        typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : undefined
+    if (runtimeFetch && (!hasApiKey || typeof window !== 'undefined')) {
+      sdkConfig.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+        let headers = init?.headers
 
-      if (runtimeFetch) {
-        sdkConfig.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-          if (!this.shouldForceCrossOriginCredentialOmit(input)) {
-            return runtimeFetch(input, init)
-          }
+        if (!hasApiKey) {
+          headers = this.stripAuthorizationHeader(headers)
+        }
 
-          const sanitizedHeaders = this.sanitizeCrossOriginHeaders(init?.headers)
+        if (typeof window !== 'undefined' && this.shouldForceCrossOriginCredentialOmit(input)) {
+          const sanitizedHeaders = this.sanitizeCrossOriginHeaders(headers)
 
           return runtimeFetch(input, {
             ...(init ?? {}),
@@ -489,7 +788,21 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
             credentials: 'omit'
           })
         }
+
+        if (headers !== init?.headers) {
+          return runtimeFetch(input, {
+            ...(init ?? {}),
+            ...(headers ? { headers } : {})
+          })
+        }
+
+        return runtimeFetch(input, init)
       }
+    }
+
+    // 浏览器环境检测
+    if (typeof window !== 'undefined') {
+      sdkConfig.dangerouslyAllowBrowser = true
 
       console.log('[OpenAIAdapter] Browser environment detected. Setting dangerouslyAllowBrowser=true.')
     }
@@ -512,6 +825,14 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
    */
   protected async doSendMessage(messages: Message[], config: TextModelConfig): Promise<LLMResponse> {
     const openai = this.createOpenAIInstance(config, false)
+    if (this.getRequestStyle(config) === 'responses') {
+      try {
+        return await this.sendResponsesMessage(openai, messages, config)
+      } catch (error) {
+        console.error('[OpenAIAdapter] Responses API call failed:', error)
+        throw error
+      }
+    }
 
     // 格式化消息
     const formattedMessages = messages.map((msg) => ({
@@ -912,6 +1233,10 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     try {
       // 获取流式OpenAI实例
       const openai = this.createOpenAIInstance(config, true)
+      if (this.getRequestStyle(config) === 'responses') {
+        await this.sendResponsesMessageStream(openai, messages, config, callbacks)
+        return
+      }
 
       const formattedMessages = messages.map((msg) => ({
         role: msg.role,
@@ -1001,6 +1326,10 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     try {
       // 获取流式OpenAI实例
       const openai = this.createOpenAIInstance(config, true)
+      if (this.getRequestStyle(config) === 'responses') {
+        await this.sendResponsesMessageStream(openai, messages, config, callbacks, tools)
+        return
+      }
 
       const formattedMessages = messages.map((msg) => ({
         role: msg.role,

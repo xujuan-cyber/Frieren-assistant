@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OpenAIAdapter } from '../../../src/services/llm/adapters/openai-adapter';
+import { OpenAICompatibleAdapter } from '../../../src/services/llm/adapters/openai-compatible-adapter';
 import type { TextModelConfig, Message } from '../../../src/services/llm/types';
 
 // 创建 mock OpenAI 实例
@@ -20,6 +21,7 @@ vi.mock('openai', () => {
 
 describe('OpenAIAdapter', () => {
   let adapter: OpenAIAdapter;
+  let openAICompatibleAdapter: OpenAICompatibleAdapter;
 
   const mockConfig: TextModelConfig = {
     id: 'openai',
@@ -78,6 +80,7 @@ describe('OpenAIAdapter', () => {
 
   beforeEach(() => {
     adapter = new OpenAIAdapter();
+    openAICompatibleAdapter = new OpenAICompatibleAdapter();
     mockOpenAIConfig = undefined;
     vi.clearAllMocks();
 
@@ -87,6 +90,9 @@ describe('OpenAIAdapter', () => {
         completions: {
           create: vi.fn()
         }
+      },
+      responses: {
+        create: vi.fn()
       },
       models: {
         list: vi.fn()
@@ -213,6 +219,37 @@ describe('OpenAIAdapter', () => {
         expect(error.stack).toContain('Original Stack Trace');
       }
     });
+
+    it('should use the Responses API when requestStyle is set to responses', async () => {
+      const responsesConfig: TextModelConfig = {
+        ...mockConfig,
+        connectionConfig: {
+          ...mockConfig.connectionConfig,
+          requestStyle: 'responses'
+        }
+      };
+
+      mockOpenAIInstance.responses.create.mockResolvedValue({
+        id: 'resp_123',
+        object: 'response',
+        output_text: 'Hello from responses'
+      });
+
+      const response = await adapter.sendMessage(mockMessages, responsesConfig);
+
+      expect(mockOpenAIInstance.responses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-5-mini',
+          input: [{ role: 'user', content: 'Hello, world!' }]
+        })
+      );
+      expect(mockOpenAIInstance.chat.completions.create).not.toHaveBeenCalled();
+      expect(response.content).toBe('Hello from responses');
+      expect(response.metadata).toEqual({
+        model: 'gpt-5-mini',
+        finishReason: undefined
+      });
+    });
   });
 
   describe('browser fetch credential handling', () => {
@@ -327,6 +364,67 @@ describe('OpenAIAdapter', () => {
     });
   });
 
+  describe('openai-compatible auth handling', () => {
+    it('should allow requests without an API key by stripping the authorization header', async () => {
+      const originalFetch = (globalThis as any).fetch;
+      const runtimeFetch = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+
+      (globalThis as any).fetch = runtimeFetch;
+
+      mockOpenAIInstance.chat.completions.create.mockResolvedValue({
+        id: 'chatcmpl-custom',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'custom-model',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: 'ok'
+          },
+          finish_reason: 'stop'
+        }]
+      });
+
+      const compatibleConfig: TextModelConfig = {
+        ...mockConfig,
+        id: 'openai-compatible',
+        name: 'Custom API (OpenAI Compatible)',
+        providerMeta: openAICompatibleAdapter.getProvider(),
+        modelMeta: openAICompatibleAdapter.buildDefaultModel('custom-model'),
+        connectionConfig: {
+          baseURL: 'http://localhost:11434/v1',
+          apiKey: ''
+        }
+      };
+
+      try {
+        await openAICompatibleAdapter.sendMessage(mockMessages, compatibleConfig);
+
+        expect(typeof mockOpenAIConfig?.fetch).toBe('function');
+
+        await mockOpenAIConfig.fetch('http://localhost:11434/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const [, requestInit] = runtimeFetch.mock.calls[0];
+        const outgoingHeaders = new Headers(requestInit.headers);
+        expect(outgoingHeaders.get('authorization')).toBeNull();
+        expect(outgoingHeaders.get('content-type')).toBe('application/json');
+      } finally {
+        if (originalFetch === undefined) {
+          delete (globalThis as any).fetch;
+        } else {
+          (globalThis as any).fetch = originalFetch;
+        }
+      }
+    });
+  });
+
   describe('sendMessageStream', () => {
     it('should trigger callbacks correctly', async () => {
       const mockStream = {
@@ -372,6 +470,210 @@ describe('OpenAIAdapter', () => {
       expect(callbacks.onToken).toHaveBeenCalledWith('Hello');
       expect(callbacks.onToken).toHaveBeenCalledWith(' World');
       expect(callbacks.onComplete).toHaveBeenCalled();
+      expect(callbacks.onError).not.toHaveBeenCalled();
+    });
+
+    it('should stream Responses API text deltas when requestStyle is responses', async () => {
+      const responsesConfig: TextModelConfig = {
+        ...mockConfig,
+        connectionConfig: {
+          ...mockConfig.connectionConfig,
+          requestStyle: 'responses'
+        }
+      };
+
+      const mockStream = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            type: 'response.output_text.delta',
+            delta: 'Hello',
+            output_index: 0,
+            content_index: 0
+          };
+          yield {
+            type: 'response.output_text.delta',
+            delta: ' Responses',
+            output_index: 0,
+            content_index: 0
+          };
+          yield {
+            type: 'response.completed',
+            response: {
+              output_text: 'Hello Responses'
+            }
+          };
+        }
+      };
+
+      mockOpenAIInstance.responses.create.mockResolvedValue(mockStream);
+
+      const callbacks = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      await adapter.sendMessageStream(mockMessages, responsesConfig, callbacks);
+
+      expect(mockOpenAIInstance.responses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-5-mini',
+          input: [{ role: 'user', content: 'Hello, world!' }],
+          stream: true
+        })
+      );
+      expect(callbacks.onToken).toHaveBeenCalledWith('Hello');
+      expect(callbacks.onToken).toHaveBeenCalledWith(' Responses');
+      expect(callbacks.onComplete).toHaveBeenCalledWith({
+        content: 'Hello Responses',
+        reasoning: undefined,
+        metadata: {
+          model: 'gpt-5-mini'
+        }
+      });
+      expect(callbacks.onError).not.toHaveBeenCalled();
+    });
+
+    it('should surface provider-specific Responses stream error events without a type field', async () => {
+      const responsesConfig: TextModelConfig = {
+        ...mockConfig,
+        connectionConfig: {
+          ...mockConfig.connectionConfig,
+          requestStyle: 'responses'
+        }
+      };
+
+      const mockStream = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            code: 'InvalidParameter',
+            message: 'Missing required parameter: workspaceid'
+          };
+        }
+      };
+
+      mockOpenAIInstance.responses.create.mockResolvedValue(mockStream);
+
+      const callbacks = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      await expect(
+        adapter.sendMessageStream(mockMessages, responsesConfig, callbacks)
+      ).rejects.toThrow('Missing required parameter: workspaceid');
+
+      expect(callbacks.onError).toHaveBeenCalled();
+      expect(callbacks.onComplete).not.toHaveBeenCalled();
+    });
+
+    it('should stream Responses API tool calls when requestStyle is responses', async () => {
+      const responsesConfig: TextModelConfig = {
+        ...mockConfig,
+        connectionConfig: {
+          ...mockConfig.connectionConfig,
+          requestStyle: 'responses'
+        }
+      };
+
+      const tools = [
+        {
+          type: 'function' as const,
+          function: {
+            name: 'get_weather',
+            description: 'Get weather info',
+            parameters: {
+              type: 'object',
+              properties: {
+                city: { type: 'string' }
+              },
+              required: ['city']
+            }
+          }
+        }
+      ];
+
+      const mockStream = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'get_weather',
+              arguments: ''
+            }
+          };
+          yield {
+            type: 'response.function_call_arguments.delta',
+            output_index: 0,
+            delta: '{"city":"Beijing"}'
+          };
+          yield {
+            type: 'response.completed',
+            response: {
+              output: [
+                {
+                  type: 'function_call',
+                  call_id: 'call_123',
+                  name: 'get_weather',
+                  arguments: '{"city":"Beijing"}'
+                }
+              ]
+            }
+          };
+        }
+      };
+
+      mockOpenAIInstance.responses.create.mockResolvedValue(mockStream);
+
+      const callbacks = {
+        onToken: vi.fn(),
+        onReasoningToken: vi.fn(),
+        onToolCall: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      await adapter.sendMessageStreamWithTools(mockMessages, responsesConfig, tools, callbacks);
+
+      expect(mockOpenAIInstance.responses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-5-mini',
+          input: [{ role: 'user', content: 'Hello, world!' }],
+          stream: true,
+          tools
+        })
+      );
+      expect(callbacks.onToolCall).toHaveBeenCalledWith({
+        id: 'call_123',
+        type: 'function',
+        function: {
+          name: 'get_weather',
+          arguments: '{"city":"Beijing"}'
+        }
+      });
+      expect(callbacks.onComplete).toHaveBeenCalledWith({
+        content: '',
+        reasoning: undefined,
+        toolCalls: [
+          {
+            id: 'call_123',
+            type: 'function',
+            function: {
+              name: 'get_weather',
+              arguments: '{"city":"Beijing"}'
+            }
+          }
+        ],
+        metadata: {
+          model: 'gpt-5-mini'
+        }
+      });
       expect(callbacks.onError).not.toHaveBeenCalled();
     });
 

@@ -66,18 +66,19 @@ export class DashScopeAdapter extends OpenAIAdapter {
   public getProvider(): TextProvider {
     return {
       id: 'dashscope',
-      name: '阿里百炼',
-      description: '阿里云百炼大模型服务平台，提供通义千问系列模型',
+      name: 'DashScope',
+      description: '阿里云百炼大模型服务平台，提供通义千问系列模型，支持 OpenAI 兼容的 Chat Completions 与 Responses 接口',
       requiresApiKey: true,
       defaultBaseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       supportsDynamicModels: true,
       apiKeyUrl: 'https://bailian.console.aliyun.com/#/api-key',
       connectionSchema: {
         required: ['apiKey'],
-        optional: ['baseURL'],
+        optional: ['baseURL', 'requestStyle'],
         fieldTypes: {
           apiKey: 'string',
-          baseURL: 'string'
+          baseURL: 'string',
+          requestStyle: 'string'
         }
       }
     }
