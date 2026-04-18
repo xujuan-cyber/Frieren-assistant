@@ -1436,6 +1436,7 @@ const queueSessionSave = () => {
         .catch((e) => {
             console.error('[ImageImage2ImageWorkspace] Failed to persist image session:', e)
         })
+    return sessionSaveChain
 }
 
 const getImageDimensionsFromSource = (src: string): Promise<{ width: number; height: number }> =>
@@ -1719,6 +1720,7 @@ const handleUploadChange = async (data: ImageUploadChangePayload) => {
         session.updateInputImage(null, '')
         uploadStatus.value = 'idle'
         uploadProgress.value = 0
+        await queueSessionSave()
         return
     }
 
@@ -1741,10 +1743,11 @@ const handleUploadChange = async (data: ImageUploadChangePayload) => {
 
     const reader = new FileReader()
 
-    reader.onload = () => {
+    reader.onload = async () => {
         const dataUrl = reader.result as string
         const base64 = dataUrl.split(',')[1]
         session.updateInputImage(base64, file.type)
+        await queueSessionSave()
         uploadStatus.value = 'success'
         uploadProgress.value = 100
         toast.success(t('imageWorkspace.upload.uploadSuccess'))
@@ -1765,11 +1768,11 @@ const handleUploadChange = async (data: ImageUploadChangePayload) => {
 }
 
 // 弹窗中的上传处理
-const handleModalUploadChange = (data: ImageUploadChangePayload) => {
+const handleModalUploadChange = async (data: ImageUploadChangePayload) => {
     // 复用原有的上传逻辑
-    handleUploadChange(data);
+    await handleUploadChange(data);
     // 上传成功后关闭弹窗
-    if (data?.file && data.file.status === "finished") {
+    if (uploadStatus.value === 'success') {
         setTimeout(() => {
             showUploadModal.value = false;
         }, 1000);
