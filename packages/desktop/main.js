@@ -31,6 +31,7 @@ const {
   PREFERENCE_KEYS,
   DEFAULT_CONFIG
 } = require('./config/update-config');
+const { createGlobalDispatcherFromProxyDecision } = require('./config/proxy-dispatcher');
 const path = require('path');
 
 // 确定正确的配置文件路径
@@ -231,31 +232,22 @@ async function setupGlobalProxyDispatcherFromSystem() {
 
   // 将代理决策映射为 undici 的代理 URL
   // 支持：PROXY/HTTPS/SOCKS/SOCKS5/DIRECT
-  let dispatcher;
   let mappedProxyUrl = 'DIRECT';
   try {
-    if (proxyDecision.startsWith('PROXY ') || proxyDecision.startsWith('HTTPS ')) {
-      const hostPort = proxyDecision.split(' ')[1]; // host:port
-      mappedProxyUrl = `http://${hostPort}`;
-      dispatcher = new ProxyAgent(mappedProxyUrl);
-    } else if (proxyDecision.startsWith('SOCKS5 ')) {
-      const hostPort = proxyDecision.split(' ')[1];
-      mappedProxyUrl = `socks5://${hostPort}`;
-      dispatcher = new ProxyAgent(mappedProxyUrl);
-    } else if (proxyDecision.startsWith('SOCKS ')) {
-      const hostPort = proxyDecision.split(' ')[1];
-      mappedProxyUrl = `socks://${hostPort}`;
-      dispatcher = new ProxyAgent(mappedProxyUrl);
-    } else {
-      // DIRECT 或未知，使用默认直连 Agent
-      dispatcher = new Agent();
-    }
-
+    const { dispatcher, mappedProxyUrl: resolvedProxyUrl } = createGlobalDispatcherFromProxyDecision({
+      Agent,
+      ProxyAgent,
+      proxyDecision
+    });
+    mappedProxyUrl = resolvedProxyUrl;
     setGlobalDispatcher(dispatcher);
     // 基础日志（始终输出）
     console.log('[Proxy] 系统代理解析结果(raw):', rawResolve);
     console.log('[Proxy] 选用决策(decision):', proxyDecision);
     console.log('[Proxy] undici 全局代理:', mappedProxyUrl);
+    if (mappedProxyUrl !== 'DIRECT') {
+      console.log('[Proxy] localhost / 局域网 / 私网地址将绕过代理直连');
+    }
 
     // 诊断信息（仅在环境变量开启时输出）
     const debug = process.env.DEBUG_PROXY === '1' || process.env.PROXY_DEBUG === '1';
