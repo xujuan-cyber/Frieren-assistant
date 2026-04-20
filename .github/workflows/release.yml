@@ -383,11 +383,19 @@ jobs:
 
           appimage_files=$(find packages/desktop/dist -name "*.AppImage" 2>/dev/null | wc -l)
           zip_files=$(find packages/desktop/dist -name "*.zip" 2>/dev/null | wc -l)
+          metadata_files=$(find packages/desktop/dist -name "latest*.yml" 2>/dev/null | wc -l)
 
-          echo "Found $appimage_files .AppImage files and $zip_files .zip files"
+          echo "Found $appimage_files .AppImage files, $zip_files .zip files, and $metadata_files latest*.yml files"
 
           if [ "$appimage_files" -eq 0 ] && [ "$zip_files" -eq 0 ]; then
             echo "Error: No build artifacts (.AppImage or .zip) found in packages/desktop/dist/"
+            echo "Directory contents:"
+            find packages/desktop/dist -type f 2>/dev/null || echo "Directory not found or empty"
+            exit 1
+          fi
+
+          if [ "$metadata_files" -eq 0 ]; then
+            echo "Error: Linux build is missing updater metadata (latest*.yml)"
             echo "Directory contents:"
             find packages/desktop/dist -type f 2>/dev/null || echo "Directory not found or empty"
             exit 1
@@ -399,15 +407,29 @@ jobs:
         run: find packages/desktop/dist -type f -name "builder-debug.yml" -delete
 
       - name: 直接上传 Linux Release Assets
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
+          shopt -s nullglob
+
+          files=(
+            packages/desktop/dist/*.AppImage
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/latest*.yml
+          )
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "Error: No Linux release assets found to upload"
+            exit 1
+          fi
+
+          echo "Uploading Linux release assets:"
+          printf '  %s\n' "${files[@]}"
+
           gh release upload "$VERSION" \
-            packages/desktop/dist/*.AppImage \
-            packages/desktop/dist/*.zip \
-            packages/desktop/dist/*.blockmap \
-            packages/desktop/dist/*.yml \
+            "${files[@]}" \
             --repo "${{ github.repository }}" \
             --clobber
 
