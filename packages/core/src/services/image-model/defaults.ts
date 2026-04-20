@@ -17,20 +17,28 @@ const IMAGE_PROVIDER_ENV_KEYS = {
   cloudflare: ['VITE_CF_API_TOKEN']
 } as const
 
-/**
- * 配置 ID 映射（保持现有 ID 不变以兼容用户数据）
- * name 将从 provider.name 获取，无需硬编码
- */
-const IMAGE_CONFIG_IDS: Record<string, string> = {
-  openrouter: 'image-openrouter-nanobanana',
-  gemini: 'image-gemini-nanobanana',
-  openai: 'image-openai-gpt',
-  siliconflow: 'image-siliconflow-kolors',
-  seedream: 'image-seedream',
-  dashscope: 'image-dashscope',
-  modelscope: 'image-modelscope',
-  cloudflare: 'image-cloudflare-flux-klein'
+type BuiltinImageConfigSpec = {
+  providerId: keyof typeof IMAGE_PROVIDER_ENV_KEYS
+  configId: string
+  modelId?: string
+  displayName?: string
 }
+
+/**
+ * 内置图像配置定义。
+ * 允许一个 provider 生成多个内置配置，例如 Seedream 4.0 与 5.0 lite。
+ */
+const IMAGE_BUILTIN_CONFIGS: readonly BuiltinImageConfigSpec[] = [
+  { providerId: 'openrouter', configId: 'image-openrouter-nanobanana' },
+  { providerId: 'gemini', configId: 'image-gemini-nanobanana' },
+  { providerId: 'openai', configId: 'image-openai-gpt' },
+  { providerId: 'siliconflow', configId: 'image-siliconflow-kolors' },
+  { providerId: 'seedream', configId: 'image-seedream', modelId: 'doubao-seedream-4-0-250828' },
+  { providerId: 'seedream', configId: 'image-seedream-50-lite', modelId: 'doubao-seedream-5-0-260128', displayName: 'Doubao Seedream 5.0 Lite' },
+  { providerId: 'dashscope', configId: 'image-dashscope' },
+  { providerId: 'modelscope', configId: 'image-modelscope' },
+  { providerId: 'cloudflare', configId: 'image-cloudflare-flux-klein' }
+] as const
 
 /**
  * 特殊 baseURL 环境变量（仅需要覆盖的 Provider）
@@ -78,14 +86,15 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
   const result: Record<string, ImageModelConfig> = {}
 
   // 批量生成配置（与文本模型风格一致）
-  for (const [providerId, envKeys] of Object.entries(IMAGE_PROVIDER_ENV_KEYS)) {
-    const configId = IMAGE_CONFIG_IDS[providerId]
-    if (!configId) continue
-
+  for (const builtinConfig of IMAGE_BUILTIN_CONFIGS) {
+    const providerId = builtinConfig.providerId
+    const envKeys = IMAGE_PROVIDER_ENV_KEYS[providerId]
     const adapter = adapterRegistry.getAdapter(providerId)
     const provider = adapter.getProvider()
     const models = adapterRegistry.getStaticModels(providerId)
-    const defaultModel = models[0] || adapter.buildDefaultModel(providerId)
+    const defaultModel = models.find(model => model.id === builtinConfig.modelId)
+      || models[0]
+      || adapter.buildDefaultModel(builtinConfig.modelId || providerId)
 
     // 获取 API Key（支持备选环境变量）
     const apiKey = getFirstEnvValue(envKeys)
@@ -117,9 +126,9 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
       return typeof value === 'string' ? value.trim().length > 0 : !!value
     })
 
-    result[configId] = {
-      id: configId,
-      name: provider.name,  // 从 provider 获取名称，不再硬编码
+    result[builtinConfig.configId] = {
+      id: builtinConfig.configId,
+      name: builtinConfig.displayName || provider.name,
       providerId,
       modelId: defaultModel.id,
       enabled,
@@ -139,7 +148,7 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
  * 用于判断某个配置是否为内置模型（而非用户自定义）
  */
 export function getBuiltinImageConfigIds(): string[] {
-  return Object.values(IMAGE_CONFIG_IDS)
+  return IMAGE_BUILTIN_CONFIGS.map(config => config.configId)
 }
 
 // 直接导出所有图像模型配置（保持向后兼容，与文本模型风格一致）

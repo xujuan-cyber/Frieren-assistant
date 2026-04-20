@@ -245,6 +245,10 @@ const messages = {
       "label": "Response Format",
       "description": "Format of the returned image (URL or Base64)"
     },
+    "outputFormat": {
+      "label": "Output Format",
+      "description": "File format for the generated image (such as PNG, JPEG, or WebP)"
+    },
     "watermark": {
       "label": "Watermark",
       "description": "Whether to add a watermark to the generated image"
@@ -252,6 +256,10 @@ const messages = {
     "sequentialGeneration": {
       "label": "Sequential Generation",
       "description": "Control sequential image generation mode (for supported models)"
+    },
+    "tools": {
+      "label": "Tools",
+      "description": "List of 5.0 series extension tools, one tool name per line"
     },
     "seed": {
       "label": "Seed",

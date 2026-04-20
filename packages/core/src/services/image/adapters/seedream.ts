@@ -5,9 +5,169 @@ import type {
   ImageModel,
   ImageRequest,
   ImageResult,
-  ImageModelConfig
+  ImageModelConfig,
+  ImageParameterDefinition
 } from '../types'
 import { IMAGE_ERROR_CODES } from '../../../constants/error-codes'
+
+const SEEDREAM_40_MODEL_ID = 'doubao-seedream-4-0-250828'
+const SEEDREAM_45_MODEL_ID = 'doubao-seedream-4-5-251128'
+const SEEDREAM_50_LITE_MODEL_ID = 'doubao-seedream-5-0-260128'
+
+const SEEDREAM_40_SIZE_VALUES = ['1K', '2K', '4K', '1024x1024', '512x512', '768x768', '1024x768', '768x1024'] as const
+const SEEDREAM_45_SIZE_VALUES = ['2K', '4K', '2048x2048'] as const
+const SEEDREAM_50_LITE_SIZE_VALUES = ['2K', '4K', '2048x2048'] as const
+
+type SeedreamModelSpec = {
+  id: string
+  name: string
+  description: string
+  capabilities: ImageModel['capabilities']
+  parameterDefinitions: readonly ImageParameterDefinition[]
+  defaultParameterValues: Record<string, unknown>
+}
+
+const SEEDREAM_MODEL_SPECS: readonly SeedreamModelSpec[] = [
+  {
+    id: SEEDREAM_40_MODEL_ID,
+    name: 'Doubao Seedream 4.0',
+    description: '火山方舟 Doubao Seedream 4.0 高质量图像生成模型',
+    capabilities: {
+      text2image: true,
+      image2image: true,
+      multiImage: true
+    },
+    parameterDefinitions: [
+      {
+        name: 'size',
+        labelKey: 'params.size.label',
+        descriptionKey: 'params.size.description',
+        type: 'string',
+        defaultValue: '2K',
+        allowedValues: [...SEEDREAM_40_SIZE_VALUES]
+      },
+      {
+        name: 'sequential_image_generation',
+        labelKey: 'params.sequentialGeneration.label',
+        descriptionKey: 'params.sequentialGeneration.description',
+        type: 'string',
+        defaultValue: 'disabled',
+        allowedValues: ['disabled']
+      },
+      {
+        name: 'response_format',
+        labelKey: 'params.responseFormat.label',
+        descriptionKey: 'params.responseFormat.description',
+        type: 'string',
+        defaultValue: 'b64_json',
+        allowedValues: ['b64_json', 'url']
+      },
+      {
+        name: 'watermark',
+        labelKey: 'params.watermark.label',
+        descriptionKey: 'params.watermark.description',
+        type: 'boolean',
+        defaultValue: false
+      }
+    ],
+    defaultParameterValues: {
+      size: '2K',
+      sequential_image_generation: 'disabled',
+      response_format: 'b64_json',
+      watermark: false
+    }
+  },
+  {
+    id: SEEDREAM_45_MODEL_ID,
+    name: 'Doubao Seedream 4.5',
+    description: '火山方舟 Doubao Seedream 4.5 高质量图像生成模型',
+    capabilities: {
+      text2image: true,
+      image2image: true,
+      multiImage: true
+    },
+    parameterDefinitions: [
+      {
+        name: 'size',
+        labelKey: 'params.size.label',
+        descriptionKey: 'params.size.description',
+        type: 'string',
+        defaultValue: '2048x2048',
+        allowedValues: [...SEEDREAM_45_SIZE_VALUES]
+      },
+      {
+        name: 'sequential_image_generation',
+        labelKey: 'params.sequentialGeneration.label',
+        descriptionKey: 'params.sequentialGeneration.description',
+        type: 'string',
+        defaultValue: 'disabled',
+        allowedValues: ['disabled']
+      },
+      {
+        name: 'response_format',
+        labelKey: 'params.responseFormat.label',
+        descriptionKey: 'params.responseFormat.description',
+        type: 'string',
+        defaultValue: 'b64_json',
+        allowedValues: ['b64_json', 'url']
+      },
+      {
+        name: 'watermark',
+        labelKey: 'params.watermark.label',
+        descriptionKey: 'params.watermark.description',
+        type: 'boolean',
+        defaultValue: false
+      }
+    ],
+    defaultParameterValues: {
+      size: '2048x2048',
+      sequential_image_generation: 'disabled',
+      response_format: 'b64_json',
+      watermark: false
+    }
+  },
+  {
+    id: SEEDREAM_50_LITE_MODEL_ID,
+    name: 'Doubao Seedream 5.0 Lite',
+    description: '火山方舟 Doubao Seedream 5.0 lite 高质量图像生成模型',
+    capabilities: {
+      text2image: true,
+      image2image: true,
+      multiImage: false
+    },
+    parameterDefinitions: [
+      {
+        name: 'size',
+        labelKey: 'params.size.label',
+        descriptionKey: 'params.size.description',
+        type: 'string',
+        defaultValue: '2048x2048',
+        allowedValues: [...SEEDREAM_50_LITE_SIZE_VALUES]
+      },
+      {
+        name: 'output_format',
+        labelKey: 'params.outputFormat.label',
+        descriptionKey: 'params.outputFormat.description',
+        type: 'string',
+        defaultValue: 'png',
+        allowedValues: ['png', 'jpeg', 'webp']
+      },
+      {
+        name: 'tools',
+        labelKey: 'params.tools.label',
+        descriptionKey: 'params.tools.description',
+        type: 'string',
+        defaultValue: [],
+        tags: ['string-array']
+      }
+    ],
+    defaultParameterValues: {
+      size: '2048x2048',
+      output_format: 'png',
+      tools: []
+    }
+  }
+] as const
 
 export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
   protected normalizeBaseUrl(base: string): string {
@@ -36,106 +196,23 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
   }
 
   getModels(): ImageModel[] {
-    // 返回静态的模型列表（只保留4.0版本）
-    return [
-      {
-        id: 'doubao-seedream-4-0-250828',
-        name: 'Doubao Seedream 4.0',
-        description: '火山方舟 Doubao Seedream 4.0 高质量图像生成模型',
-        providerId: 'seedream',
-        capabilities: {
-          text2image: true,
-          image2image: true,
-          multiImage: true
-        },
-        parameterDefinitions: [
-          {
-            name: 'size',
-            labelKey: 'params.size.label',
-            descriptionKey: 'params.size.description',
-            type: 'string',
-            defaultValue: '2K',
-            allowedValues: ['1K', '2K', '4K', '1024x1024', '512x512', '768x768', '1024x768', '768x1024']
-          },
-          {
-            name: 'sequential_image_generation',
-            labelKey: 'params.sequentialGeneration.label',
-            descriptionKey: 'params.sequentialGeneration.description',
-            type: 'string',
-            defaultValue: 'disabled',
-            allowedValues: ['disabled']
-          },
-          {
-            name: 'response_format',
-            labelKey: 'params.responseFormat.label',
-            descriptionKey: 'params.responseFormat.description',
-            type: 'string',
-            defaultValue: 'b64_json',
-            allowedValues: ['b64_json', 'url']
-          },
-          {
-            name: 'watermark',
-            labelKey: 'params.watermark.label',
-            descriptionKey: 'params.watermark.description',
-            type: 'boolean',
-            defaultValue: false
-          }
-        ],
-        defaultParameterValues: {
-          size: '2K',
-          sequential_image_generation: 'disabled',
-          response_format: 'b64_json',
-          watermark: false
-        }
-      }
-    ]
+    return SEEDREAM_MODEL_SPECS.map((spec) => ({
+      id: spec.id,
+      name: spec.name,
+      description: spec.description,
+      providerId: 'seedream',
+      capabilities: { ...spec.capabilities },
+      parameterDefinitions: this.getParameterDefinitions(spec.id),
+      defaultParameterValues: this.getDefaultParameterValues(spec.id)
+    }))
   }
 
-  protected getParameterDefinitions(_modelId: string): readonly any[] {
-    // 所有模型使用统一的参数定义（只保留4.0版本）
-    return [
-      {
-        name: 'size',
-        labelKey: 'params.size.label',
-        descriptionKey: 'params.size.description',
-        type: 'string',
-        defaultValue: '2K',
-        allowedValues: ['1K', '2K', '4K', '1024x1024', '512x512', '768x768', '1024x768', '768x1024']
-      },
-      {
-        name: 'sequential_image_generation',
-        labelKey: 'params.sequentialGeneration.label',
-        descriptionKey: 'params.sequentialGeneration.description',
-        type: 'string',
-        defaultValue: 'disabled',
-        allowedValues: ['disabled']
-      },
-      {
-        name: 'response_format',
-        labelKey: 'params.responseFormat.label',
-        descriptionKey: 'params.responseFormat.description',
-        type: 'string',
-        defaultValue: 'b64_json',
-        allowedValues: ['b64_json', 'url']
-      },
-      {
-        name: 'watermark',
-        labelKey: 'params.watermark.label',
-        descriptionKey: 'params.watermark.description',
-        type: 'boolean',
-        defaultValue: false
-      }
-    ]
+  protected getParameterDefinitions(modelId: string): readonly ImageParameterDefinition[] {
+    return this.getModelSpec(modelId).parameterDefinitions.map(definition => ({ ...definition }))
   }
 
-  protected getDefaultParameterValues(_modelId: string): Record<string, unknown> {
-    // 所有模型使用统一的默认值
-    return {
-      size: '2K',
-      sequential_image_generation: 'disabled',
-      response_format: 'b64_json',
-      watermark: false
-    }
+  protected getDefaultParameterValues(modelId: string): Record<string, unknown> {
+    return { ...this.getModelSpec(modelId).defaultParameterValues }
   }
 
   // public async validateConnection(connectionConfig: Record<string, any>): Promise<boolean> {
@@ -170,19 +247,8 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
   }
 
   protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {
-    // 构建请求体
     const overrides: Record<string, any> = { ...config.paramOverrides, ...request.paramOverrides }
-    delete overrides.n
-    delete overrides.batch_size
-    delete overrides.response_format
-    const payload: any = {
-      model: config.modelId,
-      prompt: request.prompt,
-      sequential_image_generation: 'disabled', // 固定关闭组图输出，仅返回单张结果
-      response_format: 'b64_json', // 强制返回可持久化的 base64，避免 url-only 结果在浏览器侧二次抓取失败
-      ...overrides,
-      n: 1
-    }
+    const payload = this.buildPayload(request, config, overrides)
 
     const inputImages = Array.isArray(request.inputImages)
       ? request.inputImages.filter((image) => typeof image?.b64 === 'string' && image.b64.trim().length > 0)
@@ -248,5 +314,71 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
       throw new ImageError(IMAGE_ERROR_CODES.GENERATION_FAILED, `Seedream API error: ${response.status} ${errorMessage}`)
     }
     return await response.json()
+  }
+
+  private getModelSpec(modelId: string): SeedreamModelSpec {
+    return SEEDREAM_MODEL_SPECS.find(spec => spec.id === modelId) || {
+      id: modelId,
+      name: modelId,
+      description: `Custom Seedream model ${modelId}`,
+      capabilities: {
+        text2image: true,
+        image2image: true,
+        multiImage: false
+      },
+      parameterDefinitions: [
+        {
+          name: 'size',
+          labelKey: 'params.size.label',
+          descriptionKey: 'params.size.description',
+          type: 'string',
+          defaultValue: '2K',
+          allowedValues: [...SEEDREAM_40_SIZE_VALUES]
+        },
+        {
+          name: 'response_format',
+          labelKey: 'params.responseFormat.label',
+          descriptionKey: 'params.responseFormat.description',
+          type: 'string',
+          defaultValue: 'b64_json',
+          allowedValues: ['b64_json', 'url']
+        }
+      ],
+      defaultParameterValues: {
+        size: '2K',
+        response_format: 'b64_json'
+      }
+    }
+  }
+
+  private buildPayload(request: ImageRequest, config: ImageModelConfig, rawOverrides: Record<string, any>): Record<string, unknown> {
+    const overrides = { ...rawOverrides }
+    delete overrides.n
+    delete overrides.batch_size
+
+    if (config.modelId === SEEDREAM_50_LITE_MODEL_ID) {
+      delete overrides.response_format
+      delete overrides.sequential_image_generation
+      delete overrides.watermark
+
+      return {
+        model: config.modelId,
+        prompt: request.prompt,
+        response_format: 'b64_json',
+        ...overrides,
+        n: 1
+      }
+    }
+
+    delete overrides.response_format
+
+    return {
+      model: config.modelId,
+      prompt: request.prompt,
+      sequential_image_generation: 'disabled',
+      response_format: 'b64_json',
+      ...overrides,
+      n: 1
+    }
   }
 }

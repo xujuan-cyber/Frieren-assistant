@@ -245,6 +245,10 @@ const messages = {
       "label": "响应格式",
       "description": "返回图片的格式（URL 或 Base64 编码）"
     },
+    "outputFormat": {
+      "label": "输出格式",
+      "description": "指定生成图像的文件格式（如 PNG、JPEG 或 WebP）"
+    },
     "watermark": {
       "label": "水印",
       "description": "是否在生成的图像上添加水印"
@@ -252,6 +256,10 @@ const messages = {
     "sequentialGeneration": {
       "label": "序列生成",
       "description": "控制序列图像生成模式（支持的模型）"
+    },
+    "tools": {
+      "label": "工具",
+      "description": "5.0 系列扩展工具列表，每行一个工具名"
     },
     "seed": {
       "label": "随机种子",

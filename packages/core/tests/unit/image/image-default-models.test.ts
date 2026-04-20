@@ -30,6 +30,24 @@ describe('default image models', () => {
     expect(models['image-seedream'].enabled).toBe(true)
   })
 
+  it('keeps the builtin image-seedream config pinned to the 4.0 model for compatibility', () => {
+    process.env.VITE_SEEDREAM_API_KEY = 'seed'
+    const models = getDefaultImageModels(registry)
+
+    expect(models['image-seedream'].modelId).toBe('doubao-seedream-4-0-250828')
+    expect(models['image-seedream'].model.name).toBe('Doubao Seedream 4.0')
+  })
+
+  it('adds a builtin Seedream 5.0 lite config while keeping the 4.0 config intact', () => {
+    process.env.VITE_SEEDREAM_API_KEY = 'seed'
+    const models = getDefaultImageModels(registry)
+
+    expect(models['image-seedream-50-lite']).toBeDefined()
+    expect(models['image-seedream-50-lite'].providerId).toBe('seedream')
+    expect(models['image-seedream-50-lite'].modelId).toBe('doubao-seedream-5-0-260128')
+    expect(models['image-seedream-50-lite'].enabled).toBe(true)
+  })
+
   it('includes OpenRouter configuration when API key is present', () => {
     process.env.VITE_OPENROUTER_API_KEY = 'openrouter-key'
     const models = getDefaultImageModels(registry)

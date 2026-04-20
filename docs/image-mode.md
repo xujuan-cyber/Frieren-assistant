@@ -18,6 +18,10 @@
   - provider: `seedream`
   - defaultModel: `doubao-seedream-4-0-250828`
   - apiKey: 读取 `VITE_SEEDREAM_API_KEY` | `VITE_ARK_API_KEY`（或 `process.env.ARK_API_KEY`）
+- Seedream 5.0 Lite（image-seedream-50-lite）
+  - provider: `seedream`
+  - defaultModel: `doubao-seedream-5-0-260128`
+  - apiKey: 复用 `VITE_SEEDREAM_API_KEY` | `VITE_ARK_API_KEY`（或 `process.env.ARK_API_KEY`）
 
 > 提示：配置好以上环境变量后，内置图像模型将自动注入并按需启用。
 
