@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.9.4] - 2026-04-20
+- EN: This release improves image workflow reliability with restored image-to-image session persistence, aligns Seedream model metadata and built-in defaults with current capabilities, adds OpenAI Responses request-style support, and makes desktop/local release flows more robust. See [Release Notes (EN)](releases/v2.9.4.en.md).
+- 中文：本次发布修复了图生图会话恢复、按最新能力校准了 Seedream 模型元数据与内置默认项，补上 OpenAI Responses 请求风格支持，并让桌面端本地直连与 Release 发布链路更稳。参见 [版本说明（中文）](releases/v2.9.4.zh-CN.md)。
+
 ## [2.9.3] - 2026-04-10
 - EN: This release establishes an English-first locale baseline, restores localized user feedback across key UI workflows, hardens MCP and repository guardrails, and extracts evaluation prompt assets into maintainable modules. See [Release Notes (EN)](releases/v2.9.3.en.md).
 - 中文：本次发布建立了 English-first locale 基线，补回关键 UI 流程的本地化反馈，并加固了 MCP、仓库守护校验与评估模板资产结构。参见 [版本说明（中文）](releases/v2.9.3.zh-CN.md)。
