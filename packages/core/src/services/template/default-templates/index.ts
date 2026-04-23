@@ -11,6 +11,10 @@ import { template as output_format_optimize } from './optimize/output-format-opt
 import { template as output_format_optimize_en } from './optimize/output-format-optimize_en';
 import { template as analytical_optimize } from './optimize/analytical-optimize';
 import { template as analytical_optimize_en } from './optimize/analytical-optimize_en';
+import { template as soul_openclaw_compose } from './optimize/soul-openclaw-compose';
+import { template as soul_openclaw_compose_en } from './optimize/soul-openclaw-compose_en';
+import { template as soul_hermes_compose } from './optimize/soul-hermes-compose';
+import { template as soul_hermes_compose_en } from './optimize/soul-hermes-compose_en';
 import { template as context_iterate } from './iterate/context/context-iterate';
 import { template as context_iterate_en } from './iterate/context/context-iterate_en';
 // 上下文消息优化模板（多轮对话模式专用）- 通用模板优先
@@ -31,6 +35,8 @@ import { template as context_user_prompt_planning_ctx_en } from './user-optimize
 
 import { template as iterate } from './iterate/iterate';
 import { template as iterate_en } from './iterate/iterate_en';
+import { template as soul_iterate } from './iterate/soul-iterate';
+import { template as soul_iterate_en } from './iterate/soul-iterate_en';
 
 import { user_prompt_professional } from './user-optimize/user-prompt-professional';
 import { user_prompt_professional_en } from './user-optimize/user-prompt-professional_en';
@@ -151,6 +157,10 @@ export const ALL_TEMPLATES = {
   output_format_optimize_en,
   analytical_optimize,
   analytical_optimize_en,
+  soul_openclaw_compose,
+  soul_openclaw_compose_en,
+  soul_hermes_compose,
+  soul_hermes_compose_en,
   context_iterate,
   context_iterate_en,
   context_message_optimize,
@@ -169,6 +179,8 @@ export const ALL_TEMPLATES = {
   user_prompt_professional_en,
   iterate,
   iterate_en,
+  soul_iterate,
+  soul_iterate_en,
   user_prompt_basic,
   user_prompt_basic_en,
   user_prompt_planning,
