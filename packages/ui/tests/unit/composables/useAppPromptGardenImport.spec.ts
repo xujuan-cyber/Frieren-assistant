@@ -426,8 +426,8 @@ describe('useAppPromptGardenImport', () => {
       expect(proMultiMessageSession.chainId).toBe('')
       expect(proMultiMessageSession.versionId).toBe('')
 
-      // Variables injected from schema; existing values preserved.
-      expect(proMultiMessageSession.getTemporaryVariable('topic')).toBe('pizza')
+      // Variables are re-seeded from the import payload after clear-content runs.
+      expect(proMultiMessageSession.getTemporaryVariable('topic')).toBe('ice cream')
       expect(proMultiMessageSession.getTemporaryVariable('format')).toBe('markdown')
       expect(proMultiMessageSession.getTemporaryVariable('tone')).toBe('')
       expect(proMultiMessageSession.getTemporaryVariable('obsolete')).toBeUndefined()
@@ -581,8 +581,8 @@ describe('useAppPromptGardenImport', () => {
       expect(proVariableSession.testVariantResults.a).toEqual({ result: '', reasoning: '' })
       expect(proVariableSession.testVariantResults.b).toEqual({ result: '', reasoning: '' })
 
-      // Variables injected from schema; existing values preserved.
-      expect(proVariableSession.getTemporaryVariable('name')).toBe('Bob')
+      // Variables are re-seeded from the import payload after clear-content runs.
+      expect(proVariableSession.getTemporaryVariable('name')).toBe('Alice')
       expect(proVariableSession.getTemporaryVariable('tone')).toBe('')
       expect(proVariableSession.getTemporaryVariable('obsolete')).toBeUndefined()
 
@@ -1148,6 +1148,18 @@ describe('useAppPromptGardenImport', () => {
     const imageText2ImageSession = useImageText2ImageSession(pinia)
     const imageImage2ImageSession = useImageImage2ImageSession(pinia)
 
+    imageText2ImageSession.updateOptimizedResult({
+      optimizedPrompt: 'old-opt',
+      reasoning: 'old-r',
+      chainId: 'old-chain',
+      versionId: 'old-version',
+    })
+    imageText2ImageSession.testVariantResults = {
+      ...imageText2ImageSession.testVariantResults,
+      a: { result: 'old-a', reasoning: 'old-a-r' },
+      b: { result: 'old-b', reasoning: 'old-b-r' },
+    }
+
     // Existing values should be preserved.
     imageText2ImageSession.setTemporaryVariable('season', 'winter')
     imageText2ImageSession.setTemporaryVariable('obsolete', 'should-delete')
@@ -1235,9 +1247,15 @@ describe('useAppPromptGardenImport', () => {
 
       // Prompt imported into image session.
       expect(imageText2ImageSession.originalPrompt).toBe('Draw a {{season}} {{style}} landscape')
+      expect(imageText2ImageSession.optimizedPrompt).toBe('')
+      expect(imageText2ImageSession.reasoning).toBe('')
+      expect(imageText2ImageSession.chainId).toBe('')
+      expect(imageText2ImageSession.versionId).toBe('')
+      expect(imageText2ImageSession.testVariantResults.a).toBeNull()
+      expect(imageText2ImageSession.testVariantResults.b).toBeNull()
 
-      // The variable key exists; existing value preserved.
-      expect(imageText2ImageSession.getTemporaryVariable('season')).toBe('winter')
+      // Variables are re-seeded from the import payload after clear-content runs.
+      expect(imageText2ImageSession.getTemporaryVariable('season')).toBe('')
 
       // Missing variable names are injected as empty strings.
       expect(imageText2ImageSession.getTemporaryVariable('style')).toBe('')
@@ -1276,6 +1294,25 @@ describe('useAppPromptGardenImport', () => {
     const proVariableSession = useProVariableSession(pinia)
     const imageText2ImageSession = useImageText2ImageSession(pinia)
     const imageImage2ImageSession = useImageImage2ImageSession(pinia)
+
+    imageImage2ImageSession.updatePrompt('old prompt')
+    imageImage2ImageSession.updateOptimizedResult({
+      optimizedPrompt: 'old-opt',
+      reasoning: 'old-r',
+      chainId: 'old-chain',
+      versionId: 'old-version',
+    })
+    imageImage2ImageSession.updateInputImage({
+      imageB64: 'old-b64',
+      imageId: null,
+      mimeType: 'image/png',
+    })
+    imageImage2ImageSession.testVariantResults = {
+      ...imageImage2ImageSession.testVariantResults,
+      a: { result: 'old-a', reasoning: 'old-a-r' },
+      b: { result: 'old-b', reasoning: 'old-b-r' },
+    }
+    imageImage2ImageSession.setTemporaryVariable('obsolete', 'should-delete')
 
     const optimizerCurrentVersions = ref<PromptRecordChain['versions']>([makeDummyRecord()])
     const hasRestoredInitialState = ref(false)
@@ -1374,6 +1411,13 @@ describe('useAppPromptGardenImport', () => {
 
       expect(currentRoute.value.path).toBe('/image/image2image')
       expect(imageImage2ImageSession.originalPrompt).toBe('Transform the image')
+      expect(imageImage2ImageSession.optimizedPrompt).toBe('')
+      expect(imageImage2ImageSession.reasoning).toBe('')
+      expect(imageImage2ImageSession.chainId).toBe('')
+      expect(imageImage2ImageSession.versionId).toBe('')
+      expect(imageImage2ImageSession.testVariantResults.a).toBeNull()
+      expect(imageImage2ImageSession.testVariantResults.b).toBeNull()
+      expect(imageImage2ImageSession.getTemporaryVariable('obsolete')).toBeUndefined()
 
       // [0,1,2,3] -> AAECAw==
       expect(imageImage2ImageSession.inputImageB64).toBe('AAECAw==')
