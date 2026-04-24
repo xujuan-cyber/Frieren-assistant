@@ -206,6 +206,18 @@ const messages = {
       "label": "包含思考過程",
       "description": "是否在回應中包含模型的思考過程（僅 Gemini 2.5+）。啟用後可以看到模型的推理步驟。"
     },
+    "reasoning_effort": {
+      "label": "推理強度",
+      "description": "控制支援思考模式的模型投入的推理強度。"
+    },
+    "deepseek": {
+      "thinking_type": {
+        "label": "思考模式",
+        "description": "控制 DeepSeek 思考模式，會作為 thinking.type 傳送到 API 請求中。",
+        "disabled": "關閉",
+        "enabled": "開啟"
+      }
+    },
     "tokens": {
       "unit": "令牌"
     },

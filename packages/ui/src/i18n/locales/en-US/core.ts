@@ -182,7 +182,8 @@ const messages = {
       "testProcessError": "Error occurred during test process",
       "initTemplateFailed": "Failed to initialize template selection",
       "appInitFailed": "Application initialization failed, please refresh or contact support",
-      "loadRecordFailed": "Failed to load version content"
+      "loadRecordFailed": "Failed to load version content",
+      "promptGardenImportFailed": "Failed to import from Prompt Garden"
     },
     "success": {
       "optimizeSuccess": "Optimization successful",

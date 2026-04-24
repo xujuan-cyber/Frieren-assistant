@@ -182,7 +182,8 @@ const messages = {
       "initTemplateFailed": "初始化範本選擇失敗",
       "appInitFailed": "應用程式初始化失敗，請重新整理或聯絡支援",
       "historyUnavailable": "歷史紀錄服務暫時不可用",
-      "loadRecordFailed": "載入版本內容失敗"
+      "loadRecordFailed": "載入版本內容失敗",
+      "promptGardenImportFailed": "從 Prompt Garden 匯入失敗"
     },
     "success": {
       "optimizeSuccess": "優化成功",

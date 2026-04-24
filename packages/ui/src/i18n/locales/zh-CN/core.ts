@@ -182,7 +182,8 @@ const messages = {
       "testProcessError": "测试过程中发生错误",
       "initTemplateFailed": "初始化模板选择失败",
       "appInitFailed": "应用初始化失败，请刷新或联系支持",
-      "loadRecordFailed": "加载版本内容失败"
+      "loadRecordFailed": "加载版本内容失败",
+      "promptGardenImportFailed": "从 Prompt Garden 导入失败"
     },
     "success": {
       "optimizeSuccess": "优化成功",

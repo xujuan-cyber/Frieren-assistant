@@ -206,6 +206,18 @@ const messages = {
       "label": "Include Thoughts",
       "description": "Whether to include the model's thinking process in the response (Gemini 2.5+ only). When enabled, you can see the model's reasoning steps."
     },
+    "reasoning_effort": {
+      "label": "Reasoning Effort",
+      "description": "Controls the reasoning effort for models that support thinking mode."
+    },
+    "deepseek": {
+      "thinking_type": {
+        "label": "Thinking Mode",
+        "description": "Controls DeepSeek thinking mode. Sent as thinking.type in the API request.",
+        "disabled": "Disabled",
+        "enabled": "Enabled"
+      }
+    },
     "tokens": {
       "unit": "tokens"
     },

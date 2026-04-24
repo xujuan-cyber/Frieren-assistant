@@ -92,9 +92,24 @@ describe('ui runtime english guards', () => {
     expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenExampleInputImageLoadFailed'\)\)\)/)
     expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenExampleInputImagesPartialLoadFailed'\)\)\)/)
     expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenFavoriteSaveFailed'\)\)\)/)
+    expect(source).toMatch(/toast\.error\(String\(i18n\.global\.t\('toast\.error\.promptGardenImportFailed'\)\)\)/)
     expect(source).not.toMatch(/toast\.warning\('Failed to load the example input image\./)
     expect(source).not.toMatch(/toast\.warning\('Some example input images could not be loaded\./)
     expect(source).not.toMatch(/toast\.warning\('Prompt Garden import succeeded, but saving the favorite failed\.'\)/)
+  })
+
+  it('keeps DeepSeek advanced parameter labels locale-backed', () => {
+    const source = readUiSource('../core/src/services/llm/adapters/deepseek-adapter.ts')
+
+    expect(source).toMatch(/params\.deepseek\.thinking_type\.label/)
+    expect(source).toMatch(/params\.deepseek\.thinking_type\.enabled/)
+    expect(source).toMatch(/params\.reasoning_effort\.label/)
+    expect(enUS.params.deepseek.thinking_type.enabled).toBe('Enabled')
+    expect(zhCN.params.deepseek.thinking_type.enabled).toBe('开启')
+    expect(zhTW.params.deepseek.thinking_type.enabled).toBe('開啟')
+    expect(enUS.params.reasoning_effort.label).toBe('Reasoning Effort')
+    expect(zhCN.params.reasoning_effort.label).toBe('推理强度')
+    expect(zhTW.params.reasoning_effort.label).toBe('推理強度')
   })
 
   it('keeps favorites management fallbacks locale-backed', () => {
