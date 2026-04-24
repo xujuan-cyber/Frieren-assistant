@@ -4,6 +4,48 @@ import { useImageText2ImageSession } from '../../../../src/stores/session/useIma
 import { useImageImage2ImageSession } from '../../../../src/stores/session/useImageImage2ImageSession'
 
 describe('Session stores (image) persistence', () => {
+  it('image-text2image clearContent removes image content while preserving workspace selections', () => {
+    const { pinia } = createTestPinia({
+      imageStorageService: {
+        saveImage: vi.fn(),
+        getMetadata: vi.fn(async () => null),
+        listAllMetadata: vi.fn(async () => []),
+        deleteImages: vi.fn(async () => {}),
+        getImage: vi.fn(async () => null),
+      } as any,
+    })
+    const store = useImageText2ImageSession(pinia)
+
+    store.updatePrompt('prompt')
+    store.updateOptimizedResult({ optimizedPrompt: 'optimized', reasoning: 'reasoning', chainId: 'chain', versionId: 'version' })
+    store.setTemporaryVariable('topic', 'pizza')
+    store.updateOriginalImageResult({ images: [{ b64: 'AAAA', mimeType: 'image/png' }], metadata: {} } as any)
+    store.updateOptimizedImageResult({ images: [{ b64: 'BBBB', mimeType: 'image/png' }], metadata: {} } as any)
+    store.updateTextModel('text-model')
+    store.updateImageModel('image-model')
+    store.updateTemplate('template')
+    store.updateIterateTemplate('iterate-template')
+    store.setTestColumnCount(3)
+    store.updateTestVariant('d', { modelKey: 'variant-model' })
+
+    store.clearContent({ persist: false })
+
+    expect(store.originalPrompt).toBe('')
+    expect(store.optimizedPrompt).toBe('')
+    expect(store.reasoning).toBe('')
+    expect(store.chainId).toBe('')
+    expect(store.versionId).toBe('')
+    expect(store.temporaryVariables).toEqual({})
+    expect(store.originalImageResult).toBeNull()
+    expect(store.optimizedImageResult).toBeNull()
+    expect(store.selectedTextModelKey).toBe('text-model')
+    expect(store.selectedImageModelKey).toBe('image-model')
+    expect(store.selectedTemplateId).toBe('template')
+    expect(store.selectedIterateTemplateId).toBe('iterate-template')
+    expect(store.layout.testColumnCount).toBe(3)
+    expect(store.testVariants.find((variant) => variant.id === 'd')?.modelKey).toBe('variant-model')
+  })
+
   it('image-text2image clearTemporaryVariables persists the cleared snapshot', async () => {
     const set = vi.fn(async () => {})
     const { pinia } = createTestPinia({

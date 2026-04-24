@@ -11,7 +11,7 @@
  * @param optimizationMode - 优化模式（'system' | 'user'）
  * @param templateType - 优化模板类型（'optimize' | 'userOptimize'）
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import type { AppServices } from '../../types/services'
 import type { OptimizationRequest, PromptRecord, PromptRecordChain, PromptRecordType } from '@prompt-optimizer/core'
 import { v4 as uuidv4 } from 'uuid'
@@ -44,6 +44,7 @@ type BasicSessionStore = {
   updateTestModel: (key: string) => void
   updateTemplate: (id: string | null) => void
   updateIterateTemplate: (id: string | null) => void
+  clearContent: () => void
 }
 
 interface UseBasicWorkspaceLogicOptions {
@@ -572,6 +573,23 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     })
   }
 
+  const clearContent = () => {
+    sessionStore.clearContent()
+    currentChainId.value = ''
+    currentVersions.value = []
+    currentVersionId.value = ''
+  }
+
+  watch(
+    () => [sessionStore.chainId, sessionStore.versionId, sessionStore.optimizedPrompt] as const,
+    ([chainId, versionId, optimized]) => {
+      if (chainId || versionId || optimized) return
+      currentChainId.value = ''
+      currentVersions.value = []
+      currentVersionId.value = ''
+    }
+  )
+
   return {
     // 状态代理
     prompt,
@@ -599,6 +617,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     handleSwitchVersion,
     handleSwitchToV0,
     loadVersions,
-    handleAnalyze
+    handleAnalyze,
+    clearContent
   }
 }

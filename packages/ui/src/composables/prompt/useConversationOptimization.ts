@@ -39,6 +39,7 @@ export interface UseConversationOptimization {
   switchToV0: (version: PromptRecordChain['versions'][number]) => Promise<void>  // 🆕 V0 切换
   applyToConversation: (messageId: string, content: string) => void
   applyCurrentVersion: () => Promise<void>
+  clearContent: () => void
   cleanupDeletedMessageMapping: (messageId: string, options?: { keepSelection?: boolean }) => void
   saveLocalEdit: (payload: { optimizedPrompt: string; note?: string; source?: 'patch' | 'manual' }) => Promise<void>
   restoreFromSessionStore: () => void  // 🔧 Codex 修复：显式恢复函数
@@ -276,6 +277,13 @@ export function useConversationOptimization(
     () => {
       if (optimizationMode.value !== 'system') return
       if (isSyncingMapToSession.value) return
+      if (!proMultiMessageSession.messageChainMap || Object.keys(proMultiMessageSession.messageChainMap).length === 0) {
+        messageChainMap.value = new Map()
+        if (!proMultiMessageSession.chainId && !proMultiMessageSession.versionId) {
+          currentVersions.value = []
+        }
+        return
+      }
       restoreFromSessionStore()
     },
     { immediate: true, flush: 'sync', deep: true }
@@ -758,6 +766,22 @@ export function useConversationOptimization(
     toast.success(t('toast.success.versionApplied'))
   }
 
+  const clearContent = () => {
+    messageChainMap.value = new Map()
+    currentVersions.value = []
+
+    if (optimizationMode.value === 'system') {
+      proMultiMessageSession.clearContent()
+      return
+    }
+
+    localSelectedMessageId.value = ''
+    localChainId.value = ''
+    localRecordId.value = ''
+    localOptimizedPrompt.value = ''
+    localOptimizedReasoning.value = ''
+  }
+
   /**
    * 清理已删除消息的映射
    * @param messageId 被删除的消息 ID
@@ -894,6 +918,7 @@ export function useConversationOptimization(
     switchToV0,  // 🆕 V0 切换方法
     applyToConversation,
     applyCurrentVersion,
+    clearContent,
     cleanupDeletedMessageMapping,
     saveLocalEdit,
     restoreFromSessionStore  // 🔧 Codex 修复：显式恢复函数

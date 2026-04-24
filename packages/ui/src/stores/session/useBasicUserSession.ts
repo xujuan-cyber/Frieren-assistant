@@ -293,6 +293,27 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
     lastActiveAt.value = Date.now()
   }
 
+  const clearContent = (options: { persist?: boolean } = {}) => {
+    const defaultState = createDefaultState()
+    prompt.value = defaultState.prompt
+    optimizedPrompt.value = defaultState.optimizedPrompt
+    reasoning.value = defaultState.reasoning
+    chainId.value = defaultState.chainId
+    versionId.value = defaultState.versionId
+    testContent.value = defaultState.testContent
+    testVariantResults.value = defaultState.testVariantResults
+    testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
+    evaluationResults.value = defaultState.evaluationResults
+    compareSnapshotRoles.value = defaultState.compareSnapshotRoles
+    compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
+    lastActiveAt.value = Date.now()
+    if (options.persist !== false) {
+      void saveSession().catch((error) => {
+        console.error('[BasicUserSession] Failed to persist cleared content:', error)
+      })
+    }
+  }
+
   /**
    * 更新测试内容
    */
@@ -607,6 +628,7 @@ export const useBasicUserSession = defineStore('basicUserSession', () => {
     setTestColumnCount,
     setMainSplitLeftPct,
     resetTestVariantState,
+    clearContent,
     updateTestVariant,
     updateOptimizeModel,
     updateTestModel,

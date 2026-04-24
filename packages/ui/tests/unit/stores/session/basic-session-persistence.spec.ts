@@ -5,6 +5,38 @@ import { createTestPinia } from '../../../utils/pinia-test-helpers'
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
 
 describe('Session stores (basic) persistence', () => {
+  it('basic-system clearContent removes derived content while preserving workspace selections', () => {
+    const { pinia } = createTestPinia()
+    const store = useBasicSystemSession(pinia)
+
+    store.updatePrompt('prompt')
+    store.updateOptimizedResult({ optimizedPrompt: 'optimized', reasoning: 'reasoning', chainId: 'chain', versionId: 'version' })
+    store.updateTestContent('test input')
+    store.updateOptimizeModel('opt-model')
+    store.updateTestModel('test-model')
+    store.updateTemplate('template')
+    store.updateIterateTemplate('iterate-template')
+    store.setMainSplitLeftPct(42)
+    store.setTestColumnCount(4)
+    store.updateTestVariant('a', { modelKey: 'variant-model' })
+
+    store.clearContent()
+
+    expect(store.prompt).toBe('')
+    expect(store.optimizedPrompt).toBe('')
+    expect(store.reasoning).toBe('')
+    expect(store.chainId).toBe('')
+    expect(store.versionId).toBe('')
+    expect(store.testContent).toBe('')
+    expect(store.testVariantResults.a).toEqual({ result: '', reasoning: '' })
+    expect(store.selectedOptimizeModelKey).toBe('opt-model')
+    expect(store.selectedTestModelKey).toBe('test-model')
+    expect(store.selectedTemplateId).toBe('template')
+    expect(store.selectedIterateTemplateId).toBe('iterate-template')
+    expect(store.layout).toEqual({ mainSplitLeftPct: 42, testColumnCount: 4 })
+    expect(store.testVariants.find((variant) => variant.id === 'a')?.modelKey).toBe('variant-model')
+  })
+
   it('basic-system saveSession writes snapshot to preferenceService', async () => {
     const set = vi.fn(async () => {})
 

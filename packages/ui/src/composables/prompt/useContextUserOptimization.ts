@@ -1,4 +1,4 @@
-import { ref, nextTick, computed, reactive, type Ref } from 'vue'
+import { ref, nextTick, computed, reactive, watch, type Ref } from 'vue'
 import { useToast } from '../ui/useToast'
 import { useI18n } from 'vue-i18n'
 import { getI18nErrorMessage } from '../../utils/error'
@@ -19,6 +19,7 @@ export interface ContextUserOptimizationBindings {
   optimizedReasoning?: Ref<string>
   currentChainId?: Ref<string>
   currentVersionId?: Ref<string>
+  clearSessionContent?: () => void
 }
 
 /**
@@ -44,6 +45,7 @@ export interface UseContextUserOptimization {
   switchToV0: (version: PromptChain['versions'][number]) => Promise<void>  // 🆕 V0 切换
   loadFromHistory: (payload: { rootPrompt?: string, chain: PromptChain, record: PromptRecord }) => void
   saveLocalEdit: (payload: { optimizedPrompt: string; note?: string; source?: 'patch' | 'manual' }) => Promise<void>
+  clearContent: () => void
   handleAnalyze: () => void  // 🆕 分析功能
 }
 
@@ -441,6 +443,16 @@ export function useContextUserOptimization(
       }
     },
 
+    clearContent: () => {
+      bindings?.clearSessionContent?.()
+      state.prompt = ''
+      state.optimizedPrompt = ''
+      state.optimizedReasoning = ''
+      state.currentChainId = ''
+      state.currentVersions = []
+      state.currentVersionId = ''
+    },
+
     /**
      * 分析功能：清空版本链，创建 V0（原始版本）
      * - 不写入历史记录
@@ -488,6 +500,14 @@ export function useContextUserOptimization(
   const unwatchIterateTemplate = () => {
     state.selectedIterateTemplate = selectedIterateTemplate.value
   }
+
+  watch(
+    () => [state.currentChainId, state.currentVersionId, state.optimizedPrompt] as const,
+    ([chainId, versionId, optimized]) => {
+      if (chainId || versionId || optimized) return
+      state.currentVersions = []
+    }
+  )
 
   // 返回 reactive 对象
   return state

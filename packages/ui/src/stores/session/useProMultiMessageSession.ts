@@ -400,6 +400,29 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     lastActiveAt.value = Date.now()
   }
 
+  const clearContent = (options: { persist?: boolean } = {}) => {
+    const defaultState = createDefaultState()
+    conversationMessagesSnapshot.value = defaultState.conversationMessagesSnapshot
+    selectedMessageId.value = defaultState.selectedMessageId
+    optimizedPrompt.value = defaultState.optimizedPrompt
+    reasoning.value = defaultState.reasoning
+    chainId.value = defaultState.chainId
+    versionId.value = defaultState.versionId
+    temporaryVariables.value = defaultState.temporaryVariables
+    messageChainMap.value = defaultState.messageChainMap
+    testVariantResults.value = defaultState.testVariantResults
+    testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
+    evaluationResults.value = defaultState.evaluationResults
+    compareSnapshotRoles.value = defaultState.compareSnapshotRoles
+    compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
+    lastActiveAt.value = Date.now()
+    if (options.persist !== false) {
+      void saveSession().catch((error) => {
+        console.error('[ProMultiMessageSession] Failed to persist cleared content:', error)
+      })
+    }
+  }
+
   /**
    * 重置状态
    */
@@ -701,6 +724,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     setTestColumnCount,
     setMainSplitLeftPct,
     resetTestVariantState,
+    clearContent,
     updateTestVariant,
     reset,
 

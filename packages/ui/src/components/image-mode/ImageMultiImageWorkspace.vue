@@ -1,5 +1,12 @@
 <template>
   <div class="image-multiimage-workspace" data-testid="workspace" data-mode="image-multiimage">
+    <div class="workspace-page-tools">
+      <WorkspaceUtilityMenu
+        :disabled="optimizing || isIterating || isAnyVariantRunning"
+        test-id="image-multiimage-workspace-utility-menu"
+        @clear="handleClearContent"
+      />
+    </div>
     <div
       ref="splitRootRef"
       class="image-multiimage-split"
@@ -564,6 +571,7 @@ import FullscreenDialog from '../FullscreenDialog.vue'
 import AppPreviewImage from '../media/AppPreviewImage.vue'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
+import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ImageTokenUsage from './ImageTokenUsage.vue'
@@ -1675,6 +1683,23 @@ const handleSaveFavorite = (data: { content: string; originalContent?: string })
   }
 }
 
+const handleClearContent = () => {
+  currentChainId.value = ''
+  currentVersions.value = []
+  currentVersionId.value = ''
+  session.clearContent()
+}
+
+watch(
+  () => [session.chainId, session.versionId, session.optimizedPrompt] as const,
+  ([chainId, versionId, optimized]) => {
+    if (chainId || versionId || optimized) return
+    currentChainId.value = ''
+    currentVersions.value = []
+    currentVersionId.value = ''
+  },
+)
+
 const handleRestoreFavorite = (event: Event) => {
   if (!(event instanceof CustomEvent)) return
   const detail = event.detail as { content?: string; imageSubMode?: string; metadata?: Record<string, unknown> }
@@ -1801,7 +1826,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.image-multiimage-workspace { height: 100%; min-height: 0; }
+.image-multiimage-workspace { position: relative; height: 100%; min-height: 0; overflow: visible; }
+.workspace-page-tools { display: contents; }
 .image-multiimage-split { display: grid; gap: 12px; height: 100%; min-height: 0; overflow: hidden; }
 .split-pane { min-height: 0; min-width: 0; overflow: hidden; }
 .hidden-input { display: none; }

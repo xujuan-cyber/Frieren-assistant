@@ -5,6 +5,72 @@ import { useProVariableSession } from '../../../../src/stores/session/useProVari
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
 
 describe('Session stores (pro) persistence', () => {
+  it('pro-variable clearContent removes content and variables while preserving workspace selections', () => {
+    const { pinia } = createTestPinia()
+    const store = useProVariableSession(pinia)
+
+    store.updatePrompt('prompt')
+    store.updateOptimizedResult({ optimizedPrompt: 'optimized', reasoning: 'reasoning', chainId: 'chain', versionId: 'version' })
+    store.updateTestContent('test input')
+    store.setTemporaryVariable('topic', 'pizza')
+    store.updateOptimizeModel('opt-model')
+    store.updateTestModel('test-model')
+    store.updateTemplate('template')
+    store.updateIterateTemplate('iterate-template')
+    store.setTestColumnCount(3)
+    store.updateTestVariant('b', { modelKey: 'variant-model' })
+
+    store.clearContent()
+
+    expect(store.prompt).toBe('')
+    expect(store.optimizedPrompt).toBe('')
+    expect(store.reasoning).toBe('')
+    expect(store.chainId).toBe('')
+    expect(store.versionId).toBe('')
+    expect(store.testContent).toBe('')
+    expect(store.temporaryVariables).toEqual({})
+    expect(store.selectedOptimizeModelKey).toBe('opt-model')
+    expect(store.selectedTestModelKey).toBe('test-model')
+    expect(store.selectedTemplateId).toBe('template')
+    expect(store.selectedIterateTemplateId).toBe('iterate-template')
+    expect(store.layout.testColumnCount).toBe(3)
+    expect(store.testVariants.find((variant) => variant.id === 'b')?.modelKey).toBe('variant-model')
+  })
+
+  it('pro-multi clearContent removes conversation content while preserving workspace selections', () => {
+    const { pinia } = createTestPinia()
+    const store = useProMultiMessageSession(pinia)
+
+    store.updateConversationMessages([{ id: 'm1', role: 'user', content: 'hello' }] as any)
+    store.selectMessage('m1')
+    store.updateOptimizedResult({ optimizedPrompt: 'optimized', reasoning: 'reasoning', chainId: 'chain', versionId: 'version' })
+    store.setTemporaryVariable('topic', 'pizza')
+    store.setMessageChainMap({ m1: 'chain' })
+    store.updateOptimizeModel('opt-model')
+    store.updateTestModel('test-model')
+    store.updateTemplate('template')
+    store.updateIterateTemplate('iterate-template')
+    store.setTestColumnCount(4)
+    store.updateTestVariant('c', { modelKey: 'variant-model' })
+
+    store.clearContent()
+
+    expect(store.conversationMessagesSnapshot).toEqual([])
+    expect(store.selectedMessageId).toBe('')
+    expect(store.optimizedPrompt).toBe('')
+    expect(store.reasoning).toBe('')
+    expect(store.chainId).toBe('')
+    expect(store.versionId).toBe('')
+    expect(store.temporaryVariables).toEqual({})
+    expect(store.messageChainMap).toEqual({})
+    expect(store.selectedOptimizeModelKey).toBe('opt-model')
+    expect(store.selectedTestModelKey).toBe('test-model')
+    expect(store.selectedTemplateId).toBe('template')
+    expect(store.selectedIterateTemplateId).toBe('iterate-template')
+    expect(store.layout.testColumnCount).toBe(4)
+    expect(store.testVariants.find((variant) => variant.id === 'c')?.modelKey).toBe('variant-model')
+  })
+
   it('pro-variable clearTemporaryVariables persists the cleared snapshot', async () => {
     const set = vi.fn(async () => {})
 

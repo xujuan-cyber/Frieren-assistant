@@ -327,6 +327,28 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     lastActiveAt.value = Date.now()
   }
 
+  const clearContent = (options: { persist?: boolean } = {}) => {
+    const defaultState = createDefaultState()
+    prompt.value = defaultState.prompt
+    optimizedPrompt.value = defaultState.optimizedPrompt
+    reasoning.value = defaultState.reasoning
+    chainId.value = defaultState.chainId
+    versionId.value = defaultState.versionId
+    testContent.value = defaultState.testContent
+    temporaryVariables.value = defaultState.temporaryVariables
+    testVariantResults.value = defaultState.testVariantResults
+    testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
+    evaluationResults.value = defaultState.evaluationResults
+    compareSnapshotRoles.value = defaultState.compareSnapshotRoles
+    compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
+    lastActiveAt.value = Date.now()
+    if (options.persist !== false) {
+      void saveSession().catch((error) => {
+        console.error('[ProVariableSession] Failed to persist cleared content:', error)
+      })
+    }
+  }
+
   const reset = () => {
     const defaultState = createDefaultState()
     prompt.value = defaultState.prompt
@@ -582,6 +604,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     setTestColumnCount,
     setMainSplitLeftPct,
     resetTestVariantState,
+    clearContent,
     updateTestVariant,
     reset,
 

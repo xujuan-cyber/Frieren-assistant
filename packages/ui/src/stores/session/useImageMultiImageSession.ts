@@ -528,6 +528,28 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     lastActiveAt.value = defaults.lastActiveAt
   }
 
+  const clearContent = (options: { persist?: boolean } = {}) => {
+    const defaults = createDefaultState()
+    originalPrompt.value = defaults.originalPrompt
+    optimizedPrompt.value = defaults.optimizedPrompt
+    reasoning.value = defaults.reasoning
+    chainId.value = defaults.chainId
+    versionId.value = defaults.versionId
+    temporaryVariables.value = defaults.temporaryVariables
+    inputImages.value = defaults.inputImages
+    originalImageResult.value = defaults.originalImageResult
+    optimizedImageResult.value = defaults.optimizedImageResult
+    testVariantResults.value = defaults.testVariantResults
+    testVariantLastRunFingerprint.value = defaults.testVariantLastRunFingerprint
+    evaluationResults.value = defaults.evaluationResults
+    lastActiveAt.value = Date.now()
+    if (options.persist !== false) {
+      void saveSession().catch((error) => {
+        console.error('[ImageMultiImageSession] Failed to persist cleared content:', error)
+      })
+    }
+  }
+
   const saveSession = async () => {
     return await queueImageStorageMaintenance(async () => {
       const $services = getPiniaServices()
@@ -742,6 +764,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     replaceInputImages,
     removeInputImage,
     reorderInputImages,
+    clearContent,
     reset,
     saveSession,
     restoreSession,

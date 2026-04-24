@@ -1,5 +1,12 @@
 <template>
     <div class="image-image2image-workspace" data-testid="workspace" data-mode="image-image2image">
+        <div class="workspace-page-tools">
+            <WorkspaceUtilityMenu
+                :disabled="isOptimizing || isIterating || isAnyVariantRunning"
+                test-id="image-image2image-workspace-utility-menu"
+                @clear="handleClearContent"
+            />
+        </div>
         <div
             ref="splitRootRef"
             class="image-image2image-split"
@@ -32,24 +39,22 @@
                             {{ promptSummary }}
                         </NText>
                     </NFlex>
-                    <NFlex align="center" :size="8">
-                        <NButton
-                            type="tertiary"
-                            size="small"
-                            ghost
-                            round
-                            @click="isInputPanelCollapsed = false"
-                            :title="t('common.expand')"
-                        >
-                            <template #icon>
-                                <NIcon>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </NIcon>
-                            </template>
-                        </NButton>
-                    </NFlex>
+                    <NButton
+                        type="tertiary"
+                        size="small"
+                        ghost
+                        round
+                        @click="isInputPanelCollapsed = false"
+                        :title="t('common.expand')"
+                    >
+                        <template #icon>
+                            <NIcon>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </NIcon>
+                        </template>
+                    </NButton>
                 </NFlex>
 
                 <!-- 展开态：完整输入面板 -->
@@ -726,6 +731,7 @@ import {
 } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
+import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
@@ -1785,6 +1791,23 @@ const clearUploadedImage = () => {
     handleUploadChange({ file: null, fileList: [] });
 };
 
+const handleClearContent = () => {
+    currentChainId.value = '';
+    currentVersions.value = [];
+    currentVersionId.value = '';
+    session.clearContent();
+};
+
+watch(
+    () => [session.chainId, session.versionId, session.optimizedPrompt] as const,
+    ([chainId, versionId, optimized]) => {
+        if (chainId || versionId || optimized) return;
+        currentChainId.value = '';
+        currentVersions.value = [];
+        currentVersionId.value = '';
+    },
+);
+
 // 处理收藏保存请求 - 调用 App.vue 提供的统一接口
 const handleSaveFavorite = (data: {
     content: string;
@@ -2319,11 +2342,14 @@ onUnmounted(() => {
 .image-image2image-workspace {
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    position: relative;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.workspace-page-tools {
+    display: contents;
 }
 
 .image-image2image-split {

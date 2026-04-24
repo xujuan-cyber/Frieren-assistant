@@ -372,6 +372,27 @@ export const useImageText2ImageSession = defineStore('imageText2ImageSession', (
     lastActiveAt.value = defaultState.lastActiveAt
   }
 
+  const clearContent = (options: { persist?: boolean } = {}) => {
+    const defaultState = createDefaultState()
+    originalPrompt.value = defaultState.originalPrompt
+    optimizedPrompt.value = defaultState.optimizedPrompt
+    reasoning.value = defaultState.reasoning
+    chainId.value = defaultState.chainId
+    versionId.value = defaultState.versionId
+    temporaryVariables.value = defaultState.temporaryVariables
+    originalImageResult.value = defaultState.originalImageResult
+    optimizedImageResult.value = defaultState.optimizedImageResult
+    testVariantResults.value = defaultState.testVariantResults
+    testVariantLastRunFingerprint.value = defaultState.testVariantLastRunFingerprint
+    evaluationResults.value = defaultState.evaluationResults
+    lastActiveAt.value = Date.now()
+    if (options.persist !== false) {
+      void saveSession().catch((error) => {
+        console.error('[ImageText2ImageSession] Failed to persist cleared content:', error)
+      })
+    }
+  }
+
   /**
    * 准备 ImageResult 用于保存
    * 将 base64 图像提取到 ImageStorageService，返回仅包含引用的 ImageResult
@@ -772,6 +793,7 @@ export const useImageText2ImageSession = defineStore('imageText2ImageSession', (
     deleteTemporaryVariable,
     clearTemporaryVariables,
 
+    clearContent,
     reset,
 
     // ========== 持久化方法 ==========

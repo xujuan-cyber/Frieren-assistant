@@ -12,6 +12,13 @@
         - 包含工具管理按钮 (系统模式不包含)
     -->
     <div class="context-user-workspace" data-testid="workspace" data-mode="pro-variable">
+        <div class="workspace-page-tools">
+            <WorkspaceUtilityMenu
+                :disabled="contextUserOptimization.isOptimizing || contextUserOptimization.isIterating || isAnyVariantRunning"
+                test-id="pro-variable-workspace-utility-menu"
+                @clear="handleClearContent"
+            />
+        </div>
         <div
             ref="splitRootRef"
             class="context-user-split"
@@ -529,6 +536,7 @@ import {
     FocusAnalyzeButton,
 } from '../evaluation'
 import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
+import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import {
     applyPatchOperationsToText,
     PREDEFINED_VARIABLES,
@@ -962,6 +970,7 @@ const contextUserOptimization = useContextUserOptimization(
         optimizedReasoning: sessionOptimizedReasoning as unknown as Ref<string>,
         currentChainId: sessionChainId as unknown as Ref<string>,
         currentVersionId: sessionVersionId as unknown as Ref<string>,
+        clearSessionContent: () => proVariableSession.clearContent(),
     },
 );
 
@@ -1953,6 +1962,11 @@ const handleClearEvaluation = () => {
     compareEvaluationFingerprint.value = ''
 }
 
+const handleClearContent = () => {
+    contextUserOptimization.clearContent()
+    handleClearEvaluation()
+}
+
 // ========================
 // 变量感知输入（InputPanel 变量提取/缺失变量）
 // ========================
@@ -2195,11 +2209,14 @@ defineExpose({
 .context-user-workspace {
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    position: relative;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.workspace-page-tools {
+    display: contents;
 }
 
 .context-user-split {

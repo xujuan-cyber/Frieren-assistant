@@ -1,5 +1,12 @@
 <template>
     <div class="context-system-workspace" data-testid="workspace" data-mode="pro-multi">
+        <div class="workspace-page-tools">
+            <WorkspaceUtilityMenu
+                :disabled="displayAdapter.displayedIsOptimizing.value || isIterating || isAnyVariantRunning"
+                test-id="pro-multi-workspace-utility-menu"
+                @clear="handleClearContent"
+            />
+        </div>
         <div
             ref="splitRootRef"
             class="context-system-split"
@@ -84,7 +91,6 @@
                                 </NFlex>
                             </NFlex>
 
-                            <!-- 优化按钮 -->
                             <NButton
                                 type="primary"
                                 :loading="displayAdapter.displayedIsOptimizing.value"
@@ -498,6 +504,7 @@ import {
     FocusAnalyzeButton,
 } from '../evaluation'
 import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
+import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import { useConversationOptimization } from '../../composables/prompt/useConversationOptimization'
 import { usePromptDisplayAdapter } from '../../composables/prompt/usePromptDisplayAdapter'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
@@ -1907,6 +1914,12 @@ const handleClearEvaluation = () => {
     compareEvaluationFingerprint.value = ''
 }
 
+const handleClearContent = () => {
+    conversationOptimization.clearContent()
+    handleClearEvaluation()
+    emit('update:optimizationContext', [])
+}
+
 // Pro/multi: selected message changed => clear evaluation results
 watch(selectedMessageId, (next, prev) => {
     if (next === prev) return
@@ -2113,11 +2126,14 @@ defineExpose({
 .context-system-workspace {
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    position: relative;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.workspace-page-tools {
+    display: contents;
 }
 
 .context-system-split {

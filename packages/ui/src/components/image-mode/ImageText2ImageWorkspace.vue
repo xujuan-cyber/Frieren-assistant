@@ -1,5 +1,12 @@
 <template>
     <div class="image-text2image-workspace" data-testid="workspace" data-mode="image-text2image">
+        <div class="workspace-page-tools">
+            <WorkspaceUtilityMenu
+                :disabled="isOptimizing || isIterating || isAnyVariantRunning || isExtractingFromImage"
+                test-id="image-text2image-workspace-utility-menu"
+                @clear="handleClearContent"
+            />
+        </div>
         <div
             ref="splitRootRef"
             class="image-text2image-split"
@@ -844,6 +851,7 @@ import {
 } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
+import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
@@ -1884,6 +1892,29 @@ const handleClearEvaluation = () => {
     compareEvaluationFingerprint.value = ''
 }
 
+const handleClearContent = () => {
+    currentChainId.value = ''
+    currentVersions.value = []
+    currentVersionId.value = ''
+    referenceImagePayload.value = null
+    referenceActionPendingCount.value = 0
+    referenceActionPreviewToken.value = 0
+    isExtractingFromImage.value = false
+    referenceAction.resetState()
+    session.clearContent()
+    handleClearEvaluation()
+}
+
+watch(
+    () => [session.chainId, session.versionId, session.optimizedPrompt] as const,
+    ([chainId, versionId, optimized]) => {
+        if (chainId || versionId || optimized) return
+        currentChainId.value = ''
+        currentVersions.value = []
+        currentVersionId.value = ''
+    },
+)
+
 const getVariantRequest = (id: TestVariantId): Text2ImageRequest | null => {
     const modelKey = (variantModelKeyModels[id].value || '').trim()
     if (!modelKey) {
@@ -2874,11 +2905,14 @@ onUnmounted(() => {
 .image-text2image-workspace {
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    position: relative;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.workspace-page-tools {
+    display: contents;
 }
 
 .image-text2image-split {

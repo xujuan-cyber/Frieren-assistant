@@ -6,6 +6,7 @@ export type OptimizeWorkspaceMode =
   | 'basic-user'
   | 'image-text2image'
   | 'image-image2image'
+  | 'image-multiimage'
   | 'pro-variable'
   | 'pro-multi'
 

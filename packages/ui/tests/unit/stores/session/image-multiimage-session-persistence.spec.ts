@@ -4,6 +4,42 @@ import { useImageMultiImageSession } from '../../../../src/stores/session/useIma
 import { IMAGE_MULTIIMAGE_SESSION_KEY } from '../../../../src/stores/session/imageStorageMaintenance'
 
 describe('Session store (image-multiimage) persistence', () => {
+  it('clearContent removes prompt, inputs, results, and variables while preserving workspace selections', () => {
+    const { pinia } = createTestPinia()
+    const store = useImageMultiImageSession(pinia)
+
+    store.updatePrompt('prompt')
+    store.updateOptimizedResult({ optimizedPrompt: 'optimized', reasoning: 'reasoning', chainId: 'chain', versionId: 'version' })
+    store.setTemporaryVariable('topic', 'pizza')
+    store.replaceInputImages([{ b64: 'AAAA', mimeType: 'image/png' }])
+    store.updateOriginalImageResult({ images: [{ b64: 'BBBB', mimeType: 'image/png' }], metadata: {} } as any)
+    store.updateOptimizedImageResult({ images: [{ b64: 'CCCC', mimeType: 'image/png' }], metadata: {} } as any)
+    store.updateTextModel('text-model')
+    store.updateImageModel('image-model')
+    store.updateTemplate('template')
+    store.updateIterateTemplate('iterate-template')
+    store.setTestColumnCount(4)
+    store.updateTestVariant('a', { modelKey: 'variant-model' })
+
+    store.clearContent({ persist: false })
+
+    expect(store.originalPrompt).toBe('')
+    expect(store.optimizedPrompt).toBe('')
+    expect(store.reasoning).toBe('')
+    expect(store.chainId).toBe('')
+    expect(store.versionId).toBe('')
+    expect(store.temporaryVariables).toEqual({})
+    expect(store.inputImages).toEqual([])
+    expect(store.originalImageResult).toBeNull()
+    expect(store.optimizedImageResult).toBeNull()
+    expect(store.selectedTextModelKey).toBe('text-model')
+    expect(store.selectedImageModelKey).toBe('image-model')
+    expect(store.selectedTemplateId).toBe('template')
+    expect(store.selectedIterateTemplateId).toBe('iterate-template')
+    expect(store.layout.testColumnCount).toBe(4)
+    expect(store.testVariants.find((variant) => variant.id === 'a')?.modelKey).toBe('variant-model')
+  })
+
   it('persists the ordered multi-image list and restores it with the same order', async () => {
     const savedSnapshots = new Map<string, unknown>()
     const imageMap = new Map<string, { data: string; metadata: { mimeType: string } }>()
