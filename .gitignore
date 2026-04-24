@@ -200,3 +200,4 @@ CLAUDE.local.md
 .codex/
 .codex-run/
 .codex-tmp/
+.trellis/
