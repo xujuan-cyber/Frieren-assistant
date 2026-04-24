@@ -141,4 +141,16 @@ describe('model defaults provider env mapping', () => {
     expect(models.custom.connectionConfig.apiKey).toBe('')
     expect(models.custom.connectionConfig.requestStyle).toBe('chat_completions')
   })
+
+  it('should use DeepSeek V4 Flash with thinking disabled by default', () => {
+    const models = getDefaultTextModels()
+
+    expect(models.deepseek).toBeDefined()
+    expect(models.deepseek.providerMeta.id).toBe('deepseek')
+    expect(models.deepseek.modelMeta.id).toBe('deepseek-v4-flash')
+    expect(models.deepseek.modelMeta.parameterDefinitions.map((definition) => definition.name)).toContain('thinking_type')
+    expect(models.deepseek.paramOverrides).toEqual({
+      thinking_type: 'disabled'
+    })
+  })
 })

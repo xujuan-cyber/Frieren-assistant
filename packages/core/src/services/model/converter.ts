@@ -214,7 +214,7 @@ function createProviderMeta(providerId: string, legacy: ModelConfig): TextProvid
       name: 'DeepSeek',
       description: 'DeepSeek OpenAI-compatible models',
       requiresApiKey: true,
-      defaultBaseURL: legacy.baseURL || 'https://api.deepseek.com/v1',
+      defaultBaseURL: legacy.baseURL || 'https://api.deepseek.com',
       supportsDynamicModels: true,
       connectionSchema: {
         required: ['apiKey'],

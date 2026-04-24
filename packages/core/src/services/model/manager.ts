@@ -128,6 +128,21 @@ export class ModelManager implements IModelManager {
                   console.log(`[ModelManager] Patched missing metadata for model: ${key}`);
                 }
 
+                if (this.isDeepseekConfig(updatedModel)) {
+                  try {
+                    await this.getRegistry();
+                    const patchedDeepseekModel = this.patchDeepseekConfig(updatedModel, defaultConfig);
+                    if (patchedDeepseekModel !== updatedModel) {
+                      updatedModel = patchedDeepseekModel;
+                      updatedModels[key] = updatedModel;
+                      hasUpdates = true;
+                      console.log(`[ModelManager] Patched DeepSeek metadata for model: ${key}`);
+                    }
+                  } catch (error) {
+                    console.warn(`[ModelManager] Failed to patch DeepSeek metadata for ${key}:`, error);
+                  }
+                }
+
                 const backfillableFields = this.getBackfillableBuiltinConnectionFields(
                   key,
                   updatedModel,
@@ -166,14 +181,20 @@ export class ModelManager implements IModelManager {
                 // 旧格式，尝试使用 Registry 转换为新格式
                 try {
                   const registry = await this.getRegistry();
-                  const convertedModel = await convertLegacyToTextModelConfigWithRegistry(key, existingModel, registry);
+                  const convertedModel = this.patchDeepseekConfig(
+                    await convertLegacyToTextModelConfigWithRegistry(key, existingModel, registry),
+                    defaultConfig
+                  );
                   updatedModels[key] = convertedModel;
                   hasUpdates = true;
                   console.log(`[ModelManager] Converted legacy model to new format (via Registry): ${key}`);
                 } catch (error) {
                   // Fallback 到硬编码转换
                   console.warn(`[ModelManager] Registry conversion failed for ${key}, using fallback:`, error);
-                  const convertedModel = convertLegacyToTextModelConfig(key, existingModel);
+                  const convertedModel = this.patchDeepseekConfig(
+                    convertLegacyToTextModelConfig(key, existingModel),
+                    defaultConfig
+                  );
                   updatedModels[key] = convertedModel;
                   hasUpdates = true;
                   console.log(`[ModelManager] Converted legacy model to new format (via fallback): ${key}`);
@@ -312,6 +333,136 @@ export class ModelManager implements IModelManager {
     }
   }
 
+  private isDeepseekConfig(config: TextModelConfig): boolean {
+    const providerId = (
+      config.providerMeta?.id ||
+      config.modelMeta?.providerId ||
+      ''
+    ).toLowerCase()
+
+    return providerId === 'deepseek'
+  }
+
+  private patchDeepseekConfig(
+    config: TextModelConfig,
+    defaultConfig?: TextModelConfig
+  ): TextModelConfig {
+    if (!this.isDeepseekConfig(config)) {
+      return config
+    }
+
+    const isBuiltinDeepseek = config.id === 'deepseek'
+    const currentModelId = config.modelMeta?.id
+    const migratedModelId = isBuiltinDeepseek
+      ? this.getMigratedDeepseekModelId(currentModelId)
+      : currentModelId
+
+    const modelMeta = this.getDeepseekModelMeta(migratedModelId, defaultConfig)
+    if (!modelMeta) {
+      return config
+    }
+
+    const nextParamOverrides = this.patchDeepseekParamOverrides(
+      config.paramOverrides,
+      isBuiltinDeepseek,
+      currentModelId
+    )
+
+    const currentParameterNames = (config.modelMeta?.parameterDefinitions || [])
+      .map((definition) => definition.name)
+      .join(',')
+    const nextParameterNames = modelMeta.parameterDefinitions
+      .map((definition) => definition.name)
+      .join(',')
+
+    const shouldUpdateModelMeta =
+      !config.modelMeta ||
+      config.modelMeta.id !== modelMeta.id ||
+      currentParameterNames !== nextParameterNames ||
+      JSON.stringify(config.modelMeta.defaultParameterValues || {}) !== JSON.stringify(modelMeta.defaultParameterValues || {})
+    const shouldUpdateParams =
+      JSON.stringify(config.paramOverrides || {}) !== JSON.stringify(nextParamOverrides)
+
+    if (!shouldUpdateModelMeta && !shouldUpdateParams) {
+      return config
+    }
+
+    return {
+      ...config,
+      modelMeta: isBuiltinDeepseek
+        ? modelMeta
+        : {
+            ...config.modelMeta,
+            parameterDefinitions: modelMeta.parameterDefinitions,
+            defaultParameterValues: modelMeta.defaultParameterValues
+          },
+      paramOverrides: nextParamOverrides
+    }
+  }
+
+  private getMigratedDeepseekModelId(modelId: string | undefined): string {
+    if (modelId === 'deepseek-reasoner') {
+      return 'deepseek-v4-pro'
+    }
+
+    if (!modelId || modelId === 'deepseek-chat') {
+      return 'deepseek-v4-flash'
+    }
+
+    return modelId
+  }
+
+  private getDeepseekModelMeta(
+    modelId: string | undefined,
+    defaultConfig?: TextModelConfig
+  ): TextModelConfig['modelMeta'] | undefined {
+    const targetModelId = modelId || 'deepseek-v4-flash'
+
+    try {
+      const adapter = this.registry?.getAdapter('deepseek')
+      if (adapter) {
+        return adapter.getModels().find((model) => model.id === targetModelId)
+          || adapter.buildDefaultModel(targetModelId)
+      }
+    } catch {
+      // Fall through to the default metadata snapshot.
+    }
+
+    if (
+      defaultConfig?.providerMeta?.id === 'deepseek' &&
+      defaultConfig.modelMeta.id === targetModelId
+    ) {
+      return defaultConfig.modelMeta
+    }
+
+    return undefined
+  }
+
+  private patchDeepseekParamOverrides(
+    paramOverrides: Record<string, unknown> | undefined,
+    isBuiltinDeepseek: boolean,
+    currentModelId: string | undefined
+  ): Record<string, unknown> {
+    const nextParamOverrides = { ...(paramOverrides || {}) }
+
+    if (nextParamOverrides.thinking_type === undefined) {
+      nextParamOverrides.thinking_type =
+        isBuiltinDeepseek && currentModelId === 'deepseek-reasoner'
+          ? 'enabled'
+          : 'disabled'
+    }
+
+    if (
+      isBuiltinDeepseek &&
+      currentModelId === 'deepseek-reasoner' &&
+      nextParamOverrides.reasoning_effort === undefined
+    ) {
+      nextParamOverrides.reasoning_effort = 'high'
+    }
+
+    return nextParamOverrides
+  }
+
   /**
    * 从存储获取模型配置，如果不存在则返回默认配置
    * 返回any类型以兼容新旧格式
@@ -369,7 +520,17 @@ export class ModelManager implements IModelManager {
       }
     }
 
-    return migratedConfigs.map((cfg) => this.patchProviderMeta(cfg))
+    const needsDeepseekPatch = migratedConfigs.some((cfg) => this.isDeepseekConfig(cfg))
+
+    if (needsDeepseekPatch) {
+      try {
+        await this.getRegistry()
+      } catch {
+        // ignore - registry is only used for optional DeepSeek metadata patching
+      }
+    }
+
+    return migratedConfigs.map((cfg) => this.patchProviderMeta(this.patchDeepseekConfig(cfg)))
   }
 
   /**
@@ -413,7 +574,15 @@ export class ModelManager implements IModelManager {
       }
     }
 
-    return this.patchProviderMeta(migrated)
+    if (this.isDeepseekConfig(migrated)) {
+      try {
+        await this.getRegistry()
+      } catch {
+        // ignore - registry is only used for optional DeepSeek metadata patching
+      }
+    }
+
+    return this.patchProviderMeta(this.patchDeepseekConfig(migrated))
   }
 
   /**

@@ -214,6 +214,92 @@ describe('ModelManager', () => {
       expect(reloaded?.modelMeta.name).toBe('Custom OpenAI Model');
       expect(reloaded?.connectionConfig.baseURL).toBe(customBaseURL);
     });
+
+    it('should migrate builtin DeepSeek chat config to V4 Flash with thinking disabled', async () => {
+      const existing = await modelManager.getModel('deepseek')
+      expect(existing).toBeDefined()
+
+      const legacyDeepseek: TextModelConfig = {
+        ...existing!,
+        modelMeta: {
+          ...existing!.modelMeta,
+          id: 'deepseek-chat',
+          name: 'DeepSeek Chat',
+          defaultParameterValues: {}
+        },
+        paramOverrides: {
+          temperature: 0.3
+        }
+      }
+
+      await storageProvider.setItem('models', JSON.stringify({ deepseek: legacyDeepseek }))
+
+      const reloadedManager = new ModelManager(storageProvider, new TextAdapterRegistry())
+      const reloaded = await reloadedManager.getModel('deepseek')
+
+      expect(reloaded?.modelMeta.id).toBe('deepseek-v4-flash')
+      expect(reloaded?.paramOverrides).toEqual({
+        temperature: 0.3,
+        thinking_type: 'disabled'
+      })
+      expect(reloaded?.modelMeta.parameterDefinitions.map((definition) => definition.name)).toContain('thinking_type')
+    })
+
+    it('should migrate builtin DeepSeek reasoner config to V4 Pro with thinking enabled', async () => {
+      const existing = await modelManager.getModel('deepseek')
+      expect(existing).toBeDefined()
+
+      const legacyDeepseekReasoner: TextModelConfig = {
+        ...existing!,
+        modelMeta: {
+          ...existing!.modelMeta,
+          id: 'deepseek-reasoner',
+          name: 'DeepSeek Reasoner',
+          defaultParameterValues: {}
+        },
+        paramOverrides: {}
+      }
+
+      await storageProvider.setItem('models', JSON.stringify({ deepseek: legacyDeepseekReasoner }))
+
+      const reloadedManager = new ModelManager(storageProvider, new TextAdapterRegistry())
+      const reloaded = await reloadedManager.getModel('deepseek')
+
+      expect(reloaded?.modelMeta.id).toBe('deepseek-v4-pro')
+      expect(reloaded?.paramOverrides).toEqual({
+        thinking_type: 'enabled',
+        reasoning_effort: 'high'
+      })
+    })
+
+    it('should preserve custom DeepSeek model id while patching DeepSeek parameters', async () => {
+      const existing = await modelManager.getModel('deepseek')
+      expect(existing).toBeDefined()
+
+      const customDeepseek: TextModelConfig = {
+        ...existing!,
+        id: 'custom-deepseek',
+        name: 'Custom DeepSeek',
+        modelMeta: {
+          ...existing!.modelMeta,
+          id: 'custom-deepseek-model',
+          name: 'Custom DeepSeek Model',
+          parameterDefinitions: [],
+          defaultParameterValues: {}
+        },
+        paramOverrides: {}
+      }
+
+      await modelManager.addModel('custom-deepseek', customDeepseek)
+
+      const reloaded = await modelManager.getModel('custom-deepseek')
+
+      expect(reloaded?.modelMeta.id).toBe('custom-deepseek-model')
+      expect(reloaded?.modelMeta.parameterDefinitions.map((definition) => definition.name)).toContain('thinking_type')
+      expect(reloaded?.paramOverrides).toEqual({
+        thinking_type: 'disabled'
+      })
+    })
   });
 
   describe('provider metadata patching', () => {
