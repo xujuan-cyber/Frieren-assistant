@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.9.5] - 2026-04-24
+- EN: This patch adds a workspace-wide clear-content tool, makes Prompt Garden imports start from a clean workspace state, restores missing DeepSeek parameter and import-failure localization, and keeps Trellis workspace artifacts ignored. See [Release Notes (EN)](releases/v2.9.5.en.md).
+- 中文：本次补丁新增工作区“清理内容”工具，让 Prompt Garden 导入先清场再写入新内容，补齐 DeepSeek 参数与导入失败提示的本地化，并忽略 Trellis 工作区产物。参见 [版本说明（中文）](releases/v2.9.5.zh-CN.md)。
+
 ## [2.9.4] - 2026-04-20
 - EN: This release improves image workflow reliability with restored image-to-image session persistence, aligns Seedream model metadata and built-in defaults with current capabilities, adds OpenAI Responses request-style support, and makes desktop/local release flows more robust. See [Release Notes (EN)](releases/v2.9.4.en.md).
 - 中文：本次发布修复了图生图会话恢复、按最新能力校准了 Seedream 模型元数据与内置默认项，补上 OpenAI Responses 请求风格支持，并让桌面端本地直连与 Release 发布链路更稳。参见 [版本说明（中文）](releases/v2.9.4.zh-CN.md)。
