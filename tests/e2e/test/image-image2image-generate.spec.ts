@@ -58,10 +58,7 @@ async function selectOption(page: any, select: any, matcher?: RegExp) {
 }
 
 async function selectPreferredMultimodalTextModel(page: any, select: any) {
-  const preferredMatchers =
-    process.env.E2E_VCR_MODE === 'replay'
-      ? [/deepseek/i, /qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i]
-      : [/qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i, /deepseek/i]
+  const preferredMatchers = [/qwen3\.5-27b/i, /qwen/i, /gemini/i, /阿里百炼|dashscope/i, /deepseek/i]
 
   for (const matcher of preferredMatchers) {
     const options = await openSelectAndWaitForVisibleOptions(page, select)

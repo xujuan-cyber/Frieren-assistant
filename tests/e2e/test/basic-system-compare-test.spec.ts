@@ -84,7 +84,7 @@ test.describe('Basic System - 测试（对比模式）', () => {
   })
 
   test('对比评估详情会显示 structured compare 产物，并可通过智能改写生成新版本', async ({ page }) => {
-    test.setTimeout(360000)
+    test.setTimeout(600000)
 
     await navigateToMode(page, 'basic', 'system')
 

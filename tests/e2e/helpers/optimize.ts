@@ -68,6 +68,15 @@ async function readOutputSourceText(output: import('@playwright/test').Locator) 
   try {
     const cmContent = root.locator('.cm-content')
     if ((await cmContent.count()) > 0) {
+      const lines = cmContent.first().locator('.cm-line')
+      if ((await lines.count()) > 0) {
+        const lineTexts = await lines.allInnerTexts()
+        const text = lineTexts.join('\n').trim()
+        if (text) {
+          return { kind: 'cm', text }
+        }
+      }
+
       return { kind: 'cm', text: (await cmContent.first().innerText()).trim() }
     }
   } catch {

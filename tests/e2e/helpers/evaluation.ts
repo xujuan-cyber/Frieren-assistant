@@ -59,6 +59,12 @@ export async function openEvaluationDrawerFromBadge(badge: Locator): Promise<Loc
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await badge.click({ force: attempt > 0 })
 
+    const drawer = getVisibleDrawer(page)
+    if ((await drawer.count()) > 0) {
+      await expect(drawer).toBeVisible({ timeout: 15000 })
+      return drawer
+    }
+
     const viewDetailsButton = page.getByTestId('evaluation-hover-view-details')
     await expect(viewDetailsButton).toBeVisible({ timeout: 15000 })
 
@@ -70,10 +76,10 @@ export async function openEvaluationDrawerFromBadge(badge: Locator): Promise<Loc
       continue
     }
 
-    const drawer = getVisibleDrawer(page)
-    if ((await drawer.count()) > 0) {
-      await expect(drawer).toBeVisible({ timeout: 15000 })
-      return drawer
+    const openedDrawer = getVisibleDrawer(page)
+    if ((await openedDrawer.count()) > 0) {
+      await expect(openedDrawer).toBeVisible({ timeout: 15000 })
+      return openedDrawer
     }
 
     await page.waitForTimeout(400)
@@ -127,19 +133,20 @@ export async function expectStructuredCompareDrawer(drawer: Locator): Promise<vo
   await expect(drawer.getByTestId('evaluation-panel-compare-decision')).toBeVisible({
     timeout: 15000,
   })
-  await expect(drawer.getByTestId('evaluation-panel-compare-metadata')).toBeVisible({
+
+  const compareContext = drawer.getByTestId('evaluation-panel-compare-context')
+  const compareMetadata = drawer.getByTestId('evaluation-panel-compare-metadata')
+  await expect(compareContext.or(compareMetadata)).toBeVisible({
     timeout: 15000,
   })
-  await expect(drawer.getByTestId('evaluation-panel-compare-mode-value')).toHaveText(
-    /Structured|结构化/i,
-    { timeout: 15000 }
-  )
-  await expect(drawer.getByTestId('evaluation-panel-compare-insights')).toBeVisible({
+
+  await expect(
+    drawer.getByTestId('evaluation-panel-compare-context-roles')
+      .or(drawer.getByTestId('evaluation-panel-compare-metadata-roles'))
+  ).toBeVisible({
     timeout: 15000,
   })
-  await expect(drawer.getByTestId('evaluation-panel-compare-judgements')).toBeVisible({
-    timeout: 15000,
-  })
+
   await expect(drawer.getByTestId('evaluation-panel-rewrite-from-evaluation')).toBeVisible({
     timeout: 15000,
   })

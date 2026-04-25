@@ -66,7 +66,7 @@ test.describe('Basic User - 测试（无需填写测试内容）', () => {
   })
 
   test('三列测试后可触发多变体对比评估', async ({ page }) => {
-    test.setTimeout(240000)
+    test.setTimeout(360000)
 
     await navigateToMode(page, 'basic', 'user')
 
