@@ -27,9 +27,11 @@ const messages = {
       "add": "Add",
       "emptySearchResult": "No matching favorites found",
       "emptyDescription": "No favorites yet",
-      "startOptimize": "Optimize",
       "importDialog": {
         "title": "Import Favorites",
+        "sourceLabel": "Data Source",
+        "sourceFile": "Upload File",
+        "sourcePaste": "Paste JSON",
         "selectFile": "Select JSON file",
         "uploadHint": "Click or drag file to this area",
         "supportFormat": "Supports .json files",
@@ -39,6 +41,10 @@ const messages = {
         "skipDuplicate": "Skip Duplicates",
         "overwriteDuplicate": "Overwrite Duplicates",
         "createCopy": "Create Copy",
+        "changeFile": "Replace File",
+        "resultHintSkip": "Keep the current favorite when a duplicate is found and only import new ones.",
+        "resultHintOverwrite": "Replace the existing favorite with the imported one when a duplicate is found.",
+        "resultHintMerge": "Keep the current favorite and import the duplicate as a new copy.",
         "cancel": "Cancel",
         "import": "Import",
         "importing": "Importing...",
@@ -46,7 +52,8 @@ const messages = {
         "importSuccess": "Import completed: {imported} successful, {skipped} skipped",
         "importPartialFailed": "Some favorites failed to import",
         "importFailed": "Import failed",
-        "readFileFailed": "Failed to read file"
+        "readFileFailed": "Failed to read file",
+        "noFileSize": "Unknown size"
       },
       "categoryManager": {
         "title": "Category Manager"
@@ -75,6 +82,12 @@ const messages = {
       "preview": {
         "title": "Favorite Details",
         "updatedAt": "Updated {time}",
+        "selectFavorite": "Select a favorite to view its details here",
+        "backToList": "Back to list",
+        "listTitle": "Favorite List",
+        "contentTitle": "Content",
+        "extraTitle": "Extra details",
+        "useCountInline": "{count} uses",
         "garden": {
           "snapshotTitle": "Prompt Garden Snapshot",
           "snapshotHint": "Imported visual assets and variable settings from Prompt Garden",
@@ -149,7 +162,8 @@ const messages = {
         },
         "imageSubMode": {
           "text2image": "Text-to-Image",
-          "image2image": "Image-to-Image"
+          "image2image": "Image-to-Image",
+          "multiimage": "Multi-Image"
         }
       },
       "categories": {
@@ -229,8 +243,8 @@ const messages = {
       "createTitle": "Create Favorite",
       "editTitle": "Edit Favorite",
       "saveTitle": "Save to Favorites",
-      "basicInfo": "📋 Basic Information",
-      "contentTitle": "📝 Content",
+      "basicInfo": "Basic Information",
+      "contentTitle": "Content",
       "titleLabel": "Title",
       "titlePlaceholder": "Name this prompt",
       "categoryLabel": "Category",
@@ -247,6 +261,7 @@ const messages = {
       "imagesLabel": "Images",
       "imagesUploadHint": "Click or drag images to this area",
       "imagesUploadSupport": "Common image formats are supported, multiple files allowed",
+      "addImages": "Add More Images",
       "imageAlt": "Image #{index}",
       "coverTag": "Cover",
       "setAsCover": "Set as cover",

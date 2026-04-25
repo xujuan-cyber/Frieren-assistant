@@ -27,9 +27,11 @@ const messages = {
       "add": "新增",
       "emptySearchResult": "沒有找到相符的收藏",
       "emptyDescription": "還沒有收藏任何提示詞",
-      "startOptimize": "優化",
       "importDialog": {
         "title": "匯入收藏",
+        "sourceLabel": "資料來源",
+        "sourceFile": "上傳檔案",
+        "sourcePaste": "貼上 JSON",
         "selectFile": "選擇 JSON 檔案",
         "uploadHint": "點選或拖曳檔案到此區域",
         "supportFormat": "支援 .json 檔案",
@@ -39,6 +41,10 @@ const messages = {
         "skipDuplicate": "跳過重複",
         "overwriteDuplicate": "覆蓋重複",
         "createCopy": "建立副本",
+        "changeFile": "替換檔案",
+        "resultHintSkip": "遇到重複收藏時保留現有內容，只匯入新的收藏。",
+        "resultHintOverwrite": "遇到重複收藏時以匯入內容覆蓋現有收藏。",
+        "resultHintMerge": "遇到重複收藏時保留原收藏，並將匯入內容另存為副本。",
         "cancel": "取消",
         "import": "匯入",
         "importing": "匯入中...",
@@ -46,7 +52,8 @@ const messages = {
         "importSuccess": "匯入完成：成功 {imported} 項，跳過 {skipped} 項",
         "importPartialFailed": "部分收藏匯入失敗",
         "importFailed": "匯入失敗",
-        "readFileFailed": "讀取檔案失敗"
+        "readFileFailed": "讀取檔案失敗",
+        "noFileSize": "大小未知"
       },
       "categoryManager": {
         "title": "分類管理"
@@ -75,6 +82,12 @@ const messages = {
       "preview": {
         "title": "收藏詳情",
         "updatedAt": "更新於 {time}",
+        "selectFavorite": "選擇一條收藏後即可在這裡查看詳情",
+        "backToList": "返回列表",
+        "listTitle": "收藏列表",
+        "contentTitle": "正文內容",
+        "extraTitle": "擴展資訊",
+        "useCountInline": "已使用 {count} 次",
         "garden": {
           "snapshotTitle": "Prompt Garden 快照",
           "snapshotHint": "展示從 Prompt Garden 匯入的可視化資源和變數設定",
@@ -149,7 +162,8 @@ const messages = {
         },
         "imageSubMode": {
           "text2image": "文生圖",
-          "image2image": "圖生圖"
+          "image2image": "圖生圖",
+          "multiimage": "多圖生成"
         }
       },
       "categories": {
@@ -229,8 +243,8 @@ const messages = {
       "createTitle": "新建收藏",
       "editTitle": "編輯收藏",
       "saveTitle": "儲存到收藏夾",
-      "basicInfo": "📋 基礎資訊",
-      "contentTitle": "📝 正文內容",
+      "basicInfo": "基礎資訊",
+      "contentTitle": "正文內容",
       "titleLabel": "標題",
       "titlePlaceholder": "為這個提示詞起個名字",
       "categoryLabel": "分類",
@@ -247,6 +261,7 @@ const messages = {
       "imagesLabel": "圖片",
       "imagesUploadHint": "點選或拖曳圖片到此區域",
       "imagesUploadSupport": "支援常見圖片格式，可新增多張",
+      "addImages": "繼續新增圖片",
       "imageAlt": "圖片 #{index}",
       "coverTag": "封面",
       "setAsCover": "設為封面",
