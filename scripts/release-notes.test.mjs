@@ -204,6 +204,80 @@ test('validateReleaseArtifacts accepts split release notes with summaries and ch
   assert.deepEqual(result.errors, []);
 });
 
+test('validateReleaseArtifacts ignores no-change desktop and extension subsections for product order', () => {
+  const root = createTempRepo();
+  writeFile(
+    root,
+    'CHANGELOG.md',
+    [
+      '# Changelog',
+      '',
+      '## [2.8.0] - 2026-04-04',
+      '- EN: Bilingual release notes become the source of truth. See [Release Notes (EN)](releases/v2.8.0.en.md).',
+      '- 中文：双语版本说明成为唯一发布来源。参见 [版本说明（中文）](releases/v2.8.0.zh-CN.md)。',
+      '',
+    ].join('\n')
+  );
+  writeFile(
+    root,
+    'releases/v2.8.0.en.md',
+    buildValidEnglishReleaseNotes('2.8.0')
+      .replace(
+        [
+          '### Desktop',
+          '- Improved packaging metadata for GitHub Releases.',
+          '### Web',
+          '- Refined release surfaces for bilingual documentation.',
+          '### Extension',
+          '- Synced release messaging with the desktop workflow.',
+          '### Core/Infra',
+        ].join('\n'),
+        [
+          '### Web',
+          '- Refined release surfaces for bilingual documentation.',
+          '### Extension',
+          '- No extension-specific user-facing changes landed in this patch release.',
+          '### Desktop',
+          '- No desktop-specific user-facing changes landed in this patch release.',
+          '### Core/Infra',
+        ].join('\n')
+      )
+  );
+  writeFile(
+    root,
+    'releases/v2.8.0.zh-CN.md',
+    buildValidChineseReleaseNotes('2.8.0')
+      .replace(
+        [
+          '### Desktop',
+          '- 改进了 GitHub Release 使用的桌面端打包元数据。',
+          '### Web',
+          '- 优化了双语发布文档的展示入口。',
+          '### Extension',
+          '- 让扩展端发布说明与桌面端流程保持一致。',
+          '### Core/Infra',
+        ].join('\n'),
+        [
+          '### Web',
+          '- 优化了双语发布文档的展示入口。',
+          '### Extension',
+          '- 本次补丁没有扩展端专属的用户可见变化。',
+          '### Desktop',
+          '- 本次补丁没有桌面端专属的用户可见变化。',
+          '### Core/Infra',
+        ].join('\n')
+      )
+  );
+
+  const result = validateReleaseArtifacts({
+    cwd: root,
+    version: '2.8.0',
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.errors, []);
+});
+
 test('validateReleaseArtifacts blocks release when a language file or summary is missing', () => {
   const root = createTempRepo();
   writeFile(

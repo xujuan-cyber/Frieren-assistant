@@ -131,6 +131,43 @@ function extractSectionBody(content, heading, nextHeading = null) {
   return section.slice(firstLineBreak + 1).trim();
 }
 
+function extractSubsectionBody(section, heading) {
+  const startIndex = getHeadingIndex(section, heading);
+  if (startIndex === -1) {
+    return null;
+  }
+
+  const bodyStart = section.indexOf('\n', startIndex);
+  if (bodyStart === -1) {
+    return '';
+  }
+
+  const remaining = section.slice(bodyStart + 1);
+  const nextSubsectionMatch = /^###\s+.+$/m.exec(remaining);
+  const body = nextSubsectionMatch
+    ? remaining.slice(0, nextSubsectionMatch.index)
+    : remaining;
+
+  return stripHtmlComments(body).trim();
+}
+
+function isNoChangeProductSubsection(body) {
+  const normalized = String(body || '')
+    .replace(/^[\s*>-]+/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  if (!normalized) {
+    return true;
+  }
+
+  return (
+    /\bno\b.*\b(extension|desktop)[-\s]specific\b.*\b(user[-\s]facing\s+)?changes?\b/.test(normalized) ||
+    /本次.*没有.*(扩展端|桌面端).*变化/.test(normalized)
+  );
+}
+
 function validateHeadingOrder(block, headings, label) {
   const errors = [];
   let lastIndex = -1;
@@ -167,6 +204,10 @@ function validateProductSubsectionOrder(content, locale) {
   for (const heading of config.productSubsections) {
     const headingIndex = getHeadingIndex(productSection, heading);
     if (headingIndex === -1) {
+      continue;
+    }
+    const subsectionBody = extractSubsectionBody(productSection, heading);
+    if (isNoChangeProductSubsection(subsectionBody)) {
       continue;
     }
     if (headingIndex < lastIndex) {
