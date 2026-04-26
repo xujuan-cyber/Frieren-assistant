@@ -115,7 +115,7 @@ describe('ui runtime english guards', () => {
   it('keeps favorites management fallbacks locale-backed', () => {
     const categorySource = readUiSource('src/components/CategoryManager.vue')
     const tagSource = readUiSource('src/components/TagManager.vue')
-    const saveDialogSource = readUiSource('src/components/SaveFavoriteDialog.vue')
+    const favoriteEditorSource = readUiSource('src/components/FavoriteEditorForm.vue')
     const previewSource = readUiSource('src/components/PromptGardenFavoritePreviewPanel.vue')
 
     expect(categorySource).toMatch(/message\.warning\(t\('favorites\.manager\.messages\.unavailable'\)\)/)
@@ -124,8 +124,8 @@ describe('ui runtime english guards', () => {
     expect(tagSource).toMatch(/getI18nErrorMessage/)
     expect(tagSource).not.toMatch(/'Unknown error'/)
 
-    expect(saveDialogSource).toMatch(/getI18nErrorMessage/)
-    expect(saveDialogSource).not.toMatch(/'Unknown error'/)
+    expect(favoriteEditorSource).toMatch(/getI18nErrorMessage/)
+    expect(favoriteEditorSource).not.toMatch(/'Unknown error'/)
 
     expect(previewSource).toMatch(/getI18nErrorMessage/)
     expect(previewSource).not.toMatch(/'Unknown error'/)
