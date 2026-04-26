@@ -13,6 +13,7 @@
         data-testid="sub-mode-system"
         value="system"
         :title="systemHelp"
+        @click="handleModeClick('system')"
       >
         {{ systemLabel }}
       </NRadioButton>
@@ -20,6 +21,7 @@
         data-testid="sub-mode-user"
         value="user"
         :title="userHelp"
+        @click="handleModeClick('user')"
       >
         {{ userLabel }}
       </NRadioButton>
@@ -30,6 +32,7 @@
         data-testid="sub-mode-variable"
         value="variable"
         :title="userHelp"
+        @click="handleModeClick('variable')"
       >
         {{ userLabel }}
       </NRadioButton>
@@ -38,6 +41,7 @@
         data-testid="sub-mode-multi"
         value="multi"
         :title="systemHelp"
+        @click="handleModeClick('multi')"
       >
         {{ systemLabel }}
       </NRadioButton>
@@ -62,6 +66,7 @@ interface Props {
   hideSystemOption?: boolean
   /** 当前功能模式，用于决定显示文案 */
   functionMode?: FunctionMode
+  allowReselect?: boolean
 }
 
 interface Emits {
@@ -72,6 +77,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   hideSystemOption: false,
   functionMode: 'basic',
+  allowReselect: false,
 })
 const emit = defineEmits<Emits>()
 
@@ -106,6 +112,12 @@ const userHelp = computed(() => {
 const updateOptimizationMode = (mode: SubMode) => {
   emit('update:modelValue', mode)
   emit('change', mode)
+}
+
+const handleModeClick = (mode: SubMode) => {
+  if (props.allowReselect && props.modelValue === mode) {
+    emit('change', mode)
+  }
 }
 </script>
 

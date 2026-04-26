@@ -59,6 +59,11 @@ const routes: RouteRecordRaw[] = [
     path: '/image/multiimage',
     name: 'image-multiimage',
     component: () => import('../components/image-mode/ImageMultiImageWorkspace.vue')
+  },
+  {
+    path: '/favorites',
+    name: 'favorites',
+    component: () => import('../components/favorites/FavoritesPage.vue')
   }
 ]
 

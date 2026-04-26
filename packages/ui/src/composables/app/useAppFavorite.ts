@@ -45,7 +45,7 @@ export interface FavoriteItem {
  */
 export interface AppFavoriteOptions {
     /** 🔧 Step D: 路由导航函数（替代 setFunctionMode/set*SubMode） */
-    navigateToSubModeKey: (toKey: string, opts?: { replace?: boolean }) => void
+    navigateToSubModeKey: (toKey: string, opts?: { replace?: boolean }) => void | Promise<void>
     /** 处理上下文模式变更 */
     handleContextModeChange: (mode: ContextMode) => Promise<void>
     /** 优化器提示词（用于设置收藏内容） */
@@ -73,7 +73,7 @@ export interface AppFavoriteReturn {
     /** 处理收藏优化提示词 */
     handleFavoriteOptimizePrompt: () => void
     /** 处理使用收藏 */
-    handleUseFavorite: (favorite: FavoriteItem) => Promise<void>
+    handleUseFavorite: (favorite: FavoriteItem) => Promise<boolean>
 }
 
 /**
@@ -132,7 +132,7 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
     /**
      * 处理使用收藏 - 智能模式切换（内部实现）
      */
-    const handleUseFavoriteImpl = async (favorite: FavoriteItem) => {
+    const handleUseFavoriteImpl = async (favorite: FavoriteItem): Promise<boolean> => {
         const {
             functionMode: favFunctionMode,
             optimizationMode: favOptimizationMode,
@@ -147,7 +147,7 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
             const targetSubMode = favImageSubMode || 'text2image'
             const targetKey = `image-${targetSubMode}`
 
-            navigateToSubModeKey(targetKey)
+            await navigateToSubModeKey(targetKey)
             toast.info(t('toast.info.switchedToImageMode'))
 
             await nextTick()
@@ -186,7 +186,7 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
 
             // 3. 一次性导航到目标路由
             const targetKey = `${targetFunctionMode}-${targetSubMode}`
-            navigateToSubModeKey(targetKey)
+            await navigateToSubModeKey(targetKey)
 
             await nextTick()
 
@@ -224,22 +224,25 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
 
         // 显示成功提示
         toast.success(t('toast.success.favoriteLoaded'))
+
+        return true
     }
 
     /**
      * 收藏加载的错误处理包装器
      */
-    const handleUseFavorite = async (favorite: FavoriteItem) => {
+    const handleUseFavorite = async (favorite: FavoriteItem): Promise<boolean> => {
         try {
             // 🔧 设置外部数据加载标志，防止模式切换的自动 restore 覆盖外部数据
             isLoadingExternalData.value = true
 
-            await handleUseFavoriteImpl(favorite)
+            return await handleUseFavoriteImpl(favorite)
         } catch (error) {
             // 捕获收藏加载过程中的所有错误
             console.error('[App] Failed to load favorite:', error)
             const errorMessage = error instanceof Error ? error.message : String(error)
             toast.error(t('toast.error.favoriteLoadFailed', { error: errorMessage }))
+            return false
         } finally {
             // 🔧 恢复完成，重置标志，允许正常的模式切换 restore
             isLoadingExternalData.value = false

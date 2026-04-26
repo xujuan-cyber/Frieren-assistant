@@ -36,7 +36,10 @@
 
                 <!-- Core Navigation Slot -->
                 <template #core-nav>
-                    <AppCoreNav />
+                    <AppCoreNav
+                        :workspace-path="activeWorkspaceContextPath"
+                        :allow-workspace-reselect="isFavoritesRoute"
+                    />
                 </template>
 
                 <!-- Actions Slot -->
@@ -45,9 +48,10 @@
                         @open-templates="openTemplateManager"
                         @open-history="historyManager.showHistory = true"
                         @open-model-manager="modelManager.showConfig = true"
-                        @open-favorites="showFavoriteManager = true"
+                        @open-favorites="openFavoritesPage"
                         @open-data-manager="showDataManager = true"
                         @open-variables="handleOpenVariableManager()"
+                        :favorites-active="isFavoritesRoute"
                         :app-version="appVersion"
                         @open-website="openOfficialWebsite"
                         @open-docs="openDocumentationSite"
@@ -112,13 +116,12 @@
             <FavoriteManagerUI
                 v-if="isReady"
                 :show="showFavoriteManager"
+                :use-favorite="handleUseFavorite"
                 @update:show="
                     (v: boolean) => {
                         if (!v) showFavoriteManager = false;
                     }
                 "
-                @optimize-prompt="handleFavoriteOptimizePrompt"
-                @use-favorite="handleUseFavorite"
             />
 
             <!-- 保存收藏对话框 -->
@@ -234,6 +237,12 @@ import {
 } from "vue";
 import { RouterView } from "vue-router";
 import { router as routerInstance } from '../../router';
+import {
+    DEFAULT_WORKSPACE_PATH,
+    WORKSPACE_SUB_MODE_KEYS,
+    normalizeWorkspacePath,
+    parseWorkspaceRoutePath,
+} from '../../router/workspaceRoutes';
 import { registerOptionalIntegrations } from '../../integrations/registerOptionalIntegrations';
 import { useI18n } from "vue-i18n";
 import {
@@ -259,6 +268,8 @@ import ContextEditor from '../context-mode/ContextEditor.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
 import AppHeaderActions from './AppHeaderActions.vue'
 import AppCoreNav from './AppCoreNav.vue'
+import { createWorkspaceRouteSwitchController } from './workspaceRouteSwitch'
+import { favoritesPageActionsKey } from '../favorites/favorites-page-context'
 import rootPackageJson from '../../../../../package.json'
 
 // Composables - 使用 barrel exports
@@ -300,6 +311,7 @@ import { initializeI18nWithStorage, setI18nServices } from '../../plugins/i18n'
 
 // Pinia functions
 import { setPiniaServices, getPiniaServices } from '../../plugins/pinia'
+import { parseSubModeKey } from '../../router/guards'
 // ⚠️ Codex 建议：改用直接路径导入，避免 barrel exports 循环依赖导致 TDZ
 import { useSessionManager, type SubModeKey } from '../../stores/session/useSessionManager'
 import { useBasicSystemSession } from '../../stores/session/useBasicSystemSession'
@@ -319,7 +331,7 @@ import { DataTransformer } from '../../utils/data-transformer'
 
 // Types
 import type { ModelSelectOption, TestAreaPanelInstance } from '../../types'
-import { type IPromptService, type PromptRecordChain, type PatchOperation, type Template, type TemplateType, type FunctionMode, type BasicSubMode, type ProSubMode, type ImageSubMode, type OptimizationMode, type ConversationMessage, type ToolDefinition, type ContextEditorState, type ContextMode } from "@prompt-optimizer/core";
+import { type IPromptService, type PromptRecordChain, type PatchOperation, type Template, type TemplateType, type FunctionMode, type BasicSubMode, type ProSubMode, type ImageSubMode, type OptimizationMode, type ConversationMessage, type ToolDefinition, type ContextEditorState, type ContextMode, type FavoritePrompt } from "@prompt-optimizer/core";
 
 // 1. 基础 composables
 const hljsInstance = hljs;
@@ -437,58 +449,64 @@ const imageSubModeApi = useImageSubMode(services);
 // 解决方案：直接导入 router 实例，使用 currentRoute 访问路由状态
 // ⚠️ 重要：computed 只做纯解析，纠错逻辑移到独立的 watch（避免循环导航）
 //
-// 纯解析函数：从路由路径提取模式和子模式
-const parseRouteInfo = () => {
-  const currentRoute = routerInstance.currentRoute.value
-  const path = currentRoute.path
-  const subMode = path.split('/')[2]
+const getWorkspacePathFromGlobalSettings = () => {
+  const globalSettings = useGlobalSettings()
+  const { functionMode, basicSubMode, proSubMode, imageSubMode } = globalSettings.state
+  if (functionMode === 'image') return normalizeWorkspacePath(`/image/${imageSubMode}`)
+  if (functionMode === 'pro') return normalizeWorkspacePath(`/pro/${proSubMode}`)
+  return normalizeWorkspacePath(`/basic/${basicSubMode}`)
+}
 
-  // 解析 functionMode
-  let functionMode: 'basic' | 'pro' | 'image' = 'basic'
-  if (path.startsWith('/basic')) functionMode = 'basic'
-  else if (path.startsWith('/pro')) functionMode = 'pro'
-  else if (path.startsWith('/image')) functionMode = 'image'
-  else if (path === '/' || path === '') functionMode = 'basic'  // 根路径默认
+const getCurrentRouteFromWorkspaceQuery = () =>
+  normalizeWorkspacePath(routerInstance.currentRoute.value.query.from)
 
-  // 解析子模式（带白名单验证）
-  const parseSubMode = (
-    mode: 'basic' | 'pro' | 'image',
-    subModeParam: string | undefined
-  ): { subMode: string; isValid: boolean; canonicalSubMode: string } => {
-    const validSubModes: Record<string, string[]> = {
-      basic: ['system', 'user'],
-      pro: ['multi', 'variable'],  // ✅ pro 模式支持 multi 和 variable
-      image: ['text2image', 'image2image', 'multiimage'],
+const lastWorkspacePath = ref(
+  normalizeWorkspacePath(routerInstance.currentRoute.value.path)
+  ?? getCurrentRouteFromWorkspaceQuery()
+  ?? DEFAULT_WORKSPACE_PATH,
+)
+
+const isFavoritesRoute = computed(() => routerInstance.currentRoute.value.path === '/favorites')
+
+watch(
+  () => routerInstance.currentRoute.value.fullPath,
+  () => {
+    const currentWorkspacePath = normalizeWorkspacePath(routerInstance.currentRoute.value.path)
+    if (currentWorkspacePath) {
+      lastWorkspacePath.value = currentWorkspacePath
+      return
     }
 
-    const allowed = validSubModes[mode] || []
-    const isValid = subModeParam !== undefined && allowed.includes(subModeParam)
-
-    // ✅ 移除错误的兼容性映射，直接使用原始 subMode
-    let canonicalSubMode = subModeParam || ''
-
-    // 默认值（仅在 subModeParam 为空或非法时使用）
-    if (!canonicalSubMode || !isValid) {
-      if (mode === 'image') canonicalSubMode = 'text2image'
-      else if (mode === 'pro') canonicalSubMode = 'variable'
-      else canonicalSubMode = 'system'
+    if (isFavoritesRoute.value) {
+      const fromPath = getCurrentRouteFromWorkspaceQuery()
+      if (fromPath) {
+        lastWorkspacePath.value = fromPath
+      }
     }
+  },
+  { immediate: true },
+)
 
-    return { subMode: canonicalSubMode, isValid, canonicalSubMode }
-  }
+const activeWorkspaceContextPath = computed(() =>
+  normalizeWorkspacePath(routerInstance.currentRoute.value.path) ?? lastWorkspacePath.value,
+)
 
-  const subModeInfo = parseSubMode(functionMode, subMode)
+// 纯解析函数：从工作区路径提取模式和子模式；收藏页等非工作区路径沿用最近工作区上下文
+const parseRouteInfo = (path = activeWorkspaceContextPath.value) => {
+  const workspaceRoute = parseWorkspaceRoutePath(path) ?? parseWorkspaceRoutePath(DEFAULT_WORKSPACE_PATH)!
+  const functionMode = workspaceRoute.mode
+  const subMode = workspaceRoute.subMode
 
   return {
     functionMode,
     basicSubMode:
-      (functionMode === 'basic' ? subModeInfo.canonicalSubMode : 'system') as 'system' | 'user',
+      (functionMode === 'basic' ? subMode : 'system') as 'system' | 'user',
     proSubMode:
-      (functionMode === 'pro' ? subModeInfo.canonicalSubMode : 'variable') as 'multi' | 'variable',
+      (functionMode === 'pro' ? subMode : 'variable') as 'multi' | 'variable',
     imageSubMode:
-      (functionMode === 'image' ? subModeInfo.canonicalSubMode : 'text2image') as 'text2image' | 'image2image' | 'multiimage',
-    isValid: subModeInfo.isValid,
-    canonicalPath: `/${functionMode}/${subModeInfo.canonicalSubMode}`,
+      (functionMode === 'image' ? subMode : 'text2image') as 'text2image' | 'image2image' | 'multiimage',
+    isValid: true,
+    canonicalPath: workspaceRoute.path,
   }
 }
 
@@ -523,9 +541,10 @@ watch(
 // ========== 路由 ⇢ GlobalSettings（仅记录，不反向驱动路由） ==========
 watch(
   () => routerInstance.currentRoute.value.path,
-  () => {
+  (currentPath) => {
     const globalSettings = useGlobalSettings()
     if (!globalSettings.hasRestored) return
+    if (!parseWorkspaceRoutePath(currentPath)) return
 
     const routeInfo = parseRouteInfo()
 
@@ -1284,27 +1303,17 @@ const restoreCoordinator = useSessionRestoreCoordinator(restoreSessionToUIIntern
 // 对外暴露的恢复函数（带协调逻辑）
 const restoreSessionToUI = restoreCoordinator.executeRestore;
 
-// 🔧 Codex 修复：watch 只负责模式切换后的恢复（不负责首次恢复）
-// 首次恢复由 onMounted watchEffect 负责，避免双入口冲突
-// 🔧 Step E: 使用 route-computed 代替旧 state
-watch(
-    [isReady, () => routeFunctionMode.value, () => routeBasicSubMode.value, () => routeProSubMode.value],
-    async ([ready]) => {
-        // 🔧 只在已完成首次恢复后才响应模式切换
-        if (!ready || !hasRestoredInitialState.value) return;
-
-        // 🔧 外部数据加载中不响应模式切换（防止 session restore 覆盖外部数据）
-        if (isLoadingExternalData.value) return;
-
-        try {
-            await restoreSessionToUI();
-        } catch (error) {
-            // 🔧 错误处理：避免未处理的 Promise rejection 传播到 Vue
-            console.error('[PromptOptimizerApp] Failed to restore the session after switching modes:', error);
-        }
+const workspaceRouteSwitch = createWorkspaceRouteSwitchController({
+    hasRestoredInitialState,
+    parseSubModeKey,
+    getActiveSubModeKey: sessionManager.getActiveSubModeKey,
+    switchMode: sessionManager.switchMode,
+    switchSubMode: sessionManager.switchSubMode,
+    restoreSessionToUI,
+    onError: (error, fromKey, toKey) => {
+        console.error(`[PromptOptimizerApp] Route switch failed: ${fromKey} -> ${toKey}`, error);
     },
-    { immediate: false }  // 🔧 改为 false，不在 watch 创建时立即执行
-);
+});
 
 // 同步 prompt 变化到 session store
 // 🔧 方案 A 修复：严格限制在 Basic 模式，避免跨模式污染
@@ -1562,26 +1571,22 @@ provide("promptHistory", promptHistory);
 
 const historyManager = promptHistory;
 
+let hasRegisteredGlobalHistoryRefresh = false;
+let isAppUnmounted = false;
+const handleGlobalHistoryRefresh = () => {
+    promptHistory.initHistory();
+};
+
 const servicesForHistoryRestore = computed(() =>
     services.value ? { historyManager: services.value.historyManager } : null,
 );
-
-const SUB_MODE_KEYS: ReadonlyArray<SubModeKey> = [
-    "basic-system",
-    "basic-user",
-    "pro-multi",
-    "pro-variable",
-    "image-text2image",
-    "image-image2image",
-    "image-multiimage",
-];
 
 const navigateToSubModeKeyCompat = (
     toKey: string,
     opts?: { replace?: boolean },
 ) => {
-    if (!SUB_MODE_KEYS.includes(toKey as SubModeKey)) return;
-    navigateToSubModeKey(toKey as SubModeKey, opts);
+    if (!WORKSPACE_SUB_MODE_KEYS.includes(toKey as SubModeKey)) return Promise.resolve();
+    return navigateToSubModeKey(toKey as SubModeKey, opts).then(() => undefined);
 };
 
 const optimizerPrompt = computed<string>({
@@ -1611,7 +1616,6 @@ const {
     saveFavoriteData,
     handleSaveFavorite,
     handleSaveFavoriteComplete,
-    handleFavoriteOptimizePrompt,
     handleUseFavorite,
 } = useAppFavorite({
     navigateToSubModeKey: navigateToSubModeKeyCompat,  // 🔧 Step D: 替代旧的 setFunctionMode/set*SubMode
@@ -1619,6 +1623,51 @@ const {
     optimizerPrompt,
     t,
     isLoadingExternalData,
+});
+
+const resolveFavoritesReturnPath = () =>
+    getCurrentRouteFromWorkspaceQuery()
+    ?? getWorkspacePathFromGlobalSettings()
+    ?? lastWorkspacePath.value
+    ?? DEFAULT_WORKSPACE_PATH;
+
+const openFavoritesPage = () => {
+    const fromPath = normalizeWorkspacePath(routerInstance.currentRoute.value.path)
+        ?? lastWorkspacePath.value
+        ?? getWorkspacePathFromGlobalSettings()
+        ?? DEFAULT_WORKSPACE_PATH;
+
+    if (isFavoritesRoute.value && getCurrentRouteFromWorkspaceQuery() === fromPath) {
+        return;
+    }
+
+    void routerInstance.push({
+        name: 'favorites',
+        query: {
+            from: fromPath,
+        },
+    });
+};
+
+const returnToWorkspace = () => {
+    void routerInstance.push(resolveFavoritesReturnPath());
+};
+
+const handleUseFavoriteFromPage = async (favorite: FavoritePrompt): Promise<boolean> => {
+    const used = await handleUseFavorite(favorite);
+
+    // handleUseFavorite awaits target workspace navigation. This fallback only covers
+    // legacy/non-navigating favorite payloads that still leave the page route active.
+    if (used && routerInstance.currentRoute.value.path === '/favorites') {
+        returnToWorkspace();
+    }
+
+    return used;
+};
+
+provide(favoritesPageActionsKey, {
+    useFavorite: handleUseFavoriteFromPage,
+    returnToWorkspace,
 });
 
 // Optional integrations (feature-flagged + lazy-loaded).
@@ -1767,14 +1816,17 @@ watch(
 
 // 7. 监听服务初始化
 watch(services, async (newServices) => {
+    if (isAppUnmounted) return;
     if (!newServices) return;
 
     promptService.value = newServices.promptService;
     await initializeContextPersistence();
+    if (isAppUnmounted) return;
 
     // 等待基于 globalSettings 的初始路由初始化完成（避免根路径时读取到错误的 routeFunctionMode）
     if (_routeInitInFlight) {
         await _routeInitInFlight;
+        if (isAppUnmounted) return;
     }
 
     // 🔧 修复：使用 setup 顶层保存的 composable 引用，避免在 watch 回调中重复调用（导致 inject() 错误）
@@ -1788,14 +1840,15 @@ watch(services, async (newServices) => {
     } else if (routeFunctionMode.value === "image") {
         await imageSubModeApi.ensureInitialized();
     }
+    if (isAppUnmounted) return;
 
-    const handleGlobalHistoryRefresh = () => {
-        promptHistory.initHistory();
-    };
-    window.addEventListener(
-        "prompt-optimizer:history-refresh",
-        handleGlobalHistoryRefresh,
-    );
+    if (typeof window !== 'undefined' && !hasRegisteredGlobalHistoryRefresh) {
+        window.addEventListener(
+            "prompt-optimizer:history-refresh",
+            handleGlobalHistoryRefresh,
+        );
+        hasRegisteredGlobalHistoryRefresh = true;
+    }
 });
 
 // 8. 处理数据导入成功后的刷新
@@ -2032,62 +2085,19 @@ const handleModelManagerClosed = async () => {
 /**
  * 🔧 开发规范（防止回归）：
  *
- * 任何新增触发 switchMode / switchSubMode / restoreSessionToUI 的 watch 或入口
+ * 任何新增通过 watch 触发 switchMode / switchSubMode / restoreSessionToUI 的入口
  * 都**必须**添加以下检查，防止 session restore 覆盖外部数据：
  *
  *   if (isLoadingExternalData.value) return;
  *
+ * 外部数据加载流程如果也需要切换工作区，必须通过 navigateToSubModeKey()
+ * 显式等待同一套路由事务完成，再写入外部数据。
+ *
  * 适用场景：历史记录恢复、收藏加载、模板导入、配置恢复等任何外部数据加载
  *
- * 当前已保护的 5 个入口：
- *   1. watch(functionMode, ...)              - 功能模式切换
- *   2. watch(basicSubMode, ...)              - Basic 子模式切换
- *   3. watch(proSubMode, ...)                - Pro 子模式切换
- *   4. watch(imageSubMode, ...)              - Image 子模式切换
- *   5. watch([isReady, ...modes], ...)       - 综合模式监听
+ * 当前路由切换入口：
+ *   watch(router.currentRoute.fullPath, ...) - 工作区路由切换事务
  */
-
-// ========== 🔧 Step C: 路由驱动的模式切换（替代旧 state-watch） ==========
-/**
- * 从路由路径解析 SubModeKey（使用与 route-computed 相同的严格解析逻辑）
- *
- * @param path - 路由路径，如 '/basic/system', '/pro/variable', '/image/text2image'
- * @returns SubModeKey，如 'basic-system', 'pro-variable', 'image-text2image'
- * @returns null - 如果路径非法
- */
-const parseSubModeKey = (path: string): SubModeKey | null => {
-  if (!path) return null;
-
-  // 移除查询参数和哈希
-  const cleanPath = path.split('?')[0].split('#')[0];
-
-  // 匹配模式：/mode/subMode
-  const match = cleanPath.match(/^\/([a-z]+)\/([a-z0-9]+)$/);
-  if (!match) return null;
-
-  const [, mode, subMode] = match;
-
-  // 严格验证 mode 和 subMode 的合法性
-  const validModes: Record<string, string[]> = {
-    basic: ['system', 'user'],
-    pro: ['multi', 'variable'],
-    image: ['text2image', 'image2image', 'multiimage'],
-  };
-
-  // 🔧 Pro 模式兼容性映射（与 routeProSubMode computed 保持一致）
-  let normalizedSubMode = subMode;
-  if (mode === 'pro') {
-    if (subMode === 'system') normalizedSubMode = 'multi';
-    if (subMode === 'user') normalizedSubMode = 'variable';
-  }
-
-  const validSubModes = validModes[mode];
-  if (!validSubModes || !validSubModes.includes(normalizedSubMode)) {
-    return null;
-  }
-
-  return `${mode}-${normalizedSubMode}` as SubModeKey;
-};
 
 /**
  * 🔧 Step C - 新增：路由变化监听（替代旧 state-watch，避免双触发）
@@ -2098,45 +2108,14 @@ const parseSubModeKey = (path: string): SubModeKey | null => {
  * - 路由变化是唯一触发模式切换事务的入口
  * - 使用 route-computed 解析 fromKey/toKey（与 Step A 保持一致）
  * - 保留 isLoadingExternalData 和 hasRestoredInitialState 短路逻辑
- * - 与旧 state-watch 并存但让旧的短路，便于验证和回滚
+ * - 收藏、历史等外部数据加载流程通过 navigateToSubModeKey 显式等待同一事务
  */
 watch(
   () => routerInstance.currentRoute.value.fullPath,
   async (toPath, fromPath) => {
-    // 🔧 首次恢复完成前不响应路由变化
-    if (!hasRestoredInitialState.value) return;
-
-    // 🔧 外部数据加载中不响应路由变化（防止 session restore 覆盖外部数据）
-    if (isLoadingExternalData.value) return;
-
-    // 解析 fromKey 和 toKey（使用与 route-computed 相同的严格解析逻辑）
-    const fromKey = parseSubModeKey(fromPath);
-    const toKey = parseSubModeKey(toPath);
-
-    // 非法路径：不触发切换（由 route-computed 的 redirect 处理）
-    if (!fromKey || !toKey) return;
-
-    // 路由未变化：不触发切换
-    if (fromKey === toKey) return;
-
-    // 🔧 判断是跨 mode 切换还是同 mode 子模式切换
-    const fromMode = fromKey.split('-')[0];
-    const toMode = toKey.split('-')[0];
-
-    try {
-      if (fromMode !== toMode) {
-        // 跨 mode 切换
-        await sessionManager.switchMode(fromKey, toKey);
-      } else {
-        // 同 mode 子模式切换
-        await sessionManager.switchSubMode(fromKey, toKey);
-      }
-
-      // ⚠️ 切换后恢复状态到 UI
-      await restoreSessionToUI();
-    } catch (error) {
-      console.error(`[PromptOptimizerApp] Route switch failed: ${fromKey} -> ${toKey}`, error);
-    }
+    await workspaceRouteSwitch.handleRouteChange(toPath, fromPath, {
+      externalDataLoading: isLoadingExternalData.value,
+    });
   }
 );
 
@@ -2153,7 +2132,7 @@ watch(
  * - 收藏使用：navigateToSubModeKey(favorite.functionMode + '-' + favorite.subMode)
  * - 任何需要切换模式/子模式的场景
  */
-function navigateToSubModeKey(
+async function navigateToSubModeKey(
   toKey: SubModeKey,
   opts?: { replace?: boolean }
 ) {
@@ -2164,12 +2143,15 @@ function navigateToSubModeKey(
   ]
 
   const path = `/${mode}/${subMode}`
+  const fromPath = routerInstance.currentRoute.value.fullPath
 
   if (opts?.replace) {
-    routerInstance.replace(path)
+    await routerInstance.replace(path)
   } else {
-    routerInstance.push(path)
+    await routerInstance.push(path)
   }
+
+  await workspaceRouteSwitch.run(routerInstance.currentRoute.value.fullPath, fromPath)
 }
 
 // 🔧 Step C 阶段2：已删除四个旧 state-watch，route-watch 成为唯一触发源
@@ -2179,7 +2161,7 @@ function navigateToSubModeKey(
 // - watch(imageSubMode, ...) ❌ 已删除（2024-01-06）
 //
 // 主链路：route.fullPath 变化 → sessionManager.switchMode/switchSubMode → restoreSessionToUI
-// 保留 watch([isReady, ...modes], ...) 用于首次恢复（第1121-1131行）
+// 首次恢复由 onMounted watchEffect 负责，后续工作区路由切换由 workspaceRouteSwitch 负责
 
 // 应用启动时恢复当前会话（在services ready后自动触发）
 // 注意：恢复逻辑已集成到services ready的watch中
@@ -2299,6 +2281,8 @@ onMounted(() => {
 
 // 应用卸载前清理并保存所有会话
 onBeforeUnmount(async () => {
+  isAppUnmounted = true;
+
   // 🔧 Codex 修复：设置卸载标志，阻止后续 microtask 执行恢复
   restoreCoordinator.markUnmounted();
 
@@ -2317,6 +2301,13 @@ onBeforeUnmount(async () => {
     window.removeEventListener('pagehide', handlePagehide)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+    if (hasRegisteredGlobalHistoryRefresh) {
+      window.removeEventListener(
+        'prompt-optimizer:history-refresh',
+        handleGlobalHistoryRefresh,
+      )
+      hasRegisteredGlobalHistoryRefresh = false
+    }
   }
 
   removeRouterErrorHandler?.()

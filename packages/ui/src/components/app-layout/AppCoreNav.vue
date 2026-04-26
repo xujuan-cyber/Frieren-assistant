@@ -14,7 +14,8 @@
         <!-- 功能模式选择器 -->
         <FunctionModeSelector
             :modelValue="functionMode"
-            @update:modelValue="handleFunctionModeChange"
+            :allow-reselect="allowWorkspaceReselect"
+            @change="handleFunctionModeChange"
         />
 
         <!-- 子模式选择器 - 基础模式 -->
@@ -22,6 +23,7 @@
             v-if="functionMode === 'basic'"
             :modelValue="basicSubMode"
             functionMode="basic"
+            :allow-reselect="allowWorkspaceReselect"
             @change="handleBasicSubModeChange"
         />
 
@@ -30,6 +32,7 @@
             v-if="functionMode === 'pro'"
             :modelValue="proSubMode"
             functionMode="pro"
+            :allow-reselect="allowWorkspaceReselect"
             @change="handleProSubModeChange"
         />
 
@@ -37,6 +40,7 @@
         <ImageModeSelector
             v-if="functionMode === 'image'"
             :modelValue="imageSubMode"
+            :allow-reselect="allowWorkspaceReselect"
             @change="handleImageSubModeChange"
         />
     </NSpace>
@@ -68,12 +72,23 @@ import type { FunctionMode, BasicSubMode, ProSubMode, ImageSubMode } from '@prom
 
 type SubMode = BasicSubMode | ProSubMode
 
+interface Props {
+    workspacePath?: string
+    allowWorkspaceReselect?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    allowWorkspaceReselect: false,
+})
+
 // ========================
 // Router（使用 router 单例，避免注入失败/多实例）
 // ========================
+const activeWorkspacePath = computed(() => props.workspacePath || routerInstance.currentRoute.value.path)
+
 // 从当前路由计算模式
 const functionMode = computed<FunctionMode>(() => {
-    const path = routerInstance.currentRoute.value.path
+    const path = activeWorkspacePath.value
     if (path.startsWith('/basic')) return 'basic'
     if (path.startsWith('/pro')) return 'pro'
     if (path.startsWith('/image')) return 'image'
@@ -81,7 +96,7 @@ const functionMode = computed<FunctionMode>(() => {
 })
 
 const basicSubMode = computed<BasicSubMode>(() => {
-    const rawSubMode = routerInstance.currentRoute.value.path.split('/')[2]
+    const rawSubMode = activeWorkspacePath.value.split('/')[2]
 
     // ✅ 静态路由映射：system 或 user
     if (rawSubMode === 'system' || rawSubMode === 'user') {
@@ -92,7 +107,7 @@ const basicSubMode = computed<BasicSubMode>(() => {
 })
 
 const proSubMode = computed<ProSubMode>(() => {
-    const rawSubMode = routerInstance.currentRoute.value.path.split('/')[2]
+    const rawSubMode = activeWorkspacePath.value.split('/')[2]
 
     // ✅ 标准值
     if (rawSubMode === 'multi' || rawSubMode === 'variable') {
@@ -107,7 +122,7 @@ const proSubMode = computed<ProSubMode>(() => {
 })
 
 const imageSubMode = computed<ImageSubMode>(() => {
-    const rawSubMode = routerInstance.currentRoute.value.path.split('/')[2]
+    const rawSubMode = activeWorkspacePath.value.split('/')[2]
 
     // ✅ 静态路由映射：text2image / image2image / multiimage
     if (rawSubMode === 'text2image' || rawSubMode === 'image2image' || rawSubMode === 'multiimage') {
@@ -127,26 +142,36 @@ const DEFAULT_SUB_MODES = {
     image: 'text2image'
 } as const
 
+const navigateToWorkspacePath = (path: string) => {
+    if (routerInstance.currentRoute.value.path === path) return
+    routerInstance.push(path)
+}
+
 const handleFunctionModeChange = (mode: FunctionMode) => {
+    if (mode === functionMode.value) {
+        navigateToWorkspacePath(activeWorkspacePath.value)
+        return
+    }
+
     // 切换 functionMode 时使用默认 subMode，避免跨模式污染
     // 例如：从 /image/text2image 切到 pro，不应使用 text2image（非法）
     const defaultSubMode = DEFAULT_SUB_MODES[mode]
-    routerInstance.push(`/${mode}/${defaultSubMode}`)
+    navigateToWorkspacePath(`/${mode}/${defaultSubMode}`)
 }
 
 const handleBasicSubModeChange = (mode: SubMode) => {
     if (mode === 'system' || mode === 'user') {
-        routerInstance.push(`/basic/${mode}`)
+        navigateToWorkspacePath(`/basic/${mode}`)
     }
 }
 
 const handleProSubModeChange = (mode: SubMode) => {
     if (mode === 'multi' || mode === 'variable') {
-        routerInstance.push(`/pro/${mode}`)
+        navigateToWorkspacePath(`/pro/${mode}`)
     }
 }
 
 const handleImageSubModeChange = (mode: ImageSubMode) => {
-    routerInstance.push(`/image/${mode}`)
+    navigateToWorkspacePath(`/image/${mode}`)
 }
 </script>

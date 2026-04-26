@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import type { RouteLocationNormalized } from 'vue-router'
 import { beforeRouteSwitch, parseSubModeKey } from '../../../src/router/guards'
+import { normalizeWorkspacePath, parseWorkspaceRoutePath } from '../../../src/router/workspaceRoutes'
 
 function createRoute(path: string): RouteLocationNormalized {
   return {
@@ -25,6 +26,17 @@ describe('router guards', () => {
       expect(parseSubModeKey('/pro/system')).toBeNull()
       expect(parseSubModeKey('/image/unknown')).toBeNull()
       expect(parseSubModeKey('/other/path')).toBeNull()
+      expect(parseSubModeKey('/favorites')).toBeNull()
+    })
+  })
+
+  describe('workspace route helpers', () => {
+    it('parses and normalizes workspace routes only', () => {
+      expect(parseWorkspaceRoutePath('/basic/system')?.subModeKey).toBe('basic-system')
+      expect(normalizeWorkspacePath('/image/text2image')).toBe('/image/text2image')
+      expect(normalizeWorkspacePath(['/pro/variable'])).toBe('/pro/variable')
+      expect(normalizeWorkspacePath('/favorites')).toBeNull()
+      expect(normalizeWorkspacePath('/image/unknown')).toBeNull()
     })
   })
 
@@ -58,6 +70,12 @@ describe('router guards', () => {
 
     it('allows the root route to continue', () => {
       const result = beforeRouteSwitch(createRoute('/'), createRoute('/basic/system'), undefined as never)
+
+      expect(result).toBe(true)
+    })
+
+    it('allows the favorites route to continue without workspace redirect', () => {
+      const result = beforeRouteSwitch(createRoute('/favorites'), createRoute('/basic/system'), undefined as never)
 
       expect(result).toBe(true)
     })

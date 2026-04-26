@@ -1,5 +1,10 @@
 import type { NavigationGuard } from 'vue-router'
 import type { SubModeKey } from '../stores/session/useSessionManager'
+import {
+  getDefaultSubModeForWorkspaceMode,
+  parseWorkspaceRoutePath,
+  type WorkspaceMode,
+} from './workspaceRoutes'
 
 /**
  * 从路由路径解析子模式 key
@@ -7,28 +12,7 @@ import type { SubModeKey } from '../stores/session/useSessionManager'
  * @returns SubModeKey 或 null（如果路径格式无效）
  */
 export const parseSubModeKey = (path: string): SubModeKey | null => {
-  const validSubModes = {
-    basic: ['system', 'user'] as const,
-    pro: ['multi', 'variable'] as const,
-    image: ['text2image', 'image2image', 'multiimage'] as const,
-  } as const
-
-  type Mode = keyof typeof validSubModes
-  type ValidSubMode<M extends Mode> = (typeof validSubModes)[M][number]
-  const isValidSubMode = <M extends Mode>(mode: M, subMode: string): subMode is ValidSubMode<M> => {
-    return (validSubModes[mode] as readonly string[]).includes(subMode)
-  }
-
-  const match = path.match(/^\/(basic|pro|image)\/([^/]+)$/)
-  if (!match) return null
-
-  const [, mode, subMode] = match
-
-  if (!isValidSubMode(mode as Mode, subMode)) {
-    return null
-  }
-
-  return `${mode}-${subMode}` as SubModeKey
+  return parseWorkspaceRoutePath(path)?.subModeKey ?? null
 }
 
 /**
@@ -53,16 +37,9 @@ export const beforeRouteSwitch: NavigationGuard = (to) => {
   if (subModeKey === null && to.path !== '/') {
     const match = to.path.match(/^\/(basic|pro|image)/)
     if (match) {
-      const mode = match[1]
+      const mode = match[1] as WorkspaceMode
 
-      let defaultSubMode: string
-      if (mode === 'image') {
-        defaultSubMode = 'text2image'
-      } else if (mode === 'pro') {
-        defaultSubMode = 'variable'
-      } else {
-        defaultSubMode = 'system'
-      }
+      const defaultSubMode = getDefaultSubModeForWorkspaceMode(mode)
 
       console.warn(`[Router] Invalid subMode: ${to.path}. Redirecting to /${mode}/${defaultSubMode}`)
       return `/${mode}/${defaultSubMode}`

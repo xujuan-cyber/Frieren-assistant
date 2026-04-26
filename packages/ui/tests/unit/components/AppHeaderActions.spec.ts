@@ -85,4 +85,70 @@ describe('AppHeaderActions about menu layout hooks', () => {
     expect(wrapper.text()).toContain('always200.com')
     expect(wrapper.text()).toContain('docs.always200.com')
   })
+
+  it('separates the favorites page destination from modal actions and marks it active', async () => {
+    const wrapper = mount(AppHeaderActions, {
+      props: {
+        appVersion: 'v2.7.0',
+        favoritesActive: true,
+      },
+      global: {
+        mocks: {
+          $t: (key: string) => {
+            const map: Record<string, string> = {
+              'nav.templates': 'Templates',
+              'nav.history': 'History',
+              'nav.modelManager': 'Model Manager',
+              'nav.favorites': 'Favorite Library',
+              'nav.dataManager': 'Data Manager',
+              'nav.variableManager': 'Variable Manager',
+              'nav.about': 'About',
+              'updater.viewOnGitHub': 'View on GitHub',
+              'about.website': 'Website',
+              'about.websiteLabel': 'always200.com',
+              'about.documentation': 'Docs',
+              'about.documentationLabel': 'docs.always200.com',
+            }
+            return map[key] ?? key
+          },
+        },
+        stubs: {
+          ThemeToggleUI: true,
+          LanguageSwitchDropdown: true,
+          UpdaterIcon: true,
+          ActionButtonUI: defineComponent({
+            name: 'ActionButtonUI',
+            props: ['text', 'type'],
+            emits: ['click'],
+            setup(props, { emit, attrs }) {
+              return () =>
+                h(
+                  'button',
+                  {
+                    ...attrs,
+                    class: attrs.class,
+                    'data-type': props.type,
+                    onClick: () => emit('click'),
+                  },
+                  props.text,
+                )
+            },
+          }),
+        },
+      },
+    })
+
+    const pageGroup = wrapper.find('[data-testid="header-page-destinations"]')
+    const modalGroup = wrapper.find('[data-testid="header-modal-actions"]')
+
+    expect(pageGroup.exists()).toBe(true)
+    expect(modalGroup.exists()).toBe(true)
+    expect(pageGroup.text()).toContain('Favorite Library')
+    expect(modalGroup.text()).not.toContain('Favorite Library')
+    expect(pageGroup.find('button').attributes('data-type')).toBe('primary')
+
+    await pageGroup.find('button').trigger('click')
+
+    expect(wrapper.emitted('open-favorites')).toHaveLength(1)
+  })
 })

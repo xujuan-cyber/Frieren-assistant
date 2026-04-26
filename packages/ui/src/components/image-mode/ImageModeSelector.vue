@@ -39,6 +39,7 @@ export type ImageMode = 'text2image' | 'image2image' | 'multiimage'
 interface Props {
   modelValue: ImageMode
   disabled?: boolean
+  allowReselect?: boolean
 }
 
 interface Emits {
@@ -47,14 +48,16 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  disabled: false
+  disabled: false,
+  allowReselect: false,
 })
 
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 
 const handleModeChange = (mode: ImageMode) => {
-  if (props.disabled || props.modelValue === mode) return
+  if (props.disabled) return
+  if (props.modelValue === mode && !props.allowReselect) return
 
   emit('update:modelValue', mode)
   emit('change', mode)
