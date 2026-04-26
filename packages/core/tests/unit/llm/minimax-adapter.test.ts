@@ -26,7 +26,7 @@ describe('MinimaxAdapter', () => {
     providerMeta: {
       id: 'minimax',
       name: 'MiniMax',
-      description: 'MiniMax AI models via OpenAI-compatible API',
+      description: 'MiniMax AI models via OpenAI-compatible API. The default endpoint is global; Mainland China users should use https://api.minimaxi.com/v1.',
       requiresApiKey: true,
       defaultBaseURL: 'https://api.minimax.io/v1',
       supportsDynamicModels: true,
@@ -100,6 +100,7 @@ describe('MinimaxAdapter', () => {
       expect(provider.defaultBaseURL).toBe('https://api.minimax.io/v1');
       expect(provider.supportsDynamicModels).toBe(true);
       expect(provider.requiresApiKey).toBe(true);
+      expect(provider.description).toContain('https://api.minimaxi.com/v1');
     });
 
     it('should have valid connection schema', () => {

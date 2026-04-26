@@ -57,7 +57,7 @@ export class MinimaxAdapter extends OpenAIAdapter {
     return {
       id: 'minimax',
       name: 'MiniMax',
-      description: 'MiniMax AI models via OpenAI-compatible API',
+      description: 'MiniMax AI models via OpenAI-compatible API. The default endpoint is global; Mainland China users should use https://api.minimaxi.com/v1.',
       requiresApiKey: true,
       defaultBaseURL: 'https://api.minimax.io/v1',
       supportsDynamicModels: true,

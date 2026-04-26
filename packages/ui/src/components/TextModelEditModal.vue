@@ -49,7 +49,20 @@
             <template v-if="field.name === 'baseURL'" #label>
               <NSpace align="center" :size="4">
                 <span>{{ t('modelManager.apiUrl') }}</span>
-                <NText depth="3" :title="t('modelManager.apiUrlHint')" style="cursor: help;">?</NText>
+                <NTooltip :show-arrow="false" placement="top">
+                  <template #trigger>
+                    <NButton
+                      class="api-url-help-button"
+                      quaternary
+                      circle
+                      size="tiny"
+                      :aria-label="t('modelManager.apiUrlHintAriaLabel')"
+                    >
+                      ?
+                    </NButton>
+                  </template>
+                  <span class="api-url-help-text">{{ t('modelManager.apiUrlHint') }}</span>
+                </NTooltip>
               </NSpace>
             </template>
 
@@ -295,6 +308,10 @@ const currentProviderHint = computed(() => {
     return t('modelManager.provider.dashscopeHint')
   }
 
+  if (provider.id === 'minimax') {
+    return t('modelManager.provider.minimaxHint')
+  }
+
   return provider.description || ''
 })
 
@@ -392,3 +409,20 @@ const onProviderChange = (providerId: string) => {
   })
 }
 </script>
+
+<style scoped>
+.api-url-help-button {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.api-url-help-text {
+  display: block;
+  max-width: 360px;
+  line-height: 1.5;
+  white-space: normal;
+}
+</style>

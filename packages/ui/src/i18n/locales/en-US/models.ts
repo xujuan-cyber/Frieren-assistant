@@ -14,6 +14,7 @@ const messages = {
     "modelKey": "Model Key",
     "apiUrl": "API URL",
     "apiUrlHint": "Example: https://api.example.com/v1; most providers use endpoints ending with /v1",
+    "apiUrlHintAriaLabel": "Show API URL help",
     "defaultModel": "Default Model",
     "clickToFetchModels": "Click arrow to fetch model list",
     "apiKey": "API Key",
@@ -26,7 +27,8 @@ const messages = {
       "placeholder": "Select Provider",
       "openaiHint": "This is the official OpenAI API. If you want a custom base URL, a third-party compatible service, or a local model, choose \"Custom API (OpenAI Compatible)\" instead.",
       "customApiHint": "Use this for custom OpenAI-compatible endpoints. You can configure the base URL, use your own model name, and choose Chat Completions or Responses as the request style.",
-      "dashscopeHint": "DashScope supports both OpenAI-compatible Chat Completions and Responses APIs. You can switch the request style here directly."
+      "dashscopeHint": "DashScope supports both OpenAI-compatible Chat Completions and Responses APIs. You can switch the request style here directly.",
+      "minimaxHint": "The default endpoint is the global MiniMax OpenAI-compatible API. Mainland China users should set API URL to https://api.minimaxi.com/v1. Do not use Anthropic-format MiniMax endpoints here."
     },
     "connection": {
       "accountId": "Account ID",

@@ -14,6 +14,7 @@ const messages = {
     "modelKey": "模型标识",
     "apiUrl": "API地址",
     "apiUrlHint": "示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾",
+    "apiUrlHintAriaLabel": "显示 API 地址说明",
     "defaultModel": "默认模型",
     "selectModel": "选择模型",
     "clickToFetchModels": "点击箭头获取模型列表",
@@ -27,7 +28,8 @@ const messages = {
       "placeholder": "选择提供商",
       "openaiHint": "官方 OpenAI API 入口。如果你想接入自定义 Base URL、第三方兼容服务或本地模型，请选择“Custom API (OpenAI Compatible)”。",
       "customApiHint": "用于接入自定义 OpenAI 兼容接口。你可以配置 Base URL、自定义模型名，并选择 Chat Completions 或 Responses 请求风格。",
-      "dashscopeHint": "阿里百炼已支持 OpenAI 兼容的 Chat Completions 与 Responses 接口。当前可直接在这里切换请求风格进行使用。"
+      "dashscopeHint": "阿里百炼已支持 OpenAI 兼容的 Chat Completions 与 Responses 接口。当前可直接在这里切换请求风格进行使用。",
+      "minimaxHint": "默认地址是 MiniMax 海外 OpenAI 兼容接口。国内用户请将 API 地址改为 https://api.minimaxi.com/v1；这里不要使用 MiniMax 的 Anthropic 格式地址。"
     },
     "connection": {
       "accountId": "账户 ID",
