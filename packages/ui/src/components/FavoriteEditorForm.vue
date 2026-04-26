@@ -269,6 +269,7 @@ import { useTagSuggestions } from '../composables/ui/useTagSuggestions'
 import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
 import { buildFavoriteMediaMetadata, parseFavoriteMediaMetadata } from '../utils/favorite-media'
+import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
 import {
   persistImageSourceAsAssetId,
   resolveAssetIdToDataUrl,
@@ -765,7 +766,7 @@ watch(() => [
     formData.content = props.favorite.content
     formData.category = props.favorite.category || ''
     formData.tags = [...(props.favorite.tags || [])]
-    formData.functionMode = props.favorite.functionMode || 'basic'
+    formData.functionMode = normalizeFavoriteFunctionMode(props.favorite.functionMode)
     formData.optimizationMode = props.favorite.optimizationMode
     formData.imageSubMode = props.favorite.imageSubMode
     await hydrateMediaDraft(undefined, props.favorite)
@@ -786,18 +787,22 @@ watch(() => [
     ? dedupeStrings(prefill.tags.map((tag) => String(tag || '').trim()).filter(Boolean))
     : []
 
-  if (prefill?.functionMode === 'image') {
+  const prefillFunctionMode = typeof prefill?.functionMode === 'string'
+    ? normalizeFavoriteFunctionMode(prefill.functionMode)
+    : null
+
+  if (prefillFunctionMode === 'image') {
     formData.functionMode = 'image'
     formData.imageSubMode =
-      prefill.imageSubMode === 'image2image'
+      prefill?.imageSubMode === 'image2image'
         ? 'image2image'
-        : prefill.imageSubMode === 'multiimage'
+        : prefill?.imageSubMode === 'multiimage'
           ? 'multiimage'
           : 'text2image'
     formData.optimizationMode = undefined
-  } else if (prefill?.functionMode === 'context' || prefill?.functionMode === 'basic') {
-    formData.functionMode = prefill.functionMode
-    formData.optimizationMode = prefill.optimizationMode === 'user' ? 'user' : 'system'
+  } else if (prefillFunctionMode === 'context' || prefillFunctionMode === 'basic') {
+    formData.functionMode = prefillFunctionMode
+    formData.optimizationMode = prefill?.optimizationMode === 'user' ? 'user' : 'system'
     formData.imageSubMode = undefined
   } else if (props.currentFunctionMode === 'image') {
     formData.functionMode = 'image'

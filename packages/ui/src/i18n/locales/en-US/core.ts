@@ -8,6 +8,7 @@ const messages = {
     "delete": "Delete",
     "edit": "Edit",
     "copy": "Copy",
+    "fullscreen": "Fullscreen",
     "create": "Create",
     "update": "Update",
     "search": "Search",

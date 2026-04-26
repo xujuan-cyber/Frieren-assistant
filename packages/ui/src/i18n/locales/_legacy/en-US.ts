@@ -174,12 +174,19 @@ export default {
   },
   favorites: {
     title: "My Favorites",
+    page: {
+      title: "Favorite Library",
+      returnToWorkspace: "Back to Workspace",
+      closeTitle: "Close favorites and return to the optimizer workspace",
+    },
     categories: favoriteCategoriesMessages,
     manager: {
       title: "Favorites Manager",
       searchPlaceholder: "Search favorites...",
       allCategories: "All Categories",
       allTags: "All Tags",
+      allModes: "All",
+      popularTags: "Common Tags",
       totalCount: "{count} items",
       import: "Import",
       add: "Add",

@@ -170,12 +170,19 @@ export default {
   },
   favorites: {
     title: "我的收藏",
+    page: {
+      title: "收藏夹",
+      returnToWorkspace: "返回工作区",
+      closeTitle: "关闭收藏夹并返回优化工作区",
+    },
     categories: favoriteCategoriesMessages,
     manager: {
       title: "收藏管理",
       searchPlaceholder: "搜索收藏...",
       allCategories: "全部分类",
       allTags: "全部标签",
+      allModes: "全部",
+      popularTags: "常用标签",
       totalCount: "共 {count} 项",
       import: "导入",
       add: "添加",

@@ -4,7 +4,9 @@ import { ref } from 'vue'
 
 import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
 
+import FavoriteLibraryWorkspace from '../../../src/components/FavoriteLibraryWorkspace.vue'
 import FavoriteManager from '../../../src/components/FavoriteManager.vue'
+import type { AppServices } from '../../../src/types/services'
 
 const toastMock = {
   success: vi.fn(),
@@ -12,6 +14,7 @@ const toastMock = {
   warning: vi.fn(),
   info: vi.fn(),
 }
+const ensureDefaultCategoriesMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 
 vi.mock('../../../src/composables/ui/useToast', () => ({
   useToast: () => toastMock,
@@ -19,7 +22,7 @@ vi.mock('../../../src/composables/ui/useToast', () => ({
 
 vi.mock('../../../src/composables/storage/useFavoriteInitializer', () => ({
   useFavoriteInitializer: () => ({
-    ensureDefaultCategories: vi.fn().mockResolvedValue(undefined),
+    ensureDefaultCategories: ensureDefaultCategoriesMock,
   }),
 }))
 
@@ -29,6 +32,28 @@ const naiveStubs = {
     template: '<div v-if="show" class="n-modal"><slot /><slot name="action" /></div>',
     props: ['show', 'style', 'title', 'preset', 'size', 'bordered', 'segmented', 'maskClosable'],
     emits: ['update:show'],
+  },
+  NDrawer: {
+    name: 'NDrawer',
+    template: '<aside v-if="show" class="n-drawer"><slot /></aside>',
+    props: ['show', 'placement', 'width', 'blockScroll', 'displayDirective'],
+    emits: ['update:show'],
+  },
+  NDrawerContent: {
+    name: 'NDrawerContent',
+    template: '<section class="n-drawer-content"><header class="n-drawer-content-header">{{ title }}</header><div class="n-drawer-content-body"><slot /></div></section>',
+    props: ['title', 'closable', 'bodyContentStyle'],
+  },
+  Drawer: {
+    name: 'Drawer',
+    template: '<aside v-if="show" class="n-drawer"><slot /></aside>',
+    props: ['show', 'placement', 'width', 'blockScroll', 'displayDirective'],
+    emits: ['update:show'],
+  },
+  DrawerContent: {
+    name: 'DrawerContent',
+    template: '<section class="n-drawer-content"><header class="n-drawer-content-header">{{ title }}</header><div class="n-drawer-content-body"><slot /></div></section>',
+    props: ['title', 'closable', 'bodyContentStyle'],
   },
   NCard: {
     name: 'NCard',
@@ -96,7 +121,8 @@ const naiveStubs = {
   },
   NButton: {
     name: 'NButton',
-    template: '<button class="n-button" :data-testid="$attrs[\'data-testid\']" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
+    template: '<button class="n-button" v-bind="$attrs" :disabled="disabled" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
+    props: ['disabled', 'type', 'secondary', 'size'],
     emits: ['click'],
   },
   NIcon: {
@@ -166,6 +192,7 @@ const naiveStubs = {
       >
         <option value="">all</option>
         <option value="category-a">category-a</option>
+        <option value="category-a-child">category-a-child</option>
         <option value="category-b">category-b</option>
       </select>
     `,
@@ -175,14 +202,16 @@ const naiveStubs = {
   FavoriteWorkspaceListItem: {
     name: 'FavoriteWorkspaceListItem',
     template: `
-      <article class="favorite-list-item-stub" :data-selected="isSelected ? 'yes' : 'no'">
+      <article class="favorite-list-item-stub" :data-selected="isSelected ? 'yes' : 'no'" :data-variant="variant || 'list'">
         <button class="favorite-card-select" @click="$emit('select', favorite)">{{ favorite.title }}</button>
+        <button v-if="showQuickActions" class="favorite-card-use" @click="$emit('use', favorite)">use</button>
+        <button v-if="showQuickActions" class="favorite-card-copy" @click="$emit('copy', favorite)">copy</button>
         <button class="favorite-card-edit" @click="$emit('edit', favorite)">edit</button>
         <button class="favorite-card-delete" @click="$emit('delete', favorite)">delete</button>
       </article>
     `,
-    props: ['favorite', 'category', 'isSelected'],
-    emits: ['select', 'delete', 'edit'],
+    props: ['favorite', 'category', 'isSelected', 'showQuickActions', 'variant'],
+    emits: ['select', 'delete', 'edit', 'copy', 'use'],
   },
   FavoriteDetailPanel: {
     name: 'FavoriteDetailPanel',
@@ -263,10 +292,17 @@ const categories: FavoriteCategory[] = [
     sortOrder: 1,
   },
   {
+    id: 'category-a-child',
+    name: 'Alpha Child',
+    parentId: 'category-a',
+    createdAt: Date.now(),
+    sortOrder: 2,
+  },
+  {
     id: 'category-b',
     name: 'Beta',
     createdAt: Date.now(),
-    sortOrder: 2,
+    sortOrder: 3,
   },
 ]
 
@@ -325,9 +361,34 @@ const mountComponent = async (favorites: FavoritePrompt[]) => {
   return { wrapper, services }
 }
 
+const mountLibraryWorkspace = async (
+  favorites: FavoritePrompt[],
+  props: Partial<InstanceType<typeof FavoriteLibraryWorkspace>['$props']> = {},
+) => {
+  const services = createServices(favorites)
+  const wrapper = mount(FavoriteLibraryWorkspace, {
+    props: {
+      active: true,
+      layout: 'page',
+      ...props,
+    },
+    global: {
+      stubs: naiveStubs,
+      provide: {
+        services: ref(services as any),
+      },
+    },
+  })
+
+  await flushPromises()
+  return { wrapper, services }
+}
+
 describe('FavoriteManager', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    ensureDefaultCategoriesMock.mockReset()
+    ensureDefaultCategoriesMock.mockResolvedValue(undefined)
     toastMock.success.mockReset()
     toastMock.error.mockReset()
     toastMock.warning.mockReset()
@@ -351,6 +412,219 @@ describe('FavoriteManager', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-2')
+  })
+
+  it('renders page layout as a list-first surface and opens details in a drawer', async () => {
+    setViewportWidth(1400)
+    const favorites = Array.from({ length: 4 }, (_, index) => createFavorite(index + 1))
+    const { wrapper } = await mountLibraryWorkspace(favorites)
+
+    expect(wrapper.find('[data-testid="favorites-manager-workspace"]').classes()).toContain('favorites-manager-workspace--page')
+    expect(wrapper.find('.favorites-manager-grid').exists()).toBe(true)
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(4)
+    expect(wrapper.findAll('.favorite-list-item-stub').every((item) => item.attributes('data-variant') === 'card')).toBe(true)
+    expect(wrapper.find('.favorites-manager-pane--detail').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-detail-panel"]').exists()).toBe(false)
+
+    await wrapper.findAll('.favorite-card-select')[1].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.n-drawer').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-2')
+    expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-show-back')).toBe('no')
+  })
+
+  it('filters page layout favorites by the selected workspace mode chip', async () => {
+    setViewportWidth(1400)
+    const favorites = [
+      createFavorite(1, {
+        title: 'Basic system favorite',
+        functionMode: 'basic',
+        optimizationMode: 'system',
+        imageSubMode: undefined,
+      }),
+      createFavorite(2, {
+        title: 'Image text favorite',
+        functionMode: 'image',
+        optimizationMode: undefined,
+        imageSubMode: 'text2image',
+      }),
+      createFavorite(3, {
+        title: 'Image edit favorite',
+        functionMode: 'image',
+        optimizationMode: undefined,
+        imageSubMode: 'image2image',
+      }),
+    ]
+    const { wrapper } = await mountLibraryWorkspace(favorites)
+
+    await wrapper.find('[data-testid="favorites-manager-mode-filter-image-text2image"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Image text favorite')
+    expect(wrapper.text()).not.toContain('Basic system favorite')
+    expect(wrapper.text()).not.toContain('Image edit favorite')
+  })
+
+  it('treats legacy pro favorites as context favorites when filtering', async () => {
+    setViewportWidth(1400)
+    const legacyProMode = 'pro' as unknown as FavoritePrompt['functionMode']
+    const favorites = [
+      createFavorite(1, {
+        title: 'Legacy pro variable favorite',
+        functionMode: legacyProMode,
+        optimizationMode: 'user',
+        imageSubMode: undefined,
+      }),
+      createFavorite(2, {
+        title: 'Context system favorite',
+        functionMode: 'context',
+        optimizationMode: 'system',
+        imageSubMode: undefined,
+      }),
+      createFavorite(3, {
+        title: 'Basic user favorite',
+        functionMode: 'basic',
+        optimizationMode: 'user',
+        imageSubMode: undefined,
+      }),
+    ]
+    const { wrapper } = await mountLibraryWorkspace(favorites)
+
+    await wrapper.find('[data-testid="favorites-manager-mode-filter-context-user"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Legacy pro variable favorite')
+    expect(wrapper.text()).not.toContain('Context system favorite')
+    expect(wrapper.text()).not.toContain('Basic user favorite')
+  })
+
+  it('uses the initial workspace mode filter and lets common tag chips narrow results', async () => {
+    setViewportWidth(1400)
+    const favorites = [
+      createFavorite(1, {
+        title: 'Basic alpha',
+        tags: ['alpha', 'shared'],
+        functionMode: 'basic',
+        optimizationMode: 'system',
+        imageSubMode: undefined,
+      }),
+      createFavorite(2, {
+        title: 'Image alpha',
+        tags: ['alpha', 'shared'],
+        functionMode: 'image',
+        optimizationMode: undefined,
+        imageSubMode: 'text2image',
+      }),
+      createFavorite(3, {
+        title: 'Image beta',
+        tags: ['beta', 'shared'],
+        functionMode: 'image',
+        optimizationMode: undefined,
+        imageSubMode: 'text2image',
+      }),
+    ]
+    const { wrapper } = await mountLibraryWorkspace(favorites, {
+      initialModeFilter: 'image-text2image',
+    })
+
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(2)
+    expect(wrapper.text()).toContain('Image alpha')
+    expect(wrapper.text()).toContain('Image beta')
+    expect(wrapper.text()).not.toContain('Basic alpha')
+
+    await wrapper.find('[data-testid="favorites-manager-popular-tag-beta"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Image beta')
+    expect(wrapper.text()).not.toContain('Image alpha')
+  })
+
+  it('includes child categories when filtering by a parent category', async () => {
+    setViewportWidth(1400)
+    const favorites = [
+      createFavorite(1, {
+        title: 'Parent category favorite',
+        category: 'category-a',
+      }),
+      createFavorite(2, {
+        title: 'Child category favorite',
+        category: 'category-a-child',
+      }),
+      createFavorite(3, {
+        title: 'Other category favorite',
+        category: 'category-b',
+      }),
+    ]
+    const { wrapper } = await mountLibraryWorkspace(favorites)
+
+    await wrapper.find('.category-tree-select').setValue('category-a')
+    await flushPromises()
+
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(2)
+    expect(wrapper.text()).toContain('Parent category favorite')
+    expect(wrapper.text()).toContain('Child category favorite')
+    expect(wrapper.text()).not.toContain('Other category favorite')
+  })
+
+  it('keeps page layout quick actions on the list without opening the detail drawer', async () => {
+    setViewportWidth(1400)
+    const favorites = Array.from({ length: 2 }, (_, index) => createFavorite(index + 1))
+    const { wrapper, services } = await mountLibraryWorkspace(favorites)
+
+    await wrapper.findAll('.favorite-card-use')[0].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('use-favorite')?.[0]?.[0]).toMatchObject({ id: 'favorite-1' })
+    expect(services.favoriteManager.incrementUseCount).toHaveBeenCalledWith('favorite-1')
+    expect(wrapper.find('.n-drawer').exists()).toBe(false)
+  })
+
+  it('does not increment usage when the provided use favorite action fails', async () => {
+    setViewportWidth(1400)
+    const favorites = Array.from({ length: 2 }, (_, index) => createFavorite(index + 1))
+    const useFavorite = vi.fn(async () => false)
+    const { wrapper, services } = await mountLibraryWorkspace(favorites, {
+      useFavorite,
+    })
+
+    await wrapper.findAll('.favorite-card-use')[0].trigger('click')
+    await flushPromises()
+
+    expect(useFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 'favorite-1' }))
+    expect(services.favoriteManager.incrementUseCount).not.toHaveBeenCalled()
+    expect(wrapper.find('.n-drawer').exists()).toBe(false)
+  })
+
+  it('initializes default categories when the favorite manager becomes available after mount', async () => {
+    setViewportWidth(1400)
+    const servicesRef = ref<AppServices | null>(null)
+    const wrapper = mount(FavoriteLibraryWorkspace, {
+      props: {
+        active: true,
+        layout: 'page',
+      },
+      global: {
+        stubs: naiveStubs,
+        provide: {
+          services: servicesRef,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(ensureDefaultCategoriesMock).not.toHaveBeenCalled()
+
+    servicesRef.value = createServices([createFavorite(1)]) as unknown as AppServices
+    await flushPromises()
+
+    expect(ensureDefaultCategoriesMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(1)
+
+    wrapper.unmount()
   })
 
   it('reloads favorites when the manager is reopened after an external save', async () => {

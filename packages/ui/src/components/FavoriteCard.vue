@@ -47,11 +47,11 @@
           <NThing>
             <template #header>
               <NTag
-                :type="getFunctionModeTagType(favorite.functionMode)"
+                :type="getFunctionModeTagType(normalizedFunctionMode)"
                 size="small"
                 :bordered="false"
               >
-                {{ t(`favorites.manager.card.functionMode.${favorite.functionMode}`) }}
+                {{ modeLabel }}
               </NTag>
             </template>
 
@@ -66,11 +66,11 @@
     <div class="favorite-card__body">
       <NSpace :size="6" :wrap="false" align="center" class="favorite-card__mode-row">
         <NTag
-          :type="getFunctionModeTagType(favorite.functionMode)"
+          :type="getFunctionModeTagType(normalizedFunctionMode)"
           size="small"
           :bordered="false"
         >
-          {{ t(`favorites.manager.card.functionMode.${favorite.functionMode}`) }}
+          {{ modeLabel }}
         </NTag>
 
         <NTag
@@ -103,13 +103,6 @@
             :bordered="false"
           >
             {{ tag }}
-          </NTag>
-          <NTag
-            v-if="hiddenTagCount > 0"
-            size="small"
-            :bordered="false"
-          >
-            +{{ hiddenTagCount }}
           </NTag>
         </NSpace>
       </div>
@@ -190,6 +183,7 @@ import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media'
+import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 
 const { t } = useI18n()
@@ -216,7 +210,8 @@ const emit = defineEmits<{
 const coverImageSrc = ref<string | null>(null)
 
 const displayedTags = computed(() => props.favorite.tags.slice(0, 2))
-const hiddenTagCount = computed(() => Math.max(0, props.favorite.tags.length - displayedTags.value.length))
+const normalizedFunctionMode = computed(() => normalizeFavoriteFunctionMode(props.favorite.functionMode))
+const modeLabel = computed(() => t(`favorites.manager.card.functionMode.${normalizedFunctionMode.value}`))
 
 const summaryText = computed(() =>
   props.favorite.description?.trim()
@@ -334,7 +329,7 @@ const getSubModeTagType = (favorite: FavoritePrompt): 'warning' | 'error' | 'suc
 
 const getSubModeLabel = (favorite: FavoritePrompt): string => {
   if (favorite.optimizationMode) {
-    const isContextMode = favorite.functionMode === 'context'
+    const isContextMode = normalizeFavoriteFunctionMode(favorite.functionMode) === 'context'
     if (isContextMode) {
       return favorite.optimizationMode === 'system'
         ? t('contextMode.optimizationMode.message')

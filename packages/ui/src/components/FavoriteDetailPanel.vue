@@ -141,8 +141,8 @@
                   >
                     {{ category.name }}
                   </NTag>
-                  <NTag :bordered="false" :type="getFunctionModeTagType(favorite.functionMode)">
-                    {{ t(`favorites.manager.card.functionMode.${favorite.functionMode}`) }}
+                  <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
+                    {{ getFunctionModeLabel(favorite) }}
                   </NTag>
                   <NTag
                     v-if="subModeLabel"
@@ -224,8 +224,8 @@
                 >
                   {{ category.name }}
                 </NTag>
-                <NTag :bordered="false" :type="getFunctionModeTagType(favorite.functionMode)">
-                  {{ t(`favorites.manager.card.functionMode.${favorite.functionMode}`) }}
+                <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
+                  {{ getFunctionModeLabel(favorite) }}
                 </NTag>
                 <NTag
                   v-if="subModeLabel"
@@ -327,6 +327,7 @@ import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
 
 import type { AppServices } from '../types/services'
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media'
+import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
 import OutputDisplayCore from './OutputDisplayCore.vue'
 import FavoritePreviewExtensionHost from './FavoritePreviewExtensionHost.vue'
@@ -380,7 +381,7 @@ const subModeLabel = computed(() => {
   if (!props.favorite) return ''
 
   if (props.favorite.optimizationMode) {
-    const isContextMode = props.favorite.functionMode === 'context'
+    const isContextMode = normalizeFavoriteFunctionMode(props.favorite.functionMode) === 'context'
     if (isContextMode) {
       return props.favorite.optimizationMode === 'system'
         ? t('contextMode.optimizationMode.message')
@@ -501,6 +502,12 @@ const getFunctionModeTagType = (mode: string): 'default' | 'info' | 'success' =>
   return typeMap[mode] || 'default'
 }
 
+const getNormalizedFunctionMode = (favorite: FavoritePrompt) =>
+  normalizeFavoriteFunctionMode(favorite.functionMode)
+
+const getFunctionModeLabel = (favorite: FavoritePrompt) =>
+  t(`favorites.manager.card.functionMode.${getNormalizedFunctionMode(favorite)}`)
+
 const getSubModeTagType = (favorite: FavoritePrompt): 'default' | 'warning' | 'success' => {
   if (favorite.imageSubMode) return 'success'
   if (favorite.optimizationMode === 'user') return 'warning'
@@ -551,6 +558,10 @@ const handleFavoriteUpdated = (favoriteId: string) => {
 
 .favorite-detail-panel__action-bar {
   flex: 0 0 auto;
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--n-color, #fff);
 }
 
 .favorite-detail-panel__layout {

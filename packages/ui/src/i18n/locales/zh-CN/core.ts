@@ -59,6 +59,7 @@ const messages = {
     "integer": "整数",
     "optional": "可选",
     "copy": "复制",
+    "fullscreen": "全屏",
     "content": "内容",
     "focus": "聚焦",
     "noContent": "暂无内容",
