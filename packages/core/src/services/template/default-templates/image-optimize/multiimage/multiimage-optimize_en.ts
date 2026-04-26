@@ -30,7 +30,10 @@ Context:
 Additional rules:
 - The images are already attached to the request
 - Refer to them only as "Image 1 / Image 2 / Image 3 ..."
+- The JSON below is a request wrapper, not the output structure; optimize only the value of the originalPrompt field
+- Even if originalPrompt contains double-curly-brace placeholders, directly output natural-language multi-image instructions, do not output JSON, and preserve every placeholder exactly
 
+Request wrapper (JSON):
 {
   "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
 }

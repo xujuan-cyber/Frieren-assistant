@@ -30,7 +30,10 @@ export const template: Template = {
 补充说明：
 - 多张图片已经直接附带在请求中
 - 必须使用“图1 / 图2 / 图3 ...”来引用它们，不要发明角色名或隐藏标签
+- 下面 JSON 是请求包装，不是待输出结构；只优化 originalPrompt 字段的值
+- 无论 originalPrompt 中是否包含双花括号占位符，都必须直接输出自然语言多图生图指令，不要输出 JSON，并保留占位符逐字不变
 
+请求包装（JSON）：
 {
   "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
 }

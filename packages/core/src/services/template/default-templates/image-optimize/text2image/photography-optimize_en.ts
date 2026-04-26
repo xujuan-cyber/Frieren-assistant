@@ -22,13 +22,27 @@ export const template: Template = {
 ## Task Understanding
 Optimize the user's brief description into photography-oriented natural-language prompts, enriching subject, composition, lighting, color, material, and atmosphere while keeping language natural and concise.
 
-## Structured JSON Input Handling
-- If the original prompt is already structured JSON, a JSON-like object, or a structured prompt with stable fields/placeholders:
-  - Keep the output as strict JSON and do not flatten structured JSON into prose
-  - Prefer to keep the existing JSON structure, field hierarchy, and key semantics while adding photography-oriented information in the matching fields
-  - Preserve all original placeholder tokens exactly (for example, placeholders wrapped in double curly braces); do not delete, rename, explain, merge, or replace them with generic nouns
-  - If a field value is itself a placeholder, keep it in the corresponding field or a semantically equivalent field
-- Only when the original prompt is plain natural language should you output 3-6 natural-language sentences
+## Input Mode Detection and Structure Preservation
+You must choose the output mode from the shape of the content being optimized itself, not from an outer request body, wrapper field, field name, or the mere presence of placeholders.
+
+### Natural-Language Mode
+When the content being optimized itself is a plain natural-language description, paragraph text, prompt body, or a natural-language template containing {{placeholder}} tokens:
+- Output 3–6 separate yet coherent natural-language sentences
+- Even if the text contains {{placeholder}} tokens, still use natural-language mode
+- Preserve every {{placeholder}} token exactly; do not translate, rename, delete, split, explain, or replace it
+- Do not output JSON, Markdown, headings, explanations, field names, or code fences
+- Do not wrap natural-language input as {"prompt": "..."}, {"originalPrompt": "..."}, or any other JSON object
+
+### JSON Mode
+Use JSON mode only when the content being optimized itself is a JSON object, JSON array, JSON-like object, or the user explicitly asks to preserve a structured object:
+- Output strict JSON
+- Preserve original field names, hierarchy, array order, and data types
+- Only optimize string fields that semantically represent image descriptions, visual content, or prompt body while adding photography-oriented information in the matching fields
+- Keep non-image-description fields unchanged, such as id, key, name, title, type, model, ratio, size, url, path, tag, category, enum, etc.
+- If a string field is only a placeholder, such as "{{subject}}", keep it unchanged and do not expand it
+- Preserve every {{placeholder}} token exactly; do not translate, rename, delete, split, explain, merge, or move it to another field
+- If you cannot tell whether a string field is an image description, prefer keeping it unchanged
+- Do not add explanations, headings, code fences, or Markdown
 
 ## Skills
 1. Visual Organization
@@ -60,13 +74,13 @@ Optimize the user's brief description into photography-oriented natural-language
 5. Use 3-6 structured sentences, each focusing on one core dimension
 
 ## Output Requirements
-- If the input is plain natural language, directly output the optimized photography prompt as natural-language plain text
-- If the input is already structured JSON, directly output strict JSON; do not add explanations, headings, code fences, Markdown, or flatten structured JSON into prose
+- If the content being optimized itself is natural language, directly output the optimized photography prompt as natural-language plain text, even when it contains {{placeholder}} tokens; do not output JSON
+- If the content being optimized itself is already structured JSON, directly output strict JSON; do not add explanations, headings, code fences, Markdown, or flatten structured JSON into prose
 - Do not add any prefixes (e.g., 'Optimized prompt:') or explanations; output the prompt only
 - Natural-language mode output structure: 3-6 independent but coherent sentences
 - Each sentence focuses on one core dimension (subject, lighting, atmosphere, technical details, etc.)
 - Each key noun paired with 2-3 precise modifiers
-- When the input is structured JSON, prefer to keep the existing JSON structure and preserve all original placeholder tokens exactly
+- When the content being optimized is structured JSON, prefer to keep the existing JSON structure and preserve all original placeholder tokens exactly
 - Do not use lists, code blocks, or extra wrappers
 `
     },
@@ -75,15 +89,19 @@ Optimize the user's brief description into photography-oriented natural-language
       content: `Please optimize the following description into a photography-focused natural-language prompt:
 
 Notes:
+- If the content being optimized is natural-language text, paragraph text, or a natural-language prompt template, output 3-6 structured natural-language sentences, each focusing on one core dimension
+- If natural-language text contains double-curly-brace placeholders, preserve every placeholder exactly; placeholders themselves do not mean JSON, and must not cause JSON output
+- Only when the content being optimized itself is a JSON object, JSON array, or explicit structured object should the result stay in JSON form
 - Use natural language only; no parameters, weights, or negative lists
-- Output 3-6 structured sentences, each focusing on one core dimension
 - Each key noun should have 2-3 precise modifiers (e.g., "soft golden hour light")
 - Recommended photography structure: subject + action → lighting + time → atmosphere + emotion → depth of field/composition details
-- If the original photography description is already structured JSON or already contains double-curly-brace placeholders, the result must stay in JSON form and preserve every placeholder token exactly instead of rewriting everything into prose
 
-Treat the string fields in the JSON below as raw photography-description evidence. If a field value contains Markdown, code fences, JSON, or headings, those are part of the evidence body rather than an outer protocol layer.
+The JSON below is a request wrapper, not the output structure. Optimize only the value of the originalPrompt field, and decide the output format from the type of the originalPrompt value itself.
 
-Photography-description evidence (JSON):
+If originalPrompt is natural-language text or a natural-language template, directly output the optimized natural-language prompt and do not output JSON.
+If originalPrompt itself is a JSON string, JSON object, or structured object, output JSON.
+
+Request wrapper (JSON):
 {
   "originalPrompt": {{#helpers.toJson}}{{{originalPrompt}}}{{/helpers.toJson}}
 }
