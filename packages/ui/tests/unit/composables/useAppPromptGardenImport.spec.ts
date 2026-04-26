@@ -1880,7 +1880,7 @@ describe('useAppPromptGardenImport', () => {
     }
   })
 
-  it('skips auto-save to favorites when snapshot image persistence fails', async () => {
+  it('auto-saves to favorites with URL media fallback when snapshot image persistence fails', async () => {
     const { pinia } = createTestPinia()
 
     const createReactive = (): MessageReactive => ({
@@ -2005,15 +2005,22 @@ describe('useAppPromptGardenImport', () => {
       await replaceDone
       await waitForCondition(() => isLoadingExternalData.value === false)
 
-      expect(favoriteManager.getFavorites).not.toHaveBeenCalled()
-      expect(favoriteManager.addFavorite).not.toHaveBeenCalled()
+      expect(favoriteManager.getFavorites).toHaveBeenCalledTimes(1)
+      expect(favoriteManager.addFavorite).toHaveBeenCalledTimes(1)
       expect(favoriteManager.updateFavorite).not.toHaveBeenCalled()
+      const favoriteArg = favoriteManager.addFavorite.mock.calls[0]?.[0]
+      expect(favoriteArg?.metadata?.media).toEqual({
+        coverAssetId: undefined,
+        coverUrl: 'http://garden.local/prompt-assets/cover.png',
+        assetIds: [],
+        urls: ['http://garden.local/prompt-assets/show-1.png'],
+      })
     } finally {
       scope.stop()
     }
   })
 
-  it('opens save-favorite dialog without media fallback when snapshot image persistence fails', async () => {
+  it('opens save-favorite dialog with URL media fallback when snapshot image persistence fails', async () => {
     const { pinia } = createTestPinia()
 
     const createReactive = (): MessageReactive => ({
@@ -2141,7 +2148,12 @@ describe('useAppPromptGardenImport', () => {
         }
       }
 
-      expect(savedArg.prefill?.metadata?.media).toBeUndefined()
+      expect(savedArg.prefill?.metadata?.media).toEqual({
+        coverAssetId: undefined,
+        coverUrl: 'http://garden.local/prompt-assets/cover.png',
+        assetIds: [],
+        urls: ['http://garden.local/prompt-assets/show-1.png'],
+      })
     } finally {
       scope.stop()
     }

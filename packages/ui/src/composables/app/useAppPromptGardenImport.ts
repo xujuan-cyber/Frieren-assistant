@@ -313,7 +313,7 @@ const saveImportedPromptToFavorites = async (opts: {
   const snapshot = await buildStorableGardenSnapshot(
     fetched.gardenSnapshot,
     imageStorageService,
-    { allowImageFallback: false },
+    { allowImageFallback: true },
   )
   const media = buildFavoriteMediaFromSnapshot(snapshot)
   const favorites = await manager.getFavorites()
@@ -885,7 +885,8 @@ const persistSourcesToAssetIdsWithFallback = async (opts: {
         fallbackSources.push(source)
       }
     } catch (error) {
-      console.warn('[PromptGardenImport] Failed to persist snapshot image source:', source, error)
+      const log = allowSourceFallback ? console.info : console.warn
+      log('[PromptGardenImport] Failed to persist snapshot image source:', source, error)
       if (!allowSourceFallback) {
         throw error
       }
@@ -1399,24 +1400,18 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
               getFavoriteImageStorageService?.() || getImageStorageService?.() || null
 
             let snapshot = fetched.gardenSnapshot
-            let includeMedia = true
             try {
               snapshot = await buildStorableGardenSnapshot(snapshot, imageStorageService, {
-                allowImageFallback: false,
+                allowImageFallback: true,
               })
             } catch (error) {
               console.info('[PromptGardenImport] Failed to persist snapshot assets for favorite dialog:', error)
-              includeMedia = false
             }
 
+            const media = buildFavoriteMediaFromSnapshot(snapshot)
             const metadata: Record<string, unknown> = {
               gardenSnapshot: snapshot,
-              ...(includeMedia
-                ? (() => {
-                    const media = buildFavoriteMediaFromSnapshot(snapshot)
-                    return media ? { media } : {}
-                  })()
-                : {}),
+              ...(media ? { media } : {}),
             }
 
             openSaveFavoriteDialog({
