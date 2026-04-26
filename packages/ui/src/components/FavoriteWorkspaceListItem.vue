@@ -105,6 +105,22 @@
           {{ subModeLabel }}
         </NTag>
         <NTag
+          v-if="reproducibility.variableCount > 0"
+          size="small"
+          type="info"
+          :bordered="false"
+        >
+          {{ t('favorites.manager.card.variableCount', { count: reproducibility.variableCount }) }}
+        </NTag>
+        <NTag
+          v-if="reproducibility.exampleCount > 0"
+          size="small"
+          type="success"
+          :bordered="false"
+        >
+          {{ t('favorites.manager.card.exampleCount', { count: reproducibility.exampleCount }) }}
+        </NTag>
+        <NTag
           v-for="tag in displayedTags"
           :key="tag"
           size="small"
@@ -143,6 +159,7 @@ import type { AppServices } from '../types/services'
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
+import { parseFavoriteReproducibility } from '../utils/favorite-reproducibility'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 
 interface Props {
@@ -171,6 +188,7 @@ const services = inject<Ref<AppServices | null> | null>('services', null)
 const coverImageSrc = ref<string | null>(null)
 let coverRequestId = 0
 const displayedTags = computed(() => props.favorite.tags.slice(0, 2))
+const reproducibility = computed(() => parseFavoriteReproducibility(props.favorite))
 
 const normalizedFunctionMode = computed(() => normalizeFavoriteFunctionMode(props.favorite.functionMode))
 const modeLabel = computed(() => t(`favorites.manager.card.functionMode.${normalizedFunctionMode.value}`))

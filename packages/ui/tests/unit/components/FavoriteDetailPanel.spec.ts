@@ -23,6 +23,23 @@ vi.mock('vue-i18n', async (importOriginal) => {
           'favorites.manager.preview.extraTitle': 'Extra details',
           'favorites.manager.preview.media.title': 'Images',
           'favorites.manager.preview.media.imageAlt': `Image ${params?.index ?? ''}`.trim(),
+          'favorites.manager.preview.reproducibility.title': 'Variables & Examples',
+          'favorites.manager.preview.reproducibility.empty': 'No variables or examples configured',
+          'favorites.manager.preview.reproducibility.variables': 'Variables',
+          'favorites.manager.preview.reproducibility.examples': 'Examples',
+          'favorites.manager.preview.reproducibility.variableCount': `${params?.count ?? 0} variables`,
+          'favorites.manager.preview.reproducibility.exampleCount': `${params?.count ?? 0} examples`,
+          'favorites.manager.preview.reproducibility.hasInputImages': 'Has input images',
+          'favorites.manager.preview.reproducibility.variableName': 'Variable',
+          'favorites.manager.preview.reproducibility.variableDefault': 'Default',
+          'favorites.manager.preview.reproducibility.variableRequired': 'Required',
+          'favorites.manager.preview.reproducibility.variableDescription': 'Description',
+          'favorites.manager.preview.reproducibility.requiredYes': 'Yes',
+          'favorites.manager.preview.reproducibility.requiredNo': 'No',
+          'favorites.manager.preview.reproducibility.exampleLabel': `Example ${params?.index ?? ''}`.trim(),
+          'favorites.manager.preview.reproducibility.parameters': 'Parameters',
+          'favorites.manager.preview.reproducibility.images': 'Images',
+          'favorites.manager.preview.reproducibility.inputImages': 'Input images',
           'favorites.manager.card.functionMode.basic': 'Basic',
           'favorites.manager.card.functionMode.context': 'Context',
           'favorites.manager.card.functionMode.image': 'Image',
@@ -89,6 +106,21 @@ const naiveStubs = {
     name: 'NEmpty',
     template: '<div class="n-empty">{{ description }}</div>',
     props: ['description'],
+  },
+  NDescriptions: {
+    name: 'NDescriptions',
+    template: '<dl class="n-descriptions"><slot /></dl>',
+    props: ['column', 'size', 'bordered', 'labelPlacement'],
+  },
+  NDescriptionsItem: {
+    name: 'NDescriptionsItem',
+    template: '<div class="n-descriptions-item"><dt>{{ label }}</dt><dd><slot /></dd></div>',
+    props: ['label'],
+  },
+  NTable: {
+    name: 'NTable',
+    template: '<table class="n-table"><slot /></table>',
+    props: ['size', 'striped', 'singleLine'],
   },
   NEllipsis: {
     name: 'NEllipsis',
@@ -274,5 +306,47 @@ describe('FavoriteDetailPanel', () => {
     await flushPromises()
 
     expect(wrapper.find('.output-display-core').attributes('data-enabled-actions')).toBe('diff')
+  })
+
+  it('shows variable and example reproducibility metadata in the detail panel', async () => {
+    const wrapper = mountComponent({
+      ...favorite,
+      functionMode: 'basic',
+      optimizationMode: 'system',
+      imageSubMode: undefined,
+      metadata: {
+        gardenSnapshot: {
+          variables: [
+            {
+              name: 'style',
+              defaultValue: 'watercolor',
+              required: true,
+              description: 'Rendering style',
+            },
+          ],
+          assets: {
+            examples: [
+              {
+                id: 'example-1',
+                parameters: {
+                  style: 'ink',
+                },
+                inputImages: ['https://example.com/input.png'],
+              },
+            ],
+          },
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Variables & Examples')
+    expect(wrapper.text()).toContain('1 variables')
+    expect(wrapper.text()).toContain('1 examples')
+    expect(wrapper.text()).toContain('style')
+    expect(wrapper.text()).toContain('watercolor')
+    expect(wrapper.text()).toContain('example-1')
+    expect(wrapper.text()).toContain('style=ink')
   })
 })

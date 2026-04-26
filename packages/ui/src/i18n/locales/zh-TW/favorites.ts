@@ -134,6 +134,25 @@ const messages = {
           "title": "圖片資源",
           "hint": "以下圖片將隨收藏一起展示",
           "imageAlt": "收藏圖片 #{index}"
+        },
+        "reproducibility": {
+          "title": "變數與範例",
+          "empty": "暫無變數或範例設定",
+          "variables": "變數",
+          "examples": "範例",
+          "variableCount": "變數 {count}",
+          "exampleCount": "範例 {count}",
+          "hasInputImages": "含輸入圖",
+          "variableName": "變數名",
+          "variableDefault": "預設值",
+          "variableRequired": "必填",
+          "variableDescription": "說明",
+          "requiredYes": "是",
+          "requiredNo": "否",
+          "exampleLabel": "範例 #{index}",
+          "parameters": "參數",
+          "images": "圖片",
+          "inputImages": "輸入圖"
         }
       },
       "messages": {
@@ -171,7 +190,9 @@ const messages = {
           "text2image": "文生圖",
           "image2image": "圖生圖",
           "multiimage": "多圖生成"
-        }
+        },
+        "variableCount": "變數 {count}",
+        "exampleCount": "範例 {count}"
       },
       "categories": {
         "default": {
@@ -274,6 +295,35 @@ const messages = {
       "setAsCover": "設為封面",
       "removeImage": "移除",
       "clearImages": "清空圖片",
+      "reproducibility": {
+        "title": "變數與範例",
+        "hint": "可留空；有變數或範例時會隨收藏一起展示，用於復現 Prompt Garden 或變數模式提示詞。",
+        "empty": "目前收藏沒有變數或範例設定，需要時再新增。",
+        "variables": "變數",
+        "examples": "範例",
+        "addVariable": "新增變數",
+        "addExample": "新增範例",
+        "noVariables": "暫無變數設定",
+        "noExamples": "暫無範例設定",
+        "variableNamePlaceholder": "變數名，如 style",
+        "variableDefaultPlaceholder": "預設值（可選）",
+        "variableTypePlaceholder": "變數類型",
+        "variableOptionsPlaceholder": "可選值，用逗號或換行分隔",
+        "variableDescriptionPlaceholder": "變數說明（可選）",
+        "required": "必填",
+        "remove": "移除",
+        "exampleIdPlaceholder": "範例 ID（可選）",
+        "exampleTextPlaceholder": "範例名稱或說明（可選）",
+        "exampleDescriptionPlaceholder": "範例描述（可選）",
+        "exampleParametersPlaceholder": "參數，每行 key=value",
+        "exampleInputImagesPlaceholder": "輸入圖片 URL，每行一個",
+        "variableType": {
+          "string": "文字",
+          "number": "數字",
+          "boolean": "布林",
+          "enum": "枚舉"
+        }
+      },
       "contentPlaceholder": "在這裡輸入提示詞內容...",
       "cancel": "取消",
       "save": "儲存",

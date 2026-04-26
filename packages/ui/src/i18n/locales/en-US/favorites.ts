@@ -134,6 +134,25 @@ const messages = {
           "title": "Images",
           "hint": "These images are attached to this favorite",
           "imageAlt": "Favorite image #{index}"
+        },
+        "reproducibility": {
+          "title": "Variables & Examples",
+          "empty": "No variables or examples configured",
+          "variables": "Variables",
+          "examples": "Examples",
+          "variableCount": "{count} variables",
+          "exampleCount": "{count} examples",
+          "hasInputImages": "Has input images",
+          "variableName": "Variable",
+          "variableDefault": "Default",
+          "variableRequired": "Required",
+          "variableDescription": "Description",
+          "requiredYes": "Yes",
+          "requiredNo": "No",
+          "exampleLabel": "Example #{index}",
+          "parameters": "Parameters",
+          "images": "Images",
+          "inputImages": "Input images"
         }
       },
       "messages": {
@@ -171,7 +190,9 @@ const messages = {
           "text2image": "Text-to-Image",
           "image2image": "Image-to-Image",
           "multiimage": "Multi-Image"
-        }
+        },
+        "variableCount": "{count} vars",
+        "exampleCount": "{count} examples"
       },
       "categories": {
         "default": {
@@ -274,6 +295,35 @@ const messages = {
       "setAsCover": "Set as cover",
       "removeImage": "Remove",
       "clearImages": "Clear images",
+      "reproducibility": {
+        "title": "Variables & Examples",
+        "hint": "Optional. When present, variables and examples are shown with the favorite for Prompt Garden and variable-mode reproducibility.",
+        "empty": "This favorite has no variables or examples yet. Add them only when needed.",
+        "variables": "Variables",
+        "examples": "Examples",
+        "addVariable": "Add variable",
+        "addExample": "Add example",
+        "noVariables": "No variables configured",
+        "noExamples": "No examples configured",
+        "variableNamePlaceholder": "Variable name, e.g. style",
+        "variableDefaultPlaceholder": "Default value (optional)",
+        "variableTypePlaceholder": "Variable type",
+        "variableOptionsPlaceholder": "Options, separated by commas or new lines",
+        "variableDescriptionPlaceholder": "Variable description (optional)",
+        "required": "Required",
+        "remove": "Remove",
+        "exampleIdPlaceholder": "Example ID (optional)",
+        "exampleTextPlaceholder": "Example name or note (optional)",
+        "exampleDescriptionPlaceholder": "Example description (optional)",
+        "exampleParametersPlaceholder": "Parameters, one key=value per line",
+        "exampleInputImagesPlaceholder": "Input image URLs, one per line",
+        "variableType": {
+          "string": "Text",
+          "number": "Number",
+          "boolean": "Boolean",
+          "enum": "Enum"
+        }
+      },
       "contentPlaceholder": "Enter prompt content here...",
       "cancel": "Cancel",
       "save": "Save",

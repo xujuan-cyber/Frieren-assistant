@@ -177,7 +177,7 @@
             </NCard>
           </div>
 
-          <NCollapse :default-expanded-names="['content']" class="favorite-detail-panel__sections">
+          <NCollapse :default-expanded-names="imageExpandedSectionNames" class="favorite-detail-panel__sections">
             <NCollapseItem name="content" :title="t('favorites.manager.preview.contentTitle')">
               <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--compact">
                 <OutputDisplayCore
@@ -188,6 +188,13 @@
                   height="100%"
                 />
               </div>
+            </NCollapseItem>
+            <NCollapseItem
+              v-if="reproducibility.hasData"
+              name="reproducibility"
+              :title="t('favorites.manager.preview.reproducibility.title')"
+            >
+              <FavoriteReproducibilityDisplay :reproducibility="reproducibility" />
             </NCollapseItem>
             <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
               <FavoritePreviewExtensionHost
@@ -267,7 +274,7 @@
             </div>
           </NCard>
 
-          <NCollapse :default-expanded-names="displayImages.length > 0 ? ['media'] : []" class="favorite-detail-panel__sections">
+          <NCollapse :default-expanded-names="textExpandedSectionNames" class="favorite-detail-panel__sections">
             <NCollapseItem
               v-if="displayImages.length > 0"
               name="media"
@@ -285,6 +292,13 @@
                   />
                 </div>
               </AppPreviewImageGroup>
+            </NCollapseItem>
+            <NCollapseItem
+              v-if="reproducibility.hasData"
+              name="reproducibility"
+              :title="t('favorites.manager.preview.reproducibility.title')"
+            >
+              <FavoriteReproducibilityDisplay :reproducibility="reproducibility" />
             </NCollapseItem>
             <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
               <FavoritePreviewExtensionHost
@@ -328,9 +342,11 @@ import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
+import { parseFavoriteReproducibility } from '../utils/favorite-reproducibility'
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
 import OutputDisplayCore from './OutputDisplayCore.vue'
 import FavoritePreviewExtensionHost from './FavoritePreviewExtensionHost.vue'
+import FavoriteReproducibilityDisplay from './FavoriteReproducibilityDisplay.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
 
@@ -363,6 +379,16 @@ let resolveSequence = 0
 
 const detailVariant = computed(() => (displayImages.value.length > 0 ? 'image' : 'text'))
 const activeImage = computed(() => displayImages.value[activeImageIndex.value] || '')
+const reproducibility = computed(() => parseFavoriteReproducibility(props.favorite))
+const imageExpandedSectionNames = computed(() =>
+  reproducibility.value.hasData ? ['content', 'reproducibility'] : ['content'],
+)
+const textExpandedSectionNames = computed(() => {
+  const names: string[] = []
+  if (displayImages.value.length > 0) names.push('media')
+  if (reproducibility.value.hasData) names.push('reproducibility')
+  return names
+})
 const originalContent = computed(() => {
   if (!props.favorite) return ''
 

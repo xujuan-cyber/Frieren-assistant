@@ -115,23 +115,24 @@
           >
             <NSpace vertical :size="12">
               <template v-if="mediaDraft.sources.length === 0">
-                <NUpload
-                  accept="image/*"
-                  multiple
-                  :default-upload="false"
-                  :show-file-list="false"
-                  :disabled="saving"
-                  @before-upload="handleBeforeImageUpload"
-                >
-                  <NUploadDragger>
-                    <div class="favorite-editor-form__upload-empty">
-                      <NSpace vertical :size="6" align="center">
-                        <NText>{{ t('favorites.dialog.imagesUploadHint') }}</NText>
-                        <NText depth="3">{{ t('favorites.dialog.imagesUploadSupport') }}</NText>
-                      </NSpace>
-                    </div>
-                  </NUploadDragger>
-                </NUpload>
+                <div class="favorite-editor-form__upload-compact">
+                  <div class="favorite-editor-form__upload-copy">
+                    <NText>{{ t('favorites.dialog.imagesUploadHint') }}</NText>
+                    <NText depth="3">{{ t('favorites.dialog.imagesUploadSupport') }}</NText>
+                  </div>
+                  <NUpload
+                    accept="image/*"
+                    multiple
+                    :default-upload="false"
+                    :show-file-list="false"
+                    :disabled="saving"
+                    @before-upload="handleBeforeImageUpload"
+                  >
+                    <NButton secondary size="small">
+                      {{ t('favorites.dialog.addImages') }}
+                    </NButton>
+                  </NUpload>
+                </div>
               </template>
 
               <template v-else>
@@ -211,6 +212,11 @@
             </NSpace>
           </NCard>
 
+          <FavoriteReproducibilityEditor
+            v-model:variables="reproducibilityVariables"
+            v-model:examples="reproducibilityExamples"
+          />
+
           <NCard
             size="small"
             :title="t('favorites.dialog.contentTitle')"
@@ -220,7 +226,7 @@
               v-model:value="formData.content"
               type="textarea"
               :placeholder="t('favorites.dialog.contentPlaceholder')"
-              :autosize="{ minRows: embedded ? 10 : isMobile ? 10 : 14, maxRows: 24 }"
+              :autosize="{ minRows: embedded ? 8 : isMobile ? 8 : 12, maxRows: 24 }"
             />
           </NCard>
         </NSpace>
@@ -258,7 +264,6 @@ import {
   NTag,
   NText,
   NUpload,
-  NUploadDragger,
   type UploadFileInfo,
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -271,10 +276,18 @@ import { getI18nErrorMessage } from '../utils/error'
 import { buildFavoriteMediaMetadata, parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
 import {
+  applyFavoriteReproducibilityToMetadata,
+  parseFavoriteReproducibility,
+  parseFavoriteReproducibilityFromMetadata,
+  type FavoriteReproducibilityExample,
+  type FavoriteReproducibilityVariable,
+} from '../utils/favorite-reproducibility'
+import {
   persistImageSourceAsAssetId,
   resolveAssetIdToDataUrl,
 } from '../utils/image-asset-storage'
 import CategoryTreeSelect from './CategoryTreeSelect.vue'
+import FavoriteReproducibilityEditor from './FavoriteReproducibilityEditor.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
 
@@ -324,6 +337,8 @@ const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 12
 const saving = ref(false)
 const mediaTouched = ref(false)
 const tagInputValue = ref('')
+const reproducibilityVariables = ref<FavoriteReproducibilityVariable[]>([])
+const reproducibilityExamples = ref<FavoriteReproducibilityExample[]>([])
 
 const isMobile = computed(() => viewportWidth.value < 768)
 
@@ -403,6 +418,43 @@ const resolveAssetIdsToDataUrls = async (assetIds: string[]): Promise<string[]> 
 const resetMediaDraft = () => {
   mediaDraft.sources = []
   mediaDraft.coverIndex = -1
+}
+
+const cloneReproducibilityVariables = (
+  variables: FavoriteReproducibilityVariable[],
+): FavoriteReproducibilityVariable[] =>
+  variables.map((variable) => ({
+    ...variable,
+    options: [...variable.options],
+  }))
+
+const cloneReproducibilityExamples = (
+  examples: FavoriteReproducibilityExample[],
+): FavoriteReproducibilityExample[] =>
+  examples.map((example) => ({
+    ...example,
+    parameters: { ...example.parameters },
+    images: [...example.images],
+    imageAssetIds: [...example.imageAssetIds],
+    inputImages: [...example.inputImages],
+    inputImageAssetIds: [...example.inputImageAssetIds],
+  }))
+
+const resetReproducibilityDraft = () => {
+  reproducibilityVariables.value = []
+  reproducibilityExamples.value = []
+}
+
+const hydrateReproducibilityDraft = (
+  metadata?: Record<string, unknown>,
+  favorite?: FavoritePrompt,
+) => {
+  const reproducibility = favorite
+    ? parseFavoriteReproducibility(favorite)
+    : parseFavoriteReproducibilityFromMetadata(metadata)
+
+  reproducibilityVariables.value = cloneReproducibilityVariables(reproducibility.variables)
+  reproducibilityExamples.value = cloneReproducibilityExamples(reproducibility.examples)
 }
 
 const hydrateMediaDraft = async (metadata?: Record<string, unknown>, favorite?: FavoritePrompt) => {
@@ -677,7 +729,7 @@ const handleSave = async () => {
       imageSubMode: formData.imageSubMode,
     }
 
-    const existingMetadata =
+    let existingMetadata =
       props.mode === 'edit' && props.favorite?.metadata && typeof props.favorite.metadata === 'object'
         ? { ...props.favorite.metadata }
         : props.mode === 'save' && props.prefill?.metadata && typeof props.prefill.metadata === 'object'
@@ -705,6 +757,16 @@ const handleSave = async () => {
 
     if (props.originalContent) {
       existingMetadata.originalContent = props.originalContent
+    }
+
+    const currentReproducibility = parseFavoriteReproducibilityFromMetadata(existingMetadata)
+    const hasReproducibilityDraft =
+      reproducibilityVariables.value.length > 0 || reproducibilityExamples.value.length > 0
+    if (currentReproducibility.hasData || hasReproducibilityDraft) {
+      existingMetadata = applyFavoriteReproducibilityToMetadata(existingMetadata, {
+        variables: toRaw(reproducibilityVariables.value),
+        examples: toRaw(reproducibilityExamples.value),
+      })
     }
 
     const metadata = Object.keys(existingMetadata).length > 0 ? existingMetadata : undefined
@@ -757,6 +819,7 @@ watch(() => [
     formData.optimizationMode = 'system'
     formData.imageSubMode = undefined
     resetMediaDraft()
+    resetReproducibilityDraft()
     return
   }
 
@@ -770,6 +833,7 @@ watch(() => [
     formData.optimizationMode = props.favorite.optimizationMode
     formData.imageSubMode = props.favorite.imageSubMode
     await hydrateMediaDraft(undefined, props.favorite)
+    hydrateReproducibilityDraft(undefined, props.favorite)
     return
   }
 
@@ -823,6 +887,7 @@ watch(() => [
       ? (prefill.metadata as Record<string, unknown>)
       : undefined
   await hydrateMediaDraft(prefillMetadata)
+  hydrateReproducibilityDraft(prefillMetadata)
 }, { immediate: true, deep: true })
 
 const updateViewportWidth = () => {
@@ -869,8 +934,31 @@ onBeforeUnmount(() => {
   margin-bottom: 8px;
 }
 
-.favorite-editor-form__upload-empty {
-  padding: 16px 12px;
+.favorite-editor-form__upload-compact {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px dashed var(--n-border-color);
+  border-radius: 8px;
+  background: var(--n-color-embedded);
+}
+
+.favorite-editor-form__upload-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.favorite-editor-form__upload-copy :deep(.n-text) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .favorite-editor-form__media-grid {
@@ -913,6 +1001,10 @@ onBeforeUnmount(() => {
 
   .favorite-editor-form__media-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .favorite-editor-form__upload-compact {
+    align-items: stretch;
   }
 
   .favorite-editor-form__actions {

@@ -134,6 +134,25 @@ const messages = {
           "title": "图片资源",
           "hint": "以下图片将随收藏一起展示",
           "imageAlt": "收藏图片 #{index}"
+        },
+        "reproducibility": {
+          "title": "变量与示例",
+          "empty": "暂无变量或示例配置",
+          "variables": "变量",
+          "examples": "示例",
+          "variableCount": "变量 {count}",
+          "exampleCount": "示例 {count}",
+          "hasInputImages": "含输入图",
+          "variableName": "变量名",
+          "variableDefault": "默认值",
+          "variableRequired": "必填",
+          "variableDescription": "说明",
+          "requiredYes": "是",
+          "requiredNo": "否",
+          "exampleLabel": "示例 #{index}",
+          "parameters": "参数",
+          "images": "图片",
+          "inputImages": "输入图"
         }
       },
       "messages": {
@@ -171,7 +190,9 @@ const messages = {
           "text2image": "文生图",
           "image2image": "图生图",
           "multiimage": "多图生成"
-        }
+        },
+        "variableCount": "变量 {count}",
+        "exampleCount": "示例 {count}"
       },
       "categories": {
         "default": {
@@ -274,6 +295,35 @@ const messages = {
       "setAsCover": "设为封面",
       "removeImage": "移除",
       "clearImages": "清空图片",
+      "reproducibility": {
+        "title": "变量与示例",
+        "hint": "可为空；有变量或示例时会随收藏一起展示，用于复现 Prompt Garden 或变量模式提示词。",
+        "empty": "当前收藏没有变量或示例配置，需要时再添加。",
+        "variables": "变量",
+        "examples": "示例",
+        "addVariable": "添加变量",
+        "addExample": "添加示例",
+        "noVariables": "暂无变量配置",
+        "noExamples": "暂无示例配置",
+        "variableNamePlaceholder": "变量名，如 style",
+        "variableDefaultPlaceholder": "默认值（可选）",
+        "variableTypePlaceholder": "变量类型",
+        "variableOptionsPlaceholder": "可选值，用逗号或换行分隔",
+        "variableDescriptionPlaceholder": "变量说明（可选）",
+        "required": "必填",
+        "remove": "移除",
+        "exampleIdPlaceholder": "示例 ID（可选）",
+        "exampleTextPlaceholder": "示例名称或说明（可选）",
+        "exampleDescriptionPlaceholder": "示例描述（可选）",
+        "exampleParametersPlaceholder": "参数，每行 key=value",
+        "exampleInputImagesPlaceholder": "输入图片 URL，每行一个",
+        "variableType": {
+          "string": "文本",
+          "number": "数字",
+          "boolean": "布尔",
+          "enum": "枚举"
+        }
+      },
       "contentPlaceholder": "在这里输入提示词内容...",
       "cancel": "取消",
       "save": "保存",

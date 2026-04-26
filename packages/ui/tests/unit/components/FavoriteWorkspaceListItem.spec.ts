@@ -148,6 +148,36 @@ describe('FavoriteWorkspaceListItem', () => {
     expect(wrapper.text()).not.toContain('tag-c')
   })
 
+  it('renders variables and examples as compact reproducibility chips', async () => {
+    const wrapper = mountComponent({
+      favorite: createFavorite({
+        metadata: {
+          reproducibility: {
+            variables: [
+              {
+                name: 'style',
+                defaultValue: 'watercolor',
+              },
+            ],
+            examples: [
+              {
+                id: 'example-1',
+                parameters: {
+                  style: 'ink',
+                },
+              },
+            ],
+          },
+        },
+      }),
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('1 vars')
+    expect(wrapper.text()).toContain('1 examples')
+  })
+
   it('keeps quick actions from selecting the card', async () => {
     const wrapper = mountComponent()
 
