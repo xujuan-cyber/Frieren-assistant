@@ -31,7 +31,7 @@ const SEEDREAM_MODEL_SPECS: readonly SeedreamModelSpec[] = [
   {
     id: SEEDREAM_40_MODEL_ID,
     name: 'Doubao Seedream 4.0',
-    description: '火山方舟 Doubao Seedream 4.0 高质量图像生成模型',
+    description: 'Volcano Ark Doubao Seedream 4.0 high-quality image generation model',
     capabilities: {
       text2image: true,
       image2image: true,
@@ -80,7 +80,7 @@ const SEEDREAM_MODEL_SPECS: readonly SeedreamModelSpec[] = [
   {
     id: SEEDREAM_45_MODEL_ID,
     name: 'Doubao Seedream 4.5',
-    description: '火山方舟 Doubao Seedream 4.5 高质量图像生成模型',
+    description: 'Volcano Ark Doubao Seedream 4.5 high-quality image generation model',
     capabilities: {
       text2image: true,
       image2image: true,
@@ -129,7 +129,7 @@ const SEEDREAM_MODEL_SPECS: readonly SeedreamModelSpec[] = [
   {
     id: SEEDREAM_50_LITE_MODEL_ID,
     name: 'Doubao Seedream 5.0 Lite',
-    description: '火山方舟 Doubao Seedream 5.0 lite 高质量图像生成模型',
+    description: 'Volcano Ark Doubao Seedream 5.0 Lite high-quality image generation model',
     capabilities: {
       text2image: true,
       image2image: true,
@@ -179,8 +179,8 @@ export class SeedreamImageAdapter extends AbstractImageProviderAdapter {
   getProvider(): ImageProvider {
     return {
       id: 'seedream',
-      name: 'Seedream (火山方舟)',
-      description: '火山方舟 Seedream 图像生成模型',
+      name: 'Seedream (Volcano Ark)',
+      description: 'Volcano Ark Seedream image generation models',
       requiresApiKey: true,
       defaultBaseURL: 'https://ark.cn-beijing.volces.com/api/v3',
       supportsDynamicModels: false,  // 不支持动态获取

@@ -37,7 +37,7 @@ export class ModelScopeImageAdapter extends AbstractImageProviderAdapter {
     return {
       id: 'modelscope',
       name: 'ModelScope',
-      description: 'ModelScope 魔搭社区图像生成服务，每天免费 2000 次调用',
+      description: 'ModelScope community image generation service with a daily free quota',
       corsRestricted: true,
       requiresApiKey: true,
       defaultBaseURL: 'https://api-inference.modelscope.cn/v1',
@@ -58,7 +58,7 @@ export class ModelScopeImageAdapter extends AbstractImageProviderAdapter {
       {
         id: 'Tongyi-MAI/Z-Image-Turbo',
         name: 'Z-Image-Turbo',
-        description: 'Z-Image-Turbo 6B 参数高效图像生成模型，擅长人像生成和快速出图（10步以内）',
+        description: 'Z-Image-Turbo 6B efficient image generation model for portraits and fast generation within about 10 steps',
         providerId: 'modelscope',
         capabilities: {
           text2image: true,

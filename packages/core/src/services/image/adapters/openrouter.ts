@@ -21,7 +21,7 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
     return {
       id: 'openrouter',
       name: 'OpenRouter',
-      description: 'OpenRouter 图像生成服务，动态获取支持图像输出的模型',
+      description: 'OpenRouter image generation service with dynamically discovered image-capable models',
       requiresApiKey: true,
       defaultBaseURL: 'https://openrouter.ai/api/v1',
       supportsDynamicModels: true,
@@ -42,7 +42,7 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
       {
         id: 'google/gemini-2.5-flash-image',
         name: 'Gemini 2.5 Flash Image (Nano Banana)',
-        description: 'Google Gemini 2.5 Flash 图像模型（通过 OpenRouter），支持文生图、图生图和多轮对话编辑',
+        description: 'Google Gemini 2.5 Flash image model via OpenRouter with text-to-image, image editing, and multi-turn editing support',
         providerId: 'openrouter',
         capabilities: {
           text2image: true,
@@ -55,7 +55,7 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
       {
         id: 'openai/gpt-5-image-mini',
         name: 'GPT-5 Image Mini',
-        description: 'OpenAI GPT-5 Image Mini（通过 OpenRouter），支持文生图与图生图',
+        description: 'OpenAI GPT-5 Image Mini via OpenRouter with text-to-image and image editing support',
         providerId: 'openrouter',
         capabilities: {
           text2image: true,
@@ -105,7 +105,7 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
           return {
             id: model.id,
             name: model.name || model.id,
-            description: model.description || `${model.name} 图像生成模型`,
+            description: model.description || `${model.name || model.id} image generation model`,
             providerId: 'openrouter',
             capabilities: {
               text2image: true,

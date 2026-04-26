@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { OpenAIImageAdapter } from '../../../src/services/image/adapters/openai'
 import type { ImageRequest, ImageModelConfig } from '../../../src/services/image/types'
 import { IMAGE_ERROR_CODES } from '../../../src/constants/error-codes'
@@ -7,9 +7,14 @@ const RUN_REAL_API = process.env.RUN_REAL_API === '1'
 
 describe('OpenAIImageAdapter', () => {
   let adapter: OpenAIImageAdapter
+  const realFetch = global.fetch
 
   beforeEach(() => {
     adapter = new OpenAIImageAdapter()
+  })
+
+  afterEach(() => {
+    global.fetch = realFetch
   })
 
   describe('Provider Information', () => {
@@ -20,7 +25,7 @@ describe('OpenAIImageAdapter', () => {
       expect(provider.name).toBe('OpenAI')
       expect(provider.requiresApiKey).toBe(true)
       expect(provider.defaultBaseURL).toBe('https://api.openai.com/v1')
-      expect(provider.supportsDynamicModels).toBe(false)
+      expect(provider.supportsDynamicModels).toBe(true)
       expect(provider.connectionSchema?.required).toContain('apiKey')
       expect(provider.connectionSchema?.optional).toEqual(expect.arrayContaining(['baseURL']))
       expect(provider.connectionSchema?.fieldTypes.apiKey).toBe('string')
@@ -29,16 +34,15 @@ describe('OpenAIImageAdapter', () => {
   })
 
   describe('Static Models', () => {
-    test('should return static DALL-E models', () => {
+    test('should return GPT Image 2 as the static default model', () => {
       const models = adapter.getModels()
 
       expect(Array.isArray(models)).toBe(true)
-      expect(models.length).toBeGreaterThan(0)
+      expect(models.map(model => model.id)).toEqual(['gpt-image-2'])
 
-      const dalleModel = models.find(m => m.id.includes('gpt-image-1'))
-      expect(dalleModel).toBeDefined()
-      expect(dalleModel).toMatchObject({
-        id: expect.any(String),
+      const imageModel = models[0]
+      expect(imageModel).toMatchObject({
+        id: 'gpt-image-2',
         name: expect.any(String),
         providerId: 'openai',
         capabilities: {
@@ -52,7 +56,7 @@ describe('OpenAIImageAdapter', () => {
 
     test('should include quality and size parameters', () => {
       const models = adapter.getModels()
-      const model = models.find(m => m.id.includes('gpt-image-1'))
+      const model = models.find(m => m.id === 'gpt-image-2')
 
       expect(model?.parameterDefinitions).toBeDefined()
       const qualityParam = model?.parameterDefinitions?.find(p => p.name === 'quality')
@@ -67,17 +71,65 @@ describe('OpenAIImageAdapter', () => {
     })
   })
 
-  // Dynamic models are not supported for OpenAI in current implementation
+  describe('Dynamic Models', () => {
+    test('should prioritize image-like models without filtering non-image models', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          data: [
+            { id: 'gpt-5.1' },
+            { id: 'third-party-text-model', name: 'Text Model' },
+            { id: 'gpt-image-2', name: 'GPT Image 2' },
+            { id: 'vendor/custom-image-fast', name: 'Custom Image Fast' }
+          ]
+        })
+      })
+
+      const models = await adapter.getModelsAsync({
+        apiKey: 'test-api-key',
+        baseURL: 'https://compat.example.com'
+      })
+
+      expect(models.map(model => model.id)).toEqual([
+        'gpt-image-2',
+        'vendor/custom-image-fast',
+        'gpt-5.1',
+        'third-party-text-model'
+      ])
+      expect(models.find(model => model.id === 'gpt-5.1')).toBeDefined()
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://compat.example.com/v1/models',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-api-key'
+          })
+        })
+      )
+    })
+
+    test('should fall back to static GPT Image 2 model when model fetch fails', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: () => Promise.resolve({})
+      })
+
+      const models = await adapter.getModelsAsync({ apiKey: 'test-api-key' })
+
+      expect(models.map(model => model.id)).toEqual(['gpt-image-2'])
+    })
+  })
 
   // 连接验证已移除
 
   describe('Image Generation', () => {
-    test('should generate image with GPT Image 1', async () => {
+    test('should generate image with GPT Image 2', async () => {
       const config: ImageModelConfig = {
         id: 'test-dalle3-config',
         name: 'Test OpenAI Image Config',
         providerId: 'openai',
-        modelId: 'gpt-image-1',
+        modelId: 'gpt-image-2',
         enabled: true,
         connectionConfig: {
           apiKey: 'test-api-key'

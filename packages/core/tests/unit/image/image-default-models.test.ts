@@ -9,6 +9,8 @@ describe('default image models', () => {
 
   beforeEach(() => {
     process.env = { ...env }
+    delete process.env.VITE_OPENAI_API_KEY
+    delete process.env.VITE_OPENAI_BASE_URL
     delete process.env.VITE_CF_API_TOKEN
     delete process.env.VITE_CF_ACCOUNT_ID
     delete process.env.CF_API_TOKEN
@@ -58,6 +60,19 @@ describe('default image models', () => {
     expect(models['image-openrouter-nanobanana'].modelId).toBe(openrouterModelId)
     expect(models['image-openrouter-nanobanana'].connectionConfig?.apiKey).toBe('openrouter-key')
     expect(models['image-openrouter-nanobanana'].enabled).toBe(true)
+  })
+
+  it('uses GPT Image 2 for the builtin OpenAI image configuration', () => {
+    process.env.VITE_OPENAI_API_KEY = 'openai-key'
+    const models = getDefaultImageModels(registry)
+    const openaiConfig = models['image-openai-gpt']
+
+    expect(openaiConfig).toBeDefined()
+    expect(openaiConfig.providerId).toBe('openai')
+    expect(openaiConfig.modelId).toBe('gpt-image-2')
+    expect(openaiConfig.model.id).toBe('gpt-image-2')
+    expect(openaiConfig.connectionConfig?.apiKey).toBe('openai-key')
+    expect(openaiConfig.enabled).toBe(true)
   })
 
   it('disables OpenRouter configuration when API key is missing', () => {

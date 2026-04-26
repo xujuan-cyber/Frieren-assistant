@@ -19,10 +19,10 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
     return {
       id: 'openai',
       name: 'OpenAI',
-      description: 'OpenAI GPT Image 图像生成服务',
+      description: 'OpenAI GPT Image generation service',
       requiresApiKey: true,
       defaultBaseURL: 'https://api.openai.com/v1',
-      supportsDynamicModels: false,
+      supportsDynamicModels: true,
       apiKeyUrl: 'https://platform.openai.com/api-keys',
       connectionSchema: {
         required: ['apiKey'],
@@ -38,9 +38,9 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
   getModels(): ImageModel[] {
     return [
       {
-        id: 'gpt-image-1',
-        name: 'GPT Image 1',
-        description: 'OpenAI GPT Image 1 多功能图像生成模型，支持文生图和图像编辑',
+        id: 'gpt-image-2',
+        name: 'GPT Image 2',
+        description: 'OpenAI GPT Image 2 image generation model with text-to-image and image editing support',
         providerId: 'openai',
         capabilities: {
           text2image: true,
@@ -80,6 +80,44 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
         }
       }
     ]
+  }
+
+  public async getModelsAsync(connectionConfig: Record<string, any>): Promise<ImageModel[]> {
+    const baseURL = connectionConfig?.baseURL || this.getProvider().defaultBaseURL
+    const url = `${this.normalizeBaseUrl(baseURL)}/models`
+    const apiKey = connectionConfig?.apiKey
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
+        }
+      })
+
+      if (!response.ok) {
+        console.warn(`OpenAI models API error: ${response.status}`)
+        return this.getModels()
+      }
+
+      const data = await response.json()
+      const rawModels = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : []
+
+      const models = rawModels
+        .map((model: any) => this.toDynamicModel(model))
+        .filter((model: ImageModel | null): model is ImageModel => !!model)
+        .sort((a: ImageModel, b: ImageModel) => Number(this.isImageModelHint(b)) - Number(this.isImageModelHint(a)))
+
+      return models.length > 0 ? models : this.getModels()
+    } catch (error) {
+      console.warn('Failed to fetch OpenAI models:', error)
+      return this.getModels()
+    }
   }
 
   protected getTestImageRequest(testType: 'text2image' | 'image2image'): Omit<ImageRequest, 'configId'> {
@@ -140,6 +178,37 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
       quality: 'auto',
       background: 'auto'
     }
+  }
+
+  private toDynamicModel(model: any): ImageModel | null {
+    const id = typeof model === 'string' ? model : model?.id
+    if (!id || typeof id !== 'string') {
+      return null
+    }
+
+    const name = typeof model?.name === 'string' ? model.name : id
+    const description = typeof model?.description === 'string'
+      ? model.description
+      : `${name} model`
+
+    return {
+      id,
+      name,
+      description,
+      providerId: 'openai',
+      capabilities: {
+        text2image: true,
+        image2image: true,
+        multiImage: true
+      },
+      parameterDefinitions: this.getParameterDefinitions(id),
+      defaultParameterValues: this.getDefaultParameterValues(id)
+    }
+  }
+
+  private isImageModelHint(model: ImageModel): boolean {
+    const text = `${model.id} ${model.name} ${model.description || ''}`.toLowerCase()
+    return text.includes('image')
   }
 
   protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {

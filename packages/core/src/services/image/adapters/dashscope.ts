@@ -35,7 +35,7 @@ export class DashScopeImageAdapter extends AbstractImageProviderAdapter {
     return {
       id: 'dashscope',
       name: 'DashScope',
-      description: '阿里云百炼图像生成服务，支持通义千问图像模型（文生图/图生图）',
+      description: 'Alibaba Cloud DashScope image generation service with Qwen image models for text-to-image and image editing',
       corsRestricted: true,
       requiresApiKey: true,
       defaultBaseURL: 'https://dashscope.aliyuncs.com',
@@ -57,8 +57,8 @@ export class DashScopeImageAdapter extends AbstractImageProviderAdapter {
       // Qwen-Image 文生图模型
       {
         id: 'qwen-image',
-        name: '通义千问图像',
-        description: '通义千问文生图模型，擅长复杂文本渲染，支持多行布局和段落级文本生成',
+        name: 'Qwen Image',
+        description: 'Qwen text-to-image model with strong text rendering, multi-line layout, and paragraph-level text generation support',
         providerId: 'dashscope',
         capabilities: {
           text2image: true,
@@ -75,8 +75,8 @@ export class DashScopeImageAdapter extends AbstractImageProviderAdapter {
       // Qwen-Image-Edit 图生图模型
       {
         id: 'qwen-image-edit',
-        name: '通义千问图像编辑',
-        description: '通义千问图像编辑模型，支持多图输入，可修改文字、增删物体、改变动作、迁移风格',
+        name: 'Qwen Image Edit',
+        description: 'Qwen image editing model with multi-image input support for text edits, object changes, action changes, and style transfer',
         providerId: 'dashscope',
         capabilities: {
           text2image: false,

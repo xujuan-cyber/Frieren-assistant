@@ -17,7 +17,7 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
     return {
       id: 'gemini',
       name: 'Google Gemini',
-      description: 'Google Gemini 图像生成服务',
+      description: 'Google Gemini image generation service',
       requiresApiKey: true,
       defaultBaseURL: 'https://generativelanguage.googleapis.com',
       supportsDynamicModels: true,
@@ -38,7 +38,7 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
       {
         id: 'gemini-2.5-flash-image',
         name: 'Gemini 2.5 Flash Image',
-        description: 'Google Gemini 2.5 Flash 图像生成模型（Nano Banana），支持文生图、图生图和多图输入',
+        description: 'Google Gemini 2.5 Flash image generation model (Nano Banana) with text-to-image, image editing, and multi-image input support',
         providerId: 'gemini',
         capabilities: {
           text2image: true,
@@ -53,7 +53,7 @@ export class GeminiImageAdapter extends AbstractImageProviderAdapter {
       {
         id: 'gemini-3.1-flash-image-preview',
         name: 'Gemini 3.1 Flash Image Preview',
-        description: 'Google Gemini 3.1 Flash 图像生成预览模型，支持文生图、图生图和多图输入',
+        description: 'Google Gemini 3.1 Flash image generation preview model with text-to-image, image editing, and multi-image input support',
         providerId: 'gemini',
         capabilities: {
           text2image: true,
