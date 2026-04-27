@@ -594,7 +594,7 @@ describe('FavoriteManager', () => {
     await wrapper.findAll('.favorite-card-use')[0].trigger('click')
     await flushPromises()
 
-    expect(useFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 'favorite-1' }))
+    expect(useFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 'favorite-1' }), undefined)
     expect(services.favoriteManager.incrementUseCount).not.toHaveBeenCalled()
     expect(wrapper.find('.n-drawer').exists()).toBe(false)
   })

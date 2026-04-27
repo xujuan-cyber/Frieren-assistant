@@ -239,7 +239,7 @@ describe('FavoritesPage', () => {
     await wrapper.find('[data-testid="favorite-library-use"]').trigger('click')
     await flushPromises()
 
-    expect(actions.useFavorite).toHaveBeenCalledWith(sampleFavorite)
+    expect(actions.useFavorite).toHaveBeenCalledWith(sampleFavorite, undefined)
 
     wrapper.unmount()
   })
