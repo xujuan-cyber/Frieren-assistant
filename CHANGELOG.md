@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.9.6] - 2026-04-27
+- EN: This release enhances favorites with reproducibility example editing, media management, and one-click example application to workspace sessions. See [Release Notes (EN)](releases/v2.9.6.en.md).
+- 中文：本次发布增强收藏功能，支持可复现性示例编辑、媒体管理，以及一键将示例应用到工作区会话。参见 [版本说明（中文）](releases/v2.9.6.zh-CN.md)。
+
 ## [2.9.5] - 2026-04-24
 - EN: This patch adds a workspace-wide clear-content tool, makes Prompt Garden imports start from a clean workspace state, restores missing DeepSeek parameter and import-failure localization, and keeps Trellis workspace artifacts ignored. See [Release Notes (EN)](releases/v2.9.5.en.md).
 - 中文：本次补丁新增工作区“清理内容”工具，让 Prompt Garden 导入先清场再写入新内容，补齐 DeepSeek 参数与导入失败提示的本地化，并忽略 Trellis 工作区产物。参见 [版本说明（中文）](releases/v2.9.5.zh-CN.md)。
