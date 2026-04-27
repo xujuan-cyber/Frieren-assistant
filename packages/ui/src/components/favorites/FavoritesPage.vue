@@ -127,9 +127,12 @@ const handleReturnToWorkspace = () => {
   void routerInstance.push(DEFAULT_WORKSPACE_PATH)
 }
 
-const handleUseFavorite = async (favorite: FavoritePrompt): Promise<boolean> => {
+const handleUseFavorite = async (
+  favorite: FavoritePrompt,
+  options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number },
+): Promise<boolean> => {
   if (actions) {
-    return await actions.useFavorite(favorite)
+    return await actions.useFavorite(favorite, options)
   }
 
   return false

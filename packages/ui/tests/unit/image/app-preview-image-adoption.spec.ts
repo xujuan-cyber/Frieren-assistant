@@ -8,7 +8,6 @@ const readSource = (relativePath: string) =>
 describe('app preview image adoption guards', () => {
   it('replaces direct preview image usage with AppPreviewImage in key UI surfaces', () => {
     const files = [
-      'src/components/FavoriteCard.vue',
       'src/components/FavoriteMediaPreviewPanel.vue',
       'src/components/GardenSnapshotPreview.vue',
       'src/components/ImageModelEditModal.vue',

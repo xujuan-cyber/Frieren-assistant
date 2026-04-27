@@ -46,19 +46,8 @@ const collectFavoriteAssetIds = (
   const gardenSnapshot = isRecord(favorite.metadata.gardenSnapshot)
     ? favorite.metadata.gardenSnapshot
     : null
-  if (!gardenSnapshot || !isRecord(gardenSnapshot.assets)) {
-    return assetIds
-  }
 
-  const cover = isRecord(gardenSnapshot.assets.cover) ? gardenSnapshot.assets.cover : null
-  if (cover) {
-    const coverAssetId = typeof cover.assetId === 'string' ? cover.assetId.trim() : ''
-    if (coverAssetId) {
-      assetIds.add(coverAssetId)
-    }
-  }
-
-  const collectFromSnapshotItems = (items: unknown) => {
+  const collectFromExampleItems = (items: unknown) => {
     if (!Array.isArray(items)) return
 
     items.forEach((item) => {
@@ -69,8 +58,27 @@ const collectFavoriteAssetIds = (
     })
   }
 
-  collectFromSnapshotItems(gardenSnapshot.assets.showcases)
-  collectFromSnapshotItems(gardenSnapshot.assets.examples)
+  if (gardenSnapshot && isRecord(gardenSnapshot.assets)) {
+    const cover = isRecord(gardenSnapshot.assets.cover) ? gardenSnapshot.assets.cover : null
+    if (cover) {
+      const coverAssetId = typeof cover.assetId === 'string' ? cover.assetId.trim() : ''
+      if (coverAssetId) {
+        assetIds.add(coverAssetId)
+      }
+    }
+
+    collectFromExampleItems(gardenSnapshot.assets.showcases)
+    collectFromExampleItems(gardenSnapshot.assets.examples)
+  }
+
+  const reproducibility = isRecord(favorite.metadata.reproducibility)
+    ? favorite.metadata.reproducibility
+    : null
+  if (reproducibility) {
+    collectFromExampleItems(reproducibility.examples)
+  }
+
+  collectFromExampleItems(favorite.metadata.examples)
 
   return assetIds
 }

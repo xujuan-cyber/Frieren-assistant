@@ -26,9 +26,6 @@ type ToastOptions = number | MessageOptions
 
 export function useToast() {
   const getMessageApi = (): MessageApi | null => {
-    if (!globalMessageApi) {
-      console.warn('[useToast] NMessageProvider context not available yet.')
-    }
     return globalMessageApi
   }
 

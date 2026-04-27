@@ -349,4 +349,39 @@ describe('FavoriteDetailPanel', () => {
     expect(wrapper.text()).toContain('example-1')
     expect(wrapper.text()).toContain('style=ink')
   })
+
+  it('resolves and displays example asset images in the detail panel', async () => {
+    resolveAssetIdToDataUrlMock.mockImplementation(async (assetId: string) => {
+      if (assetId === 'asset-output') return 'data:image/png;base64,output-preview'
+      if (assetId === 'asset-input') return 'data:image/png;base64,input-preview'
+      return null
+    })
+
+    const wrapper = mountComponent({
+      ...favorite,
+      functionMode: 'basic',
+      optimizationMode: 'system',
+      imageSubMode: undefined,
+      metadata: {
+        reproducibility: {
+          variables: [],
+          examples: [
+            {
+              id: 'example-assets',
+              parameters: {},
+              imageAssetIds: ['asset-output'],
+              inputImageAssetIds: ['asset-input'],
+            },
+          ],
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.findAll('.app-preview-image').map((image) => image.attributes('src'))).toEqual([
+      'data:image/png;base64,output-preview',
+      'data:image/png;base64,input-preview',
+    ])
+  })
 })

@@ -26,23 +26,23 @@ export const parseSubModeKey = (path: string): SubModeKey | null => {
 export const beforeRouteSwitch: NavigationGuard = (to) => {
   // ✅ 兼容旧 pro 路由（/pro/system|/pro/user -> /pro/multi|/pro/variable）
   if (to.path === '/pro/system') {
-    return '/pro/multi'
+    return { path: '/pro/multi', query: to.query, hash: to.hash }
   }
   if (to.path === '/pro/user') {
-    return '/pro/variable'
+    return { path: '/pro/variable', query: to.query, hash: to.hash }
   }
 
   const subModeKey = parseSubModeKey(to.path)
 
   if (subModeKey === null && to.path !== '/') {
-    const match = to.path.match(/^\/(basic|pro|image)/)
+    const match = to.path.match(/^\/(basic|pro|image)(\/|$)/)
     if (match) {
       const mode = match[1] as WorkspaceMode
 
       const defaultSubMode = getDefaultSubModeForWorkspaceMode(mode)
 
       console.warn(`[Router] Invalid subMode: ${to.path}. Redirecting to /${mode}/${defaultSubMode}`)
-      return `/${mode}/${defaultSubMode}`
+      return { path: `/${mode}/${defaultSubMode}`, query: to.query, hash: to.hash }
     }
   }
 

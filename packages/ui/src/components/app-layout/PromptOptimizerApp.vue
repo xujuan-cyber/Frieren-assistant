@@ -243,6 +243,7 @@ import {
     normalizeWorkspacePath,
     parseWorkspaceRoutePath,
 } from '../../router/workspaceRoutes';
+import { createExternalDataLoadingGate } from '../../utils/external-data-loading'
 import { registerOptionalIntegrations } from '../../integrations/registerOptionalIntegrations';
 import { useI18n } from "vue-i18n";
 import {
@@ -614,7 +615,8 @@ const hasRestoredInitialState = ref(false);
 
 // ✅ 外部数据加载中标志（防止模式切换的自动 restore 覆盖外部数据）
 // 适用场景：历史记录恢复、收藏加载、模板导入等任何外部数据加载导致模式切换的情况
-const isLoadingExternalData = ref(false);
+const externalDataLoadingGate = createExternalDataLoadingGate();
+const isLoadingExternalData = externalDataLoadingGate.isLoading;
 
 // 5. 控制主UI渲染的标志
 // 🔧 必须等待路由初始化完成，避免短暂显示根路径的空白页
@@ -1585,8 +1587,11 @@ const navigateToSubModeKeyCompat = (
     toKey: string,
     opts?: { replace?: boolean },
 ) => {
-    if (!WORKSPACE_SUB_MODE_KEYS.includes(toKey as SubModeKey)) return Promise.resolve();
-    return navigateToSubModeKey(toKey as SubModeKey, opts).then(() => undefined);
+    if (!WORKSPACE_SUB_MODE_KEYS.includes(toKey as SubModeKey)) {
+        console.warn(`[PromptOptimizerApp] Invalid workspace sub mode key: ${toKey}`);
+        return Promise.resolve(false);
+    }
+    return navigateToSubModeKey(toKey as SubModeKey, opts).then(() => true);
 };
 
 const optimizerPrompt = computed<string>({
@@ -1623,6 +1628,13 @@ const {
     optimizerPrompt,
     t,
     isLoadingExternalData,
+    proMultiMessageSession,
+    proVariableSession,
+    imageText2ImageSession,
+    imageImage2ImageSession,
+    imageMultiImageSession,
+    getFavoriteImageStorageService:
+      () => services.value?.favoriteImageStorageService || services.value?.imageStorageService || null,
 });
 
 const resolveFavoritesReturnPath = () =>
@@ -1653,8 +1665,11 @@ const returnToWorkspace = () => {
     void routerInstance.push(resolveFavoritesReturnPath());
 };
 
-const handleUseFavoriteFromPage = async (favorite: FavoritePrompt): Promise<boolean> => {
-    const used = await handleUseFavorite(favorite);
+const handleUseFavoriteFromPage = async (
+    favorite: FavoritePrompt,
+    options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number },
+): Promise<boolean> => {
+    const used = await handleUseFavorite(favorite, options);
 
     // handleUseFavorite awaits target workspace navigation. This fallback only covers
     // legacy/non-navigating favorite payloads that still leave the page route active.

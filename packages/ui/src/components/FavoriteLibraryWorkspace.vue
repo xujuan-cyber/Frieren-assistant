@@ -561,7 +561,7 @@ const props = withDefaults(defineProps<{
   active?: boolean
   layout?: LibraryLayout
   initialModeFilter?: FavoriteModeFilterKey
-  useFavorite?: (favorite: FavoritePrompt) => boolean | Promise<boolean>
+  useFavorite?: (favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }) => boolean | Promise<boolean>
 }>(), {
   active: true,
   layout: 'modal',
@@ -569,7 +569,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  'use-favorite': [favorite: FavoritePrompt]
+  'use-favorite': [favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }]
 }>()
 
 const services = inject<Ref<AppServices | null> | null>('services', null)
@@ -1306,14 +1306,17 @@ const handleDeleteFavorite = (favorite: FavoritePrompt) => {
   }
 }
 
-const handleUseFavorite = async (favorite: FavoritePrompt) => {
+const handleUseFavorite = async (
+  favorite: FavoritePrompt,
+  options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number },
+) => {
   let used = true
 
   try {
     if (props.useFavorite) {
-      used = await props.useFavorite(favorite)
+      used = await props.useFavorite(favorite, options)
     } else {
-      emit('use-favorite', favorite)
+      emit('use-favorite', favorite, options)
     }
   } catch (error) {
     console.error('[FavoriteManager] Failed to use favorite:', error)

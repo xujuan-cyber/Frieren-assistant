@@ -5,6 +5,8 @@
       v-for="plugin in activePlugins"
       :key="plugin.id"
       :favorite="favorite"
+      :garden-snapshot-hidden-sections="gardenSnapshotHiddenSections"
+      :garden-snapshot-source-only="gardenSnapshotSourceOnly"
       @favorite-updated="handleFavoriteUpdated"
     />
   </div>
@@ -21,6 +23,8 @@ import {
 
 const props = defineProps<{
   favorite: FavoritePrompt
+  gardenSnapshotHiddenSections?: string[]
+  gardenSnapshotSourceOnly?: boolean
 }>()
 
 const emit = defineEmits<{

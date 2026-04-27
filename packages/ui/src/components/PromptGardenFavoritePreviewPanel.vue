@@ -4,6 +4,8 @@
     :snapshot="snapshot"
     editable
     :busy="isSaving"
+    :hidden-sections="gardenSnapshotHiddenSections"
+    :source-only="gardenSnapshotSourceOnly"
     @upload-cover="handleGardenCoverUpload"
     @append-showcase-images="handleGardenShowcaseUpload"
   />
@@ -30,6 +32,8 @@ import GardenSnapshotPreview from './GardenSnapshotPreview.vue'
 
 const props = defineProps<{
   favorite: FavoritePrompt
+  gardenSnapshotHiddenSections?: Array<'basicInfo' | 'metaInfo' | 'cover' | 'showcases' | 'examples' | 'variables'>
+  gardenSnapshotSourceOnly?: boolean
 }>()
 
 const emit = defineEmits<{

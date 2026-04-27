@@ -1,14 +1,46 @@
 <template>
   <div data-testid="favorite-garden-snapshot-preview">
     <NSpace vertical size="medium">
-      <NDivider style="margin: 0;" />
+      <NDivider v-if="!sourceOnly" style="margin: 0;" />
 
-      <NSpace vertical size="small">
+      <NSpace v-if="!sourceOnly" vertical size="small">
         <NText strong>{{ t('favorites.manager.preview.garden.snapshotTitle') }}</NText>
         <NText depth="3">{{ t('favorites.manager.preview.garden.snapshotHint') }}</NText>
       </NSpace>
 
+      <div
+        v-if="sourceOnly && showBasicInfo"
+        data-testid="favorite-garden-basic-info"
+      >
+        <NDescriptions :column="1" size="small" bordered label-placement="left">
+          <NDescriptionsItem
+            v-if="snapshot.importCode"
+            :label="t('favorites.manager.preview.garden.importCode')"
+          >
+            {{ snapshot.importCode }}
+          </NDescriptionsItem>
+
+          <NDescriptionsItem
+            v-if="snapshot.gardenBaseUrl"
+            :label="t('favorites.manager.preview.garden.gardenBaseUrl')"
+          >
+            {{ snapshot.gardenBaseUrl }}
+          </NDescriptionsItem>
+
+          <NDescriptionsItem
+            v-if="snapshot.schema"
+            :label="t('favorites.manager.preview.garden.schema')"
+          >
+            {{ snapshot.schema }}
+            <NText v-if="snapshot.schemaVersion !== undefined" depth="3">
+              v{{ snapshot.schemaVersion }}
+            </NText>
+          </NDescriptionsItem>
+        </NDescriptions>
+      </div>
+
       <NCollapse
+        v-else
         :expanded-names="expandedSections"
         @update:expanded-names="handleExpandedNamesUpdate"
       >
@@ -205,7 +237,7 @@
         </NCollapseItem>
 
         <NCollapseItem
-          v-if="snapshot.examples.length > 0"
+          v-if="showExamplesSection"
           name="examples"
           :title="t('favorites.manager.preview.garden.examples')"
         >
@@ -284,7 +316,7 @@
         </NCollapseItem>
 
         <NCollapseItem
-          v-if="snapshot.variables.length > 0"
+          v-if="showVariablesSection"
           name="variables"
           :title="t('favorites.manager.preview.garden.variables')"
         >
@@ -369,9 +401,13 @@ const props = withDefaults(defineProps<{
   snapshot: GardenSnapshotPreview
   editable?: boolean
   busy?: boolean
+  hiddenSections?: SectionKey[]
+  sourceOnly?: boolean
 }>(), {
   editable: false,
   busy: false,
+  hiddenSections: () => [],
+  sourceOnly: false,
 })
 
 const emit = defineEmits<{
@@ -382,13 +418,16 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const expandedSections = ref<SectionKey[]>([...SECTION_KEYS])
+const hiddenSectionSet = computed(() => new Set(props.hiddenSections))
+
+const isSectionHidden = (section: SectionKey) => hiddenSectionSet.value.has(section)
 
 const showBasicInfo = computed(() => {
-  return Boolean(props.snapshot.importCode || props.snapshot.gardenBaseUrl || props.snapshot.schema)
+  return !isSectionHidden('basicInfo') && Boolean(props.snapshot.importCode || props.snapshot.gardenBaseUrl || props.snapshot.schema)
 })
 
 const showMeta = computed(() => {
-  return Boolean(
+  return !isSectionHidden('metaInfo') && Boolean(
     props.snapshot.meta.title ||
       props.snapshot.meta.description ||
       props.snapshot.meta.tags.length > 0,
@@ -396,11 +435,19 @@ const showMeta = computed(() => {
 })
 
 const showCoverSection = computed(() => {
-  return Boolean(props.snapshot.coverUrl || props.editable)
+  return !isSectionHidden('cover') && Boolean(props.snapshot.coverUrl || props.editable)
 })
 
 const showShowcasesSection = computed(() => {
-  return Boolean(props.snapshot.showcases.length > 0 || props.editable)
+  return !isSectionHidden('showcases') && Boolean(props.snapshot.showcases.length > 0 || props.editable)
+})
+
+const showExamplesSection = computed(() => {
+  return !isSectionHidden('examples') && props.snapshot.examples.length > 0
+})
+
+const showVariablesSection = computed(() => {
+  return !isSectionHidden('variables') && props.snapshot.variables.length > 0
 })
 
 const parameterEntries = (asset: GardenSnapshotPreviewAsset): Array<[string, string]> => {

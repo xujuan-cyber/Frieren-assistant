@@ -13,6 +13,7 @@
                 <NGridItem>
                   <NFormItem :label="t('favorites.dialog.titleLabel')" required>
                     <NInput
+                      data-testid="favorite-editor-title"
                       v-model:value="formData.title"
                       :placeholder="t('favorites.dialog.titlePlaceholder')"
                       maxlength="100"
@@ -71,6 +72,7 @@
 
               <NFormItem :label="t('favorites.dialog.descriptionLabel')">
                 <NInput
+                  data-testid="favorite-editor-description"
                   v-model:value="formData.description"
                   type="textarea"
                   :placeholder="t('favorites.dialog.descriptionPlaceholder')"
@@ -121,6 +123,7 @@
                     <NText depth="3">{{ t('favorites.dialog.imagesUploadSupport') }}</NText>
                   </div>
                   <NUpload
+                    data-testid="favorite-editor-image-upload-empty"
                     accept="image/*"
                     multiple
                     :default-upload="false"
@@ -128,7 +131,7 @@
                     :disabled="saving"
                     @before-upload="handleBeforeImageUpload"
                   >
-                    <NButton secondary size="small">
+                    <NButton secondary size="small" data-testid="favorite-editor-add-images-empty">
                       {{ t('favorites.dialog.addImages') }}
                     </NButton>
                   </NUpload>
@@ -138,6 +141,7 @@
               <template v-else>
                 <NSpace justify="space-between" align="center" wrap>
                   <NUpload
+                    data-testid="favorite-editor-image-upload"
                     accept="image/*"
                     multiple
                     :default-upload="false"
@@ -145,12 +149,13 @@
                     :disabled="saving"
                     @before-upload="handleBeforeImageUpload"
                   >
-                    <NButton secondary>
+                    <NButton secondary data-testid="favorite-editor-add-images">
                       {{ t('favorites.dialog.addImages') }}
                     </NButton>
                   </NUpload>
 
                   <NButton
+                    data-testid="favorite-editor-clear-images"
                     quaternary
                     type="error"
                     size="small"
@@ -188,6 +193,7 @@
                           {{ t('favorites.dialog.coverTag') }}
                         </NTag>
                         <NButton
+                          data-testid="favorite-editor-set-cover"
                           v-else
                           quaternary
                           size="tiny"
@@ -197,6 +203,7 @@
                         </NButton>
 
                         <NButton
+                          data-testid="favorite-editor-remove-image"
                           quaternary
                           type="error"
                           size="tiny"
@@ -215,6 +222,7 @@
           <FavoriteReproducibilityEditor
             v-model:variables="reproducibilityVariables"
             v-model:examples="reproducibilityExamples"
+            :example-previews="reproducibilityExamplePreviews"
           />
 
           <NCard
@@ -223,6 +231,7 @@
             :segmented="{ content: true }"
           >
             <NInput
+              data-testid="favorite-editor-content"
               v-model:value="formData.content"
               type="textarea"
               :placeholder="t('favorites.dialog.contentPlaceholder')"
@@ -235,10 +244,10 @@
 
     <div class="favorite-editor-form__actions" :class="{ 'favorite-editor-form__actions--embedded': embedded }">
       <NSpace justify="end">
-        <NButton :disabled="saving" @click="$emit('cancel')">
+        <NButton data-testid="favorite-editor-cancel" :disabled="saving" @click="$emit('cancel')">
           {{ t('favorites.dialog.cancel') }}
         </NButton>
-        <NButton type="primary" :loading="saving" @click="handleSave">
+        <NButton data-testid="favorite-editor-save" type="primary" :loading="saving" @click="handleSave">
           {{ t('favorites.dialog.save') }}
         </NButton>
       </NSpace>
@@ -330,6 +339,11 @@ const emit = defineEmits<{
   'saved': [favoriteId: string]
 }>()
 
+type FavoriteReproducibilityExamplePreviews = {
+  images: Array<{ assetId: string; source: string }>
+  inputImages: Array<{ assetId: string; source: string }>
+}
+
 const services = inject<Ref<AppServices | null>>('services')
 const message = useToast()
 
@@ -339,6 +353,7 @@ const mediaTouched = ref(false)
 const tagInputValue = ref('')
 const reproducibilityVariables = ref<FavoriteReproducibilityVariable[]>([])
 const reproducibilityExamples = ref<FavoriteReproducibilityExample[]>([])
+const reproducibilityExamplePreviews = ref<FavoriteReproducibilityExamplePreviews[]>([])
 
 const isMobile = computed(() => viewportWidth.value < 768)
 
@@ -357,6 +372,7 @@ const mediaDraft = reactive({
   sources: [] as string[],
   coverIndex: -1,
 })
+let hydrateRequestId = 0
 
 const tagSuggestions = computed(() => {
   const suggestions = filterTags(tagInputValue.value, formData.tags)
@@ -443,6 +459,7 @@ const cloneReproducibilityExamples = (
 const resetReproducibilityDraft = () => {
   reproducibilityVariables.value = []
   reproducibilityExamples.value = []
+  reproducibilityExamplePreviews.value = []
 }
 
 const hydrateReproducibilityDraft = (
@@ -455,9 +472,57 @@ const hydrateReproducibilityDraft = (
 
   reproducibilityVariables.value = cloneReproducibilityVariables(reproducibility.variables)
   reproducibilityExamples.value = cloneReproducibilityExamples(reproducibility.examples)
+  reproducibilityExamplePreviews.value = reproducibility.examples.map(() => ({
+    images: [],
+    inputImages: [],
+  }))
 }
 
-const hydrateMediaDraft = async (metadata?: Record<string, unknown>, favorite?: FavoritePrompt) => {
+const hydrateReproducibilityExamplePreviews = async (
+  metadata?: Record<string, unknown>,
+  favorite?: FavoritePrompt,
+  isStale: () => boolean = () => false,
+) => {
+  const reproducibility = favorite
+    ? parseFavoriteReproducibility(favorite)
+    : parseFavoriteReproducibilityFromMetadata(metadata)
+
+  const previews: FavoriteReproducibilityExamplePreviews[] = []
+  const resolveAssetPreviews = async (assetIds: string[]) => {
+    const previewItems: Array<{ assetId: string; source: string }> = []
+    for (const assetId of assetIds) {
+      if (isStale()) return []
+      const source = (await resolveAssetIdsToDataUrls([assetId]))[0]
+      if (isStale()) return []
+      if (source) {
+        previewItems.push({ assetId, source })
+      }
+    }
+    return previewItems
+  }
+
+  for (const example of reproducibility.examples) {
+    if (isStale()) return
+    const images = await resolveAssetPreviews(example.imageAssetIds)
+    if (isStale()) return
+    const inputImages = await resolveAssetPreviews(example.inputImageAssetIds)
+    if (isStale()) return
+    previews.push({
+      images,
+      inputImages,
+    })
+  }
+
+  if (isStale()) return
+  reproducibilityExamplePreviews.value = previews
+}
+
+const hydrateMediaDraft = async (
+  metadata?: Record<string, unknown>,
+  favorite?: FavoritePrompt,
+  isStale: () => boolean = () => false,
+) => {
+  if (isStale()) return
   resetMediaDraft()
   const media = favorite
     ? parseFavoriteMediaMetadata(favorite)
@@ -469,7 +534,9 @@ const hydrateMediaDraft = async (metadata?: Record<string, unknown>, favorite?: 
   const resolvedCover = media.coverAssetId
     ? (await resolveAssetIdsToDataUrls([media.coverAssetId]))[0]
     : undefined
+  if (isStale()) return
   const resolvedAssets = await resolveAssetIdsToDataUrls(media.assetIds)
+  if (isStale()) return
 
   const sources = dedupeStrings([
     resolvedCover || media.coverUrl || '',
@@ -564,12 +631,87 @@ const buildMediaMetadataForSave = async () => {
   })
 }
 
+const persistSourcesForFavoriteAssets = async (sources: string[]) => {
+  const normalizedSources = dedupeStrings(
+    sources.map((item) => String(item || '').trim()).filter(Boolean),
+  )
+  const preferredStorage = getPreferredStorageService()
+  const assetIds: string[] = []
+  const fallbackSources: string[] = []
+
+  for (const source of normalizedSources) {
+    if (!preferredStorage) {
+      fallbackSources.push(source)
+      continue
+    }
+
+    try {
+      const assetId = await persistImageSourceAsAssetId({
+        source,
+        storageService: preferredStorage,
+        sourceType: 'uploaded',
+      })
+
+      if (assetId) {
+        assetIds.push(assetId)
+      } else {
+        fallbackSources.push(source)
+      }
+    } catch (error) {
+      console.warn('[FavoriteEditorForm] Failed to persist example image source:', error)
+      fallbackSources.push(source)
+    }
+  }
+
+  return {
+    assetIds: dedupeStrings(assetIds),
+    fallbackSources: dedupeStrings(fallbackSources),
+  }
+}
+
+const buildReproducibilityDraftForSave = async () => {
+  const examples: FavoriteReproducibilityExample[] = []
+
+  for (const example of toRaw(reproducibilityExamples.value)) {
+    const exampleImages = await persistSourcesForFavoriteAssets(example.images || [])
+    const inputImages = await persistSourcesForFavoriteAssets(example.inputImages || [])
+
+    examples.push({
+      ...example,
+      parameters: { ...example.parameters },
+      images: exampleImages.fallbackSources,
+      imageAssetIds: dedupeStrings([
+        ...(example.imageAssetIds || []),
+        ...exampleImages.assetIds,
+      ]),
+      inputImages: inputImages.fallbackSources,
+      inputImageAssetIds: dedupeStrings([
+        ...(example.inputImageAssetIds || []),
+        ...inputImages.assetIds,
+      ]),
+    })
+  }
+
+  return {
+    variables: toRaw(reproducibilityVariables.value).map((variable) => ({
+      ...variable,
+      options: [...variable.options],
+    })),
+    examples,
+  }
+}
+
 const handleBeforeImageUpload = async (options: { file: UploadFileInfo }) => {
   const raw = (options.file as unknown as { file?: Blob | null }).file
   if (!raw) return false
 
+  const requestId = hydrateRequestId
   try {
     const dataUrl = await readBlobAsDataUrl(raw)
+    if (requestId !== hydrateRequestId) {
+      return false
+    }
+
     if (dataUrl) {
       mediaDraft.sources = dedupeStrings([...mediaDraft.sources, dataUrl])
       mediaTouched.value = true
@@ -760,13 +902,11 @@ const handleSave = async () => {
     }
 
     const currentReproducibility = parseFavoriteReproducibilityFromMetadata(existingMetadata)
+    const reproducibilityDraft = await buildReproducibilityDraftForSave()
     const hasReproducibilityDraft =
-      reproducibilityVariables.value.length > 0 || reproducibilityExamples.value.length > 0
+      reproducibilityDraft.variables.length > 0 || reproducibilityDraft.examples.length > 0
     if (currentReproducibility.hasData || hasReproducibilityDraft) {
-      existingMetadata = applyFavoriteReproducibilityToMetadata(existingMetadata, {
-        variables: toRaw(reproducibilityVariables.value),
-        examples: toRaw(reproducibilityExamples.value),
-      })
+      existingMetadata = applyFavoriteReproducibilityToMetadata(existingMetadata, reproducibilityDraft)
     }
 
     const metadata = Object.keys(existingMetadata).length > 0 ? existingMetadata : undefined
@@ -805,9 +945,17 @@ watch(() => [
   props.currentOptimizationMode,
   props.prefill,
   props.favorite,
-], async () => {
+], async (_value, _oldValue, onCleanup) => {
+  const requestId = ++hydrateRequestId
+  let cancelled = false
+  const isStale = () => cancelled || requestId !== hydrateRequestId
+  onCleanup(() => {
+    cancelled = true
+  })
+
   mediaTouched.value = false
   await loadTags()
+  if (isStale()) return
 
   if (props.mode === 'create') {
     formData.title = ''
@@ -832,21 +980,26 @@ watch(() => [
     formData.functionMode = normalizeFavoriteFunctionMode(props.favorite.functionMode)
     formData.optimizationMode = props.favorite.optimizationMode
     formData.imageSubMode = props.favorite.imageSubMode
-    await hydrateMediaDraft(undefined, props.favorite)
+    await hydrateMediaDraft(undefined, props.favorite, isStale)
+    if (isStale()) return
     hydrateReproducibilityDraft(undefined, props.favorite)
+    await hydrateReproducibilityExamplePreviews(undefined, props.favorite, isStale)
     return
   }
 
   const prefill = props.prefill
+  const resolvedCategory = await resolvePrefillCategoryId(
+    typeof prefill?.category === 'string' ? prefill.category : '',
+  )
+  if (isStale()) return
+
   const titleSource = (typeof prefill?.title === 'string' && prefill.title.trim()
     ? prefill.title
     : props.originalContent || props.content || '')
   formData.title = titleSource.replace(/\r?\n/g, ' ').substring(0, 30).trim()
   formData.content = props.content || ''
   formData.description = typeof prefill?.description === 'string' ? prefill.description : ''
-  formData.category = await resolvePrefillCategoryId(
-    typeof prefill?.category === 'string' ? prefill.category : '',
-  )
+  formData.category = resolvedCategory
   formData.tags = Array.isArray(prefill?.tags)
     ? dedupeStrings(prefill.tags.map((tag) => String(tag || '').trim()).filter(Boolean))
     : []
@@ -886,8 +1039,10 @@ watch(() => [
     prefill?.metadata && typeof prefill.metadata === 'object'
       ? (prefill.metadata as Record<string, unknown>)
       : undefined
-  await hydrateMediaDraft(prefillMetadata)
+  await hydrateMediaDraft(prefillMetadata, undefined, isStale)
+  if (isStale()) return
   hydrateReproducibilityDraft(prefillMetadata)
+  await hydrateReproducibilityExamplePreviews(prefillMetadata, undefined, isStale)
 }, { immediate: true, deep: true })
 
 const updateViewportWidth = () => {
@@ -903,6 +1058,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  hydrateRequestId += 1
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateViewportWidth)
   }
@@ -924,6 +1080,10 @@ onBeforeUnmount(() => {
 
 .favorite-editor-form__content {
   padding: 20px;
+}
+
+.favorite-editor-form--embedded .favorite-editor-form__content {
+  padding: 20px 20px 96px;
 }
 
 .favorite-editor-form__tag-field {
@@ -997,6 +1157,10 @@ onBeforeUnmount(() => {
 @media (max-width: 767px) {
   .favorite-editor-form__content {
     padding: 16px;
+  }
+
+  .favorite-editor-form--embedded .favorite-editor-form__content {
+    padding: 16px 16px 88px;
   }
 
   .favorite-editor-form__media-grid {

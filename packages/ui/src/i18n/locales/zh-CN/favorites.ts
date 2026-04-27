@@ -152,7 +152,8 @@ const messages = {
           "exampleLabel": "示例 #{index}",
           "parameters": "参数",
           "images": "图片",
-          "inputImages": "输入图"
+          "inputImages": "输入图",
+          "applyExample": "应用此示例"
         }
       },
       "messages": {
@@ -313,10 +314,20 @@ const messages = {
         "required": "必填",
         "remove": "移除",
         "exampleIdPlaceholder": "示例 ID（可选）",
+        "exampleLabel": "示例 #{index}",
         "exampleTextPlaceholder": "示例名称或说明（可选）",
         "exampleDescriptionPlaceholder": "示例描述（可选）",
-        "exampleParametersPlaceholder": "参数，每行 key=value",
-        "exampleInputImagesPlaceholder": "输入图片 URL，每行一个",
+        "exampleParametersLabel": "示例变量取值",
+        "parameterNamePlaceholder": "变量名",
+        "parameterValuePlaceholder": "变量取值",
+        "addParameter": "添加取值",
+        "exampleImages": "示例/输出图片",
+        "exampleInputImages": "输入图片",
+        "exampleImagesPlaceholder": "粘贴图片链接",
+        "exampleInputImagesPlaceholder": "粘贴图片链接",
+        "addImageUrl": "添加链接",
+        "addExampleImages": "上传示例图片",
+        "addExampleInputImages": "上传输入图片",
         "variableType": {
           "string": "文本",
           "number": "数字",

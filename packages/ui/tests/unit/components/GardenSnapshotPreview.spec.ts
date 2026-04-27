@@ -112,6 +112,39 @@ describe('GardenSnapshotPreview', () => {
     expect(wrapper.find('[data-testid="favorite-garden-variables"]').exists()).toBe(false)
   })
 
+  it('can hide sections already promoted by the favorite detail panel', () => {
+    const wrapper = mount(GardenSnapshotPreview, {
+      props: {
+        snapshot: createSnapshot(),
+        hiddenSections: ['metaInfo', 'cover', 'showcases', 'examples', 'variables'],
+      },
+    })
+
+    expect(wrapper.text()).toContain('IMP-100')
+    expect(wrapper.find('[data-testid="favorite-garden-meta"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-garden-cover"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-garden-showcases"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-garden-examples"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-garden-variables"]').exists()).toBe(false)
+  })
+
+  it('renders source-only mode without the nested snapshot header or collapse sections', () => {
+    const wrapper = mount(GardenSnapshotPreview, {
+      props: {
+        snapshot: createSnapshot(),
+        sourceOnly: true,
+      },
+    })
+
+    expect(wrapper.find('[data-testid="favorite-garden-basic-info"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('IMP-100')
+    expect(wrapper.text()).toContain('https://garden.example.com')
+    expect(wrapper.text()).not.toContain('favorites.manager.preview.garden.snapshotTitle')
+    expect(wrapper.find('.n-collapse').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-garden-examples"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="favorite-garden-variables"]').exists()).toBe(false)
+  })
+
   it('supports image zoom and local upload actions in editable mode', async () => {
     class MockFileReader {
       public result: string | null = null

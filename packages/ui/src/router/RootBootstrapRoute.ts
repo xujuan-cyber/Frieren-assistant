@@ -1,6 +1,7 @@
 import { defineComponent, h, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGlobalSettings, type GlobalSettingsApi } from '../stores/settings/useGlobalSettings'
+import { DEFAULT_WORKSPACE_PATH } from './workspaceRoutes'
 
 export const getInitialRouteFromGlobalSettings = (globalSettings: GlobalSettingsApi) => {
   const { functionMode, basicSubMode, proSubMode, imageSubMode } = globalSettings.state
@@ -13,7 +14,7 @@ export const getInitialRouteFromGlobalSettings = (globalSettings: GlobalSettings
     case 'image':
       return `/image/${imageSubMode}`
     default:
-      return '/basic/system'
+      return DEFAULT_WORKSPACE_PATH
   }
 }
 

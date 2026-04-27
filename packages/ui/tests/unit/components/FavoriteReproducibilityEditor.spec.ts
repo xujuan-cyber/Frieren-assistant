@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import FavoriteReproducibilityEditor from '../../../src/components/FavoriteReproducibilityEditor.vue'
@@ -70,7 +70,42 @@ const naiveStubs = {
     template: '<span class="n-text"><slot /></span>',
     props: ['depth', 'strong'],
   },
+  NUpload: {
+    name: 'NUpload',
+    template: '<div class="n-upload" @click="handleClick"><slot /></div>',
+    props: ['accept', 'multiple', 'defaultUpload', 'showFileList', 'onBeforeUpload'],
+    emits: ['before-upload'],
+    data: () => ({
+      testBlob: new Blob(['upload'], { type: 'image/png' }),
+    }),
+    methods: {
+      handleClick() {
+        const payload = { file: { file: this.testBlob } }
+        if (typeof this.onBeforeUpload === 'function') {
+          this.onBeforeUpload(payload)
+        }
+        this.$emit('before-upload', payload)
+      },
+    },
+  },
+  AppPreviewImage: {
+    name: 'AppPreviewImage',
+    template: '<img class="app-preview-image" :src="src" :alt="alt" />',
+    props: ['src', 'alt', 'objectFit', 'class'],
+  },
+  AppPreviewImageGroup: {
+    name: 'AppPreviewImageGroup',
+    template: '<div class="app-preview-image-group"><slot /></div>',
+  },
 }
+
+const findField = (wrapper: any, testId: string) =>
+  wrapper.find(
+    `[data-testid="${testId}"] textarea, ` +
+    `[data-testid="${testId}"] input, ` +
+    `textarea[data-testid="${testId}"], ` +
+    `input[data-testid="${testId}"]`,
+  )
 
 const mountComponent = () =>
   mount(FavoriteReproducibilityEditor, {
@@ -84,6 +119,10 @@ const mountComponent = () =>
   })
 
 describe('FavoriteReproducibilityEditor', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('lets users add and edit variable configuration', async () => {
     const wrapper = mountComponent()
 
@@ -127,9 +166,15 @@ describe('FavoriteReproducibilityEditor', () => {
     ])
 
     await wrapper.setProps({ examples: nextExamples })
-    await wrapper
-      .find('[data-testid="favorite-repro-example-parameters"] textarea, [data-testid="favorite-repro-example-parameters"] input')
-      .setValue('style=ink\nsize=large')
+    await findField(wrapper, 'favorite-repro-example-parameter-key').setValue('style')
+    await findField(wrapper, 'favorite-repro-example-parameter-new-value').setValue('ink')
+    await wrapper.find('[data-testid="favorite-repro-example-add-parameter"]').trigger('click')
+
+    const examplesWithStyle = wrapper.emitted('update:examples')?.at(-1)?.[0]
+    await wrapper.setProps({ examples: examplesWithStyle })
+    await findField(wrapper, 'favorite-repro-example-parameter-key').setValue('size')
+    await findField(wrapper, 'favorite-repro-example-parameter-new-value').setValue('large')
+    await wrapper.find('[data-testid="favorite-repro-example-add-parameter"]').trigger('click')
 
     expect(wrapper.emitted('update:examples')?.at(-1)?.[0]).toEqual([
       {
@@ -139,6 +184,145 @@ describe('FavoriteReproducibilityEditor', () => {
         },
         images: [],
         imageAssetIds: [],
+        inputImages: [],
+        inputImageAssetIds: [],
+      },
+    ])
+  })
+
+  it('lets users edit example output and input image urls', async () => {
+    const wrapper = mountComponent()
+
+    await wrapper.findAll('.n-button')[1].trigger('click')
+    const nextExamples = wrapper.emitted('update:examples')?.[0]?.[0]
+    await wrapper.setProps({ examples: nextExamples })
+
+    await findField(wrapper, 'favorite-repro-example-images').setValue('https://example.com/output.png')
+    await wrapper.find('[data-testid="favorite-repro-example-add-image-url"]').trigger('click')
+    const examplesWithOutputImages = wrapper.emitted('update:examples')?.at(-1)?.[0]
+    await wrapper.setProps({ examples: examplesWithOutputImages })
+
+    await findField(wrapper, 'favorite-repro-example-input-images').setValue('https://example.com/input.png')
+    await wrapper.find('[data-testid="favorite-repro-example-add-input-image-url"]').trigger('click')
+
+    expect(wrapper.emitted('update:examples')?.at(-1)?.[0]).toEqual([
+      {
+        parameters: {},
+        images: ['https://example.com/output.png'],
+        imageAssetIds: [],
+        inputImages: ['https://example.com/input.png'],
+        inputImageAssetIds: [],
+      },
+    ])
+  })
+
+  it('does not carry unsaved example drafts onto the next example after removal', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          {
+            id: 'ex-1',
+            parameters: {},
+            images: [],
+            imageAssetIds: [],
+            inputImages: [],
+            inputImageAssetIds: [],
+          },
+          {
+            id: 'ex-2',
+            parameters: {},
+            images: [],
+            imageAssetIds: [],
+            inputImages: [],
+            inputImageAssetIds: [],
+          },
+        ],
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await findField(wrapper, 'favorite-repro-example-parameter-key').setValue('stale')
+    await findField(wrapper, 'favorite-repro-example-parameter-new-value').setValue('draft')
+    await findField(wrapper, 'favorite-repro-example-images').setValue('https://example.com/stale.png')
+    await wrapper.findAll('[data-testid="favorite-repro-remove-example"]')[0].trigger('click')
+
+    const remainingExamples = wrapper.emitted('update:examples')?.at(-1)?.[0]
+    await wrapper.setProps({ examples: remainingExamples })
+
+    expect((findField(wrapper, 'favorite-repro-example-parameter-key').element as HTMLInputElement).value).toBe('')
+    expect((findField(wrapper, 'favorite-repro-example-parameter-new-value').element as HTMLInputElement).value).toBe('')
+    expect((findField(wrapper, 'favorite-repro-example-images').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('shows persisted example asset previews separately from editable urls', () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          {
+            parameters: {},
+            images: [],
+            imageAssetIds: ['asset-output'],
+            inputImages: [],
+            inputImageAssetIds: ['asset-input'],
+          },
+        ],
+        examplePreviews: [
+          {
+            images: [{ assetId: 'asset-output', source: 'data:image/png;base64,output-preview' }],
+            inputImages: [{ assetId: 'asset-input', source: 'data:image/png;base64,input-preview' }],
+          },
+        ],
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    const previewImages = wrapper.findAll('.app-preview-image')
+    expect(previewImages.map((image) => image.attributes('src'))).toEqual([
+      'data:image/png;base64,output-preview',
+      'data:image/png;base64,input-preview',
+    ])
+    expect((findField(wrapper, 'favorite-repro-example-images').element as HTMLInputElement).value).toBe('')
+    expect((findField(wrapper, 'favorite-repro-example-input-images').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('removes persisted example asset previews from the matching asset field', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          {
+            parameters: {},
+            images: [],
+            imageAssetIds: ['asset-output'],
+            inputImages: [],
+            inputImageAssetIds: ['asset-input'],
+          },
+        ],
+        examplePreviews: [
+          {
+            images: [{ assetId: 'asset-output', source: 'data:image/png;base64,output-preview' }],
+            inputImages: [{ assetId: 'asset-input', source: 'data:image/png;base64,input-preview' }],
+          },
+        ],
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await wrapper.find('[data-testid="favorite-repro-example-remove-input-image"]').trigger('click')
+
+    expect(wrapper.emitted('update:examples')?.at(-1)?.[0]).toEqual([
+      {
+        parameters: {},
+        images: [],
+        imageAssetIds: ['asset-output'],
         inputImages: [],
         inputImageAssetIds: [],
       },

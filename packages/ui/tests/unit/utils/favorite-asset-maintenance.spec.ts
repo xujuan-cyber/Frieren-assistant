@@ -22,6 +22,20 @@ describe('favoriteAssetMaintenance', () => {
                 examples: [{ inputImageAssetIds: ['input-1'] }],
               },
             },
+            reproducibility: {
+              examples: [
+                {
+                  imageAssetIds: ['manual-output-1'],
+                  inputImageAssetIds: ['manual-input-1'],
+                },
+              ],
+            },
+            examples: [
+              {
+                imageAssetIds: ['legacy-output-1'],
+                inputImageAssetIds: ['legacy-input-1'],
+              },
+            ],
           },
         },
       ]),
@@ -33,6 +47,10 @@ describe('favoriteAssetMaintenance', () => {
         { id: 'asset-1' },
         { id: 'gallery-1' },
         { id: 'input-1' },
+        { id: 'manual-output-1' },
+        { id: 'manual-input-1' },
+        { id: 'legacy-output-1' },
+        { id: 'legacy-input-1' },
         { id: 'orphan-1' },
       ]),
       deleteImages: vi.fn(async (_ids: string[]) => {}),

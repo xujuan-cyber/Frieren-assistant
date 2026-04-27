@@ -3,9 +3,15 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { beforeRouteSwitch, parseSubModeKey } from '../../../src/router/guards'
 import { normalizeWorkspacePath, parseWorkspaceRoutePath } from '../../../src/router/workspaceRoutes'
 
-function createRoute(path: string): RouteLocationNormalized {
+function createRoute(
+  path: string,
+  overrides: Partial<RouteLocationNormalized> = {},
+): RouteLocationNormalized {
   return {
     path,
+    query: {},
+    hash: '',
+    ...overrides,
   } as RouteLocationNormalized
 }
 
@@ -42,15 +48,23 @@ describe('router guards', () => {
 
   describe('beforeRouteSwitch', () => {
     it('redirects legacy pro system route to multi mode', () => {
-      const result = beforeRouteSwitch(createRoute('/pro/system'), createRoute('/'), undefined as never)
+      const result = beforeRouteSwitch(
+        createRoute('/pro/system', { query: { from: '/favorites' }, hash: '#section' }),
+        createRoute('/'),
+        undefined as never,
+      )
 
-      expect(result).toBe('/pro/multi')
+      expect(result).toEqual({
+        path: '/pro/multi',
+        query: { from: '/favorites' },
+        hash: '#section',
+      })
     })
 
     it('redirects legacy pro user route to variable mode', () => {
       const result = beforeRouteSwitch(createRoute('/pro/user'), createRoute('/'), undefined as never)
 
-      expect(result).toBe('/pro/variable')
+      expect(result).toEqual({ path: '/pro/variable', query: {}, hash: '' })
     })
 
     it('redirects invalid image sub mode to the default image route', () => {
@@ -58,8 +72,14 @@ describe('router guards', () => {
 
       const result = beforeRouteSwitch(createRoute('/image/unknown'), createRoute('/'), undefined as never)
 
-      expect(result).toBe('/image/text2image')
+      expect(result).toEqual({ path: '/image/text2image', query: {}, hash: '' })
       expect(warnSpy).toHaveBeenCalledOnce()
+    })
+
+    it('does not redirect non-workspace routes that only share a prefix', () => {
+      expect(beforeRouteSwitch(createRoute('/profile'), createRoute('/'), undefined as never)).toBe(true)
+      expect(beforeRouteSwitch(createRoute('/project'), createRoute('/'), undefined as never)).toBe(true)
+      expect(beforeRouteSwitch(createRoute('/process'), createRoute('/'), undefined as never)).toBe(true)
     })
 
     it('allows valid routes to continue', () => {

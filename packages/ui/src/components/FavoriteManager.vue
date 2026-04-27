@@ -38,7 +38,7 @@ const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   show?: boolean
-  useFavorite?: (favorite: FavoritePrompt) => boolean | Promise<boolean>
+  useFavorite?: (favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }) => boolean | Promise<boolean>
 }>(), {
   show: false,
 })
@@ -46,7 +46,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   // Legacy event kept for consumers that still bind it; the shared library no longer exposes this action.
   'optimize-prompt': []
-  'use-favorite': [favorite: FavoritePrompt]
+  'use-favorite': [favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }]
   'update:show': [value: boolean]
   'close': []
 }>()
@@ -56,12 +56,15 @@ const close = () => {
   emit('close')
 }
 
-const handleUseFavorite = async (favorite: FavoritePrompt) => {
+const handleUseFavorite = async (
+  favorite: FavoritePrompt,
+  options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number },
+) => {
   if (props.useFavorite) {
-    return props.useFavorite(favorite)
+    return props.useFavorite(favorite, options)
   }
 
-  emit('use-favorite', favorite)
+  emit('use-favorite', favorite, options)
   return true
 }
 </script>

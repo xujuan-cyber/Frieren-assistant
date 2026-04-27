@@ -20,6 +20,7 @@
 
         <NSpace :size="8" align="center" wrap>
           <NButton
+            data-testid="favorite-detail-use"
             type="primary"
             @click="$emit('use', favorite)"
           >
@@ -29,6 +30,7 @@
             {{ t('favorites.manager.card.useNow') }}
           </NButton>
           <NButton
+            data-testid="favorite-detail-copy"
             secondary
             @click="$emit('copy', favorite)"
           >
@@ -38,6 +40,7 @@
             {{ t('favorites.manager.card.copyContent') }}
           </NButton>
           <NButton
+            data-testid="favorite-detail-fullscreen"
             quaternary
             @click="$emit('fullscreen', favorite)"
           >
@@ -47,6 +50,7 @@
             {{ t('common.fullscreen') }}
           </NButton>
           <NButton
+            data-testid="favorite-detail-edit"
             quaternary
             @click="$emit('edit', favorite)"
           >
@@ -56,6 +60,7 @@
             {{ t('favorites.manager.card.edit') }}
           </NButton>
           <NButton
+            data-testid="favorite-detail-delete"
             quaternary
             type="error"
             @click="$emit('delete', favorite)"
@@ -194,11 +199,17 @@
               name="reproducibility"
               :title="t('favorites.manager.preview.reproducibility.title')"
             >
-              <FavoriteReproducibilityDisplay :reproducibility="reproducibility" />
+              <FavoriteReproducibilityDisplay
+                :reproducibility="reproducibility"
+                :example-previews="reproducibilityExamplePreviews"
+                @apply-example="handleApplyExample"
+              />
             </NCollapseItem>
             <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
               <FavoritePreviewExtensionHost
                 :favorite="favorite"
+                :garden-snapshot-hidden-sections="promotedGardenSnapshotSections"
+                garden-snapshot-source-only
                 @favorite-updated="handleFavoriteUpdated"
               />
             </NCollapseItem>
@@ -298,11 +309,17 @@
               name="reproducibility"
               :title="t('favorites.manager.preview.reproducibility.title')"
             >
-              <FavoriteReproducibilityDisplay :reproducibility="reproducibility" />
+              <FavoriteReproducibilityDisplay
+                :reproducibility="reproducibility"
+                :example-previews="reproducibilityExamplePreviews"
+                @apply-example="handleApplyExample"
+              />
             </NCollapseItem>
             <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
               <FavoritePreviewExtensionHost
                 :favorite="favorite"
+                :garden-snapshot-hidden-sections="promotedGardenSnapshotSections"
+                garden-snapshot-source-only
                 @favorite-updated="handleFavoriteUpdated"
               />
             </NCollapseItem>
@@ -361,7 +378,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'back': []
-  'use': [favorite: FavoritePrompt]
+  'use': [favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }]
   'copy': [favorite: FavoritePrompt]
   'edit': [favorite: FavoritePrompt]
   'delete': [favorite: FavoritePrompt]
@@ -374,8 +391,14 @@ const services = inject<Ref<AppServices | null> | null>('services', null)
 
 const assetDataUrlCache = new Map<string, string>()
 const displayImages = ref<string[]>([])
+const promotedGardenSnapshotSections = ['metaInfo', 'cover', 'showcases', 'examples', 'variables']
+const reproducibilityExamplePreviews = ref<Array<{
+  images: Array<{ assetId: string; source: string }>
+  inputImages: Array<{ assetId: string; source: string }>
+}>>([])
 const activeImageIndex = ref(0)
 let resolveSequence = 0
+let reproducibilityResolveSequence = 0
 
 const detailVariant = computed(() => (displayImages.value.length > 0 ? 'image' : 'text'))
 const activeImage = computed(() => displayImages.value[activeImageIndex.value] || '')
@@ -504,10 +527,51 @@ const refreshDisplayImages = async () => {
   activeImageIndex.value = 0
 }
 
+const refreshReproducibilityExamplePreviews = async () => {
+  const currentSequence = ++reproducibilityResolveSequence
+  const favorite = props.favorite
+  if (!favorite) {
+    reproducibilityExamplePreviews.value = []
+    return
+  }
+
+  const parsed = parseFavoriteReproducibility(favorite)
+  const resolveAssetPreviews = async (assetIds: string[]) => {
+    const previewItems: Array<{ assetId: string; source: string }> = []
+    for (const assetId of assetIds) {
+      const source = (await resolveAssetIdsToDataUrls([assetId]))[0]
+      if (currentSequence !== reproducibilityResolveSequence) return []
+      if (source) {
+        previewItems.push({ assetId, source })
+      }
+    }
+    return previewItems
+  }
+
+  const previews: Array<{
+    images: Array<{ assetId: string; source: string }>
+    inputImages: Array<{ assetId: string; source: string }>
+  }> = []
+  for (const example of parsed.examples) {
+    const images = await resolveAssetPreviews(example.imageAssetIds)
+    if (currentSequence !== reproducibilityResolveSequence) return
+    const inputImages = await resolveAssetPreviews(example.inputImageAssetIds)
+    if (currentSequence !== reproducibilityResolveSequence) return
+    previews.push({
+      images,
+      inputImages,
+    })
+  }
+
+  if (currentSequence !== reproducibilityResolveSequence) return
+  reproducibilityExamplePreviews.value = previews
+}
+
 watch(
   () => props.favorite,
   () => {
     void refreshDisplayImages()
+    void refreshReproducibilityExamplePreviews()
   },
   { immediate: true },
 )
@@ -516,6 +580,7 @@ watch(
   () => [services?.value?.favoriteImageStorageService, services?.value?.imageStorageService],
   () => {
     void refreshDisplayImages()
+    void refreshReproducibilityExamplePreviews()
   },
 )
 
@@ -562,6 +627,11 @@ const formatDate = (timestamp: number) => {
 
 const handleFavoriteUpdated = (favoriteId: string) => {
   emit('favorite-updated', favoriteId)
+}
+
+const handleApplyExample = (options: { exampleId?: string; exampleIndex: number }) => {
+  if (!props.favorite) return
+  emit('use', props.favorite, { ...options, applyExample: true })
 }
 </script>
 

@@ -152,7 +152,8 @@ const messages = {
           "exampleLabel": "Example #{index}",
           "parameters": "Parameters",
           "images": "Images",
-          "inputImages": "Input images"
+          "inputImages": "Input images",
+          "applyExample": "Use this example"
         }
       },
       "messages": {
@@ -313,10 +314,20 @@ const messages = {
         "required": "Required",
         "remove": "Remove",
         "exampleIdPlaceholder": "Example ID (optional)",
+        "exampleLabel": "Example #{index}",
         "exampleTextPlaceholder": "Example name or note (optional)",
         "exampleDescriptionPlaceholder": "Example description (optional)",
-        "exampleParametersPlaceholder": "Parameters, one key=value per line",
-        "exampleInputImagesPlaceholder": "Input image URLs, one per line",
+        "exampleParametersLabel": "Example variable values",
+        "parameterNamePlaceholder": "Variable name",
+        "parameterValuePlaceholder": "Variable value",
+        "addParameter": "Add value",
+        "exampleImages": "Example/output images",
+        "exampleInputImages": "Input images",
+        "exampleImagesPlaceholder": "Paste an image link",
+        "exampleInputImagesPlaceholder": "Paste an image link",
+        "addImageUrl": "Add link",
+        "addExampleImages": "Upload example images",
+        "addExampleInputImages": "Upload input images",
         "variableType": {
           "string": "Text",
           "number": "Number",

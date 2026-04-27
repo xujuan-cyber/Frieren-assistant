@@ -6,6 +6,7 @@
       'favorite-workspace-list-item--with-actions': showQuickActions,
       'favorite-workspace-list-item--card': variant === 'card',
     }"
+    data-testid="favorite-workspace-list-item"
     role="button"
     tabindex="0"
     @click="handleItemClick"
@@ -80,7 +81,7 @@
           </NSpace>
 
           <NDropdown trigger="click" :options="menuOptions" @select="handleMenuSelect">
-            <NButton quaternary circle size="small" @click.stop>
+            <NButton data-testid="favorite-workspace-item-menu" quaternary circle size="small" @click.stop>
               <template #icon>
                 <NIcon><DotsVertical /></NIcon>
               </template>

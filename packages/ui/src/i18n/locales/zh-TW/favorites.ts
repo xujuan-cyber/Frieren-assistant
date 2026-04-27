@@ -152,7 +152,8 @@ const messages = {
           "exampleLabel": "範例 #{index}",
           "parameters": "參數",
           "images": "圖片",
-          "inputImages": "輸入圖"
+          "inputImages": "輸入圖",
+          "applyExample": "套用此範例"
         }
       },
       "messages": {
@@ -313,10 +314,20 @@ const messages = {
         "required": "必填",
         "remove": "移除",
         "exampleIdPlaceholder": "範例 ID（可選）",
+        "exampleLabel": "範例 #{index}",
         "exampleTextPlaceholder": "範例名稱或說明（可選）",
         "exampleDescriptionPlaceholder": "範例描述（可選）",
-        "exampleParametersPlaceholder": "參數，每行 key=value",
-        "exampleInputImagesPlaceholder": "輸入圖片 URL，每行一個",
+        "exampleParametersLabel": "範例變數取值",
+        "parameterNamePlaceholder": "變數名",
+        "parameterValuePlaceholder": "變數取值",
+        "addParameter": "新增取值",
+        "exampleImages": "範例/輸出圖片",
+        "exampleInputImages": "輸入圖片",
+        "exampleImagesPlaceholder": "貼上圖片連結",
+        "exampleInputImagesPlaceholder": "貼上圖片連結",
+        "addImageUrl": "新增連結",
+        "addExampleImages": "上傳範例圖片",
+        "addExampleInputImages": "上傳輸入圖片",
         "variableType": {
           "string": "文字",
           "number": "數字",
