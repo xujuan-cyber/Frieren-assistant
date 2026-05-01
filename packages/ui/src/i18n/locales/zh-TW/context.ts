@@ -239,20 +239,47 @@ const messages = {
     "title": "資料管理",
     "export": {
       "title": "匯出資料",
-      "description": "匯出所有歷史紀錄、模型配置、自訂提示詞和使用者設定（包括主題、語言、模型選擇等）",
+      "description": "匯出完整應用備份，包含配置、歷史、情境、收藏和圖片資源。",
+      "scopeTitle": "匯出內容",
       "button": "匯出資料",
       "success": "資料匯出成功",
+      "partialSuccess": "資料匯出完成，但有 {count} 個圖片資源缺失",
       "failed": "資料匯出失敗"
     },
     "import": {
       "title": "匯入資料",
-      "description": "匯入之前匯出的資料檔案（將覆蓋現有資料和使用者設定）",
+      "description": "匯入完整備份資源包，舊版 JSON 備份仍可匯入。",
       "selectFile": "點選選擇檔案或拖曳檔案到此處",
+      "supportFormat": "支援 .po-backup.zip 資源包與歷史 .json 檔案",
+      "scopeTitle": "匯入內容",
+      "packagePreview": "資源包包含：{sections}",
+      "legacyJsonPreview": "舊版 JSON 備份僅包含應用主資料",
+      "favoriteMergeStrategy": "收藏合併策略",
+      "skipDuplicate": "跳過已有收藏",
+      "skipDuplicateHint": "遇到相同收藏 ID 時保留目前資料",
+      "overwriteDuplicate": "覆蓋已有收藏",
+      "overwriteDuplicateHint": "遇到相同收藏 ID 時使用匯入資料取代",
+      "createCopy": "建立副本",
+      "createCopyHint": "遇到相同收藏 ID 時產生新的收藏副本",
+      "noSelectedContent": "請選擇要匯入的內容",
       "changeFile": "更換檔案",
       "button": "匯入資料",
       "success": "資料匯入成功",
+      "packageSuccess": "資料匯入成功：恢復 {restored} 個圖片資源，跳過 {skipped} 個資源",
       "failed": "資料匯入失敗",
+      "readFileFailed": "讀取檔案失敗",
+      "resourcesMissing": "{count} 個圖片資源缺失",
+      "resourcesCorrupt": "{count} 個圖片資源損壞",
+      "resourcesFailed": "{count} 個圖片資源恢復失敗",
       "successWithRefresh": "資料匯入成功，頁面將重新整理以套用所有變更"
+    },
+    "sections": {
+      "appData": "應用主資料",
+      "appDataHint": "歷史記錄、模型配置、模板、情境和使用者設定",
+      "appDataImages": "包含歷史/結果圖片資源",
+      "appDataImagesHint": "僅用於還原歷史或結果中引用的圖片，不包含目前工作區會話",
+      "favoritesBundle": "收藏",
+      "favoritesBundleHint": "收藏資料、分類、標籤、提示詞資產、範例、版本鏈和收藏圖片資源"
     },
     "contexts": {
       "title": "情境集合管理",
@@ -287,6 +314,7 @@ const messages = {
       "title": "儲存占用",
       "total": "總計（含估算）",
       "totalNote": "主資料為估算值，圖片與備份為實際占用。",
+      "totalNoteShort": "主資料為估算，圖片為實際占用",
       "appMainData": "應用主資料（估算）",
       "appMainDataNote": "包含：模型、模板、歷史、上下文、設定",
       "imageCache": "會話/結果圖片快取",
@@ -298,7 +326,7 @@ const messages = {
       "refresh": "重新整理",
       "refreshFailed": "重新整理儲存占用失敗"
     },
-    "warning": "匯入資料將覆蓋現有的歷史紀錄、模型配置、自訂提示詞和所有使用者設定（包括主題、語言偏好等），請確保已備份重要資料。"
+    "warning": "匯入完整備份將覆蓋或更新現有歷史紀錄、模型配置、情境、收藏和使用者設定；請先確認已備份重要資料。"
   }
 } as const;
 

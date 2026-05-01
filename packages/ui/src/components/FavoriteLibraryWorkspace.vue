@@ -302,6 +302,7 @@ import {
   getFavoriteUpdatedEventDetail,
 } from '../utils/favorite-events'
 import { normalizeFavoriteFunctionMode, type NormalizedFavoriteFunctionMode } from '../utils/favorite-mode'
+import { createFavoriteResourcePackage } from '../utils/favorite-resource-package'
 import CategoryManager from './CategoryManager.vue'
 import CategoryTreeSelect from './CategoryTreeSelect.vue'
 import FavoriteAssetPanelDialog from './favorites/FavoriteAssetPanelDialog.vue'
@@ -1090,15 +1091,25 @@ const handleExportFavorites = async () => {
   try {
     const servicesValue = services?.value
     if (servicesValue?.favoriteManager) {
-      const exportData = await servicesValue.favoriteManager.exportFavorites()
-      if (exportData) {
-        const blob = new Blob([exportData], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const anchor = document.createElement('a')
-        anchor.href = url
-        anchor.download = `favorites_${new Date().toISOString().split('T')[0]}.json`
-        anchor.click()
-        URL.revokeObjectURL(url)
+      const exportPackage = await createFavoriteResourcePackage({
+        favoriteManager: servicesValue.favoriteManager,
+        imageStorageServices: [
+          servicesValue.favoriteImageStorageService,
+          servicesValue.imageStorageService,
+        ],
+      })
+      const url = URL.createObjectURL(exportPackage.blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `favorites_${new Date().toISOString().split('T')[0]}.po-favorites.zip`
+      anchor.click()
+      URL.revokeObjectURL(url)
+
+      if (exportPackage.missingResourceIds.length > 0) {
+        message.warning(t('favorites.manager.actions.exportPartialSuccess', {
+          count: exportPackage.missingResourceIds.length,
+        }))
+      } else {
         message.success(t('favorites.manager.actions.exportSuccess'))
       }
     } else {

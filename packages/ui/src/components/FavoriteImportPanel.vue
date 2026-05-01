@@ -28,7 +28,7 @@
                     <template #footer>
                       <NUpload
                         :max="1"
-                        accept=".json,application/json"
+                        accept=".zip,.po-favorites.zip,.json,application/zip,application/json"
                         :default-upload="false"
                         :file-list="fileList"
                         @change="handleFileChange"
@@ -44,7 +44,7 @@
                 <NUpload
                   v-else
                   :max="1"
-                  accept=".json,application/json"
+                  accept=".zip,.po-favorites.zip,.json,application/zip,application/json"
                   :default-upload="false"
                   :file-list="fileList"
                   @change="handleFileChange"
@@ -141,6 +141,11 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
+import {
+  importFavoriteResourcePackage,
+  looksLikeFavoriteZipPackage,
+  type FavoriteResourcePackageImportResult,
+} from '../utils/favorite-resource-package'
 
 const { t } = useI18n()
 const message = useToast()
@@ -179,12 +184,18 @@ const handleFileChange = (options: UploadChangeParam) => {
   fileList.value = options.fileList.slice(0, 1)
 }
 
-const readFileAsText = (file: File) =>
-  new Promise<string>((resolve, reject) => {
+const readFileAsArrayBuffer = (file: File) =>
+  new Promise<ArrayBuffer>((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result)
+      } else {
+        reject(new Error(t('favorites.manager.importDialog.readFileFailed')))
+      }
+    }
     reader.onerror = () => reject(new Error(t('favorites.manager.importDialog.readFileFailed')))
-    reader.readAsText(file)
+    reader.readAsArrayBuffer(file)
   })
 
 const formatFileSize = (size?: number) => {
@@ -200,6 +211,29 @@ const buildErrorMessage = (summary: string, error: unknown) => {
   return detail === fallback ? summary : `${summary}: ${detail}`
 }
 
+const buildPackageImportWarning = (result: FavoriteResourcePackageImportResult): string => {
+  const warnings: string[] = []
+  if (result.resources.missing.length > 0) {
+    warnings.push(t('favorites.manager.importDialog.resourcesMissing', {
+      count: result.resources.missing.length,
+    }))
+  }
+  if (result.resources.corrupt.length > 0) {
+    warnings.push(t('favorites.manager.importDialog.resourcesCorrupt', {
+      count: result.resources.corrupt.length,
+    }))
+  }
+  if (result.resources.errors.length > 0) {
+    warnings.push(t('favorites.manager.importDialog.resourcesFailed', {
+      count: result.resources.errors.length,
+    }))
+  }
+  if (result.favorites.errors.length > 0) {
+    warnings.push(`${t('favorites.manager.importDialog.importPartialFailed')}:\n${result.favorites.errors.join('\n')}`)
+  }
+  return warnings.join('\n')
+}
+
 const handleImportConfirm = async () => {
   const servicesValue = services?.value
   if (!servicesValue?.favoriteManager) {
@@ -207,27 +241,62 @@ const handleImportConfirm = async () => {
     return
   }
 
-  let payload = rawJson.value.trim()
-  if (source.value === 'file' && !payload && fileList.value.length > 0) {
-    const file = fileList.value[0].file
-    if (file) {
-      try {
-        payload = await readFileAsText(file)
-      } catch (error) {
-        message.error(buildErrorMessage(t('favorites.manager.importDialog.readFileFailed'), error))
-        return
-      }
-    }
-  }
-
-  if (!payload) {
+  if (source.value === 'paste' && !rawJson.value.trim()) {
     message.warning(t('favorites.manager.importDialog.selectFileOrPaste'))
     return
   }
 
   importing.value = true
   try {
-    const result = await servicesValue.favoriteManager.importFavorites(payload, {
+    if (source.value === 'file') {
+      const file = fileList.value[0]?.file
+      if (!file) {
+        message.warning(t('favorites.manager.importDialog.selectFileOrPaste'))
+        return
+      }
+
+      const buffer = await readFileAsArrayBuffer(file)
+      const bytes = new Uint8Array(buffer)
+
+      if (looksLikeFavoriteZipPackage(file.name, bytes)) {
+        const result = await importFavoriteResourcePackage(buffer, {
+          favoriteManager: servicesValue.favoriteManager,
+          imageStorageService: servicesValue.favoriteImageStorageService || servicesValue.imageStorageService,
+          mergeStrategy: mergeStrategy.value,
+        })
+        message.success(t('favorites.manager.importDialog.packageImportSuccess', {
+          imported: result.favorites.imported,
+          skipped: result.favorites.skipped,
+          restored: result.resources.restored,
+          resourceSkipped: result.resources.skipped,
+        }))
+
+        const warning = buildPackageImportWarning(result)
+        if (warning) {
+          message.warning(warning)
+        }
+        emit('imported')
+        return
+      }
+
+      const payload = new TextDecoder().decode(bytes).trim()
+      if (!payload) {
+        message.warning(t('favorites.manager.importDialog.selectFileOrPaste'))
+        return
+      }
+
+      const result = await servicesValue.favoriteManager.importFavorites(payload, {
+        mergeStrategy: mergeStrategy.value,
+      })
+      message.success(t('favorites.manager.importDialog.importSuccess', { imported: result.imported, skipped: result.skipped }))
+      if (result.errors.length > 0) {
+        message.warning(`${t('favorites.manager.importDialog.importPartialFailed')}:\n${result.errors.join('\n')}`)
+      }
+      emit('imported')
+      return
+    }
+
+    const result = await servicesValue.favoriteManager.importFavorites(rawJson.value.trim(), {
       mergeStrategy: mergeStrategy.value,
     })
     message.success(t('favorites.manager.importDialog.importSuccess', { imported: result.imported, skipped: result.skipped }))

@@ -239,20 +239,47 @@ const messages = {
     "title": "Data Manager",
     "export": {
       "title": "Export Data",
-      "description": "Export all history records, model configurations, custom templates and user settings (including theme, language, model selections, etc.)",
+      "description": "Export a complete app backup with configuration, history, contexts, favorites, and image resources.",
+      "scopeTitle": "Export contents",
       "button": "Export Data",
       "success": "Data exported successfully",
+      "partialSuccess": "Data exported, but {count} image resources are missing",
       "failed": "Failed to export data"
     },
     "import": {
       "title": "Import Data",
-      "description": "Import previously exported data file (will overwrite existing data and user settings)",
+      "description": "Import a complete backup package. Legacy JSON backups are still supported.",
       "selectFile": "Click to select file or drag file here",
+      "supportFormat": "Supports .po-backup.zip packages and legacy .json files",
+      "scopeTitle": "Import contents",
+      "packagePreview": "Package contains: {sections}",
+      "legacyJsonPreview": "Legacy JSON backups contain app main data only",
+      "favoriteMergeStrategy": "Favorites merge strategy",
+      "skipDuplicate": "Skip existing favorites",
+      "skipDuplicateHint": "Keep current data when the same favorite ID already exists",
+      "overwriteDuplicate": "Overwrite existing favorites",
+      "overwriteDuplicateHint": "Replace current data with imported data on matching favorite IDs",
+      "createCopy": "Create copies",
+      "createCopyHint": "Create new favorite copies when imported IDs already exist",
+      "noSelectedContent": "Select at least one content type to import",
       "changeFile": "Change File",
       "button": "Import Data",
       "success": "Data imported successfully",
+      "packageSuccess": "Data imported successfully: restored {restored} image resources, skipped {skipped} resources",
       "failed": "Failed to import data",
+      "readFileFailed": "Failed to read file",
+      "resourcesMissing": "{count} image resources are missing",
+      "resourcesCorrupt": "{count} image resources are corrupt",
+      "resourcesFailed": "{count} image resources failed to restore",
       "successWithRefresh": "Data imported successfully, page will refresh to apply all changes"
+    },
+    "sections": {
+      "appData": "App main data",
+      "appDataHint": "History, model configuration, templates, contexts, and user settings",
+      "appDataImages": "Include history/result image resources",
+      "appDataImagesHint": "Restores images referenced by history or results; current workspace sessions are not included",
+      "favoritesBundle": "Favorites",
+      "favoritesBundleHint": "Favorite data, categories, tags, prompt assets, examples, version chains, and favorite images"
     },
     "contexts": {
       "title": "Context Collections Management",
@@ -287,6 +314,7 @@ const messages = {
       "title": "Storage Usage",
       "total": "Total (Includes Estimate)",
       "totalNote": "Main app data is estimated; image and backup sizes are actual usage.",
+      "totalNoteShort": "Main data is estimated; images are actual usage",
       "appMainData": "App Main Data (Estimated)",
       "appMainDataNote": "Includes models, templates, history, contexts and settings",
       "imageCache": "Session/Result Image Cache",
@@ -298,7 +326,7 @@ const messages = {
       "refresh": "Refresh",
       "refreshFailed": "Failed to refresh storage usage"
     },
-    "warning": "Importing data will overwrite existing history records, model configurations, custom templates and all user settings (including theme, language preferences, etc.). Please ensure you have backed up important data."
+    "warning": "Importing a complete backup will overwrite or update existing history, model configuration, contexts, favorites, and user settings. Make sure important data is backed up first."
   }
 } as const;
 

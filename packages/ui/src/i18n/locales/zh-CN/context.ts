@@ -239,20 +239,47 @@ const messages = {
     "title": "数据管理",
     "export": {
       "title": "导出数据",
-      "description": "导出所有历史记录、模型配置、自定义提示词和用户设置（包括主题、语言、模型选择等）",
+      "description": "导出完整应用备份，包含配置、历史、上下文、收藏夹和图片资源。",
+      "scopeTitle": "导出内容",
       "button": "导出数据",
       "success": "数据导出成功",
+      "partialSuccess": "数据导出完成，但有 {count} 个图片资源缺失",
       "failed": "数据导出失败"
     },
     "import": {
       "title": "导入数据",
-      "description": "导入之前导出的数据文件（将覆盖现有数据和用户设置）",
+      "description": "导入完整备份资源包，旧版 JSON 备份仍可导入。",
       "selectFile": "点击选择文件或拖拽文件到此处",
+      "supportFormat": "支持 .po-backup.zip 资源包和历史 .json 文件",
+      "scopeTitle": "导入内容",
+      "packagePreview": "资源包包含：{sections}",
+      "legacyJsonPreview": "旧版 JSON 备份仅包含应用主数据",
+      "favoriteMergeStrategy": "收藏夹合并策略",
+      "skipDuplicate": "跳过已有收藏",
+      "skipDuplicateHint": "遇到相同收藏 ID 时保留当前数据",
+      "overwriteDuplicate": "覆盖已有收藏",
+      "overwriteDuplicateHint": "遇到相同收藏 ID 时使用导入数据替换",
+      "createCopy": "创建副本",
+      "createCopyHint": "遇到相同收藏 ID 时生成新的收藏副本",
+      "noSelectedContent": "请选择要导入的内容",
       "changeFile": "更换文件",
       "button": "导入数据",
       "success": "数据导入成功",
+      "packageSuccess": "数据导入成功：恢复 {restored} 个图片资源，跳过 {skipped} 个资源",
       "failed": "数据导入失败",
+      "readFileFailed": "读取文件失败",
+      "resourcesMissing": "{count} 个图片资源缺失",
+      "resourcesCorrupt": "{count} 个图片资源损坏",
+      "resourcesFailed": "{count} 个图片资源恢复失败",
       "successWithRefresh": "数据导入成功，页面将刷新以应用所有更改"
+    },
+    "sections": {
+      "appData": "应用主数据",
+      "appDataHint": "历史记录、模型配置、模板、上下文和用户设置",
+      "appDataImages": "包含历史/结果图片资源",
+      "appDataImagesHint": "仅用于恢复历史或结果中引用的图片，不包含当前工作区会话",
+      "favoritesBundle": "收藏夹",
+      "favoritesBundleHint": "收藏数据、分类、标签、提示词资产、示例、版本链和收藏图片资源"
     },
     "contexts": {
       "title": "上下文集合管理",
@@ -287,6 +314,7 @@ const messages = {
       "title": "存储占用",
       "total": "总计（含估算）",
       "totalNote": "主数据为估算值，图片与备份为实际占用。",
+      "totalNoteShort": "主数据为估算，图片为实际占用",
       "appMainData": "应用主数据（估算）",
       "appMainDataNote": "包含：模型、模板、历史、上下文、设置",
       "imageCache": "会话/结果图片缓存",
@@ -298,7 +326,7 @@ const messages = {
       "refresh": "刷新",
       "refreshFailed": "刷新存储占用失败"
     },
-    "warning": "导入数据将覆盖现有的历史记录、模型配置、自定义提示词和所有用户设置（包括主题、语言偏好等），请确保已备份重要数据。"
+    "warning": "导入完整备份将覆盖或更新现有历史记录、模型配置、上下文、收藏夹和用户设置；请先确认已备份重要数据。"
   }
 } as const;
 
