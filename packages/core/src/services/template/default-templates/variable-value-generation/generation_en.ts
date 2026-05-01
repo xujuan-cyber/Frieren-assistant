@@ -62,6 +62,8 @@ Use strict JSON format, wrapped in a \`\`\`json code block:
 
 - Must generate a value for each variable in the list
 - If a variable has a current value, you may reference it but don't need to copy it
+- If "filled variable context" is provided, use it as scenario constraints when inferring missing variables
+- Only output values for "Variables Requiring Values"; do not output values for "Filled Variable Context"
 - Generated values should be concrete and directly usable strings
 - If a variable is difficult to infer, provide a generic placeholder and explain in reason
 - Output only JSON, no additional explanations`
@@ -73,6 +75,14 @@ Use strict JSON format, wrapped in a \`\`\`json code block:
 \`\`\`
 {{promptContent}}
 \`\`\`
+
+{{#hasContextVariables}}
+## Filled Variable Context (reference only, do not regenerate or output)
+
+{{contextVariablesText}}
+
+Total: {{contextVariableCount}} filled variables.
+{{/hasContextVariables}}
 
 ## Variables Requiring Values
 

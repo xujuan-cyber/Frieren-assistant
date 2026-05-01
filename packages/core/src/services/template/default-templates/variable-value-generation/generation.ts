@@ -62,6 +62,8 @@ export const template: Template = {
 
 - 必须为列表中的每个变量都生成值
 - 如果变量已有当前值,可参考但不必照搬
+- 如果提供了“已填写变量上下文”,必须将其作为场景约束来推测空缺变量
+- 只为“需要生成值的变量列表”输出 values,不要为“已填写变量上下文”输出 values
 - 生成的值应该是具体的、可直接使用的字符串
 - 如果某个变量难以推测,提供一个通用的占位值,并在reason中说明
 - 只输出 JSON,不添加额外解释`
@@ -73,6 +75,14 @@ export const template: Template = {
 \`\`\`
 {{promptContent}}
 \`\`\`
+
+{{#hasContextVariables}}
+## 已填写变量上下文（只作为参考，不要重新生成或输出）
+
+{{contextVariablesText}}
+
+共 {{contextVariableCount}} 个已填写变量。
+{{/hasContextVariables}}
 
 ## 需要生成值的变量列表
 

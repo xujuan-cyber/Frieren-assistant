@@ -50,6 +50,9 @@ export interface VariableValueGenerationRequest {
   /** 需要生成值的变量列表 */
   variables: VariableToGenerate[];
 
+  /** 已填写变量（只作为推测上下文，不要求生成或返回） */
+  contextVariables?: VariableToGenerate[];
+
   /** 生成使用的模型键 */
   generationModelKey: string;
 }

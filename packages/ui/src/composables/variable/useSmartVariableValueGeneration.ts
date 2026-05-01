@@ -39,6 +39,50 @@ export interface UseSmartVariableValueGenerationReturn {
   confirmBatchApply: (selectedValues: GeneratedVariableValue[]) => void
 }
 
+export interface VariableValueGenerationPlan {
+  variablesToGenerate: VariableToGenerate[]
+  contextVariables: VariableToGenerate[]
+}
+
+export function buildVariableValueGenerationPlan(
+  variableNames: string[],
+  getVariableValue: (name: string) => string,
+  getVariableSource: (name: string) => VariableSource,
+  targetName = ''
+): VariableValueGenerationPlan {
+  const buildVariableToGenerate = (name: string): VariableToGenerate => {
+    const currentValueRaw = getVariableValue(name)
+    const currentValue = typeof currentValueRaw === 'string' ? currentValueRaw : String(currentValueRaw ?? '')
+    const trimmedCurrentValue = currentValue.trim()
+    return {
+      name,
+      source: getVariableSource(name),
+      ...(trimmedCurrentValue ? { currentValue: trimmedCurrentValue } : {}),
+    }
+  }
+
+  const trimmedTargetName = targetName.trim()
+  const allVariables = variableNames.map((name) => buildVariableToGenerate(name))
+
+  if (trimmedTargetName) {
+    return {
+      variablesToGenerate: [buildVariableToGenerate(trimmedTargetName)],
+      contextVariables: [],
+    }
+  }
+
+  return {
+    variablesToGenerate: allVariables.filter((variable) => {
+      const value = getVariableValue(variable.name)
+      return !value || value.trim() === ''
+    }),
+    contextVariables: allVariables.filter((variable) => {
+      const value = getVariableValue(variable.name)
+      return !!value && value.trim() !== ''
+    }),
+  }
+}
+
 export function useSmartVariableValueGeneration(
   options: UseSmartVariableValueGenerationOptions
 ): UseSmartVariableValueGenerationReturn {
@@ -62,30 +106,14 @@ export function useSmartVariableValueGeneration(
       return
     }
 
-    const buildVariableToGenerate = (name: string): VariableToGenerate => {
-      const currentValueRaw = options.getVariableValue(name)
-      const currentValue = typeof currentValueRaw === 'string' ? currentValueRaw : String(currentValueRaw ?? '')
-      const trimmedCurrentValue = currentValue.trim()
-      return {
-        name,
-        source: options.getVariableSource(name),
-        // For single-variable inference, passing currentValue helps the model refine/override.
-        ...(trimmedCurrentValue ? { currentValue: trimmedCurrentValue } : {}),
-      }
-    }
-
     const trimmedTargetName = (targetName || '').trim()
 
-    // Batch mode (no target): only generate missing (empty/whitespace) variables.
-    // Single mode (target provided): allow inferring a single variable even if it already has a value.
-    const variablesToGenerate: VariableToGenerate[] = trimmedTargetName
-      ? [buildVariableToGenerate(trimmedTargetName)]
-      : options.variableNames.value
-          .filter((name) => {
-            const value = options.getVariableValue(name)
-            return !value || value.trim() === ''
-          })
-          .map((name) => buildVariableToGenerate(name))
+    const { variablesToGenerate, contextVariables } = buildVariableValueGenerationPlan(
+      options.variableNames.value,
+      options.getVariableValue,
+      options.getVariableSource,
+      trimmedTargetName
+    )
 
     if (!trimmedTargetName && variablesToGenerate.length === 0) {
       toast.info(t('test.variableValueGeneration.noMissingVariables'))
@@ -112,7 +140,7 @@ export function useSmartVariableValueGeneration(
       return
     }
 
-    await generateValues(promptContent, variablesToGenerate, generationModelKey)
+    await generateValues(promptContent, variablesToGenerate, generationModelKey, contextVariables)
   }
 
   return {

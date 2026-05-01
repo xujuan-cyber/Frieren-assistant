@@ -29,7 +29,8 @@ export interface UseVariableValueGenerationReturn {
   generateValues: (
     promptContent: string,
     variables: VariableToGenerate[],
-    generationModelKey: string
+    generationModelKey: string,
+    contextVariables?: VariableToGenerate[]
   ) => Promise<void>
   /** 批量应用变量值方法 */
   confirmBatchApply: (selectedValues: GeneratedVariableValue[]) => void
@@ -60,7 +61,8 @@ export function useVariableValueGeneration(
   const generateValues = async (
     promptContent: string,
     variables: VariableToGenerate[],
-    generationModelKey: string
+    generationModelKey: string,
+    contextVariables: VariableToGenerate[] = []
   ): Promise<void> => {
     if (!services.value?.variableValueGenerationService) {
       toast.error(t('test.variableValueGeneration.serviceNotReady'))
@@ -78,6 +80,7 @@ export function useVariableValueGeneration(
       const result = await services.value.variableValueGenerationService.generate({
         promptContent,
         variables,
+        contextVariables,
         generationModelKey,
       })
 

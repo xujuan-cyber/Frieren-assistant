@@ -111,6 +111,7 @@ describe('useSmartVariableValueGeneration (single variable inference)', () => {
         },
       ],
       'test-eval-model',
+      [],
     )
   })
 })
