@@ -502,12 +502,19 @@ Prompt Optimizer 仅支持 Mustache 风格变量占位符：
 Prompt Optimizer 侧：
 
 - `VITE_ENABLE_PROMPT_GARDEN_IMPORT=1` 或 `true`
-  - 默认禁用
-  - 启用后才会注册 Prompt Garden 导入逻辑
+  - 产品内建默认值为 `1`
+  - 启用后会注册 Prompt Garden 导入逻辑
   - 同时也会启用 Garden 收藏快照预览插件
-- `VITE_PROMPT_GARDEN_BASE_URL=http://localhost:3000`
+- `VITE_PROMPT_GARDEN_BASE_URL=https://garden.always200.com`
   - Prompt Garden 的固定 base URL
   - 不接受 URL 参数覆盖
+
+说明：
+
+- Web、浏览器扩展和桌面端打包时都会带上上述默认值
+- 运行时配置仍可覆盖默认值
+  - Docker / Web `window.runtime_config` 推荐使用无前缀键：`ENABLE_PROMPT_GARDEN_IMPORT`、`PROMPT_GARDEN_BASE_URL`
+  - 也兼容带前缀键：`VITE_ENABLE_PROMPT_GARDEN_IMPORT`、`VITE_PROMPT_GARDEN_BASE_URL`
 
 ## 14. 可选集成（Integrations）机制
 

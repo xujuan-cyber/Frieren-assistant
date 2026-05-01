@@ -35,6 +35,18 @@ const messages = {
     "hide": "隱藏",
     "clear": "清空",
     "workspaceTools": "工作區工具",
+    "promptGarden": {
+      "title": "Prompt Garden",
+      "discover": "發現花園提示詞",
+      "importPrompt": "匯入花園提示詞",
+      "importTitle": "匯入 Prompt Garden 提示詞",
+      "importHint": "貼上從 Prompt Garden 複製的匯入碼，也可以貼上包含 importCode 的連結。",
+      "importPlaceholder": "輸入匯入碼",
+      "text2ImageGuideTitle": "從 Prompt Garden 發現文生圖提示詞",
+      "text2ImageGuideHint": "沒有靈感時，可以先去花園挑一個提示詞，或貼上匯入碼直接帶入目前工作區。",
+      "discoverShort": "去發現",
+      "importShort": "貼上匯入碼"
+    },
     "clearContent": "清理內容",
     "clearContentWillLabel": "清理內容：",
     "clearContentWill": "提示詞、衍生結果、測試結果、臨時變數",

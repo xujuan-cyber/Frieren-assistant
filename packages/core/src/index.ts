@@ -151,6 +151,8 @@ export {
   isBrowser,
   isDevelopment,
   getEnvVar,
+  DEFAULT_VITE_ENV,
+  getDefaultEnvVar,
   scanCustomModelEnvVars,
   clearCustomModelEnvCache,
   CUSTOM_API_PATTERN,

@@ -2,6 +2,10 @@
  * Utility functions for environment detection and configuration.
  */
 
+import { getDefaultEnvVar } from './default-env'
+
+export { DEFAULT_VITE_ENV, getDefaultEnvVar } from './default-env'
+
 // 常量定义
 export const CUSTOM_API_PATTERN = /^VITE_CUSTOM_API_(KEY|BASE_URL|MODEL|PARAMS)_(.+)$/;
 export const SUFFIX_PATTERN = /^[a-zA-Z0-9_-]+$/;
@@ -264,7 +268,7 @@ export const getEnvVar = (key: string): string => {
   if (typeof window !== 'undefined' && window.runtime_config) {
     // 移除 VITE_ 前缀以匹配运行时配置中的键名
     const runtimeKey = key.replace('VITE_', '');
-    const value = window.runtime_config[runtimeKey];
+    const value = window.runtime_config[runtimeKey] ?? window.runtime_config[key];
     if (value !== undefined && value !== null) {
       return String(value);
     }
@@ -287,7 +291,11 @@ export const getEnvVar = (key: string): string => {
     // 忽略错误
   }
 
-  // 4. 最后返回空字符串
+  // 4. 产品内建默认值（覆盖 web / extension / desktop 缺省打包场景）
+  const defaultValue = getDefaultEnvVar(key);
+  if (defaultValue) return defaultValue;
+
+  // 5. 最后返回空字符串
   return '';
 };
 

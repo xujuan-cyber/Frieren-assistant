@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   clearCustomModelEnvCache,
+  getEnvVar,
   scanCustomModelEnvVars,
 } from '../../../src/utils/environment'
 
@@ -22,6 +23,8 @@ const TEST_ENV_KEYS = [
   'VITE_CUSTOM_API_BASE_URL_runtime_override_test',
   'VITE_CUSTOM_API_MODEL_runtime_override_test',
   'VITE_CUSTOM_API_PARAMS_runtime_override_test',
+  'VITE_ENABLE_PROMPT_GARDEN_IMPORT',
+  'VITE_PROMPT_GARDEN_BASE_URL',
 ]
 
 function cleanupTestEnv() {
@@ -149,5 +152,43 @@ describe('scanCustomModelEnvVars', () => {
         top_p: 0.95,
       },
     })
+  })
+})
+
+describe('getEnvVar default values', () => {
+  beforeEach(() => {
+    cleanupTestEnv()
+    vi.unstubAllGlobals()
+  })
+
+  afterEach(() => {
+    cleanupTestEnv()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('should provide built-in Prompt Garden defaults when no env is configured', () => {
+    expect(getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT')).toBe('1')
+    expect(getEnvVar('VITE_PROMPT_GARDEN_BASE_URL')).toBe('https://garden.always200.com')
+  })
+
+  it('should allow process.env to override built-in Prompt Garden defaults', () => {
+    process.env.VITE_ENABLE_PROMPT_GARDEN_IMPORT = 'false'
+    process.env.VITE_PROMPT_GARDEN_BASE_URL = 'https://garden.example.test'
+
+    expect(getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT')).toBe('false')
+    expect(getEnvVar('VITE_PROMPT_GARDEN_BASE_URL')).toBe('https://garden.example.test')
+  })
+
+  it('should allow runtime_config to override built-in Prompt Garden defaults', () => {
+    vi.stubGlobal('window', {
+      runtime_config: {
+        ENABLE_PROMPT_GARDEN_IMPORT: 'false',
+        PROMPT_GARDEN_BASE_URL: 'https://runtime-garden.example.test',
+      },
+    })
+
+    expect(getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT')).toBe('false')
+    expect(getEnvVar('VITE_PROMPT_GARDEN_BASE_URL')).toBe('https://runtime-garden.example.test')
   })
 })

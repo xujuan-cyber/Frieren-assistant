@@ -11,6 +11,38 @@
       button-class="workspace-utility-button"
     />
 
+    <ThemedTooltip
+      v-if="isPromptGardenEnabled"
+      :label="t('common.promptGarden.title')"
+      placement="left"
+    >
+      <span class="workspace-utility-menu-trigger">
+        <NDropdown
+          trigger="click"
+          :options="gardenMenuOptions"
+          placement="bottom-end"
+          @select="handleGardenSelect"
+        >
+          <NButton
+            class="workspace-utility-button workspace-utility-button--garden"
+            size="small"
+            secondary
+            circle
+            :disabled="disabled"
+            data-testid="workspace-prompt-garden-menu"
+            :aria-label="t('common.promptGarden.title')"
+            title=""
+          >
+            <template #icon>
+              <NIcon>
+                <Plant2 />
+              </NIcon>
+            </template>
+          </NButton>
+        </NDropdown>
+      </span>
+    </ThemedTooltip>
+
     <ThemedTooltip :label="t('common.workspaceTools')" placement="left">
       <span class="workspace-utility-menu-trigger">
         <NDropdown
@@ -62,14 +94,22 @@
       </div>
     </div>
   </NModal>
+
+  <PromptGardenImportDialog
+    v-model:show="showPromptGardenImport"
+    @confirm="handleConfirmPromptGardenImport"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
+import { computed, h, inject, nextTick, onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
+import { routerKey } from 'vue-router'
 import { NButton, NDropdown, NIcon, NModal, type DropdownOption } from 'naive-ui'
-import { ClearAll, DotsVertical } from '@vicons/tabler'
+import { ClearAll, DotsVertical, ExternalLink, Plant2, FileImport } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
+import { getEnvVar } from '@prompt-optimizer/core'
 import SourceAssetBadge from '../source/SourceAssetBadge.vue'
+import PromptGardenImportDialog from './PromptGardenImportDialog.vue'
 import ThemedTooltip from './ThemedTooltip.vue'
 import type { SourceAssetRef } from '../../utils/source-asset'
 
@@ -88,9 +128,37 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const router = inject(routerKey, null)
 const showClearConfirm = ref(false)
+const showPromptGardenImport = ref(false)
 const triggerStyle = ref<CSSProperties>({})
 let placementResizeObserver: ResizeObserver | null = null
+
+const isPromptGardenEnabled = computed(() => {
+  const value = getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT').trim().toLowerCase()
+  return value === '1' || value === 'true'
+})
+
+const promptGardenBaseUrl = computed(() => {
+  return getEnvVar('VITE_PROMPT_GARDEN_BASE_URL').trim().replace(/\/$/, '')
+})
+
+const openExternalUrl = async (url: string) => {
+  if (!url) return
+
+  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
+    try {
+      await window.electronAPI.shell.openExternal(url)
+      return
+    } catch (error) {
+      console.error('[PromptGarden] Failed to open external URL in Electron:', error)
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank')
+  }
+}
 
 const updateTriggerPlacement = () => {
   if (typeof window === 'undefined') return
@@ -142,14 +210,54 @@ const menuOptions = computed<DropdownOption[]>(() => [
   },
 ])
 
+const gardenMenuOptions = computed<DropdownOption[]>(() => [
+  {
+    key: 'discover',
+    label: t('common.promptGarden.discover'),
+    icon: () => h(NIcon, null, { default: () => h(ExternalLink) }),
+  },
+  {
+    key: 'import-code',
+    label: t('common.promptGarden.importPrompt'),
+    icon: () => h(NIcon, null, { default: () => h(FileImport) }),
+  },
+])
+
 const handleSelect = (key: string) => {
   if (key === 'clear-content') {
     showClearConfirm.value = true
   }
 }
 
+const handleGardenSelect = (key: string) => {
+  if (key === 'discover') {
+    void openExternalUrl(promptGardenBaseUrl.value)
+    return
+  }
+
+  if (key === 'import-code') {
+    showPromptGardenImport.value = true
+  }
+}
+
 const handleConfirmClear = () => {
   emit('clear')
+}
+
+const handleConfirmPromptGardenImport = async (importCode: string) => {
+  if (!importCode || !router) return false
+
+  const currentRoute = router.currentRoute.value
+  await router.push({
+    path: currentRoute.path,
+    query: {
+      ...currentRoute.query,
+      importCode,
+    },
+  })
+
+  showPromptGardenImport.value = false
+  return true
 }
 </script>
 
@@ -182,6 +290,11 @@ const handleConfirmClear = () => {
   background: color-mix(in srgb, var(--n-primary-color) 8%, transparent);
 }
 
+.workspace-utility-button--garden,
+:deep(.workspace-utility-button--garden) {
+  color: color-mix(in srgb, var(--n-success-color) 82%, var(--n-text-color-3));
+}
+
 .workspace-clear-content-confirm {
   display: grid;
   gap: 8px;
@@ -204,4 +317,5 @@ const handleConfirmClear = () => {
 .workspace-clear-content-confirm-row span {
   color: var(--n-text-color-2);
 }
+
 </style>

@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 import path from 'path'
+import { DEFAULT_VITE_ENV } from '../core/src/utils/default-env'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -9,6 +10,10 @@ export default defineConfig(({ mode }) => {
   // 这里用配置文件所在位置推导出 monorepo root，并让 Vite 将 VITE_* 注入 import.meta.env。
   const monorepoRoot = resolve(__dirname, '../..')
   const env = loadEnv(mode, monorepoRoot)
+  const processEnv = {
+    ...DEFAULT_VITE_ENV,
+    ...env,
+  }
   
   return {
     envDir: monorepoRoot,
@@ -47,10 +52,10 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development'),
-        ...Object.keys(env).reduce((acc, key) => {
-          acc[key] = env[key];
+        ...Object.keys(processEnv).reduce((acc, key) => {
+          acc[key] = processEnv[key as keyof typeof processEnv];
           return acc;
-        }, {})
+        }, {} as Record<string, string>)
       }
     }
   }

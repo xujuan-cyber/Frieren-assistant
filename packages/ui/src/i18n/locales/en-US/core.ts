@@ -37,6 +37,18 @@ const messages = {
     "hide": "Hide",
     "clear": "Clear",
     "workspaceTools": "Workspace Tools",
+    "promptGarden": {
+      "title": "Prompt Garden",
+      "discover": "Discover Garden Prompts",
+      "importPrompt": "Import Garden Prompt",
+      "importTitle": "Import Prompt Garden Prompt",
+      "importHint": "Paste the import code copied from Prompt Garden, or paste a link that contains importCode.",
+      "importPlaceholder": "Enter import code",
+      "text2ImageGuideTitle": "Discover text-to-image prompts in Prompt Garden",
+      "text2ImageGuideHint": "When you need a starting point, browse Garden prompts or paste an import code into this workspace.",
+      "discoverShort": "Discover",
+      "importShort": "Paste code"
+    },
     "clearContent": "Clear Content",
     "clearContentWillLabel": "Clears:",
     "clearContentWill": "prompts, derived results, test outputs, temporary variables",
