@@ -131,6 +131,8 @@ describe('Basic workspace logic (smoke)', () => {
       selectedTemplateId: 'template-1',
       selectedIterateTemplateId: null,
       isCompareMode: false,
+      assetBinding: { assetId: 'asset-linked', versionId: 'version-linked', status: 'linked' },
+      origin: { kind: 'favorite', id: 'favorite-linked' },
       updatePrompt: (prompt: string) => {
         sessionStore.prompt = prompt
       },
@@ -195,8 +197,21 @@ describe('Basic workspace logic (smoke)', () => {
     await logic.handleOptimize()
 
     expect(promptService.optimizePromptStream).toHaveBeenCalledTimes(1)
-    expect(sessionStore.clearAssetBinding).toHaveBeenCalledTimes(1)
+    expect(sessionStore.clearAssetBinding).not.toHaveBeenCalled()
     expect(historyManager.createNewChain).toHaveBeenCalledTimes(1)
+    expect(historyManager.createNewChain.mock.calls[0][0].metadata).toMatchObject({
+      optimizationMode: 'system',
+      functionMode: 'basic',
+      assetBinding: {
+        assetId: 'asset-linked',
+        versionId: 'version-linked',
+        status: 'linked',
+      },
+      origin: {
+        kind: 'favorite',
+        id: 'favorite-linked',
+      },
+    })
     expect(sessionStore.optimizedPrompt).toBe('optimized prompt')
     expect(sessionStore.reasoning).toBe('reason')
     expect(sessionStore.chainId).toBe('chain-1')
@@ -259,7 +274,7 @@ describe('Basic workspace logic (smoke)', () => {
 
     logic.handleAnalyze()
 
-    expect(sessionStore.clearAssetBinding).toHaveBeenCalledTimes(1)
+    expect(sessionStore.clearAssetBinding).not.toHaveBeenCalled()
     expect(logic.currentChainId.value).toBe('')
     expect(logic.currentVersions.value).toHaveLength(1)
     expect(logic.currentVersions.value[0]?.version).toBe(0)

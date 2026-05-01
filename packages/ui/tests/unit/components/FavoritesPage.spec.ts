@@ -222,10 +222,16 @@ describe('FavoritesPage', () => {
     document.body.appendChild(drawer)
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
 
+    drawer.remove()
+    const dropdown = document.createElement('div')
+    dropdown.className = 'n-dropdown-menu'
+    document.body.appendChild(dropdown)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+
     expect(actions.returnToWorkspace).not.toHaveBeenCalled()
 
     input.remove()
-    drawer.remove()
+    dropdown.remove()
     wrapper.unmount()
   })
 

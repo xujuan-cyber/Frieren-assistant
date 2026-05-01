@@ -6,6 +6,7 @@ import {
   type PromptAsset,
   type PromptExample,
   type PromptImageRef,
+  type PromptSourceRef,
   type PromptVariable,
 } from '@prompt-optimizer/core'
 
@@ -28,8 +29,10 @@ export type FavoriteReproducibilityVariable = {
 
 export type FavoriteReproducibilityExample = {
   id?: string
+  basedOnVersionId?: string
   text?: string
   description?: string
+  source?: PromptSourceRef
   messages?: ConversationMessage[]
   parameters: Record<string, string>
   outputText?: string
@@ -89,6 +92,59 @@ const dedupeStrings = (items: string[]): string[] => {
   return out
 }
 
+const EXAMPLE_ID_PATTERN = /^ex-(\d+)$/iu
+
+export const isInternalTestRunExampleId = (id: string | undefined): boolean =>
+  Boolean(id?.trim().startsWith('test-run:'))
+
+export const formatFavoriteExampleId = (sequence: number): string =>
+  `ex-${String(Math.max(1, sequence)).padStart(3, '0')}`
+
+const readFavoriteExampleIdSequence = (id: string | undefined): number => {
+  const match = id?.trim().match(EXAMPLE_ID_PATTERN)
+  if (!match) return 0
+  const sequence = Number(match[1])
+  return Number.isFinite(sequence) ? sequence : 0
+}
+
+const getNextFavoriteExampleSequence = (
+  examples: Array<{ id?: string }>,
+): number => {
+  const maxExplicitSequence = examples.reduce(
+    (max, example) => Math.max(max, readFavoriteExampleIdSequence(example.id)),
+    0,
+  )
+  return Math.max(maxExplicitSequence, examples.length) + 1
+}
+
+export const assignSequentialFavoriteExampleIds = (
+  existingExamples: FavoriteReproducibilityExample[],
+  incomingExamples: FavoriteReproducibilityExample[],
+): FavoriteReproducibilityExample[] => {
+  let nextSequence = getNextFavoriteExampleSequence(existingExamples)
+  const usedIds = new Set(
+    existingExamples
+      .map((example) => asTrimmedString(example.id))
+      .filter((id): id is string => Boolean(id)),
+  )
+
+  return incomingExamples.map((example) => {
+    const currentId = asTrimmedString(example.id)
+    if (currentId && !isInternalTestRunExampleId(currentId) && !usedIds.has(currentId)) {
+      usedIds.add(currentId)
+      return { ...example, id: currentId }
+    }
+
+    while (usedIds.has(formatFavoriteExampleId(nextSequence))) {
+      nextSequence += 1
+    }
+    const id = formatFavoriteExampleId(nextSequence)
+    usedIds.add(id)
+    nextSequence += 1
+    return { ...example, id }
+  })
+}
+
 const parseParameters = (value: unknown): Record<string, string> => {
   if (!isPlainObject(value)) return {}
 
@@ -134,6 +190,30 @@ const parseMessages = (value: unknown): ConversationMessage[] => {
 
 const parseMetadata = (value: unknown): Record<string, unknown> | undefined =>
   isPlainObject(value) ? { ...value } : undefined
+
+const parseSource = (value: unknown): PromptSourceRef | undefined => {
+  if (!isPlainObject(value)) return undefined
+
+  const kind = asTrimmedString(value.kind)
+  if (
+    kind !== 'workspace' &&
+    kind !== 'favorite' &&
+    kind !== 'garden' &&
+    kind !== 'history' &&
+    kind !== 'external' &&
+    kind !== 'unknown'
+  ) {
+    return undefined
+  }
+
+  return {
+    kind,
+    ...(asTrimmedString(value.id) ? { id: asTrimmedString(value.id) } : {}),
+    ...(asTrimmedString(value.label) ? { label: asTrimmedString(value.label) } : {}),
+    ...(asTrimmedString(value.url) ? { url: asTrimmedString(value.url) } : {}),
+    ...(parseMetadata(value.metadata) ? { metadata: parseMetadata(value.metadata) } : {}),
+  }
+}
 
 const normalizeVariableType = (value: unknown): FavoriteReproducibilityVariable['type'] => {
   return value === 'string' || value === 'number' || value === 'boolean' || value === 'enum'
@@ -193,8 +273,10 @@ const parseExample = (value: unknown): FavoriteReproducibilityExample | null => 
 
   const example: FavoriteReproducibilityExample = {
     id: asTrimmedString(value.id),
+    basedOnVersionId: asTrimmedString(value.basedOnVersionId),
     text: asTrimmedString(value.text),
     description: asTrimmedString(value.description),
+    source: parseSource(value.source),
     messages: parseMessages(value.messages),
     parameters: parseParameters(value.parameters),
     outputText: asTrimmedString(value.outputText),
@@ -207,8 +289,10 @@ const parseExample = (value: unknown): FavoriteReproducibilityExample | null => 
 
   const hasData = Boolean(
     example.id ||
+      example.basedOnVersionId ||
       example.text ||
       example.description ||
+      example.source ||
       (example.messages && example.messages.length > 0) ||
       Object.keys(example.parameters).length > 0 ||
       example.outputText ||
@@ -313,10 +397,13 @@ export const favoriteReproducibilityExampleFromPromptExample = (
 
   const outputImages = splitPromptImageRefs(example.output?.images)
   const inputImages = splitPromptImageRefs(example.input?.images)
+  const metadata = parseMetadata(example.metadata)
   const mapped: FavoriteReproducibilityExample = {
     id: asTrimmedString(example.id),
+    basedOnVersionId: asTrimmedString(example.basedOnVersionId),
     text: asTrimmedString(example.input?.text),
     description: asTrimmedString(example.description ?? example.title),
+    source: parseSource(example.source),
     messages: Array.isArray(example.input?.messages)
       ? example.input.messages.map((message) => ({ ...message }))
       : [],
@@ -326,13 +413,15 @@ export const favoriteReproducibilityExampleFromPromptExample = (
     imageAssetIds: outputImages.assetIds,
     inputImages: inputImages.urls,
     inputImageAssetIds: inputImages.assetIds,
-    metadata: parseMetadata(example.metadata),
+    metadata,
   }
 
   const hasData = Boolean(
     mapped.id ||
+      mapped.basedOnVersionId ||
       mapped.text ||
       mapped.description ||
+      mapped.source ||
       (mapped.messages && mapped.messages.length > 0) ||
       Object.keys(mapped.parameters).length > 0 ||
       mapped.outputText ||
@@ -456,6 +545,68 @@ export const pickFavoriteReproducibilityExample = (
   return examples[0] || null
 }
 
+const cloneReproducibilityVariable = (
+  variable: FavoriteReproducibilityVariable,
+): FavoriteReproducibilityVariable => ({
+  ...variable,
+  options: [...(variable.options || [])],
+})
+
+const cloneReproducibilityExample = (
+  example: FavoriteReproducibilityExample,
+): FavoriteReproducibilityExample => ({
+  ...example,
+  source: example.source
+    ? {
+        ...example.source,
+        ...(example.source.metadata ? { metadata: { ...example.source.metadata } } : {}),
+      }
+    : undefined,
+  messages: example.messages?.map((message) => ({ ...message })),
+  parameters: { ...example.parameters },
+  images: [...example.images],
+  imageAssetIds: [...example.imageAssetIds],
+  inputImages: [...example.inputImages],
+  inputImageAssetIds: [...example.inputImageAssetIds],
+  metadata: example.metadata ? { ...example.metadata } : undefined,
+})
+
+const mergeReproducibilityVariablesByName = (
+  existing: FavoriteReproducibilityVariable[],
+  incoming: FavoriteReproducibilityVariable[],
+): FavoriteReproducibilityVariable[] => {
+  const out: FavoriteReproducibilityVariable[] = []
+  const seen = new Set<string>()
+
+  for (const variable of [...existing, ...incoming]) {
+    const name = variable.name.trim()
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    out.push(cloneReproducibilityVariable({ ...variable, name }))
+  }
+
+  return out
+}
+
+export const appendFavoriteReproducibilityDraftToMetadata = (
+  favorite: { metadata?: unknown } | FavoritePrompt,
+  draft: FavoriteReproducibilityDraft,
+): Record<string, unknown> => {
+  const current = parseFavoriteReproducibility(favorite)
+  const metadata = isPlainObject(favorite.metadata) ? { ...favorite.metadata } : {}
+
+  return applyFavoriteReproducibilityToMetadata(metadata, {
+    variables: mergeReproducibilityVariablesByName(
+      current.variables,
+      draft.variables || [],
+    ),
+    examples: [
+      ...current.examples.map(cloneReproducibilityExample),
+      ...(draft.examples || []).map(cloneReproducibilityExample),
+    ],
+  })
+}
+
 const normalizeVariablesForSave = (
   variables: FavoriteReproducibilityVariable[],
 ): FavoriteReproducibilityVariable[] => {
@@ -484,8 +635,10 @@ const normalizeExamplesForSave = (
   return examples
     .map((example) => ({
       id: asTrimmedString(example.id),
+      basedOnVersionId: asTrimmedString(example.basedOnVersionId),
       text: asTrimmedString(example.text),
       description: asTrimmedString(example.description),
+      source: parseSource(example.source),
       messages: parseMessages(example.messages),
       parameters: parseParameters(example.parameters),
       outputText: asTrimmedString(example.outputText),
@@ -498,8 +651,10 @@ const normalizeExamplesForSave = (
     .filter((example) =>
       Boolean(
         example.id ||
+          example.basedOnVersionId ||
           example.text ||
           example.description ||
+          example.source ||
           (example.messages && example.messages.length > 0) ||
           Object.keys(example.parameters).length > 0 ||
           example.outputText ||
@@ -524,8 +679,10 @@ const toGardenVariable = (variable: FavoriteReproducibilityVariable): Record<str
 
 const toGardenExample = (example: FavoriteReproducibilityExample): Record<string, unknown> => ({
   ...(example.id ? { id: example.id } : {}),
+  ...(example.basedOnVersionId ? { basedOnVersionId: example.basedOnVersionId } : {}),
   ...(example.text ? { text: example.text } : {}),
   ...(example.description ? { description: example.description } : {}),
+  ...(example.source ? { source: example.source } : {}),
   ...(example.messages && example.messages.length > 0 ? { messages: example.messages } : {}),
   ...(Object.keys(example.parameters).length > 0 ? { parameters: example.parameters } : {}),
   ...(example.outputText ? { outputText: example.outputText } : {}),
@@ -539,6 +696,7 @@ const toGardenExample = (example: FavoriteReproducibilityExample): Record<string
 export const applyFavoriteReproducibilityToMetadata = (
   metadata: Record<string, unknown>,
   draft: FavoriteReproducibilityDraft,
+  options: { preserveEmpty?: boolean } = {},
 ): Record<string, unknown> => {
   const next: Record<string, unknown> = { ...metadata }
   const variables = normalizeVariablesForSave(draft.variables || [])
@@ -548,7 +706,7 @@ export const applyFavoriteReproducibilityToMetadata = (
   delete next.variables
   delete next.examples
 
-  if (hasDraftData) {
+  if (hasDraftData || options.preserveEmpty) {
     next.reproducibility = {
       variables: variables.map(toGardenVariable),
       examples: examples.map(toGardenExample),

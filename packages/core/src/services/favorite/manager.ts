@@ -22,7 +22,7 @@ import {
   assertFavoriteMetadataHasNoInlineImages,
   assertFavoritesPayloadWithinBudget,
 } from './storage-guards';
-import { promptAssetFromFavorite } from '../prompt-model/favorite';
+import { refreshPromptAssetFromFavorite } from '../prompt-model/favorite';
 
 /**
  * 收藏管理器实现
@@ -68,24 +68,48 @@ export class FavoriteManager implements IFavoriteManager {
     const metadata = favorite.metadata && typeof favorite.metadata === 'object'
       ? { ...favorite.metadata }
       : {};
-    const metadataForAsset = { ...metadata };
-    delete metadataForAsset.promptAsset;
-    const promptAsset = promptAssetFromFavorite(
-      {
-        ...favorite,
-        metadata: metadataForAsset,
-      },
-      {
-        ignoreEmbeddedAsset: true,
-        stripWorkspaceDraft: true,
-      },
-    );
+    const promptAsset = refreshPromptAssetFromFavorite(favorite, {
+      stripWorkspaceDraft: true,
+    });
 
     return {
       ...favorite,
       metadata: {
         ...metadata,
         promptAsset,
+      },
+    };
+  }
+
+  private mergeInternalPromptAssetMetadata(
+    current: FavoritePrompt,
+    updates: Partial<FavoritePrompt>,
+  ): Partial<FavoritePrompt> {
+    if (!Object.prototype.hasOwnProperty.call(updates, 'metadata')) {
+      return updates;
+    }
+
+    const nextMetadata = updates.metadata;
+    if (!nextMetadata || typeof nextMetadata !== 'object' || Array.isArray(nextMetadata)) {
+      return updates;
+    }
+
+    const currentMetadata = current.metadata && typeof current.metadata === 'object'
+      ? current.metadata
+      : undefined;
+    const currentPromptAsset = currentMetadata?.promptAsset;
+    if (
+      currentPromptAsset === undefined ||
+      Object.prototype.hasOwnProperty.call(nextMetadata, 'promptAsset')
+    ) {
+      return updates;
+    }
+
+    return {
+      ...updates,
+      metadata: {
+        ...nextMetadata,
+        promptAsset: currentPromptAsset,
       },
     };
   }
@@ -409,12 +433,14 @@ export class FavoriteManager implements IFavoriteManager {
           throw new FavoriteNotFoundError(id);
         }
 
+        const currentFavorite = favoritesList[index];
+        const normalizedUpdates = this.mergeInternalPromptAssetMetadata(currentFavorite, updates);
         const nextFavoriteBase = {
-          ...favoritesList[index],
-          ...updates,
+          ...currentFavorite,
+          ...normalizedUpdates,
           updatedAt: Date.now()
         };
-        const nextFavorite = this.shouldRefreshPromptAsset(updates)
+        const nextFavorite = this.shouldRefreshPromptAsset(normalizedUpdates)
           ? this.attachPromptAssetMetadata(nextFavoriteBase)
           : nextFavoriteBase;
         assertFavoriteFitsItemBudget(nextFavorite);

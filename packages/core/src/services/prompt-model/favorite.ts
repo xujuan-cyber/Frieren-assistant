@@ -7,6 +7,7 @@ import {
   type PromptImageRef,
   type PromptRunInput,
   type PromptRunOutput,
+  type PromptSourceRef,
   type PromptVariable,
   type PromptVariableType,
 } from './types';
@@ -139,6 +140,30 @@ const imageRefsFromParts = (urls: unknown, assetIds: unknown): PromptImageRef[] 
   })),
 ];
 
+const parseSourceRef = (value: unknown): PromptSourceRef | undefined => {
+  if (!isPlainObject(value)) return undefined;
+
+  const kind = asTrimmedString(value.kind);
+  if (
+    kind !== 'workspace' &&
+    kind !== 'favorite' &&
+    kind !== 'garden' &&
+    kind !== 'history' &&
+    kind !== 'external' &&
+    kind !== 'unknown'
+  ) {
+    return undefined;
+  }
+
+  return {
+    kind,
+    ...(asTrimmedString(value.id) ? { id: asTrimmedString(value.id) } : {}),
+    ...(asTrimmedString(value.label) ? { label: asTrimmedString(value.label) } : {}),
+    ...(asTrimmedString(value.url) ? { url: asTrimmedString(value.url) } : {}),
+    ...(isPlainObject(value.metadata) ? { metadata: { ...value.metadata } } : {}),
+  };
+};
+
 const parseExample = (
   value: unknown,
   favorite: FavoritePrompt,
@@ -157,6 +182,7 @@ const parseExample = (
     value.url ? [value.url] : value.images,
     value.imageAssetIds,
   );
+  const exampleBasedOnVersionId = asTrimmedString(value.basedOnVersionId) ?? basedOnVersionId;
 
   const input: PromptRunInput = {};
   if (text) input.text = text;
@@ -174,11 +200,11 @@ const parseExample = (
 
   return {
     id: asTrimmedString(value.id) ?? `favorite:${favorite.id}:example:${index + 1}`,
-    basedOnVersionId,
+    basedOnVersionId: exampleBasedOnVersionId,
     description,
     input,
     output: hasOutputData ? output : undefined,
-    source: { kind: 'favorite', id: favorite.id },
+    source: parseSourceRef(value.source) ?? { kind: 'favorite', id: favorite.id },
     metadata: isPlainObject(value.metadata) ? { ...value.metadata } : undefined,
   };
 };
@@ -269,6 +295,128 @@ export interface PromptAssetFromFavoriteOptions {
   stripWorkspaceDraft?: boolean;
 }
 
+const clonePromptSource = (source: PromptSourceRef | undefined): PromptSourceRef | undefined =>
+  source
+    ? {
+        ...source,
+        ...(source.metadata ? { metadata: { ...source.metadata } } : {}),
+      }
+    : undefined;
+
+const clonePromptContent = (content: PromptAsset['versions'][number]['content']): PromptAsset['versions'][number]['content'] => {
+  if (content.kind === 'messages') {
+    return {
+      kind: 'messages',
+      messages: content.messages.map((message) => ({ ...message })),
+    };
+  }
+
+  if (content.kind === 'image-prompt') {
+    return {
+      kind: 'image-prompt',
+      text: content.text,
+      ...(content.images ? { images: content.images.map((image) => ({ ...image })) } : {}),
+    };
+  }
+
+  return { kind: 'text', text: content.text };
+};
+
+const clonePromptAssetVersions = (asset: PromptAsset): PromptAsset['versions'] =>
+  asset.versions.map((version) => ({
+    ...version,
+    content: clonePromptContent(version.content),
+    source: clonePromptSource(version.source),
+    metadata: version.metadata ? { ...version.metadata } : undefined,
+  }));
+
+const clonePromptExamples = (examples: PromptExample[]): PromptExample[] =>
+  examples.map((example) => ({
+    ...example,
+    input: {
+      ...example.input,
+      messages: example.input.messages?.map((message) => ({ ...message })),
+      parameters: example.input.parameters ? { ...example.input.parameters } : undefined,
+      images: example.input.images?.map((image) => ({ ...image })),
+      metadata: example.input.metadata ? { ...example.input.metadata } : undefined,
+    },
+    output: example.output
+      ? {
+          ...example.output,
+          images: example.output.images?.map((image) => ({ ...image })),
+          metadata: example.output.metadata ? { ...example.output.metadata } : undefined,
+        }
+      : undefined,
+    source: clonePromptSource(example.source),
+    metadata: example.metadata ? { ...example.metadata } : undefined,
+  }));
+
+const messagesToComparableText = (messages: ConversationMessage[]): string =>
+  messages
+    .map((message) => ({
+      role: message.role,
+      content: typeof message.content === 'string' ? message.content.trim() : '',
+    }))
+    .filter((message) => message.content)
+    .map((message) => `[${message.role}]\n${message.content}`)
+    .join('\n\n');
+
+const promptContentEquals = (
+  left: PromptAsset['versions'][number]['content'],
+  right: PromptAsset['versions'][number]['content'],
+): boolean => {
+  if (left.kind === 'text' && right.kind === 'text') {
+    return left.text === right.text;
+  }
+
+  if (left.kind === 'image-prompt' && right.kind === 'image-prompt') {
+    return left.text === right.text;
+  }
+
+  if (left.kind === 'messages' && right.kind === 'messages') {
+    return JSON.stringify(left.messages) === JSON.stringify(right.messages);
+  }
+
+  if (left.kind === 'messages' && right.kind === 'text') {
+    return messagesToComparableText(left.messages) === right.text;
+  }
+
+  if (left.kind === 'text' && right.kind === 'messages') {
+    return left.text === messagesToComparableText(right.messages);
+  }
+
+  return false;
+};
+
+const hasReproducibilitySource = (metadata: Record<string, unknown> | undefined): boolean => {
+  if (!metadata) return false;
+  return (
+    Object.prototype.hasOwnProperty.call(metadata, 'reproducibility') ||
+    Object.prototype.hasOwnProperty.call(metadata, 'gardenSnapshot') ||
+    Object.prototype.hasOwnProperty.call(metadata, 'variables') ||
+    Object.prototype.hasOwnProperty.call(metadata, 'examples')
+  );
+};
+
+const nextContentVersionNumber = (versions: PromptAsset['versions']): number =>
+  versions.reduce((max, version) => Math.max(max, Number.isFinite(version.version) ? version.version : 0), 0) + 1;
+
+const createContentVersionId = (
+  favorite: FavoritePrompt,
+  versionNumber: number,
+): string => `favorite:${favorite.id}:version:${versionNumber}`;
+
+const rebaseDefaultExampleVersionIds = (
+  examples: PromptExample[],
+  defaultVersionId: string,
+  currentVersionId: string,
+): PromptExample[] =>
+  clonePromptExamples(examples).map((example) => (
+    example.basedOnVersionId === defaultVersionId
+      ? { ...example, basedOnVersionId: currentVersionId }
+      : example
+  ));
+
 export const promptAssetFromFavorite = (
   favorite: FavoritePrompt,
   options: PromptAssetFromFavoriteOptions = {},
@@ -324,5 +472,72 @@ export const promptAssetFromFavorite = (
     source: { kind: sourceKind, id: favorite.id },
     createdAt: favorite.createdAt,
     updatedAt: favorite.updatedAt,
+  };
+};
+
+export const refreshPromptAssetFromFavorite = (
+  favorite: FavoritePrompt,
+  options: PromptAssetFromFavoriteOptions = {},
+): PromptAsset => {
+  const metadata = isPlainObject(favorite.metadata) ? favorite.metadata : undefined;
+  const embeddedAsset = isPromptAsset(metadata?.promptAsset) ? metadata.promptAsset : null;
+  const metadataForProjection = metadata ? { ...metadata } : {};
+  delete metadataForProjection.promptAsset;
+
+  const projected = promptAssetFromFavorite(
+    {
+      ...favorite,
+      metadata: metadataForProjection,
+    },
+    {
+      ...options,
+      ignoreEmbeddedAsset: true,
+    },
+  );
+
+  if (!embeddedAsset) {
+    return projected;
+  }
+
+  const versions = clonePromptAssetVersions(embeddedAsset);
+  const currentVersion = versions.find((version) => version.id === embeddedAsset.currentVersionId);
+  const projectedVersion = projected.versions[0];
+  let currentVersionId = embeddedAsset.currentVersionId;
+
+  if (!currentVersion || !promptContentEquals(currentVersion.content, projectedVersion.content)) {
+    const versionNumber = nextContentVersionNumber(versions);
+    const nextVersion = {
+      ...projectedVersion,
+      id: createContentVersionId(favorite, versionNumber),
+      version: versionNumber,
+      createdAt: favorite.updatedAt,
+      updatedAt: favorite.updatedAt,
+      content: clonePromptContent(projectedVersion.content),
+      source: clonePromptSource(projectedVersion.source),
+      metadata: projectedVersion.metadata ? { ...projectedVersion.metadata } : undefined,
+    };
+    versions.push(nextVersion);
+    currentVersionId = nextVersion.id;
+  }
+
+  const shouldUseProjectedReproducibility = hasReproducibilitySource(metadataForProjection);
+  const contract = shouldUseProjectedReproducibility
+    ? projected.contract
+    : createPromptContract(projected.contract.modeKey, {
+        variables: embeddedAsset.contract.variables,
+      });
+
+  return {
+    ...projected,
+    id: embeddedAsset.id,
+    contract,
+    currentVersionId,
+    versions,
+    examples: shouldUseProjectedReproducibility
+      ? rebaseDefaultExampleVersionIds(projected.examples, projectedVersion.id, currentVersionId)
+      : clonePromptExamples(embeddedAsset.examples),
+    createdAt: embeddedAsset.createdAt,
+    updatedAt: favorite.updatedAt,
+    metadata: embeddedAsset.metadata ? { ...embeddedAsset.metadata } : undefined,
   };
 };

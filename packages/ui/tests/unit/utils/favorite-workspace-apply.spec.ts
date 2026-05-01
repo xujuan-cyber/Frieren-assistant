@@ -142,7 +142,7 @@ describe('favorite-workspace-apply', () => {
         {
           id: 'asset-second',
           basedOnVersionId: 'version-1',
-          input: { parameters: { topic: 'beta' } },
+          input: { text: 'Asset example input', parameters: { topic: 'beta' } },
         },
       ],
     })
@@ -167,6 +167,7 @@ describe('favorite-workspace-apply', () => {
     expect(draft.reproducibility.source).toBe('promptAsset')
     expect(draft.selectedExample?.id).toBe('asset-second')
     expect(draft.selectedExample?.parameters).toEqual({ topic: 'beta' })
+    expect(draft.selectedExampleText).toBe('Asset example input')
   })
 
   it('degrades message content to role-labeled non-empty messages for workspace application', () => {
@@ -200,5 +201,124 @@ describe('favorite-workspace-apply', () => {
     expect(draft.targetKey).toBe('pro-multi')
     expect(draft.content).toBe('[system]\nYou are concise.\n\n[user]\nSummarize {{topic}}.')
     expect(draft.promptContent?.kind).toBe('messages')
+    expect(draft.conversationMessages).toEqual([
+      expect.objectContaining({
+        id: 'favorite-asset-asset-1-messages-version-message-1',
+        role: 'system',
+        content: '   ',
+        originalContent: '   ',
+      }),
+      expect.objectContaining({
+        id: 'favorite-asset-asset-1-messages-version-message-2',
+        role: 'system',
+        content: 'You are concise.',
+        originalContent: 'You are concise.',
+      }),
+      expect.objectContaining({
+        id: 'favorite-asset-asset-1-messages-version-message-3',
+        role: 'user',
+        content: 'Summarize {{topic}}.',
+        originalContent: 'Summarize {{topic}}.',
+      }),
+    ])
+  })
+
+  it('uses selected example messages before asset template messages', () => {
+    const promptAsset = createAsset({
+      contract: createPromptContract('pro-conversation'),
+      currentVersionId: 'messages-version',
+      versions: [
+        {
+          id: 'messages-version',
+          version: 1,
+          content: {
+            kind: 'messages',
+            messages: [
+              { role: 'system', content: 'Asset template system' },
+              { role: 'user', content: 'Asset template user' },
+            ],
+          },
+          createdAt: 1,
+        },
+      ],
+      examples: [
+        {
+          id: 'example-1',
+          basedOnVersionId: 'messages-version',
+          input: {
+            messages: [
+              { role: 'system', content: 'Example system' },
+              {
+                id: 'example-user-message',
+                role: 'user',
+                content: 'Example user',
+                originalContent: 'Original example user',
+              },
+              {
+                id: 'example-user-message',
+                role: 'assistant',
+                content: 'Tool call',
+                name: 'lookup',
+                tool_calls: [
+                  {
+                    id: 'call-1',
+                    type: 'function',
+                    function: { name: 'search', arguments: '{}' },
+                  },
+                ],
+              },
+              { role: 'tool', content: 'Tool result', tool_call_id: 'call-1' },
+            ],
+          },
+        },
+      ],
+    })
+
+    const draft = createFavoriteWorkspaceApplyDraft({
+      content: 'Legacy message fallback',
+      functionMode: 'context',
+      optimizationMode: 'system',
+      metadata: { promptAsset },
+    }, {
+      applyExample: true,
+      exampleId: 'example-1',
+    })
+
+    expect(draft.targetKey).toBe('pro-multi')
+    expect(draft.content).toBe('[system]\nExample system\n\n[user]\nExample user\n\n[assistant]\nTool call\n\n[tool]\nTool result')
+    expect(draft.selectedExample?.id).toBe('example-1')
+    expect(draft.conversationMessages).toEqual([
+      expect.objectContaining({
+        id: 'favorite-example-example-1-message-1',
+        role: 'system',
+        content: 'Example system',
+        originalContent: 'Example system',
+      }),
+      expect.objectContaining({
+        id: 'example-user-message',
+        role: 'user',
+        content: 'Example user',
+        originalContent: 'Original example user',
+      }),
+      expect.objectContaining({
+        id: 'favorite-example-example-1-message-3',
+        role: 'assistant',
+        content: 'Tool call',
+        name: 'lookup',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: { name: 'search', arguments: '{}' },
+          },
+        ],
+      }),
+      expect.objectContaining({
+        id: 'favorite-example-example-1-message-4',
+        role: 'tool',
+        content: 'Tool result',
+        tool_call_id: 'call-1',
+      }),
+    ])
   })
 })

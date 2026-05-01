@@ -6,6 +6,7 @@ import {
   createPromptContract,
   type FavoritePrompt,
   type PromptAsset,
+  type PromptRecord,
 } from '@prompt-optimizer/core'
 
 import { useAppFavorite, type SaveFavoriteData } from '../../../src/composables/app/useAppFavorite'
@@ -63,6 +64,87 @@ describe('useAppFavorite', () => {
     expect(reproducibility.examples).toEqual([])
   })
 
+  it('uses the current session source asset as the save target candidate', () => {
+    const { handleSaveFavorite, saveFavoriteData } = useAppFavorite({
+      navigateToSubModeKey: vi.fn(async () => {}),
+      handleContextModeChange: vi.fn(async () => {}),
+      optimizerPrompt: ref(''),
+      t: (key: string) => key,
+      isLoadingExternalData: ref(false),
+      getCurrentFunctionMode: () => 'basic',
+      getCurrentOptimizationMode: () => 'system',
+      basicSystemSession: {
+        updateAssetBinding: vi.fn(),
+        assetBinding: { assetId: 'asset-linked', versionId: 'version-linked', status: 'linked' },
+        origin: { kind: 'favorite', id: 'favorite-linked' },
+      },
+    })
+
+    handleSaveFavorite({ content: 'Optimize {{topic}}' })
+
+    expect(saveFavoriteData.value?.candidateSource).toEqual({
+      favoriteId: 'favorite-linked',
+      assetId: 'asset-linked',
+      versionId: 'version-linked',
+    })
+  })
+
+  it('binds the current session to the favorite saved from the workspace', async () => {
+    const updateAssetBinding = vi.fn()
+    const favorite: FavoritePrompt = {
+      id: 'favorite-created',
+      title: 'Created favorite',
+      content: 'Created prompt',
+      createdAt: 1,
+      updatedAt: 2,
+      tags: [],
+      useCount: 0,
+      functionMode: 'basic',
+      optimizationMode: 'system',
+      metadata: {
+        promptAsset: createPromptAsset({
+          id: 'asset-created',
+          currentVersionId: 'version-created',
+        }),
+      },
+    }
+
+    const { handleSaveFavoriteComplete } = useAppFavorite({
+      navigateToSubModeKey: vi.fn(async () => {}),
+      handleContextModeChange: vi.fn(async () => {}),
+      optimizerPrompt: ref(''),
+      t: (key: string) => key,
+      isLoadingExternalData: ref(false),
+      getCurrentFunctionMode: () => 'basic',
+      getCurrentOptimizationMode: () => 'system',
+      getFavoriteManager: () => ({
+        getFavorites: vi.fn(async () => [favorite]),
+      } as any),
+      basicSystemSession: {
+        updateAssetBinding,
+      },
+    })
+
+    await handleSaveFavoriteComplete('favorite-created')
+
+    expect(updateAssetBinding).toHaveBeenCalledWith(
+      {
+        assetId: 'asset-created',
+        versionId: 'version-created',
+        status: 'linked',
+      },
+      {
+        kind: 'favorite',
+        id: 'favorite-created',
+        metadata: expect.objectContaining({
+          title: 'Created favorite',
+          assetId: 'asset-created',
+          versionId: 'version-created',
+        }),
+      },
+    )
+  })
+
   it('uses explicit reproducibility draft for save-as-example without workspace-current', () => {
     const { handleSaveFavorite, saveFavoriteData } = useAppFavorite({
       navigateToSubModeKey: vi.fn(async () => {}),
@@ -110,7 +192,7 @@ describe('useAppFavorite', () => {
     ])
     expect(reproducibility.examples).toHaveLength(1)
     expect(reproducibility.examples[0]).toMatchObject({
-      id: 'test-run:run-1',
+      id: 'ex-001',
       text: 'Optimize release notes',
       parameters: { topic: 'release' },
       outputText: 'Optimized release notes.',
@@ -320,7 +402,7 @@ describe('useAppFavorite', () => {
     } | undefined
     expect(rawReproducibility?.variables?.[0]).toMatchObject({ name: 'topic', source: 'test-run' })
     expect(rawReproducibility?.examples?.[0]).toMatchObject({
-      id: 'test-run:run-1',
+      id: 'ex-001',
       text: 'Workspace example',
       outputText: 'Result',
     })
@@ -365,6 +447,110 @@ describe('useAppFavorite', () => {
     expect(success).toHaveBeenCalled()
   })
 
+  it('clears basic workspace state before applying a favorite', async () => {
+    const success = vi.fn(() => createReactive())
+    setGlobalMessageApi({
+      success,
+      error: vi.fn(() => createReactive()),
+      warning: vi.fn(() => createReactive()),
+      info: vi.fn(() => createReactive()),
+    })
+
+    const optimizerPrompt = ref('')
+    const optimizerCurrentVersions = ref([{ id: 'old-version' } as PromptRecord])
+    const clearContent = vi.fn()
+    const updatePrompt = vi.fn()
+
+    const { handleUseFavorite } = useAppFavorite({
+      navigateToSubModeKey: vi.fn(async () => {}),
+      handleContextModeChange: vi.fn(async () => {}),
+      optimizerPrompt,
+      t: (key: string) => key,
+      isLoadingExternalData: ref(false),
+      basicSystemSession: {
+        clearContent,
+        updatePrompt,
+      },
+      optimizerCurrentVersions,
+    })
+
+    const used = await handleUseFavorite({
+      content: 'clean favorite prompt',
+      functionMode: 'basic',
+      optimizationMode: 'system',
+    })
+
+    expect(used).toBe(true)
+    expect(clearContent).toHaveBeenCalledWith({ persist: false })
+    expect(optimizerCurrentVersions.value).toEqual([])
+    expect(optimizerPrompt.value).toBe('clean favorite prompt')
+    expect(updatePrompt).toHaveBeenCalledWith('clean favorite prompt')
+    expect(success).toHaveBeenCalled()
+  })
+
+  it('rebuilds pro-variable temporary variables from a favorite without keeping stale values', async () => {
+    const success = vi.fn(() => createReactive())
+    setGlobalMessageApi({
+      success,
+      error: vi.fn(() => createReactive()),
+      warning: vi.fn(() => createReactive()),
+      info: vi.fn(() => createReactive()),
+    })
+
+    const optimizerPrompt = ref('')
+    const temporaryVariables: Record<string, string> = {
+      topic: 'old topic',
+      obsolete: 'remove me',
+    }
+    const proVariableSession = {
+      getTemporaryVariable: vi.fn((name: string) => temporaryVariables[name]),
+      setTemporaryVariable: vi.fn((name: string, value: string) => {
+        temporaryVariables[name] = value
+      }),
+      clearTemporaryVariables: vi.fn(() => {
+        for (const key of Object.keys(temporaryVariables)) delete temporaryVariables[key]
+      }),
+      clearContent: vi.fn(() => {
+        for (const key of Object.keys(temporaryVariables)) delete temporaryVariables[key]
+      }),
+      updatePrompt: vi.fn(),
+    }
+
+    const { handleUseFavorite } = useAppFavorite({
+      navigateToSubModeKey: vi.fn(async () => {}),
+      handleContextModeChange: vi.fn(async () => {}),
+      optimizerPrompt,
+      t: (key: string) => key,
+      isLoadingExternalData: ref(false),
+      proVariableSession,
+    })
+
+    const used = await handleUseFavorite({
+      content: 'Write about {{topic}} in {{tone}}',
+      functionMode: 'context',
+      optimizationMode: 'user',
+      metadata: {
+        reproducibility: {
+          variables: [
+            { name: 'topic', defaultValue: 'default topic' },
+            { name: 'tone', defaultValue: 'formal' },
+          ],
+          examples: [],
+        },
+      },
+    })
+
+    expect(used).toBe(true)
+    expect(proVariableSession.clearContent).toHaveBeenCalledWith({ persist: false })
+    expect(proVariableSession.clearTemporaryVariables).toHaveBeenCalled()
+    expect(temporaryVariables).toEqual({
+      topic: 'default topic',
+      tone: 'formal',
+    })
+    expect(proVariableSession.updatePrompt).toHaveBeenCalledWith('Write about {{topic}} in {{tone}}')
+    expect(success).toHaveBeenCalled()
+  })
+
   it('keeps legacy default routing without syncing an omitted optimization mode', async () => {
     const success = vi.fn(() => createReactive())
     setGlobalMessageApi({
@@ -378,6 +564,7 @@ describe('useAppFavorite', () => {
     const navigateToSubModeKey = vi.fn(async () => {})
     const handleContextModeChange = vi.fn(async () => {})
     const updateAssetBinding = vi.fn()
+    const updateTestContent = vi.fn()
     const { handleUseFavorite } = useAppFavorite({
       navigateToSubModeKey,
       handleContextModeChange,
@@ -429,6 +616,7 @@ describe('useAppFavorite', () => {
     const navigateToSubModeKey = vi.fn(async () => {})
     const handleContextModeChange = vi.fn(async () => {})
     const updateAssetBinding = vi.fn()
+    const updateTestContent = vi.fn()
     const { handleUseFavorite } = useAppFavorite({
       navigateToSubModeKey,
       handleContextModeChange,
@@ -438,6 +626,7 @@ describe('useAppFavorite', () => {
       basicUserSession: {
         updateAssetBinding,
         clearAssetBinding: vi.fn(),
+        updateTestContent,
       },
     })
 
@@ -456,14 +645,22 @@ describe('useAppFavorite', () => {
               createdAt: 1,
             },
           ],
+          examples: [
+            {
+              id: 'basic-example',
+              basedOnVersionId: 'version-1',
+              input: { text: 'Basic example test input' },
+            },
+          ],
         }),
       },
-    })
+    }, { applyExample: true, exampleId: 'basic-example' })
 
     expect(used).toBe(true)
     expect(navigateToSubModeKey).toHaveBeenCalledWith('basic-user')
     expect(handleContextModeChange).not.toHaveBeenCalled()
     expect(optimizerPrompt.value).toBe('Asset current prompt')
+    expect(updateTestContent).toHaveBeenCalledWith('Basic example test input')
     expect(updateAssetBinding).toHaveBeenCalledWith(
       {
         assetId: 'asset-1',
@@ -496,12 +693,21 @@ describe('useAppFavorite', () => {
     const optimizerPrompt = ref('')
     const navigateToSubModeKey = vi.fn(async () => {})
     const handleContextModeChange = vi.fn(async () => {})
+    const proMultiMessageSession = {
+      getTemporaryVariable: vi.fn(),
+      setTemporaryVariable: vi.fn(),
+      clearTemporaryVariables: vi.fn(),
+      updateConversationMessages: vi.fn(),
+      setMessageChainMap: vi.fn(),
+      selectMessage: vi.fn(),
+    }
     const { handleUseFavorite } = useAppFavorite({
       navigateToSubModeKey,
       handleContextModeChange,
       optimizerPrompt,
       t: (key: string) => key,
       isLoadingExternalData: ref(false),
+      proMultiMessageSession,
     })
 
     const used = await handleUseFavorite({
@@ -534,6 +740,124 @@ describe('useAppFavorite', () => {
     expect(navigateToSubModeKey).toHaveBeenCalledWith('pro-multi')
     expect(handleContextModeChange).toHaveBeenCalledWith('system')
     expect(optimizerPrompt.value).toBe('[system]\nUse a concise tone.\n\n[user]\nAsset conversation prompt')
+    expect(proMultiMessageSession.updateConversationMessages).toHaveBeenCalledWith([
+      expect.objectContaining({
+        role: 'system',
+        content: 'Use a concise tone.',
+        originalContent: 'Use a concise tone.',
+      }),
+      expect.objectContaining({
+        role: 'user',
+        content: 'Asset conversation prompt',
+        originalContent: 'Asset conversation prompt',
+      }),
+    ])
+    expect(proMultiMessageSession.setMessageChainMap).toHaveBeenCalledWith({})
+    expect(proMultiMessageSession.selectMessage).toHaveBeenCalledWith('')
+    expect(success).toHaveBeenCalled()
+  })
+
+  it('applies selected pro-conversation example messages before asset template messages', async () => {
+    const success = vi.fn(() => createReactive())
+    setGlobalMessageApi({
+      success,
+      error: vi.fn(() => createReactive()),
+      warning: vi.fn(() => createReactive()),
+      info: vi.fn(() => createReactive()),
+    })
+
+    const optimizerPrompt = ref('')
+    const temporaryVariables: Record<string, string> = { topic: 'old' }
+    const proMultiMessageSession = {
+      getTemporaryVariable: vi.fn((name: string) => temporaryVariables[name]),
+      setTemporaryVariable: vi.fn((name: string, value: string) => {
+        temporaryVariables[name] = value
+      }),
+      clearTemporaryVariables: vi.fn(() => {
+        for (const key of Object.keys(temporaryVariables)) delete temporaryVariables[key]
+      }),
+      updateConversationMessages: vi.fn(),
+      setMessageChainMap: vi.fn(),
+      selectMessage: vi.fn(),
+    }
+
+    const { handleUseFavorite } = useAppFavorite({
+      navigateToSubModeKey: vi.fn(async () => {}),
+      handleContextModeChange: vi.fn(async () => {}),
+      optimizerPrompt,
+      t: (key: string) => key,
+      isLoadingExternalData: ref(false),
+      proMultiMessageSession,
+    })
+
+    const used = await handleUseFavorite({
+      content: 'Legacy pro prompt',
+      functionMode: 'context',
+      optimizationMode: 'system',
+      metadata: {
+        promptAsset: createPromptAsset({
+          contract: createPromptContract('pro-conversation', {
+            variables: [{ name: 'topic', required: false }],
+          }),
+          currentVersionId: 'messages-version',
+          versions: [
+            {
+              id: 'messages-version',
+              version: 1,
+              content: {
+                kind: 'messages',
+                messages: [
+                  { role: 'system', content: 'Asset template system' },
+                  { role: 'user', content: 'Asset template user' },
+                ],
+              },
+              createdAt: 1,
+            },
+          ],
+          examples: [
+            {
+              id: 'conversation-example',
+              basedOnVersionId: 'messages-version',
+              input: {
+                messages: [
+                  { role: 'system', content: 'Example system {{topic}}' },
+                  {
+                    id: 'example-user-message',
+                    role: 'user',
+                    content: 'Example user',
+                    originalContent: 'Original example user',
+                  },
+                ],
+                parameters: { topic: 'from-example' },
+              },
+            },
+          ],
+        }),
+      },
+    }, {
+      applyExample: true,
+      exampleId: 'conversation-example',
+    })
+
+    expect(used).toBe(true)
+    expect(optimizerPrompt.value).toBe('[system]\nExample system {{topic}}\n\n[user]\nExample user')
+    expect(proMultiMessageSession.updateConversationMessages).toHaveBeenCalledWith([
+      expect.objectContaining({
+        role: 'system',
+        content: 'Example system {{topic}}',
+        originalContent: 'Example system {{topic}}',
+      }),
+      expect.objectContaining({
+        id: 'example-user-message',
+        role: 'user',
+        content: 'Example user',
+        originalContent: 'Original example user',
+      }),
+    ])
+    expect(proMultiMessageSession.setMessageChainMap).toHaveBeenCalledWith({})
+    expect(proMultiMessageSession.selectMessage).toHaveBeenCalledWith('')
+    expect(proMultiMessageSession.clearTemporaryVariables).toHaveBeenCalled()
+    expect(temporaryVariables.topic).toBe('from-example')
     expect(success).toHaveBeenCalled()
   })
 
@@ -641,6 +965,7 @@ describe('useAppFavorite', () => {
       clearTemporaryVariables: vi.fn(() => {
         for (const key of Object.keys(temporaryVariables)) delete temporaryVariables[key]
       }),
+      updateTestContent: vi.fn(),
     }
 
     const { handleUseFavorite } = useAppFavorite({
@@ -661,7 +986,7 @@ describe('useAppFavorite', () => {
           variables: [{ name: 'topic', defaultValue: 'default' }],
           examples: [
             { id: 'a', parameters: { topic: 'alpha' } },
-            { id: 'b', parameters: { topic: 'beta' } },
+            { id: 'b', text: 'Example test input', parameters: { topic: 'beta' } },
           ],
         },
       },
@@ -671,6 +996,7 @@ describe('useAppFavorite', () => {
     expect(optimizerPrompt.value).toBe('Write about {{topic}}')
     expect(proVariableSession.clearTemporaryVariables).toHaveBeenCalled()
     expect(temporaryVariables.topic).toBe('beta')
+    expect(proVariableSession.updateTestContent).toHaveBeenCalledWith('Example test input')
     expect(success).toHaveBeenCalled()
   })
 

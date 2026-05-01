@@ -15,6 +15,7 @@ import type {
 } from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
 import { useProMultiMessageSession } from '../../stores/session/useProMultiMessageSession'
+import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
 
 /**
  * 多轮对话消息优化 Composable 返回值接口
@@ -415,9 +416,6 @@ export function useConversationOptimization(
 
     // 强制重置状态，开始新的优化链
     isOptimizing.value = true
-    if (optimizationMode.value === 'system') {
-      proMultiMessageSession.clearAssetBinding()
-    }
     optimizedPrompt.value = ''
     optimizedReasoning.value = ''
     currentChainId.value = ''
@@ -501,13 +499,13 @@ export function useConversationOptimization(
                   modelKey: selectedOptimizeModel.value,
                   templateId: selectedTemplate.value!.id,
                   timestamp: Date.now(),
-                  metadata: {
+                  metadata: withHistorySourceBindingMetadata({
                     messageId: message.id,
                     messageRole: message.role,
                     optimizationMode: optimizationMode.value,
                     // 🆕 保存完整的会话快照（包含版本信息）
                     conversationSnapshot
-                  }
+                  }, proMultiMessageSession)
               }
 
               const newChain = await historyManager.value.createNewChain(recordData)
@@ -653,13 +651,13 @@ export function useConversationOptimization(
                   iterationNote: iterateInput,
                   modelKey: selectedOptimizeModel.value,
                   templateId: templateId,
-                  metadata: {
+                  metadata: withHistorySourceBindingMetadata({
                     messageId: message.id,
                     messageRole: message.role,
                     optimizationMode: optimizationMode.value,
                     // 🆕 迭代时也更新会话快照（包含版本信息）
                     conversationSnapshot
-                  }
+                  }, proMultiMessageSession)
                 }
 
                 const updatedChain = await historyManager.value.addIteration(iterationData)
@@ -856,13 +854,13 @@ export function useConversationOptimization(
           modelKey,
           templateId,
           timestamp: Date.now(),
-          metadata: {
+          metadata: withHistorySourceBindingMetadata({
             messageId: message?.id,
             messageRole: message?.role,
             optimizationMode: optimizationMode.value,
             localEdit: true,
             localEditSource: source || 'manual',
-          }
+          }, proMultiMessageSession)
         }
         const newRecord = await historyManager.value.createNewChain(recordData)
         currentChainId.value = newRecord.chainId
@@ -885,13 +883,13 @@ export function useConversationOptimization(
         modelKey,
         templateId,
         iterationNote: note || (source === 'patch' ? 'Direct fix' : 'Manual edit'),
-        metadata: {
+        metadata: withHistorySourceBindingMetadata({
           messageId: message?.id,
           messageRole: message?.role,
           optimizationMode: optimizationMode.value,
           localEdit: true,
           localEditSource: source || 'manual',
-        }
+        }, proMultiMessageSession)
       })
 
       currentVersions.value = updatedChain.versions

@@ -1,7 +1,7 @@
 <template>
   <div class="favorite-reproducibility-display">
     <NEmpty
-      v-if="!reproducibility.hasData"
+      v-if="!hasVisibleData"
       size="small"
       :description="t('favorites.manager.preview.reproducibility.empty')"
     />
@@ -9,7 +9,7 @@
     <NSpace v-else vertical :size="12">
       <NSpace :size="8" align="center" wrap>
         <NTag
-          v-if="reproducibility.variableCount > 0"
+          v-if="showVariables && reproducibility.variableCount > 0"
           size="small"
           type="info"
           :bordered="false"
@@ -17,7 +17,7 @@
           {{ t('favorites.manager.preview.reproducibility.variableCount', { count: reproducibility.variableCount }) }}
         </NTag>
         <NTag
-          v-if="reproducibility.exampleCount > 0"
+          v-if="showExamples && reproducibility.exampleCount > 0"
           size="small"
           type="success"
           :bordered="false"
@@ -25,7 +25,7 @@
           {{ t('favorites.manager.preview.reproducibility.exampleCount', { count: reproducibility.exampleCount }) }}
         </NTag>
         <NTag
-          v-if="reproducibility.hasInputImages"
+          v-if="showExamples && reproducibility.hasInputImages"
           size="small"
           type="warning"
           :bordered="false"
@@ -34,8 +34,8 @@
         </NTag>
       </NSpace>
 
-      <section v-if="reproducibility.variables.length > 0" class="favorite-reproducibility-display__section">
-        <NText strong>{{ t('favorites.manager.preview.reproducibility.variables') }}</NText>
+      <section v-if="showVariables && reproducibility.variables.length > 0" class="favorite-reproducibility-display__section">
+        <NText v-if="showSectionHeadings" strong>{{ t('favorites.manager.preview.reproducibility.variables') }}</NText>
         <div class="favorite-reproducibility-display__table-scroll">
           <NTable size="small" striped :single-line="false">
             <thead>
@@ -67,8 +67,8 @@
         </div>
       </section>
 
-      <section v-if="reproducibility.examples.length > 0" class="favorite-reproducibility-display__section">
-        <NText strong>{{ t('favorites.manager.preview.reproducibility.examples') }}</NText>
+      <section v-if="showExamples && reproducibility.examples.length > 0" class="favorite-reproducibility-display__section">
+        <NText v-if="showSectionHeadings" strong>{{ t('favorites.manager.preview.reproducibility.examples') }}</NText>
         <NSpace vertical :size="8">
           <NCard
             v-for="(example, index) in reproducibility.examples"
@@ -76,74 +76,107 @@
             size="small"
             embedded
           >
-            <NSpace vertical :size="6">
-              <NText strong>
-                {{ example.id || t('favorites.manager.preview.reproducibility.exampleLabel', { index: index + 1 }) }}
-              </NText>
-              <NButton
-                size="small"
-                secondary
-                type="primary"
-                :data-testid="`favorite-repro-example-apply-${index}`"
-                @click="$emit('apply-example', { exampleId: example.id, exampleIndex: index })"
-              >
-                {{ t('favorites.manager.preview.reproducibility.applyExample') }}
-              </NButton>
-              <NText v-if="example.text">{{ example.text }}</NText>
-              <NText v-if="example.description" depth="3">{{ example.description }}</NText>
-
-              <NDescriptions
-                v-if="exampleSummaryRows(example).length > 0"
-                :column="1"
-                size="small"
-                bordered
-                label-placement="left"
-              >
-                <NDescriptionsItem
-                  v-for="row in exampleSummaryRows(example)"
-                  :key="row.label"
-                  :label="row.label"
+            <NSpace vertical :size="8">
+              <div class="favorite-reproducibility-display__example-header">
+                <NText strong>
+                  {{ t('favorites.manager.preview.reproducibility.exampleLabel', { index: index + 1 }) }}
+                </NText>
+                <NButton
+                  v-if="showApplyExample"
+                  size="small"
+                  type="primary"
+                  :data-testid="`favorite-repro-example-apply-${index}`"
+                  @click="$emit('apply-example', { exampleId: example.id, exampleIndex: index })"
                 >
-                  {{ row.value }}
-                </NDescriptionsItem>
-              </NDescriptions>
-
-              <div
-                v-if="getExampleImageSources(index, 'images', example).length > 0"
-                class="favorite-reproducibility-display__image-block"
-              >
-                <NText strong>{{ t('favorites.manager.preview.reproducibility.images') }}</NText>
-                <AppPreviewImageGroup>
-                  <div class="favorite-reproducibility-display__image-grid">
-                    <AppPreviewImage
-                      v-for="(source, imageIndex) in getExampleImageSources(index, 'images', example)"
-                      :key="`example-${index}-image-${imageIndex}-${source.slice(0, 24)}`"
-                      :src="source"
-                      :alt="t('favorites.dialog.imageAlt', { index: imageIndex + 1 })"
-                      object-fit="cover"
-                      class="favorite-reproducibility-display__image"
-                    />
-                  </div>
-                </AppPreviewImageGroup>
+                  <template #icon>
+                    <NIcon>
+                      <PlayerPlay />
+                    </NIcon>
+                  </template>
+                  {{ t('favorites.manager.preview.reproducibility.applyExample') }}
+                </NButton>
               </div>
 
-              <div
-                v-if="getExampleImageSources(index, 'inputImages', example).length > 0"
-                class="favorite-reproducibility-display__image-block"
-              >
-                <NText strong>{{ t('favorites.manager.preview.reproducibility.inputImages') }}</NText>
-                <AppPreviewImageGroup>
-                  <div class="favorite-reproducibility-display__image-grid">
-                    <AppPreviewImage
-                      v-for="(source, imageIndex) in getExampleImageSources(index, 'inputImages', example)"
-                      :key="`example-${index}-input-image-${imageIndex}-${source.slice(0, 24)}`"
-                      :src="source"
-                      :alt="t('favorites.dialog.imageAlt', { index: imageIndex + 1 })"
-                      object-fit="cover"
-                      class="favorite-reproducibility-display__image"
-                    />
+              <div class="favorite-reproducibility-display__example-layout">
+                <div class="favorite-reproducibility-display__example-output">
+                  <NText v-if="example.text" class="favorite-reproducibility-display__example-text">
+                    {{ example.text }}
+                  </NText>
+                  <NText v-if="example.description" depth="3" class="favorite-reproducibility-display__example-text">
+                    {{ example.description }}
+                  </NText>
+                  <div
+                    v-if="example.outputText"
+                    class="favorite-reproducibility-display__output-text"
+                  >
+                    <NText strong>{{ t('favorites.manager.preview.reproducibility.outputText') }}</NText>
+                    <NText>{{ example.outputText }}</NText>
                   </div>
-                </AppPreviewImageGroup>
+                  <div
+                    v-if="getExampleImageSources(index, 'images', example).length > 0"
+                    class="favorite-reproducibility-display__image-block"
+                  >
+                    <NText strong>{{ t('favorites.manager.preview.reproducibility.images') }}</NText>
+                    <AppPreviewImageGroup>
+                      <div class="favorite-reproducibility-display__image-grid">
+                        <AppPreviewImage
+                          v-for="(source, imageIndex) in getExampleImageSources(index, 'images', example)"
+                          :key="`example-${index}-image-${imageIndex}-${source.slice(0, 24)}`"
+                          :src="source"
+                          :alt="t('favorites.dialog.imageAlt', { index: imageIndex + 1 })"
+                          object-fit="cover"
+                          class="favorite-reproducibility-display__image"
+                        />
+                      </div>
+                    </AppPreviewImageGroup>
+                  </div>
+                </div>
+
+                <div class="favorite-reproducibility-display__example-context">
+                  <div
+                    v-if="getParameterEntries(example).length > 0"
+                    class="favorite-reproducibility-display__parameter-list"
+                  >
+                    <NText strong>{{ t('favorites.manager.preview.reproducibility.parameters') }}</NText>
+                    <div
+                      v-for="[parameterKey, parameterValue] in getParameterEntries(example)"
+                      :key="parameterKey"
+                      class="favorite-reproducibility-display__parameter-row"
+                    >
+                      <NText class="favorite-reproducibility-display__parameter-key">
+                        {{ parameterKey }}
+                      </NText>
+                      <NText class="favorite-reproducibility-display__parameter-value">
+                        {{ parameterValue }}
+                      </NText>
+                    </div>
+                  </div>
+                  <div
+                    v-if="example.messages && example.messages.length > 0"
+                    class="favorite-reproducibility-display__context-block"
+                  >
+                    <NText strong>{{ t('favorites.manager.preview.reproducibility.messages') }}</NText>
+                    <NText depth="3">{{ example.messages.length }}</NText>
+                  </div>
+                  <div
+                    v-if="getExampleImageSources(index, 'inputImages', example).length > 0"
+                    class="favorite-reproducibility-display__image-block"
+                  >
+                    <NText strong>{{ t('favorites.manager.preview.reproducibility.inputImages') }}</NText>
+                    <AppPreviewImageGroup>
+                      <div class="favorite-reproducibility-display__image-grid favorite-reproducibility-display__image-grid--compact">
+                        <AppPreviewImage
+                          v-for="(source, imageIndex) in getExampleImageSources(index, 'inputImages', example)"
+                          :key="`example-${index}-input-image-${imageIndex}-${source.slice(0, 24)}`"
+                          :src="source"
+                          :alt="t('favorites.dialog.imageAlt', { index: imageIndex + 1 })"
+                          object-fit="cover"
+                          class="favorite-reproducibility-display__image"
+                        />
+                      </div>
+                    </AppPreviewImageGroup>
+                  </div>
+                </div>
               </div>
             </NSpace>
           </NCard>
@@ -157,14 +190,15 @@
 import {
   NButton,
   NCard,
-  NDescriptions,
-  NDescriptionsItem,
   NEmpty,
+  NIcon,
   NSpace,
   NTable,
   NTag,
   NText,
 } from 'naive-ui'
+import { PlayerPlay } from '@vicons/tabler'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type {
@@ -179,16 +213,31 @@ type FavoriteReproducibilityExamplePreviews = {
   inputImages: Array<{ assetId: string; source: string }>
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   reproducibility: FavoriteReproducibility
   examplePreviews?: FavoriteReproducibilityExamplePreviews[]
-}>()
+  showApplyExample?: boolean
+  showVariables?: boolean
+  showExamples?: boolean
+  showSectionHeadings?: boolean
+}>(), {
+  examplePreviews: undefined,
+  showApplyExample: false,
+  showVariables: true,
+  showExamples: true,
+  showSectionHeadings: true,
+})
 
 defineEmits<{
   'apply-example': [options: { exampleId?: string; exampleIndex: number }]
 }>()
 
 const { t } = useI18n()
+
+const hasVisibleData = computed(() =>
+  (props.showVariables && props.reproducibility.variables.length > 0) ||
+  (props.showExamples && props.reproducibility.examples.length > 0),
+)
 
 const dedupeStrings = (items: string[]) => Array.from(new Set(items.filter(Boolean)))
 
@@ -204,33 +253,8 @@ const getExampleImageSources = (
   ])
 }
 
-const exampleSummaryRows = (example: FavoriteReproducibilityExample) => {
-  const rows: Array<{ label: string; value: string }> = []
-  const parameterEntries = Object.entries(example.parameters)
-
-  if (parameterEntries.length > 0) {
-    rows.push({
-      label: t('favorites.manager.preview.reproducibility.parameters'),
-      value: parameterEntries.map(([key, value]) => `${key}=${value}`).join(', '),
-    })
-  }
-
-  if (example.messages && example.messages.length > 0) {
-    rows.push({
-      label: t('favorites.manager.preview.reproducibility.messages'),
-      value: String(example.messages.length),
-    })
-  }
-
-  if (example.outputText) {
-    rows.push({
-      label: t('favorites.manager.preview.reproducibility.outputText'),
-      value: example.outputText,
-    })
-  }
-
-  return rows
-}
+const getParameterEntries = (example: FavoriteReproducibilityExample) =>
+  Object.entries(example.parameters || {})
 </script>
 
 <style scoped>
@@ -255,8 +279,7 @@ const exampleSummaryRows = (example: FavoriteReproducibilityExample) => {
 }
 
 .favorite-reproducibility-display__table-scroll :deep(th),
-.favorite-reproducibility-display__table-scroll :deep(td),
-.favorite-reproducibility-display :deep(.n-descriptions-table-content__content) {
+.favorite-reproducibility-display__table-scroll :deep(td) {
   min-width: 0;
   overflow-wrap: anywhere;
   vertical-align: top;
@@ -266,8 +289,71 @@ const exampleSummaryRows = (example: FavoriteReproducibilityExample) => {
   min-width: 0;
 }
 
+.favorite-reproducibility-display__example-header {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .favorite-reproducibility-display :deep(.n-text) {
   overflow-wrap: anywhere;
+}
+
+.favorite-reproducibility-display__example-header :deep(.n-text) {
+  min-width: 0;
+}
+
+.favorite-reproducibility-display__example-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(240px, 0.85fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.favorite-reproducibility-display__example-output,
+.favorite-reproducibility-display__example-context,
+.favorite-reproducibility-display__parameter-list,
+.favorite-reproducibility-display__context-block,
+.favorite-reproducibility-display__output-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.favorite-reproducibility-display__example-output {
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--n-border-color) 76%, transparent);
+  border-radius: 8px;
+  background: var(--n-color-embedded);
+}
+
+.favorite-reproducibility-display__example-context {
+  padding: 10px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 8px;
+}
+
+.favorite-reproducibility-display__parameter-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(84px, 0.8fr) minmax(0, 1.2fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.favorite-reproducibility-display__parameter-key,
+.favorite-reproducibility-display__parameter-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.favorite-reproducibility-display__parameter-key {
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--n-color) 80%, var(--n-primary-color) 20%);
 }
 
 .favorite-reproducibility-display__image-block {
@@ -283,11 +369,25 @@ const exampleSummaryRows = (example: FavoriteReproducibilityExample) => {
   gap: 8px;
 }
 
+.favorite-reproducibility-display__image-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(64px, 88px));
+}
+
 .favorite-reproducibility-display__image {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 6px;
   overflow: hidden;
   background: var(--n-color-embedded);
+}
+
+@media (max-width: 767px) {
+  .favorite-reproducibility-display__example-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .favorite-reproducibility-display__parameter-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -113,4 +113,36 @@ describe('AppCoreNav', () => {
 
     expect(routerPush).toHaveBeenCalledWith('/image/text2image')
   })
+
+  it('can leave Favorites by selecting a different core workspace mode', async () => {
+    const wrapper = mount(AppCoreNav, {
+      props: {
+        workspacePath: '/image/text2image',
+        allowWorkspaceReselect: true,
+      },
+      global: {
+        stubs,
+      },
+    })
+
+    wrapper.findComponent({ name: 'FunctionModeSelector' }).vm.$emit('change', 'basic')
+
+    expect(routerPush).toHaveBeenCalledWith('/basic/system')
+  })
+
+  it('can leave Favorites by selecting a different submode in the active workspace group', async () => {
+    const wrapper = mount(AppCoreNav, {
+      props: {
+        workspacePath: '/basic/system',
+        allowWorkspaceReselect: true,
+      },
+      global: {
+        stubs,
+      },
+    })
+
+    wrapper.findComponent({ name: 'OptimizationModeSelectorUI' }).vm.$emit('change', 'user')
+
+    expect(routerPush).toHaveBeenCalledWith('/basic/user')
+  })
 })

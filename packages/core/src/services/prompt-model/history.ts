@@ -5,7 +5,10 @@ import {
   type PromptOptimizationChain,
   type PromptOptimizationRecord,
   type PromptOptimizationTarget,
+  type PromptRevisionRef,
   type PromptRootSnapshot,
+  type PromptSession,
+  type PromptTestRunSet,
 } from './types';
 import { promptContentFromText } from './content';
 import { resolvePromptModeKey } from './mode';
@@ -100,6 +103,99 @@ export const promptRecordChainToOptimizationChain = (
     currentRecordId: chain.currentRecord.id,
     target: targetFromRecord(chain.rootRecord),
     legacyPromptRecordChainId: chain.chainId,
+  };
+};
+
+const remapRevisionRefForOptimizationChain = (
+  revision: PromptRevisionRef,
+  optimization: PromptOptimizationChain,
+): PromptRevisionRef => {
+  if (revision.kind === 'root') {
+    return {
+      kind: 'root',
+      chainId: optimization.id,
+    };
+  }
+
+  if (revision.kind === 'record') {
+    const matchedRecord = findRecordForHydrationRevision(revision, optimization);
+
+    if (!matchedRecord) {
+      return { ...revision };
+    }
+
+    return {
+      ...revision,
+      chainId: optimization.id,
+      recordId: matchedRecord.id,
+      version: matchedRecord.version,
+    };
+  }
+
+  return { ...revision };
+};
+
+const findRecordForHydrationRevision = (
+  revision: Extract<PromptRevisionRef, { kind: 'record' }>,
+  optimization: PromptOptimizationChain,
+): PromptOptimizationRecord | undefined => {
+  if (typeof revision.version === 'number') {
+    return optimization.records.find((record) => record.version === revision.version);
+  }
+
+  if (revision.recordId !== 'legacy-version:previous') {
+    return undefined;
+  }
+
+  const currentRecord = optimization.records.find((record) => record.id === optimization.currentRecordId);
+  if (!currentRecord) {
+    return undefined;
+  }
+
+  if (currentRecord.previousRecordId) {
+    const previousRecord = optimization.records.find((record) => record.id === currentRecord.previousRecordId);
+    if (previousRecord) return previousRecord;
+  }
+
+  return optimization.records.find((record) => record.version === currentRecord.version - 1);
+};
+
+const remapTestRunSetsForOptimizationChain = (
+  runSets: PromptTestRunSet[],
+  optimization: PromptOptimizationChain,
+): PromptTestRunSet[] => runSets.map((runSet) => ({
+  ...runSet,
+  runs: runSet.runs.map((run) => ({
+    ...run,
+    revision: remapRevisionRefForOptimizationChain(run.revision, optimization),
+  })),
+}));
+
+const mergeMetadata = (
+  left: Record<string, unknown> | undefined,
+  right: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined => {
+  const merged = {
+    ...(left ?? {}),
+    ...(right ?? {}),
+  };
+  return Object.keys(merged).length > 0 ? merged : undefined;
+};
+
+export const hydratePromptSessionWithOptimizationChain = (
+  session: PromptSession,
+  optimization: PromptOptimizationChain,
+): PromptSession => {
+  const hydratedOptimization: PromptOptimizationChain = {
+    ...optimization,
+    target: optimization.target ?? session.optimization.target,
+    metadata: mergeMetadata(session.optimization.metadata, optimization.metadata),
+  };
+
+  return {
+    ...session,
+    optimization: hydratedOptimization,
+    testRuns: remapTestRunSetsForOptimizationChain(session.testRuns, hydratedOptimization),
   };
 };
 

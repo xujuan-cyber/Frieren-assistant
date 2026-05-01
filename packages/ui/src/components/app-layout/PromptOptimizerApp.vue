@@ -131,6 +131,7 @@
                 :content="saveFavoriteData?.content || ''"
                 :original-content="saveFavoriteData?.originalContent || ''"
                 :prefill="saveFavoriteData?.prefill"
+                :candidate-source="saveFavoriteData?.candidateSource"
                 :current-function-mode="routeFunctionMode"
                 :current-optimization-mode="selectedOptimizationMode"
                 @saved="handleSaveFavoriteComplete"
@@ -242,6 +243,7 @@ import {
     WORKSPACE_SUB_MODE_KEYS,
     normalizeWorkspacePath,
     parseWorkspaceRoutePath,
+    resolveWorkspacePathFallback,
 } from '../../router/workspaceRoutes';
 import { createExternalDataLoadingGate } from '../../utils/external-data-loading'
 import { registerOptionalIntegrations } from '../../integrations/registerOptionalIntegrations';
@@ -332,7 +334,7 @@ import { DataTransformer } from '../../utils/data-transformer'
 
 // Types
 import type { ModelSelectOption, TestAreaPanelInstance } from '../../types'
-import { type IPromptService, type PromptRecordChain, type PatchOperation, type Template, type TemplateType, type FunctionMode, type BasicSubMode, type ProSubMode, type ImageSubMode, type OptimizationMode, type ConversationMessage, type ToolDefinition, type ContextEditorState, type ContextMode, type FavoritePrompt } from "@prompt-optimizer/core";
+import { type IPromptService, type PromptAssetBinding, type PromptSessionOrigin, type PromptRecordChain, type PatchOperation, type Template, type TemplateType, type FunctionMode, type BasicSubMode, type ProSubMode, type ImageSubMode, type OptimizationMode, type ConversationMessage, type ToolDefinition, type ContextEditorState, type ContextMode, type FavoritePrompt } from "@prompt-optimizer/core";
 
 // 1. 基础 composables
 const hljsInstance = hljs;
@@ -461,10 +463,9 @@ const getWorkspacePathFromGlobalSettings = () => {
 const getCurrentRouteFromWorkspaceQuery = () =>
   normalizeWorkspacePath(routerInstance.currentRoute.value.query.from)
 
-const lastWorkspacePath = ref(
+const lastWorkspacePath = ref<string | null>(
   normalizeWorkspacePath(routerInstance.currentRoute.value.path)
   ?? getCurrentRouteFromWorkspaceQuery()
-  ?? DEFAULT_WORKSPACE_PATH,
 )
 
 const isFavoritesRoute = computed(() => routerInstance.currentRoute.value.path === '/favorites')
@@ -489,7 +490,11 @@ watch(
 )
 
 const activeWorkspaceContextPath = computed(() =>
-  normalizeWorkspacePath(routerInstance.currentRoute.value.path) ?? lastWorkspacePath.value,
+  resolveWorkspacePathFallback(
+    routerInstance.currentRoute.value.path,
+    lastWorkspacePath.value,
+    () => getWorkspacePathFromGlobalSettings(),
+  ),
 )
 
 // 纯解析函数：从工作区路径提取模式和子模式；收藏页等非工作区路径沿用最近工作区上下文
@@ -985,6 +990,7 @@ const optimizer = usePromptOptimizer(
         optimizedReasoning: basicSessionOptimizedReasoning,
         currentChainId: basicSessionChainId,
         currentVersionId: basicSessionVersionId,
+        getSourceBindingSession: () => activeBasicSession.value,
     },
 );
 
@@ -1601,6 +1607,33 @@ const optimizerPrompt = computed<string>({
     },
 });
 
+const getSessionBySubModeKey = (targetKey: SubModeKey) => {
+    switch (targetKey) {
+        case 'basic-system': return basicSystemSession;
+        case 'basic-user': return basicUserSession;
+        case 'pro-multi': return proMultiMessageSession;
+        case 'pro-variable': return proVariableSession;
+        case 'image-text2image': return imageText2ImageSession;
+        case 'image-image2image': return imageImage2ImageSession;
+        case 'image-multiimage': return imageMultiImageSession;
+        default: return null;
+    }
+};
+
+const restoreSourceBindingForTargetKey = (
+    targetKey: string,
+    state: { assetBinding?: PromptAssetBinding; origin?: PromptSessionOrigin },
+) => {
+    if (!WORKSPACE_SUB_MODE_KEYS.includes(targetKey as SubModeKey)) return;
+    const session = getSessionBySubModeKey(targetKey as SubModeKey);
+    if (!session) return;
+    if (state.assetBinding || state.origin) {
+        session.updateAssetBinding(state.assetBinding, state.origin);
+    } else {
+        session.clearAssetBinding();
+    }
+};
+
 // App 级别历史记录恢复
 const { handleHistoryReuse } = useAppHistoryRestore({
     services: servicesForHistoryRestore,
@@ -1612,6 +1645,7 @@ const { handleHistoryReuse } = useAppHistoryRestore({
     userWorkspaceRef,
     t,
     isLoadingExternalData,
+    restoreSourceBindingForTargetKey,
 });
 
 // App 级别收藏管理
@@ -1635,24 +1669,28 @@ const {
     imageText2ImageSession,
     imageImage2ImageSession,
     imageMultiImageSession,
+    optimizerCurrentVersions,
     getFavoriteImageStorageService:
       () => services.value?.favoriteImageStorageService || services.value?.imageStorageService || null,
+    getFavoriteManager: () => services.value?.favoriteManager || null,
     getCurrentFunctionMode: () => routeFunctionMode.value,
     getCurrentOptimizationMode: () => selectedOptimizationMode.value,
     getCurrentImageSubMode: () => routeImageSubMode.value,
 });
 
 const resolveFavoritesReturnPath = () =>
-    getCurrentRouteFromWorkspaceQuery()
-    ?? getWorkspacePathFromGlobalSettings()
-    ?? lastWorkspacePath.value
-    ?? DEFAULT_WORKSPACE_PATH;
+    resolveWorkspacePathFallback(
+        getCurrentRouteFromWorkspaceQuery(),
+        lastWorkspacePath.value,
+        () => getWorkspacePathFromGlobalSettings(),
+    );
 
 const openFavoritesPage = () => {
-    const fromPath = normalizeWorkspacePath(routerInstance.currentRoute.value.path)
-        ?? lastWorkspacePath.value
-        ?? getWorkspacePathFromGlobalSettings()
-        ?? DEFAULT_WORKSPACE_PATH;
+    const fromPath = resolveWorkspacePathFallback(
+        routerInstance.currentRoute.value.path,
+        lastWorkspacePath.value,
+        () => getWorkspacePathFromGlobalSettings(),
+    );
 
     if (isFavoritesRoute.value && getCurrentRouteFromWorkspaceQuery() === fromPath) {
         return;

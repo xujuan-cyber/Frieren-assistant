@@ -30,6 +30,7 @@ vi.mock('vue-i18n', async (importOriginal) => {
           'favorites.manager.preview.reproducibility.variableCount': `${params?.count ?? 0} variables`,
           'favorites.manager.preview.reproducibility.exampleCount': `${params?.count ?? 0} examples`,
           'favorites.manager.preview.reproducibility.hasInputImages': 'Has input images',
+          'favorites.manager.preview.reproducibility.applyExample': 'Use this example',
           'favorites.manager.preview.reproducibility.variableName': 'Variable',
           'favorites.manager.preview.reproducibility.variableDefault': 'Default',
           'favorites.manager.preview.reproducibility.variableRequired': 'Required',
@@ -341,13 +342,54 @@ describe('FavoriteDetailPanel', () => {
 
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Variables & Examples')
+    expect(wrapper.text()).not.toContain('Variables & Examples')
+    expect(wrapper.text()).toContain('Variables')
+    expect(wrapper.text()).toContain('Examples')
     expect(wrapper.text()).toContain('1 variables')
     expect(wrapper.text()).toContain('1 examples')
     expect(wrapper.text()).toContain('style')
     expect(wrapper.text()).toContain('watercolor')
-    expect(wrapper.text()).toContain('example-1')
-    expect(wrapper.text()).toContain('style=ink')
+    expect(wrapper.text()).toContain('Example 1')
+    expect(wrapper.text()).toContain('ink')
+  })
+
+  it('emits applyExample use options from a projected example apply button', async () => {
+    const wrapper = mountComponent({
+      ...favorite,
+      functionMode: 'context',
+      optimizationMode: 'user',
+      imageSubMode: undefined,
+      metadata: {
+        reproducibility: {
+          variables: [{ name: 'topic', defaultValue: 'default topic' }],
+          examples: [
+            {
+              id: 'example-alpha',
+              parameters: { topic: 'alpha' },
+            },
+            {
+              id: 'example-beta',
+              parameters: { topic: 'beta' },
+            },
+          ],
+        },
+      },
+    })
+
+    await flushPromises()
+
+    await wrapper.get('[data-testid="favorite-repro-example-apply-1"]').trigger('click')
+
+    expect(wrapper.emitted('use')).toEqual([
+      [
+        expect.objectContaining({ id: favorite.id }),
+        {
+          applyExample: true,
+          exampleId: 'example-beta',
+          exampleIndex: 1,
+        },
+      ],
+    ])
   })
 
   it('resolves and displays example asset images in the detail panel', async () => {

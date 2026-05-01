@@ -16,6 +16,31 @@ describe('favoriteAssetMaintenance', () => {
               coverAssetId: 'cover-1',
               assetIds: ['asset-1'],
             },
+            promptAsset: {
+              schemaVersion: 'prompt-model/v1',
+              versions: [
+                {
+                  content: {
+                    kind: 'image-prompt',
+                    text: 'Generate',
+                    images: [
+                      { kind: 'asset', assetId: 'asset-version-input' },
+                      { kind: 'url', url: 'https://example.test/input.png' },
+                    ],
+                  },
+                },
+              ],
+              examples: [
+                {
+                  input: {
+                    images: [{ kind: 'asset', assetId: 'asset-example-input' }],
+                  },
+                  output: {
+                    images: [{ kind: 'asset', assetId: 'asset-example-output' }],
+                  },
+                },
+              ],
+            },
             gardenSnapshot: {
               assets: {
                 showcases: [{ imageAssetIds: ['gallery-1'] }],
@@ -45,6 +70,9 @@ describe('favoriteAssetMaintenance', () => {
       listAllMetadata: vi.fn(async () => [
         { id: 'cover-1' },
         { id: 'asset-1' },
+        { id: 'asset-version-input' },
+        { id: 'asset-example-input' },
+        { id: 'asset-example-output' },
         { id: 'gallery-1' },
         { id: 'input-1' },
         { id: 'manual-output-1' },
@@ -63,6 +91,67 @@ describe('favoriteAssetMaintenance', () => {
 
     expect(favoriteImageStorageService.deleteImages).toHaveBeenCalledWith(['orphan-1'])
     expect(result.deletedIds).toEqual(['orphan-1'])
+    expect(result.referencedIds).toEqual(expect.arrayContaining([
+      'asset-version-input',
+      'asset-example-input',
+      'asset-example-output',
+    ]))
+  })
+
+  it('keeps images that are referenced only by promptAsset metadata', async () => {
+    const favoriteManager = {
+      getFavorites: vi.fn(async () => [
+        {
+          id: 'fav-prompt-asset-only',
+          metadata: {
+            promptAsset: {
+              schemaVersion: 'prompt-model/v1',
+              versions: [
+                {
+                  content: {
+                    kind: 'image-prompt',
+                    text: 'Edit image',
+                    images: [{ kind: 'asset', assetId: 'version-only-asset' }],
+                  },
+                },
+              ],
+              examples: [
+                {
+                  input: {
+                    images: [{ kind: 'asset', assetId: 'input-only-asset' }],
+                  },
+                  output: {
+                    images: [{ kind: 'asset', assetId: 'output-only-asset' }],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ]),
+    }
+
+    const favoriteImageStorageService = {
+      listAllMetadata: vi.fn(async () => [
+        { id: 'version-only-asset' },
+        { id: 'input-only-asset' },
+        { id: 'output-only-asset' },
+        { id: 'orphan-asset' },
+      ]),
+      deleteImages: vi.fn(async (_ids: string[]) => {}),
+    }
+
+    const result = await runFavoriteAssetGc(
+      favoriteManager as any,
+      favoriteImageStorageService as any,
+    )
+
+    expect(favoriteImageStorageService.deleteImages).toHaveBeenCalledWith(['orphan-asset'])
+    expect(result.referencedIds.sort()).toEqual([
+      'input-only-asset',
+      'output-only-asset',
+      'version-only-asset',
+    ])
   })
 
   it('runs GC after deleting a favorite and keeps assets still referenced by siblings', async () => {

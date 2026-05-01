@@ -15,7 +15,14 @@
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { BasicSubMode, ProSubMode, ImageSubMode } from '@prompt-optimizer/core'
+import {
+  hydratePromptSessionWithOptimizationChain,
+  promptRecordChainToOptimizationChain,
+  type BasicSubMode,
+  type ProSubMode,
+  type ImageSubMode,
+  type PromptSession,
+} from '@prompt-optimizer/core'
 import type { FunctionMode } from '../../composables/mode/useFunctionMode'
 import { getPiniaServices } from '../../plugins/pinia'
 import { useBasicSystemSession } from './useBasicSystemSession'
@@ -64,6 +71,33 @@ const getSessionCleanupKey = (key: SubModeKey, error: unknown): string | null =>
   }
 
   return SESSION_STORAGE_KEYS[key]
+}
+
+const asTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+const readChainIdFromMetadata = (
+  metadata: Record<string, unknown> | undefined,
+): string | undefined =>
+  asTrimmedString(metadata?.legacyChainId) ??
+  asTrimmedString(metadata?.chainId)
+
+const resolveHydratableHistoryChainId = (session: PromptSession): string | undefined => {
+  const explicitChainId =
+    asTrimmedString(session.optimization.legacyPromptRecordChainId) ??
+    readChainIdFromMetadata(session.optimization.metadata) ??
+    readChainIdFromMetadata(session.metadata)
+  if (explicitChainId) return explicitChainId
+
+  const optimizationId = asTrimmedString(session.optimization.id)
+  if (!optimizationId || optimizationId === `${session.id}:chain`) {
+    return undefined
+  }
+
+  return optimizationId
 }
 
 /**
@@ -178,6 +212,31 @@ export const useSessionManager = defineStore('sessionManager', () => {
 
   const getPromptSession = (key: SubModeKey = getActiveSubModeKey()) =>
     buildPromptSessionFromStores(key, getProjectionStoreMap())
+
+  const getHydratedPromptSession = async (key: SubModeKey = getActiveSubModeKey()) => {
+    const session = getPromptSession(key)
+    const chainId = resolveHydratableHistoryChainId(session)
+    if (!chainId) {
+      return session
+    }
+
+    const $services = getPiniaServices()
+    const historyManager = $services?.historyManager
+    if (!historyManager) {
+      return session
+    }
+
+    try {
+      const chain = await historyManager.getChain(chainId)
+      return hydratePromptSessionWithOptimizationChain(
+        session,
+        promptRecordChainToOptimizationChain(chain),
+      )
+    } catch (error) {
+      console.warn('[SessionManager] Failed to hydrate prompt session history chain; using synchronous projection:', error)
+      return session
+    }
+  }
 
   const getAllPromptSessions = () =>
     buildPromptSessionsFromStores(getProjectionStoreMap())
@@ -447,6 +506,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
     getActiveSubModeKey,
     computeSubModeKey,
     getPromptSession,
+    getHydratedPromptSession,
     getAllPromptSessions,
     getPromptSessionRegistry,
     switchMode,

@@ -34,7 +34,45 @@ const hasRunOutput = (output: PromptRunOutput | undefined): output is PromptRunO
 
 const cloneRevisionRef = (revision: PromptRevisionRef): PromptRevisionRef => ({ ...revision });
 
-const inferSourceFromRevision = (revision: PromptRevisionRef): PromptSourceRef => {
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.trim() ? value.trim() : undefined;
+
+const cloneCoordinateMetadata = (
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined => {
+  if (!metadata) return undefined;
+
+  const out: Record<string, unknown> = {};
+  const sessionId = asString(metadata.sessionId);
+  const modeKey = asString(metadata.modeKey);
+  const chainId = asString(metadata.chainId);
+  const versionId = asString(metadata.versionId);
+
+  if (sessionId) out.sessionId = sessionId;
+  if (modeKey) out.modeKey = modeKey;
+  if (chainId) out.chainId = chainId;
+  if (versionId) out.versionId = versionId;
+  if (isPlainObject(metadata.assetBinding)) {
+    out.assetBinding = { ...metadata.assetBinding };
+  }
+  if (isPlainObject(metadata.origin)) {
+    const origin = metadata.origin;
+    out.origin = {
+      ...origin,
+      ...(isPlainObject(origin.metadata) ? { metadata: { ...origin.metadata } } : {}),
+    };
+  }
+
+  return Object.keys(out).length > 0 ? out : undefined;
+};
+
+const inferSourceFromRevision = (
+  revision: PromptRevisionRef,
+  metadata: Record<string, unknown> | undefined,
+): PromptSourceRef => {
   if (revision.kind === 'asset-version') {
     return {
       kind: 'favorite',
@@ -45,9 +83,14 @@ const inferSourceFromRevision = (revision: PromptRevisionRef): PromptSourceRef =
     };
   }
 
+  const sourceMetadata = cloneCoordinateMetadata(metadata);
   return {
     kind: 'workspace',
-    id: revision.kind === 'workspace' ? revision.sessionId : revision.chainId,
+    id:
+      revision.kind === 'workspace'
+        ? revision.sessionId ?? asString(metadata?.sessionId)
+        : revision.chainId,
+    ...(sourceMetadata ? { metadata: sourceMetadata } : {}),
   };
 };
 
@@ -93,7 +136,7 @@ export const promptExampleFromTestRun = (
     input,
     output,
     createdAt: run.createdAt,
-    source: options.source ?? inferSourceFromRevision(run.revision),
+    source: options.source ?? inferSourceFromRevision(run.revision, run.metadata),
     metadata: {
       testRunId: run.id,
       revision: cloneRevisionRef(run.revision),

@@ -15,6 +15,7 @@
         <div class="workspace-page-tools">
             <WorkspaceUtilityMenu
                 :disabled="contextUserOptimization.isOptimizing || contextUserOptimization.isIterating || isAnyVariantRunning"
+                :source="resolveSourceAssetRef(proVariableSession.origin, proVariableSession.assetBinding)"
                 test-id="pro-variable-workspace-utility-menu"
                 @clear="handleClearContent"
             />
@@ -548,6 +549,7 @@ import {
 } from '../evaluation'
 import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
+import { resolveSourceAssetRef } from '../../utils/source-asset'
 import {
     applyPatchOperationsToText,
     PREDEFINED_VARIABLES,
@@ -983,6 +985,7 @@ const contextUserOptimization = useContextUserOptimization(
         currentVersionId: sessionVersionId as unknown as Ref<string>,
         clearSessionContent: () => proVariableSession.clearContent(),
         clearAssetBinding: () => proVariableSession.clearAssetBinding(),
+        getSourceBindingSession: () => proVariableSession,
     },
 );
 

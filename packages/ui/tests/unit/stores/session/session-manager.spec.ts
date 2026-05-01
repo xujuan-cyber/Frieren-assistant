@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { PromptRecordChain } from '@prompt-optimizer/core'
 
 import { createTestPinia, createPreferenceServiceStub } from '../../../utils/pinia-test-helpers'
 import { useSessionManager } from '../../../../src/stores/session/useSessionManager'
@@ -6,6 +7,37 @@ import { useBasicSystemSession } from '../../../../src/stores/session/useBasicSy
 import { useProMultiMessageSession } from '../../../../src/stores/session/useProMultiMessageSession'
 import { useImageImage2ImageSession } from '../../../../src/stores/session/useImageImage2ImageSession'
 import { useImageMultiImageSession } from '../../../../src/stores/session/useImageMultiImageSession'
+
+const createHistoryChain = (): PromptRecordChain => {
+  const rootRecord = {
+    id: 'record-1',
+    originalPrompt: 'Original system prompt',
+    optimizedPrompt: 'Optimized system prompt',
+    type: 'optimize' as const,
+    chainId: 'basic-chain',
+    version: 1,
+    timestamp: 1000,
+    modelKey: 'model-a',
+    templateId: 'template-a',
+  }
+  const currentRecord = {
+    ...rootRecord,
+    id: 'record-2',
+    originalPrompt: 'Optimized system prompt',
+    optimizedPrompt: 'Optimized system prompt v2',
+    type: 'iterate' as const,
+    version: 2,
+    previousId: 'record-1',
+    timestamp: 2000,
+  }
+
+  return {
+    chainId: 'basic-chain',
+    rootRecord,
+    currentRecord,
+    versions: [rootRecord, currentRecord],
+  }
+}
 
 describe('SessionManager', () => {
   it('cleans only the oversized session key when restore fails with session snapshot overflow', async () => {
@@ -266,6 +298,149 @@ describe('SessionManager', () => {
     })
     expect(registry.updatedAt).toBeGreaterThanOrEqual(3000)
     expect(manager.getAllPromptSessions()).toHaveLength(7)
+  })
+
+  it('hydrates history chains without changing the synchronous session projection', async () => {
+    const historyManager = {
+      getChain: vi.fn(async () => createHistoryChain()),
+    }
+    const { pinia } = createTestPinia({
+      historyManager: historyManager as any,
+    })
+    const manager = useSessionManager(pinia)
+    const basicSystem = useBasicSystemSession(pinia)
+
+    basicSystem.prompt = 'Original system prompt'
+    basicSystem.optimizedPrompt = 'Optimized system prompt'
+    basicSystem.chainId = 'basic-chain'
+    basicSystem.testContent = 'User test input'
+    basicSystem.testVariants = [
+      { id: 'a', version: 2, modelKey: 'model-a' },
+      { id: 'b', version: 'workspace', modelKey: 'model-b' },
+      { id: 'c', version: 'previous', modelKey: 'model-a' },
+      { id: 'd', version: 'workspace', modelKey: '' },
+    ]
+    basicSystem.testVariantResults = {
+      a: { result: 'History result', reasoning: '' },
+      b: { result: 'Workspace result', reasoning: '' },
+      c: { result: 'Previous result', reasoning: '' },
+      d: { result: '', reasoning: '' },
+    }
+
+    const syncSession = manager.getPromptSession('basic-system')
+    const hydratedSession = await manager.getHydratedPromptSession('basic-system')
+
+    expect(historyManager.getChain).toHaveBeenCalledWith('basic-chain')
+    expect(syncSession.optimization.records).toEqual([])
+    expect(syncSession.testRuns[0].runs[0].revision).toMatchObject({
+      kind: 'record',
+      recordId: 'legacy-version:2',
+      version: 2,
+    })
+    expect(hydratedSession.optimization.records.map((record) => record.id)).toEqual([
+      'record-1',
+      'record-2',
+    ])
+    expect(hydratedSession.optimization.currentRecordId).toBe('record-2')
+    expect(hydratedSession.testRuns[0].runs[0].revision).toEqual({
+      kind: 'record',
+      chainId: 'basic-chain',
+      recordId: 'record-2',
+      version: 2,
+    })
+    expect(hydratedSession.testRuns[0].runs[1].revision).toEqual({
+      kind: 'workspace',
+      sessionId: 'implicit:basic-system',
+    })
+    expect(hydratedSession.testRuns[0].runs[2].revision).toEqual({
+      kind: 'record',
+      chainId: 'basic-chain',
+      recordId: 'record-1',
+      version: 1,
+    })
+    expect(manager.getPromptSession('basic-system').testRuns[0].runs[0].revision).toMatchObject({
+      kind: 'record',
+      recordId: 'legacy-version:2',
+    })
+  })
+
+  it('returns the synchronous projection when no history manager is available', async () => {
+    const { pinia } = createTestPinia()
+    const manager = useSessionManager(pinia)
+    const basicSystem = useBasicSystemSession(pinia)
+
+    basicSystem.prompt = 'Original system prompt'
+    basicSystem.optimizedPrompt = 'Optimized system prompt'
+    basicSystem.chainId = 'basic-chain'
+    basicSystem.testContent = 'User test input'
+    basicSystem.testVariants = [
+      { id: 'a', version: 2, modelKey: 'model-a' },
+      { id: 'b', version: 'workspace', modelKey: '' },
+      { id: 'c', version: 'workspace', modelKey: '' },
+      { id: 'd', version: 'workspace', modelKey: '' },
+    ]
+    basicSystem.testVariantResults = {
+      a: { result: 'History result', reasoning: '' },
+      b: { result: '', reasoning: '' },
+      c: { result: '', reasoning: '' },
+      d: { result: '', reasoning: '' },
+    }
+
+    const hydratedSession = await manager.getHydratedPromptSession('basic-system')
+
+    expect(hydratedSession.optimization.records).toEqual([])
+    expect(hydratedSession.testRuns[0].runs[0].revision).toEqual({
+      kind: 'record',
+      chainId: 'basic-chain',
+      recordId: 'legacy-version:2',
+      version: 2,
+    })
+  })
+
+  it('returns the synchronous projection when history hydration fails', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const historyManager = {
+      getChain: vi.fn(async () => {
+        throw new Error('history unavailable')
+      }),
+    }
+    const { pinia } = createTestPinia({
+      historyManager: historyManager as any,
+    })
+    const manager = useSessionManager(pinia)
+    const basicSystem = useBasicSystemSession(pinia)
+
+    basicSystem.prompt = 'Original system prompt'
+    basicSystem.optimizedPrompt = 'Optimized system prompt'
+    basicSystem.chainId = 'basic-chain'
+    basicSystem.testContent = 'User test input'
+    basicSystem.testVariants = [
+      { id: 'a', version: 2, modelKey: 'model-a' },
+      { id: 'b', version: 'workspace', modelKey: '' },
+      { id: 'c', version: 'workspace', modelKey: '' },
+      { id: 'd', version: 'workspace', modelKey: '' },
+    ]
+    basicSystem.testVariantResults = {
+      a: { result: 'History result', reasoning: '' },
+      b: { result: '', reasoning: '' },
+      c: { result: '', reasoning: '' },
+      d: { result: '', reasoning: '' },
+    }
+
+    try {
+      const hydratedSession = await manager.getHydratedPromptSession('basic-system')
+
+      expect(historyManager.getChain).toHaveBeenCalledWith('basic-chain')
+      expect(hydratedSession.optimization.records).toEqual([])
+      expect(hydratedSession.testRuns[0].runs[0].revision).toEqual({
+        kind: 'record',
+        chainId: 'basic-chain',
+        recordId: 'legacy-version:2',
+        version: 2,
+      })
+    } finally {
+      consoleWarnSpy.mockRestore()
+    }
   })
 
   it('clears asset bindings when session content is cleared', () => {

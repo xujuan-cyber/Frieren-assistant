@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
-import type { FavoritePrompt } from '@prompt-optimizer/core'
+import {
+  PROMPT_MODEL_SCHEMA_VERSION,
+  createPromptContract,
+  type FavoritePrompt,
+} from '@prompt-optimizer/core'
 
 const resolveAssetIdToDataUrlMock = vi.fn()
 const persistImageSourceAsAssetIdMock = vi.fn()
@@ -39,6 +43,11 @@ vi.mock('vue-i18n', async (importOriginal) => {
 import FavoriteEditorForm from '../../../src/components/FavoriteEditorForm.vue'
 
 const naiveStubs = {
+  NAlert: {
+    name: 'NAlert',
+    template: '<div class="n-alert"><slot /></div>',
+    props: ['type', 'showIcon', 'class'],
+  },
   NAutoComplete: {
     name: 'NAutoComplete',
     template: '<input class="n-auto-complete" :value="value" />',
@@ -130,7 +139,8 @@ const naiveStubs = {
   FavoriteReproducibilityEditor: {
     name: 'FavoriteReproducibilityEditor',
     template: '<div class="favorite-reproducibility-editor"></div>',
-    props: ['variables', 'examples', 'examplePreviews'],
+    props: ['variables', 'examples', 'examplePreviews', 'panelMode', 'addedExampleIds'],
+    emits: ['update:variables', 'update:examples', 'add-image-to-media'],
   },
   AppPreviewImage: {
     name: 'AppPreviewImage',
@@ -468,6 +478,232 @@ describe('FavoriteEditorForm', () => {
         images: [{ assetId: 'asset-output', source: 'data:image/png;base64,output-preview' }],
         inputImages: [{ assetId: 'asset-input', source: 'data:image/png;base64,input-preview' }],
       },
+    ])
+  })
+
+  it('adds an example image to the favorite image list only when explicitly requested', async () => {
+    const favorite = createFavoriteWithoutMedia('promote-example-image')
+    const updateFavorite = vi.fn(async () => {})
+    persistImageSourceAsAssetIdMock.mockImplementation(({ source }: { source: string }) =>
+      source.includes('example-output') ? 'persisted-example-output' : null,
+    )
+
+    const wrapper = mount(FavoriteEditorForm, {
+      props: {
+        mode: 'edit',
+        favorite,
+      },
+      global: {
+        stubs: naiveStubs,
+        provide: {
+          services: ref({
+            favoriteImageStorageService: {},
+            imageStorageService: {},
+            favoriteManager: {
+              getAllTags: vi.fn(async () => []),
+              addTag: vi.fn(async () => {}),
+              updateFavorite,
+            },
+          } as any),
+        },
+      },
+    })
+
+    await flushPromises()
+
+    const editors = wrapper.findAllComponents({ name: 'FavoriteReproducibilityEditor' })
+    editors[1].vm.$emit('add-image-to-media', {
+      exampleIndex: 0,
+      field: 'images',
+      source: 'data:image/png;base64,example-output',
+    })
+    editors[1].vm.$emit('add-image-to-media', {
+      exampleIndex: 0,
+      field: 'images',
+      source: 'data:image/png;base64,example-output',
+    })
+    await flushPromises()
+
+    await wrapper.findAll('button').at(-1)?.trigger('click')
+    await flushPromises()
+
+    const savedMetadata = updateFavorite.mock.calls[0]?.[1]?.metadata as Record<string, any>
+    expect(persistImageSourceAsAssetIdMock).toHaveBeenCalledTimes(1)
+    expect(savedMetadata.media).toEqual({
+      coverAssetId: 'persisted-example-output',
+      assetIds: ['persisted-example-output'],
+      urls: [],
+    })
+  })
+
+  it('persists an explicit empty reproducibility draft when clearing prompt asset examples', async () => {
+    const favorite: FavoritePrompt = {
+      ...createFavoriteWithoutMedia('clear-reproducibility'),
+      functionMode: 'context',
+      optimizationMode: 'user',
+      metadata: {
+        promptAsset: {
+          schemaVersion: PROMPT_MODEL_SCHEMA_VERSION,
+          id: 'asset-clear-reproducibility',
+          title: 'Prompt asset with examples',
+          tags: [],
+          contract: createPromptContract('pro-variable', {
+            variables: [{ name: 'topic', required: false }],
+          }),
+          currentVersionId: 'version-1',
+          versions: [
+            {
+              id: 'version-1',
+              version: 1,
+              content: { kind: 'text', text: 'Write about {{topic}}' },
+              createdAt: 1,
+            },
+          ],
+          examples: [
+            {
+              id: 'example-1',
+              basedOnVersionId: 'version-1',
+              input: { parameters: { topic: 'old' } },
+            },
+          ],
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+    }
+    const updateFavorite = vi.fn(async () => {})
+
+    const wrapper = mount(FavoriteEditorForm, {
+      props: {
+        mode: 'edit',
+        favorite,
+      },
+      global: {
+        stubs: naiveStubs,
+        provide: {
+          services: ref({
+            favoriteImageStorageService: {},
+            imageStorageService: {},
+            favoriteManager: {
+              getAllTags: vi.fn(async () => []),
+              addTag: vi.fn(async () => {}),
+              updateFavorite,
+            },
+          } as any),
+        },
+      },
+    })
+
+    await flushPromises()
+
+    const editor = wrapper.findComponent({ name: 'FavoriteReproducibilityEditor' })
+    expect(editor.props('variables')).toHaveLength(1)
+    expect(editor.props('examples')).toHaveLength(1)
+
+    editor.vm.$emit('update:variables', [])
+    editor.vm.$emit('update:examples', [])
+    await flushPromises()
+
+    await wrapper.findAll('button').at(-1)?.trigger('click')
+    await flushPromises()
+
+    const savedMetadata = updateFavorite.mock.calls[0]?.[1]?.metadata as Record<string, any>
+    expect(savedMetadata.reproducibility).toEqual({
+      variables: [],
+      examples: [],
+    })
+  })
+
+  it('defaults test result updates to appending examples without replacing favorite content', async () => {
+    const favorite: FavoritePrompt = {
+      ...createFavoriteWithoutMedia('append-example-only'),
+      functionMode: 'context',
+      optimizationMode: 'user',
+      content: 'Existing favorite content',
+      metadata: {
+        media: {
+          coverAssetId: 'existing-cover',
+          assetIds: ['existing-cover'],
+          urls: [],
+        },
+        reproducibility: {
+          variables: [{ name: 'topic', required: false }],
+          examples: [
+            {
+              id: 'existing-example',
+              parameters: { topic: 'old' },
+            },
+          ],
+        },
+      },
+    }
+    const updateFavorite = vi.fn(async () => {})
+
+    const wrapper = mount(FavoriteEditorForm, {
+      props: {
+        mode: 'edit',
+        favorite,
+        content: 'Incoming test result content',
+        applyIncomingContentOnEdit: true,
+        prefill: {
+          functionMode: 'basic',
+          optimizationMode: 'system',
+          updateIntent: 'examples',
+          reproducibilityDraft: {
+            variables: [],
+            examples: [
+              {
+                id: 'test-run:implicit:image-text2image:test:b',
+                parameters: { topic: 'new' },
+                images: [],
+                imageAssetIds: [],
+                inputImages: [],
+                inputImageAssetIds: [],
+              },
+            ],
+          },
+        },
+      },
+      global: {
+        stubs: naiveStubs,
+        provide: {
+          services: ref({
+            favoriteImageStorageService: {},
+            imageStorageService: {},
+            favoriteManager: {
+              getAllTags: vi.fn(async () => []),
+              addTag: vi.fn(async () => {}),
+              updateFavorite,
+            },
+          } as any),
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.find('.favorite-surface-section--changed').exists()).toBe(true)
+    const editor = wrapper.findComponent({ name: 'FavoriteReproducibilityEditor' })
+    expect(editor.props('panelMode')).toBe('review')
+    expect(editor.props('addedExampleIds')).toEqual(['ex-002'])
+
+    await wrapper.findAll('button').at(-1)?.trigger('click')
+    await flushPromises()
+
+    expect(updateFavorite).toHaveBeenCalledWith('append-example-only', expect.objectContaining({
+      content: 'Existing favorite content',
+      functionMode: 'context',
+      optimizationMode: 'user',
+    }))
+    const savedMetadata = updateFavorite.mock.calls[0]?.[1]?.metadata as Record<string, any>
+    expect(savedMetadata.media).toEqual({
+      coverAssetId: 'existing-cover',
+      assetIds: ['existing-cover'],
+      urls: [],
+    })
+    expect(savedMetadata.reproducibility.examples.map((example: any) => example.id)).toEqual([
+      'existing-example',
+      'ex-002',
     ])
   })
 })

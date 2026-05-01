@@ -2,10 +2,11 @@
   <div class="image-multiimage-workspace" data-testid="workspace" data-mode="image-multiimage">
     <div class="workspace-page-tools">
       <WorkspaceUtilityMenu
-        :disabled="optimizing || isIterating || isAnyVariantRunning"
-        test-id="image-multiimage-workspace-utility-menu"
-        @clear="handleClearContent"
-      />
+          :disabled="optimizing || isIterating || isAnyVariantRunning"
+          :source="resolveSourceAssetRef(session.origin, session.assetBinding)"
+          test-id="image-multiimage-workspace-utility-menu"
+          @clear="handleClearContent"
+        />
     </div>
     <div
       ref="splitRootRef"
@@ -574,6 +575,8 @@ import { buildTestPanelVersionOptions, resolveTestPanelVersionSelection } from '
 import { buildMultiImageVariantFingerprint } from '../../utils/multiimage-workspace'
 import { downloadImageSource } from '../../utils/image-download'
 import { getI18nErrorMessage } from '../../utils/error'
+import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
+import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { OptionAccessors } from '../../utils/data-transformer'
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager'
 import PromptPanelUI from '../PromptPanel.vue'
@@ -1264,13 +1267,13 @@ const createHistoryRecord = async () => {
     modelKey: selectedTextModelKey.value,
     templateId: selectedTemplate.value.id,
     timestamp: Date.now(),
-    metadata: {
+    metadata: withHistorySourceBindingMetadata({
       optimizationMode: 'user' as OptimizationMode,
       functionMode: 'image',
       imageModelKey: session.selectedImageModelKey,
       inputImageCount: session.inputImages.length,
       compareMode: session.isCompareMode,
-    },
+    }, session),
   })
 
   currentChainId.value = chain.chainId
@@ -1288,7 +1291,6 @@ const optimizePrompt = async () => {
   if (!promptService.value || !selectedTemplate.value) return
 
   optimizing.value = true
-  session.clearAssetBinding()
   optimizedPrompt.value = ''
   optimizedReasoning.value = ''
 
@@ -1373,13 +1375,13 @@ const handleIteratePrompt = async (payload: {
                 iterationNote: payload.iterateInput,
                 modelKey: selectedTextModelKey.value,
                 templateId: selectedIterateTemplate.value!.id,
-                metadata: {
+                metadata: withHistorySourceBindingMetadata({
                   optimizationMode: 'user' as OptimizationMode,
                   functionMode: 'image',
                   imageModelKey: session.selectedImageModelKey,
                   inputImageCount: session.inputImages.length,
                   compareMode: session.isCompareMode,
-                },
+                }, session),
               })
               currentChainId.value = updatedChain.chainId
               currentVersions.value = updatedChain.versions
@@ -1456,7 +1458,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
           modelKey,
           templateId,
           iterationNote: payload.note,
-          metadata: {
+          metadata: withHistorySourceBindingMetadata({
             optimizationMode: 'user' as OptimizationMode,
             functionMode: 'image',
             localEdit: true,
@@ -1464,7 +1466,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
             imageModelKey: session.selectedImageModelKey,
             inputImageCount: session.inputImages.length,
             compareMode: session.isCompareMode,
-          },
+          }, session),
         })
       : await historyManager.value.createNewChain({
           id: createRecordId(),
@@ -1474,7 +1476,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
           modelKey,
           templateId,
           timestamp: Date.now(),
-          metadata: {
+          metadata: withHistorySourceBindingMetadata({
             optimizationMode: 'user' as OptimizationMode,
             functionMode: 'image',
             localEdit: true,
@@ -1482,7 +1484,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
             imageModelKey: session.selectedImageModelKey,
             inputImageCount: session.inputImages.length,
             compareMode: session.isCompareMode,
-          },
+          }, session),
         })
 
     currentChainId.value = chain.chainId

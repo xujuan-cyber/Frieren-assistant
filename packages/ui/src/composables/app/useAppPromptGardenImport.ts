@@ -34,25 +34,19 @@ import {
   persistImageSourceAsAssetId,
 } from '../../utils/image-asset-storage'
 import { buildFavoriteMediaMetadata } from '../../utils/favorite-media'
+import {
+  WORKSPACE_APPLY_TARGET_KEYS,
+  applyWorkspaceTemporaryVariables,
+  buildWorkspaceConversationFromPromptText,
+  clearWorkspaceContentForExternalApply,
+  generateWorkspaceApplyMessageId,
+  getWorkspaceTemporaryVariablesSession,
+  type WorkspaceApplyTargetKey,
+} from '../../utils/workspace-external-apply'
 
-type SupportedSubModeKey =
-  | 'basic-system'
-  | 'basic-user'
-  | 'pro-multi'
-  | 'pro-variable'
-  | 'image-text2image'
-  | 'image-image2image'
-  | 'image-multiimage'
+type SupportedSubModeKey = WorkspaceApplyTargetKey
 
-const SUPPORTED_KEYS: ReadonlyArray<SupportedSubModeKey> = [
-  'basic-system',
-  'basic-user',
-  'pro-multi',
-  'pro-variable',
-  'image-text2image',
-  'image-image2image',
-  'image-multiimage'
-]
+const SUPPORTED_KEYS = WORKSPACE_APPLY_TARGET_KEYS
 
 const isSupportedKey = (value: string | null | undefined): value is SupportedSubModeKey => {
   if (!value) return false
@@ -350,97 +344,12 @@ const saveImportedPromptToFavorites = async (opts: {
   })
 }
 
-type ImportedVariable = {
-  name: string
-  defaultValue?: string
-}
-
-type TemporaryVariablesSessionApi = {
-  getTemporaryVariable: (name: string) => string | undefined
-  setTemporaryVariable: (name: string, value: string) => void
-  clearTemporaryVariables: () => void
-}
-
-const getTemporaryVariablesSession = (
-  targetKey: SupportedSubModeKey,
-  api: {
-    proMultiMessageSession: ProMultiMessageSessionApi
-    proVariableSession: ProVariableSessionApi
-    imageText2ImageSession: ImageText2ImageSessionApi
-    imageImage2ImageSession: ImageImage2ImageSessionApi
-    imageMultiImageSession: ImageMultiImageSessionApi
-  },
-): TemporaryVariablesSessionApi | null => {
-  switch (targetKey) {
-    case 'pro-multi':
-      return api.proMultiMessageSession
-    case 'pro-variable':
-      return api.proVariableSession
-    case 'image-text2image':
-      return api.imageText2ImageSession
-    case 'image-image2image':
-      return api.imageImage2ImageSession
-    case 'image-multiimage':
-      return api.imageMultiImageSession
-    default:
-      return null
-  }
-}
-
-const ensureImportedTemporaryVariables = (
-  targetKey: SupportedSubModeKey,
-  api: {
-    proMultiMessageSession: ProMultiMessageSessionApi
-    proVariableSession: ProVariableSessionApi
-    imageText2ImageSession: ImageText2ImageSessionApi
-    imageImage2ImageSession: ImageImage2ImageSessionApi
-    imageMultiImageSession: ImageMultiImageSessionApi
-  },
-  opts: {
-    variables: ImportedVariable[]
-  },
-) => {
-  const session = getTemporaryVariablesSession(targetKey, api)
-
-  if (!session) return
-
-  const variableEntries: Array<{ name: string; value: string }> = opts.variables
-    .map((v) => ({
-      name: String(v?.name || '').trim(),
-      value: v?.defaultValue !== undefined ? String(v.defaultValue) : '',
-    }))
-    .filter((v) => isValidVariableName(v.name))
-
-  // Reset the temporary variables panel to match the imported variable list.
-  // Preserve existing values for the same keys to avoid clobbering user input.
-  const preservedValues = new Map<string, string>()
-  for (const { name } of variableEntries) {
-    const existing = session.getTemporaryVariable(name)
-    if (existing !== undefined) {
-      preservedValues.set(name, existing)
-    }
-  }
-
-  session.clearTemporaryVariables()
-
-  for (const { name, value } of variableEntries) {
-    session.setTemporaryVariable(name, preservedValues.get(name) ?? value)
-  }
-}
-
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
 
-let importedMessageIdSeed = 0
 const generateImportedMessageId = (): string => {
-  // Prefer stable UUIDs when available (browser + modern Node).
-  const maybeCrypto = globalThis.crypto as unknown as { randomUUID?: () => string } | undefined
-  if (maybeCrypto && typeof maybeCrypto.randomUUID === 'function') {
-    return maybeCrypto.randomUUID()
-  }
-  importedMessageIdSeed += 1
-  return `imported-${Date.now()}-${importedMessageIdSeed}`
+  return generateWorkspaceApplyMessageId('imported')
 }
 
 const normalizeImportedConversationMessages = (input: unknown): ConversationMessage[] => {
@@ -470,13 +379,6 @@ const normalizeImportedConversationMessages = (input: unknown): ConversationMess
   }
 
   return out
-}
-
-const buildConversationFromPromptText = (content: string): ConversationMessage[] => {
-  const text = String(content || '')
-  if (!text) return []
-  const id = generateImportedMessageId()
-  return [{ id, role: 'system', content: text, originalContent: text }]
 }
 
 const normalizeSnapshotUrl = (opts: {
@@ -1072,49 +974,6 @@ const pickImportedExample = (
   return examples[0] || null
 }
 
-const clearSessionContentForExternalImport = (targetKey: SupportedSubModeKey, api: {
-  basicSystemSession: BasicSystemSessionApi
-  basicUserSession: BasicUserSessionApi
-  proVariableSession: ProVariableSessionApi
-  imageText2ImageSession: ImageText2ImageSessionApi
-  imageImage2ImageSession: ImageImage2ImageSessionApi
-  imageMultiImageSession: ImageMultiImageSessionApi
-  optimizerCurrentVersions: Ref<PromptRecordChain['versions']>
-}) => {
-  if (targetKey === 'basic-system') {
-    api.basicSystemSession.clearContent({ persist: false })
-    api.optimizerCurrentVersions.value = []
-    return
-  }
-
-  if (targetKey === 'basic-user') {
-    api.basicUserSession.clearContent({ persist: false })
-    api.optimizerCurrentVersions.value = []
-    return
-  }
-
-  if (targetKey === 'pro-variable') {
-    api.proVariableSession.clearContent({ persist: false })
-    return
-  }
-
-  if (targetKey === 'pro-multi') {
-    return
-  }
-
-  if (targetKey === 'image-text2image') {
-    api.imageText2ImageSession.clearContent({ persist: false })
-    return
-  }
-
-  if (targetKey === 'image-multiimage') {
-    api.imageMultiImageSession.clearContent({ persist: false })
-    return
-  }
-
-  api.imageImage2ImageSession.clearContent({ persist: false })
-}
-
 type SaveFavoriteDialogPayload = {
   content: string
   originalContent?: string
@@ -1224,13 +1083,22 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           const messages =
             fetched.promptFormat === 'messages'
               ? (fetched.promptMessages as ConversationMessage[])
-              : buildConversationFromPromptText(fetched.promptText ?? '')
+              : buildWorkspaceConversationFromPromptText(fetched.promptText ?? '', 'imported')
 
           if (!messages.length) {
             throw new Error('Empty conversation content')
           }
 
-          proMultiMessageSession.clearContent({ persist: false })
+          clearWorkspaceContentForExternalApply(targetKey, {
+            basicSystemSession,
+            basicUserSession,
+            proMultiMessageSession,
+            proVariableSession,
+            imageText2ImageSession,
+            imageImage2ImageSession,
+            imageMultiImageSession,
+            optimizerCurrentVersions,
+          })
           proMultiMessageSession.updateConversationMessages(messages)
 
           // Auto-select latest system/user message for convenience.
@@ -1250,11 +1118,12 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
             throw new Error('Empty prompt content')
           }
 
-          clearSessionContentForExternalImport(
+          clearWorkspaceContentForExternalApply(
             targetKey,
             {
               basicSystemSession,
               basicUserSession,
+              proMultiMessageSession,
               proVariableSession,
               imageText2ImageSession,
               imageImage2ImageSession,
@@ -1279,7 +1148,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
         }
 
         // Import variables into submode-scoped temporary variables.
-        ensureImportedTemporaryVariables(
+        applyWorkspaceTemporaryVariables(
           targetKey,
           {
             proMultiMessageSession,
@@ -1290,13 +1159,14 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           },
           {
             variables: fetched.variables,
+            preserveExistingValues: true,
           }
         )
 
         // If the imported prompt provides a full example, apply the example's parameter values
         // (and input image for image2image) so the user can reproduce the result directly.
         if (importedExample) {
-          const session = getTemporaryVariablesSession(targetKey, {
+          const session = getWorkspaceTemporaryVariablesSession(targetKey, {
             proMultiMessageSession,
             proVariableSession,
             imageText2ImageSession,

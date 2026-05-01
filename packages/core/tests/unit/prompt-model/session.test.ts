@@ -99,6 +99,11 @@ describe('prompt-model session mapping', () => {
         id: 'favorite-1',
         metadata: { title: 'Favorite prompt' },
       },
+      testContent: 'Bound workspace input',
+      testVariants: [{ id: 'a', version: 'workspace' as const, modelKey: 'model-a' }],
+      testVariantResults: {
+        a: { result: 'Bound workspace output' },
+      },
       lastActiveAt: 1234,
     }
 
@@ -120,6 +125,24 @@ describe('prompt-model session mapping', () => {
     expect(summary).toMatchObject({
       assetBinding: session.assetBinding,
       origin: session.origin,
+    })
+    expect(session.testRuns[0].runs[0]).toMatchObject({
+      revision: { kind: 'workspace', sessionId: 'implicit:basic-system' },
+      metadata: {
+        sessionId: 'implicit:basic-system',
+        modeKey: 'basic-system',
+        chainId: 'implicit:basic-system:chain',
+        assetBinding: {
+          assetId: 'asset-1',
+          versionId: 'version-2',
+          status: 'linked',
+        },
+        origin: {
+          kind: 'favorite',
+          id: 'favorite-1',
+          metadata: { title: 'Favorite prompt' },
+        },
+      },
     })
   })
 

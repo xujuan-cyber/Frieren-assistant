@@ -3,6 +3,7 @@
         <div class="workspace-page-tools">
             <WorkspaceUtilityMenu
                 :disabled="isOptimizing || isIterating || isAnyVariantRunning"
+                :source="resolveSourceAssetRef(session.origin, session.assetBinding)"
                 test-id="image-image2image-workspace-utility-menu"
                 @clear="handleClearContent"
             />
@@ -755,6 +756,8 @@ import FullscreenDialog from "../FullscreenDialog.vue";
 import type { SelectOption } from "../../types/select-options";
 import { useToast } from "../../composables/ui/useToast";
 import { getI18nErrorMessage } from '../../utils/error'
+import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
+import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { downloadImageSource } from '../../utils/image-download'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
@@ -1604,7 +1607,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
                   modelKey,
                   templateId,
                   iterationNote: payload.note,
-                  metadata: {
+                  metadata: withHistorySourceBindingMetadata({
                       optimizationMode: 'user' as OptimizationMode,
                       functionMode: 'image',
                       localEdit: true,
@@ -1612,7 +1615,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
                       imageModelKey: selectedImageModelKey.value,
                       hasInputImage: !!inputImageB64.value,
                       compareMode: isCompareMode.value,
-                  },
+                  }, session),
               })
             : await historyManager.value.createNewChain({
                   id: uuidv4(),
@@ -1622,7 +1625,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
                   modelKey,
                   templateId,
                   timestamp: Date.now(),
-                  metadata: {
+                  metadata: withHistorySourceBindingMetadata({
                       optimizationMode: 'user' as OptimizationMode,
                       functionMode: 'image',
                       localEdit: true,
@@ -1630,7 +1633,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
                       imageModelKey: selectedImageModelKey.value,
                       hasInputImage: !!inputImageB64.value,
                       compareMode: isCompareMode.value,
-                  },
+                  }, session),
               })
 
         currentChainId.value = chain.chainId
@@ -2002,13 +2005,13 @@ const createHistoryRecord = async () => {
             modelKey: selectedTextModelKey.value,
             templateId: selectedTemplate.value.id,
             timestamp: Date.now(),
-            metadata: {
+            metadata: withHistorySourceBindingMetadata({
                 optimizationMode: 'user' as OptimizationMode,
                 functionMode: 'image',
                 imageModelKey: selectedImageModelKey.value,
                 hasInputImage: !!inputImageB64.value,
                 compareMode: isCompareMode.value,
-            },
+            }, session),
         }
 
         const newRecord = await historyManager.value.createNewChain(recordData)
@@ -2051,7 +2054,6 @@ const handleOptimizePrompt = async () => {
     }
 
     isOptimizing.value = true
-    session.clearAssetBinding()
     session.optimizedPrompt = ''
     session.reasoning = ''
 
@@ -2133,6 +2135,7 @@ const handleIteratePrompt = async (payload: {
                                 iterationNote: payload.iterateInput,
                                 modelKey: selectedTextModelKey.value,
                                 templateId: selectedIterateTemplate.value!.id,
+                                metadata: withHistorySourceBindingMetadata(undefined, session),
                             })
                             currentVersions.value = updatedChain.versions
                             currentVersionId.value = updatedChain.currentRecord.id

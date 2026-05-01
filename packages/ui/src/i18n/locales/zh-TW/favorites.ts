@@ -6,6 +6,15 @@ const messages = {
       "returnToWorkspace": "返回工作區",
       "closeTitle": "關閉收藏夾並返回優化工作區"
     },
+    "sourceAsset": {
+      "tooltip": "關聯收藏",
+      "title": "關聯收藏",
+      "unavailableDescription": "未找到關聯收藏，可能已被刪除或來自舊資料。",
+      "noDescription": "暫無描述",
+      "favoriteId": "收藏 ID",
+      "assetId": "資產 ID",
+      "versionId": "版本 ID"
+    },
     "categories": {
       "default": {
         "uncategorized": "未分類",
@@ -271,10 +280,27 @@ const messages = {
       }
     },
     "dialog": {
-      "createTitle": "新建收藏",
-      "editTitle": "編輯收藏",
-      "saveTitle": "儲存到收藏夾",
-      "basicInfo": "基礎資訊",
+        "createTitle": "新建收藏",
+        "editTitle": "編輯收藏",
+        "saveTitle": "儲存到收藏夾",
+        "saveTarget": {
+          "createTitle": "新建收藏",
+          "updateTitle": "更新收藏",
+          "create": "新建收藏",
+          "update": "更新已有",
+          "targetPlaceholder": "選擇要更新的收藏",
+          "targetMissing": "請選擇一個已有收藏，或切換為新建收藏。"
+        },
+        "basicInfo": "基礎資訊",
+      "changed": "已修改",
+      "pendingChanges": {
+        "title": "待儲存變更",
+        "basicInfo": "基礎資訊",
+        "images": "圖片",
+        "content": "正文",
+        "reproducibility": "變數與範例",
+        "examplesAdded": "新增 {count} 個範例"
+      },
       "contentTitle": "正文內容",
       "titleLabel": "標題",
       "titlePlaceholder": "為這個提示詞起個名字",
@@ -328,12 +354,32 @@ const messages = {
         "exampleImagesPlaceholder": "貼上圖片連結",
         "exampleInputImagesPlaceholder": "貼上圖片連結",
         "addImageUrl": "新增連結",
+        "addImageToMedia": "加入圖片列表",
         "addExampleImages": "上傳範例圖片",
         "addExampleInputImages": "上傳輸入圖片",
         "messages": "會話訊息",
+        "noMessages": "暫無會話訊息",
+        "addMessage": "新增訊息",
+        "messageContentPlaceholder": "訊息內容",
+        "messageRole": {
+          "system": "System",
+          "user": "User",
+          "assistant": "Assistant",
+          "tool": "Tool"
+        },
         "outputText": "輸出文字",
+        "newExample": "新增",
+        "editingExample": "編輯中",
+        "editExample": "編輯",
+        "doneEditing": "完成",
+        "outputImageCount": "{count} 張輸出圖",
+        "inputImageCount": "{count} 張輸入圖",
         "saveTestResultExample": "儲存為範例",
         "noTestResultToSave": "目前沒有可儲存的成功測試結果。",
+        "appendSuccess": "範例已儲存到目前關聯收藏。",
+        "appendFavoriteNotFound": "找不到目前關聯收藏，將改為開啟儲存彈窗。",
+        "appendContentMismatch": "目前工作區提示詞與關聯收藏正文不一致，將改為開啟儲存彈窗。",
+        "appendFailed": "無法儲存到目前關聯收藏，將改為開啟儲存彈窗。",
         "variableType": {
           "string": "文字",
           "number": "數字",

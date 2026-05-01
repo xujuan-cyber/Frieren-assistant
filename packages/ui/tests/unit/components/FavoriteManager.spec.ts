@@ -7,6 +7,7 @@ import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
 import FavoriteLibraryWorkspace from '../../../src/components/FavoriteLibraryWorkspace.vue'
 import FavoriteManager from '../../../src/components/FavoriteManager.vue'
 import type { AppServices } from '../../../src/types/services'
+import { dispatchFavoriteUpdatedEvent } from '../../../src/utils/favorite-events'
 
 const toastMock = {
   success: vi.fn(),
@@ -399,22 +400,23 @@ describe('FavoriteManager', () => {
     vi.useRealTimers()
   })
 
-  it('renders desktop master-detail layout and updates the detail selection', async () => {
+  it('renders desktop list layout and opens details in the unified dialog', async () => {
     setViewportWidth(1400)
     const favorites = Array.from({ length: 4 }, (_, index) => createFavorite(index + 1))
     const { wrapper } = await mountComponent(favorites)
 
     expect(wrapper.find('[data-testid="favorites-manager-workspace"]').exists()).toBe(true)
     expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(4)
-    expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-1')
+    expect(wrapper.find('[data-testid="favorite-detail-panel"]').exists()).toBe(false)
 
     await wrapper.findAll('.favorite-card-select')[1].trigger('click')
     await flushPromises()
 
+    expect(wrapper.find('.n-modal').exists()).toBe(true)
     expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-2')
   })
 
-  it('renders page layout as a list-first surface and opens details in a drawer', async () => {
+  it('renders page layout as a list-first surface and opens details in the unified dialog', async () => {
     setViewportWidth(1400)
     const favorites = Array.from({ length: 4 }, (_, index) => createFavorite(index + 1))
     const { wrapper } = await mountLibraryWorkspace(favorites)
@@ -429,7 +431,8 @@ describe('FavoriteManager', () => {
     await wrapper.findAll('.favorite-card-select')[1].trigger('click')
     await flushPromises()
 
-    expect(wrapper.find('.n-drawer').exists()).toBe(true)
+    expect(wrapper.find('.n-drawer').exists()).toBe(false)
+    expect(wrapper.find('.n-modal').exists()).toBe(true)
     expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-2')
     expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-show-back')).toBe('no')
   })
@@ -648,7 +651,28 @@ describe('FavoriteManager', () => {
     expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(2)
   })
 
-  it('uses a mobile list-detail flow with a back action', async () => {
+  it('refreshes an active favorite workspace after an external favorite update without changing selection', async () => {
+    setViewportWidth(1400)
+    const favorites = [createFavorite(1), createFavorite(2)]
+    const { wrapper, services } = await mountLibraryWorkspace(favorites)
+
+    await wrapper.findAll('.favorite-card-select')[1].trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-2')
+
+    services.favoriteManager.getFavorites.mockResolvedValueOnce([
+      createFavorite(1, { title: 'Favorite 1 with saved example' }),
+      favorites[1],
+    ])
+    dispatchFavoriteUpdatedEvent('favorite-1')
+    await flushPromises()
+
+    expect(services.favoriteManager.getFavorites).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Favorite 1 with saved example')
+    expect(wrapper.find('[data-testid="favorite-detail-panel"]').attributes('data-favorite-id')).toBe('favorite-2')
+  })
+
+  it('uses the same detail dialog on mobile', async () => {
     setViewportWidth(640)
     const favorites = Array.from({ length: 3 }, (_, index) => createFavorite(index + 1))
     const { wrapper } = await mountComponent(favorites)
@@ -661,13 +685,7 @@ describe('FavoriteManager', () => {
 
     const detailPanel = wrapper.find('[data-testid="favorite-detail-panel"]')
     expect(detailPanel.exists()).toBe(true)
-    expect(detailPanel.attributes('data-show-back')).toBe('yes')
-
-    await wrapper.find('.favorite-detail-back').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.find('[data-testid="favorite-detail-panel"]').exists()).toBe(false)
-    expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(3)
+    expect(detailPanel.attributes('data-show-back')).toBe('no')
   })
 
   it('filters before pagination and hides pagination when the result fits on one page', async () => {
@@ -698,7 +716,7 @@ describe('FavoriteManager', () => {
     expect(wrapper.find('[data-testid="favorites-manager-add"]').exists()).toBe(true)
   })
 
-  it('switches create and import flows into the right-side task panel', async () => {
+  it('switches create and import flows into the unified dialog', async () => {
     setViewportWidth(1400)
     const favorites = Array.from({ length: 2 }, (_, index) => createFavorite(index + 1))
     const { wrapper } = await mountComponent(favorites)
@@ -711,7 +729,7 @@ describe('FavoriteManager', () => {
     await wrapper.find('.favorite-editor-cancel').trigger('click')
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="favorite-detail-panel"]').exists()).toBe(true)
+    expect(wrapper.find('.favorite-editor-form-stub').exists()).toBe(false)
 
     await wrapper.find('[data-testid="favorites-manager-import"]').trigger('click')
     await flushPromises()

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  appendFavoriteReproducibilityDraftToMetadata,
   applyFavoriteReproducibilityToMetadata,
+  assignSequentialFavoriteExampleIds,
   createFavoriteReproducibilityProjection,
   favoriteReproducibilityExampleFromPromptExample,
   parseFavoriteReproducibility,
@@ -220,10 +222,22 @@ describe('favorite-reproducibility', () => {
       metadata: {
         testRunId: 'run-1',
       },
+      source: {
+        kind: 'workspace',
+        id: 'implicit:basic-system',
+        metadata: {
+          assetBinding: {
+            assetId: 'asset-1',
+            versionId: 'version-1',
+            status: 'linked',
+          },
+        },
+      },
     })
 
     expect(example).toMatchObject({
       id: 'test-run:run-1',
+      basedOnVersionId: 'version-1',
       text: 'Summarize {{topic}}',
       messages: [
         { id: 'msg-1', role: 'system', content: 'Be concise.' },
@@ -235,6 +249,17 @@ describe('favorite-reproducibility', () => {
       imageAssetIds: ['output-asset'],
       inputImages: ['https://example.com/input.png'],
       inputImageAssetIds: ['input-asset'],
+      source: {
+        kind: 'workspace',
+        id: 'implicit:basic-system',
+        metadata: {
+          assetBinding: {
+            assetId: 'asset-1',
+            versionId: 'version-1',
+            status: 'linked',
+          },
+        },
+      },
       metadata: {
         testRunId: 'run-1',
       },
@@ -247,6 +272,8 @@ describe('favorite-reproducibility', () => {
       examples: [
         {
           id: 'conversation-example',
+          basedOnVersionId: 'version-1',
+          source: { kind: 'workspace', id: 'implicit:pro-conversation' },
           messages: [
             { id: 'msg-1', role: 'system', content: 'Be concise.' },
             { id: 'msg-2', role: 'user', content: 'Summarize {{topic}}.' },
@@ -265,6 +292,8 @@ describe('favorite-reproducibility', () => {
     const repro = parseFavoriteReproducibilityFromMetadata(next)
     expect(repro.examples[0]).toMatchObject({
       id: 'conversation-example',
+      basedOnVersionId: 'version-1',
+      source: { kind: 'workspace', id: 'implicit:pro-conversation' },
       messages: [
         { id: 'msg-1', role: 'system', content: 'Be concise.' },
         { id: 'msg-2', role: 'user', content: 'Summarize {{topic}}.' },
@@ -272,6 +301,132 @@ describe('favorite-reproducibility', () => {
       parameters: { topic: 'release' },
       outputText: 'Concise release summary.',
       metadata: { testRunId: 'run-1' },
+    })
+  })
+
+  it('appends test example drafts while preserving existing variables and external metadata', () => {
+    const promptAsset: PromptAsset = {
+      schemaVersion: PROMPT_MODEL_SCHEMA_VERSION,
+      id: 'asset-1',
+      title: 'Embedded asset',
+      tags: [],
+      contract: createPromptContract('basic-system', {
+        variables: [
+          {
+            name: 'topic',
+            description: 'Existing topic',
+            required: true,
+            options: [],
+            source: 'asset',
+          },
+        ],
+      }),
+      currentVersionId: 'version-1',
+      versions: [
+        {
+          id: 'version-1',
+          version: 1,
+          content: {
+            kind: 'text',
+            text: 'Summarize {{topic}}.',
+          },
+          createdAt: 1,
+        },
+      ],
+      examples: [
+        {
+          id: 'existing-example',
+          basedOnVersionId: 'version-1',
+          input: {
+            text: 'Summarize release notes.',
+            parameters: {
+              topic: 'release',
+            },
+          },
+          output: {
+            text: 'Existing output.',
+          },
+        },
+      ],
+      createdAt: 1,
+      updatedAt: 2,
+    }
+    const gardenSnapshot = {
+      importCode: 'garden-1',
+      variables: [{ name: 'gardenOnly' }],
+    }
+    const next = appendFavoriteReproducibilityDraftToMetadata(createFavorite({
+      metadata: {
+        promptAsset,
+        gardenSnapshot,
+        modelKey: 'model-a',
+      },
+    }), {
+      variables: [
+        {
+          name: 'topic',
+          required: false,
+          options: [],
+          source: 'test-run',
+        },
+        {
+          name: 'audience',
+          required: false,
+          options: [],
+          source: 'test-run',
+        },
+      ],
+      examples: [
+        {
+          id: 'new-example',
+          basedOnVersionId: 'implicit:basic-system:draft',
+          text: 'Summarize for executives.',
+          parameters: {
+            topic: 'roadmap',
+            audience: 'executives',
+          },
+          outputText: 'New output.',
+          images: [],
+          imageAssetIds: [],
+          inputImages: [],
+          inputImageAssetIds: [],
+          source: {
+            kind: 'workspace',
+            id: 'implicit:basic-system',
+            metadata: {
+              origin: { kind: 'favorite', id: 'fav-1' },
+            },
+          },
+          metadata: {
+            modelKey: 'text-model',
+          },
+        },
+      ],
+    })
+
+    expect(next.promptAsset).toBe(promptAsset)
+    expect(next.gardenSnapshot).toBe(gardenSnapshot)
+    expect(next.modelKey).toBe('model-a')
+
+    const repro = parseFavoriteReproducibilityFromMetadata(next)
+    expect(repro.variables.map((variable) => variable.name)).toEqual(['topic', 'audience'])
+    expect(repro.variables[0]).toMatchObject({
+      name: 'topic',
+      description: 'Existing topic',
+      required: true,
+      source: 'asset',
+    })
+    expect(repro.examples.map((example) => example.id)).toEqual(['existing-example', 'new-example'])
+    expect(repro.examples[1]).toMatchObject({
+      basedOnVersionId: 'implicit:basic-system:draft',
+      parameters: {
+        topic: 'roadmap',
+        audience: 'executives',
+      },
+      outputText: 'New output.',
+      metadata: {
+        modelKey: 'text-model',
+      },
     })
   })
 
@@ -300,6 +455,53 @@ describe('favorite-reproducibility', () => {
       projection.reproducibility.examples,
       { applyExample: false, exampleId: 'first' },
     )).toBeNull()
+  })
+
+  it('assigns short sequential ids to implicit test-run examples', () => {
+    const examples = assignSequentialFavoriteExampleIds(
+      [
+        { id: 'ex-001', parameters: { topic: 'old' } },
+        { id: 'manual-case', parameters: { topic: 'manual' } },
+      ],
+      [
+        {
+          id: 'test-run:implicit:image-text2image:test:b',
+          parameters: { topic: 'new' },
+          metadata: { testRunId: 'run-1' },
+        },
+        {
+          id: 'custom-case',
+          parameters: { topic: 'custom' },
+        },
+      ],
+    )
+
+    expect(examples.map((example) => example.id)).toEqual(['ex-003', 'custom-case'])
+    expect(examples[0].metadata).toEqual({ testRunId: 'run-1' })
+  })
+
+  it('renumbers pre-normalized draft ids when updating an existing favorite', () => {
+    const examples = assignSequentialFavoriteExampleIds(
+      [
+        { id: 'ex-001', parameters: { topic: 'first' } },
+        { id: 'ex-002', parameters: { topic: 'second' } },
+      ],
+      [
+        {
+          id: 'ex-001',
+          parameters: { topic: 'incoming' },
+          metadata: { testRunId: 'run-1' },
+        },
+      ],
+    )
+
+    expect(examples).toEqual([
+      expect.objectContaining({
+        id: 'ex-003',
+        parameters: { topic: 'incoming' },
+        metadata: { testRunId: 'run-1' },
+      }),
+    ])
   })
 
   it('keeps Garden snapshots immutable and stores drafts under namespaced metadata', () => {

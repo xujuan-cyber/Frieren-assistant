@@ -97,6 +97,63 @@ describe('promptExampleFromTestRun', () => {
     })
   })
 
+  it('keeps asset-bound workspace runs as workspace sources with binding metadata', () => {
+    const example = promptExampleFromTestRun(createRun({
+      revision: { kind: 'workspace', sessionId: 'implicit:basic-system' },
+      metadata: {
+        sessionId: 'implicit:basic-system',
+        modeKey: 'basic-system',
+        chainId: 'chain-1',
+        versionId: 'session-version-1',
+        assetBinding: {
+          assetId: 'asset-1',
+          versionId: 'asset-version-1',
+          status: 'linked',
+        },
+        origin: {
+          kind: 'favorite',
+          id: 'favorite-1',
+          metadata: { title: 'Favorite prompt' },
+        },
+      },
+    }), {
+      basedOnVersionId: 'asset-version-1',
+    })
+
+    expect(example).toMatchObject({
+      basedOnVersionId: 'asset-version-1',
+      source: {
+        kind: 'workspace',
+        id: 'implicit:basic-system',
+        metadata: {
+          sessionId: 'implicit:basic-system',
+          modeKey: 'basic-system',
+          chainId: 'chain-1',
+          versionId: 'session-version-1',
+          assetBinding: {
+            assetId: 'asset-1',
+            versionId: 'asset-version-1',
+            status: 'linked',
+          },
+          origin: {
+            kind: 'favorite',
+            id: 'favorite-1',
+            metadata: { title: 'Favorite prompt' },
+          },
+        },
+      },
+      metadata: {
+        runMetadata: {
+          assetBinding: {
+            assetId: 'asset-1',
+            versionId: 'asset-version-1',
+            status: 'linked',
+          },
+        },
+      },
+    })
+  })
+
   it('does not create examples for failed or empty-output runs', () => {
     expect(promptExampleFromTestRun(createRun({
       status: 'error',

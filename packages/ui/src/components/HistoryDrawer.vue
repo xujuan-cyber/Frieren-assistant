@@ -105,6 +105,10 @@
                 >
                   {{ t('imageMode.multiimage') }}
                 </NTag>
+                <SourceAssetBadge
+                  v-if="getChainSource(chain)"
+                  :source="getChainSource(chain)!"
+                />
               </NSpace>
               <NButton
                 @click="deleteChain(chain.chainId)"
@@ -224,6 +228,9 @@ import {
 } from 'naive-ui'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import { useToast } from '../composables/ui/useToast'
+import SourceAssetBadge from './source/SourceAssetBadge.vue'
+import { extractHistorySourceBinding } from '../utils/history-source-binding'
+import { resolveSourceAssetRef } from '../utils/source-asset'
 
 const props = defineProps({
   show: Boolean,
@@ -328,6 +335,11 @@ const truncateText = (text: string, maxLength: number) => {
 
 const isMessageOptimizationType = (recordType: string) => {
   return recordType === 'conversationMessageOptimize' || recordType === 'contextSystemOptimize'
+}
+
+const getChainSource = (chain: PromptRecordChain) => {
+  const source = extractHistorySourceBinding(chain.rootRecord, chain)
+  return resolveSourceAssetRef(source.origin, source.assetBinding)
 }
 
 // 获取功能模式标签类型

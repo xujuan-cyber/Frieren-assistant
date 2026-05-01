@@ -6,6 +6,15 @@ const messages = {
       "returnToWorkspace": "Back to Workspace",
       "closeTitle": "Close favorites and return to the optimizer workspace"
     },
+    "sourceAsset": {
+      "tooltip": "Linked favorite",
+      "title": "Linked Favorite",
+      "unavailableDescription": "The linked favorite was not found. It may have been deleted or come from legacy data.",
+      "noDescription": "No description",
+      "favoriteId": "Favorite ID",
+      "assetId": "Asset ID",
+      "versionId": "Version ID"
+    },
     "categories": {
       "default": {
         "uncategorized": "Uncategorized",
@@ -271,10 +280,27 @@ const messages = {
       }
     },
     "dialog": {
-      "createTitle": "Create Favorite",
-      "editTitle": "Edit Favorite",
-      "saveTitle": "Save to Favorites",
-      "basicInfo": "Basic Information",
+        "createTitle": "Create Favorite",
+        "editTitle": "Edit Favorite",
+        "saveTitle": "Save to Favorites",
+        "saveTarget": {
+          "createTitle": "Create Favorite",
+          "updateTitle": "Update Favorite",
+          "create": "Create new",
+          "update": "Update existing",
+          "targetPlaceholder": "Select a favorite to update",
+          "targetMissing": "Select an existing favorite or switch to creating a new one."
+        },
+        "basicInfo": "Basic Information",
+      "changed": "Changed",
+      "pendingChanges": {
+        "title": "Pending changes",
+        "basicInfo": "Basic info",
+        "images": "Images",
+        "content": "Content",
+        "reproducibility": "Variables & examples",
+        "examplesAdded": "{count} example(s) added"
+      },
       "contentTitle": "Content",
       "titleLabel": "Title",
       "titlePlaceholder": "Name this prompt",
@@ -328,12 +354,32 @@ const messages = {
         "exampleImagesPlaceholder": "Paste an image link",
         "exampleInputImagesPlaceholder": "Paste an image link",
         "addImageUrl": "Add link",
+        "addImageToMedia": "Add to images",
         "addExampleImages": "Upload example images",
         "addExampleInputImages": "Upload input images",
         "messages": "Messages",
+        "noMessages": "No messages configured",
+        "addMessage": "Add message",
+        "messageContentPlaceholder": "Message content",
+        "messageRole": {
+          "system": "System",
+          "user": "User",
+          "assistant": "Assistant",
+          "tool": "Tool"
+        },
         "outputText": "Output text",
+        "newExample": "New",
+        "editingExample": "Editing",
+        "editExample": "Edit",
+        "doneEditing": "Done",
+        "outputImageCount": "{count} output image(s)",
+        "inputImageCount": "{count} input image(s)",
         "saveTestResultExample": "Save as example",
         "noTestResultToSave": "No successful test result is available to save.",
+        "appendSuccess": "Example saved to the linked favorite.",
+        "appendFavoriteNotFound": "The linked favorite could not be found. Opening the save dialog instead.",
+        "appendContentMismatch": "The workspace prompt differs from the linked favorite. Opening the save dialog instead.",
+        "appendFailed": "Could not save the example to the linked favorite. Opening the save dialog instead.",
         "variableType": {
           "string": "Text",
           "number": "Number",

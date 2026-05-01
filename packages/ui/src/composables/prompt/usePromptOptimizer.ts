@@ -16,10 +16,13 @@ import type {
   OptimizationMode,
   OptimizationRequest,
   ConversationMessage,
+  PromptAssetBinding,
+  PromptSessionOrigin,
   ToolDefinition,
 } from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
 import { useFunctionMode, type FunctionMode } from '../mode'
+import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
 
 
 type PromptChain = PromptRecordChain
@@ -54,6 +57,7 @@ export function usePromptOptimizer(
     optimizedReasoning?: Ref<string>
     currentChainId?: Ref<string>
     currentVersionId?: Ref<string>
+    getSourceBindingSession?: () => { assetBinding?: PromptAssetBinding; origin?: PromptSessionOrigin } | null | undefined
   }
 ) {
   const optimizeModel = selectedOptimizeModel || ref('')
@@ -73,6 +77,8 @@ export function usePromptOptimizer(
   const boundOptimizedReasoning = bindings?.optimizedReasoning ?? ref('')
   const boundCurrentChainId = bindings?.currentChainId ?? ref('')
   const boundCurrentVersionId = bindings?.currentVersionId ?? ref('')
+  const withSourceMetadata = (metadata: Record<string, unknown> | undefined) =>
+    withHistorySourceBindingMetadata(metadata, bindings?.getSourceBindingSession?.())
 
   // 使用 reactive 创建一个响应式状态对象，而不是单独的 ref
   const state = reactive({
@@ -173,10 +179,10 @@ export function usePromptOptimizer(
                 modelKey: optimizeModel.value,
                 templateId: currentTemplate.id,
                 timestamp: Date.now(),
-                metadata: {
+                metadata: withSourceMetadata({
                   optimizationMode: optimizationMode.value,
                   functionMode: functionMode.value
-                }
+                })
               };
 
               const newRecord = await historyManager.value!.createNewChain(recordData);
@@ -300,7 +306,7 @@ export function usePromptOptimizer(
                 templateId: currentTemplate.id,
                 timestamp: Date.now(),
                 // 添加上下文信息到历史记录
-                metadata: {
+                metadata: withSourceMetadata({
                   optimizationMode: optimizationMode.value,
                   functionMode: functionMode.value,
                   hasAdvancedContext: true,
@@ -315,7 +321,7 @@ export function usePromptOptimizer(
                     chainId: (msg as unknown as Record<string, unknown>).chainId as string | undefined,
                     appliedVersion: (msg as unknown as Record<string, unknown>).appliedVersion as number | undefined
                   }))
-                }
+                })
               };
 
               const newRecord = await historyManager.value!.createNewChain(recordData);
@@ -393,7 +399,8 @@ export function usePromptOptimizer(
                 optimizedPrompt: state.optimizedPrompt,
                 iterationNote: iterateInput,
                 modelKey: optimizeModel.value,
-                templateId: state.selectedIterateTemplate.id
+                templateId: state.selectedIterateTemplate.id,
+                metadata: withSourceMetadata(undefined),
               };
 
               const updatedChain = await historyManager.value!.addIteration(iterationData);
@@ -452,12 +459,12 @@ export function usePromptOptimizer(
           modelKey,
           templateId,
           timestamp: Date.now(),
-          metadata: {
+          metadata: withSourceMetadata({
             optimizationMode: optimizationMode.value,
             functionMode: functionMode.value,
             localEdit: true,
             localEditSource: source || 'manual',
-          }
+          })
         }
         const newRecord = await historyManager.value.createNewChain(recordData)
         state.currentChainId = newRecord.chainId
@@ -473,12 +480,12 @@ export function usePromptOptimizer(
         modelKey,
         templateId,
         iterationNote: note || (source === 'patch' ? 'Direct fix' : 'Manual edit'),
-        metadata: {
+        metadata: withSourceMetadata({
           optimizationMode: optimizationMode.value,
           functionMode: functionMode.value,
           localEdit: true,
           localEditSource: source || 'manual',
-        }
+        })
       })
 
       state.currentVersions = updatedChain.versions

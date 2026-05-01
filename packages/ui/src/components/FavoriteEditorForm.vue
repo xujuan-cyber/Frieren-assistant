@@ -3,11 +3,36 @@
     <NScrollbar class="favorite-editor-form__scroll">
       <div class="favorite-editor-form__content">
         <NSpace vertical :size="16">
-          <NCard
-            size="small"
-            :title="t('favorites.dialog.basicInfo')"
-            :segmented="{ content: true }"
+          <NAlert
+            v-if="pendingChangeMessages.length > 0"
+            type="info"
+            :show-icon="false"
+            class="favorite-editor-form__pending-summary"
           >
+            <NSpace :size="[8, 8]" align="center" wrap>
+              <NText strong>{{ t('favorites.dialog.pendingChanges.title') }}</NText>
+              <NTag
+                v-for="message in pendingChangeMessages"
+                :key="message"
+                size="small"
+                type="warning"
+                :bordered="false"
+              >
+                {{ message }}
+              </NTag>
+            </NSpace>
+          </NAlert>
+
+          <FavoriteSurfaceSection
+            :title="t('favorites.dialog.basicInfo')"
+            variant="identity"
+            :changed="isBasicInfoChanged"
+          >
+            <template #headerExtra>
+              <NTag v-if="isBasicInfoChanged" size="small" type="warning" :bordered="false">
+                {{ t('favorites.dialog.changed') }}
+              </NTag>
+            </template>
             <NForm label-placement="top">
               <NGrid :cols="isMobile ? 1 : 2" :x-gap="16">
                 <NGridItem>
@@ -108,13 +133,18 @@
                 </div>
               </NFormItem>
             </NForm>
-          </NCard>
+          </FavoriteSurfaceSection>
 
-          <NCard
-            size="small"
+          <FavoriteSurfaceSection
             :title="t('favorites.dialog.imagesLabel')"
-            :segmented="{ content: true }"
+            variant="media"
+            :changed="isMediaChanged"
           >
+            <template #headerExtra>
+              <NTag v-if="isMediaChanged" size="small" type="warning" :bordered="false">
+                {{ t('favorites.dialog.changed') }}
+              </NTag>
+            </template>
             <NSpace vertical :size="12">
               <template v-if="mediaDraft.sources.length === 0">
                 <div class="favorite-editor-form__upload-compact">
@@ -217,19 +247,18 @@
                 </div>
               </template>
             </NSpace>
-          </NCard>
+          </FavoriteSurfaceSection>
 
-          <FavoriteReproducibilityEditor
-            v-model:variables="reproducibilityVariables"
-            v-model:examples="reproducibilityExamples"
-            :example-previews="reproducibilityExamplePreviews"
-          />
-
-          <NCard
-            size="small"
+          <FavoriteSurfaceSection
             :title="t('favorites.dialog.contentTitle')"
-            :segmented="{ content: true }"
+            variant="content"
+            :changed="isContentChanged"
           >
+            <template #headerExtra>
+              <NTag v-if="isContentChanged" size="small" type="warning" :bordered="false">
+                {{ t('favorites.dialog.changed') }}
+              </NTag>
+            </template>
             <NInput
               data-testid="favorite-editor-content"
               v-model:value="formData.content"
@@ -237,7 +266,61 @@
               :placeholder="t('favorites.dialog.contentPlaceholder')"
               :autosize="{ minRows: embedded ? 8 : isMobile ? 8 : 12, maxRows: 24 }"
             />
-          </NCard>
+          </FavoriteSurfaceSection>
+
+          <FavoriteSurfaceSection
+            :title="t('favorites.dialog.reproducibility.variables')"
+            :changed="isReproducibilityVariablesChanged"
+          >
+            <template #headerExtra>
+              <NTag
+                v-if="isReproducibilityVariablesChanged"
+                size="small"
+                type="warning"
+                :bordered="false"
+              >
+                {{ t('favorites.dialog.changed') }}
+              </NTag>
+            </template>
+            <FavoriteReproducibilityEditor
+              v-model:variables="reproducibilityVariables"
+              v-model:examples="reproducibilityExamples"
+              :example-previews="reproducibilityExamplePreviews"
+              :panel-mode="reproducibilityPanelMode"
+              :added-example-ids="reviewAddedExampleIds"
+              :show-examples="false"
+              :show-section-headings="false"
+              embedded
+            />
+          </FavoriteSurfaceSection>
+
+          <FavoriteSurfaceSection
+            :title="t('favorites.dialog.reproducibility.examples')"
+            :changed="isReproducibilityExamplesChanged || hasAddedReviewExamples"
+          >
+            <template #headerExtra>
+              <NTag
+                v-if="isReproducibilityExamplesChanged || hasAddedReviewExamples"
+                size="small"
+                type="warning"
+                :bordered="false"
+              >
+                {{ t('favorites.dialog.changed') }}
+              </NTag>
+            </template>
+            <FavoriteReproducibilityEditor
+              v-model:variables="reproducibilityVariables"
+              v-model:examples="reproducibilityExamples"
+              :example-previews="reproducibilityExamplePreviews"
+              :panel-mode="reproducibilityPanelMode"
+              :added-example-ids="reviewAddedExampleIds"
+              :show-variables="false"
+              :show-hint="false"
+              :show-section-headings="false"
+              embedded
+              @add-image-to-media="handleAddExampleImageToMedia"
+            />
+          </FavoriteSurfaceSection>
         </NSpace>
       </div>
     </NScrollbar>
@@ -260,6 +343,7 @@ import { computed, inject, onBeforeUnmount, onMounted, reactive, ref, toRaw, wat
 
 import {
   NAutoComplete,
+  NAlert,
   NButton,
   NCard,
   NForm,
@@ -286,6 +370,8 @@ import { buildFavoriteMediaMetadata, parseFavoriteMediaMetadata } from '../utils
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
 import {
   applyFavoriteReproducibilityToMetadata,
+  appendFavoriteReproducibilityDraftToMetadata,
+  assignSequentialFavoriteExampleIds,
   parseFavoriteReproducibility,
   parseFavoriteReproducibilityFromMetadata,
   type FavoriteReproducibilityDraft,
@@ -298,6 +384,7 @@ import {
 } from '../utils/image-asset-storage'
 import CategoryTreeSelect from './CategoryTreeSelect.vue'
 import FavoriteReproducibilityEditor from './FavoriteReproducibilityEditor.vue'
+import FavoriteSurfaceSection from './favorites/FavoriteSurfaceSection.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
 
@@ -320,9 +407,11 @@ interface Props {
     imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
     reproducibilityDraft?: FavoriteReproducibilityDraft
+    updateIntent?: 'content' | 'examples'
   }
   favorite?: FavoritePrompt
   embedded?: boolean
+  applyIncomingContentOnEdit?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -334,6 +423,7 @@ const props = withDefaults(defineProps<Props>(), {
   prefill: undefined,
   favorite: undefined,
   embedded: false,
+  applyIncomingContentOnEdit: false,
 })
 
 const emit = defineEmits<{
@@ -356,8 +446,10 @@ const tagInputValue = ref('')
 const reproducibilityVariables = ref<FavoriteReproducibilityVariable[]>([])
 const reproducibilityExamples = ref<FavoriteReproducibilityExample[]>([])
 const reproducibilityExamplePreviews = ref<FavoriteReproducibilityExamplePreviews[]>([])
+const reviewAddedExampleIds = ref<string[]>([])
 
 const isMobile = computed(() => viewportWidth.value < 768)
+const isEditingFavorite = computed(() => props.mode === 'edit' && Boolean(props.favorite))
 
 const formData = reactive({
   title: '',
@@ -375,6 +467,72 @@ const mediaDraft = reactive({
   coverIndex: -1,
 })
 let hydrateRequestId = 0
+
+type ExampleImageToMediaPayload = {
+  source: string
+}
+
+const normalizeComparableString = (value: unknown) => String(value ?? '').trim()
+const normalizeComparableTags = (tags: unknown) =>
+  Array.isArray(tags) ? tags.map((tag) => String(tag)).sort() : []
+const stringifyComparable = (value: unknown) => JSON.stringify(value ?? null)
+
+const isBasicInfoChanged = computed(() => {
+  if (!isEditingFavorite.value || !props.favorite) return false
+  return (
+    normalizeComparableString(formData.title) !== normalizeComparableString(props.favorite.title) ||
+    normalizeComparableString(formData.description) !== normalizeComparableString(props.favorite.description) ||
+    normalizeComparableString(formData.category) !== normalizeComparableString(props.favorite.category) ||
+    stringifyComparable(normalizeComparableTags(formData.tags)) !== stringifyComparable(normalizeComparableTags(props.favorite.tags)) ||
+    normalizeComparableString(formData.functionMode) !== normalizeComparableString(normalizeFavoriteFunctionMode(props.favorite.functionMode)) ||
+    normalizeComparableString(formData.optimizationMode) !== normalizeComparableString(props.favorite.optimizationMode) ||
+    normalizeComparableString(formData.imageSubMode) !== normalizeComparableString(props.favorite.imageSubMode)
+  )
+})
+
+const isContentChanged = computed(() => {
+  if (!isEditingFavorite.value || !props.favorite) return false
+  return normalizeComparableString(formData.content) !== normalizeComparableString(props.favorite.content)
+})
+
+const isMediaChanged = computed(() => isEditingFavorite.value && mediaTouched.value)
+
+const favoriteReproducibilityBaseline = computed(() =>
+  props.favorite ? parseFavoriteReproducibility(props.favorite) : null,
+)
+
+const isReproducibilityVariablesChanged = computed(() => {
+  if (!isEditingFavorite.value || !props.favorite) return false
+  return stringifyComparable(reproducibilityVariables.value) !== stringifyComparable(favoriteReproducibilityBaseline.value?.variables || [])
+})
+
+const isReproducibilityExamplesChanged = computed(() => {
+  if (!isEditingFavorite.value || !props.favorite) return false
+  return stringifyComparable(reproducibilityExamples.value) !== stringifyComparable(favoriteReproducibilityBaseline.value?.examples || [])
+})
+
+const isReproducibilityChanged = computed(() =>
+  isReproducibilityVariablesChanged.value || isReproducibilityExamplesChanged.value,
+)
+
+const hasAddedReviewExamples = computed(() => reviewAddedExampleIds.value.length > 0)
+const reproducibilityPanelMode = computed<'review' | 'edit'>(() =>
+  props.mode === 'create' ? 'edit' : 'review',
+)
+const pendingChangeMessages = computed(() => {
+  const messages: string[] = []
+  if (isBasicInfoChanged.value) messages.push(t('favorites.dialog.pendingChanges.basicInfo'))
+  if (isMediaChanged.value) messages.push(t('favorites.dialog.pendingChanges.images'))
+  if (isContentChanged.value) messages.push(t('favorites.dialog.pendingChanges.content'))
+  if (hasAddedReviewExamples.value) {
+    messages.push(t('favorites.dialog.pendingChanges.examplesAdded', {
+      count: reviewAddedExampleIds.value.length,
+    }))
+  } else if (isReproducibilityChanged.value) {
+    messages.push(t('favorites.dialog.pendingChanges.reproducibility'))
+  }
+  return messages
+})
 
 const tagSuggestions = computed(() => {
   const suggestions = filterTags(tagInputValue.value, formData.tags)
@@ -481,6 +639,21 @@ const hydrateReproducibilityDraft = (
     images: [],
     inputImages: [],
   }))
+}
+
+const normalizeIncomingReproducibilityDraft = (
+  favorite: FavoritePrompt,
+  draft: FavoriteReproducibilityDraft,
+): FavoriteReproducibilityDraft => {
+  const current = parseFavoriteReproducibility(favorite)
+  const examples = assignSequentialFavoriteExampleIds(current.examples, draft.examples || [])
+  reviewAddedExampleIds.value = examples
+    .map((example) => example.id)
+    .filter((id): id is string => Boolean(id))
+  return {
+    variables: draft.variables || [],
+    examples,
+  }
 }
 
 const hydrateReproducibilityExamplePreviews = async (
@@ -735,6 +908,20 @@ const handleBeforeImageUpload = async (options: { file: UploadFileInfo }) => {
   return false
 }
 
+const handleAddExampleImageToMedia = (payload: ExampleImageToMediaPayload) => {
+  const source = String(payload.source || '').trim()
+  if (!source) return
+
+  const nextSources = dedupeStrings([...mediaDraft.sources, source])
+  if (nextSources.length === mediaDraft.sources.length) return
+
+  mediaDraft.sources = nextSources
+  mediaTouched.value = true
+  if (mediaDraft.coverIndex < 0) {
+    mediaDraft.coverIndex = 0
+  }
+}
+
 const handleSetCover = (index: number) => {
   if (index < 0 || index >= mediaDraft.sources.length) return
   mediaTouched.value = true
@@ -886,35 +1073,48 @@ const handleSave = async () => {
           ? { ...props.prefill.metadata }
           : {}
 
-    const mediaMetadata = await buildMediaMetadataForSave()
+    const isExamplesOnlyUpdate = props.mode === 'edit' && props.prefill?.updateIntent === 'examples'
+    const shouldPreserveUntouchedEditMedia = isExamplesOnlyUpdate && !mediaTouched.value
+    const mediaMetadata = shouldPreserveUntouchedEditMedia
+      ? null
+      : await buildMediaMetadataForSave()
     const prefillMedia =
       props.mode === 'save' && props.prefill?.metadata && typeof props.prefill.metadata === 'object'
         ? (props.prefill.metadata as Record<string, unknown>).media
         : undefined
 
-    if (mediaMetadata) {
-      existingMetadata.media = mediaMetadata
-    } else if (
-      props.mode === 'save'
-      && !mediaTouched.value
-      && prefillMedia
-      && typeof prefillMedia === 'object'
-    ) {
-      existingMetadata.media = { ...(prefillMedia as Record<string, unknown>) }
-    } else {
-      delete existingMetadata.media
+    if (!shouldPreserveUntouchedEditMedia) {
+      if (mediaMetadata) {
+        existingMetadata.media = mediaMetadata
+      } else if (
+        props.mode === 'save'
+        && !mediaTouched.value
+        && prefillMedia
+        && typeof prefillMedia === 'object'
+      ) {
+        existingMetadata.media = { ...(prefillMedia as Record<string, unknown>) }
+      } else {
+        delete existingMetadata.media
+      }
     }
 
-    if (props.originalContent) {
+    if (props.originalContent && (!isExamplesOnlyUpdate || isContentChanged.value)) {
       existingMetadata.originalContent = props.originalContent
     }
 
-    const currentReproducibility = parseFavoriteReproducibilityFromMetadata(existingMetadata)
+    const currentReproducibility =
+      props.mode === 'edit' && props.favorite
+        ? parseFavoriteReproducibility(props.favorite)
+        : parseFavoriteReproducibilityFromMetadata(existingMetadata)
     const reproducibilityDraft = await buildReproducibilityDraftForSave()
     const hasReproducibilityDraft =
       reproducibilityDraft.variables.length > 0 || reproducibilityDraft.examples.length > 0
     if (currentReproducibility.hasData || hasReproducibilityDraft) {
-      existingMetadata = applyFavoriteReproducibilityToMetadata(existingMetadata, reproducibilityDraft)
+      existingMetadata = applyFavoriteReproducibilityToMetadata(
+        existingMetadata,
+        reproducibilityDraft,
+        { preserveEmpty: currentReproducibility.hasData && !hasReproducibilityDraft },
+      )
     }
 
     const metadata = Object.keys(existingMetadata).length > 0 ? existingMetadata : undefined
@@ -962,6 +1162,7 @@ watch(() => [
   })
 
   mediaTouched.value = false
+  reviewAddedExampleIds.value = []
   await loadTags()
   if (isStale()) return
 
@@ -976,22 +1177,41 @@ watch(() => [
     formData.imageSubMode = undefined
     resetMediaDraft()
     resetReproducibilityDraft()
+    reviewAddedExampleIds.value = []
     return
   }
 
   if (props.mode === 'edit' && props.favorite) {
+    const prefill = props.prefill
+    const shouldApplyIncomingContent = props.applyIncomingContentOnEdit && prefill?.updateIntent !== 'examples'
     formData.title = props.favorite.title
     formData.description = props.favorite.description || ''
-    formData.content = props.favorite.content
+    formData.content = shouldApplyIncomingContent
+      ? (props.content || props.favorite.content)
+      : props.favorite.content
     formData.category = props.favorite.category || ''
     formData.tags = [...(props.favorite.tags || [])]
-    formData.functionMode = normalizeFavoriteFunctionMode(props.favorite.functionMode)
-    formData.optimizationMode = props.favorite.optimizationMode
-    formData.imageSubMode = props.favorite.imageSubMode
+    formData.functionMode = shouldApplyIncomingContent && prefill?.functionMode
+      ? normalizeFavoriteFunctionMode(prefill.functionMode)
+      : normalizeFavoriteFunctionMode(props.favorite.functionMode)
+    formData.optimizationMode = shouldApplyIncomingContent && prefill?.optimizationMode
+      ? prefill.optimizationMode
+      : props.favorite.optimizationMode
+    formData.imageSubMode = shouldApplyIncomingContent && prefill?.imageSubMode
+      ? prefill.imageSubMode
+      : props.favorite.imageSubMode
     await hydrateMediaDraft(undefined, props.favorite, isStale)
     if (isStale()) return
-    hydrateReproducibilityDraft(undefined, props.favorite)
-    await hydrateReproducibilityExamplePreviews(undefined, props.favorite, isStale)
+    const draft = props.applyIncomingContentOnEdit ? props.prefill?.reproducibilityDraft : undefined
+    if (draft && (draft.variables.length > 0 || draft.examples.length > 0)) {
+      const normalizedDraft = normalizeIncomingReproducibilityDraft(props.favorite, draft)
+      const metadata = appendFavoriteReproducibilityDraftToMetadata(props.favorite, normalizedDraft)
+      hydrateReproducibilityDraft(metadata)
+      await hydrateReproducibilityExamplePreviews(metadata, undefined, isStale)
+    } else {
+      hydrateReproducibilityDraft(undefined, props.favorite)
+      await hydrateReproducibilityExamplePreviews(undefined, props.favorite, isStale)
+    }
     return
   }
 
@@ -1047,6 +1267,11 @@ watch(() => [
     prefill?.metadata && typeof prefill.metadata === 'object'
       ? (prefill.metadata as Record<string, unknown>)
       : undefined
+  if (prefill?.reproducibilityDraft && prefill.reproducibilityDraft.examples.length > 0) {
+    reviewAddedExampleIds.value = prefill.reproducibilityDraft.examples
+      .map((example) => example.id)
+      .filter((id): id is string => Boolean(id))
+  }
   await hydrateMediaDraft(prefillMetadata, undefined, isStale)
   if (isStale()) return
   hydrateReproducibilityDraft(prefillMetadata)
@@ -1087,11 +1312,41 @@ onBeforeUnmount(() => {
 }
 
 .favorite-editor-form__content {
-  padding: 20px;
+  padding: 18px;
 }
 
 .favorite-editor-form--embedded .favorite-editor-form__content {
-  padding: 20px 20px 96px;
+  padding: 18px 18px 96px;
+}
+
+.favorite-editor-form :deep(.n-card) {
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--n-border-color) 76%, transparent);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.favorite-editor-form :deep(.n-card-header) {
+  min-height: 44px;
+  padding: 12px 16px 8px;
+}
+
+.favorite-editor-form :deep(.n-card__content) {
+  padding: 14px 16px 16px;
+}
+
+.favorite-editor-form :deep(.n-form-item-label) {
+  font-size: 12px;
+  color: var(--n-text-color-2);
+}
+
+.favorite-editor-form :deep(.n-input),
+.favorite-editor-form :deep(.n-base-selection) {
+  border-radius: 7px;
+}
+
+.favorite-editor-form__pending-summary {
+  border-radius: 8px;
 }
 
 .favorite-editor-form__tag-field {

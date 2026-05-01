@@ -1,4 +1,5 @@
 import {
+  type ConversationMessage,
   promptModeKeyToFavoriteMode,
   type FavoriteModeCompat,
   type PromptAsset,
@@ -40,11 +41,13 @@ export type FavoriteWorkspaceApplyDraft = {
   targetKey: FavoriteWorkspaceTargetKey | null
   favoriteMode: FavoriteModeCompat | null
   content: string
+  conversationMessages: ConversationMessage[] | null
   promptContent: PromptContent | null
   promptAsset: PromptAsset | null
   metadata?: Record<string, unknown>
   reproducibility: FavoriteReproducibility
   selectedExample: FavoriteReproducibilityExample | null
+  selectedExampleText: string | null
 }
 
 export const promptModeKeyToWorkspaceTargetKey = (
@@ -119,6 +122,85 @@ const currentPromptContentFromAsset = (asset: PromptAsset | null): PromptContent
   return asset.versions.find((version) => version.id === asset.currentVersionId)?.content || null
 }
 
+const normalizeGeneratedMessageIdPart = (value: string | undefined): string => {
+  const normalized = (value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return normalized || 'favorite'
+}
+
+const createGeneratedMessageId = (
+  sourceKey: string,
+  index: number,
+  usedIds: Set<string>,
+): string => {
+  const base = `${normalizeGeneratedMessageIdPart(sourceKey)}-message-${index + 1}`
+  let candidate = base
+  let suffix = 2
+  while (usedIds.has(candidate)) {
+    candidate = `${base}-${suffix}`
+    suffix += 1
+  }
+  usedIds.add(candidate)
+  return candidate
+}
+
+const normalizeConversationMessages = (
+  messages: ConversationMessage[],
+  sourceKey: string,
+): ConversationMessage[] => {
+  const reservedIds = new Set<string>()
+  const usedIds = new Set<string>()
+
+  for (const message of messages) {
+    const id = message.id?.trim()
+    if (id) reservedIds.add(id)
+  }
+
+  return messages.map((message, index) => {
+    const existingId = message.id?.trim()
+    const content = typeof message.content === 'string' ? message.content : ''
+    const id =
+      existingId && !usedIds.has(existingId)
+        ? existingId
+        : createGeneratedMessageId(sourceKey, index, reservedIds)
+    usedIds.add(id)
+    reservedIds.add(id)
+
+    return {
+      ...message,
+      id,
+      content,
+      originalContent:
+        typeof message.originalContent === 'string'
+          ? message.originalContent
+          : content,
+    }
+  })
+}
+
+const conversationMessagesFromDraftSources = (
+  targetKey: FavoriteWorkspaceTargetKey | null,
+  selectedExample: FavoriteReproducibilityExample | null,
+  promptContent: PromptContent | null,
+  promptAsset: PromptAsset | null,
+): ConversationMessage[] | null => {
+  if (targetKey !== 'pro-multi') return null
+
+  if (selectedExample?.messages && selectedExample.messages.length > 0) {
+    const sourceKey = `favorite-example-${selectedExample.id || selectedExample.basedOnVersionId || 'selected'}`
+    return normalizeConversationMessages(selectedExample.messages, sourceKey)
+  }
+
+  if (promptContent?.kind === 'messages' && promptContent.messages.length > 0) {
+    const sourceKey = `favorite-asset-${promptAsset?.id || 'asset'}-${promptAsset?.currentVersionId || 'current'}`
+    return normalizeConversationMessages(promptContent.messages, sourceKey)
+  }
+
+  return null
+}
+
 const promptContentToWorkspaceText = (
   content: PromptContent,
   fallback: string,
@@ -160,20 +242,32 @@ export const createFavoriteWorkspaceApplyDraft = (
     : favoriteMode
       ? favoriteModeToWorkspaceTargetKey(favoriteMode)
       : null
+  const selectedExample = pickFavoriteReproducibilityExample(
+    projection.reproducibility.examples,
+    options,
+  )
+  const conversationMessages = conversationMessagesFromDraftSources(
+    targetKey,
+    selectedExample,
+    promptContent,
+    promptAsset,
+  )
+  const workspaceTextContent: PromptContent | null = conversationMessages
+    ? { kind: 'messages', messages: conversationMessages }
+    : promptContent
 
   return {
     targetKey,
     favoriteMode,
-    content: promptContent
-      ? promptContentToWorkspaceText(promptContent, favorite.content)
+    content: workspaceTextContent
+      ? promptContentToWorkspaceText(workspaceTextContent, favorite.content)
       : favorite.content,
+    conversationMessages,
     promptContent,
     promptAsset,
     metadata: favorite.metadata,
     reproducibility: projection.reproducibility,
-    selectedExample: pickFavoriteReproducibilityExample(
-      projection.reproducibility.examples,
-      options,
-    ),
+    selectedExample,
+    selectedExampleText: selectedExample?.text || null,
   }
 }

@@ -145,9 +145,12 @@ describe('AppHeaderActions about menu layout hooks', () => {
     expect(modalGroup.exists()).toBe(true)
     expect(pageGroup.text()).toContain('Favorite Library')
     expect(modalGroup.text()).not.toContain('Favorite Library')
-    expect(pageGroup.find('button').attributes('data-type')).toBe('primary')
+    const favoritesAction = pageGroup.find('[data-testid="header-favorites-page-action"]')
+    expect(favoritesAction.attributes('data-type')).toBe('primary')
+    expect(favoritesAction.attributes('aria-current')).toBe('page')
+    expect(favoritesAction.attributes('title')).toBe('favorites.page.title')
 
-    await pageGroup.find('button').trigger('click')
+    await favoritesAction.trigger('click')
 
     expect(wrapper.emitted('open-favorites')).toHaveLength(1)
   })

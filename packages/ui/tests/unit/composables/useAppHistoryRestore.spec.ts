@@ -106,8 +106,14 @@ describe('useAppHistoryRestore', () => {
     const handleSelectHistory = vi.fn(async () => {
       order.push('history-selected')
     })
+    const restoreSourceBindingForTargetKey = vi.fn()
 
     const record = createBasicRecord('optimize')
+    record.metadata = {
+      ...record.metadata,
+      assetBinding: { assetId: 'asset-linked', versionId: 'version-linked', status: 'linked' },
+      origin: { kind: 'favorite', id: 'favorite-linked' },
+    }
     const chain: PromptRecordChain = {
       chainId: 'chain-basic-1',
       rootRecord: record,
@@ -129,6 +135,7 @@ describe('useAppHistoryRestore', () => {
       userWorkspaceRef: ref(null),
       t: (key: string) => key,
       isLoadingExternalData: ref(false),
+      restoreSourceBindingForTargetKey,
     })
 
     await handleHistoryReuse({
@@ -140,6 +147,10 @@ describe('useAppHistoryRestore', () => {
 
     expect(navigateToSubModeKey).toHaveBeenCalledWith('basic-system')
     expect(order).toEqual(['navigation-started', 'navigation-finished', 'history-selected'])
+    expect(restoreSourceBindingForTargetKey).toHaveBeenCalledWith('basic-system', {
+      assetBinding: { assetId: 'asset-linked', versionId: 'version-linked', status: 'linked' },
+      origin: { kind: 'favorite', id: 'favorite-linked' },
+    })
   })
 
   it('logs history restore failures with an English runtime message', async () => {

@@ -5,6 +5,7 @@ import {
   PROMPT_MODEL_SCHEMA_VERSION,
   createPromptContract,
   promptAssetFromFavorite,
+  refreshPromptAssetFromFavorite,
   type PromptAsset,
 } from '../../../src/services/prompt-model'
 
@@ -66,6 +67,18 @@ describe('promptAssetFromFavorite', () => {
         examples: [
           {
             id: 'example-1',
+            basedOnVersionId: 'asset-version-1',
+            source: {
+              kind: 'workspace',
+              id: 'implicit:basic-system',
+              metadata: {
+                assetBinding: {
+                  assetId: 'asset-1',
+                  versionId: 'asset-version-1',
+                  status: 'linked',
+                },
+              },
+            },
             text: 'Summarize this release',
             parameters: { topic: 'release notes' },
             inputImages: ['https://example.test/input.png'],
@@ -92,7 +105,18 @@ describe('promptAssetFromFavorite', () => {
     ])
     expect(asset.examples[0]).toMatchObject({
       id: 'example-1',
-      basedOnVersionId: 'favorite:fav-1:current',
+      basedOnVersionId: 'asset-version-1',
+      source: {
+        kind: 'workspace',
+        id: 'implicit:basic-system',
+        metadata: {
+          assetBinding: {
+            assetId: 'asset-1',
+            versionId: 'asset-version-1',
+            status: 'linked',
+          },
+        },
+      },
       input: {
         text: 'Summarize this release',
         parameters: { topic: 'release notes' },
@@ -248,6 +272,53 @@ describe('promptAssetFromFavorite', () => {
     expect(asset.id).toBe('favorite:fav-current')
     expect(asset.title).toBe('Current title')
     expect(asset.versions[0].content).toEqual({ kind: 'text', text: 'Current content' })
+  })
+
+  it('refreshes an embedded prompt asset without churning equivalent rich content versions', () => {
+    const embedded: PromptAsset = {
+      schemaVersion: PROMPT_MODEL_SCHEMA_VERSION,
+      id: 'asset-rich',
+      title: 'Rich asset',
+      tags: [],
+      contract: createPromptContract('pro-conversation'),
+      currentVersionId: 'v1',
+      versions: [
+        {
+          id: 'v1',
+          version: 1,
+          content: {
+            kind: 'messages',
+            messages: [
+              { role: 'system', content: 'Be concise.' },
+              { role: 'user', content: 'Summarize {{topic}}.' },
+            ],
+          },
+          createdAt: 1,
+        },
+      ],
+      examples: [],
+      createdAt: 1,
+      updatedAt: 2,
+    }
+    const favorite = createFavorite({
+      id: 'fav-rich',
+      functionMode: 'context',
+      optimizationMode: 'system',
+      content: '[system]\nBe concise.\n\n[user]\nSummarize {{topic}}.',
+      metadata: {
+        promptAsset: embedded,
+        reproducibility: {
+          variables: [{ name: 'topic', required: true }],
+        },
+      },
+    })
+
+    const asset = refreshPromptAssetFromFavorite(favorite)
+
+    expect(asset.currentVersionId).toBe('v1')
+    expect(asset.versions).toHaveLength(1)
+    expect(asset.versions[0].content).toEqual(embedded.versions[0].content)
+    expect(asset.contract.variables).toMatchObject([{ name: 'topic', required: true }])
   })
 
   it('strips workspace-only example values from generated prompt assets', () => {

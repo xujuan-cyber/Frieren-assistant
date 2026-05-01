@@ -1,33 +1,29 @@
 <template>
-  <NCard
-    size="small"
-    :title="t('favorites.dialog.reproducibility.title')"
-    :segmented="{ content: true }"
+  <component
+    :is="surfaceComponent"
+    v-bind="surfaceProps"
+    class="favorite-reproducibility-editor"
+    :class="{ 'favorite-reproducibility-editor--embedded': embedded }"
   >
-    <NSpace vertical :size="hasReproducibilityData ? 12 : 8">
-      <NText depth="3">
+    <NSpace vertical :size="12">
+      <NText v-if="showHint" depth="3">
         {{ t('favorites.dialog.reproducibility.hint') }}
       </NText>
 
-      <div v-if="!hasReproducibilityData" class="favorite-reproducibility-editor__empty">
-        <NText depth="3">
-          {{ t('favorites.dialog.reproducibility.empty') }}
-        </NText>
-        <NSpace :size="8" wrap>
-          <NButton data-testid="favorite-repro-add-variable-empty" size="small" secondary @click="handleAddVariable">
-            {{ t('favorites.dialog.reproducibility.addVariable') }}
-          </NButton>
-          <NButton data-testid="favorite-repro-add-example-empty" size="small" secondary @click="handleAddExample">
-            {{ t('favorites.dialog.reproducibility.addExample') }}
-          </NButton>
-        </NSpace>
-      </div>
-
-      <template v-else>
-        <section class="favorite-reproducibility-editor__section">
-          <div class="favorite-reproducibility-editor__section-header">
-            <NText strong>{{ t('favorites.dialog.reproducibility.variables') }}</NText>
-            <NButton data-testid="favorite-repro-add-variable" size="small" secondary @click="handleAddVariable">
+      <template v-if="showVariables || showExamples">
+        <section v-if="showVariables" class="favorite-reproducibility-editor__section">
+          <div
+            class="favorite-reproducibility-editor__section-header"
+            :class="{ 'favorite-reproducibility-editor__section-header--actions-only': !showSectionHeadings }"
+          >
+            <NText v-if="showSectionHeadings" strong>{{ t('favorites.dialog.reproducibility.variables') }}</NText>
+            <NButton
+              v-if="!isReadonly"
+              data-testid="favorite-repro-add-variable"
+              size="small"
+              secondary
+              @click="handleAddVariable"
+            >
               {{ t('favorites.dialog.reproducibility.addVariable') }}
             </NButton>
           </div>
@@ -50,6 +46,7 @@
                     data-testid="favorite-repro-variable-name"
                     :value="variable.name"
                     :placeholder="t('favorites.dialog.reproducibility.variableNamePlaceholder')"
+                    :readonly="isReadonly"
                     @update:value="updateVariable(index, { name: $event })"
                   />
                 </NGridItem>
@@ -58,6 +55,7 @@
                     data-testid="favorite-repro-variable-default"
                     :value="variable.defaultValue"
                     :placeholder="t('favorites.dialog.reproducibility.variableDefaultPlaceholder')"
+                    :readonly="isReadonly"
                     @update:value="updateVariable(index, { defaultValue: $event })"
                   />
                 </NGridItem>
@@ -68,6 +66,7 @@
                     clearable
                     :options="variableTypeOptions"
                     :placeholder="t('favorites.dialog.reproducibility.variableTypePlaceholder')"
+                    :disabled="isReadonly"
                     @update:value="updateVariable(index, { type: $event || undefined })"
                   />
                 </NGridItem>
@@ -76,6 +75,7 @@
                     data-testid="favorite-repro-variable-options"
                     :value="formatOptions(variable.options)"
                     :placeholder="t('favorites.dialog.reproducibility.variableOptionsPlaceholder')"
+                    :readonly="isReadonly"
                     @update:value="updateVariable(index, { options: parseListText($event) })"
                   />
                 </NGridItem>
@@ -84,12 +84,13 @@
                     data-testid="favorite-repro-variable-description"
                     :value="variable.description"
                     :placeholder="t('favorites.dialog.reproducibility.variableDescriptionPlaceholder')"
+                    :readonly="isReadonly"
                     @update:value="updateVariable(index, { description: $event })"
                   />
                 </NGridItem>
               </NGrid>
 
-              <div class="favorite-reproducibility-editor__item-actions">
+              <div v-if="!isReadonly" class="favorite-reproducibility-editor__item-actions">
                 <NCheckbox
                   data-testid="favorite-repro-variable-required"
                   :checked="variable.required"
@@ -111,10 +112,19 @@
           </NSpace>
         </section>
 
-        <section class="favorite-reproducibility-editor__section">
-          <div class="favorite-reproducibility-editor__section-header">
-            <NText strong>{{ t('favorites.dialog.reproducibility.examples') }}</NText>
-            <NButton data-testid="favorite-repro-add-example" size="small" secondary @click="handleAddExample">
+        <section v-if="showExamples" class="favorite-reproducibility-editor__section">
+          <div
+            class="favorite-reproducibility-editor__section-header"
+            :class="{ 'favorite-reproducibility-editor__section-header--actions-only': !showSectionHeadings }"
+          >
+            <NText v-if="showSectionHeadings" strong>{{ t('favorites.dialog.reproducibility.examples') }}</NText>
+            <NButton
+              v-if="!isReadonly"
+              data-testid="favorite-repro-add-example"
+              size="small"
+              secondary
+              @click="handleAddExample"
+            >
               {{ t('favorites.dialog.reproducibility.addExample') }}
             </NButton>
           </div>
@@ -130,22 +140,140 @@
               v-for="(example, index) in examples"
               :key="`${index}-${example.id || example.text || 'example'}`"
               class="favorite-reproducibility-editor__item favorite-reproducibility-editor__example"
+              :class="{
+                'favorite-reproducibility-editor__example--added': isAddedExample(example),
+                'favorite-reproducibility-editor__example--editing': isExampleEditing(example, index),
+              }"
             >
               <div class="favorite-reproducibility-editor__example-header">
-                <NText strong>
-                  {{ example.id || t('favorites.dialog.reproducibility.exampleLabel', { index: index + 1 }) }}
-                </NText>
-                <NButton
-                  data-testid="favorite-repro-remove-example"
-                  size="small"
-                  quaternary
-                  type="error"
-                  @click="handleRemoveExample(index)"
-                >
-                  {{ t('favorites.dialog.reproducibility.remove') }}
-                </NButton>
+                <NSpace :size="6" align="center" wrap>
+                  <NText strong>
+                    {{ getExampleLabel(index) }}
+                  </NText>
+                  <NTag v-if="isAddedExample(example)" size="small" type="warning" :bordered="false">
+                    {{ t('favorites.dialog.reproducibility.newExample') }}
+                  </NTag>
+                  <NTag v-if="isExampleEditing(example, index)" size="small" type="info" :bordered="false">
+                    {{ t('favorites.dialog.reproducibility.editingExample') }}
+                  </NTag>
+                </NSpace>
+                <NSpace v-if="!isReadonly" :size="4" align="center">
+                  <NButton
+                    v-if="!isExampleEditing(example, index)"
+                    data-testid="favorite-repro-edit-example"
+                    size="small"
+                    secondary
+                    @click="handleEditExample(example, index)"
+                  >
+                    {{ t('favorites.dialog.reproducibility.editExample') }}
+                  </NButton>
+                  <NButton
+                    v-else-if="!isAddedExample(example) && panelMode === 'review'"
+                    data-testid="favorite-repro-done-example"
+                    size="small"
+                    secondary
+                    @click="handleDoneExample(example, index)"
+                  >
+                    {{ t('favorites.dialog.reproducibility.doneEditing') }}
+                  </NButton>
+                  <NButton
+                    data-testid="favorite-repro-remove-example"
+                    size="small"
+                    quaternary
+                    type="error"
+                    @click="handleRemoveExample(index)"
+                  >
+                    {{ t('favorites.dialog.reproducibility.remove') }}
+                  </NButton>
+                </NSpace>
               </div>
 
+              <div
+                v-if="!isExampleEditing(example, index)"
+                class="favorite-reproducibility-editor__example-summary"
+              >
+                <NText v-if="example.text" class="favorite-reproducibility-editor__example-summary-text">
+                  {{ example.text }}
+                </NText>
+                <NText
+                  v-if="example.description"
+                  depth="3"
+                  class="favorite-reproducibility-editor__example-summary-text"
+                >
+                  {{ example.description }}
+                </NText>
+                <NSpace :size="[6, 6]" align="center" wrap>
+                  <NTag
+                    v-for="[parameterKey, parameterValue] in getParameterEntries(example.parameters)"
+                    :key="parameterKey"
+                    size="small"
+                    :bordered="false"
+                  >
+                    {{ parameterKey }}: {{ parameterValue }}
+                  </NTag>
+                  <NTag
+                    v-if="getExampleImageItems(index, 'images', example).length > 0"
+                    size="small"
+                    type="success"
+                    :bordered="false"
+                  >
+                    {{ t('favorites.dialog.reproducibility.outputImageCount', { count: getExampleImageItems(index, 'images', example).length }) }}
+                  </NTag>
+                  <NTag
+                    v-if="getExampleImageItems(index, 'inputImages', example).length > 0"
+                    size="small"
+                    type="success"
+                    :bordered="false"
+                  >
+                    {{ t('favorites.dialog.reproducibility.inputImageCount', { count: getExampleImageItems(index, 'inputImages', example).length }) }}
+                  </NTag>
+                </NSpace>
+                <NText
+                  v-if="example.outputText"
+                  depth="3"
+                  class="favorite-reproducibility-editor__example-summary-output"
+                >
+                  {{ example.outputText }}
+                </NText>
+                <div
+                  v-if="getExampleImageItems(index, 'images', example).length > 0"
+                  class="favorite-reproducibility-editor__summary-media"
+                >
+                  <NText strong>{{ t('favorites.dialog.reproducibility.exampleImages') }}</NText>
+                  <AppPreviewImageGroup>
+                    <div class="favorite-reproducibility-editor__summary-image-grid">
+                      <AppPreviewImage
+                        v-for="item in getExampleImageItems(index, 'images', example)"
+                        :key="item.key"
+                        :src="item.source"
+                        :alt="t('favorites.dialog.imageAlt', { index: item.displayIndex + 1 })"
+                        object-fit="cover"
+                        class="favorite-reproducibility-editor__summary-image"
+                      />
+                    </div>
+                  </AppPreviewImageGroup>
+                </div>
+                <div
+                  v-if="getExampleImageItems(index, 'inputImages', example).length > 0"
+                  class="favorite-reproducibility-editor__summary-media"
+                >
+                  <NText strong>{{ t('favorites.dialog.reproducibility.exampleInputImages') }}</NText>
+                  <AppPreviewImageGroup>
+                    <div class="favorite-reproducibility-editor__summary-image-grid">
+                      <AppPreviewImage
+                        v-for="item in getExampleImageItems(index, 'inputImages', example)"
+                        :key="item.key"
+                        :src="item.source"
+                        :alt="t('favorites.dialog.imageAlt', { index: item.displayIndex + 1 })"
+                        object-fit="cover"
+                        class="favorite-reproducibility-editor__summary-image"
+                      />
+                    </div>
+                  </AppPreviewImageGroup>
+                </div>
+              </div>
+
+              <template v-else>
               <div class="favorite-reproducibility-editor__example-basic">
                 <div>
                   <NInput
@@ -171,29 +299,68 @@
                     @update:value="updateExample(index, { description: $event })"
                   />
                 </div>
-              </div>
-
-              <div
-                v-if="hasStructuredExamplePreview(example)"
-                class="favorite-reproducibility-editor__example-readonly-grid"
-              >
-                <div v-if="example.messages && example.messages.length > 0">
-                  <NText strong>{{ t('favorites.dialog.reproducibility.messages') }}</NText>
-                  <NInput
-                    type="textarea"
-                    readonly
-                    :autosize="{ minRows: 2, maxRows: 6 }"
-                    :value="formatExampleMessages(example)"
-                  />
-                </div>
-                <div v-if="example.outputText">
+                <div class="favorite-reproducibility-editor__example-output-field">
                   <NText strong>{{ t('favorites.dialog.reproducibility.outputText') }}</NText>
                   <NInput
+                    data-testid="favorite-repro-example-output-text"
                     type="textarea"
-                    readonly
-                    :autosize="{ minRows: 2, maxRows: 6 }"
+                    :autosize="{ minRows: 2, maxRows: 8 }"
                     :value="example.outputText"
+                    :placeholder="t('favorites.dialog.reproducibility.outputText')"
+                    @update:value="updateExample(index, { outputText: $event })"
                   />
+                </div>
+              </div>
+
+              <div class="favorite-reproducibility-editor__example-section">
+                <div class="favorite-reproducibility-editor__message-field">
+                  <div class="favorite-reproducibility-editor__section-header">
+                    <NText strong>{{ t('favorites.dialog.reproducibility.messages') }}</NText>
+                    <NButton
+                      data-testid="favorite-repro-example-add-message"
+                      size="small"
+                      secondary
+                      @click="handleAddExampleMessage(index)"
+                    >
+                      {{ t('favorites.dialog.reproducibility.addMessage') }}
+                    </NButton>
+                  </div>
+                  <NEmpty
+                    v-if="!example.messages || example.messages.length === 0"
+                    size="small"
+                    :description="t('favorites.dialog.reproducibility.noMessages')"
+                  />
+                  <NSpace v-else vertical :size="6">
+                    <div
+                      v-for="(message, messageIndex) in example.messages"
+                      :key="message.id || `${message.role}-${messageIndex}`"
+                      class="favorite-reproducibility-editor__message-row"
+                    >
+                      <NSelect
+                        data-testid="favorite-repro-example-message-role"
+                        :value="message.role"
+                        :options="messageRoleOptions"
+                        @update:value="handleUpdateExampleMessage(index, messageIndex, { role: normalizeMessageRole($event) })"
+                      />
+                      <NInput
+                        data-testid="favorite-repro-example-message-content"
+                        type="textarea"
+                        :autosize="{ minRows: 2, maxRows: 6 }"
+                        :value="message.content"
+                        :placeholder="t('favorites.dialog.reproducibility.messageContentPlaceholder')"
+                        @update:value="handleUpdateExampleMessage(index, messageIndex, { content: $event })"
+                      />
+                      <NButton
+                        data-testid="favorite-repro-example-remove-message"
+                        size="small"
+                        quaternary
+                        type="error"
+                        @click="handleRemoveExampleMessage(index, messageIndex)"
+                      >
+                        {{ t('favorites.dialog.reproducibility.remove') }}
+                      </NButton>
+                    </div>
+                  </NSpace>
                 </div>
               </div>
 
@@ -308,6 +475,15 @@
                           class="favorite-reproducibility-editor__image"
                         />
                         <NButton
+                          data-testid="favorite-repro-example-add-image-to-media"
+                          size="tiny"
+                          secondary
+                          class="favorite-reproducibility-editor__image-add-media"
+                          @click="handleAddExampleImageToMedia(index, 'images', item)"
+                        >
+                          {{ t('favorites.dialog.reproducibility.addImageToMedia') }}
+                        </NButton>
+                        <NButton
                           data-testid="favorite-repro-example-remove-image"
                           size="tiny"
                           type="error"
@@ -373,6 +549,15 @@
                           class="favorite-reproducibility-editor__image"
                         />
                         <NButton
+                          data-testid="favorite-repro-example-add-input-image-to-media"
+                          size="tiny"
+                          secondary
+                          class="favorite-reproducibility-editor__image-add-media"
+                          @click="handleAddExampleImageToMedia(index, 'inputImages', item)"
+                        >
+                          {{ t('favorites.dialog.reproducibility.addImageToMedia') }}
+                        </NButton>
+                        <NButton
                           data-testid="favorite-repro-example-remove-input-image"
                           size="tiny"
                           type="error"
@@ -387,12 +572,13 @@
                   </AppPreviewImageGroup>
                 </div>
               </div>
+              </template>
             </div>
           </NSpace>
         </section>
       </template>
     </NSpace>
-  </NCard>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -406,6 +592,7 @@ import {
   NInput,
   NSelect,
   NSpace,
+  NTag,
   NText,
   NUpload,
   type UploadFileInfo,
@@ -432,6 +619,9 @@ type FavoriteReproducibilityExamplePreviews = {
 
 type ExampleImageField = 'images' | 'inputImages'
 type ExampleAssetField = 'imageAssetIds' | 'inputImageAssetIds'
+type PanelMode = 'edit' | 'review' | 'readonly'
+type ExampleMessage = NonNullable<FavoriteReproducibilityExample['messages']>[number]
+type ExampleMessageRole = ExampleMessage['role']
 type ExampleImageItem = {
   key: string
   source: string
@@ -441,15 +631,37 @@ type ExampleImageItem = {
   assetId?: string
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   variables: FavoriteReproducibilityVariable[]
   examples: FavoriteReproducibilityExample[]
   examplePreviews?: FavoriteReproducibilityExamplePreviews[]
-}>()
+  panelMode?: PanelMode
+  addedExampleIds?: string[]
+  embedded?: boolean
+  showVariables?: boolean
+  showExamples?: boolean
+  showHint?: boolean
+  showSectionHeadings?: boolean
+}>(), {
+  examplePreviews: undefined,
+  panelMode: 'edit',
+  addedExampleIds: () => [],
+  embedded: false,
+  showVariables: true,
+  showExamples: true,
+  showHint: true,
+  showSectionHeadings: true,
+})
 
 const emit = defineEmits<{
   'update:variables': [variables: FavoriteReproducibilityVariable[]]
   'update:examples': [examples: FavoriteReproducibilityExample[]]
+  'add-image-to-media': [payload: {
+    exampleIndex: number
+    field: ExampleImageField
+    source: string
+    assetId?: string
+  }]
 }>()
 
 const { t } = useI18n()
@@ -461,14 +673,30 @@ const variableTypeOptions = computed(() => [
   { label: t('favorites.dialog.reproducibility.variableType.enum'), value: 'enum' },
 ])
 
-const hasReproducibilityData = computed(
-  () => props.variables.length > 0 || props.examples.length > 0,
-)
+const messageRoleOptions = computed(() => [
+  { label: t('favorites.dialog.reproducibility.messageRole.system'), value: 'system' },
+  { label: t('favorites.dialog.reproducibility.messageRole.user'), value: 'user' },
+  { label: t('favorites.dialog.reproducibility.messageRole.assistant'), value: 'assistant' },
+  { label: t('favorites.dialog.reproducibility.messageRole.tool'), value: 'tool' },
+])
+
+const surfaceComponent = computed(() => props.embedded ? 'div' : NCard)
+const surfaceProps = computed(() => props.embedded
+  ? {}
+  : {
+      size: 'small',
+      title: t('favorites.dialog.reproducibility.title'),
+      segmented: { content: true },
+    })
+const panelMode = computed(() => props.panelMode)
+const isReadonly = computed(() => props.panelMode === 'readonly')
+const addedExampleIdSet = computed(() => new Set(props.addedExampleIds))
 
 let uploadSequence = 0
 let exampleKeySequence = 0
 let lastEmittedExamples: FavoriteReproducibilityExample[] | null = null
 const exampleDraftKeys = ref<string[]>([])
+const editingExampleIdentities = ref<Set<string>>(new Set())
 const imageUrlDrafts = reactive<Record<string, string>>({})
 const parameterDrafts = reactive<Record<number, { key: string; value: string }>>({})
 
@@ -489,13 +717,39 @@ const parseListText = (value: string): string[] => {
 const getParameterEntries = (parameters: Record<string, string> | undefined) =>
   Object.entries(parameters || {})
 
-const hasStructuredExamplePreview = (example: FavoriteReproducibilityExample) =>
-  Boolean((example.messages && example.messages.length > 0) || example.outputText)
+const getExampleIdentity = (example: FavoriteReproducibilityExample, index: number) =>
+  exampleDraftKeys.value[index] || example.id || `example-${index}`
 
-const formatExampleMessages = (example: FavoriteReproducibilityExample) =>
-  (example.messages || [])
-    .map((message) => `${message.role}: ${message.content}`)
-    .join('\n\n')
+const getExampleLabel = (index: number) =>
+  t('favorites.dialog.reproducibility.exampleLabel', { index: index + 1 })
+
+const isAddedExample = (example: FavoriteReproducibilityExample) =>
+  Boolean(example.id && addedExampleIdSet.value.has(example.id))
+
+const isExampleEditing = (example: FavoriteReproducibilityExample, index: number) => {
+  if (isReadonly.value) return false
+  if (props.panelMode === 'edit') return true
+  if (isAddedExample(example)) return true
+  return editingExampleIdentities.value.has(getExampleIdentity(example, index))
+}
+
+const handleEditExample = (example: FavoriteReproducibilityExample, index: number) => {
+  editingExampleIdentities.value = new Set([
+    ...editingExampleIdentities.value,
+    getExampleIdentity(example, index),
+  ])
+}
+
+const handleDoneExample = (example: FavoriteReproducibilityExample, index: number) => {
+  const next = new Set(editingExampleIdentities.value)
+  next.delete(getExampleIdentity(example, index))
+  editingExampleIdentities.value = next
+}
+
+const normalizeMessageRole = (value: unknown): ExampleMessageRole =>
+  value === 'system' || value === 'assistant' || value === 'tool'
+    ? value
+    : 'user'
 
 const getParameterDraft = (index: number) => {
   parameterDrafts[index] ||= { key: '', value: '' }
@@ -536,22 +790,27 @@ const emitExamples = (
 watch(
   () => props.examples,
   (examples) => {
-    if (examples === lastEmittedExamples) {
+    if (lastEmittedExamples) {
       lastEmittedExamples = null
       if (exampleDraftKeys.value.length !== examples.length) {
-        exampleDraftKeys.value = examples.map(() => createExampleDraftKey())
+        exampleDraftKeys.value = examples.map((_, index) =>
+          exampleDraftKeys.value[index] || createExampleDraftKey(),
+        )
       }
       return
     }
 
     uploadSequence += 1
     exampleDraftKeys.value = examples.map(() => createExampleDraftKey())
+    editingExampleIdentities.value = new Set()
     clearExampleDrafts()
   },
   { immediate: true },
 )
 
 const handleAddExampleParameter = (index: number) => {
+  if (isReadonly.value) return
+
   const draft = getParameterDraft(index)
   const key = draft.key.trim()
   if (!key) return
@@ -573,6 +832,8 @@ const handleUpdateExampleParameterValue = (
   key: string,
   value: string,
 ) => {
+  if (isReadonly.value) return
+
   const example = props.examples[index]
   if (!example) return
 
@@ -585,6 +846,8 @@ const handleUpdateExampleParameterValue = (
 }
 
 const handleRemoveExampleParameter = (index: number, key: string) => {
+  if (isReadonly.value) return
+
   const example = props.examples[index]
   if (!example) return
 
@@ -593,7 +856,64 @@ const handleRemoveExampleParameter = (index: number, key: string) => {
   updateExample(index, { parameters: nextParameters })
 }
 
+const handleAddExampleMessage = (index: number) => {
+  if (isReadonly.value) return
+
+  const example = props.examples[index]
+  if (!example) return
+
+  updateExample(index, {
+    messages: [
+      ...(example.messages || []),
+      {
+        role: 'user',
+        content: '',
+      },
+    ],
+  })
+}
+
+const handleUpdateExampleMessage = (
+  index: number,
+  messageIndex: number,
+  patch: Partial<ExampleMessage>,
+) => {
+  if (isReadonly.value) return
+
+  const example = props.examples[index]
+  const messages = example?.messages
+  if (!example || !messages?.[messageIndex]) return
+
+  updateExample(index, {
+    messages: messages.map((message, currentIndex) =>
+      currentIndex === messageIndex ? { ...message, ...patch } : message,
+    ),
+  })
+}
+
+const handleRemoveExampleMessage = (index: number, messageIndex: number) => {
+  if (isReadonly.value) return
+
+  const example = props.examples[index]
+  if (!example) return
+
+  updateExample(index, {
+    messages: (example.messages || []).filter((_, currentIndex) => currentIndex !== messageIndex),
+  })
+}
+
 const removeExampleDrafts = (removedIndex: number) => {
+  const removedExample = props.examples[removedIndex]
+  const removedIdentity = removedExample
+    ? getExampleIdentity(removedExample, removedIndex)
+    : exampleDraftKeys.value[removedIndex]
+  const nextExampleDraftKeys = exampleDraftKeys.value.filter((_, index) => index !== removedIndex)
+  const nextEditingIdentities = new Set(editingExampleIdentities.value)
+  if (removedIdentity) {
+    nextEditingIdentities.delete(removedIdentity)
+  }
+  editingExampleIdentities.value = nextEditingIdentities
+
   const nextParameterDrafts: Record<number, { key: string; value: string }> = {}
   Object.entries(parameterDrafts).forEach(([indexText, draft]) => {
     const index = Number(indexText)
@@ -617,9 +937,13 @@ const removeExampleDrafts = (removedIndex: number) => {
     delete imageUrlDrafts[key]
   })
   Object.assign(imageUrlDrafts, nextImageUrlDrafts)
+
+  return nextExampleDraftKeys
 }
 
 const handleAddVariable = () => {
+  if (isReadonly.value) return
+
   emit('update:variables', [
     ...props.variables,
     {
@@ -634,6 +958,8 @@ const updateVariable = (
   index: number,
   patch: Partial<FavoriteReproducibilityVariable>,
 ) => {
+  if (isReadonly.value) return
+
   emit(
     'update:variables',
     props.variables.map((variable, currentIndex) =>
@@ -643,10 +969,20 @@ const updateVariable = (
 }
 
 const handleRemoveVariable = (index: number) => {
+  if (isReadonly.value) return
+
   emit('update:variables', props.variables.filter((_, currentIndex) => currentIndex !== index))
 }
 
 const handleAddExample = () => {
+  if (isReadonly.value) return
+
+  const draftKey = createExampleDraftKey()
+  editingExampleIdentities.value = new Set([
+    ...editingExampleIdentities.value,
+    draftKey,
+  ])
+
   emitExamples([
     ...props.examples,
     {
@@ -658,7 +994,7 @@ const handleAddExample = () => {
     },
   ], [
     ...exampleDraftKeys.value,
-    createExampleDraftKey(),
+    draftKey,
   ])
 }
 
@@ -666,6 +1002,8 @@ const updateExample = (
   index: number,
   patch: Partial<FavoriteReproducibilityExample>,
 ) => {
+  if (isReadonly.value) return
+
   emitExamples(
     props.examples.map((example, currentIndex) =>
       currentIndex === index ? { ...example, ...patch } : example,
@@ -677,10 +1015,14 @@ const getImageUrlDraft = (index: number, field: ExampleImageField) =>
   imageUrlDrafts[getImageUrlDraftKey(index, field)] || ''
 
 const setImageUrlDraft = (index: number, field: ExampleImageField, value: string) => {
+  if (isReadonly.value) return
+
   imageUrlDrafts[getImageUrlDraftKey(index, field)] = value
 }
 
 const handleAddExampleImageUrl = (index: number, field: ExampleImageField) => {
+  if (isReadonly.value) return
+
   const value = getImageUrlDraft(index, field).trim()
   const example = props.examples[index]
   if (!example || !value) return
@@ -723,6 +1065,8 @@ const handleRemoveExampleImage = (
   field: ExampleImageField,
   item: ExampleImageItem,
 ) => {
+  if (isReadonly.value) return
+
   const example = props.examples[index]
   if (!example) return
 
@@ -741,11 +1085,31 @@ const handleRemoveExampleImage = (
   }
 }
 
+const handleAddExampleImageToMedia = (
+  index: number,
+  field: ExampleImageField,
+  item: ExampleImageItem,
+) => {
+  if (isReadonly.value) return
+
+  const source = String(item.source || '').trim()
+  if (!source) return
+
+  emit('add-image-to-media', {
+    exampleIndex: index,
+    field,
+    source,
+    ...(item.assetId ? { assetId: item.assetId } : {}),
+  })
+}
+
 const handleRemoveExample = (index: number) => {
-  removeExampleDrafts(index)
+  if (isReadonly.value) return
+
+  const nextExampleDraftKeys = removeExampleDrafts(index)
   emitExamples(
     props.examples.filter((_, currentIndex) => currentIndex !== index),
-    exampleDraftKeys.value.filter((_, currentIndex) => currentIndex !== index),
+    nextExampleDraftKeys,
   )
 }
 
@@ -762,6 +1126,8 @@ const handleBeforeExampleImageUpload = async (
   field: ExampleImageField,
   options: { file: UploadFileInfo },
 ) => {
+  if (isReadonly.value) return false
+
   const raw = (options.file as unknown as { file?: Blob | null }).file
   if (!raw) return false
 
@@ -814,6 +1180,10 @@ const handleBeforeExampleImageUpload = async (
   justify-content: space-between;
 }
 
+.favorite-reproducibility-editor__section-header--actions-only {
+  justify-content: flex-end;
+}
+
 .favorite-reproducibility-editor__item {
   min-width: 0;
   padding: 10px;
@@ -828,11 +1198,66 @@ const handleBeforeExampleImageUpload = async (
   gap: 12px;
 }
 
+.favorite-reproducibility-editor__example--added {
+  border-color: rgba(240, 160, 32, 0.42);
+  background: color-mix(in srgb, var(--n-color) 82%, rgba(240, 160, 32, 0.18));
+  box-shadow: inset 3px 0 0 rgba(240, 160, 32, 0.78);
+}
+
+.favorite-reproducibility-editor__example--editing {
+  border-style: solid;
+}
+
 .favorite-reproducibility-editor__example-header {
   display: flex;
   gap: 8px;
   align-items: center;
   justify-content: space-between;
+}
+
+.favorite-reproducibility-editor__example-summary {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 8px;
+  background: var(--n-color-embedded);
+}
+
+.favorite-reproducibility-editor__example-summary-text,
+.favorite-reproducibility-editor__example-summary-output {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.favorite-reproducibility-editor__example-summary-output {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.favorite-reproducibility-editor__summary-media {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.favorite-reproducibility-editor__summary-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 92px));
+  gap: 6px;
+}
+
+.favorite-reproducibility-editor__summary-image {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--n-color-embedded);
 }
 
 .favorite-reproducibility-editor__example-basic {
@@ -841,22 +1266,26 @@ const handleBeforeExampleImageUpload = async (
   gap: 8px;
 }
 
-.favorite-reproducibility-editor__example-readonly-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.favorite-reproducibility-editor__example-description,
+.favorite-reproducibility-editor__example-output-field,
+.favorite-reproducibility-editor__example-section {
+  grid-column: 1 / -1;
 }
 
-.favorite-reproducibility-editor__example-readonly-grid > div {
+.favorite-reproducibility-editor__message-field,
+.favorite-reproducibility-editor__example-output-field {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 6px;
 }
 
-.favorite-reproducibility-editor__example-description,
-.favorite-reproducibility-editor__example-section {
-  grid-column: 1 / -1;
+.favorite-reproducibility-editor__message-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: start;
 }
 
 .favorite-reproducibility-editor__example-media-grid {
@@ -916,6 +1345,9 @@ const handleBeforeExampleImageUpload = async (
 .favorite-reproducibility-editor__image-item {
   position: relative;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .favorite-reproducibility-editor__image {
@@ -938,10 +1370,14 @@ const handleBeforeExampleImageUpload = async (
   opacity: 0.92;
 }
 
+.favorite-reproducibility-editor__image-add-media {
+  width: 100%;
+}
+
 @media (max-width: 767px) {
   .favorite-reproducibility-editor__example-basic,
-  .favorite-reproducibility-editor__example-readonly-grid,
-  .favorite-reproducibility-editor__example-media-grid {
+  .favorite-reproducibility-editor__example-media-grid,
+  .favorite-reproducibility-editor__message-row {
     grid-template-columns: 1fr;
   }
 

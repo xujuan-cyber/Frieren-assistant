@@ -46,8 +46,10 @@ export interface LegacyTextTestVariantResult {
 }
 
 export interface LegacyImageResultItem {
+  b64?: string;
   url?: string;
   id?: string;
+  mimeType?: string;
   _type?: string;
 }
 
@@ -288,6 +290,18 @@ const imageRefsFromLegacyItems = (
       seen.add(`url:${url}`);
       refs.push({ kind: 'url', url });
     }
+
+    const b64 = asTrimmedString(item.b64);
+    if (b64) {
+      const mimeType = asTrimmedString(item.mimeType) ?? 'image/png';
+      const dataUrl = b64.startsWith('data:')
+        ? b64
+        : `data:${mimeType};base64,${b64}`;
+      if (!seen.has(`url:${dataUrl}`)) {
+        seen.add(`url:${dataUrl}`);
+        refs.push({ kind: 'url', url: dataUrl });
+      }
+    }
   }
 
   return refs;
@@ -342,6 +356,28 @@ const revisionFromLegacyVersion = (
     version: typeof version === 'number' ? version : undefined,
   };
 };
+
+const cloneAssetBinding = (
+  binding: LegacyPromptSessionSnapshot['assetBinding'],
+): LegacyPromptSessionSnapshot['assetBinding'] =>
+  binding
+    ? {
+        assetId: binding.assetId,
+        ...(binding.versionId ? { versionId: binding.versionId } : {}),
+        ...(binding.status ? { status: binding.status } : {}),
+      }
+    : undefined;
+
+const cloneOrigin = (
+  origin: PromptSessionOrigin | undefined,
+): PromptSessionOrigin | undefined =>
+  origin
+    ? {
+        kind: origin.kind,
+        ...(origin.id ? { id: origin.id } : {}),
+        ...(origin.metadata ? { metadata: { ...origin.metadata } } : {}),
+      }
+    : undefined;
 
 const textOutputFromLegacyResult = (
   value: LegacyTextTestVariantResult | LegacyImageResult | null | undefined,
@@ -402,6 +438,8 @@ export const promptTestRunSetsFromLegacySessionSnapshot = (
   const variants = snapshot.testVariants ?? [];
   const results = snapshot.testVariantResults ?? {};
   const runs: PromptTestRun[] = [];
+  const assetBinding = cloneAssetBinding(snapshot.assetBinding);
+  const origin = cloneOrigin(snapshot.origin);
 
   for (const variant of variants) {
     const result = results[variant.id];
@@ -422,6 +460,12 @@ export const promptTestRunSetsFromLegacySessionSnapshot = (
         asTrimmedString(snapshot.selectedImageModelKey),
       createdAt: timestamp,
       metadata: {
+        sessionId,
+        modeKey,
+        chainId,
+        ...(snapshot.versionId ? { versionId: snapshot.versionId } : {}),
+        ...(assetBinding ? { assetBinding } : {}),
+        ...(origin ? { origin } : {}),
         legacyVariantId: variant.id,
         legacyVersionSelection: variant.version,
         ...(snapshot.testVariantLastRunFingerprint?.[variant.id]

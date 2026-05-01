@@ -1,7 +1,11 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import type { RouteLocationNormalized } from 'vue-router'
 import { beforeRouteSwitch, parseSubModeKey } from '../../../src/router/guards'
-import { normalizeWorkspacePath, parseWorkspaceRoutePath } from '../../../src/router/workspaceRoutes'
+import {
+  normalizeWorkspacePath,
+  parseWorkspaceRoutePath,
+  resolveWorkspacePathFallback,
+} from '../../../src/router/workspaceRoutes'
 
 function createRoute(
   path: string,
@@ -43,6 +47,12 @@ describe('router guards', () => {
       expect(normalizeWorkspacePath(['/pro/variable'])).toBe('/pro/variable')
       expect(normalizeWorkspacePath('/favorites')).toBeNull()
       expect(normalizeWorkspacePath('/image/unknown')).toBeNull()
+    })
+
+    it('resolves workspace fallbacks in caller priority order', () => {
+      expect(resolveWorkspacePathFallback('/favorites', '/image/multiimage', '/basic/user')).toBe('/image/multiimage')
+      expect(resolveWorkspacePathFallback(undefined, '/image/unknown', '/pro/variable')).toBe('/pro/variable')
+      expect(resolveWorkspacePathFallback('/favorites')).toBe('/basic/system')
     })
   })
 

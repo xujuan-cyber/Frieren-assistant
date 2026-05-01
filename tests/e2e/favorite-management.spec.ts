@@ -694,7 +694,7 @@ test.describe('收藏夹图片、变量和示例流程', () => {
 });
 
 test.describe('收藏示例应用流程', () => {
-  test('能够从收藏示例应用非图像变量提示词和图像提示词，不调用 LLM', async ({ page }) => {
+  test('能够从收藏示例应用非图像变量提示词、会话提示词和图像提示词，不调用 LLM', async ({ page }) => {
     test.setTimeout(60000);
 
     const now = Date.now();
@@ -734,9 +734,53 @@ test.describe('收藏示例应用流程', () => {
         },
       },
     };
+    const conversationFavorite = {
+      id: 'e2e-fav-pro-conversation-asset',
+      title: 'E2E 会话资产收藏',
+      description: '验证 pro-conversation 标准资产恢复到 pro-multi 消息工作区',
+      content: 'Legacy conversation fallback',
+      createdAt: now + 2,
+      updatedAt: now + 2,
+      tags: [],
+      useCount: 0,
+      functionMode: 'context',
+      optimizationMode: 'system',
+      metadata: {
+        promptAsset: {
+          schemaVersion: 'prompt-model/v1',
+          id: 'asset-e2e-conversation',
+          title: 'E2E 会话资产',
+          tags: [],
+          contract: {
+            family: 'pro',
+            subMode: 'conversation',
+            modeKey: 'pro-conversation',
+            variables: [],
+          },
+          currentVersionId: 'messages-v1',
+          versions: [
+            {
+              id: 'messages-v1',
+              version: 1,
+              content: {
+                kind: 'messages',
+                messages: [
+                  { role: 'system', content: '你是一个结构化摘要助手。' },
+                  { role: 'user', content: '请总结 {{topic}} 的关键价值。' },
+                ],
+              },
+              createdAt: now + 2,
+            },
+          ],
+          examples: [],
+          createdAt: now + 2,
+          updatedAt: now + 2,
+        },
+      },
+    };
 
     await openFavoritesPage(page);
-    await seedFavorites(page, [nonImageFavorite, imageFavorite]);
+    await seedFavorites(page, [nonImageFavorite, imageFavorite, conversationFavorite]);
     await page.route('https://favorite-example.local/input.png', async (route) => {
       await route.fulfill({
         status: 200,
@@ -763,11 +807,19 @@ test.describe('收藏示例应用流程', () => {
     await expect(page.getByTestId('workspace')).toContainText(imageFavorite.content, { timeout: 10000 });
     await expectAnyTextareaValue(page, '夜晚花园');
     await expect(page.locator('[data-testid="workspace"][data-mode="image-multiimage"] img[src^="data:image/"]')).toHaveCount(1, { timeout: 10000 });
+
+    await openFavoritesPage(page);
+    await selectFavoriteByTitle(page, conversationFavorite.title);
+    await page.getByTestId('favorite-detail-use').click();
+    await expect(page).toHaveURL(/\/#\/pro\/multi$/, { timeout: 20000 });
+    await expect(page.getByTestId('workspace')).toHaveAttribute('data-mode', 'pro-multi');
+    await expect(page.getByTestId('pro-multi-message-card-0')).toContainText('你是一个结构化摘要助手。', { timeout: 10000 });
+    await expect(page.getByTestId('pro-multi-message-card-1')).toContainText('请总结 {{topic}} 的关键价值。', { timeout: 10000 });
   });
 });
 
 test.describe('从工作区保存收藏的可复现信息', () => {
-  test('基础模式保存收藏时自动带出变量和当前示例，不调用 LLM', async ({ page }) => {
+  test('基础模式普通保存收藏时带出变量但不自动生成当前示例，不调用 LLM', async ({ page }) => {
     test.setTimeout(60000);
 
     await page.goto('/#/basic/system', { waitUntil: 'domcontentloaded' });
@@ -783,7 +835,7 @@ test.describe('从工作区保存收藏的可复现信息', () => {
     await expect(page.getByTestId('favorite-editor-title')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-testid="favorite-editor-content"] textarea')).toHaveValue(savedPrompt);
     await expect(page.locator('[data-testid="favorite-repro-variable-name"] input')).toHaveValue('topic');
-    await expect(page.locator('[data-testid="favorite-repro-example-text"] input')).toHaveValue(savedPrompt);
+    await expect(page.getByTestId('favorite-repro-example-text')).toHaveCount(0);
 
     const title = 'E2E 工作区保存变量收藏';
     await fillFieldByTestId(page, 'favorite-editor-title', title);
@@ -793,9 +845,10 @@ test.describe('从工作区保存收藏的可复现信息', () => {
     await selectFavoriteByTitle(page, title);
     const detailPanel = page.getByTestId('favorite-detail-panel');
     await expect(detailPanel).toContainText('topic', { timeout: 10000 });
-    await expect(detailPanel).toContainText('workspace-current');
+    await expect(detailPanel).not.toContainText('workspace-current');
+    await expect(page.getByTestId('favorite-repro-example-apply-0')).toHaveCount(0);
 
-    await page.getByTestId('favorite-repro-example-apply-0').click();
+    await page.getByTestId('favorite-detail-use').click();
     await expect(page).toHaveURL(/\/#\/basic\/system$/, { timeout: 20000 });
     await expect(page.locator('[data-testid="basic-system-input"] textarea')).toHaveValue(savedPrompt, {
       timeout: 10000,

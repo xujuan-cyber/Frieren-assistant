@@ -56,6 +56,16 @@ export const normalizeWorkspacePath = (value: unknown): string | null => {
   return parsed?.path ?? null
 }
 
+export const resolveWorkspacePathFallback = (...candidates: unknown[]): string => {
+  for (const candidate of candidates) {
+    const value = typeof candidate === 'function' ? candidate() : candidate
+    const workspacePath = normalizeWorkspacePath(value)
+    if (workspacePath) return workspacePath
+  }
+
+  return DEFAULT_WORKSPACE_PATH
+}
+
 export const getDefaultSubModeForWorkspaceMode = (mode: WorkspaceMode): string => {
   if (mode === 'image') return 'text2image'
   if (mode === 'pro') return 'variable'

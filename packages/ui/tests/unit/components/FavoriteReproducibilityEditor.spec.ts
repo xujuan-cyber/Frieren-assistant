@@ -63,7 +63,12 @@ const naiveStubs = {
   NSpace: {
     name: 'NSpace',
     template: '<div class="n-space"><slot /></div>',
-    props: ['vertical', 'size'],
+    props: ['vertical', 'size', 'align', 'wrap'],
+  },
+  NTag: {
+    name: 'NTag',
+    template: '<span class="n-tag"><slot /></span>',
+    props: ['size', 'type', 'bordered'],
   },
   NText: {
     name: 'NText',
@@ -121,6 +126,113 @@ const mountComponent = () =>
 describe('FavoriteReproducibilityEditor', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('respects variable and example visibility switches', () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [{ name: 'style', required: true }],
+        examples: [{ id: 'ex-1', parameters: { style: 'ink' } }],
+        showExamples: false,
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    expect(wrapper.find('[data-testid="favorite-repro-variable-name"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="favorite-repro-add-example"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('favorites.dialog.reproducibility.examples')
+  })
+
+  it('keeps existing examples in display mode until explicitly edited in review mode', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          { id: 'ex-001', text: 'Existing example', parameters: {}, images: [], imageAssetIds: [], inputImages: [], inputImageAssetIds: [] },
+        ],
+        panelMode: 'review',
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    expect(wrapper.find('[data-testid="favorite-repro-edit-example"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="favorite-repro-example-text"]').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="favorite-repro-edit-example"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="favorite-repro-example-text"]').exists()).toBe(true)
+  })
+
+  it('does not carry review edit state to a different example list with reused ids', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          { id: 'ex-001', text: 'First favorite example', parameters: {}, images: [], imageAssetIds: [], inputImages: [], inputImageAssetIds: [] },
+        ],
+        panelMode: 'review',
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await wrapper.find('[data-testid="favorite-repro-edit-example"]').trigger('click')
+    expect(wrapper.find('[data-testid="favorite-repro-example-text"]').exists()).toBe(true)
+
+    await wrapper.setProps({
+      examples: [
+        { id: 'ex-001', text: 'Second favorite example', parameters: {}, images: [], imageAssetIds: [], inputImages: [], inputImageAssetIds: [] },
+      ],
+    })
+
+    expect(wrapper.find('[data-testid="favorite-repro-edit-example"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="favorite-repro-example-text"]').exists()).toBe(false)
+  })
+
+  it('opens newly added examples in edit mode even when reviewing existing examples', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [],
+        panelMode: 'review',
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await wrapper.find('[data-testid="favorite-repro-add-example"]').trigger('click')
+    const nextExamples = wrapper.emitted('update:examples')?.[0]?.[0]
+    await wrapper.setProps({ examples: nextExamples })
+
+    expect(wrapper.find('[data-testid="favorite-repro-example-text"]').exists()).toBe(true)
+  })
+
+  it('keeps a newly added review example editable after the user fills its id', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [],
+        panelMode: 'review',
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await wrapper.find('[data-testid="favorite-repro-add-example"]').trigger('click')
+    await wrapper.setProps({ examples: wrapper.emitted('update:examples')?.[0]?.[0] })
+
+    await findField(wrapper, 'favorite-repro-example-id').setValue('custom-id')
+    await wrapper.setProps({ examples: wrapper.emitted('update:examples')?.at(-1)?.[0] })
+
+    expect(wrapper.find('[data-testid="favorite-repro-example-text"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="favorite-repro-edit-example"]').exists()).toBe(false)
   })
 
   it('lets users add and edit variable configuration', async () => {
@@ -197,6 +309,10 @@ describe('FavoriteReproducibilityEditor', () => {
     const nextExamples = wrapper.emitted('update:examples')?.[0]?.[0]
     await wrapper.setProps({ examples: nextExamples })
 
+    await findField(wrapper, 'favorite-repro-example-output-text').setValue('Edited output text')
+    const examplesWithOutputText = wrapper.emitted('update:examples')?.at(-1)?.[0]
+    await wrapper.setProps({ examples: examplesWithOutputText })
+
     await findField(wrapper, 'favorite-repro-example-images').setValue('https://example.com/output.png')
     await wrapper.find('[data-testid="favorite-repro-example-add-image-url"]').trigger('click')
     const examplesWithOutputImages = wrapper.emitted('update:examples')?.at(-1)?.[0]
@@ -208,11 +324,65 @@ describe('FavoriteReproducibilityEditor', () => {
     expect(wrapper.emitted('update:examples')?.at(-1)?.[0]).toEqual([
       {
         parameters: {},
+        outputText: 'Edited output text',
         images: ['https://example.com/output.png'],
         imageAssetIds: [],
         inputImages: ['https://example.com/input.png'],
         inputImageAssetIds: [],
       },
+    ])
+  })
+
+  it('lets users edit, add, and remove example conversation messages', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          {
+            id: 'ex-1',
+            messages: [{ role: 'user', content: 'Original user input' }],
+            parameters: {},
+            images: [],
+            imageAssetIds: [],
+            inputImages: [],
+            inputImageAssetIds: [],
+          },
+        ],
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await findField(wrapper, 'favorite-repro-example-message-content').setValue('Edited user input')
+    let nextExamples = wrapper.emitted('update:examples')?.at(-1)?.[0]
+    await wrapper.setProps({ examples: nextExamples })
+
+    expect(wrapper.emitted('update:examples')?.at(-1)?.[0]).toEqual([
+      {
+        id: 'ex-1',
+        messages: [{ role: 'user', content: 'Edited user input' }],
+        parameters: {},
+        images: [],
+        imageAssetIds: [],
+        inputImages: [],
+        inputImageAssetIds: [],
+      },
+    ])
+
+    await wrapper.find('[data-testid="favorite-repro-example-add-message"]').trigger('click')
+    nextExamples = wrapper.emitted('update:examples')?.at(-1)?.[0]
+    await wrapper.setProps({ examples: nextExamples })
+
+    expect(wrapper.emitted('update:examples')?.at(-1)?.[0][0].messages).toEqual([
+      { role: 'user', content: 'Edited user input' },
+      { role: 'user', content: '' },
+    ])
+
+    await wrapper.findAll('[data-testid="favorite-repro-example-remove-message"]')[0].trigger('click')
+
+    expect(wrapper.emitted('update:examples')?.at(-1)?.[0][0].messages).toEqual([
+      { role: 'user', content: '' },
     ])
   })
 
@@ -289,6 +459,46 @@ describe('FavoriteReproducibilityEditor', () => {
     ])
     expect((findField(wrapper, 'favorite-repro-example-images').element as HTMLInputElement).value).toBe('')
     expect((findField(wrapper, 'favorite-repro-example-input-images').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('emits an explicit request to add example images to the favorite image list', async () => {
+    const wrapper = mount(FavoriteReproducibilityEditor, {
+      props: {
+        variables: [],
+        examples: [
+          {
+            parameters: {},
+            images: ['data:image/png;base64,output-source'],
+            imageAssetIds: ['asset-output'],
+            inputImages: ['data:image/png;base64,input-source'],
+            inputImageAssetIds: ['asset-input'],
+          },
+        ],
+        examplePreviews: [
+          {
+            images: [{ assetId: 'asset-output', source: 'data:image/png;base64,output-preview' }],
+            inputImages: [{ assetId: 'asset-input', source: 'data:image/png;base64,input-preview' }],
+          },
+        ],
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    await wrapper.find('[data-testid="favorite-repro-example-add-image-to-media"]').trigger('click')
+    await wrapper.find('[data-testid="favorite-repro-example-add-input-image-to-media"]').trigger('click')
+
+    expect(wrapper.emitted('add-image-to-media')?.[0]?.[0]).toMatchObject({
+      exampleIndex: 0,
+      field: 'images',
+      source: 'data:image/png;base64,output-source',
+    })
+    expect(wrapper.emitted('add-image-to-media')?.[1]?.[0]).toMatchObject({
+      exampleIndex: 0,
+      field: 'inputImages',
+      source: 'data:image/png;base64,input-source',
+    })
   })
 
   it('removes persisted example asset previews from the matching asset field', async () => {

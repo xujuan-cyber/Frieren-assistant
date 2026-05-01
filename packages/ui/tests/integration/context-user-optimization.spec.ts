@@ -81,6 +81,73 @@ describe('ContextUser optimization (integration)', () => {
     expect(toast.success).toHaveBeenCalledWith('toast.success.optimizeSuccess')
   })
 
+  it('writes the latest source binding to history when the binding changes after setup', async () => {
+    toast.success.mockReset()
+    toast.error.mockReset()
+
+    const promptService = {
+      optimizePromptStream: vi.fn(async (_req: any, handlers: any) => {
+        handlers.onToken('bound result')
+        await handlers.onComplete()
+      })
+    }
+
+    const historyManager = {
+      createNewChain: vi.fn(async (recordData: any) => ({
+        chainId: 'chain-live-binding',
+        versions: [recordData],
+        currentRecord: recordData
+      })),
+      addIteration: vi.fn()
+    }
+
+    const services: Ref<AppServices | null> = ref({
+      promptService,
+      historyManager,
+      contextMode: ref('user' as any)
+    } as any)
+
+    const sourceBindingState: any = {}
+    const optimizer = useContextUserOptimization(
+      services,
+      ref('text-model-1'),
+      ref<Template | null>({ id: 'tpl-1' } as any),
+      ref<Template | null>({ id: 'tpl-iter' } as any),
+      {
+        getSourceBindingSession: () => sourceBindingState
+      }
+    )
+
+    sourceBindingState.assetBinding = {
+      assetId: 'asset-after-setup',
+      versionId: 'version-after-setup',
+      status: 'linked'
+    }
+    sourceBindingState.origin = {
+      kind: 'favorite',
+      id: 'favorite-after-setup'
+    }
+    ;(optimizer as any).prompt = 'hello'
+
+    await optimizer.optimize()
+
+    expect(historyManager.createNewChain).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          assetBinding: {
+            assetId: 'asset-after-setup',
+            versionId: 'version-after-setup',
+            status: 'linked'
+          },
+          origin: {
+            kind: 'favorite',
+            id: 'favorite-after-setup'
+          }
+        })
+      })
+    )
+  })
+
   it('iterates via stream and appends a new version', async () => {
     toast.success.mockReset()
     toast.error.mockReset()

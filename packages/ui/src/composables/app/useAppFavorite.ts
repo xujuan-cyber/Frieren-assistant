@@ -11,16 +11,20 @@ import { isRef, ref, nextTick, type Ref } from 'vue'
 import { useToast } from '../ui/useToast'
 import type {
     BasicSubMode,
+    ConversationMessage,
     ProSubMode,
     ContextMode,
+    IFavoriteManager,
     IImageStorageService,
     OptimizationMode,
     PromptAssetBinding,
+    PromptRecordChain,
     PromptSessionOrigin,
 } from '@prompt-optimizer/core'
 import { isValidVariableName, VARIABLE_VALIDATION } from '../../types/variable'
 import {
     applyFavoriteReproducibilityToMetadata,
+    assignSequentialFavoriteExampleIds,
     type FavoriteReproducibilityDraft,
     type FavoriteReproducibilityVariable,
     type FavoriteReproducibilityExample,
@@ -34,6 +38,16 @@ import {
     resolveAssetIdToDataUrl,
     type ImagePayload,
 } from '../../utils/image-asset-storage'
+import {
+    applyWorkspaceTemporaryVariables,
+    buildWorkspaceConversationFromPromptText,
+    clearWorkspaceContentForExternalApply,
+} from '../../utils/workspace-external-apply'
+import {
+    buildFavoriteSessionBinding,
+    resolveSourceAssetRef,
+    type SourceAssetRef,
+} from '../../utils/source-asset'
 
 /**
  * 保存收藏的数据结构
@@ -41,6 +55,7 @@ import {
 export interface SaveFavoriteData {
     content: string
     originalContent?: string
+    candidateSource?: SourceAssetRef | null
     prefill?: {
         title?: string
         description?: string
@@ -51,6 +66,7 @@ export interface SaveFavoriteData {
         imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
         metadata?: Record<string, unknown>
         reproducibilityDraft?: FavoriteReproducibilityDraft
+        updateIntent?: 'content' | 'examples'
     }
 }
 
@@ -77,15 +93,30 @@ type TemporaryVariablesSessionApi = {
     getTemporaryVariable: (name: string) => string | undefined
     setTemporaryVariable: (name: string, value: string) => void
     clearTemporaryVariables: () => void
+    clearContent?: (options?: { persist?: boolean }) => void
     updatePrompt?: (prompt: string) => void
+    updateTestContent?: (content: string) => void
     updateAssetBinding?: (binding: PromptAssetBinding | undefined, origin?: PromptSessionOrigin) => void
     clearAssetBinding?: () => void
+    assetBinding?: PromptAssetBinding
+    origin?: PromptSessionOrigin
     temporaryVariables?: Record<string, string> | { value?: Record<string, string> }
 }
 
+type ProMultiMessageSessionApi = TemporaryVariablesSessionApi & {
+    updateConversationMessages?: (messages: ConversationMessage[]) => void
+    selectMessage?: (messageId: string) => void
+    setMessageChainMap?: (map: Record<string, string>) => void
+}
+
 type AssetBindingSessionApi = {
+    clearContent?: (options?: { persist?: boolean }) => void
+    updatePrompt?: (prompt: string) => void
     updateAssetBinding?: (binding: PromptAssetBinding | undefined, origin?: PromptSessionOrigin) => void
     clearAssetBinding?: () => void
+    assetBinding?: PromptAssetBinding
+    origin?: PromptSessionOrigin
+    updateTestContent?: (content: string) => void
 }
 
 type Image2ImageExampleSessionApi = TemporaryVariablesSessionApi & {
@@ -114,12 +145,14 @@ export interface AppFavoriteOptions {
     /** 高级/图像模式临时变量会话，用于应用收藏示例参数 */
     basicSystemSession?: AssetBindingSessionApi
     basicUserSession?: AssetBindingSessionApi
-    proMultiMessageSession?: TemporaryVariablesSessionApi
+    proMultiMessageSession?: ProMultiMessageSessionApi
     proVariableSession?: TemporaryVariablesSessionApi
     imageText2ImageSession?: TemporaryVariablesSessionApi
     imageImage2ImageSession?: Image2ImageExampleSessionApi
     imageMultiImageSession?: MultiImageExampleSessionApi
+    optimizerCurrentVersions?: Ref<PromptRecordChain['versions']>
     getFavoriteImageStorageService?: () => IImageStorageService | null
+    getFavoriteManager?: () => IFavoriteManager | null
     getCurrentFunctionMode?: () => 'basic' | 'pro' | 'context' | 'image'
     getCurrentOptimizationMode?: () => OptimizationMode
     getCurrentImageSubMode?: () => 'text2image' | 'image2image' | 'multiimage'
@@ -138,7 +171,7 @@ export interface AppFavoriteReturn {
     /** 处理保存收藏请求 */
     handleSaveFavorite: (data: SaveFavoriteData) => void
     /** 处理保存完成 */
-    handleSaveFavoriteComplete: () => void
+    handleSaveFavoriteComplete: (favoriteId?: string) => Promise<void>
     /** 处理收藏优化提示词 */
     handleFavoriteOptimizePrompt: () => void
     /** 处理使用收藏 */
@@ -254,7 +287,9 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
         imageText2ImageSession,
         imageImage2ImageSession,
         imageMultiImageSession,
+        optimizerCurrentVersions,
         getFavoriteImageStorageService,
+        getFavoriteManager,
         getCurrentFunctionMode,
         getCurrentOptimizationMode,
         getCurrentImageSubMode,
@@ -288,6 +323,20 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
         return null
     }
 
+    const getAssetBindingSessionForMode = (
+        functionMode: 'basic' | 'pro' | 'context' | 'image',
+        optimizationMode: OptimizationMode,
+        imageSubMode?: 'text2image' | 'image2image' | 'multiimage',
+    ): AssetBindingSessionApi | null => {
+        if (functionMode === 'basic') {
+            return optimizationMode === 'system'
+                ? basicSystemSession || null
+                : basicUserSession || null
+        }
+
+        return getSessionForCurrentMode(functionMode, optimizationMode, imageSubMode) as AssetBindingSessionApi | null
+    }
+
     const buildSaveFavoriteData = (data: SaveFavoriteData): SaveFavoriteData => {
         const currentFunctionMode = getCurrentFunctionMode?.() || 'basic'
         const currentOptimizationMode = getCurrentOptimizationMode?.() || 'system'
@@ -300,6 +349,15 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
             ? data.prefill?.imageSubMode || currentImageSubMode
             : undefined
         const session = getSessionForCurrentMode(currentFunctionMode, currentOptimizationMode, currentImageSubMode)
+        const assetBindingSession = getAssetBindingSessionForMode(
+            currentFunctionMode,
+            currentOptimizationMode,
+            currentImageSubMode,
+        )
+        const candidateSource = data.candidateSource ?? resolveSourceAssetRef(
+            assetBindingSession?.origin,
+            assetBindingSession?.assetBinding,
+        )
         const variables = buildVariables(data.content, readTemporaryVariableNames(session || undefined))
         const baseMetadata = isPlainObject(data.prefill?.metadata)
             ? data.prefill.metadata
@@ -311,21 +369,29 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
                 examples: [],
             })
         const explicitDraft = data.prefill?.reproducibilityDraft
+        const normalizedExplicitDraft = hasReproducibilityDraftData(explicitDraft)
+            ? {
+                variables: explicitDraft.variables,
+                examples: assignSequentialFavoriteExampleIds([], explicitDraft.examples),
+            }
+            : undefined
         const finalMetadata = hasReproducibilityDraftData(explicitDraft)
             ? applyFavoriteReproducibilityToMetadata(metadata, {
-                variables: mergeReproducibilityVariables(variables, explicitDraft.variables),
-                examples: explicitDraft.examples,
+                variables: mergeReproducibilityVariables(variables, normalizedExplicitDraft?.variables),
+                examples: normalizedExplicitDraft?.examples || [],
             })
             : metadata
 
         return {
             ...data,
+            candidateSource,
             prefill: {
                 ...data.prefill,
                 functionMode: favoriteFunctionMode,
                 optimizationMode: favoriteOptimizationMode,
                 imageSubMode: favoriteImageSubMode,
                 metadata: finalMetadata,
+                reproducibilityDraft: normalizedExplicitDraft,
             },
         }
     }
@@ -341,9 +407,27 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
     /**
      * 处理保存完成
      */
-    const handleSaveFavoriteComplete = () => {
-        // 关闭对话框已由组件内部处理
-        // 可选:刷新收藏列表或显示额外提示
+    const handleSaveFavoriteComplete = async (favoriteId?: string) => {
+        if (!favoriteId) return
+        const favoriteManager = getFavoriteManager?.() || null
+        if (!favoriteManager) return
+
+        try {
+            const favorites = await favoriteManager.getFavorites()
+            const favorite = favorites.find((item) => item.id === favoriteId)
+            if (!favorite) return
+
+            const currentFunctionMode = getCurrentFunctionMode?.() || 'basic'
+            const currentOptimizationMode = getCurrentOptimizationMode?.() || 'system'
+            const currentImageSubMode = getCurrentImageSubMode?.() || 'text2image'
+            const session = getAssetBindingSessionForMode(currentFunctionMode, currentOptimizationMode, currentImageSubMode)
+            if (!session?.updateAssetBinding) return
+
+            const { binding, origin } = buildFavoriteSessionBinding(favorite)
+            session.updateAssetBinding(binding, origin)
+        } catch (error) {
+            console.warn('[App] Failed to bind saved favorite to current session:', error)
+        }
     }
 
     /**
@@ -389,6 +473,21 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
                 return basicUserSession || null
             default:
                 return getTemporaryVariablesSession(targetKey)
+        }
+    }
+
+    const getExampleTextSession = (
+        targetKey: string | null,
+    ): { updateTestContent?: (content: string) => void } | null => {
+        switch (targetKey) {
+            case 'basic-system':
+                return basicSystemSession || null
+            case 'basic-user':
+                return basicUserSession || null
+            case 'pro-variable':
+                return proVariableSession || null
+            default:
+                return null
         }
     }
 
@@ -449,6 +548,67 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
         )
     }
 
+    const cloneConversationMessages = (
+        messages: ConversationMessage[],
+    ): ConversationMessage[] => messages.map((message) => ({
+        ...message,
+        ...(message.tool_calls
+            ? {
+                tool_calls: message.tool_calls.map((toolCall) => ({
+                    ...toolCall,
+                    function: { ...toolCall.function },
+                })),
+            }
+            : {}),
+    }))
+
+    const applyProMultiConversationMessages = (
+        draft: FavoriteWorkspaceApplyDraft,
+        targetKey: string | null,
+    ) => {
+        if (targetKey !== 'pro-multi') return
+        if (!proMultiMessageSession?.updateConversationMessages) return
+
+        const messages = draft.conversationMessages && draft.conversationMessages.length > 0
+            ? draft.conversationMessages
+            : buildWorkspaceConversationFromPromptText(draft.content, 'favorite')
+        if (messages.length === 0) return
+
+        proMultiMessageSession.updateConversationMessages(
+            cloneConversationMessages(messages),
+        )
+        proMultiMessageSession.setMessageChainMap?.({})
+        proMultiMessageSession.selectMessage?.('')
+    }
+
+    const getWorkspaceApplySessions = () => ({
+        basicSystemSession,
+        basicUserSession,
+        proMultiMessageSession,
+        proVariableSession,
+        imageText2ImageSession,
+        imageImage2ImageSession,
+        imageMultiImageSession,
+        optimizerCurrentVersions,
+    })
+
+    const clearFavoriteWorkspaceBeforeApply = (targetKey: string | null | undefined) => {
+        clearWorkspaceContentForExternalApply(targetKey, getWorkspaceApplySessions())
+    }
+
+    const applyFavoriteVariables = (draft: FavoriteWorkspaceApplyDraft) => {
+        applyWorkspaceTemporaryVariables(
+            draft.targetKey,
+            getWorkspaceApplySessions(),
+            {
+                variables: draft.reproducibility.variables,
+                parameters: draft.selectedExample?.parameters,
+                preserveExistingValues: false,
+                restrictParametersToDefinitions: true,
+            },
+        )
+    }
+
     const resolveExampleInputImages = async (example: FavoriteReproducibilityExample): Promise<ImagePayload[]> => {
         const storageService = getFavoriteImageStorageService?.() || null
         const sources = [...example.inputImages]
@@ -480,31 +640,11 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
     const applyFavoriteExample = async (
         draft: FavoriteWorkspaceApplyDraft,
     ) => {
-        const { reproducibility, selectedExample: example, targetKey } = draft
+        const { selectedExample: example, targetKey } = draft
         if (!example) return
 
-        const session = getTemporaryVariablesSession(targetKey)
-        if (session) {
-            const variableEntries = reproducibility.variables
-                .map((variable) => ({
-                    name: variable.name.trim(),
-                    value: variable.defaultValue !== undefined ? String(variable.defaultValue) : '',
-                }))
-                .filter((variable) => isValidVariableName(variable.name))
-
-            const variableNames = new Set(variableEntries.map((variable) => variable.name))
-            session.clearTemporaryVariables()
-
-            for (const { name, value } of variableEntries) {
-                session.setTemporaryVariable(name, value)
-            }
-
-            for (const [key, value] of Object.entries(example.parameters)) {
-                const name = key.trim()
-                if (!isValidVariableName(name)) continue
-                if (variableNames.size > 0 && !variableNames.has(name)) continue
-                session.setTemporaryVariable(name, String(value))
-            }
+        if (draft.selectedExampleText) {
+            getExampleTextSession(targetKey)?.updateTestContent?.(draft.selectedExampleText)
         }
 
         if (targetKey === 'image-image2image' && imageImage2ImageSession) {
@@ -540,6 +680,8 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
 
             await nextTick()
 
+            clearFavoriteWorkspaceBeforeApply(targetKey)
+
             // 图像模式的数据回填逻辑
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(
@@ -553,6 +695,7 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
                 )
             }
 
+            applyFavoriteVariables(draft)
             await applyFavoriteExample(draft)
             applyFavoriteSessionBinding(favorite, draft, targetKey)
 
@@ -608,16 +751,27 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
             }
 
             // 5. 将收藏的提示词内容设置到输入框
+            clearFavoriteWorkspaceBeforeApply(resolvedTargetKey)
             optimizerPrompt.value = draft.content
+            if (resolvedTargetKey === 'basic-system') {
+                basicSystemSession?.updatePrompt?.(draft.content)
+            }
+            if (resolvedTargetKey === 'basic-user') {
+                basicUserSession?.updatePrompt?.(draft.content)
+            }
             if (resolvedTargetKey === 'pro-variable') {
                 proVariableSession?.updatePrompt?.(draft.content)
             }
+            applyProMultiConversationMessages(draft, resolvedTargetKey)
+            applyFavoriteVariables(draft)
             await applyFavoriteExample(draft)
             applyFavoriteSessionBinding(favorite, draft, resolvedTargetKey)
         } else {
             // 其他情况：直接设置内容，不切换模式
+            clearFavoriteWorkspaceBeforeApply(targetKey)
             optimizerPrompt.value = draft.content
             // 未知模式无法可靠定位目标 session，仅保留正文应用行为。
+            applyFavoriteVariables(draft)
             await applyFavoriteExample(draft)
             applyFavoriteSessionBinding(favorite, draft, targetKey)
         }

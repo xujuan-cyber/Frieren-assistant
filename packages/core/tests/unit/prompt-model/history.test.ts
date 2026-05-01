@@ -7,6 +7,8 @@ import type {
 } from '../../../src/services/history/types'
 import {
   createRootOnlyPromptOptimizationChain,
+  hydratePromptSessionWithOptimizationChain,
+  promptSessionFromLegacySnapshot,
   promptRecordChainToOptimizationChain,
 } from '../../../src/services/prompt-model'
 
@@ -132,5 +134,87 @@ describe('createRootOnlyPromptOptimizationChain', () => {
       target: undefined,
       metadata: undefined,
     })
+  })
+})
+
+describe('hydratePromptSessionWithOptimizationChain', () => {
+  it('overlays real history records and remaps numeric test revisions by version', () => {
+    const root = createRecord({
+      id: 'record-1',
+      version: 1,
+      originalPrompt: 'raw prompt',
+      optimizedPrompt: 'optimized prompt',
+    })
+    const second = createRecord({
+      id: 'record-2',
+      version: 2,
+      originalPrompt: 'optimized prompt',
+      optimizedPrompt: 'optimized prompt v2',
+      previousId: 'record-1',
+      timestamp: 2000,
+    })
+    const optimization = promptRecordChainToOptimizationChain(createChain(root, [root, second], second))
+    const session = promptSessionFromLegacySnapshot({
+      subModeKey: 'basic-system',
+      prompt: 'raw prompt',
+      optimizedPrompt: 'workspace draft',
+      chainId: 'chain-1',
+      testContent: 'test input',
+      testVariants: [
+        { id: 'root', version: 0, modelKey: 'model-a' },
+        { id: 'record', version: 2, modelKey: 'model-a' },
+        { id: 'previous', version: 'previous', modelKey: 'model-a' },
+        { id: 'workspace', version: 'workspace', modelKey: 'model-a' },
+      ],
+      testVariantResults: {
+        root: { result: 'root output' },
+        record: { result: 'record output' },
+        previous: { result: 'previous output' },
+        workspace: { result: 'workspace output' },
+      },
+    })
+
+    const assetRevision = {
+      kind: 'asset-version' as const,
+      assetId: 'asset-1',
+      versionId: 'asset-version-1',
+    }
+    const sessionWithAssetRun = {
+      ...session,
+      testRuns: [
+        {
+          ...session.testRuns[0],
+          runs: [
+            ...session.testRuns[0].runs,
+            {
+              ...session.testRuns[0].runs[0],
+              id: 'asset-run',
+              revision: assetRevision,
+            },
+          ],
+        },
+      ],
+    }
+
+    const hydrated = hydratePromptSessionWithOptimizationChain(sessionWithAssetRun, optimization)
+
+    expect(session.optimization.records).toEqual([])
+    expect(session.testRuns[0].runs[1].revision).toMatchObject({
+      kind: 'record',
+      recordId: 'legacy-version:2',
+    })
+    expect(hydrated.optimization.records.map((record) => record.id)).toEqual([
+      'record-1',
+      'record-2',
+    ])
+    expect(hydrated.optimization.currentRecordId).toBe('record-2')
+    expect(hydrated.testRuns[0].runs.map((run) => run.revision)).toEqual([
+      { kind: 'root', chainId: 'chain-1' },
+      { kind: 'record', chainId: 'chain-1', recordId: 'record-2', version: 2 },
+      { kind: 'record', chainId: 'chain-1', recordId: 'record-1', version: 1 },
+      { kind: 'workspace', sessionId: 'implicit:basic-system' },
+      assetRevision,
+    ])
+    expect(sessionWithAssetRun.testRuns[0].runs[4].revision).toEqual(assetRevision)
   })
 })

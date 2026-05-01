@@ -15,6 +15,11 @@ vi.mock('vue-i18n', async (importOriginal) => {
 })
 
 const naiveStubs = {
+  NButton: {
+    name: 'NButton',
+    template: '<button class="n-button" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
+    emits: ['click'],
+  },
   NCard: {
     name: 'NCard',
     template: '<section class="n-card"><slot /></section>',
@@ -34,6 +39,10 @@ const naiveStubs = {
     name: 'NEmpty',
     template: '<div class="n-empty">{{ description }}</div>',
     props: ['description', 'size'],
+  },
+  NIcon: {
+    name: 'NIcon',
+    template: '<i class="n-icon"><slot /></i>',
   },
   NSpace: {
     name: 'NSpace',
@@ -67,6 +76,50 @@ const naiveStubs = {
 }
 
 describe('FavoriteReproducibilityDisplay', () => {
+  const reproducibilityWithExample = {
+    source: 'reproducibility' as const,
+    variables: [],
+    examples: [
+      {
+        id: 'case-1',
+        parameters: {},
+        images: [],
+        imageAssetIds: [],
+        inputImages: [],
+        inputImageAssetIds: [],
+      },
+    ],
+    variableCount: 0,
+    exampleCount: 1,
+    hasInputImages: false,
+    hasData: true,
+  }
+
+  it('keeps example application hidden unless explicitly enabled', async () => {
+    const wrapper = mount(FavoriteReproducibilityDisplay, {
+      props: {
+        reproducibility: reproducibilityWithExample,
+      },
+      global: {
+        stubs: naiveStubs,
+      },
+    })
+
+    expect(wrapper.find('[data-testid="favorite-repro-example-apply-0"]').exists()).toBe(false)
+
+    await wrapper.setProps({ showApplyExample: true })
+    await wrapper.find('[data-testid="favorite-repro-example-apply-0"]').trigger('click')
+
+    expect(wrapper.emitted('apply-example')).toEqual([
+      [
+        {
+          exampleId: 'case-1',
+          exampleIndex: 0,
+        },
+      ],
+    ])
+  })
+
   it('renders example images and input images from resolved asset previews', () => {
     const wrapper = mount(FavoriteReproducibilityDisplay, {
       props: {

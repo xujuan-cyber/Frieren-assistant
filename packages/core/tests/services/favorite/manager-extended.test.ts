@@ -3,6 +3,7 @@ import { FavoriteManager } from '../../../src/services/favorite/manager';
 import type { IStorageProvider } from '../../../src/services/storage/types';
 import { FavoriteValidationError } from '../../../src/services/favorite/errors';
 import { TypeMapper } from '../../../src/services/favorite/type-mapper';
+import type { PromptAsset } from '../../../src/services/prompt-model';
 
 /**
  * FavoriteManager 扩展功能单元测试
@@ -310,23 +311,111 @@ describe('FavoriteManager - 扩展功能', () => {
       });
 
       const favorite = await manager.getFavorite(id);
-      const promptAsset = favorite.metadata?.promptAsset as {
-        title: string;
-        versions: Array<{ content: unknown }>;
-        contract: {
-          variables: unknown[];
-        };
-        examples: Array<{ id: string }>;
-      };
+      const promptAsset = favorite.metadata?.promptAsset as PromptAsset;
 
       expect(favorite.metadata?.gardenSnapshot).toEqual(gardenSnapshot);
       expect(promptAsset.title).toBe('Updated Garden');
+      expect(promptAsset.versions).toHaveLength(2);
       expect(promptAsset.versions[0].content).toEqual({
+        kind: 'image-prompt',
+        text: 'Garden prompt',
+      });
+      expect(promptAsset.versions[1].content).toEqual({
         kind: 'image-prompt',
         text: 'Updated prompt',
       });
+      expect(promptAsset.currentVersionId).toBe(promptAsset.versions[1].id);
       expect(promptAsset.contract.variables).toMatchObject([{ name: 'topic', required: true }]);
       expect(promptAsset.examples.map((example) => example.id)).toEqual(['manual-example']);
+      expect(promptAsset.examples[0].basedOnVersionId).toBe(promptAsset.currentVersionId);
+    });
+
+    it('只更新标题标签时不创建新的 promptAsset 正文版本', async () => {
+      const id = await manager.addFavorite({
+        title: 'Original title',
+        content: 'Stable content',
+        tags: ['old'],
+        functionMode: 'basic',
+        optimizationMode: 'system',
+      });
+      const before = (await manager.getFavorite(id)).metadata?.promptAsset as PromptAsset;
+
+      await manager.updateFavorite(id, {
+        title: 'Renamed title',
+        tags: ['new'],
+        description: 'Updated description',
+      });
+
+      const after = (await manager.getFavorite(id)).metadata?.promptAsset as PromptAsset;
+      expect(after.title).toBe('Renamed title');
+      expect(after.tags).toEqual(['new']);
+      expect(after.description).toBe('Updated description');
+      expect(after.currentVersionId).toBe(before.currentVersionId);
+      expect(after.versions).toHaveLength(1);
+      expect(after.versions[0].content).toEqual({ kind: 'text', text: 'Stable content' });
+    });
+
+    it('只追加示例时不创建新的 promptAsset 正文版本', async () => {
+      const id = await manager.addFavorite({
+        title: 'Example asset',
+        content: 'Prompt {{topic}}',
+        tags: [],
+        functionMode: 'context',
+        optimizationMode: 'user',
+        metadata: {
+          reproducibility: {
+            variables: [{ name: 'topic', required: true }],
+            examples: [{ id: 'example-1', text: 'Input one' }],
+          },
+        },
+      });
+      const beforeFavorite = await manager.getFavorite(id);
+      const before = beforeFavorite.metadata?.promptAsset as PromptAsset;
+
+      await manager.updateFavorite(id, {
+        metadata: {
+          ...beforeFavorite.metadata,
+          reproducibility: {
+            variables: [{ name: 'topic', required: true }],
+            examples: [
+              { id: 'example-1', text: 'Input one' },
+              { id: 'example-2', text: 'Input two', outputText: 'Output two' },
+            ],
+          },
+        },
+      });
+
+      const after = (await manager.getFavorite(id)).metadata?.promptAsset as PromptAsset;
+      expect(after.currentVersionId).toBe(before.currentVersionId);
+      expect(after.versions).toHaveLength(1);
+      expect(after.examples.map((example) => example.id)).toEqual(['example-1', 'example-2']);
+      expect(after.contract.variables).toMatchObject([{ name: 'topic', required: true }]);
+    });
+
+    it('更新正文时创建新的 promptAsset 正文版本并保留旧版本', async () => {
+      const id = await manager.addFavorite({
+        title: 'Versioned asset',
+        content: 'Version one',
+        tags: [],
+        functionMode: 'basic',
+        optimizationMode: 'system',
+      });
+      const before = (await manager.getFavorite(id)).metadata?.promptAsset as PromptAsset;
+
+      await manager.updateFavorite(id, {
+        content: 'Version two',
+      });
+
+      const after = (await manager.getFavorite(id)).metadata?.promptAsset as PromptAsset;
+      expect(after.versions).toHaveLength(2);
+      expect(after.versions[0].id).toBe(before.currentVersionId);
+      expect(after.versions[0].content).toEqual({ kind: 'text', text: 'Version one' });
+      expect(after.versions[1]).toMatchObject({
+        id: `favorite:${id}:version:2`,
+        version: 2,
+        content: { kind: 'text', text: 'Version two' },
+      });
+      expect(after.currentVersionId).toBe(`favorite:${id}:version:2`);
     });
 
     it('应该拒绝包含 data URL 封面的收藏 metadata', async () => {

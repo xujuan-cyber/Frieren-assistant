@@ -7,6 +7,7 @@
         <div class="workspace-page-tools">
             <WorkspaceUtilityMenu
                 :disabled="unwrappedLogicProps.isOptimizing || unwrappedLogicProps.isIterating || isAnyVariantRunning"
+                :source="resolveSourceAssetRef(session.origin, session.assetBinding)"
                 test-id="basic-system-workspace-utility-menu"
                 @clear="handleClearContent"
             />
@@ -483,6 +484,7 @@ import { NButton, NCard, NFlex, NIcon, NText, NRadioGroup, NRadioButton, NToolti
 import InputPanelUI from '../InputPanel.vue'
 import PromptPanelUI from '../PromptPanel.vue'
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
+import { resolveSourceAssetRef } from '../../utils/source-asset'
 import TestInputSection from '../TestInputSection.vue'
 import OutputDisplay from '../OutputDisplay.vue'
 import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'

@@ -3,6 +3,7 @@
         <div class="workspace-page-tools">
             <WorkspaceUtilityMenu
                 :disabled="displayAdapter.displayedIsOptimizing.value || isIterating || isAnyVariantRunning"
+                :source="resolveSourceAssetRef(proMultiSession.origin, proMultiSession.assetBinding)"
                 test-id="pro-multi-workspace-utility-menu"
                 @clear="handleClearContent"
             />
@@ -516,6 +517,7 @@ import {
 } from '../evaluation'
 import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
+import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { useConversationOptimization } from '../../composables/prompt/useConversationOptimization'
 import { usePromptDisplayAdapter } from '../../composables/prompt/usePromptDisplayAdapter'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'

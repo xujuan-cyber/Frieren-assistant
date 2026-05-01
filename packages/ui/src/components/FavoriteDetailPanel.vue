@@ -1,11 +1,21 @@
 <template>
-  <div class="favorite-detail-panel">
+  <div
+    class="favorite-detail-panel"
+    :class="{
+      'favorite-detail-panel--linked-dialog': isLinkedDialog,
+    }"
+  >
     <div v-if="!favorite" class="favorite-detail-panel__empty">
       <NEmpty :description="t('favorites.manager.preview.selectFavorite')" />
     </div>
 
     <template v-else>
-      <NSpace justify="space-between" align="center" class="favorite-detail-panel__action-bar">
+      <NSpace
+        v-if="showActions"
+        justify="space-between"
+        align="center"
+        class="favorite-detail-panel__action-bar"
+      >
         <NButton
           v-if="showBack"
           quaternary
@@ -81,9 +91,8 @@
       >
         <template v-if="detailVariant === 'image'">
           <div class="favorite-detail-panel__hero-layout">
-            <NCard
-              size="small"
-              :segmented="{ content: true }"
+            <FavoriteSurfaceSection
+              variant="media"
               class="favorite-detail-panel__media-card"
             >
               <NSpace vertical :size="12">
@@ -92,7 +101,7 @@
                     data-testid="favorite-detail-media-hero"
                     :src="activeImage"
                     :alt="favorite.title"
-                    object-fit="cover"
+                    :object-fit="isLinkedDialog ? 'contain' : 'cover'"
                     class="favorite-detail-panel__hero-image"
                   />
                 </AppPreviewImageGroup>
@@ -119,71 +128,90 @@
                   </button>
                 </div>
               </NSpace>
-            </NCard>
+            </FavoriteSurfaceSection>
 
-            <NCard
-              size="small"
-              :segmented="{ content: true }"
-              class="favorite-detail-panel__meta-card"
-            >
-              <NSpace vertical :size="12">
-                <div class="favorite-detail-panel__title-block">
-                  <NText strong class="favorite-detail-panel__title">
-                    {{ favorite.title }}
-                  </NText>
-                  <NText depth="3">
-                    {{ t('favorites.manager.preview.updatedAt', { time: formatDate(favorite.updatedAt) }) }}
-                    ·
-                    {{ t('favorites.manager.preview.useCountInline', { count: favorite.useCount }) }}
-                  </NText>
-                </div>
+            <div class="favorite-detail-panel__side-stack">
+              <FavoriteSurfaceSection
+                variant="identity"
+                class="favorite-detail-panel__meta-card"
+              >
+                <NSpace vertical :size="12">
+                  <div class="favorite-detail-panel__title-block">
+                    <NText strong class="favorite-detail-panel__title">
+                      {{ favorite.title }}
+                    </NText>
+                    <NText depth="3">
+                      {{ t('favorites.manager.preview.updatedAt', { time: formatDate(favorite.updatedAt) }) }}
+                      ·
+                      {{ t('favorites.manager.preview.useCountInline', { count: favorite.useCount }) }}
+                    </NText>
+                  </div>
 
-                <NSpace :size="8" wrap>
-                  <NTag
-                    v-if="category"
-                    :color="category.color ? { color: category.color, textColor: 'white' } : undefined"
-                    :bordered="false"
+                  <NSpace :size="8" wrap>
+                    <NTag
+                      v-if="category"
+                      :color="category.color ? { color: category.color, textColor: 'white' } : undefined"
+                      :bordered="false"
+                    >
+                      {{ category.name }}
+                    </NTag>
+                    <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
+                      {{ getFunctionModeLabel(favorite) }}
+                    </NTag>
+                    <NTag
+                      v-if="subModeLabel"
+                      :bordered="false"
+                      :type="getSubModeTagType(favorite)"
+                    >
+                      {{ subModeLabel }}
+                    </NTag>
+                    <NTag
+                      v-for="tag in favorite.tags"
+                      :key="tag"
+                      :bordered="false"
+                      type="info"
+                    >
+                      {{ tag }}
+                    </NTag>
+                  </NSpace>
+
+                  <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
+                    {{ favorite.description }}
+                  </NText>
+
+                  <NEllipsis
+                    v-if="!isLinkedDialog"
+                    :line-clamp="4"
+                    :tooltip="false"
                   >
-                    {{ category.name }}
-                  </NTag>
-                  <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
-                    {{ getFunctionModeLabel(favorite) }}
-                  </NTag>
-                  <NTag
-                    v-if="subModeLabel"
-                    :bordered="false"
-                    :type="getSubModeTagType(favorite)"
-                  >
-                    {{ subModeLabel }}
-                  </NTag>
-                  <NTag
-                    v-for="tag in favorite.tags"
-                    :key="tag"
-                    :bordered="false"
-                    type="info"
-                  >
-                    {{ tag }}
-                  </NTag>
+                    <NText depth="2">
+                      {{ favorite.content }}
+                    </NText>
+                  </NEllipsis>
                 </NSpace>
+              </FavoriteSurfaceSection>
 
-                <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
-                  {{ favorite.description }}
-                </NText>
-
-                <NEllipsis
-                  :line-clamp="4"
-                  :tooltip="false"
-                >
-                  <NText depth="2">
-                    {{ favorite.content }}
-                  </NText>
-                </NEllipsis>
-              </NSpace>
-            </NCard>
+              <FavoriteSurfaceSection
+                v-if="isLinkedDialog"
+                :title="t('favorites.manager.preview.contentTitle')"
+                variant="content"
+                class="favorite-detail-panel__content-card favorite-detail-panel__content-card--side"
+              >
+                <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--side">
+                  <OutputDisplayCore
+                    :content="favorite.content"
+                    :original-content="originalContent"
+                    mode="readonly"
+                    :enabled-actions="contentEnabledActions"
+                    height="100%"
+                  />
+                </div>
+              </FavoriteSurfaceSection>
+            </div>
           </div>
 
           <NCollapse :default-expanded-names="imageExpandedSectionNames" class="favorite-detail-panel__sections">
-            <NCollapseItem name="content" :title="t('favorites.manager.preview.contentTitle')">
+            <NCollapseItem v-if="!isLinkedDialog" name="content" :title="t('favorites.manager.preview.contentTitle')">
               <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--compact">
                 <OutputDisplayCore
                   :content="favorite.content"
@@ -195,13 +223,28 @@
               </div>
             </NCollapseItem>
             <NCollapseItem
-              v-if="reproducibility.hasData"
-              name="reproducibility"
-              :title="t('favorites.manager.preview.reproducibility.title')"
+              v-if="hasReproducibilityVariables"
+              name="variables"
+              :title="t('favorites.manager.preview.reproducibility.variables')"
             >
               <FavoriteReproducibilityDisplay
                 :reproducibility="reproducibility"
                 :example-previews="reproducibilityExamplePreviews"
+                :show-examples="false"
+                :show-section-headings="false"
+              />
+            </NCollapseItem>
+            <NCollapseItem
+              v-if="hasReproducibilityExamples"
+              name="examples"
+              :title="t('favorites.manager.preview.reproducibility.examples')"
+            >
+              <FavoriteReproducibilityDisplay
+                :reproducibility="reproducibility"
+                :example-previews="reproducibilityExamplePreviews"
+                :show-variables="false"
+                :show-section-headings="false"
+                :show-apply-example="showActions"
                 @apply-example="handleApplyExample"
               />
             </NCollapseItem>
@@ -217,9 +260,8 @@
         </template>
 
         <template v-else>
-          <NCard
-            size="small"
-            :segmented="{ content: true }"
+          <FavoriteSurfaceSection
+            variant="identity"
             class="favorite-detail-panel__meta-card"
           >
             <NSpace vertical :size="12">
@@ -266,12 +308,11 @@
                 {{ favorite.description }}
               </NText>
             </NSpace>
-          </NCard>
+          </FavoriteSurfaceSection>
 
-          <NCard
-            size="small"
+          <FavoriteSurfaceSection
             :title="t('favorites.manager.preview.contentTitle')"
-            :segmented="{ content: true }"
+            variant="content"
             class="favorite-detail-panel__content-card"
           >
             <div class="favorite-detail-panel__content-shell">
@@ -283,7 +324,7 @@
                 height="100%"
               />
             </div>
-          </NCard>
+          </FavoriteSurfaceSection>
 
           <NCollapse :default-expanded-names="textExpandedSectionNames" class="favorite-detail-panel__sections">
             <NCollapseItem
@@ -305,13 +346,28 @@
               </AppPreviewImageGroup>
             </NCollapseItem>
             <NCollapseItem
-              v-if="reproducibility.hasData"
-              name="reproducibility"
-              :title="t('favorites.manager.preview.reproducibility.title')"
+              v-if="hasReproducibilityVariables"
+              name="variables"
+              :title="t('favorites.manager.preview.reproducibility.variables')"
             >
               <FavoriteReproducibilityDisplay
                 :reproducibility="reproducibility"
                 :example-previews="reproducibilityExamplePreviews"
+                :show-examples="false"
+                :show-section-headings="false"
+              />
+            </NCollapseItem>
+            <NCollapseItem
+              v-if="hasReproducibilityExamples"
+              name="examples"
+              :title="t('favorites.manager.preview.reproducibility.examples')"
+            >
+              <FavoriteReproducibilityDisplay
+                :reproducibility="reproducibility"
+                :example-previews="reproducibilityExamplePreviews"
+                :show-variables="false"
+                :show-section-headings="false"
+                :show-apply-example="showActions"
                 @apply-example="handleApplyExample"
               />
             </NCollapseItem>
@@ -335,7 +391,6 @@ import { computed, inject, ref, watch, type Ref } from 'vue'
 
 import {
   NButton,
-  NCard,
   NCollapse,
   NCollapseItem,
   NEmpty,
@@ -364,6 +419,7 @@ import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
 import OutputDisplayCore from './OutputDisplayCore.vue'
 import FavoritePreviewExtensionHost from './FavoritePreviewExtensionHost.vue'
 import FavoriteReproducibilityDisplay from './FavoriteReproducibilityDisplay.vue'
+import FavoriteSurfaceSection from './favorites/FavoriteSurfaceSection.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
 
@@ -371,9 +427,13 @@ const props = withDefaults(defineProps<{
   favorite: FavoritePrompt | null
   category?: FavoriteCategory
   showBack?: boolean
+  showActions?: boolean
+  presentation?: 'default' | 'linked-dialog'
 }>(), {
   category: undefined,
   showBack: false,
+  showActions: true,
+  presentation: 'default',
 })
 
 const emit = defineEmits<{
@@ -401,15 +461,24 @@ let resolveSequence = 0
 let reproducibilityResolveSequence = 0
 
 const detailVariant = computed(() => (displayImages.value.length > 0 ? 'image' : 'text'))
+const isLinkedDialog = computed(() => props.presentation === 'linked-dialog')
 const activeImage = computed(() => displayImages.value[activeImageIndex.value] || '')
 const reproducibility = computed(() => parseFavoriteReproducibility(props.favorite))
+const hasReproducibilityVariables = computed(() => reproducibility.value.variables.length > 0)
+const hasReproducibilityExamples = computed(() => reproducibility.value.examples.length > 0)
+const reproducibilityExpandedSectionNames = computed(() => [
+  ...(hasReproducibilityVariables.value ? ['variables'] : []),
+  ...(hasReproducibilityExamples.value ? ['examples'] : []),
+])
 const imageExpandedSectionNames = computed(() =>
-  reproducibility.value.hasData ? ['content', 'reproducibility'] : ['content'],
+  isLinkedDialog.value
+    ? reproducibilityExpandedSectionNames.value
+    : ['content', ...reproducibilityExpandedSectionNames.value],
 )
 const textExpandedSectionNames = computed(() => {
   const names: string[] = []
   if (displayImages.value.length > 0) names.push('media')
-  if (reproducibility.value.hasData) names.push('reproducibility')
+  names.push(...reproducibilityExpandedSectionNames.value)
   return names
 })
 const originalContent = computed(() => {
@@ -641,7 +710,7 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .favorite-detail-panel__empty {
@@ -657,7 +726,11 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
   position: sticky;
   z-index: 1;
   top: 0;
-  background: var(--n-color, #fff);
+  margin: -2px -2px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--n-border-color) 72%, transparent);
+  background: color-mix(in srgb, var(--n-color) 92%, var(--n-primary-color) 8%);
+  padding: 10px 12px;
+  border-radius: 8px;
 }
 
 .favorite-detail-panel__layout {
@@ -674,10 +747,52 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
   gap: 16px;
 }
 
+.favorite-detail-panel--linked-dialog {
+  height: auto;
+}
+
+.favorite-detail-panel--linked-dialog .favorite-detail-panel__layout {
+  flex: none;
+}
+
+.favorite-detail-panel--linked-dialog .favorite-detail-panel__hero-layout {
+  grid-template-columns: minmax(420px, 0.95fr) minmax(360px, 1.05fr);
+  align-items: start;
+}
+
+.favorite-detail-panel__side-stack {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .favorite-detail-panel__media-card,
 .favorite-detail-panel__meta-card,
 .favorite-detail-panel__content-card {
   min-height: 0;
+}
+
+.favorite-detail-panel__meta-card,
+.favorite-detail-panel__content-card {
+  border-color: color-mix(in srgb, var(--n-border-color) 76%, transparent);
+  box-shadow: none;
+}
+
+.favorite-detail-panel__meta-card {
+  background: color-mix(in srgb, var(--n-color) 90%, var(--n-primary-color) 10%);
+}
+
+.favorite-detail-panel :deep(.n-card-header) {
+  padding: 14px 16px 10px;
+}
+
+.favorite-detail-panel :deep(.n-card__content) {
+  padding: 14px 16px;
+}
+
+.favorite-detail-panel :deep(.n-collapse) {
+  border-radius: 8px;
 }
 
 .favorite-detail-panel__hero-image {
@@ -685,6 +800,12 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
   width: 100%;
   min-height: 260px;
   max-height: 420px;
+}
+
+.favorite-detail-panel--linked-dialog .favorite-detail-panel__hero-image {
+  min-height: 360px;
+  max-height: min(58vh, 560px);
+  background: var(--n-color-embedded);
 }
 
 .favorite-detail-panel__thumb-grid {
@@ -711,7 +832,7 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 }
 
 .favorite-detail-panel__title {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.4;
 }
 
@@ -721,11 +842,21 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 
 .favorite-detail-panel__content-shell {
   overflow: hidden;
-  min-height: 320px;
+  min-height: 300px;
+  border-radius: 8px;
 }
 
 .favorite-detail-panel__content-shell--compact {
   min-height: 280px;
+}
+
+.favorite-detail-panel__content-card--side {
+  flex: 1;
+}
+
+.favorite-detail-panel__content-shell--side {
+  height: min(36vh, 340px);
+  min-height: 260px;
 }
 
 .favorite-detail-panel__attachment-grid {
@@ -740,6 +871,10 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 
 @media (max-width: 1023px) {
   .favorite-detail-panel__hero-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .favorite-detail-panel--linked-dialog .favorite-detail-panel__hero-layout {
     grid-template-columns: 1fr;
   }
 }

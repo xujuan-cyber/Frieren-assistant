@@ -758,6 +758,139 @@ describe('FavoriteManager - 集成测试', () => {
       expect(categories[0].name).toBe('测试分类');
     });
 
+    it('应该在导入导出中保留 promptAsset 与示例图片引用', async () => {
+      await manager.addFavorite({
+        title: '图像收藏',
+        content: 'Generate {{scene}}',
+        tags: ['image'],
+        functionMode: 'image',
+        imageSubMode: 'multiimage',
+        metadata: {
+          reproducibility: {
+            variables: [{ name: 'scene', required: true }],
+            examples: [
+              {
+                id: 'image-example',
+                parameters: { scene: 'city' },
+                inputImageAssetIds: ['input-asset'],
+                imageAssetIds: ['output-asset'],
+                outputText: 'Generated city image',
+              },
+            ],
+          },
+        },
+      });
+
+      const exportData = await manager.exportFavorites();
+      const exported = JSON.parse(exportData);
+      const exportedAsset = exported.favorites[0].metadata.promptAsset as PromptAsset;
+      expect(exportedAsset.examples[0].input.images).toEqual([
+        { kind: 'asset', assetId: 'input-asset' },
+      ]);
+      expect(exportedAsset.examples[0].output.images).toEqual([
+        { kind: 'asset', assetId: 'output-asset' },
+      ]);
+
+      await storageProvider.clearAll();
+      await manager.importFavorites(exportData);
+
+      const [favorite] = await manager.getFavorites();
+      const importedAsset = favorite.metadata?.promptAsset as PromptAsset;
+      expect(importedAsset.schemaVersion).toBe(PROMPT_MODEL_SCHEMA_VERSION);
+      expect(importedAsset.examples[0].input.images).toEqual([
+        { kind: 'asset', assetId: 'input-asset' },
+      ]);
+      expect(importedAsset.examples[0].output?.images).toEqual([
+        { kind: 'asset', assetId: 'output-asset' },
+      ]);
+      expect(favorite.metadata?.reproducibility).toMatchObject({
+        examples: [
+          {
+            id: 'image-example',
+            inputImageAssetIds: ['input-asset'],
+            imageAssetIds: ['output-asset'],
+          },
+        ],
+      });
+    });
+
+    it('导入已有 promptAsset 时应保留 current version 中的图片引用', async () => {
+      const importData = {
+        favorites: [
+          {
+            id: 'import-rich-asset',
+            title: 'Rich image asset',
+            content: 'Edit image',
+            tags: ['image'],
+            functionMode: 'image',
+            imageSubMode: 'image2image',
+            createdAt: 1000,
+            updatedAt: 2000,
+            metadata: {
+              promptAsset: {
+                schemaVersion: PROMPT_MODEL_SCHEMA_VERSION,
+                id: 'favorite:import-rich-asset',
+                title: 'Rich image asset',
+                tags: ['image'],
+                contract: {
+                  family: 'image',
+                  subMode: 'image2image',
+                  modeKey: 'image-image2image',
+                  variables: [],
+                },
+                currentVersionId: 'v1',
+                versions: [
+                  {
+                    id: 'v1',
+                    version: 1,
+                    content: {
+                      kind: 'image-prompt',
+                      text: 'Edit image',
+                      images: [{ kind: 'asset', assetId: 'version-input-asset' }],
+                    },
+                    createdAt: 1000,
+                  },
+                ],
+                examples: [
+                  {
+                    id: 'asset-example',
+                    basedOnVersionId: 'v1',
+                    input: {
+                      images: [{ kind: 'asset', assetId: 'example-input-asset' }],
+                    },
+                    output: {
+                      images: [{ kind: 'asset', assetId: 'example-output-asset' }],
+                    },
+                  },
+                ],
+                createdAt: 1000,
+                updatedAt: 2000,
+              },
+            },
+          },
+        ],
+      };
+
+      const result = await manager.importFavorites(JSON.stringify(importData));
+
+      expect(result).toEqual({ imported: 1, skipped: 0, errors: [] });
+      const [favorite] = await manager.getFavorites();
+      const asset = favorite.metadata?.promptAsset as PromptAsset;
+      expect(asset.currentVersionId).toBe('v1');
+      expect(asset.versions).toHaveLength(1);
+      expect(asset.versions[0].content).toEqual({
+        kind: 'image-prompt',
+        text: 'Edit image',
+        images: [{ kind: 'asset', assetId: 'version-input-asset' }],
+      });
+      expect(asset.examples[0].input.images).toEqual([
+        { kind: 'asset', assetId: 'example-input-asset' },
+      ]);
+      expect(asset.examples[0].output?.images).toEqual([
+        { kind: 'asset', assetId: 'example-output-asset' },
+      ]);
+    });
+
     it('应该正确处理导入时的分类和标签关联', async () => {
       const cat1 = await manager.addCategory({ name: '分类1', color: '#FF0000' });
       const cat2 = await manager.addCategory({ name: '分类2', color: '#00FF00' });

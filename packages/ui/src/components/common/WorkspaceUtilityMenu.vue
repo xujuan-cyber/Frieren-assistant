@@ -1,11 +1,18 @@
 <template>
-  <NTooltip
-    trigger="hover"
-    placement="top"
-    :theme-overrides="tooltipThemeOverrides"
+  <div
+    class="workspace-utility-button-column"
+    :style="triggerStyle"
   >
-    <template #trigger>
-      <span class="workspace-utility-menu-trigger" :style="triggerStyle">
+    <SourceAssetBadge
+      v-if="source"
+      :source="source"
+      button-size="small"
+      button-variant="secondary"
+      button-class="workspace-utility-button"
+    />
+
+    <ThemedTooltip :label="t('common.workspaceTools')" placement="left">
+      <span class="workspace-utility-menu-trigger">
         <NDropdown
           trigger="click"
           :options="menuOptions"
@@ -13,7 +20,7 @@
           @select="handleSelect"
         >
           <NButton
-            class="workspace-utility-menu-button"
+            class="workspace-utility-button"
             size="small"
             secondary
             circle
@@ -30,9 +37,8 @@
           </NButton>
         </NDropdown>
       </span>
-    </template>
-    {{ t('common.workspaceTools') }}
-  </NTooltip>
+    </ThemedTooltip>
+  </div>
 
   <NModal
     v-model:show="showClearConfirm"
@@ -60,16 +66,21 @@
 
 <script setup lang="ts">
 import { computed, h, nextTick, onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
-import { NButton, NDropdown, NIcon, NModal, NTooltip, type DropdownOption } from 'naive-ui'
+import { NButton, NDropdown, NIcon, NModal, type DropdownOption } from 'naive-ui'
 import { ClearAll, DotsVertical } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
+import SourceAssetBadge from '../source/SourceAssetBadge.vue'
+import ThemedTooltip from './ThemedTooltip.vue'
+import type { SourceAssetRef } from '../../utils/source-asset'
 
 withDefaults(defineProps<{
   disabled?: boolean
   testId?: string
+  source?: SourceAssetRef | null
 }>(), {
   disabled: false,
   testId: undefined,
+  source: null,
 })
 
 const emit = defineEmits<{
@@ -80,14 +91,6 @@ const { t } = useI18n()
 const showClearConfirm = ref(false)
 const triggerStyle = ref<CSSProperties>({})
 let placementResizeObserver: ResizeObserver | null = null
-
-const tooltipThemeOverrides = computed(() => ({
-  color: 'var(--n-color)',
-  textColor: 'var(--n-text-color-2)',
-  borderRadius: '10px',
-  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.10)',
-  padding: '6px 10px',
-}))
 
 const updateTriggerPlacement = () => {
   if (typeof window === 'undefined') return
@@ -151,20 +154,29 @@ const handleConfirmClear = () => {
 </script>
 
 <style scoped>
-.workspace-utility-menu-trigger {
-  display: inline-flex;
+.workspace-utility-button-column {
+  display: flex;
   position: fixed;
   z-index: 20;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
 }
 
-.workspace-utility-menu-button {
+.workspace-utility-menu-trigger {
+  display: inline-flex;
+}
+
+.workspace-utility-button,
+:deep(.workspace-utility-button) {
   color: var(--n-text-color-3);
   border: 1px solid transparent;
   background: transparent;
   box-shadow: none;
 }
 
-.workspace-utility-menu-button:hover {
+.workspace-utility-button:hover,
+:deep(.workspace-utility-button:hover) {
   color: var(--n-primary-color);
   border-color: color-mix(in srgb, var(--n-primary-color) 24%, transparent);
   background: color-mix(in srgb, var(--n-primary-color) 8%, transparent);

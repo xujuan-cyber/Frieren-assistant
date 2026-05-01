@@ -18,9 +18,12 @@
             :text="$t('nav.favorites')"
             @click="emit('open-favorites')"
             :type="favoritesActive ? 'primary' : 'default'"
+            data-testid="header-favorites-page-action"
             size="medium"
             :ghost="false"
             :round="true"
+            :title="$t('favorites.page.title')"
+            :aria-current="favoritesActive ? 'page' : undefined"
             :class="{ 'page-destination-active': favoritesActive }"
         />
     </div>
