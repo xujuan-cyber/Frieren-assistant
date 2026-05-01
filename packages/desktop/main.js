@@ -1829,6 +1829,24 @@ function setupIPC() {
     }
   });
 
+  ipcMain.handle('favorite-setFavoritePromptAssetCurrentVersion', async (event, id, versionId) => {
+    try {
+      await favoriteManager.setFavoritePromptAssetCurrentVersion(id, versionId);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createFavoriteErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('favorite-deleteFavoritePromptAssetVersion', async (event, id, versionId) => {
+    try {
+      await favoriteManager.deleteFavoritePromptAssetVersion(id, versionId);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createFavoriteErrorResponse(error);
+    }
+  });
+
   ipcMain.handle('favorite-deleteFavorite', async (event, id) => {
     try {
       await favoriteManager.deleteFavorite(id);

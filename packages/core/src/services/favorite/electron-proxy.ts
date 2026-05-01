@@ -114,6 +114,14 @@ export class FavoriteManagerElectronProxy implements IFavoriteManager {
     return this.invokeMethod('updateFavorite', id, updates);
   }
 
+  async setFavoritePromptAssetCurrentVersion(id: string, versionId: string): Promise<void> {
+    return this.invokeMethod('setFavoritePromptAssetCurrentVersion', id, versionId);
+  }
+
+  async deleteFavoritePromptAssetVersion(id: string, versionId: string): Promise<void> {
+    return this.invokeMethod('deleteFavoritePromptAssetVersion', id, versionId);
+  }
+
   async deleteFavorite(id: string): Promise<void> {
     return this.invokeMethod('deleteFavorite', id);
   }

@@ -280,7 +280,7 @@ const stripWorkspaceDraftReproducibility = (
   examples: reproducibility.examples.filter((example) => example.id !== 'workspace-current'),
 });
 
-const isPromptAsset = (value: unknown): value is PromptAsset => {
+export const isPromptAsset = (value: unknown): value is PromptAsset => {
   if (!isPlainObject(value)) return false;
   if (value.schemaVersion !== PROMPT_MODEL_SCHEMA_VERSION) return false;
   if (!asTrimmedString(value.id) || !asTrimmedString(value.title)) return false;
@@ -361,6 +361,14 @@ const messagesToComparableText = (messages: ConversationMessage[]): string =>
     .map((message) => `[${message.role}]\n${message.content}`)
     .join('\n\n');
 
+export const promptContentToFavoriteContent = (content: PromptAsset['versions'][number]['content']): string => {
+  if (content.kind === 'text' || content.kind === 'image-prompt') {
+    return content.text;
+  }
+
+  return messagesToComparableText(content.messages);
+};
+
 const promptContentEquals = (
   left: PromptAsset['versions'][number]['content'],
   right: PromptAsset['versions'][number]['content'],
@@ -416,6 +424,46 @@ const rebaseDefaultExampleVersionIds = (
       ? { ...example, basedOnVersionId: currentVersionId }
       : example
   ));
+
+export const switchPromptAssetCurrentVersion = (
+  asset: PromptAsset,
+  versionId: string,
+  updatedAt: number,
+): { promptAsset: PromptAsset; content: string } | null => {
+  const targetVersion = asset.versions.find((version) => version.id === versionId);
+  if (!targetVersion) return null;
+
+  return {
+    promptAsset: {
+      ...asset,
+      currentVersionId: targetVersion.id,
+      versions: clonePromptAssetVersions(asset),
+      examples: clonePromptExamples(asset.examples),
+      source: clonePromptSource(asset.source),
+      metadata: asset.metadata ? { ...asset.metadata } : undefined,
+      updatedAt,
+    },
+    content: promptContentToFavoriteContent(targetVersion.content),
+  };
+};
+
+export const deletePromptAssetVersion = (
+  asset: PromptAsset,
+  versionId: string,
+  updatedAt: number,
+): PromptAsset | null => {
+  if (asset.currentVersionId === versionId || asset.versions.length <= 1) return null;
+  if (!asset.versions.some((version) => version.id === versionId)) return null;
+
+  return {
+    ...asset,
+    versions: clonePromptAssetVersions(asset).filter((version) => version.id !== versionId),
+    examples: clonePromptExamples(asset.examples),
+    source: clonePromptSource(asset.source),
+    metadata: asset.metadata ? { ...asset.metadata } : undefined,
+    updatedAt,
+  };
+};
 
 export const promptAssetFromFavorite = (
   favorite: FavoritePrompt,

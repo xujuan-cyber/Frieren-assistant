@@ -17,7 +17,6 @@
         @use="(target, options) => $emit('use', target, options)"
         @edit="$emit('edit', $event)"
         @delete="$emit('delete', $event)"
-        @fullscreen="$emit('fullscreen', $event)"
         @favorite-updated="$emit('favorite-updated', $event)"
       />
 
@@ -76,7 +75,6 @@ const emit = defineEmits<{
   'use': [favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }]
   'edit': [favorite: FavoritePrompt]
   'delete': [favorite: FavoritePrompt]
-  'fullscreen': [favorite: FavoritePrompt]
   'favorite-updated': [favoriteId: string]
   'saved': [favoriteId: string]
   'imported': []

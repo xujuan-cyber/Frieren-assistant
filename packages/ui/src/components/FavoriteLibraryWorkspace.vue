@@ -215,33 +215,10 @@
       @use="handleUseFavorite"
       @edit="handleEditFavorite"
       @delete="handleDeleteFavorite"
-      @fullscreen="handleOpenFullscreenFavorite"
       @favorite-updated="handleFavoriteDetailUpdated"
       @saved="handleEditorSaved"
       @imported="handleImportCompleted"
     />
-
-    <OutputDisplayFullscreen
-      v-if="fullscreenFavorite"
-      v-model="fullscreenVisible"
-      :title="fullscreenDialogTitle"
-      :content="fullscreenFavorite.content"
-      :original-content="fullscreenOriginalContent"
-      :reasoning="fullscreenFavorite.metadata?.reasoning || ''"
-      mode="readonly"
-      :enabled-actions="['copy', 'diff']"
-      @copy="handleFullscreenCopy"
-    >
-      <template #extra-content>
-        <FavoriteMediaPreviewPanel
-          :favorite="fullscreenFavorite"
-        />
-        <FavoritePreviewExtensionHost
-          :favorite="fullscreenFavorite"
-          @favorite-updated="handleFavoriteDetailUpdated"
-        />
-      </template>
-    </OutputDisplayFullscreen>
 
     <NModal
       :show="categoryManagerVisible"
@@ -306,10 +283,7 @@ import { createFavoriteResourcePackage } from '../utils/favorite-resource-packag
 import CategoryManager from './CategoryManager.vue'
 import CategoryTreeSelect from './CategoryTreeSelect.vue'
 import FavoriteAssetPanelDialog from './favorites/FavoriteAssetPanelDialog.vue'
-import FavoriteMediaPreviewPanel from './FavoriteMediaPreviewPanel.vue'
-import FavoritePreviewExtensionHost from './FavoritePreviewExtensionHost.vue'
 import FavoriteWorkspaceListItem from './FavoriteWorkspaceListItem.vue'
-import OutputDisplayFullscreen from './OutputDisplayFullscreen.vue'
 import TagManager from './TagManager.vue'
 
 type WorkspaceMode = 'detail' | 'edit' | 'create' | 'import'
@@ -389,7 +363,6 @@ const selectedModeFilter = ref<FavoriteModeFilterKey>('all')
 const selectedCategory = ref<string>('')
 const selectedTags = ref<string[]>([])
 const selectedFavorite = ref<FavoritePrompt | null>(null)
-const fullscreenFavorite = ref<FavoritePrompt | null>(null)
 const workspaceMode = ref<WorkspaceMode>('detail')
 const taskFavorite = ref<FavoritePrompt | null>(null)
 const assetPanelVisible = ref(false)
@@ -588,46 +561,6 @@ const actionMenuOptions = computed(() => [
   },
 ])
 
-const fullscreenVisible = computed({
-  get: () => fullscreenFavorite.value !== null,
-  set: (value: boolean) => {
-    if (!value) {
-      fullscreenFavorite.value = null
-    }
-  },
-})
-
-const fullscreenOriginalContent = computed(() => {
-  if (!fullscreenFavorite.value) {
-    return ''
-  }
-
-  const legacyOriginal = (fullscreenFavorite.value as Record<string, unknown>).originalContent
-  if (typeof legacyOriginal === 'string' && legacyOriginal.trim().length > 0) {
-    return legacyOriginal
-  }
-
-  return fullscreenFavorite.value.metadata?.originalContent ?? ''
-})
-
-const fullscreenDialogTitle = computed(() => {
-  if (!fullscreenFavorite.value) {
-    return t('favorites.manager.preview.title')
-  }
-
-  const title = fullscreenFavorite.value.title?.trim()
-  const categoryName = fullscreenFavorite.value.category
-    ? getCategoryById(fullscreenFavorite.value.category)?.name?.trim()
-    : ''
-  const updatedLabel = t('favorites.manager.preview.updatedAt', { time: formatDate(fullscreenFavorite.value.updatedAt) })
-
-  return [
-    title && title.length > 0 ? title : t('favorites.manager.preview.title'),
-    categoryName && categoryName.length > 0 ? categoryName : null,
-    updatedLabel,
-  ].filter(Boolean).join(' · ')
-})
-
 const assetPanelFavorite = computed(() => {
   if (workspaceMode.value === 'edit') {
     return taskFavorite.value
@@ -709,7 +642,6 @@ watch(
       assetPanelVisible.value = false
       workspaceMode.value = 'detail'
       taskFavorite.value = null
-      fullscreenFavorite.value = null
       return
     }
 
@@ -833,28 +765,12 @@ const handleImportCompleted = async () => {
 
 const handleSelectFavorite = (favorite: FavoritePrompt) => openPanel('detail', favorite)
 
-const handleOpenFullscreenFavorite = (favorite: FavoritePrompt) => {
-  fullscreenFavorite.value = favorite
-}
-
-const handleFullscreenCopy = (_content: string, type: 'content' | 'reasoning' | 'all') => {
-  const successMessages = {
-    content: t('favorites.manager.actions.copiedOptimized'),
-    reasoning: t('favorites.manager.actions.copiedReasoning'),
-    all: t('favorites.manager.actions.copiedAll'),
-  } as const
-  message.success(successMessages[type])
-}
-
 const handleFavoriteDetailUpdated = async (favoriteId: string) => {
   await loadFavorites()
   const updatedFavorite = favorites.value.find((favorite) => favorite.id === favoriteId) || null
   if (updatedFavorite) {
     selectedFavorite.value = updatedFavorite
     taskFavorite.value = workspaceMode.value === 'edit' ? updatedFavorite : taskFavorite.value
-    if (fullscreenFavorite.value?.id === favoriteId) {
-      fullscreenFavorite.value = updatedFavorite
-    }
   }
 }
 
@@ -888,10 +804,6 @@ const bumpUseCountLocally = (id: string) => {
     if (taskFavorite.value?.id === id) {
       taskFavorite.value = updated
     }
-
-    if (fullscreenFavorite.value?.id === id) {
-      fullscreenFavorite.value = updated
-    }
   }
 }
 
@@ -912,10 +824,6 @@ const loadFavorites = async () => {
 
     if (taskFavorite.value) {
       taskFavorite.value = data.find((item) => item.id === taskFavorite.value?.id) || null
-    }
-
-    if (fullscreenFavorite.value) {
-      fullscreenFavorite.value = data.find((item) => item.id === fullscreenFavorite.value?.id) || null
     }
   } catch (error) {
     console.error('[FavoriteManager] Failed to load favorites:', error)
@@ -1008,10 +916,6 @@ const handleDeleteFavorite = (favorite: FavoritePrompt) => {
   if (taskFavorite.value?.id === favorite.id) {
     taskFavorite.value = null
     workspaceMode.value = 'detail'
-  }
-
-  if (fullscreenFavorite.value?.id === favorite.id) {
-    fullscreenFavorite.value = null
   }
 
   if (deletingOpenFavorite) {
@@ -1118,32 +1022,6 @@ const handleExportFavorites = async () => {
   } catch (error) {
     message.error(buildErrorMessage(t('favorites.manager.actions.exportFailed'), error))
   }
-}
-
-const formatDate = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (days === 0) {
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    if (hours === 0) {
-      const minutes = Math.floor(diff / (1000 * 60))
-      return minutes <= 1 ? t('favorites.manager.time.justNow') : t('favorites.manager.time.minutesAgo', { minutes })
-    }
-    return t('favorites.manager.time.hoursAgo', { hours })
-  }
-
-  if (days === 1) {
-    return t('favorites.manager.time.yesterday')
-  }
-
-  if (days < 7) {
-    return t('favorites.manager.time.daysAgo', { days })
-  }
-
-  return date.toLocaleDateString()
 }
 
 const updateViewportWidth = () => {

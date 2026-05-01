@@ -735,6 +735,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateFavorite: async (id, updates) => {
       await invokeFavorite('favorite-updateFavorite', id, updates);
     },
+    setFavoritePromptAssetCurrentVersion: async (id, versionId) => {
+      await invokeFavorite('favorite-setFavoritePromptAssetCurrentVersion', id, versionId);
+    },
+    deleteFavoritePromptAssetVersion: async (id, versionId) => {
+      await invokeFavorite('favorite-deleteFavoritePromptAssetVersion', id, versionId);
+    },
     deleteFavorite: async (id) => {
       await invokeFavorite('favorite-deleteFavorite', id);
     },

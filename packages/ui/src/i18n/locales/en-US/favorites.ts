@@ -15,6 +15,25 @@ const messages = {
       "assetId": "Asset ID",
       "versionId": "Version ID"
     },
+    "version": {
+      "title": "Versions",
+      "current": "Current",
+      "itemLabel": "v{version}",
+      "previewTitle": "View version v{version}",
+      "closePreview": "Close",
+      "currentVersion": "Current version v{version}",
+      "createdAt": "Created {time}",
+      "updatedAt": "Updated {time}",
+      "emptyPreview": "No content preview",
+      "setCurrent": "Set current",
+      "delete": "Delete",
+      "messages": {
+        "setCurrentSuccess": "Current version updated",
+        "setCurrentFailed": "Failed to set current version",
+        "deleteSuccess": "Version deleted",
+        "deleteFailed": "Failed to delete version"
+      }
+    },
     "categories": {
       "default": {
         "uncategorized": "Uncategorized",

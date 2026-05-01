@@ -70,7 +70,7 @@ withDefaults(defineProps<{
 }
 
 .favorite-panel-shell--dialog.favorite-panel-shell--detail .favorite-panel-shell__body {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .favorite-panel-shell--edit .favorite-panel-shell__body,

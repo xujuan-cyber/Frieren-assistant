@@ -269,6 +269,34 @@
           </FavoriteSurfaceSection>
 
           <FavoriteSurfaceSection
+            v-if="promptAsset"
+            :title="t('favorites.version.title')"
+          >
+            <template #headerExtra>
+              <NSpace :size="6" align="center" wrap>
+                <NTag
+                  v-if="currentPromptAssetVersion"
+                  size="small"
+                  type="success"
+                  :bordered="false"
+                  data-testid="favorite-editor-current-version"
+                >
+                  {{ t('favorites.version.currentVersion', { version: currentPromptAssetVersion.version }) }}
+                </NTag>
+              </NSpace>
+            </template>
+            <FavoritePromptAssetVersionList
+              :prompt-asset="promptAsset"
+              show-set-current-actions
+              show-delete-actions
+              :busy-version-id="busyVersionId"
+              @view-version="handleViewVersion"
+              @set-current-version="handleSetCurrentVersion"
+              @delete-version="handleDeleteVersion"
+            />
+          </FavoriteSurfaceSection>
+
+          <FavoriteSurfaceSection
             :title="t('favorites.dialog.reproducibility.variables')"
             :changed="isReproducibilityVariablesChanged"
           >
@@ -335,6 +363,11 @@
         </NButton>
       </NSpace>
     </div>
+
+    <FavoritePromptAssetVersionPreviewModal
+      v-model:show="showVersionPreview"
+      :version="previewVersion"
+    />
   </div>
 </template>
 
@@ -360,7 +393,7 @@ import {
   type UploadFileInfo,
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import type { FavoritePrompt } from '@prompt-optimizer/core'
+import type { FavoritePrompt, PromptContentVersion } from '@prompt-optimizer/core'
 
 import { useToast } from '../composables/ui/useToast'
 import { useTagSuggestions } from '../composables/ui/useTagSuggestions'
@@ -368,6 +401,10 @@ import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
 import { buildFavoriteMediaMetadata, parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
+import {
+  getEmbeddedFavoritePromptAsset,
+  promptContentToEditableText,
+} from '../utils/favorite-prompt-versions'
 import {
   applyFavoriteReproducibilityToMetadata,
   appendFavoriteReproducibilityDraftToMetadata,
@@ -383,6 +420,8 @@ import {
   resolveAssetIdToDataUrl,
 } from '../utils/image-asset-storage'
 import CategoryTreeSelect from './CategoryTreeSelect.vue'
+import FavoritePromptAssetVersionList from './favorites/FavoritePromptAssetVersionList.vue'
+import FavoritePromptAssetVersionPreviewModal from './favorites/FavoritePromptAssetVersionPreviewModal.vue'
 import FavoriteReproducibilityEditor from './FavoriteReproducibilityEditor.vue'
 import FavoriteSurfaceSection from './favorites/FavoriteSurfaceSection.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
@@ -441,6 +480,9 @@ const message = useToast()
 
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1280)
 const saving = ref(false)
+const busyVersionId = ref('')
+const showVersionPreview = ref(false)
+const previewVersion = ref<PromptContentVersion | null>(null)
 const mediaTouched = ref(false)
 const tagInputValue = ref('')
 const reproducibilityVariables = ref<FavoriteReproducibilityVariable[]>([])
@@ -450,6 +492,12 @@ const reviewAddedExampleIds = ref<string[]>([])
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isEditingFavorite = computed(() => props.mode === 'edit' && Boolean(props.favorite))
+const promptAsset = computed(() =>
+  props.mode === 'edit' ? getEmbeddedFavoritePromptAsset(props.favorite) : null,
+)
+const currentPromptAssetVersion = computed(() =>
+  promptAsset.value?.versions.find((version) => version.id === promptAsset.value?.currentVersionId) || null,
+)
 
 const formData = reactive({
   title: '',
@@ -1011,6 +1059,56 @@ const handleAddTag = (event: KeyboardEvent) => {
   if (trimmedValue && !formData.tags.includes(trimmedValue) && formData.tags.length < 10) {
     formData.tags.push(trimmedValue)
     tagInputValue.value = ''
+  }
+}
+
+const handleViewVersion = (version: PromptContentVersion) => {
+  previewVersion.value = version
+  showVersionPreview.value = true
+}
+
+const handleSetCurrentVersion = async (version: PromptContentVersion) => {
+  const servicesValue = services?.value
+  if (!servicesValue?.favoriteManager || !props.favorite) {
+    message.warning(t('favorites.dialog.messages.unavailable'))
+    return
+  }
+
+  busyVersionId.value = version.id
+  try {
+    await servicesValue.favoriteManager.setFavoritePromptAssetCurrentVersion(props.favorite.id, version.id)
+    formData.content = promptContentToEditableText(version.content)
+    message.success(t('favorites.version.messages.setCurrentSuccess'))
+    emit('saved', props.favorite.id)
+  } catch (error) {
+    const errorMessage = getI18nErrorMessage(error, t('common.error'))
+    message.error(`${t('favorites.version.messages.setCurrentFailed')}: ${errorMessage}`)
+  } finally {
+    busyVersionId.value = ''
+  }
+}
+
+const handleDeleteVersion = async (version: PromptContentVersion) => {
+  const servicesValue = services?.value
+  if (!servicesValue?.favoriteManager || !props.favorite) {
+    message.warning(t('favorites.dialog.messages.unavailable'))
+    return
+  }
+
+  busyVersionId.value = version.id
+  try {
+    await servicesValue.favoriteManager.deleteFavoritePromptAssetVersion(props.favorite.id, version.id)
+    if (previewVersion.value?.id === version.id) {
+      showVersionPreview.value = false
+      previewVersion.value = null
+    }
+    message.success(t('favorites.version.messages.deleteSuccess'))
+    emit('saved', props.favorite.id)
+  } catch (error) {
+    const errorMessage = getI18nErrorMessage(error, t('common.error'))
+    message.error(`${t('favorites.version.messages.deleteFailed')}: ${errorMessage}`)
+  } finally {
+    busyVersionId.value = ''
   }
 }
 

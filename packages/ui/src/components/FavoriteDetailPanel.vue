@@ -50,16 +50,6 @@
             {{ t('favorites.manager.card.copyContent') }}
           </NButton>
           <NButton
-            data-testid="favorite-detail-fullscreen"
-            quaternary
-            @click="$emit('fullscreen', favorite)"
-          >
-            <template #icon>
-              <NIcon><Maximize /></NIcon>
-            </template>
-            {{ t('common.fullscreen') }}
-          </NButton>
-          <NButton
             data-testid="favorite-detail-edit"
             quaternary
             @click="$emit('edit', favorite)"
@@ -173,6 +163,14 @@
                     >
                       {{ tag }}
                     </NTag>
+                    <NTag
+                      v-if="currentPromptAssetVersion"
+                      :bordered="false"
+                      type="success"
+                      data-testid="favorite-detail-current-version"
+                    >
+                      {{ t('favorites.version.itemLabel', { version: currentPromptAssetVersion.version }) }}
+                    </NTag>
                   </NSpace>
 
                   <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
@@ -199,7 +197,7 @@
               >
                 <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--side">
                   <OutputDisplayCore
-                    :content="favorite.content"
+                    :content="displayContent"
                     :original-content="originalContent"
                     mode="readonly"
                     :enabled-actions="contentEnabledActions"
@@ -214,13 +212,23 @@
             <NCollapseItem v-if="!isLinkedDialog" name="content" :title="t('favorites.manager.preview.contentTitle')">
               <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--compact">
                 <OutputDisplayCore
-                  :content="favorite.content"
+                  :content="displayContent"
                   :original-content="originalContent"
                   mode="readonly"
                   :enabled-actions="contentEnabledActions"
                   height="100%"
                 />
               </div>
+            </NCollapseItem>
+            <NCollapseItem
+              v-if="promptAsset"
+              name="versions"
+              :title="t('favorites.version.title')"
+            >
+              <FavoritePromptAssetVersionList
+                :prompt-asset="promptAsset"
+                @view-version="handleViewVersion"
+              />
             </NCollapseItem>
             <NCollapseItem
               v-if="hasReproducibilityVariables"
@@ -302,6 +310,14 @@
                 >
                   {{ tag }}
                 </NTag>
+                <NTag
+                  v-if="currentPromptAssetVersion"
+                  :bordered="false"
+                  type="success"
+                  data-testid="favorite-detail-current-version"
+                >
+                  {{ t('favorites.version.itemLabel', { version: currentPromptAssetVersion.version }) }}
+                </NTag>
               </NSpace>
 
               <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
@@ -317,7 +333,7 @@
           >
             <div class="favorite-detail-panel__content-shell">
               <OutputDisplayCore
-                :content="favorite.content"
+                :content="displayContent"
                 :original-content="originalContent"
                 mode="readonly"
                 :enabled-actions="contentEnabledActions"
@@ -327,6 +343,16 @@
           </FavoriteSurfaceSection>
 
           <NCollapse :default-expanded-names="textExpandedSectionNames" class="favorite-detail-panel__sections">
+            <NCollapseItem
+              v-if="promptAsset"
+              name="versions"
+              :title="t('favorites.version.title')"
+            >
+              <FavoritePromptAssetVersionList
+                :prompt-asset="promptAsset"
+                @view-version="handleViewVersion"
+              />
+            </NCollapseItem>
             <NCollapseItem
               v-if="displayImages.length > 0"
               name="media"
@@ -382,6 +408,11 @@
           </NCollapse>
         </template>
       </div>
+
+      <FavoritePromptAssetVersionPreviewModal
+        v-model:show="showVersionPreview"
+        :version="previewVersion"
+      />
     </template>
   </div>
 </template>
@@ -404,21 +435,26 @@ import {
   ArrowLeft,
   Copy,
   Edit,
-  Maximize,
   PlayerPlay,
   Trash,
 } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
-import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
+import type { FavoriteCategory, FavoritePrompt, PromptContentVersion } from '@prompt-optimizer/core'
 
 import type { AppServices } from '../types/services'
 import { parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
+import {
+  getEmbeddedFavoritePromptAsset,
+  promptContentToEditableText,
+} from '../utils/favorite-prompt-versions'
 import { parseFavoriteReproducibility } from '../utils/favorite-reproducibility'
 import { resolveAssetIdToDataUrl } from '../utils/image-asset-storage'
 import OutputDisplayCore from './OutputDisplayCore.vue'
 import FavoritePreviewExtensionHost from './FavoritePreviewExtensionHost.vue'
 import FavoriteReproducibilityDisplay from './FavoriteReproducibilityDisplay.vue'
+import FavoritePromptAssetVersionList from './favorites/FavoritePromptAssetVersionList.vue'
+import FavoritePromptAssetVersionPreviewModal from './favorites/FavoritePromptAssetVersionPreviewModal.vue'
 import FavoriteSurfaceSection from './favorites/FavoriteSurfaceSection.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 import AppPreviewImageGroup from './media/AppPreviewImageGroup.vue'
@@ -442,7 +478,6 @@ const emit = defineEmits<{
   'copy': [favorite: FavoritePrompt]
   'edit': [favorite: FavoritePrompt]
   'delete': [favorite: FavoritePrompt]
-  'fullscreen': [favorite: FavoritePrompt]
   'favorite-updated': [favoriteId: string]
 }>()
 
@@ -457,6 +492,8 @@ const reproducibilityExamplePreviews = ref<Array<{
   inputImages: Array<{ assetId: string; source: string }>
 }>>([])
 const activeImageIndex = ref(0)
+const showVersionPreview = ref(false)
+const previewVersion = ref<PromptContentVersion | null>(null)
 let resolveSequence = 0
 let reproducibilityResolveSequence = 0
 
@@ -464,19 +501,31 @@ const detailVariant = computed(() => (displayImages.value.length > 0 ? 'image' :
 const isLinkedDialog = computed(() => props.presentation === 'linked-dialog')
 const activeImage = computed(() => displayImages.value[activeImageIndex.value] || '')
 const reproducibility = computed(() => parseFavoriteReproducibility(props.favorite))
+const promptAsset = computed(() => getEmbeddedFavoritePromptAsset(props.favorite))
+const currentPromptAssetVersion = computed(() =>
+  promptAsset.value?.versions.find((version) => version.id === promptAsset.value?.currentVersionId) || null,
+)
+const displayContent = computed(() => {
+  if (!props.favorite) return ''
+  return currentPromptAssetVersion.value
+    ? promptContentToEditableText(currentPromptAssetVersion.value.content)
+    : props.favorite.content
+})
 const hasReproducibilityVariables = computed(() => reproducibility.value.variables.length > 0)
 const hasReproducibilityExamples = computed(() => reproducibility.value.examples.length > 0)
 const reproducibilityExpandedSectionNames = computed(() => [
   ...(hasReproducibilityVariables.value ? ['variables'] : []),
   ...(hasReproducibilityExamples.value ? ['examples'] : []),
 ])
+const versionExpandedSectionNames = computed(() => (promptAsset.value ? ['versions'] : []))
 const imageExpandedSectionNames = computed(() =>
   isLinkedDialog.value
-    ? reproducibilityExpandedSectionNames.value
-    : ['content', ...reproducibilityExpandedSectionNames.value],
+    ? [...versionExpandedSectionNames.value, ...reproducibilityExpandedSectionNames.value]
+    : ['content', ...versionExpandedSectionNames.value, ...reproducibilityExpandedSectionNames.value],
 )
 const textExpandedSectionNames = computed(() => {
   const names: string[] = []
+  names.push(...versionExpandedSectionNames.value)
   if (displayImages.value.length > 0) names.push('media')
   names.push(...reproducibilityExpandedSectionNames.value)
   return names
@@ -698,6 +747,11 @@ const handleFavoriteUpdated = (favoriteId: string) => {
   emit('favorite-updated', favoriteId)
 }
 
+const handleViewVersion = (version: PromptContentVersion) => {
+  previewVersion.value = version
+  showVersionPreview.value = true
+}
+
 const handleApplyExample = (options: { exampleId?: string; exampleIndex: number }) => {
   if (!props.favorite) return
   emit('use', props.favorite, { ...options, applyExample: true })
@@ -723,10 +777,7 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 
 .favorite-detail-panel__action-bar {
   flex: 0 0 auto;
-  position: sticky;
-  z-index: 1;
-  top: 0;
-  margin: -2px -2px 2px;
+  margin: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--n-border-color) 72%, transparent);
   background: color-mix(in srgb, var(--n-color) 92%, var(--n-primary-color) 8%);
   padding: 10px 12px;
@@ -735,6 +786,7 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 
 .favorite-detail-panel__layout {
   display: flex;
+  overflow: auto;
   min-height: 0;
   flex: 1;
   flex-direction: column;

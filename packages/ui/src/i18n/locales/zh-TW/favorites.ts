@@ -15,6 +15,25 @@ const messages = {
       "assetId": "資產 ID",
       "versionId": "版本 ID"
     },
+    "version": {
+      "title": "版本",
+      "current": "目前",
+      "itemLabel": "v{version}",
+      "previewTitle": "查看版本 v{version}",
+      "closePreview": "關閉",
+      "currentVersion": "目前版本 v{version}",
+      "createdAt": "建立 {time}",
+      "updatedAt": "更新 {time}",
+      "emptyPreview": "暫無內容預覽",
+      "setCurrent": "設為目前",
+      "delete": "刪除",
+      "messages": {
+        "setCurrentSuccess": "目前版本已更新",
+        "setCurrentFailed": "設定目前版本失敗",
+        "deleteSuccess": "版本已刪除",
+        "deleteFailed": "刪除版本失敗"
+      }
+    },
     "categories": {
       "default": {
         "uncategorized": "未分類",

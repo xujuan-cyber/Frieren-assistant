@@ -22,7 +22,12 @@ import {
   assertFavoriteMetadataHasNoInlineImages,
   assertFavoritesPayloadWithinBudget,
 } from './storage-guards';
-import { refreshPromptAssetFromFavorite } from '../prompt-model/favorite';
+import {
+  deletePromptAssetVersion,
+  isPromptAsset,
+  refreshPromptAssetFromFavorite,
+  switchPromptAssetCurrentVersion,
+} from '../prompt-model/favorite';
 
 /**
  * 收藏管理器实现
@@ -460,6 +465,121 @@ export class FavoriteManager implements IFavoriteManager {
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new FavoriteStorageError(`Failed to update favorite: ${errorMessage}`);
+    }
+  }
+
+  async setFavoritePromptAssetCurrentVersion(id: string, versionId: string): Promise<void> {
+    await this.ensureInitialized();
+
+    try {
+      await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
+        const favoritesList = favorites || [];
+        const index = favoritesList.findIndex(f => f.id === id);
+        if (index === -1) {
+          throw new FavoriteNotFoundError(id);
+        }
+
+        const currentFavorite = favoritesList[index];
+        const metadata = currentFavorite.metadata && typeof currentFavorite.metadata === 'object'
+          ? { ...currentFavorite.metadata }
+          : {};
+        const promptAsset = isPromptAsset(metadata.promptAsset) ? metadata.promptAsset : null;
+        if (!promptAsset) {
+          throw new FavoriteValidationError('Prompt asset is not available for this favorite');
+        }
+
+        const now = Date.now();
+        const switched = switchPromptAssetCurrentVersion(promptAsset, versionId, now);
+        if (!switched) {
+          throw new FavoriteValidationError(`Prompt asset version not found: ${versionId}`);
+        }
+
+        const nextFavorite: FavoritePrompt = {
+          ...currentFavorite,
+          content: switched.content,
+          updatedAt: now,
+          metadata: {
+            ...metadata,
+            promptAsset: switched.promptAsset,
+          },
+        };
+        assertFavoriteFitsItemBudget(nextFavorite);
+
+        favoritesList[index] = nextFavorite;
+        assertFavoritesPayloadWithinBudget(favoritesList, {
+          warnOnSoftLimit: true,
+        });
+
+        return favoritesList;
+      });
+
+      await this.updateStats();
+    } catch (error) {
+      if (error instanceof FavoriteError) {
+        throw error;
+      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new FavoriteStorageError(`Failed to set favorite prompt asset current version: ${errorMessage}`);
+    }
+  }
+
+  async deleteFavoritePromptAssetVersion(id: string, versionId: string): Promise<void> {
+    await this.ensureInitialized();
+
+    try {
+      await this.storageProvider.updateData(this.STORAGE_KEYS.FAVORITES, (favorites: FavoritePrompt[] | null) => {
+        const favoritesList = favorites || [];
+        const index = favoritesList.findIndex(f => f.id === id);
+        if (index === -1) {
+          throw new FavoriteNotFoundError(id);
+        }
+
+        const currentFavorite = favoritesList[index];
+        const metadata = currentFavorite.metadata && typeof currentFavorite.metadata === 'object'
+          ? { ...currentFavorite.metadata }
+          : {};
+        const promptAsset = isPromptAsset(metadata.promptAsset) ? metadata.promptAsset : null;
+        if (!promptAsset) {
+          throw new FavoriteValidationError('Prompt asset is not available for this favorite');
+        }
+        if (promptAsset.versions.length <= 1) {
+          throw new FavoriteValidationError('Cannot delete the last prompt asset version');
+        }
+        if (promptAsset.currentVersionId === versionId) {
+          throw new FavoriteValidationError('Cannot delete the current prompt asset version');
+        }
+
+        const now = Date.now();
+        const nextPromptAsset = deletePromptAssetVersion(promptAsset, versionId, now);
+        if (!nextPromptAsset) {
+          throw new FavoriteValidationError(`Prompt asset version not found: ${versionId}`);
+        }
+
+        const nextFavorite: FavoritePrompt = {
+          ...currentFavorite,
+          updatedAt: now,
+          metadata: {
+            ...metadata,
+            promptAsset: nextPromptAsset,
+          },
+        };
+        assertFavoriteFitsItemBudget(nextFavorite);
+
+        favoritesList[index] = nextFavorite;
+        assertFavoritesPayloadWithinBudget(favoritesList, {
+          warnOnSoftLimit: true,
+        });
+
+        return favoritesList;
+      });
+
+      await this.updateStats();
+    } catch (error) {
+      if (error instanceof FavoriteError) {
+        throw error;
+      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new FavoriteStorageError(`Failed to delete favorite prompt asset version: ${errorMessage}`);
     }
   }
 

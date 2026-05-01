@@ -142,6 +142,12 @@ export interface IFavoriteManager {
   /** 更新收藏 */
   updateFavorite(id: string, updates: Partial<FavoritePrompt>): Promise<void>;
 
+  /** 显式切换收藏内提示词资产的当前版本 */
+  setFavoritePromptAssetCurrentVersion(id: string, versionId: string): Promise<void>;
+
+  /** 删除收藏内提示词资产的非当前版本 */
+  deleteFavoritePromptAssetVersion(id: string, versionId: string): Promise<void>;
+
   /** 删除收藏 */
   deleteFavorite(id: string): Promise<void>;
 
