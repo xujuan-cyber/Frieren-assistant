@@ -8,6 +8,8 @@ import {
   type ImageResult,
   type IImageStorageService,
   type ImageInputRef,
+  type PromptAssetBinding,
+  type PromptSessionOrigin,
 } from '@prompt-optimizer/core'
 import {
   normalizeImageSourceToPayload,
@@ -19,6 +21,7 @@ import {
   queueImageStorageMaintenance,
   scheduleImageStorageGc,
 } from './imageStorageMaintenance'
+import { createSessionAssetBindingState } from './sessionAssetBinding'
 import {
   createDefaultEvaluationResults,
   type PersistedEvaluationResults,
@@ -67,6 +70,8 @@ export interface ImageMultiImageSessionState {
   selectedTemplateId: string | null
   selectedIterateTemplateId: string | null
   lastActiveAt: number
+  assetBinding?: PromptAssetBinding
+  origin?: PromptSessionOrigin
 }
 
 const createDefaultState = (): ImageMultiImageSessionState => ({
@@ -95,6 +100,8 @@ const createDefaultState = (): ImageMultiImageSessionState => ({
   selectedTemplateId: null,
   selectedIterateTemplateId: null,
   lastActiveAt: Date.now(),
+  assetBinding: undefined,
+  origin: undefined,
 })
 
 const createRuntimeImageId = () =>
@@ -344,6 +351,16 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
   const selectedTemplateId = ref<string | null>(null)
   const selectedIterateTemplateId = ref<string | null>(null)
   const lastActiveAt = ref(Date.now())
+  const assetBindingState = createSessionAssetBindingState(
+    () => {
+      lastActiveAt.value = Date.now()
+    },
+    () => {
+      void saveSession().catch((error) => {
+        console.error('[ImageMultiImageSession] Failed to auto-save asset binding:', error)
+      })
+    },
+  )
 
   const touch = () => {
     lastActiveAt.value = Date.now()
@@ -361,6 +378,9 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     chainId: string
     versionId: string
   }) => {
+    if (!payload.chainId && !payload.versionId) {
+      assetBindingState.clearAssetBindingWithoutPersist()
+    }
     optimizedPrompt.value = payload.optimizedPrompt
     reasoning.value = payload.reasoning || ''
     chainId.value = payload.chainId
@@ -525,6 +545,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     selectedImageModelKey.value = defaults.selectedImageModelKey
     selectedTemplateId.value = defaults.selectedTemplateId
     selectedIterateTemplateId.value = defaults.selectedIterateTemplateId
+    assetBindingState.resetAssetBinding()
     lastActiveAt.value = defaults.lastActiveAt
   }
 
@@ -542,6 +563,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     testVariantResults.value = defaults.testVariantResults
     testVariantLastRunFingerprint.value = defaults.testVariantLastRunFingerprint
     evaluationResults.value = defaults.evaluationResults
+    assetBindingState.clearAssetBindingWithoutPersist()
     lastActiveAt.value = Date.now()
     if (options.persist !== false) {
       void saveSession().catch((error) => {
@@ -609,6 +631,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
         selectedTemplateId: selectedTemplateId.value,
         selectedIterateTemplateId: selectedIterateTemplateId.value,
         lastActiveAt: lastActiveAt.value,
+        ...assetBindingState.persistedAssetBinding(),
       })
 
       scheduleImageStorageGc($services.preferenceService, imageStorageService)
@@ -718,6 +741,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     selectedImageModelKey.value = typeof parsed.selectedImageModelKey === 'string' ? parsed.selectedImageModelKey : ''
     selectedTemplateId.value = typeof parsed.selectedTemplateId === 'string' ? parsed.selectedTemplateId : null
     selectedIterateTemplateId.value = typeof parsed.selectedIterateTemplateId === 'string' ? parsed.selectedIterateTemplateId : null
+    assetBindingState.restoreAssetBinding(parsed)
     lastActiveAt.value = Date.now()
   }
 
@@ -742,6 +766,8 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     selectedTemplateId,
     selectedIterateTemplateId,
     lastActiveAt,
+    assetBinding: assetBindingState.assetBinding,
+    origin: assetBindingState.origin,
     updatePrompt,
     updateOptimizedResult,
     updateOriginalImageResult,
@@ -765,6 +791,8 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     removeInputImage,
     reorderInputImages,
     clearContent,
+    updateAssetBinding: assetBindingState.updateAssetBinding,
+    clearAssetBinding: assetBindingState.clearAssetBinding,
     reset,
     saveSession,
     restoreSession,

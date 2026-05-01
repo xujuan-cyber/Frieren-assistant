@@ -218,6 +218,117 @@ describe('FavoriteManager - 扩展功能', () => {
       expect(favorite.metadata?.anotherField).toBe(123);
     });
 
+    it('新增收藏时应该写入标准 promptAsset 且不把 workspace-current 写入资产示例', async () => {
+      const id = await manager.addFavorite({
+        title: '测试',
+        content: 'Write about {{topic}}',
+        tags: ['tag-a'],
+        functionMode: 'context',
+        optimizationMode: 'user',
+        metadata: {
+          reproducibility: {
+            variables: [
+              {
+                name: 'topic',
+                source: 'workspace',
+                defaultValue: '临时变量值',
+              },
+            ],
+            examples: [
+              {
+                id: 'workspace-current',
+                text: 'Write about {{topic}}',
+                parameters: { topic: '临时变量值' },
+              },
+            ],
+          },
+        },
+      });
+
+      const favorite = await manager.getFavorite(id);
+      const promptAsset = favorite.metadata?.promptAsset as {
+        schemaVersion: string;
+        id: string;
+        contract: {
+          modeKey: string;
+          variables: unknown[];
+        };
+        examples: unknown[];
+      };
+
+      expect(promptAsset.schemaVersion).toBe('prompt-model/v1');
+      expect(promptAsset.id).toBe(`favorite:${id}`);
+      expect(promptAsset.contract.modeKey).toBe('pro-variable');
+      expect(promptAsset.contract.variables).toEqual([
+        {
+          name: 'topic',
+          required: false,
+          options: [],
+          source: 'workspace',
+        },
+      ]);
+      expect(promptAsset.examples).toEqual([]);
+      expect(favorite.metadata?.reproducibility).toMatchObject({
+        examples: [
+          {
+            id: 'workspace-current',
+            parameters: { topic: '临时变量值' },
+          },
+        ],
+      });
+    });
+
+    it('更新收藏正文时应该刷新 promptAsset 并保留 Garden 快照', async () => {
+      const gardenSnapshot = {
+        importCode: 'garden-1',
+        variables: [{ name: 'style', defaultValue: 'ink' }],
+        assets: {
+          examples: [{ id: 'garden-example', parameters: { style: 'ink' } }],
+        },
+      };
+      const id = await manager.addFavorite({
+        title: 'Garden',
+        content: 'Garden prompt',
+        tags: [],
+        functionMode: 'image',
+        imageSubMode: 'text2image',
+        metadata: {
+          gardenSnapshot,
+        },
+      });
+
+      await manager.updateFavorite(id, {
+        title: 'Updated Garden',
+        content: 'Updated prompt',
+        metadata: {
+          gardenSnapshot,
+          reproducibility: {
+            variables: [{ name: 'topic', required: true }],
+            examples: [{ id: 'manual-example', text: 'Manual input' }],
+          },
+        },
+      });
+
+      const favorite = await manager.getFavorite(id);
+      const promptAsset = favorite.metadata?.promptAsset as {
+        title: string;
+        versions: Array<{ content: unknown }>;
+        contract: {
+          variables: unknown[];
+        };
+        examples: Array<{ id: string }>;
+      };
+
+      expect(favorite.metadata?.gardenSnapshot).toEqual(gardenSnapshot);
+      expect(promptAsset.title).toBe('Updated Garden');
+      expect(promptAsset.versions[0].content).toEqual({
+        kind: 'image-prompt',
+        text: 'Updated prompt',
+      });
+      expect(promptAsset.contract.variables).toMatchObject([{ name: 'topic', required: true }]);
+      expect(promptAsset.examples.map((example) => example.id)).toEqual(['manual-example']);
+    });
+
     it('应该拒绝包含 data URL 封面的收藏 metadata', async () => {
       await expect(
         manager.addFavorite({

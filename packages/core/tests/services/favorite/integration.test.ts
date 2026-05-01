@@ -3,6 +3,7 @@ import { FavoriteManager } from '../../../src/services/favorite/manager';
 import type { IStorageProvider } from '../../../src/services/storage/types';
 import { TypeMapper } from '../../../src/services/favorite/type-mapper';
 import type { PromptRecordType } from '../../../src/services/history/types';
+import { PROMPT_MODEL_SCHEMA_VERSION, type PromptAsset } from '../../../src/services/prompt-model';
 
 /**
  * FavoriteManager 集成测试
@@ -575,6 +576,138 @@ describe('FavoriteManager - 集成测试', () => {
   });
 
   describe('导入导出集成测试', () => {
+    it('导入旧格式收藏时应该生成标准 promptAsset', async () => {
+      const importData = {
+        favorites: [
+          {
+            id: 'legacy-favorite',
+            title: '旧收藏',
+            content: 'Write about {{topic}}',
+            tags: ['legacy'],
+            functionMode: 'context',
+            optimizationMode: 'user',
+            metadata: {
+              reproducibility: {
+                variables: [
+                  { name: 'topic', source: 'workspace', defaultValue: '临时主题' },
+                  { name: 'tone', defaultValue: 'friendly' },
+                ],
+                examples: [
+                  {
+                    id: 'workspace-current',
+                    text: 'Write about {{topic}}',
+                    parameters: { topic: '临时主题' },
+                  },
+                  {
+                    id: 'manual-example',
+                    text: 'Write about docs',
+                    parameters: { topic: 'docs' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+
+      const result = await manager.importFavorites(JSON.stringify(importData));
+
+      expect(result).toEqual({ imported: 1, skipped: 0, errors: [] });
+      const [favorite] = await manager.getFavorites();
+      const asset = favorite.metadata?.promptAsset as PromptAsset | undefined;
+
+      expect(asset?.schemaVersion).toBe(PROMPT_MODEL_SCHEMA_VERSION);
+      expect(asset?.contract.modeKey).toBe('pro-variable');
+      expect(asset?.contract.variables).toEqual([
+        {
+          name: 'topic',
+          required: false,
+          options: [],
+          source: 'workspace',
+        },
+        {
+          name: 'tone',
+          required: false,
+          defaultValue: 'friendly',
+          options: [],
+        },
+      ]);
+      expect(asset?.examples.map(example => example.id)).toEqual(['manual-example']);
+      expect(favorite.metadata?.reproducibility).toMatchObject({
+        examples: [
+          { id: 'workspace-current' },
+          { id: 'manual-example' },
+        ],
+      });
+    });
+
+    it('覆盖导入收藏时应该刷新标准 promptAsset', async () => {
+      const favoriteId = await manager.addFavorite({
+        title: '旧标题',
+        content: 'Shared {{topic}}',
+        tags: ['old'],
+        functionMode: 'context',
+        optimizationMode: 'user',
+        metadata: {
+          reproducibility: {
+            variables: [{ name: 'topic', defaultValue: 'old' }],
+            examples: [{ id: 'old-example', text: 'Old example' }],
+          },
+        },
+      });
+
+      const importData = {
+        favorites: [
+          {
+            title: '导入标题',
+            content: 'Shared {{topic}}',
+            tags: ['new'],
+            functionMode: 'context',
+            optimizationMode: 'user',
+            metadata: {
+              reproducibility: {
+                variables: [{ name: 'topic', defaultValue: 'new' }],
+                examples: [
+                  {
+                    id: 'workspace-current',
+                    text: 'Shared {{topic}}',
+                    parameters: { topic: 'runtime' },
+                  },
+                  {
+                    id: 'new-example',
+                    text: 'New example',
+                    parameters: { topic: 'new' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+
+      const result = await manager.importFavorites(JSON.stringify(importData), {
+        mergeStrategy: 'overwrite',
+      });
+
+      expect(result).toEqual({ imported: 1, skipped: 0, errors: [] });
+      const favorite = await manager.getFavorite(favoriteId);
+      const asset = favorite.metadata?.promptAsset as PromptAsset | undefined;
+
+      expect(favorite.title).toBe('导入标题');
+      expect(asset?.schemaVersion).toBe(PROMPT_MODEL_SCHEMA_VERSION);
+      expect(asset?.title).toBe('导入标题');
+      expect(asset?.versions[0].content).toEqual({ kind: 'text', text: 'Shared {{topic}}' });
+      expect(asset?.contract.variables).toEqual([
+        {
+          name: 'topic',
+          required: false,
+          defaultValue: 'new',
+          options: [],
+        },
+      ]);
+      expect(asset?.examples.map(example => example.id)).toEqual(['new-example']);
+    });
+
     it('应该正确导出和导入包含所有关联数据', async () => {
       // 创建完整的测试数据
       const catId = await manager.addCategory({

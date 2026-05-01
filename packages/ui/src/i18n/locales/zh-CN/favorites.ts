@@ -151,6 +151,8 @@ const messages = {
           "requiredNo": "否",
           "exampleLabel": "示例 #{index}",
           "parameters": "参数",
+          "messages": "会话消息",
+          "outputText": "输出文本",
           "images": "图片",
           "inputImages": "输入图",
           "applyExample": "应用此示例"
@@ -328,6 +330,10 @@ const messages = {
         "addImageUrl": "添加链接",
         "addExampleImages": "上传示例图片",
         "addExampleInputImages": "上传输入图片",
+        "messages": "会话消息",
+        "outputText": "输出文本",
+        "saveTestResultExample": "保存为示例",
+        "noTestResultToSave": "当前没有可保存的成功测试结果。",
         "variableType": {
           "string": "文本",
           "number": "数字",

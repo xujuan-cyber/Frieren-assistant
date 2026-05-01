@@ -215,6 +215,20 @@ const exampleSummaryRows = (example: FavoriteReproducibilityExample) => {
     })
   }
 
+  if (example.messages && example.messages.length > 0) {
+    rows.push({
+      label: t('favorites.manager.preview.reproducibility.messages'),
+      value: String(example.messages.length),
+    })
+  }
+
+  if (example.outputText) {
+    rows.push({
+      label: t('favorites.manager.preview.reproducibility.outputText'),
+      value: example.outputText,
+    })
+  }
+
   return rows
 }
 </script>

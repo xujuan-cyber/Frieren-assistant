@@ -645,6 +645,16 @@
                                         <template v-if="hasVariantResult(id)">
                                             <NSpace vertical :size="12" style="padding: 12px;">
                                                 <NFlex justify="end" align="center">
+                                                    <SaveTestResultExampleButton
+                                                        sub-mode-key="image-text2image"
+                                                        :variant-id="id"
+                                                        :content="optimizedPrompt || originalPrompt"
+                                                        :original-content="originalPrompt"
+                                                        function-mode="image"
+                                                        image-sub-mode="text2image"
+                                                        :disabled="variantRunning[id]"
+                                                        :test-id="`save-test-example-image-text2image-${id}`"
+                                                    />
                                                     <div
                                                         v-if="shouldShowResultEvaluationAction(id)"
                                                         class="output-evaluation-entry"
@@ -874,6 +884,7 @@ import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import AppPreviewImage from '../media/AppPreviewImage.vue'
+import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
@@ -2144,6 +2155,7 @@ const resetExtractedPromptArtifacts = () => {
     currentVersions.value = []
     currentVersionId.value = ''
 
+    session.clearAssetBinding()
     session.updateOptimizedResult({
         optimizedPrompt: '',
         reasoning: '',
@@ -2625,6 +2637,7 @@ const handleOptimizePrompt = async () => {
     }
 
     isOptimizing.value = true
+    session.clearAssetBinding()
     session.optimizedPrompt = ''
     session.reasoning = ''
 

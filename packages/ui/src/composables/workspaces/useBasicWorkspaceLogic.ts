@@ -44,6 +44,7 @@ type BasicSessionStore = {
   updateTestModel: (key: string) => void
   updateTemplate: (id: string | null) => void
   updateIterateTemplate: (id: string | null) => void
+  clearAssetBinding?: () => void
   clearContent: () => void
 }
 
@@ -154,7 +155,8 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
 
     isOptimizing.value = true
 
-    // 清理历史绑定，避免“旧 chainId/versionId”污染本次优化过程态
+    // 清理历史/资产绑定，避免旧 chainId/versionId 或资产坐标污染本次优化过程态
+    sessionStore.clearAssetBinding?.()
     sessionStore.updateOptimizedResult({
       optimizedPrompt: '',
       reasoning: '',
@@ -547,6 +549,8 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
    */
   const handleAnalyze = () => {
     if (!prompt.value?.trim()) return
+
+    sessionStore.clearAssetBinding?.()
 
     const virtualV0Id = uuidv4()
     const virtualV0: PromptRecordChain['versions'][number] = {

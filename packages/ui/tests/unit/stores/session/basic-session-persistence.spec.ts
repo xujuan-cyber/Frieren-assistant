@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useBasicSystemSession } from '../../../../src/stores/session/useBasicSystemSession'
 import { useBasicUserSession } from '../../../../src/stores/session/useBasicUserSession'
-import { createTestPinia } from '../../../utils/pinia-test-helpers'
+import { createPreferenceServiceStub, createTestPinia } from '../../../utils/pinia-test-helpers'
 import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
 
 describe('Session stores (basic) persistence', () => {
@@ -81,6 +81,36 @@ describe('Session stores (basic) persistence', () => {
       selectedTemplateId: 'tpl',
       selectedIterateTemplateId: 'tpl-iter',
     })
+  })
+
+  it('basic-system clearAssetBinding persists removal even when optimized fields are unchanged', () => {
+    const set = vi.fn(async () => {})
+
+    const { pinia } = createTestPinia({
+      preferenceService: createPreferenceServiceStub({ set }),
+    })
+
+    const store = useBasicSystemSession(pinia)
+    store.updateAssetBinding(
+      { assetId: 'asset-basic', versionId: 'v1', status: 'linked' },
+      { kind: 'favorite', id: 'favorite-basic' },
+    )
+    set.mockClear()
+
+    store.clearAssetBinding()
+
+    expect(store.assetBinding).toBeUndefined()
+    expect(store.origin).toBeUndefined()
+    expect(set).toHaveBeenCalled()
+
+    const lastCall = set.mock.calls.at(-1)
+    expect(lastCall?.[0]).toBe('session/v1/basic-system')
+
+    const raw = lastCall?.[1]
+    const saved =
+      typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw as Record<string, unknown> | undefined) || {}
+    expect(saved).not.toHaveProperty('assetBinding')
+    expect(saved).not.toHaveProperty('origin')
   })
 
   it('basic-user restoreSession migrates legacy template selection when missing', async () => {

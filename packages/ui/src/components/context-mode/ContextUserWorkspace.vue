@@ -398,6 +398,16 @@
                                 >
                                     <template #toolbar-right-extra>
                                         <div v-if="hasVariantResult(id)" class="output-evaluation-entry">
+                                            <SaveTestResultExampleButton
+                                                sub-mode-key="pro-variable"
+                                                :variant-id="id"
+                                                :content="contextUserOptimization.optimizedPrompt || contextUserOptimization.prompt || ''"
+                                                :original-content="contextUserOptimization.prompt || ''"
+                                                function-mode="context"
+                                                optimization-mode="user"
+                                                :disabled="variantRunning[id]"
+                                                :test-id="`save-test-example-pro-variable-${id}`"
+                                            />
                                             <EvaluationScoreBadge
                                                 v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
                                                 :score="getResultEvaluationProps(id).score"
@@ -524,6 +534,7 @@ import PromptPanelUI from "../PromptPanel.vue";
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import ContextUserTestPanel from "./ContextUserTestPanel.vue";
 import OutputDisplay from "../OutputDisplay.vue";
+import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import {
@@ -971,6 +982,7 @@ const contextUserOptimization = useContextUserOptimization(
         currentChainId: sessionChainId as unknown as Ref<string>,
         currentVersionId: sessionVersionId as unknown as Ref<string>,
         clearSessionContent: () => proVariableSession.clearContent(),
+        clearAssetBinding: () => proVariableSession.clearAssetBinding(),
     },
 );
 

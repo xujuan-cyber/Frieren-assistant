@@ -415,6 +415,9 @@ export function useConversationOptimization(
 
     // 强制重置状态，开始新的优化链
     isOptimizing.value = true
+    if (optimizationMode.value === 'system') {
+      proMultiMessageSession.clearAssetBinding()
+    }
     optimizedPrompt.value = ''
     optimizedReasoning.value = ''
     currentChainId.value = ''

@@ -151,6 +151,8 @@ const messages = {
           "requiredNo": "否",
           "exampleLabel": "範例 #{index}",
           "parameters": "參數",
+          "messages": "會話訊息",
+          "outputText": "輸出文字",
           "images": "圖片",
           "inputImages": "輸入圖",
           "applyExample": "套用此範例"
@@ -328,6 +330,10 @@ const messages = {
         "addImageUrl": "新增連結",
         "addExampleImages": "上傳範例圖片",
         "addExampleInputImages": "上傳輸入圖片",
+        "messages": "會話訊息",
+        "outputText": "輸出文字",
+        "saveTestResultExample": "儲存為範例",
+        "noTestResultToSave": "目前沒有可儲存的成功測試結果。",
         "variableType": {
           "string": "文字",
           "number": "數字",

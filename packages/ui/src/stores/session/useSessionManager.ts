@@ -25,29 +25,15 @@ import { useProVariableSession } from './useProVariableSession'
 import { useImageText2ImageSession } from './useImageText2ImageSession'
 import { useImageImage2ImageSession } from './useImageImage2ImageSession'
 import { useImageMultiImageSession } from './useImageMultiImageSession'
+import {
+  buildPromptSessionFromStores,
+  buildPromptSessionRegistryFromStores,
+  buildPromptSessionsFromStores,
+  type PromptSessionProjectionStoreMap,
+} from './promptSessionProjection'
+import { SESSION_STORAGE_KEYS, SESSION_SUB_MODE_KEYS, type SubModeKey } from './sessionKeys'
 
-/**
- * 子模式 key 映射表
- * 格式：{functionMode}-{subMode}
- */
-export type SubModeKey =
-  | 'basic-system'
-  | 'basic-user'
-  | 'pro-multi'       // Pro-多消息模式
-  | 'pro-variable'    // Pro-变量模式
-  | 'image-text2image'  // 文生图
-  | 'image-image2image' // 图生图
-  | 'image-multiimage' // 多图生图
-
-const SESSION_STORAGE_KEYS: Record<SubModeKey, string> = {
-  'basic-system': 'session/v1/basic-system',
-  'basic-user': 'session/v1/basic-user',
-  'pro-multi': 'session/v1/pro-multi',
-  'pro-variable': 'session/v1/pro-variable',
-  'image-text2image': 'session/v1/image-text2image',
-  'image-image2image': 'session/v1/image-image2image',
-  'image-multiimage': 'session/v1/image-multiimage',
-}
+export type { SubModeKey } from './sessionKeys'
 
 const getSessionCleanupKey = (key: SubModeKey, error: unknown): string | null => {
   if (!error || typeof error !== 'object') {
@@ -179,6 +165,28 @@ export const useSessionManager = defineStore('sessionManager', () => {
 
     return `${mode}-${subMode}` as SubModeKey
   }
+
+  const getProjectionStoreMap = (): PromptSessionProjectionStoreMap => ({
+    'basic-system': useBasicSystemSession(),
+    'basic-user': useBasicUserSession(),
+    'pro-multi': useProMultiMessageSession(),
+    'pro-variable': useProVariableSession(),
+    'image-text2image': useImageText2ImageSession(),
+    'image-image2image': useImageImage2ImageSession(),
+    'image-multiimage': useImageMultiImageSession(),
+  })
+
+  const getPromptSession = (key: SubModeKey = getActiveSubModeKey()) =>
+    buildPromptSessionFromStores(key, getProjectionStoreMap())
+
+  const getAllPromptSessions = () =>
+    buildPromptSessionsFromStores(getProjectionStoreMap())
+
+  const getPromptSessionRegistry = () =>
+    buildPromptSessionRegistryFromStores(
+      getProjectionStoreMap(),
+      getActiveSubModeKey(),
+    )
 
   /**
    * 切换功能模式（响应外部 functionMode 变化）
@@ -373,17 +381,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
       // Some users may have very large persisted snapshots (e.g. long prompts / test outputs / image metadata).
       // Parallel JSON.parse + reactive assignment across 6 stores can spike memory and crash the browser process.
       // Restore sequentially to reduce peak memory usage and avoid "browser crash" reports.
-      const keys: SubModeKey[] = [
-        'basic-system',
-        'basic-user',
-        'pro-multi',
-        'pro-variable',
-        'image-text2image',
-        'image-image2image',
-        'image-multiimage',
-      ]
-
-      for (const key of keys) {
+      for (const key of SESSION_SUB_MODE_KEYS) {
         await restoreSubModeSession(key)
         // Yield to the event loop to keep the UI responsive and reduce long-task pressure.
         await new Promise(resolve => setTimeout(resolve, 0))
@@ -426,16 +424,7 @@ export const useSessionManager = defineStore('sessionManager', () => {
       // IMPORTANT:
       // Save sequentially to reduce peak memory usage for very large sessions.
       // (Parallel JSON.stringify across 6 stores can spike memory and crash the browser on pagehide/unmount.)
-      const keys: SubModeKey[] = [
-        'basic-system',
-        'basic-user',
-        'pro-multi',
-        'pro-variable',
-        'image-text2image',
-        'image-image2image',
-        'image-multiimage',
-      ]
-      for (const key of keys) {
+      for (const key of SESSION_SUB_MODE_KEYS) {
         await _saveSubModeSessionUnsafe(key)
         await new Promise(resolve => setTimeout(resolve, 0))
       }
@@ -457,6 +446,9 @@ export const useSessionManager = defineStore('sessionManager', () => {
     injectSubModeReaders,
     getActiveSubModeKey,
     computeSubModeKey,
+    getPromptSession,
+    getAllPromptSessions,
+    getPromptSessionRegistry,
     switchMode,
     switchSubMode,
     saveSubModeSession,

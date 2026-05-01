@@ -173,6 +173,30 @@
                 </div>
               </div>
 
+              <div
+                v-if="hasStructuredExamplePreview(example)"
+                class="favorite-reproducibility-editor__example-readonly-grid"
+              >
+                <div v-if="example.messages && example.messages.length > 0">
+                  <NText strong>{{ t('favorites.dialog.reproducibility.messages') }}</NText>
+                  <NInput
+                    type="textarea"
+                    readonly
+                    :autosize="{ minRows: 2, maxRows: 6 }"
+                    :value="formatExampleMessages(example)"
+                  />
+                </div>
+                <div v-if="example.outputText">
+                  <NText strong>{{ t('favorites.dialog.reproducibility.outputText') }}</NText>
+                  <NInput
+                    type="textarea"
+                    readonly
+                    :autosize="{ minRows: 2, maxRows: 6 }"
+                    :value="example.outputText"
+                  />
+                </div>
+              </div>
+
               <div class="favorite-reproducibility-editor__example-section">
                 <div class="favorite-reproducibility-editor__parameter-field">
                   <NText strong>{{ t('favorites.dialog.reproducibility.exampleParametersLabel') }}</NText>
@@ -464,6 +488,14 @@ const parseListText = (value: string): string[] => {
 
 const getParameterEntries = (parameters: Record<string, string> | undefined) =>
   Object.entries(parameters || {})
+
+const hasStructuredExamplePreview = (example: FavoriteReproducibilityExample) =>
+  Boolean((example.messages && example.messages.length > 0) || example.outputText)
+
+const formatExampleMessages = (example: FavoriteReproducibilityExample) =>
+  (example.messages || [])
+    .map((message) => `${message.role}: ${message.content}`)
+    .join('\n\n')
 
 const getParameterDraft = (index: number) => {
   parameterDrafts[index] ||= { key: '', value: '' }
@@ -809,6 +841,19 @@ const handleBeforeExampleImageUpload = async (
   gap: 8px;
 }
 
+.favorite-reproducibility-editor__example-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.favorite-reproducibility-editor__example-readonly-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .favorite-reproducibility-editor__example-description,
 .favorite-reproducibility-editor__example-section {
   grid-column: 1 / -1;
@@ -895,6 +940,7 @@ const handleBeforeExampleImageUpload = async (
 
 @media (max-width: 767px) {
   .favorite-reproducibility-editor__example-basic,
+  .favorite-reproducibility-editor__example-readonly-grid,
   .favorite-reproducibility-editor__example-media-grid {
     grid-template-columns: 1fr;
   }

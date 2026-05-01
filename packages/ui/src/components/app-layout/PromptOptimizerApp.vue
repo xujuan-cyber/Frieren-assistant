@@ -1628,6 +1628,8 @@ const {
     optimizerPrompt,
     t,
     isLoadingExternalData,
+    basicSystemSession,
+    basicUserSession,
     proMultiMessageSession,
     proVariableSession,
     imageText2ImageSession,
@@ -1635,6 +1637,9 @@ const {
     imageMultiImageSession,
     getFavoriteImageStorageService:
       () => services.value?.favoriteImageStorageService || services.value?.imageStorageService || null,
+    getCurrentFunctionMode: () => routeFunctionMode.value,
+    getCurrentOptimizationMode: () => selectedOptimizationMode.value,
+    getCurrentImageSubMode: () => routeImageSubMode.value,
 });
 
 const resolveFavoritesReturnPath = () =>

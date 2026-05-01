@@ -1,6 +1,59 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FavoriteManager } from '../../src/services/favorite/manager';
 import type { IStorageProvider } from '../../src/services/storage/types';
+import type { FavoritePrompt } from '../../src/services/favorite/types';
+import { promptAssetFromFavorite } from '../../src/services/prompt-model';
+
+const FAVORITES_STORAGE_KEY = 'favorites';
+const BASE_TIME = 1700000000000;
+
+type FavoriteSeed = Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'> & {
+  id?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  useCount?: number;
+};
+
+const createSeededFavorite = (favorite: FavoriteSeed, index: number): FavoritePrompt => {
+  const createdAt = favorite.createdAt ?? BASE_TIME + index;
+  const updatedAt = favorite.updatedAt ?? createdAt;
+  const record: FavoritePrompt = {
+    id: favorite.id ?? `perf-favorite-${index}`,
+    title: favorite.title,
+    content: favorite.content,
+    description: favorite.description,
+    createdAt,
+    updatedAt,
+    tags: favorite.tags,
+    category: favorite.category,
+    useCount: favorite.useCount ?? 0,
+    functionMode: favorite.functionMode,
+    optimizationMode: favorite.optimizationMode,
+    imageSubMode: favorite.imageSubMode,
+    metadata: favorite.metadata,
+  };
+
+  return {
+    ...record,
+    metadata: {
+      ...(record.metadata || {}),
+      promptAsset: promptAssetFromFavorite(record, {
+        ignoreEmbeddedAsset: true,
+        stripWorkspaceDraft: true,
+      }),
+    },
+  };
+};
+
+const seedFavorites = (
+  storage: Map<string, string>,
+  favorites: FavoriteSeed[],
+): void => {
+  storage.set(
+    FAVORITES_STORAGE_KEY,
+    JSON.stringify(favorites.map((favorite, index) => createSeededFavorite(favorite, index))),
+  );
+};
 
 /**
  * 性能回归测试
@@ -87,10 +140,8 @@ describe('性能回归测试', () => {
       optimizationMode: 'system' as const
     }));
 
-    // 2. 批量添加（这个操作不计入性能测试）
-    for (const fav of favorites) {
-      await manager.addFavorite(fav);
-    }
+    // 2. 批量准备数据（不测试逐条写入性能）
+    seedFavorites(storage, favorites);
 
     // 3. 测试查询性能
     const startTime = performance.now();
@@ -118,9 +169,7 @@ describe('性能回归测试', () => {
       optimizationMode: 'system' as const
     }));
 
-    for (const fav of favorites) {
-      await manager.addFavorite(fav);
-    }
+    seedFavorites(storage, favorites);
 
     // 2. 测试搜索性能
     const startTime = performance.now();
@@ -148,9 +197,7 @@ describe('性能回归测试', () => {
       optimizationMode: 'system' as const
     }));
 
-    for (const fav of favorites) {
-      await manager.addFavorite(fav);
-    }
+    seedFavorites(storage, favorites);
 
     // 2. 测试导出性能
     const startTime = performance.now();
@@ -211,17 +258,18 @@ describe('性能回归测试', () => {
       color: '#FF5722'
     });
 
-    // 2. 添加大量收藏到该分类
-    for (let i = 0; i < 500; i++) {
-      await manager.addFavorite({
+    // 2. 准备大量收藏到该分类
+    seedFavorites(
+      storage,
+      Array.from({ length: 500 }, (_, i) => ({
         title: `分类测试 ${i}`,
         content: `内容 ${i}`,
         tags: ['测试'],
         category: categoryId,
         functionMode: 'basic',
         optimizationMode: 'system'
-      });
-    }
+      })),
+    );
 
     // 3. 测试按分类过滤的性能
     const startTime = performance.now();
@@ -239,16 +287,17 @@ describe('性能回归测试', () => {
   });
 
   it('应该能在合理时间内按标签过滤 (< 100ms)', async () => {
-    // 1. 添加大量收藏，部分带特定标签
-    for (let i = 0; i < 500; i++) {
-      await manager.addFavorite({
+    // 1. 准备大量收藏，部分带特定标签
+    seedFavorites(
+      storage,
+      Array.from({ length: 500 }, (_, i) => ({
         title: `标签测试 ${i}`,
         content: `内容 ${i}`,
         tags: i % 2 === 0 ? ['性能标签', '测试'] : ['测试'],
         functionMode: 'basic',
         optimizationMode: 'system'
-      });
-    }
+      })),
+    );
 
     // 2. 测试按标签过滤的性能
     const startTime = performance.now();
@@ -321,16 +370,17 @@ describe('性能回归测试', () => {
   });
 
   it('应该能在合理时间内获取标签统计 (< 100ms for 1000 items)', async () => {
-    // 1. 添加大量收藏，包含各种标签
-    for (let i = 0; i < 1000; i++) {
-      await manager.addFavorite({
+    // 1. 准备大量收藏，包含各种标签
+    seedFavorites(
+      storage,
+      Array.from({ length: 1000 }, (_, i) => ({
         title: `标签统计测试 ${i}`,
         content: `内容 ${i}`,
         tags: [`tag${i % 20}`, '通用标签'],
         functionMode: 'basic',
         optimizationMode: 'system'
-      });
-    }
+      })),
+    );
 
     // 2. 测试标签统计性能
     const startTime = performance.now();
@@ -423,23 +473,24 @@ describe('内存使用测试', () => {
   });
 
   it('大量数据操作后存储应该合理', async () => {
-    // 1. 添加1000个收藏
-    for (let i = 0; i < 1000; i++) {
-      await manager.addFavorite({
+    // 1. 准备1000个收藏
+    seedFavorites(
+      storage,
+      Array.from({ length: 1000 }, (_, i) => ({
         title: `收藏 ${i}`,
         content: `内容 ${i}`,
         tags: ['测试'],
         functionMode: 'basic',
         optimizationMode: 'system'
-      });
-    }
+      })),
+    );
 
     // 2. 导出数据检查大小
     const exported = await manager.exportFavorites();
     const exportedSize = exported.length;
 
     // 3. 存储的数据不应过分膨胀
-    // 1000个简单收藏的JSON字符串应该在合理范围内（比如 < 1MB）
-    expect(exportedSize).toBeLessThan(1024 * 1024); // < 1MB
+    // 1000个带标准 promptAsset 的简单收藏应该仍低于收藏软限制
+    expect(exportedSize).toBeLessThan(2 * 1024 * 1024); // < 2MB
   });
 });

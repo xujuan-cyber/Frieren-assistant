@@ -765,3 +765,40 @@ test.describe('收藏示例应用流程', () => {
     await expect(page.locator('[data-testid="workspace"][data-mode="image-multiimage"] img[src^="data:image/"]')).toHaveCount(1, { timeout: 10000 });
   });
 });
+
+test.describe('从工作区保存收藏的可复现信息', () => {
+  test('基础模式保存收藏时自动带出变量和当前示例，不调用 LLM', async ({ page }) => {
+    test.setTimeout(60000);
+
+    await page.goto('/#/basic/system', { waitUntil: 'domcontentloaded' });
+    await waitForAppReady(page);
+    await expect(page.getByTestId('workspace')).toHaveAttribute('data-mode', 'basic-system');
+
+    const originalPrompt = '原始提示词包含 {{topic}}';
+    const savedPrompt = '优化结果围绕 {{topic}} 输出';
+    await page.locator('[data-testid="basic-system-input"] textarea').fill(originalPrompt);
+    await page.locator('[data-testid="basic-system-output"] textarea').fill(savedPrompt);
+    await page.getByTestId('basic-system-output-favorite').click();
+
+    await expect(page.getByTestId('favorite-editor-title')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="favorite-editor-content"] textarea')).toHaveValue(savedPrompt);
+    await expect(page.locator('[data-testid="favorite-repro-variable-name"] input')).toHaveValue('topic');
+    await expect(page.locator('[data-testid="favorite-repro-example-text"] input')).toHaveValue(savedPrompt);
+
+    const title = 'E2E 工作区保存变量收藏';
+    await fillFieldByTestId(page, 'favorite-editor-title', title);
+    await page.getByTestId('favorite-editor-save').click();
+
+    await openFavoritesPage(page);
+    await selectFavoriteByTitle(page, title);
+    const detailPanel = page.getByTestId('favorite-detail-panel');
+    await expect(detailPanel).toContainText('topic', { timeout: 10000 });
+    await expect(detailPanel).toContainText('workspace-current');
+
+    await page.getByTestId('favorite-repro-example-apply-0').click();
+    await expect(page).toHaveURL(/\/#\/basic\/system$/, { timeout: 20000 });
+    await expect(page.locator('[data-testid="basic-system-input"] textarea')).toHaveValue(savedPrompt, {
+      timeout: 10000,
+    });
+  });
+});

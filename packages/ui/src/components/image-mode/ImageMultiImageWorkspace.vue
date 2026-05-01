@@ -446,6 +446,18 @@
                   <div class="result-body">
                   <template v-if="hasVariantResult(id)">
                     <NSpace vertical :size="12" style="padding: 12px;">
+                      <NFlex justify="end" align="center">
+                        <SaveTestResultExampleButton
+                          sub-mode-key="image-multiimage"
+                          :variant-id="id"
+                          :content="optimizedPrompt || originalPrompt"
+                          :original-content="originalPrompt"
+                          function-mode="image"
+                          image-sub-mode="multiimage"
+                          :disabled="variantRunning[id]"
+                          :test-id="`save-test-example-image-multiimage-${id}`"
+                        />
+                      </NFlex>
                       <AppPreviewImage
                         v-if="getVariantResult(id)?.images?.[0]"
                         :data-testid="getVariantImageTestId(id)"
@@ -575,6 +587,7 @@ import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ImageTokenUsage from './ImageTokenUsage.vue'
+import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -1275,6 +1288,7 @@ const optimizePrompt = async () => {
   if (!promptService.value || !selectedTemplate.value) return
 
   optimizing.value = true
+  session.clearAssetBinding()
   optimizedPrompt.value = ''
   optimizedReasoning.value = ''
 

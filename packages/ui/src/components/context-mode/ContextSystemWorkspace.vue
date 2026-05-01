@@ -364,6 +364,16 @@
                                                     v-if="hasVariantResult(id)"
                                                     class="output-evaluation-entry"
                                                 >
+                                                    <SaveTestResultExampleButton
+                                                        sub-mode-key="pro-multi"
+                                                        :variant-id="id"
+                                                        :content="displayAdapter.displayedOptimizedPrompt.value || conversationOptimization.optimizedPrompt.value || ''"
+                                                        :original-content="conversationOptimization.selectedMessage.value?.originalContent || conversationOptimization.selectedMessage.value?.content || ''"
+                                                        function-mode="context"
+                                                        optimization-mode="system"
+                                                        :disabled="variantRunning[id]"
+                                                        :test-id="`save-test-example-pro-multi-${id}`"
+                                                    />
                                                     <EvaluationScoreBadge
                                                         v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
                                                         :score="getResultEvaluationProps(id).score"
@@ -491,6 +501,7 @@ import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import ConversationTestPanel from "./ConversationTestPanel.vue";
 import ConversationManager from "./ConversationManager.vue";
 import OutputDisplay from "../OutputDisplay.vue";
+import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ToolCallDisplay from "../ToolCallDisplay.vue";

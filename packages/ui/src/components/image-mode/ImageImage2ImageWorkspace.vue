@@ -519,6 +519,18 @@
                                     <div class="result-body">
                                         <template v-if="hasVariantResult(id)">
                                             <NSpace vertical :size="12" style="padding: 12px;">
+                                                <NFlex justify="end" align="center">
+                                                    <SaveTestResultExampleButton
+                                                        sub-mode-key="image-image2image"
+                                                        :variant-id="id"
+                                                        :content="optimizedPrompt || originalPrompt"
+                                                        :original-content="originalPrompt"
+                                                        function-mode="image"
+                                                        image-sub-mode="image2image"
+                                                        :disabled="variantRunning[id]"
+                                                        :test-id="`save-test-example-image-image2image-${id}`"
+                                                    />
+                                                </NFlex>
                                                 <AppPreviewImage
                                                     :data-testid="getVariantImageTestId(id)"
                                                     :src="getImageSrc(getVariantResult(id)?.images?.[0])"
@@ -748,6 +760,7 @@ import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import AppPreviewImage from '../media/AppPreviewImage.vue'
+import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
@@ -2038,6 +2051,7 @@ const handleOptimizePrompt = async () => {
     }
 
     isOptimizing.value = true
+    session.clearAssetBinding()
     session.optimizedPrompt = ''
     session.reasoning = ''
 

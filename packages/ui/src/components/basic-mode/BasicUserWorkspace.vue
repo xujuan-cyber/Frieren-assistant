@@ -357,6 +357,16 @@
                                       v-if="hasVariantResult(id)"
                                       class="output-evaluation-entry"
                                     >
+                                      <SaveTestResultExampleButton
+                                        sub-mode-key="basic-user"
+                                        :variant-id="id"
+                                        :content="logic.optimizedPrompt.value || logic.prompt.value"
+                                        :original-content="logic.prompt.value"
+                                        function-mode="basic"
+                                        optimization-mode="user"
+                                        :disabled="variantRunning[id]"
+                                        :test-id="`save-test-example-basic-user-${id}`"
+                                      />
                                       <EvaluationScoreBadge
                                         v-if="getResultEvaluationProps(id).hasEvaluation || getResultEvaluationProps(id).isEvaluating"
                                         :score="getResultEvaluationProps(id).score"
@@ -472,6 +482,7 @@ import InputPanelUI from '../InputPanel.vue'
 import PromptPanelUI from '../PromptPanel.vue'
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
 import OutputDisplay from '../OutputDisplay.vue'
+import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import {
   AnalyzeActionIcon,
   CompareHelpButton,

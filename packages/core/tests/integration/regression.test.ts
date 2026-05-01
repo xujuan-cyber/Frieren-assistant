@@ -354,7 +354,7 @@ describe('架构重构回归测试', () => {
         ['deepseek', 'deepseek'],
         ['zhipu', 'zhipu'],
         ['siliconflow', 'siliconflow'],
-        ['custom', 'openai']
+        ['custom', 'openai-compatible']
       ] as const;
 
       for (const [provider, expectedProviderId] of providerExpectations) {

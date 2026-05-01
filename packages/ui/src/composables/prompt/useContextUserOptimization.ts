@@ -20,6 +20,7 @@ export interface ContextUserOptimizationBindings {
   currentChainId?: Ref<string>
   currentVersionId?: Ref<string>
   clearSessionContent?: () => void
+  clearAssetBinding?: () => void
 }
 
 /**
@@ -127,6 +128,7 @@ export function useContextUserOptimization(
 
       // 在开始优化前立即清空状态
       state.isOptimizing = true
+      bindings?.clearAssetBinding?.()
       state.optimizedPrompt = ''
       state.optimizedReasoning = ''
 
@@ -460,6 +462,8 @@ export function useContextUserOptimization(
      */
     handleAnalyze: () => {
       if (!state.prompt.trim()) return
+
+      bindings?.clearAssetBinding?.()
 
       // 生成虚拟的 V0 版本记录（不写入历史）
       const virtualV0Id = uuidv4()

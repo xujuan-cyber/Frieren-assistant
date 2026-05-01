@@ -43,6 +43,7 @@
           <NButtonGroup class="output-toolbar-action-group">
           <NButton
             v-if="isActionEnabled('favorite')"
+            :data-testid="testId ? `${testId}-favorite` : 'output-favorite'"
             @click="handleFavorite"
             size="small"
             quaternary

@@ -288,6 +288,7 @@ import {
   applyFavoriteReproducibilityToMetadata,
   parseFavoriteReproducibility,
   parseFavoriteReproducibilityFromMetadata,
+  type FavoriteReproducibilityDraft,
   type FavoriteReproducibilityExample,
   type FavoriteReproducibilityVariable,
 } from '../utils/favorite-reproducibility'
@@ -318,6 +319,7 @@ interface Props {
     optimizationMode?: 'system' | 'user'
     imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
+    reproducibilityDraft?: FavoriteReproducibilityDraft
   }
   favorite?: FavoritePrompt
   embedded?: boolean
@@ -449,11 +451,14 @@ const cloneReproducibilityExamples = (
 ): FavoriteReproducibilityExample[] =>
   examples.map((example) => ({
     ...example,
+    messages: example.messages?.map((message) => ({ ...message })) || [],
     parameters: { ...example.parameters },
+    outputText: example.outputText,
     images: [...example.images],
     imageAssetIds: [...example.imageAssetIds],
     inputImages: [...example.inputImages],
     inputImageAssetIds: [...example.inputImageAssetIds],
+    metadata: example.metadata ? { ...example.metadata } : undefined,
   }))
 
 const resetReproducibilityDraft = () => {
@@ -678,7 +683,9 @@ const buildReproducibilityDraftForSave = async () => {
 
     examples.push({
       ...example,
+      messages: example.messages?.map((message) => ({ ...message })) || [],
       parameters: { ...example.parameters },
+      outputText: example.outputText,
       images: exampleImages.fallbackSources,
       imageAssetIds: dedupeStrings([
         ...(example.imageAssetIds || []),
@@ -689,6 +696,7 @@ const buildReproducibilityDraftForSave = async () => {
         ...(example.inputImageAssetIds || []),
         ...inputImages.assetIds,
       ]),
+      metadata: example.metadata ? { ...example.metadata } : undefined,
     })
   }
 

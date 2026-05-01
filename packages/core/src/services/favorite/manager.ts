@@ -22,6 +22,7 @@ import {
   assertFavoriteMetadataHasNoInlineImages,
   assertFavoritesPayloadWithinBudget,
 } from './storage-guards';
+import { promptAssetFromFavorite } from '../prompt-model/favorite';
 
 /**
  * 收藏管理器实现
@@ -47,6 +48,46 @@ export class FavoriteManager implements IFavoriteManager {
   constructor(private storageProvider: IStorageProvider) {
     // 立即开始异步初始化
     this.initPromise = this.initialize();
+  }
+
+  private shouldRefreshPromptAsset(updates: Partial<FavoritePrompt>): boolean {
+    return [
+      'title',
+      'content',
+      'description',
+      'category',
+      'tags',
+      'functionMode',
+      'optimizationMode',
+      'imageSubMode',
+      'metadata',
+    ].some((key) => Object.prototype.hasOwnProperty.call(updates, key));
+  }
+
+  private attachPromptAssetMetadata(favorite: FavoritePrompt): FavoritePrompt {
+    const metadata = favorite.metadata && typeof favorite.metadata === 'object'
+      ? { ...favorite.metadata }
+      : {};
+    const metadataForAsset = { ...metadata };
+    delete metadataForAsset.promptAsset;
+    const promptAsset = promptAssetFromFavorite(
+      {
+        ...favorite,
+        metadata: metadataForAsset,
+      },
+      {
+        ignoreEmbeddedAsset: true,
+        stripWorkspaceDraft: true,
+      },
+    );
+
+    return {
+      ...favorite,
+      metadata: {
+        ...metadata,
+        promptAsset,
+      },
+    };
   }
 
   /**
@@ -231,13 +272,13 @@ export class FavoriteManager implements IFavoriteManager {
     const now = Date.now();
     const id = `fav_${now}_${Math.random().toString(36).substr(2, 9)}`;
 
-    const newFavorite: FavoritePrompt = {
+    const newFavorite = this.attachPromptAssetMetadata({
       ...favoriteData,
       id,
       createdAt: now,
       updatedAt: now,
       useCount: 0
-    };
+    });
     assertFavoriteFitsItemBudget(newFavorite);
 
     try {
@@ -368,11 +409,14 @@ export class FavoriteManager implements IFavoriteManager {
           throw new FavoriteNotFoundError(id);
         }
 
-        const nextFavorite = {
+        const nextFavoriteBase = {
           ...favoritesList[index],
           ...updates,
           updatedAt: Date.now()
         };
+        const nextFavorite = this.shouldRefreshPromptAsset(updates)
+          ? this.attachPromptAssetMetadata(nextFavoriteBase)
+          : nextFavoriteBase;
         assertFavoriteFitsItemBudget(nextFavorite);
 
         favoritesList[index] = nextFavorite;
@@ -1184,20 +1228,29 @@ export class FavoriteManager implements IFavoriteManager {
               }
 
               if (mergeStrategy === 'overwrite') {
-                existingFavorite.title = buildTitle(favorite.title, favorite.content);
-                existingFavorite.content = favorite.content;
-                existingFavorite.description = typeof favorite.description === 'string'
-                  ? favorite.description
-                  : favorite.description ?? existingFavorite.description;
-                existingFavorite.tags = tags;
-                existingFavorite.category = category;
-                existingFavorite.functionMode = functionMode;
-                existingFavorite.optimizationMode = optimizationMode;
-                existingFavorite.imageSubMode = imageSubMode;
-                existingFavorite.metadata = normalizeMetadata(favorite.metadata);
-                existingFavorite.createdAt = parseTimestamp(favorite.createdAt, existingFavorite.createdAt);
-                existingFavorite.updatedAt = updatedAt;
-                existingFavorite.useCount = useCount;
+                const nextFavorite = this.attachPromptAssetMetadata({
+                  ...existingFavorite,
+                  title: buildTitle(favorite.title, favorite.content),
+                  content: favorite.content,
+                  description: typeof favorite.description === 'string'
+                    ? favorite.description
+                    : favorite.description ?? existingFavorite.description,
+                  tags,
+                  category,
+                  functionMode,
+                  optimizationMode,
+                  imageSubMode,
+                  metadata: normalizeMetadata(favorite.metadata),
+                  createdAt: parseTimestamp(favorite.createdAt, existingFavorite.createdAt),
+                  updatedAt,
+                  useCount,
+                });
+                assertFavoriteFitsItemBudget(nextFavorite);
+                const existingIndex = favoritesList.findIndex(item => item.id === existingFavorite.id);
+                if (existingIndex >= 0) {
+                  favoritesList[existingIndex] = nextFavorite;
+                }
+                existingFavoritesMap.set(nextFavorite.content, nextFavorite);
                 result.imported++;
                 return;
               }
@@ -1220,9 +1273,10 @@ export class FavoriteManager implements IFavoriteManager {
               updatedAt,
               useCount
             };
-            assertFavoriteFitsItemBudget(newFavorite);
+            const normalizedFavorite = this.attachPromptAssetMetadata(newFavorite);
+            assertFavoriteFitsItemBudget(normalizedFavorite);
 
-            favoritesList.push(newFavorite);
+            favoritesList.push(normalizedFavorite);
             timestampOffset++;
             result.imported++;
           } catch (error) {

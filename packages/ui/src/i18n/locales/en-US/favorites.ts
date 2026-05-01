@@ -151,6 +151,8 @@ const messages = {
           "requiredNo": "No",
           "exampleLabel": "Example #{index}",
           "parameters": "Parameters",
+          "messages": "Messages",
+          "outputText": "Output text",
           "images": "Images",
           "inputImages": "Input images",
           "applyExample": "Use this example"
@@ -328,6 +330,10 @@ const messages = {
         "addImageUrl": "Add link",
         "addExampleImages": "Upload example images",
         "addExampleInputImages": "Upload input images",
+        "messages": "Messages",
+        "outputText": "Output text",
+        "saveTestResultExample": "Save as example",
+        "noTestResultToSave": "No successful test result is available to save.",
         "variableType": {
           "string": "Text",
           "number": "Number",

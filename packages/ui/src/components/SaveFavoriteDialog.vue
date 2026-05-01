@@ -32,6 +32,7 @@ import { useI18n } from 'vue-i18n'
 import type { FavoritePrompt } from '@prompt-optimizer/core'
 
 import FavoriteEditorForm from './FavoriteEditorForm.vue'
+import type { FavoriteReproducibilityDraft } from '../utils/favorite-reproducibility'
 
 const { t } = useI18n()
 
@@ -51,6 +52,7 @@ interface Props {
     optimizationMode?: 'system' | 'user'
     imageSubMode?: 'text2image' | 'image2image' | 'multiimage'
     metadata?: Record<string, unknown>
+    reproducibilityDraft?: FavoriteReproducibilityDraft
   }
   favorite?: FavoritePrompt
 }

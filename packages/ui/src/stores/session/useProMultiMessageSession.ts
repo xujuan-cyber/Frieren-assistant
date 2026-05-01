@@ -11,9 +11,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
-import { TEMPLATE_SELECTION_KEYS, type ConversationMessage } from '@prompt-optimizer/core'
+import { TEMPLATE_SELECTION_KEYS, type ConversationMessage, type PromptAssetBinding, type PromptSessionOrigin } from '@prompt-optimizer/core'
 import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
 import { isValidVariableName, sanitizeVariableRecord } from '../../types/variable'
+import { createSessionAssetBindingState } from './sessionAssetBinding'
 import {
   createDefaultCompareSnapshotRoles,
   createDefaultCompareSnapshotRoleSignatures,
@@ -57,6 +58,8 @@ export interface ProMultiMessageSessionState {
   selectedIterateTemplateId: string | null
   isCompareMode: boolean
   lastActiveAt: number
+  assetBinding?: PromptAssetBinding
+  origin?: PromptSessionOrigin
 }
 
 /**
@@ -135,6 +138,8 @@ const createDefaultState = (): ProMultiMessageSessionState => ({
   selectedIterateTemplateId: null,
   isCompareMode: true,
   lastActiveAt: Date.now(),
+  assetBinding: undefined,
+  origin: undefined,
 })
 
 export const useProMultiMessageSession = defineStore('proMultiMessageSession', () => {
@@ -203,6 +208,14 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
 
   // 最后活跃时间
   const lastActiveAt = ref(Date.now())
+  const assetBindingState = createSessionAssetBindingState(
+    () => {
+      lastActiveAt.value = Date.now()
+    },
+    () => {
+      void saveSession()
+    },
+  )
 
   /**
    * 更新对话消息快照
@@ -234,6 +247,10 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     const nextReasoning = payload.reasoning
     const nextChainId = payload.chainId
     const nextVersionId = payload.versionId
+
+    if (!nextChainId && !nextVersionId) {
+      assetBindingState.clearAssetBindingWithoutPersist()
+    }
 
     const changed =
       optimizedPrompt.value !== nextOptimizedPrompt ||
@@ -415,6 +432,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     evaluationResults.value = defaultState.evaluationResults
     compareSnapshotRoles.value = defaultState.compareSnapshotRoles
     compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
+    assetBindingState.clearAssetBindingWithoutPersist()
     lastActiveAt.value = Date.now()
     if (options.persist !== false) {
       void saveSession().catch((error) => {
@@ -448,6 +466,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     selectedTemplateId.value = defaultState.selectedTemplateId
     selectedIterateTemplateId.value = defaultState.selectedIterateTemplateId
     isCompareMode.value = defaultState.isCompareMode
+    assetBindingState.resetAssetBinding()
     lastActiveAt.value = defaultState.lastActiveAt
   }
 
@@ -485,6 +504,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
         selectedIterateTemplateId: selectedIterateTemplateId.value,
         isCompareMode: isCompareMode.value,
         lastActiveAt: lastActiveAt.value,
+        ...assetBindingState.persistedAssetBinding(),
       }
       await $services.preferenceService.set(
         'session/v1/pro-multi',
@@ -636,6 +656,7 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
         selectedTemplateId.value = typeof parsed.selectedTemplateId === 'string' ? parsed.selectedTemplateId : null
         selectedIterateTemplateId.value = typeof parsed.selectedIterateTemplateId === 'string' ? parsed.selectedIterateTemplateId : null
         isCompareMode.value = typeof parsed.isCompareMode === 'boolean' ? parsed.isCompareMode : true
+        assetBindingState.restoreAssetBinding(parsed)
         lastActiveAt.value = Date.now()
 
         // 如果 variants 的 modelKey 为空，尝试用 legacy selectedTestModelKey 填充一次
@@ -702,6 +723,8 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     selectedIterateTemplateId,
     isCompareMode,
     lastActiveAt,
+    assetBinding: assetBindingState.assetBinding,
+    origin: assetBindingState.origin,
 
     // ========== 更新方法 ==========
     updateConversationMessages,
@@ -725,6 +748,8 @@ export const useProMultiMessageSession = defineStore('proMultiMessageSession', (
     setMainSplitLeftPct,
     resetTestVariantState,
     clearContent,
+    updateAssetBinding: assetBindingState.updateAssetBinding,
+    clearAssetBinding: assetBindingState.clearAssetBinding,
     updateTestVariant,
     reset,
 

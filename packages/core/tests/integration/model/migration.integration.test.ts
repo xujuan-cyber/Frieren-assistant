@@ -189,7 +189,7 @@ describe('配置迁移集成测试', () => {
 
       const convertedConfig = await modelManager.getModel('custom') as TextModelConfig;
       expect(isTextModelConfig(convertedConfig)).toBe(true);
-      expect(convertedConfig.providerMeta.id).toBe('openai');
+      expect(convertedConfig.providerMeta.id).toBe('openai-compatible');
     });
   });
 

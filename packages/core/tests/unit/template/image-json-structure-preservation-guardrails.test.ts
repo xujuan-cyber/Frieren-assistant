@@ -78,9 +78,9 @@ describe('Image JSON structure preservation guardrails', () => {
       const template = await templateManager.getTemplate(templateId)
       const system = getFirstMessageContent(template, 'system')
 
-      expect(system).toContain('如果原始提示词本身已经是结构化 JSON')
+      expect(system).toContain('待优化内容本身是 JSON 对象、JSON 数组、JSON 风格对象')
       expect(system).toContain('保留所有原始占位符')
-      expect(system).toContain('不要把结构化 JSON 改写成自然语言段落')
+      expect(system).toContain('不要把自然语言输入包装成')
     }
   })
 
@@ -94,9 +94,9 @@ describe('Image JSON structure preservation guardrails', () => {
       const template = await templateManager.getTemplate(templateId)
       const system = getFirstMessageContent(template, 'system')
 
-      expect(system).toContain('If the original prompt is already structured JSON')
-      expect(system).toContain('Preserve all original placeholder tokens exactly')
-      expect(system).toContain('do not flatten structured JSON into prose')
+      expect(system).toContain('content being optimized itself is a JSON object')
+      expect(system).toContain('Preserve every {{placeholder}} token exactly')
+      expect(system).toContain('Do not wrap natural-language input as')
     }
   })
 
@@ -143,8 +143,8 @@ describe('Image JSON structure preservation guardrails', () => {
     const template = await templateManager.getTemplate('image-iterate-general')
     const system = getFirstMessageContent(template, 'system')
 
-    expect(system).toContain('以 lastOptimizedPrompt 的结构为准')
-    expect(system).toContain('即使 iterateInput 没有提到 JSON，也要保持 JSON 输出')
+    expect(system).toContain('以 lastOptimizedPrompt 本身的结构为准')
+    expect(system).toContain('即使 iterateInput 没有提到 JSON，也要保持已有结构化 JSON 输出')
     expect(system).toContain('保留所有原始占位符')
   })
 
@@ -157,8 +157,8 @@ describe('Image JSON structure preservation guardrails', () => {
     const template = await templateManager.getTemplate('image-iterate-general-en')
     const system = getFirstMessageContent(template, 'system')
 
-    expect(system).toContain('Follow the structure of lastOptimizedPrompt first')
-    expect(system).toContain('Keep JSON output even if iterateInput does not mention JSON explicitly')
+    expect(system).toContain('Follow the structure of lastOptimizedPrompt itself first')
+    expect(system).toContain('Keep existing structured JSON output even if iterateInput does not mention JSON explicitly')
     expect(system).toContain('Preserve all original placeholder tokens exactly')
   })
 })

@@ -16,8 +16,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
-import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
+import { TEMPLATE_SELECTION_KEYS, type PromptAssetBinding, type PromptSessionOrigin } from '@prompt-optimizer/core'
 import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
+import { createSessionAssetBindingState } from './sessionAssetBinding'
 import {
   createDefaultCompareSnapshotRoles,
   createDefaultCompareSnapshotRoleSignatures,
@@ -104,6 +105,10 @@ export interface BasicSystemSessionState {
 
   // 最后活跃时间
   lastActiveAt: number
+
+  // 标准提示词资产来源坐标（内部无感 session metadata）
+  assetBinding?: PromptAssetBinding
+  origin?: PromptSessionOrigin
 }
 
 /**
@@ -144,6 +149,8 @@ const createDefaultState = (): BasicSystemSessionState => ({
   selectedIterateTemplateId: null,
   isCompareMode: true,
   lastActiveAt: Date.now(),
+  assetBinding: undefined,
+  origin: undefined,
 })
 
 export const useBasicSystemSession = defineStore('basicSystemSession', () => {
@@ -204,6 +211,14 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
 
   // 最后活跃时间
   const lastActiveAt = ref(Date.now())
+  const assetBindingState = createSessionAssetBindingState(
+    () => {
+      lastActiveAt.value = Date.now()
+    },
+    () => {
+      void saveSession()
+    },
+  )
 
   /**
    * 更新提示词
@@ -227,6 +242,10 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     const nextReasoning = payload.reasoning || ''
     const nextChainId = payload.chainId
     const nextVersionId = payload.versionId
+
+    if (!nextChainId && !nextVersionId) {
+      assetBindingState.clearAssetBindingWithoutPersist()
+    }
 
     const changed =
       optimizedPrompt.value !== nextOptimizedPrompt ||
@@ -374,6 +393,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     evaluationResults.value = defaultState.evaluationResults
     compareSnapshotRoles.value = defaultState.compareSnapshotRoles
     compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
+    assetBindingState.clearAssetBindingWithoutPersist()
     lastActiveAt.value = Date.now()
     if (options.persist !== false) {
       void saveSession().catch((error) => {
@@ -405,6 +425,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     selectedTemplateId.value = defaultState.selectedTemplateId
     selectedIterateTemplateId.value = defaultState.selectedIterateTemplateId
     isCompareMode.value = defaultState.isCompareMode
+    assetBindingState.resetAssetBinding()
     lastActiveAt.value = Date.now()
   }
 
@@ -440,6 +461,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         selectedIterateTemplateId: selectedIterateTemplateId.value,
         isCompareMode: isCompareMode.value,
         lastActiveAt: lastActiveAt.value,
+        ...assetBindingState.persistedAssetBinding(),
       }
       await $services.preferenceService.set(
         'session/v1/basic-system',
@@ -566,6 +588,7 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         selectedTemplateId.value = parsed.selectedTemplateId
         selectedIterateTemplateId.value = parsed.selectedIterateTemplateId
         isCompareMode.value = parsed.isCompareMode
+        assetBindingState.restoreAssetBinding(parsed)
         lastActiveAt.value = Date.now()
       }
 
@@ -616,6 +639,8 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     selectedIterateTemplateId,
     isCompareMode,
     lastActiveAt,
+    assetBinding: assetBindingState.assetBinding,
+    origin: assetBindingState.origin,
 
     // ========== 更新方法 ==========
     updatePrompt,
@@ -631,6 +656,8 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     setMainSplitLeftPct,
     resetTestVariantState,
     clearContent,
+    updateAssetBinding: assetBindingState.updateAssetBinding,
+    clearAssetBinding: assetBindingState.clearAssetBinding,
     updateTestVariant,
     reset,
 

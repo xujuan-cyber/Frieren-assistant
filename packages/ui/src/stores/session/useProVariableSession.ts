@@ -10,9 +10,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getPiniaServices } from '../../plugins/pinia'
-import { TEMPLATE_SELECTION_KEYS } from '@prompt-optimizer/core'
+import { TEMPLATE_SELECTION_KEYS, type PromptAssetBinding, type PromptSessionOrigin } from '@prompt-optimizer/core'
 import { coerceTestPanelVersionValue } from '../../utils/testPanelVersion'
 import { isValidVariableName, sanitizeVariableRecord } from '../../types/variable'
+import { createSessionAssetBindingState } from './sessionAssetBinding'
 import {
   createDefaultCompareSnapshotRoles,
   createDefaultCompareSnapshotRoleSignatures,
@@ -91,6 +92,8 @@ export interface ProVariableSessionState {
   selectedIterateTemplateId: string | null
   isCompareMode: boolean
   lastActiveAt: number
+  assetBinding?: PromptAssetBinding
+  origin?: PromptSessionOrigin
 }
 
 /**
@@ -132,6 +135,8 @@ const createDefaultState = (): ProVariableSessionState => ({
   selectedIterateTemplateId: null,
   isCompareMode: true,
   lastActiveAt: Date.now(),
+  assetBinding: undefined,
+  origin: undefined,
 })
 
 export const useProVariableSession = defineStore('proVariableSession', () => {
@@ -176,6 +181,14 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
   const selectedIterateTemplateId = ref<string | null>(null)
   const isCompareMode = ref(true)
   const lastActiveAt = ref(Date.now())
+  const assetBindingState = createSessionAssetBindingState(
+    () => {
+      lastActiveAt.value = Date.now()
+    },
+    () => {
+      void saveSession()
+    },
+  )
 
   const updatePrompt = (promptValue: string) => {
     if (prompt.value === promptValue) return
@@ -193,6 +206,10 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     const nextReasoning = payload.reasoning || ''
     const nextChainId = payload.chainId
     const nextVersionId = payload.versionId
+
+    if (!nextChainId && !nextVersionId) {
+      assetBindingState.clearAssetBindingWithoutPersist()
+    }
 
     const changed =
       optimizedPrompt.value !== nextOptimizedPrompt ||
@@ -341,6 +358,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     evaluationResults.value = defaultState.evaluationResults
     compareSnapshotRoles.value = defaultState.compareSnapshotRoles
     compareSnapshotRoleSignatures.value = defaultState.compareSnapshotRoleSignatures
+    assetBindingState.clearAssetBindingWithoutPersist()
     lastActiveAt.value = Date.now()
     if (options.persist !== false) {
       void saveSession().catch((error) => {
@@ -370,6 +388,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     selectedTemplateId.value = defaultState.selectedTemplateId
     selectedIterateTemplateId.value = defaultState.selectedIterateTemplateId
     isCompareMode.value = defaultState.isCompareMode
+    assetBindingState.resetAssetBinding()
     lastActiveAt.value = defaultState.lastActiveAt
   }
 
@@ -403,6 +422,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
         selectedIterateTemplateId: selectedIterateTemplateId.value,
         isCompareMode: isCompareMode.value,
         lastActiveAt: lastActiveAt.value,
+        ...assetBindingState.persistedAssetBinding(),
       }
       await $services.preferenceService.set(
         'session/v1/pro-variable',
@@ -534,6 +554,7 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
         selectedTemplateId.value = typeof parsed.selectedTemplateId === 'string' ? parsed.selectedTemplateId : null
         selectedIterateTemplateId.value = typeof parsed.selectedIterateTemplateId === 'string' ? parsed.selectedIterateTemplateId : null
         isCompareMode.value = typeof parsed.isCompareMode === 'boolean' ? parsed.isCompareMode : true
+        assetBindingState.restoreAssetBinding(parsed)
         lastActiveAt.value = Date.now()
       }
       // else: 没有保存的会话，使用默认状态
@@ -585,6 +606,8 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     selectedIterateTemplateId,
     isCompareMode,
     lastActiveAt,
+    assetBinding: assetBindingState.assetBinding,
+    origin: assetBindingState.origin,
 
     // ========== 更新方法 ==========
     updatePrompt,
@@ -605,6 +628,8 @@ export const useProVariableSession = defineStore('proVariableSession', () => {
     setMainSplitLeftPct,
     resetTestVariantState,
     clearContent,
+    updateAssetBinding: assetBindingState.updateAssetBinding,
+    clearAssetBinding: assetBindingState.clearAssetBinding,
     updateTestVariant,
     reset,
 

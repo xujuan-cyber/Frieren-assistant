@@ -159,7 +159,8 @@ describe('Basic workspace logic (smoke)', () => {
       },
       updateIterateTemplate: (id: string | null) => {
         sessionStore.selectedIterateTemplateId = id
-      }
+      },
+      clearAssetBinding: vi.fn()
     }) as any
 
     const promptService = {
@@ -194,6 +195,7 @@ describe('Basic workspace logic (smoke)', () => {
     await logic.handleOptimize()
 
     expect(promptService.optimizePromptStream).toHaveBeenCalledTimes(1)
+    expect(sessionStore.clearAssetBinding).toHaveBeenCalledTimes(1)
     expect(historyManager.createNewChain).toHaveBeenCalledTimes(1)
     expect(sessionStore.optimizedPrompt).toBe('optimized prompt')
     expect(sessionStore.reasoning).toBe('reason')
@@ -242,7 +244,8 @@ describe('Basic workspace logic (smoke)', () => {
       },
       updateIterateTemplate: (id: string | null) => {
         sessionStore.selectedIterateTemplateId = id
-      }
+      },
+      clearAssetBinding: vi.fn()
     }) as any
 
     const services = ref({} as unknown as AppServices)
@@ -256,6 +259,7 @@ describe('Basic workspace logic (smoke)', () => {
 
     logic.handleAnalyze()
 
+    expect(sessionStore.clearAssetBinding).toHaveBeenCalledTimes(1)
     expect(logic.currentChainId.value).toBe('')
     expect(logic.currentVersions.value).toHaveLength(1)
     expect(logic.currentVersions.value[0]?.version).toBe(0)

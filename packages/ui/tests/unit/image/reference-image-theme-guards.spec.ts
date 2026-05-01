@@ -38,4 +38,12 @@ describe('reference image workspace theme guards', () => {
     expect(source).not.toMatch(/reference-action-popover/)
     expect(source).not.toMatch(/data-testid="reference-action-status-button"/)
   })
+
+  it('clears asset binding explicitly when applying extracted prompt artifacts', () => {
+    const source = readWorkspaceSource()
+
+    expect(source).toMatch(
+      /const resetExtractedPromptArtifacts = \(\) => \{[\s\S]*session\.clearAssetBinding\(\)[\s\S]*session\.updateOptimizedResult/,
+    )
+  })
 })
