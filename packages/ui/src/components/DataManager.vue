@@ -72,7 +72,7 @@
         </div>
 
         <div class="backup-actions-grid">
-          <article class="backup-action-panel">
+          <article class="backup-action-panel backup-action-panel--export">
             <div class="action-panel-main">
               <div class="action-panel-icon">
                 <NIcon size="22"><Download /></NIcon>
@@ -84,7 +84,7 @@
                 </NText>
               </div>
             </div>
-            <div class="backup-options-block">
+            <div class="backup-options-block backup-options-block--compact">
               <NText depth="3" class="backup-options-title">
                 {{ $t('dataManager.export.scopeTitle') }}
               </NText>
@@ -126,7 +126,7 @@
             </NButton>
           </article>
 
-          <article class="backup-action-panel">
+          <article class="backup-action-panel backup-action-panel--import">
             <div class="action-panel-main">
               <div class="action-panel-icon">
                 <NIcon size="22"><Upload /></NIcon>
@@ -139,103 +139,113 @@
               </div>
             </div>
 
-            <NUpload
-              :file-list="selectedFile ? [selectedFile] : []"
-              accept=".zip,.po-backup.zip,.json,application/zip,application/json"
-              :show-file-list="false"
-              @change="handleFileChange"
-              :custom-request="() => {}"
-            >
-              <NUploadDragger>
-                <div v-if="!selectedFile" class="import-dropzone">
-                  <NIcon size="28" :depth="3"><Upload /></NIcon>
-                  <NText :depth="3">
-                    {{ $t('dataManager.import.selectFile') }}
-                  </NText>
-                  <NText depth="3" class="import-format-note">
-                    {{ $t('dataManager.import.supportFormat') }}
-                  </NText>
-                </div>
+            <div class="import-panel-body">
+              <div class="import-file-column">
+                <NUpload
+                  :file-list="selectedFile ? [selectedFile] : []"
+                  accept=".zip,.po-backup.zip,.json,application/zip,application/json"
+                  :show-file-list="false"
+                  @change="handleFileChange"
+                  :custom-request="() => {}"
+                >
+                  <NUploadDragger>
+                    <div v-if="!selectedFile" class="import-dropzone">
+                      <NIcon size="28" :depth="3"><Upload /></NIcon>
+                      <NText :depth="3">
+                        {{ $t('dataManager.import.selectFile') }}
+                      </NText>
+                      <NText depth="3" class="import-format-note">
+                        {{ $t('dataManager.import.supportFormat') }}
+                      </NText>
+                    </div>
 
-                <div v-else class="import-selected-file">
-                  <div>
-                    <NText strong>{{ selectedFile.name }}</NText>
-                    <NText :depth="3" class="selected-file-size">
-                      {{ formatFileSize(selectedFile.file?.size ?? 0) }}
-                    </NText>
-                    <NText
-                      v-if="importPreviewText"
-                      depth="3"
-                      class="selected-file-preview"
-                    >
-                      {{ importPreviewText }}
-                    </NText>
-                  </div>
-                  <NButton size="small" text @click.stop="clearSelectedFile">
-                    {{ $t('common.clear') }}
-                  </NButton>
-                </div>
-              </NUploadDragger>
-            </NUpload>
+                    <div v-else class="import-selected-file">
+                      <div>
+                        <NText strong>{{ selectedFile.name }}</NText>
+                        <NText :depth="3" class="selected-file-size">
+                          {{ formatFileSize(selectedFile.file?.size ?? 0) }}
+                        </NText>
+                        <NText
+                          v-if="importPreviewText"
+                          depth="3"
+                          class="selected-file-preview"
+                        >
+                          {{ importPreviewText }}
+                        </NText>
+                      </div>
+                      <NButton size="small" text @click.stop="clearSelectedFile">
+                        {{ $t('common.clear') }}
+                      </NButton>
+                    </div>
+                  </NUploadDragger>
+                </NUpload>
 
-            <div class="backup-options-block">
-              <NText depth="3" class="backup-options-title">
-                {{ $t('dataManager.import.scopeTitle') }}
-              </NText>
-              <div class="backup-scope-list">
-                <label class="backup-scope-option">
-                  <NCheckbox
-                    v-model:checked="importAppData"
-                    :disabled="selectedFile ? !availableImportSections.has('appData') : false"
-                  >
-                    {{ $t('dataManager.sections.appData') }}
-                  </NCheckbox>
-                  <NText depth="3">{{ $t('dataManager.sections.appDataHint') }}</NText>
-                </label>
-                <label class="backup-sub-option">
-                  <NCheckbox
-                    v-model:checked="importAppDataImages"
-                    :disabled="!importAppData || (selectedFile ? !availableImportSections.has('imageCache') : false)"
-                  >
-                    {{ $t('dataManager.sections.appDataImages') }}
-                  </NCheckbox>
-                  <NText depth="3">{{ $t('dataManager.sections.appDataImagesHint') }}</NText>
-                </label>
-                <label class="backup-scope-option">
-                  <NCheckbox
-                    v-model:checked="importFavorites"
-                    :disabled="selectedFile ? !canImportFavoritesBundle : false"
-                  >
-                    {{ $t('dataManager.sections.favoritesBundle') }}
-                  </NCheckbox>
-                  <NText depth="3">{{ $t('dataManager.sections.favoritesBundleHint') }}</NText>
-                </label>
+                <NAlert type="warning" :show-icon="true" class="import-warning">
+                  {{ $t('dataManager.warning') }}
+                </NAlert>
               </div>
-            </div>
 
-            <div
-              v-if="importFavorites"
-              class="backup-options-block"
-            >
-              <NText depth="3" class="backup-options-title">
-                {{ $t('dataManager.import.favoriteMergeStrategy') }}
-              </NText>
-              <NRadioGroup v-model:value="favoriteMergeStrategy">
-                <div class="backup-strategy-list">
-                  <label class="backup-strategy-option">
-                    <NRadio value="skip">{{ $t('dataManager.import.skipDuplicate') }}</NRadio>
-                    <NText depth="3">{{ $t('dataManager.import.skipDuplicateHint') }}</NText>
-                  </label>
-                  <label class="backup-strategy-option">
-                    <NRadio value="overwrite">{{ $t('dataManager.import.overwriteDuplicate') }}</NRadio>
-                    <NText depth="3">{{ $t('dataManager.import.overwriteDuplicateHint') }}</NText>
-                  </label>
-                  <label class="backup-strategy-option">
-                    <NRadio value="merge">{{ $t('dataManager.import.createCopy') }}</NRadio>
-                    <NText depth="3">{{ $t('dataManager.import.createCopyHint') }}</NText>
-                  </label>
+              <div class="import-options-column">
+                <div class="backup-options-block">
+                  <NText depth="3" class="backup-options-title">
+                    {{ $t('dataManager.import.scopeTitle') }}
+                  </NText>
+                  <div class="backup-scope-list">
+                    <label class="backup-scope-option">
+                      <NCheckbox
+                        v-model:checked="importAppData"
+                        :disabled="selectedFile ? !availableImportSections.has('appData') : false"
+                      >
+                        {{ $t('dataManager.sections.appData') }}
+                      </NCheckbox>
+                      <NText depth="3">{{ $t('dataManager.sections.appDataHint') }}</NText>
+                    </label>
+                    <label class="backup-sub-option">
+                      <NCheckbox
+                        v-model:checked="importAppDataImages"
+                        :disabled="!importAppData || (selectedFile ? !availableImportSections.has('imageCache') : false)"
+                      >
+                        {{ $t('dataManager.sections.appDataImages') }}
+                      </NCheckbox>
+                      <NText depth="3">{{ $t('dataManager.sections.appDataImagesHint') }}</NText>
+                    </label>
+                    <label class="backup-scope-option">
+                      <NCheckbox
+                        v-model:checked="importFavorites"
+                        :disabled="selectedFile ? !canImportFavoritesBundle : false"
+                      >
+                        {{ $t('dataManager.sections.favoritesBundle') }}
+                      </NCheckbox>
+                      <NText depth="3">{{ $t('dataManager.sections.favoritesBundleHint') }}</NText>
+                    </label>
+                  </div>
                 </div>
-              </NRadioGroup>
+
+                <div
+                  v-if="importFavorites"
+                  class="backup-options-block"
+                >
+                  <NText depth="3" class="backup-options-title">
+                    {{ $t('dataManager.import.favoriteMergeStrategy') }}
+                  </NText>
+                  <NRadioGroup v-model:value="favoriteMergeStrategy">
+                    <div class="backup-strategy-list">
+                      <label class="backup-strategy-option">
+                        <NRadio value="skip">{{ $t('dataManager.import.skipDuplicate') }}</NRadio>
+                        <NText depth="3">{{ $t('dataManager.import.skipDuplicateHint') }}</NText>
+                      </label>
+                      <label class="backup-strategy-option">
+                        <NRadio value="overwrite">{{ $t('dataManager.import.overwriteDuplicate') }}</NRadio>
+                        <NText depth="3">{{ $t('dataManager.import.overwriteDuplicateHint') }}</NText>
+                      </label>
+                      <label class="backup-strategy-option">
+                        <NRadio value="merge">{{ $t('dataManager.import.createCopy') }}</NRadio>
+                        <NText depth="3">{{ $t('dataManager.import.createCopyHint') }}</NText>
+                      </label>
+                    </div>
+                  </NRadioGroup>
+                </div>
+              </div>
             </div>
 
             <NButton
@@ -250,10 +260,6 @@
               </template>
               {{ isImporting ? $t('common.importing') : $t('dataManager.import.button') }}
             </NButton>
-
-            <NAlert type="warning" :show-icon="true" class="import-warning">
-              {{ $t('dataManager.warning') }}
-            </NAlert>
           </article>
         </div>
       </section>
@@ -711,13 +717,13 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 
 <style scoped>
 .data-manager-scroll-shell {
-  max-height: calc(90vh - 120px);
+  max-height: calc(92vh - 108px);
   overflow: auto;
-  padding: 2px 4px 4px;
+  padding: 0 2px 2px;
 }
 
 .data-manager-section {
-  padding: 18px 0 20px;
+  padding: 14px 0 16px;
   border-bottom: 1px solid var(--n-border-color);
 }
 
@@ -735,18 +741,18 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .section-title {
   display: block;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.3;
 }
 
 .section-description {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   line-height: 1.5;
 }
 
@@ -761,7 +767,7 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 .backup-action-panel {
   border: 1px solid var(--n-border-color);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   background: var(--n-color-embedded);
   min-width: 0;
 }
@@ -770,7 +776,7 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 112px;
+  min-height: 86px;
 }
 
 .storage-stat-card--total {
@@ -778,10 +784,10 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 }
 
 .storage-stat-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   line-height: 1.1;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .storage-note {
@@ -836,27 +842,31 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 
 .backup-actions-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
+  gap: 12px;
   align-items: stretch;
 }
 
 .backup-action-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .backup-options-block {
-  padding: 10px 12px;
+  padding: 9px 10px;
   border: 1px solid var(--n-border-color);
   border-radius: 8px;
   background: var(--n-color);
 }
 
+.backup-options-block--compact {
+  flex: 1;
+}
+
 .backup-options-title {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 12px;
 }
 
@@ -864,7 +874,7 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 .backup-strategy-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .backup-scope-option,
@@ -873,7 +883,7 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border: 1px solid var(--n-border-color);
   border-radius: 8px;
   cursor: pointer;
@@ -885,14 +895,14 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 }
 
 .backup-sub-option {
-  margin-left: 20px;
+  margin-left: 16px;
   background: var(--n-color-embedded);
 }
 
 .action-panel-main {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .action-panel-icon {
@@ -907,6 +917,21 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
   background: var(--n-color);
 }
 
+.import-panel-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.18fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.import-file-column,
+.import-options-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
 .import-dropzone,
 .import-selected-file {
   display: flex;
@@ -914,8 +939,8 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
   gap: 8px;
   align-items: center;
   justify-content: center;
-  min-height: 96px;
-  padding: 12px;
+  min-height: 112px;
+  padding: 10px;
   text-align: center;
 }
 
@@ -932,13 +957,23 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 }
 
 .import-warning {
-  margin-top: 2px;
+  margin-top: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 1040px) {
+  .backup-actions-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
-  .storage-cards-grid,
-  .backup-actions-grid {
+  .storage-cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .import-panel-body {
+    grid-template-columns: 1fr;
   }
 
   .desktop-storage-row {
@@ -948,8 +983,7 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 }
 
 @media (max-width: 640px) {
-  .storage-cards-grid,
-  .backup-actions-grid {
+  .storage-cards-grid {
     grid-template-columns: 1fr;
   }
 }

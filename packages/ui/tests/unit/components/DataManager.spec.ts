@@ -207,13 +207,16 @@ describe('DataManager storage breakdown', () => {
     expect(text).toContain('Refresh')
   })
 
-  it('renders backup export and import as a two-column action layout', async () => {
+  it('renders backup export and import as a compact action layout', async () => {
     const wrapper = mountComponent()
 
     await flushPromises()
 
     const text = wrapper.text()
-    expect(wrapper.findAll('.backup-action-card')).toHaveLength(2)
+    expect(wrapper.findAll('.backup-action-panel')).toHaveLength(2)
+    expect(wrapper.find('.backup-action-panel--export').exists()).toBe(true)
+    expect(wrapper.find('.backup-action-panel--import').exists()).toBe(true)
+    expect(wrapper.find('.import-panel-body').exists()).toBe(true)
     expect(text).toContain('Export Current App Data')
     expect(text).toContain('Import Backup File')
     expect(text).not.toContain('导出上下文集合')
