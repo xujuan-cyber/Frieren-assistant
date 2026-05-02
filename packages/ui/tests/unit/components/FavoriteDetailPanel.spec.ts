@@ -124,6 +124,11 @@ const naiveStubs = {
     template: '<section class="n-collapse-item"><header>{{ title }}</header><div><slot /></div></section>',
     props: ['name', 'title'],
   },
+  NScrollbar: {
+    name: 'NScrollbar',
+    template: '<div class="n-scrollbar"><slot /></div>',
+    props: ['class'],
+  },
   NEmpty: {
     name: 'NEmpty',
     template: '<div class="n-empty">{{ description }}</div>',
@@ -366,9 +371,9 @@ describe('FavoriteDetailPanel', () => {
     expect(wrapper.text()).toContain('Variables')
     expect(wrapper.text()).toContain('Examples')
     expect(wrapper.text()).toContain('1 variables')
-    expect(wrapper.text()).toContain('1 examples')
     expect(wrapper.text()).toContain('style')
     expect(wrapper.text()).toContain('watercolor')
+    expect(wrapper.text()).toContain('1 examples')
     expect(wrapper.text()).toContain('Example 1')
     expect(wrapper.text()).toContain('ink')
   })

@@ -73,143 +73,148 @@
         </NSpace>
       </NSpace>
 
-      <div
-        class="favorite-detail-panel__layout"
-        :class="detailVariant === 'image' ? 'favorite-detail-panel__layout--image' : 'favorite-detail-panel__layout--text'"
-        data-testid="favorite-detail-panel"
-        :data-variant="detailVariant"
-      >
-        <template v-if="detailVariant === 'image'">
-          <div class="favorite-detail-panel__hero-layout">
-            <FavoriteSurfaceSection
-              variant="media"
-              class="favorite-detail-panel__media-card"
-            >
-              <NSpace vertical :size="12">
-                <AppPreviewImageGroup v-if="activeImage">
-                  <AppPreviewImage
-                    data-testid="favorite-detail-media-hero"
-                    :src="activeImage"
-                    :alt="favorite.title"
-                    :object-fit="isLinkedDialog ? 'contain' : 'cover'"
-                    class="favorite-detail-panel__hero-image"
-                  />
-                </AppPreviewImageGroup>
-
-                <div
-                  v-if="displayImages.length > 1"
-                  class="favorite-detail-panel__thumb-grid"
-                >
-                  <button
-                    v-for="(src, index) in displayImages"
-                    :key="`${index}-${src.slice(0, 32)}`"
-                    type="button"
-                    class="favorite-detail-panel__thumb"
-                    :class="{ 'is-active': index === activeImageIndex }"
-                    @click="activeImageIndex = index"
-                  >
-                    <AppPreviewImage
-                      :src="src"
-                      :alt="t('favorites.manager.preview.media.imageAlt', { index: index + 1 })"
-                      width="88"
-                      object-fit="cover"
-                      preview-disabled
-                    />
-                  </button>
-                </div>
-              </NSpace>
-            </FavoriteSurfaceSection>
-
-            <div class="favorite-detail-panel__side-stack">
+      <NScrollbar class="favorite-detail-panel__layout-scroll">
+        <div
+          class="favorite-detail-panel__layout"
+          :class="detailVariant === 'image' ? 'favorite-detail-panel__layout--image' : 'favorite-detail-panel__layout--text'"
+          data-testid="favorite-detail-panel"
+          :data-variant="detailVariant"
+        >
+          <template v-if="detailVariant === 'image'">
+            <div class="favorite-detail-panel__hero-layout">
               <FavoriteSurfaceSection
-                variant="identity"
-                class="favorite-detail-panel__meta-card"
+                variant="media"
+                class="favorite-detail-panel__media-card"
               >
                 <NSpace vertical :size="12">
-                  <div class="favorite-detail-panel__title-block">
-                    <NText strong class="favorite-detail-panel__title">
-                      {{ favorite.title }}
-                    </NText>
-                    <NText depth="3">
-                      {{ t('favorites.manager.preview.updatedAt', { time: formatDate(favorite.updatedAt) }) }}
-                      ·
-                      {{ t('favorites.manager.preview.useCountInline', { count: favorite.useCount }) }}
-                    </NText>
-                  </div>
+                  <AppPreviewImageGroup v-if="activeImage">
+                    <AppPreviewImage
+                      data-testid="favorite-detail-media-hero"
+                      :src="activeImage"
+                      :alt="favorite.title"
+                      :object-fit="isLinkedDialog ? 'contain' : 'cover'"
+                      class="favorite-detail-panel__hero-image"
+                    />
+                  </AppPreviewImageGroup>
 
-                  <NSpace :size="8" wrap>
-                    <NTag
-                      v-if="category"
-                      :color="category.color ? { color: category.color, textColor: 'white' } : undefined"
-                      :bordered="false"
-                    >
-                      {{ category.name }}
-                    </NTag>
-                    <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
-                      {{ getFunctionModeLabel(favorite) }}
-                    </NTag>
-                    <NTag
-                      v-if="subModeLabel"
-                      :bordered="false"
-                      :type="getSubModeTagType(favorite)"
-                    >
-                      {{ subModeLabel }}
-                    </NTag>
-                    <NTag
-                      v-for="tag in favorite.tags"
-                      :key="tag"
-                      :bordered="false"
-                      type="info"
-                    >
-                      {{ tag }}
-                    </NTag>
-                    <NTag
-                      v-if="currentPromptAssetVersion"
-                      :bordered="false"
-                      type="success"
-                      data-testid="favorite-detail-current-version"
-                    >
-                      {{ t('favorites.version.itemLabel', { version: currentPromptAssetVersion.version }) }}
-                    </NTag>
-                  </NSpace>
-
-                  <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
-                    {{ favorite.description }}
-                  </NText>
-
-                  <NEllipsis
-                    v-if="!isLinkedDialog"
-                    :line-clamp="4"
-                    :tooltip="false"
+                  <div
+                    v-if="displayImages.length > 1"
+                    class="favorite-detail-panel__thumb-grid"
                   >
-                    <NText depth="2">
-                      {{ favorite.content }}
-                    </NText>
-                  </NEllipsis>
+                    <button
+                      v-for="(src, index) in displayImages"
+                      :key="`${index}-${src.slice(0, 32)}`"
+                      type="button"
+                      class="favorite-detail-panel__thumb"
+                      :class="{ 'is-active': index === activeImageIndex }"
+                      @click="activeImageIndex = index"
+                    >
+                      <AppPreviewImage
+                        :src="src"
+                        :alt="t('favorites.manager.preview.media.imageAlt', { index: index + 1 })"
+                        width="88"
+                        object-fit="cover"
+                        preview-disabled
+                      />
+                    </button>
+                  </div>
                 </NSpace>
               </FavoriteSurfaceSection>
 
-              <FavoriteSurfaceSection
-                v-if="isLinkedDialog"
-                :title="t('favorites.manager.preview.contentTitle')"
-                variant="content"
-                class="favorite-detail-panel__content-card favorite-detail-panel__content-card--side"
-              >
-                <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--side">
-                  <OutputDisplayCore
-                    :content="displayContent"
-                    :original-content="originalContent"
-                    mode="readonly"
-                    :enabled-actions="contentEnabledActions"
-                    height="100%"
-                  />
-                </div>
-              </FavoriteSurfaceSection>
-            </div>
-          </div>
+              <div class="favorite-detail-panel__side-stack">
+                <FavoriteSurfaceSection
+                  variant="identity"
+                  class="favorite-detail-panel__meta-card"
+                >
+                  <NSpace vertical :size="12">
+                    <div class="favorite-detail-panel__title-block">
+                      <NText strong class="favorite-detail-panel__title">
+                        {{ favorite.title }}
+                      </NText>
+                      <NText depth="3">
+                        {{ t('favorites.manager.preview.updatedAt', { time: formatDate(favorite.updatedAt) }) }}
+                        ·
+                        {{ t('favorites.manager.preview.useCountInline', { count: favorite.useCount }) }}
+                      </NText>
+                    </div>
 
-          <NCollapse :default-expanded-names="imageExpandedSectionNames" class="favorite-detail-panel__sections">
-            <NCollapseItem v-if="!isLinkedDialog" name="content" :title="t('favorites.manager.preview.contentTitle')">
+                    <NSpace :size="8" wrap>
+                      <NTag
+                        v-if="category"
+                        :color="category.color ? { color: category.color, textColor: 'white' } : undefined"
+                        :bordered="false"
+                      >
+                        {{ category.name }}
+                      </NTag>
+                      <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
+                        {{ getFunctionModeLabel(favorite) }}
+                      </NTag>
+                      <NTag
+                        v-if="subModeLabel"
+                        :bordered="false"
+                        :type="getSubModeTagType(favorite)"
+                      >
+                        {{ subModeLabel }}
+                      </NTag>
+                      <NTag
+                        v-for="tag in favorite.tags"
+                        :key="tag"
+                        :bordered="false"
+                        type="info"
+                      >
+                        {{ tag }}
+                      </NTag>
+                      <NTag
+                        v-if="currentPromptAssetVersion"
+                        :bordered="false"
+                        type="success"
+                        data-testid="favorite-detail-current-version"
+                      >
+                        {{ t('favorites.version.itemLabel', { version: currentPromptAssetVersion.version }) }}
+                      </NTag>
+                    </NSpace>
+
+                    <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
+                      {{ favorite.description }}
+                    </NText>
+
+                    <NEllipsis
+                      v-if="!isLinkedDialog"
+                      :line-clamp="4"
+                      :tooltip="false"
+                    >
+                      <NText depth="2">
+                        {{ favorite.content }}
+                      </NText>
+                    </NEllipsis>
+                  </NSpace>
+                </FavoriteSurfaceSection>
+
+                <FavoriteSurfaceSection
+                  v-if="isLinkedDialog"
+                  :title="t('favorites.manager.preview.contentTitle')"
+                  variant="content"
+                  class="favorite-detail-panel__content-card favorite-detail-panel__content-card--side"
+                >
+                  <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--side">
+                    <OutputDisplayCore
+                      :content="displayContent"
+                      :original-content="originalContent"
+                      mode="readonly"
+                      :enabled-actions="contentEnabledActions"
+                      height="100%"
+                    />
+                  </div>
+                </FavoriteSurfaceSection>
+              </div>
+            </div>
+
+            <FavoriteSurfaceSection
+              v-if="!isLinkedDialog"
+              :title="t('favorites.manager.preview.contentTitle')"
+              variant="content"
+              class="favorite-detail-panel__content-card"
+            >
               <div class="favorite-detail-panel__content-shell favorite-detail-panel__content-shell--compact">
                 <OutputDisplayCore
                   :content="displayContent"
@@ -219,195 +224,198 @@
                   height="100%"
                 />
               </div>
-            </NCollapseItem>
-            <NCollapseItem
-              v-if="promptAsset"
-              name="versions"
-              :title="t('favorites.version.title')"
-            >
-              <FavoritePromptAssetVersionList
-                :prompt-asset="promptAsset"
-                @view-version="handleViewVersion"
-              />
-            </NCollapseItem>
-            <NCollapseItem
-              v-if="hasReproducibilityVariables"
-              name="variables"
-              :title="t('favorites.manager.preview.reproducibility.variables')"
-            >
-              <FavoriteReproducibilityDisplay
-                :reproducibility="reproducibility"
-                :example-previews="reproducibilityExamplePreviews"
-                :show-examples="false"
-                :show-section-headings="false"
-              />
-            </NCollapseItem>
-            <NCollapseItem
-              v-if="hasReproducibilityExamples"
-              name="examples"
-              :title="t('favorites.manager.preview.reproducibility.examples')"
-            >
-              <FavoriteReproducibilityDisplay
-                :reproducibility="reproducibility"
-                :example-previews="reproducibilityExamplePreviews"
-                :show-variables="false"
-                :show-section-headings="false"
-                :show-apply-example="showActions"
-                @apply-example="handleApplyExample"
-              />
-            </NCollapseItem>
-            <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
-              <FavoritePreviewExtensionHost
-                :favorite="favorite"
-                :garden-snapshot-hidden-sections="promotedGardenSnapshotSections"
-                garden-snapshot-source-only
-                @favorite-updated="handleFavoriteUpdated"
-              />
-            </NCollapseItem>
-          </NCollapse>
-        </template>
+            </FavoriteSurfaceSection>
 
-        <template v-else>
-          <FavoriteSurfaceSection
-            variant="identity"
-            class="favorite-detail-panel__meta-card"
-          >
-            <NSpace vertical :size="12">
-              <div class="favorite-detail-panel__title-block">
-                <NText strong class="favorite-detail-panel__title">
-                  {{ favorite.title }}
-                </NText>
-                <NText depth="3">
-                  {{ t('favorites.manager.preview.updatedAt', { time: formatDate(favorite.updatedAt) }) }}
-                  ·
-                  {{ t('favorites.manager.preview.useCountInline', { count: favorite.useCount }) }}
-                </NText>
-              </div>
+            <NCollapse :default-expanded-names="imageExpandedSectionNames" class="favorite-detail-panel__sections">
+              <NCollapseItem
+                v-if="promptAsset"
+                name="versions"
+                :title="t('favorites.version.title')"
+              >
+                <FavoritePromptAssetVersionList
+                  :prompt-asset="promptAsset"
+                  @view-version="handleViewVersion"
+                />
+              </NCollapseItem>
+              <NCollapseItem
+                v-if="hasReproducibilityVariables"
+                name="variables"
+                :title="t('favorites.manager.preview.reproducibility.variables')"
+              >
+                <FavoriteReproducibilityDisplay
+                  :reproducibility="reproducibility"
+                  :example-previews="reproducibilityExamplePreviews"
+                  :show-examples="false"
+                  :show-section-headings="false"
+                />
+              </NCollapseItem>
+              <NCollapseItem
+                v-if="hasReproducibilityExamples"
+                name="examples"
+                :title="t('favorites.manager.preview.reproducibility.examples')"
+              >
+                <FavoriteReproducibilityDisplay
+                  :reproducibility="reproducibility"
+                  :example-previews="reproducibilityExamplePreviews"
+                  :show-variables="false"
+                  :show-section-headings="false"
+                  :show-apply-example="showActions"
+                  @apply-example="handleApplyExample"
+                />
+              </NCollapseItem>
+              <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
+                <FavoritePreviewExtensionHost
+                  :favorite="favorite"
+                  :garden-snapshot-hidden-sections="promotedGardenSnapshotSections"
+                  garden-snapshot-source-only
+                  @favorite-updated="handleFavoriteUpdated"
+                />
+              </NCollapseItem>
+            </NCollapse>
+          </template>
 
-              <NSpace :size="8" wrap>
-                <NTag
-                  v-if="category"
-                  :color="category.color ? { color: category.color, textColor: 'white' } : undefined"
-                  :bordered="false"
-                >
-                  {{ category.name }}
-                </NTag>
-                <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
-                  {{ getFunctionModeLabel(favorite) }}
-                </NTag>
-                <NTag
-                  v-if="subModeLabel"
-                  :bordered="false"
-                  :type="getSubModeTagType(favorite)"
-                >
-                  {{ subModeLabel }}
-                </NTag>
-                <NTag
-                  v-for="tag in favorite.tags"
-                  :key="tag"
-                  :bordered="false"
-                  type="info"
-                >
-                  {{ tag }}
-                </NTag>
-                <NTag
-                  v-if="currentPromptAssetVersion"
-                  :bordered="false"
-                  type="success"
-                  data-testid="favorite-detail-current-version"
-                >
-                  {{ t('favorites.version.itemLabel', { version: currentPromptAssetVersion.version }) }}
-                </NTag>
-              </NSpace>
-
-              <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
-                {{ favorite.description }}
-              </NText>
-            </NSpace>
-          </FavoriteSurfaceSection>
-
-          <FavoriteSurfaceSection
-            :title="t('favorites.manager.preview.contentTitle')"
-            variant="content"
-            class="favorite-detail-panel__content-card"
-          >
-            <div class="favorite-detail-panel__content-shell">
-              <OutputDisplayCore
-                :content="displayContent"
-                :original-content="originalContent"
-                mode="readonly"
-                :enabled-actions="contentEnabledActions"
-                height="100%"
-              />
-            </div>
-          </FavoriteSurfaceSection>
-
-          <NCollapse :default-expanded-names="textExpandedSectionNames" class="favorite-detail-panel__sections">
-            <NCollapseItem
-              v-if="promptAsset"
-              name="versions"
-              :title="t('favorites.version.title')"
+          <template v-else>
+            <FavoriteSurfaceSection
+              variant="identity"
+              class="favorite-detail-panel__meta-card"
             >
-              <FavoritePromptAssetVersionList
-                :prompt-asset="promptAsset"
-                @view-version="handleViewVersion"
-              />
-            </NCollapseItem>
-            <NCollapseItem
-              v-if="displayImages.length > 0"
-              name="media"
-              :title="t('favorites.manager.preview.media.title')"
-            >
-              <AppPreviewImageGroup>
-                <div class="favorite-detail-panel__attachment-grid">
-                  <AppPreviewImage
-                    v-for="(src, index) in displayImages"
-                    :key="`${index}-${src.slice(0, 32)}`"
-                    :src="src"
-                    :alt="t('favorites.manager.preview.media.imageAlt', { index: index + 1 })"
-                    width="120"
-                    object-fit="cover"
-                  />
+              <NSpace vertical :size="12">
+                <div class="favorite-detail-panel__title-block">
+                  <NText strong class="favorite-detail-panel__title">
+                    {{ favorite.title }}
+                  </NText>
+                  <NText depth="3">
+                    {{ t('favorites.manager.preview.updatedAt', { time: formatDate(favorite.updatedAt) }) }}
+                    ·
+                    {{ t('favorites.manager.preview.useCountInline', { count: favorite.useCount }) }}
+                  </NText>
                 </div>
-              </AppPreviewImageGroup>
-            </NCollapseItem>
-            <NCollapseItem
-              v-if="hasReproducibilityVariables"
-              name="variables"
-              :title="t('favorites.manager.preview.reproducibility.variables')"
+
+                <NSpace :size="8" wrap>
+                  <NTag
+                    v-if="category"
+                    :color="category.color ? { color: category.color, textColor: 'white' } : undefined"
+                    :bordered="false"
+                  >
+                    {{ category.name }}
+                  </NTag>
+                  <NTag :bordered="false" :type="getFunctionModeTagType(getNormalizedFunctionMode(favorite))">
+                    {{ getFunctionModeLabel(favorite) }}
+                  </NTag>
+                  <NTag
+                    v-if="subModeLabel"
+                    :bordered="false"
+                    :type="getSubModeTagType(favorite)"
+                  >
+                    {{ subModeLabel }}
+                  </NTag>
+                  <NTag
+                    v-for="tag in favorite.tags"
+                    :key="tag"
+                    :bordered="false"
+                    type="info"
+                  >
+                    {{ tag }}
+                  </NTag>
+                  <NTag
+                    v-if="currentPromptAssetVersion"
+                    :bordered="false"
+                    type="success"
+                    data-testid="favorite-detail-current-version"
+                  >
+                    {{ t('favorites.version.itemLabel', { version: currentPromptAssetVersion.version }) }}
+                  </NTag>
+                </NSpace>
+
+                <NText v-if="favorite.description" depth="3" class="favorite-detail-panel__description">
+                  {{ favorite.description }}
+                </NText>
+              </NSpace>
+            </FavoriteSurfaceSection>
+
+            <FavoriteSurfaceSection
+              :title="t('favorites.manager.preview.contentTitle')"
+              variant="content"
+              class="favorite-detail-panel__content-card"
             >
-              <FavoriteReproducibilityDisplay
-                :reproducibility="reproducibility"
-                :example-previews="reproducibilityExamplePreviews"
-                :show-examples="false"
-                :show-section-headings="false"
-              />
-            </NCollapseItem>
-            <NCollapseItem
-              v-if="hasReproducibilityExamples"
-              name="examples"
-              :title="t('favorites.manager.preview.reproducibility.examples')"
-            >
-              <FavoriteReproducibilityDisplay
-                :reproducibility="reproducibility"
-                :example-previews="reproducibilityExamplePreviews"
-                :show-variables="false"
-                :show-section-headings="false"
-                :show-apply-example="showActions"
-                @apply-example="handleApplyExample"
-              />
-            </NCollapseItem>
-            <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
-              <FavoritePreviewExtensionHost
-                :favorite="favorite"
-                :garden-snapshot-hidden-sections="promotedGardenSnapshotSections"
-                garden-snapshot-source-only
-                @favorite-updated="handleFavoriteUpdated"
-              />
-            </NCollapseItem>
-          </NCollapse>
-        </template>
-      </div>
+              <div class="favorite-detail-panel__content-shell">
+                <OutputDisplayCore
+                  :content="displayContent"
+                  :original-content="originalContent"
+                  mode="readonly"
+                  :enabled-actions="contentEnabledActions"
+                  height="100%"
+                />
+              </div>
+            </FavoriteSurfaceSection>
+
+            <NCollapse :default-expanded-names="textExpandedSectionNames" class="favorite-detail-panel__sections">
+              <NCollapseItem
+                v-if="promptAsset"
+                name="versions"
+                :title="t('favorites.version.title')"
+              >
+                <FavoritePromptAssetVersionList
+                  :prompt-asset="promptAsset"
+                  @view-version="handleViewVersion"
+                />
+              </NCollapseItem>
+              <NCollapseItem
+                v-if="displayImages.length > 0"
+                name="media"
+                :title="t('favorites.manager.preview.media.title')"
+              >
+                <AppPreviewImageGroup>
+                  <div class="favorite-detail-panel__attachment-grid">
+                    <AppPreviewImage
+                      v-for="(src, index) in displayImages"
+                      :key="`${index}-${src.slice(0, 32)}`"
+                      :src="src"
+                      :alt="t('favorites.manager.preview.media.imageAlt', { index: index + 1 })"
+                      width="120"
+                      object-fit="cover"
+                    />
+                  </div>
+                </AppPreviewImageGroup>
+              </NCollapseItem>
+              <NCollapseItem
+                v-if="hasReproducibilityVariables"
+                name="variables"
+                :title="t('favorites.manager.preview.reproducibility.variables')"
+              >
+                <FavoriteReproducibilityDisplay
+                  :reproducibility="reproducibility"
+                  :example-previews="reproducibilityExamplePreviews"
+                  :show-examples="false"
+                  :show-section-headings="false"
+                />
+              </NCollapseItem>
+              <NCollapseItem
+                v-if="hasReproducibilityExamples"
+                name="examples"
+                :title="t('favorites.manager.preview.reproducibility.examples')"
+              >
+                <FavoriteReproducibilityDisplay
+                  :reproducibility="reproducibility"
+                  :example-previews="reproducibilityExamplePreviews"
+                  :show-variables="false"
+                  :show-section-headings="false"
+                  :show-apply-example="showActions"
+                  @apply-example="handleApplyExample"
+                />
+              </NCollapseItem>
+              <NCollapseItem name="extra" :title="t('favorites.manager.preview.extraTitle')">
+                <FavoritePreviewExtensionHost
+                  :favorite="favorite"
+                  :garden-snapshot-hidden-sections="promotedGardenSnapshotSections"
+                  garden-snapshot-source-only
+                  @favorite-updated="handleFavoriteUpdated"
+                />
+              </NCollapseItem>
+            </NCollapse>
+          </template>
+        </div>
+      </NScrollbar>
 
       <FavoritePromptAssetVersionPreviewModal
         v-model:show="showVersionPreview"
@@ -427,6 +435,7 @@ import {
   NEmpty,
   NEllipsis,
   NIcon,
+  NScrollbar,
   NSpace,
   NTag,
   NText,
@@ -519,15 +528,14 @@ const reproducibilityExpandedSectionNames = computed(() => [
 ])
 const versionExpandedSectionNames = computed(() => (promptAsset.value ? ['versions'] : []))
 const imageExpandedSectionNames = computed(() =>
-  isLinkedDialog.value
-    ? [...versionExpandedSectionNames.value, ...reproducibilityExpandedSectionNames.value]
-    : ['content', ...versionExpandedSectionNames.value, ...reproducibilityExpandedSectionNames.value],
+  [...versionExpandedSectionNames.value, ...reproducibilityExpandedSectionNames.value, 'extra'],
 )
 const textExpandedSectionNames = computed(() => {
   const names: string[] = []
   names.push(...versionExpandedSectionNames.value)
   if (displayImages.value.length > 0) names.push('media')
   names.push(...reproducibilityExpandedSectionNames.value)
+  names.push('extra')
   return names
 })
 const originalContent = computed(() => {
@@ -784,13 +792,17 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
   border-radius: 8px;
 }
 
-.favorite-detail-panel__layout {
-  display: flex;
-  overflow: auto;
+.favorite-detail-panel__layout-scroll {
   min-height: 0;
   flex: 1;
+}
+
+.favorite-detail-panel__layout {
+  display: flex;
+  min-height: 0;
   flex-direction: column;
   gap: 16px;
+  padding-right: 4px;
 }
 
 .favorite-detail-panel__hero-layout {
@@ -804,6 +816,10 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 }
 
 .favorite-detail-panel--linked-dialog .favorite-detail-panel__layout {
+  flex: none;
+}
+
+.favorite-detail-panel--linked-dialog .favorite-detail-panel__layout-scroll {
   flex: none;
 }
 
@@ -919,6 +935,14 @@ const handleApplyExample = (options: { exampleId?: string; exampleIndex: number 
 
 .favorite-detail-panel__sections {
   min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--n-border-color) 76%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--n-color) 96%, var(--n-primary-color) 4%);
+  padding: 12px;
+}
+
+.favorite-detail-panel__sections :deep(.n-collapse-item:first-child) {
+  margin-top: 0;
 }
 
 @media (max-width: 1023px) {
