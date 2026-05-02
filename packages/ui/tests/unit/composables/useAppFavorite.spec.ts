@@ -198,6 +198,8 @@ describe('useAppFavorite', () => {
       outputText: 'Optimized release notes.',
       metadata: { testRunId: 'run-1' },
     })
+    expect(data.prefill?.reproducibilityDraft?.examples[0]?.id).toBe('ex-001')
+    expect(data.prefill?.reproducibilityDraft?.examples[0]?.parameters).toEqual({ topic: 'release' })
     expect(reproducibility.examples.map((example) => example.id)).not.toContain('workspace-current')
   })
 

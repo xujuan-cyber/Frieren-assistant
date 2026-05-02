@@ -1365,6 +1365,7 @@ watch(() => [
     prefill?.metadata && typeof prefill.metadata === 'object'
       ? (prefill.metadata as Record<string, unknown>)
       : undefined
+  // Save prefill is normalized by useAppFavorite so create/save and edit hydrate the same metadata source.
   if (prefill?.reproducibilityDraft && prefill.reproducibilityDraft.examples.length > 0) {
     reviewAddedExampleIds.value = prefill.reproducibilityDraft.examples
       .map((example) => example.id)

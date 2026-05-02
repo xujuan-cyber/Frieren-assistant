@@ -270,6 +270,39 @@ const mergeReproducibilityVariables = (
 const hasReproducibilityDraftData = (draft: FavoriteReproducibilityDraft | undefined): draft is FavoriteReproducibilityDraft =>
     Boolean(draft && (draft.variables.length > 0 || draft.examples.length > 0))
 
+const buildSaveFavoriteReproducibilityPrefill = (
+    baseMetadata: Record<string, unknown>,
+    workspaceVariables: FavoriteReproducibilityVariable[],
+    explicitDraft?: FavoriteReproducibilityDraft,
+): {
+    metadata: Record<string, unknown>
+    reproducibilityDraft?: FavoriteReproducibilityDraft
+} => {
+    const metadata = hasCallerReproducibilityMetadata(baseMetadata)
+        ? baseMetadata
+        : applyFavoriteReproducibilityToMetadata(baseMetadata, {
+            variables: workspaceVariables,
+            examples: [],
+        })
+
+    if (!hasReproducibilityDraftData(explicitDraft)) {
+        return { metadata }
+    }
+
+    const normalizedDraft = {
+        variables: explicitDraft.variables,
+        examples: assignSequentialFavoriteExampleIds([], explicitDraft.examples),
+    }
+
+    return {
+        metadata: applyFavoriteReproducibilityToMetadata(metadata, {
+            variables: mergeReproducibilityVariables(workspaceVariables, normalizedDraft.variables),
+            examples: normalizedDraft.examples,
+        }),
+        reproducibilityDraft: normalizedDraft,
+    }
+}
+
 /**
  * App 级别收藏管理 Composable
  */
@@ -362,25 +395,14 @@ export function useAppFavorite(options: AppFavoriteOptions): AppFavoriteReturn {
         const baseMetadata = isPlainObject(data.prefill?.metadata)
             ? data.prefill.metadata
             : {}
-        const metadata = hasCallerReproducibilityMetadata(baseMetadata)
-            ? baseMetadata
-            : applyFavoriteReproducibilityToMetadata(baseMetadata, {
-                variables,
-                examples: [],
-            })
-        const explicitDraft = data.prefill?.reproducibilityDraft
-        const normalizedExplicitDraft = hasReproducibilityDraftData(explicitDraft)
-            ? {
-                variables: explicitDraft.variables,
-                examples: assignSequentialFavoriteExampleIds([], explicitDraft.examples),
-            }
-            : undefined
-        const finalMetadata = hasReproducibilityDraftData(explicitDraft)
-            ? applyFavoriteReproducibilityToMetadata(metadata, {
-                variables: mergeReproducibilityVariables(variables, normalizedExplicitDraft?.variables),
-                examples: normalizedExplicitDraft?.examples || [],
-            })
-            : metadata
+        const {
+            metadata: finalMetadata,
+            reproducibilityDraft: normalizedExplicitDraft,
+        } = buildSaveFavoriteReproducibilityPrefill(
+            baseMetadata,
+            variables,
+            data.prefill?.reproducibilityDraft,
+        )
 
         return {
             ...data,
