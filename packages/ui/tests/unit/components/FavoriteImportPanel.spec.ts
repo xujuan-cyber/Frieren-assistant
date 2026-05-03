@@ -13,8 +13,26 @@ const toastMock = vi.hoisted(() => ({
   info: vi.fn(),
 }))
 
+const { pushMock, currentRoute } = vi.hoisted(() => {
+  const pushMock = vi.fn()
+  const currentRoute = {
+    value: {
+      path: '/favorites',
+      query: { keep: '1' },
+    },
+  }
+  return { pushMock, currentRoute }
+})
+
 vi.mock('../../../src/composables/ui/useToast', () => ({
   useToast: () => toastMock,
+}))
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    currentRoute,
+    push: pushMock,
+  }),
 }))
 
 const naiveStubs = {
@@ -110,6 +128,11 @@ describe('FavoriteImportPanel', () => {
     toastMock.error.mockReset()
     toastMock.warning.mockReset()
     toastMock.info.mockReset()
+    pushMock.mockReset()
+    currentRoute.value = {
+      path: '/favorites',
+      query: { keep: '1' },
+    }
   })
 
   it('keeps legacy JSON file import on the file path', async () => {
@@ -192,5 +215,26 @@ describe('FavoriteImportPanel', () => {
     })
     expect(order).toEqual(['save:cover-asset', 'import:favorites'])
     expect(wrapper.emitted('imported')).toHaveLength(1)
+  })
+
+  it('routes Prompt Garden import codes to the save-favorite flow', async () => {
+    const wrapper = mountPanel({})
+
+    ;(wrapper.vm as unknown as { source: string; gardenImportInput: string }).source = 'garden'
+    ;(wrapper.vm as unknown as { source: string; gardenImportInput: string }).gardenImportInput =
+      'https://prompt.local/#/image/text2image?importCode=ZH-NB-001@ex-001'
+
+    await (wrapper.vm as unknown as { handleImportConfirm: () => Promise<void> }).handleImportConfirm()
+    await flushPromises()
+
+    expect(pushMock).toHaveBeenCalledWith({
+      path: '/favorites',
+      query: {
+        keep: '1',
+        importCode: 'ZH-NB-001@ex-001',
+        saveToFavorites: 'confirm',
+      },
+    })
+    expect(wrapper.emitted('cancel')).toHaveLength(1)
   })
 })

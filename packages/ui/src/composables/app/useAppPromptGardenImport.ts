@@ -60,6 +60,31 @@ const getQueryString = (query: LocationQuery, key: string): string | null => {
   return null
 }
 
+const parseImportCodeSelector = (value: string): { importCode: string; exampleId: string | null } => {
+  const trimmed = value.trim()
+  const separatorIndex = trimmed.lastIndexOf('@')
+  if (separatorIndex <= 0 || separatorIndex === trimmed.length - 1) {
+    return {
+      importCode: trimmed,
+      exampleId: null,
+    }
+  }
+
+  const importCode = trimmed.slice(0, separatorIndex).trim()
+  const exampleId = trimmed.slice(separatorIndex + 1).trim()
+  if (!importCode || !exampleId) {
+    return {
+      importCode: trimmed,
+      exampleId: null,
+    }
+  }
+
+  return {
+    importCode,
+    exampleId,
+  }
+}
+
 const omitKeys = (query: LocationQuery, keys: string[]): LocationQuery => {
   const next: Record<string, unknown> = { ...query }
   for (const k of keys) {
@@ -1053,10 +1078,13 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
       const currentRoute = router.currentRoute.value
       const query = currentRoute.query
 
-      const importCode = getQueryString(query, 'importCode')
+      const rawImportCode = getQueryString(query, 'importCode')
+      const parsedImportCode = rawImportCode ? parseImportCodeSelector(rawImportCode) : null
+      const importCode = parsedImportCode?.importCode
       if (!importCode) return
 
-      const exampleId = getQueryString(query, 'exampleId')
+      const explicitExampleId = getQueryString(query, 'exampleId')?.trim() || null
+      const exampleId = explicitExampleId ?? parsedImportCode.exampleId
       const saveToFavoritesMode = parseSaveToFavoritesMode(getQueryString(query, 'saveToFavorites'))
 
       inFlight.value = true
@@ -1070,6 +1098,76 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
         const importedExample = pickImportedExample(fetched.examples, exampleId)
 
         const targetKey = resolveTargetKey(query, currentRoute.path, fetched.optimizerTargetKey)
+
+        if (saveToFavoritesMode !== 'none') {
+          if (saveToFavoritesMode === 'auto') {
+            const favoriteManager = getFavoriteManager?.() || null
+            const imageStorageService =
+              getFavoriteImageStorageService?.() || getImageStorageService?.() || null
+            if (favoriteManager) {
+              try {
+                await saveImportedPromptToFavorites({
+                  manager: favoriteManager,
+                  imageStorageService,
+                  fetched,
+                  targetKey,
+                })
+              } catch (error) {
+                toast.warning(String(i18n.global.t('toast.warning.promptGardenFavoriteSaveFailed')))
+              }
+            } else {
+              console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')
+            }
+          } else {
+            const content = buildFavoriteContentFromFetchedPrompt(fetched)
+            if (!content) {
+              console.warn('[PromptGardenImport] Skip favorite dialog: imported content is empty')
+            } else if (!openSaveFavoriteDialog) {
+              console.warn('[PromptGardenImport] Favorite dialog callback unavailable, skip confirm flow')
+            } else {
+              const modeMapping = toFavoriteModeMapping(targetKey)
+              const imageStorageService =
+                getFavoriteImageStorageService?.() || getImageStorageService?.() || null
+
+              let snapshot = fetched.gardenSnapshot
+              try {
+                snapshot = await buildStorableGardenSnapshot(snapshot, imageStorageService, {
+                  allowImageFallback: true,
+                })
+              } catch (error) {
+                console.info('[PromptGardenImport] Failed to persist snapshot assets for favorite dialog:', error)
+              }
+
+              const media = buildFavoriteMediaFromSnapshot(snapshot)
+              const metadata: Record<string, unknown> = {
+                gardenSnapshot: snapshot,
+                ...(media ? { media } : {}),
+              }
+
+              openSaveFavoriteDialog({
+                content,
+                originalContent: content,
+                prefill: {
+                  title: deriveFavoriteTitle(fetched),
+                  description: deriveFavoriteDescription(fetched),
+                  category: deriveFavoriteCategory(fetched),
+                  tags: deriveFavoriteTags(fetched),
+                  functionMode: modeMapping.functionMode,
+                  optimizationMode: modeMapping.optimizationMode,
+                  imageSubMode: modeMapping.imageSubMode,
+                  metadata,
+                },
+              })
+            }
+          }
+
+          const cleanedQuery = omitKeys(query, ['importCode', 'subModeKey', 'exampleId', 'saveToFavorites'])
+          await router.replace({ path: router.currentRoute.value.path, query: cleanedQuery })
+          await nextTick()
+
+          toast.success(String(i18n.global.t('toast.success.promptGardenImportSuccess')))
+          return
+        }
 
         // If caller opened the wrong workspace, navigate first.
         const targetPath = keyToPath(targetKey)

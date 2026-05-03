@@ -1005,7 +1005,7 @@ describe('useAppPromptGardenImport', () => {
     }
   })
 
-  it('applies selected exampleId parameters when provided', async () => {
+  it('applies selected inline example suffix parameters when provided', async () => {
     const { pinia } = createTestPinia()
 
     // Avoid console.warn from useToast (tests fail on console.warn).
@@ -1031,8 +1031,7 @@ describe('useAppPromptGardenImport', () => {
     const isLoadingExternalData = ref(false)
 
     const query: LocationQuery = {
-      importCode: 'NB-PVAR-EX-002',
-      exampleId: 'ex-b',
+      importCode: 'NB-PVAR-EX-002@ex-b',
     }
 
     const currentRoute = ref<RouteLocationNormalizedLoaded>(makeRoute('/basic/system', query))
@@ -1110,6 +1109,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(currentRoute.value.path).toBe('/pro/variable')
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/prompt-source/NB-PVAR-EX-002')
       expect(proVariableSession.getTemporaryVariable('name')).toBe('Charlie')
 
       // Import params removed from the URL.
@@ -1747,6 +1747,7 @@ describe('useAppPromptGardenImport', () => {
     })
 
     const basicSystemSession = useBasicSystemSession(pinia)
+    basicSystemSession.updatePrompt('KEEP WORKSPACE')
     const basicUserSession = useBasicUserSession(pinia)
     const proMultiMessageSession = useProMultiMessageSession(pinia)
     const proVariableSession = useProVariableSession(pinia)
@@ -1849,6 +1850,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(openSaveFavoriteDialog).toHaveBeenCalledTimes(1)
+      expect(basicSystemSession.prompt).toBe('KEEP WORKSPACE')
       const savedArg = openSaveFavoriteDialog.mock.calls[0]?.[0] as {
         content: string
         prefill?: {
@@ -1894,6 +1896,7 @@ describe('useAppPromptGardenImport', () => {
     })
 
     const basicSystemSession = useBasicSystemSession(pinia)
+    basicSystemSession.updatePrompt('KEEP WORKSPACE')
     const basicUserSession = useBasicUserSession(pinia)
     const proMultiMessageSession = useProMultiMessageSession(pinia)
     const proVariableSession = useProVariableSession(pinia)
@@ -2006,6 +2009,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(favoriteManager.getFavorites).toHaveBeenCalledTimes(1)
+      expect(basicSystemSession.prompt).toBe('KEEP WORKSPACE')
       expect(favoriteManager.addFavorite).toHaveBeenCalledTimes(1)
       expect(favoriteManager.updateFavorite).not.toHaveBeenCalled()
       const favoriteArg = favoriteManager.addFavorite.mock.calls[0]?.[0]

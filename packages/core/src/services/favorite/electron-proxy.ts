@@ -14,6 +14,7 @@ import {
 } from './errors';
 import { FAVORITE_ERROR_CODES } from '../../constants/error-codes'
 import { toErrorWithCode } from '../../utils/error'
+import { safeSerializeArgs } from '../../utils/ipc-serialization'
 
 declare const window: {
   electronAPI: {
@@ -39,7 +40,8 @@ export class FavoriteManagerElectronProxy implements IFavoriteManager {
   private async invokeMethod<T>(method: string, ...args: any[]): Promise<T> {
     this.ensureApiAvailable();
     try {
-      return await (window.electronAPI.favoriteManager as any)[method](...args);
+      const safeArgs = safeSerializeArgs(...args);
+      return await (window.electronAPI.favoriteManager as any)[method](...safeArgs);
     } catch (error: any) {
       // New i18n-style structured errors: pass through as-is so UI can translate via `code + params`.
       if (typeof error?.code === 'string' && error.code.startsWith('error.')) {

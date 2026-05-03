@@ -13,6 +13,9 @@
                 <NSpace :size="16" align="center" wrap>
                   <NRadio value="file">{{ t('favorites.manager.importDialog.sourceFile') }}</NRadio>
                   <NRadio value="paste">{{ t('favorites.manager.importDialog.sourcePaste') }}</NRadio>
+                  <NRadio v-if="isPromptGardenEnabled" value="garden">
+                    {{ t('favorites.manager.importDialog.sourceGarden') }}
+                  </NRadio>
                 </NSpace>
               </NRadioGroup>
 
@@ -65,6 +68,32 @@
                 </NUpload>
               </div>
 
+              <div v-else-if="source === 'garden'" class="favorite-import-panel__garden">
+                <div class="favorite-import-panel__garden-guide">
+                  <NIcon size="22">
+                    <Plant2 />
+                  </NIcon>
+                  <div class="favorite-import-panel__garden-copy">
+                    <NText strong>{{ t('favorites.manager.importDialog.gardenTitle') }}</NText>
+                    <NText depth="3">{{ t('favorites.manager.importDialog.gardenHint') }}</NText>
+                  </div>
+                  <NButton secondary size="small" @click="handlePromptGardenDiscover">
+                    <template #icon>
+                      <NIcon>
+                        <ExternalLink />
+                      </NIcon>
+                    </template>
+                    {{ t('favorites.manager.importDialog.gardenDiscover') }}
+                  </NButton>
+                </div>
+
+                <NInput
+                  v-model:value="gardenImportInput"
+                  :placeholder="t('favorites.manager.importDialog.gardenPlaceholder')"
+                  clearable
+                />
+              </div>
+
               <NInput
                 v-else
                 v-model:value="rawJson"
@@ -76,6 +105,7 @@
           </NCard>
 
           <NCard
+            v-if="source !== 'garden'"
             size="small"
             :title="t('favorites.manager.importDialog.mergeStrategy')"
             :segmented="{ content: true }"
@@ -119,6 +149,7 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
   NButton,
@@ -135,12 +166,14 @@ import {
   NUploadDragger,
   type UploadFileInfo,
 } from 'naive-ui'
-import { Upload } from '@vicons/tabler'
+import { ExternalLink, Plant2, Upload } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
 
+import { getEnvVar } from '@prompt-optimizer/core'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
+import { normalizePromptGardenImportCode } from '../utils/prompt-garden-import'
 import {
   importFavoriteResourcePackage,
   looksLikeFavoriteZipPackage,
@@ -148,6 +181,7 @@ import {
 } from '../utils/favorite-resource-package'
 
 const { t } = useI18n()
+const router = useRouter()
 const message = useToast()
 const services = inject<Ref<AppServices | null> | null>('services', null)
 
@@ -156,13 +190,24 @@ const emit = defineEmits<{
   'imported': []
 }>()
 
-const source = ref<'file' | 'paste'>('file')
+const source = ref<'file' | 'paste' | 'garden'>('file')
 const rawJson = ref('')
+const gardenImportInput = ref('')
 const mergeStrategy = ref<'skip' | 'overwrite' | 'merge'>('skip')
 const fileList = ref<UploadFileInfo[]>([])
 const importing = ref(false)
 
 const selectedFile = computed(() => fileList.value[0] || null)
+const normalizedGardenImportCode = computed(() => normalizePromptGardenImportCode(gardenImportInput.value))
+
+const isPromptGardenEnabled = computed(() => {
+  const value = getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT').trim().toLowerCase()
+  return value === '1' || value === 'true'
+})
+
+const promptGardenBaseUrl = computed(() => {
+  return getEnvVar('VITE_PROMPT_GARDEN_BASE_URL').trim().replace(/\/$/, '')
+})
 
 const mergeStrategyHint = computed(() => {
   if (mergeStrategy.value === 'overwrite') {
@@ -182,6 +227,27 @@ type UploadChangeParam = {
 
 const handleFileChange = (options: UploadChangeParam) => {
   fileList.value = options.fileList.slice(0, 1)
+}
+
+const openExternalUrl = async (url: string) => {
+  if (!url) return
+
+  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
+    try {
+      await window.electronAPI.shell.openExternal(url)
+      return
+    } catch (error) {
+      console.error('[PromptGarden] Failed to open external URL in Electron:', error)
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank')
+  }
+}
+
+const handlePromptGardenDiscover = () => {
+  void openExternalUrl(promptGardenBaseUrl.value)
 }
 
 const readFileAsArrayBuffer = (file: File) =>
@@ -235,6 +301,33 @@ const buildPackageImportWarning = (result: FavoriteResourcePackageImportResult):
 }
 
 const handleImportConfirm = async () => {
+  if (source.value === 'garden') {
+    const importCode = normalizedGardenImportCode.value
+    if (!importCode) {
+      message.warning(t('favorites.manager.importDialog.gardenCodeRequired'))
+      return
+    }
+
+    importing.value = true
+    try {
+      const currentRoute = router.currentRoute.value
+      await router.push({
+        path: currentRoute.path,
+        query: {
+          ...currentRoute.query,
+          importCode,
+          saveToFavorites: 'confirm',
+        },
+      })
+      emit('cancel')
+    } catch (error) {
+      message.error(buildErrorMessage(t('favorites.manager.importDialog.importFailed'), error))
+    } finally {
+      importing.value = false
+    }
+    return
+  }
+
   const servicesValue = services?.value
   if (!servicesValue?.favoriteManager) {
     message.warning(t('favorites.manager.messages.unavailable'))
@@ -330,8 +423,31 @@ const handleImportConfirm = async () => {
 }
 
 .favorite-import-panel__section,
+.favorite-import-panel__garden,
 .favorite-import-panel__strategy-list {
   width: 100%;
+}
+
+.favorite-import-panel__garden {
+  display: grid;
+  gap: 12px;
+}
+
+.favorite-import-panel__garden-guide {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--n-success-color) 5%, transparent);
+}
+
+.favorite-import-panel__garden-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .favorite-import-panel__upload {
@@ -375,6 +491,15 @@ const handleImportConfirm = async () => {
 
   .favorite-import-panel__actions {
     padding: 14px 16px;
+  }
+
+  .favorite-import-panel__garden-guide {
+    grid-template-columns: auto 1fr;
+  }
+
+  .favorite-import-panel__garden-guide .n-button {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 }
 </style>

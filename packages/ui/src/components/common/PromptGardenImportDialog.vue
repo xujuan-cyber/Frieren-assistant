@@ -2,8 +2,8 @@
   <NModal
     :show="show"
     preset="dialog"
-    :title="t('common.promptGarden.importTitle')"
-    :positive-text="t('common.import')"
+    :title="title || t('common.promptGarden.importTitle')"
+    :positive-text="positiveText || t('common.import')"
     :negative-text="t('common.cancel')"
     :positive-button-props="{ disabled: !normalizedImportCode }"
     :show-icon="false"
@@ -15,7 +15,7 @@
   >
     <div class="prompt-garden-import-dialog">
       <p class="prompt-garden-import-hint">
-        {{ t('common.promptGarden.importHint') }}
+        {{ hint || t('common.promptGarden.importHint') }}
       </p>
       <NInput
         v-model:value="inputValue"
@@ -33,9 +33,13 @@
 import { computed, ref } from 'vue'
 import { NInput, NModal } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { normalizePromptGardenImportCode } from '../../utils/prompt-garden-import'
 
 defineProps<{
   show: boolean
+  title?: string
+  hint?: string
+  positiveText?: string
 }>()
 
 const emit = defineEmits<{
@@ -45,27 +49,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const inputValue = ref('')
-
-const normalizePromptGardenImportCode = (value: string): string => {
-  const trimmed = value.trim()
-  if (!trimmed) return ''
-
-  try {
-    const url = new URL(trimmed)
-    const directImportCode = url.searchParams.get('importCode')?.trim()
-    if (directImportCode) return directImportCode
-
-    const hashQueryIndex = url.hash.indexOf('?')
-    if (hashQueryIndex >= 0) {
-      const hashQuery = new URLSearchParams(url.hash.slice(hashQueryIndex + 1))
-      return hashQuery.get('importCode')?.trim() || trimmed
-    }
-  } catch {
-    // Plain import codes are expected; non-URL values are used as-is.
-  }
-
-  return trimmed
-}
 
 const normalizedImportCode = computed(() =>
   normalizePromptGardenImportCode(inputValue.value)

@@ -97,6 +97,8 @@
 
   <PromptGardenImportDialog
     v-model:show="showPromptGardenImport"
+    :title="promptGardenImportDialogTitle"
+    :hint="promptGardenImportDialogHint"
     @confirm="handleConfirmPromptGardenImport"
   />
 </template>
@@ -104,8 +106,9 @@
 <script setup lang="ts">
 import { computed, h, inject, nextTick, onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
 import { routerKey } from 'vue-router'
+import type { LocationQueryRaw } from 'vue-router'
 import { NButton, NDropdown, NIcon, NModal, type DropdownOption } from 'naive-ui'
-import { ClearAll, DotsVertical, ExternalLink, Plant2, FileImport } from '@vicons/tabler'
+import { Bookmark, ClearAll, DotsVertical, ExternalLink, Plant2, FileImport } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
 import { getEnvVar } from '@prompt-optimizer/core'
 import SourceAssetBadge from '../source/SourceAssetBadge.vue'
@@ -131,6 +134,7 @@ const { t } = useI18n()
 const router = inject(routerKey, null)
 const showClearConfirm = ref(false)
 const showPromptGardenImport = ref(false)
+const promptGardenImportIntent = ref<'use' | 'favorite'>('use')
 const triggerStyle = ref<CSSProperties>({})
 let placementResizeObserver: ResizeObserver | null = null
 
@@ -221,7 +225,24 @@ const gardenMenuOptions = computed<DropdownOption[]>(() => [
     label: t('common.promptGarden.importPrompt'),
     icon: () => h(NIcon, null, { default: () => h(FileImport) }),
   },
+  {
+    key: 'import-favorite',
+    label: t('common.promptGarden.importFavorite'),
+    icon: () => h(NIcon, null, { default: () => h(Bookmark) }),
+  },
 ])
+
+const promptGardenImportDialogTitle = computed(() =>
+  promptGardenImportIntent.value === 'favorite'
+    ? t('common.promptGarden.importFavoriteTitle')
+    : t('common.promptGarden.importTitle'),
+)
+
+const promptGardenImportDialogHint = computed(() =>
+  promptGardenImportIntent.value === 'favorite'
+    ? t('common.promptGarden.importFavoriteHint')
+    : t('common.promptGarden.importHint'),
+)
 
 const handleSelect = (key: string) => {
   if (key === 'clear-content') {
@@ -236,6 +257,12 @@ const handleGardenSelect = (key: string) => {
   }
 
   if (key === 'import-code') {
+    promptGardenImportIntent.value = 'use'
+    showPromptGardenImport.value = true
+  }
+
+  if (key === 'import-favorite') {
+    promptGardenImportIntent.value = 'favorite'
     showPromptGardenImport.value = true
   }
 }
@@ -248,12 +275,20 @@ const handleConfirmPromptGardenImport = async (importCode: string) => {
   if (!importCode || !router) return false
 
   const currentRoute = router.currentRoute.value
+  const query: LocationQueryRaw = {
+    ...currentRoute.query,
+    importCode,
+  }
+
+  if (promptGardenImportIntent.value === 'favorite') {
+    query.saveToFavorites = 'confirm'
+  } else {
+    delete query.saveToFavorites
+  }
+
   await router.push({
     path: currentRoute.path,
-    query: {
-      ...currentRoute.query,
-      importCode,
-    },
+    query,
   })
 
   showPromptGardenImport.value = false

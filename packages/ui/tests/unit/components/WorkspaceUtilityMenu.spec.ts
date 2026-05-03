@@ -36,8 +36,11 @@ vi.mock('vue-i18n', () => ({
         'common.promptGarden.title': 'Prompt Garden',
         'common.promptGarden.discover': 'Discover Garden Prompts',
         'common.promptGarden.importPrompt': 'Import Garden Prompt',
+        'common.promptGarden.importFavorite': 'Import as Favorite',
         'common.promptGarden.importTitle': 'Import Prompt Garden Prompt',
         'common.promptGarden.importHint': 'Paste import code',
+        'common.promptGarden.importFavoriteTitle': 'Import Prompt Garden Favorite',
+        'common.promptGarden.importFavoriteHint': 'Paste import code and save favorite',
         'common.promptGarden.importPlaceholder': 'Enter import code',
         'common.workspaceTools': 'Workspace Tools',
         'common.clearContent': 'Clear Content',
@@ -211,6 +214,7 @@ describe('WorkspaceUtilityMenu Prompt Garden actions', () => {
     expect(wrapper.find('[data-testid="workspace-prompt-garden-menu"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Discover Garden Prompts')
     expect(wrapper.text()).toContain('Import Garden Prompt')
+    expect(wrapper.text()).toContain('Import as Favorite')
 
     await wrapper.find('[data-dropdown-key="discover"]').trigger('click')
 
@@ -231,6 +235,27 @@ describe('WorkspaceUtilityMenu Prompt Garden actions', () => {
       query: {
         keep: '1',
         importCode: 'garden_123',
+      },
+    })
+  })
+
+  it('can import a pasted Garden link as a favorite through the route query', async () => {
+    const wrapper = mountComponent()
+
+    await wrapper.find('[data-dropdown-key="import-favorite"]').trigger('click')
+    expect(wrapper.text()).toContain('Import Prompt Garden Favorite')
+
+    await wrapper.find('[data-testid="workspace-prompt-garden-import-code"]').setValue(
+      'https://prompt.always200.com/#/image/text2image?importCode=garden_fav',
+    )
+    await wrapper.find('[data-testid="modal-positive"]').trigger('click')
+
+    expect(pushMock).toHaveBeenCalledWith({
+      path: '/image/text2image',
+      query: {
+        keep: '1',
+        importCode: 'garden_fav',
+        saveToFavorites: 'confirm',
       },
     })
   })
