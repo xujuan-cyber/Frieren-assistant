@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import type { FavoritePrompt } from '@prompt-optimizer/core'
 
 import {
@@ -31,7 +31,7 @@ const emit = defineEmits<{
   'favorite-updated': [favoriteId: string]
 }>()
 
-const plugins = ref<FavoritePreviewPlugin[]>([])
+const plugins = shallowRef<FavoritePreviewPlugin[]>([])
 
 const activePlugins = computed(() => {
   return plugins.value.filter((plugin) => plugin.match(props.favorite))

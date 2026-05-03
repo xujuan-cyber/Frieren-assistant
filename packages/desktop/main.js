@@ -295,6 +295,33 @@ function setupPreferenceHandlers() {
     }
   });
 
+  ipcMain.handle('preference-delete', async (event, key) => {
+    try {
+      await preferenceService.delete(key);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('preference-keys', async () => {
+    try {
+      const result = await preferenceService.keys();
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('preference-clear', async () => {
+    try {
+      await preferenceService.clear();
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
   ipcMain.handle('preference-getAll', async (event) => {
     try {
       const result = await preferenceService.getAll();
