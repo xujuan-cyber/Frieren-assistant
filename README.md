@@ -45,8 +45,10 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 🎯 **Intelligent Optimization**: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
 - 📝 **Dual Mode Optimization**: Support for both system prompt optimization and user prompt optimization to meet different usage scenarios
 - 🔄 **Analysis and Compare Evaluation**: Supports analysis, single-result evaluation, and multi-result compare evaluation to help determine whether a prompt has truly improved
-- 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, etc.
-- 🖼️ **Image Generation**: Support for Text-to-Image (T2I) and Image-to-Image (I2I) with models like Gemini, Seedream
+- 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, MiniMax, etc.
+- 🖼️ **Image Generation**: Support for Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with models like Gemini, Seedream
+- 🌱 **Prompt Garden**: Discover, import, and collect quality prompts with version history, reproducible examples, and source binding
+- ⭐ **Smart Favorites**: Resource-aware prompt assets with version history, reproducible examples, media support, and workspace application
 - 📊 **Advanced Testing Mode**: Context variable management, multi-turn conversation testing, Function Calling support
 - 🔒 **Secure Architecture**: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
 - 📱 **Multi-platform Support**: Available as web application, desktop application, Chrome extension, and Docker deployment
@@ -58,9 +60,18 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 ### Image Generation Mode
 - 🖼️ **Text-to-Image (T2I)**: Generate images from text prompts
 - 🎨 **Image-to-Image (I2I)**: Transform and optimize images based on local files
+- 🖼️ **Multi-Image Generation**: Use multiple input images to constrain subject relationships, sequential semantics, and final generation goals
 - 🔌 **Multi-model Support**: Integrated with mainstream image generation models like Gemini, Seedream
 - ⚙️ **Model Parameters**: Support model-specific parameter configuration (size, style, etc.)
 - 📥 **Preview & Download**: Real-time preview of generated results with download support
+- 🔄 **Style Transfer**: Learn style, composition, and color from reference images
+
+### Prompt Garden & Smart Favorites
+- 🌱 **Prompt Discovery**: Browse and discover quality prompts from the community
+- 📥 **Import & Collect**: Import prompts with metadata, media, examples, and source binding
+- ⭐ **Resource-aware Assets**: Favorites as reusable prompt assets with version history
+- 🔗 **Source Binding**: Track prompt origins and maintain reproducible examples
+- 📦 **Complete Backup**: Export and import favorites with all referenced resources
 
 ### Advanced Testing Mode
 - 📊 **Context Variable Management**: Custom variables, batch replacement, variable preview

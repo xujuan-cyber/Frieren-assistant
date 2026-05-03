@@ -35,8 +35,9 @@ const translations = {
       primary: '打开产品',
       secondary: '查看文档',
       stats: [
-        { value: '4 步闭环', label: '从测试到应用' },
-        { value: '多工作区', label: '单条、变量、上下文' },
+        { value: '5 大场景', label: '文本、变量、上下文、图像、花园' },
+        { value: '图像生成', label: '文生图、图生图、多图' },
+        { value: 'Prompt Garden', label: '发现、导入、收藏' },
         { value: '结果证据', label: '改动基于输出' }
       ],
       visualLabel: '结果闭环',
@@ -121,6 +122,24 @@ const translations = {
           title: '多消息上下文',
           body: '当 system、user 与上下文共同影响结果时仍可分析。',
           tags: ['system + user', '上下文', '多消息']
+        },
+        {
+          label: '图像生成',
+          title: '文生图 / 图生图 / 多图',
+          body: '用真实图像生成结果比较不同提示词的效果，支持多图输入和风格迁移。',
+          tags: ['T2I', 'I2I', '多图生图', '风格迁移']
+        },
+        {
+          label: 'Prompt Garden',
+          title: '提示词花园',
+          body: '发现、导入和收藏优质提示词，支持版本历史、可复现示例和来源绑定。',
+          tags: ['发现', '导入', '收藏', '版本历史']
+        },
+        {
+          label: '智能收藏',
+          title: '资源感知提示词资产',
+          body: '收藏升级为带版本历史、媒体支持和工作区应用的可复用资产。',
+          tags: ['版本历史', '媒体', '备份', '工作区应用']
         }
       ]
     },
@@ -196,8 +215,9 @@ const translations = {
       primary: 'Open Product',
       secondary: 'Read Docs',
       stats: [
-        { value: '4-Step', label: 'From test to apply' },
-        { value: 'Multi-Workspace', label: 'Single, variable, context' },
+        { value: '5 Scenarios', label: 'Text, variable, context, image, garden' },
+        { value: 'Image Generation', label: 'T2I, I2I, multi-image' },
+        { value: 'Prompt Garden', label: 'Discover, import, collect' },
         { value: 'Evidence-Based', label: 'Edits follow outputs' }
       ],
       visualLabel: 'Closed Loop',
@@ -282,6 +302,24 @@ const translations = {
           title: 'Multi-message context',
           body: 'Useful when system, user, and context all affect the result.',
           tags: ['system + user', 'context', 'multi-message']
+        },
+        {
+          label: 'Image generation',
+          title: 'Text-to-image / Image-to-image / Multi-image',
+          body: 'Compare different prompts through real image generation, with multi-image input and style transfer support.',
+          tags: ['T2I', 'I2I', 'multi-image', 'style transfer']
+        },
+        {
+          label: 'Prompt Garden',
+          title: 'Prompt discovery hub',
+          body: 'Discover, import, and collect quality prompts with version history, reproducible examples, and source binding.',
+          tags: ['discover', 'import', 'collect', 'version history']
+        },
+        {
+          label: 'Smart Favorites',
+          title: 'Resource-aware prompt assets',
+          body: 'Favorites upgraded to reusable assets with version history, media support, and workspace application.',
+          tags: ['version history', 'media', 'backup', 'workspace apply']
         }
       ]
     },
