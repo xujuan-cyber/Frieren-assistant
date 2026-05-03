@@ -1338,67 +1338,6 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           }
         }
 
-        if (saveToFavoritesMode === 'auto') {
-          const favoriteManager = getFavoriteManager?.() || null
-          const imageStorageService =
-            getFavoriteImageStorageService?.() || getImageStorageService?.() || null
-          if (favoriteManager) {
-            try {
-              await saveImportedPromptToFavorites({
-                manager: favoriteManager,
-                imageStorageService,
-                fetched,
-                targetKey,
-              })
-            } catch (error) {
-              toast.warning(String(i18n.global.t('toast.warning.promptGardenFavoriteSaveFailed')))
-            }
-          } else {
-            console.warn('[PromptGardenImport] Favorite manager unavailable, skip auto-save')
-          }
-        } else if (saveToFavoritesMode === 'confirm') {
-          const content = buildFavoriteContentFromFetchedPrompt(fetched)
-          if (!content) {
-            console.warn('[PromptGardenImport] Skip favorite dialog: imported content is empty')
-          } else if (!openSaveFavoriteDialog) {
-            console.warn('[PromptGardenImport] Favorite dialog callback unavailable, skip confirm flow')
-          } else {
-            const modeMapping = toFavoriteModeMapping(targetKey)
-            const imageStorageService =
-              getFavoriteImageStorageService?.() || getImageStorageService?.() || null
-
-            let snapshot = fetched.gardenSnapshot
-            try {
-              snapshot = await buildStorableGardenSnapshot(snapshot, imageStorageService, {
-                allowImageFallback: true,
-              })
-            } catch (error) {
-              console.info('[PromptGardenImport] Failed to persist snapshot assets for favorite dialog:', error)
-            }
-
-            const media = buildFavoriteMediaFromSnapshot(snapshot)
-            const metadata: Record<string, unknown> = {
-              gardenSnapshot: snapshot,
-              ...(media ? { media } : {}),
-            }
-
-            openSaveFavoriteDialog({
-              content,
-              originalContent: content,
-              prefill: {
-                title: deriveFavoriteTitle(fetched),
-                description: deriveFavoriteDescription(fetched),
-                category: deriveFavoriteCategory(fetched),
-                tags: deriveFavoriteTags(fetched),
-                functionMode: modeMapping.functionMode,
-                optimizationMode: modeMapping.optimizationMode,
-                imageSubMode: modeMapping.imageSubMode,
-                metadata,
-              },
-            })
-          }
-        }
-
         // Best-effort persist.
         try {
           if (targetKey === 'basic-system') await basicSystemSession.saveSession()
