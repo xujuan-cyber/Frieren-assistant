@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DataManager } from '../../../src/services/data/manager';
 import { IHistoryManager } from '../../../src/services/history/types';
 import { IModelManager } from '../../../src/services/model/types';
+import type { IImageModelManager } from '../../../src/services/image/types';
 import { ITemplateManager, Template } from '../../../src/services/template/types';
 import { IPreferenceService } from '../../../src/services/preference/types';
 import { ContextRepo } from '../../../src/services/context/types';
@@ -11,6 +12,7 @@ import { DATA_ERROR_CODES } from '../../../src/constants/error-codes';
 describe('DataManager', () => {
   let dataManager: DataManager;
   let mockModelManager: IModelManager;
+  let mockImageModelManager: IImageModelManager;
   let mockTemplateManager: ITemplateManager;
   let mockHistoryManager: IHistoryManager;
   let mockPreferenceService: IPreferenceService;
@@ -73,6 +75,21 @@ describe('DataManager', () => {
       validateData: vi.fn().mockReturnValue(true),
     };
 
+    mockImageModelManager = {
+      ensureInitialized: vi.fn().mockResolvedValue(undefined),
+      isInitialized: vi.fn().mockResolvedValue(true),
+      addConfig: vi.fn().mockResolvedValue(undefined),
+      updateConfig: vi.fn().mockResolvedValue(undefined),
+      deleteConfig: vi.fn().mockResolvedValue(undefined),
+      getConfig: vi.fn().mockResolvedValue(null),
+      getAllConfigs: vi.fn().mockResolvedValue([]),
+      getEnabledConfigs: vi.fn().mockResolvedValue([]),
+      exportData: vi.fn().mockResolvedValue([]),
+      importData: vi.fn().mockResolvedValue(undefined),
+      getDataType: vi.fn().mockResolvedValue('image-model-configs'),
+      validateData: vi.fn().mockReturnValue(true),
+    };
+
     mockHistoryManager = {
       getRecords: vi.fn().mockResolvedValue([]),
       addRecord: vi.fn().mockResolvedValue(undefined),
@@ -117,7 +134,8 @@ describe('DataManager', () => {
       mockTemplateManager,
       mockHistoryManager,
       mockPreferenceService,
-      mockContextRepo
+      mockContextRepo,
+      mockImageModelManager
     );
   });
 
@@ -128,6 +146,7 @@ describe('DataManager', () => {
   describe('exportAllData', () => {
     it('should fetch data from all managers and return a JSON string', async () => {
       const models = [{ id: 'model1', name: 'Test Model' }];
+      const imageModels = [{ id: 'image-model1', name: 'Test Image Model' }];
       const templates: Template[] = [{ id: 'tpl1', name: 'Test Template', content: 'c', isBuiltin: false, metadata: { templateType: 'optimize', version: '1.0', lastModified: 0 } }];
       const history = [{
         id: 'hist1',
@@ -142,6 +161,7 @@ describe('DataManager', () => {
       }];
       
       (mockModelManager.exportData as vi.Mock).mockResolvedValue(models);
+      (mockImageModelManager.exportData as vi.Mock).mockResolvedValue(imageModels);
       (mockTemplateManager.exportData as vi.Mock).mockResolvedValue(templates.filter(t => !t.isBuiltin));
       (mockHistoryManager.exportData as vi.Mock).mockResolvedValue(history as any);
       (mockPreferenceService.exportData as vi.Mock).mockResolvedValue({});
@@ -151,6 +171,7 @@ describe('DataManager', () => {
 
       expect(data.version).toBe(1);
       expect(data.data.models).toEqual(models);
+      expect(data.data.imageModels).toEqual(imageModels);
       expect(data.data.userTemplates).toEqual(templates.filter(t => !t.isBuiltin));
       expect(data.data.history).toEqual(history);
     });
@@ -161,6 +182,7 @@ describe('DataManager', () => {
       version: 1,
       data: {
         models: [{ key: 'imp-model1', id: 'imp-model1', name: 'Imported Model' }],
+        imageModels: [{ id: 'imp-image-model1', name: 'Imported Image Model' }],
         userTemplates: [{ id: 'imp-tpl1', name: 'Imported Template', content: 'test content', isBuiltin: false, metadata: { templateType: 'optimize', version: '1.0', lastModified: 0 } }],
         history: [{
           id: 'imp-hist1',
@@ -181,6 +203,7 @@ describe('DataManager', () => {
       await dataManager.importAllData(JSON.stringify(importData));
 
       expect(mockModelManager.importData).toHaveBeenCalledWith(importData.data.models);
+      expect(mockImageModelManager.importData).toHaveBeenCalledWith(importData.data.imageModels);
       expect(mockTemplateManager.importData).toHaveBeenCalledWith(importData.data.userTemplates);
       expect(mockHistoryManager.importData).toHaveBeenCalledWith(importData.data.history);
       expect(mockPreferenceService.importData).toHaveBeenCalledWith(importData.data.userSettings);
@@ -210,12 +233,14 @@ describe('DataManager', () => {
           templateId: 'old-template'
         }],
         models: [{ key: 'old-model1', name: 'Old Format Model' }],
+        imageModels: [{ id: 'old-image-model1', name: 'Old Image Model' }],
         userTemplates: [{ id: 'old-tpl1', name: 'Old Format Template', content: 'old content', isBuiltin: false, metadata: { templateType: 'optimize', version: '1.0', lastModified: 0 } }],
         userSettings: { 'app:settings:ui:theme-id': 'light' },
       };
       
       await expect(dataManager.importAllData(JSON.stringify(oldFormatData))).resolves.not.toThrow();
       expect(mockModelManager.importData).toHaveBeenCalled();
+      expect(mockImageModelManager.importData).toHaveBeenCalled();
       expect(mockTemplateManager.importData).toHaveBeenCalled();
       expect(mockHistoryManager.importData).toHaveBeenCalled();
       expect(mockPreferenceService.importData).toHaveBeenCalled();

@@ -419,7 +419,14 @@ export function useAppInitializer(): {
         const contextRepo = createContextRepo(storageProvider);
 
         // 创建 DataManager（需要contextRepo）
-        dataManager = createDataManager(modelManagerInstance, templateManagerInstance, historyManagerInstance, preferenceService, contextRepo);
+        dataManager = createDataManager(
+          modelManagerInstance,
+          templateManagerInstance,
+          historyManagerInstance,
+          preferenceService,
+          contextRepo,
+          imageModelManagerInstance,
+        );
 
         // 创建收藏管理器
         favoriteManager = new FavoriteManager(storageProvider);

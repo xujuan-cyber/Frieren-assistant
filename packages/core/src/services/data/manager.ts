@@ -1,5 +1,6 @@
 import { IHistoryManager } from '../history/types';
 import { IModelManager } from '../model/types';
+import type { IImageModelManager } from '../image/types';
 import { ITemplateManager } from '../template/types';
 import { IPreferenceService } from '../preference/types';
 import { ContextRepo } from '../context/types';
@@ -41,6 +42,7 @@ export interface IDataManager {
 
 export class DataManager implements IDataManager {
   private modelManager: IModelManager;
+  private imageModelManager?: IImageModelManager;
   private templateManager: ITemplateManager;
   private historyManager: IHistoryManager;
   private preferenceService: IPreferenceService;
@@ -51,9 +53,11 @@ export class DataManager implements IDataManager {
     templateManager: ITemplateManager,
     historyManager: IHistoryManager,
     preferenceService: IPreferenceService,
-    contextRepo: ContextRepo
+    contextRepo: ContextRepo,
+    imageModelManager?: IImageModelManager
   ) {
     this.modelManager = modelManager;
+    this.imageModelManager = imageModelManager;
     this.templateManager = templateManager;
     this.historyManager = historyManager;
     this.preferenceService = preferenceService;
@@ -67,6 +71,9 @@ export class DataManager implements IDataManager {
       // 使用各服务的exportData接口，使用固定的键名保持兼容性
       data['history'] = await this.historyManager.exportData();
       data['models'] = await this.modelManager.exportData();
+      if (this.imageModelManager) {
+        data['imageModels'] = await this.imageModelManager.exportData();
+      }
       data['userTemplates'] = await this.templateManager.exportData();
       data['userSettings'] = await this.preferenceService.exportData();
       data['contexts'] = await this.contextRepo.exportData();
@@ -110,7 +117,7 @@ export class DataManager implements IDataManager {
       dataToImport = exportData.data;
     }
     // Old format: direct data object { history: [...], models: [...], ... }
-    else if (exportData.history || exportData.models || exportData.userTemplates || exportData.userSettings || exportData.contexts) {
+    else if (exportData.history || exportData.models || exportData.imageModels || exportData.userTemplates || exportData.userSettings || exportData.contexts) {
       dataToImport = exportData;
     }
     else {
@@ -123,6 +130,7 @@ export class DataManager implements IDataManager {
     const serviceMap = [
       { service: this.historyManager, dataKey: 'history' },
       { service: this.modelManager, dataKey: 'models' },
+      ...(this.imageModelManager ? [{ service: this.imageModelManager, dataKey: 'imageModels' }] : []),
       { service: this.templateManager, dataKey: 'userTemplates' },
       { service: this.preferenceService, dataKey: 'userSettings' },
       { service: this.contextRepo, dataKey: 'contexts' }
@@ -161,7 +169,8 @@ export function createDataManager(
   templateManager: ITemplateManager,
   historyManager: IHistoryManager,
   preferenceService: IPreferenceService,
-  contextRepo: ContextRepo
+  contextRepo: ContextRepo,
+  imageModelManager?: IImageModelManager
 ): DataManager {
-  return new DataManager(modelManager, templateManager, historyManager, preferenceService, contextRepo);
+  return new DataManager(modelManager, templateManager, historyManager, preferenceService, contextRepo, imageModelManager);
 }

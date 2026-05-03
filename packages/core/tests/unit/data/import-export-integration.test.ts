@@ -8,6 +8,9 @@ import { TemplateLanguageService } from '../../../src/services/template/language
 import { MemoryStorageProvider } from '../../../src/services/storage/memoryStorageProvider';
 import { TextModelConfig } from '../../../src/services/model/types';
 import { TextAdapterRegistry } from '../../../src/services/llm/adapters/registry';
+import { ImageAdapterRegistry } from '../../../src/services/image/adapters/registry';
+import { ImageModelManager } from '../../../src/services/image-model/manager';
+import type { ImageModelConfig } from '../../../src/services/image/types';
 import { Template } from '../../../src/services/template/types';
 import { PromptRecord } from '../../../src/services/history/types';
 import { ContextRepo } from '../../../src/services/context/types';
@@ -19,9 +22,11 @@ describe('DataManager Import/Export Integration', () => {
   let templateManager: TemplateManager;
   let historyManager: HistoryManager;
   let preferenceService: PreferenceService;
+  let imageModelManager: ImageModelManager;
   let mockContextRepo: ContextRepo;
   let storageProvider: MemoryStorageProvider;
   let registry: TextAdapterRegistry;
+  let imageRegistry: ImageAdapterRegistry;
 
   beforeEach(async () => {
     storageProvider = new MemoryStorageProvider();
@@ -29,9 +34,12 @@ describe('DataManager Import/Export Integration', () => {
 
     // 创建真实的服务实例
     registry = new TextAdapterRegistry();
+    imageRegistry = new ImageAdapterRegistry();
     preferenceService = new PreferenceService(storageProvider);
     modelManager = new ModelManager(storageProvider, registry);
     await modelManager.ensureInitialized();
+    imageModelManager = new ImageModelManager(storageProvider, imageRegistry);
+    await imageModelManager.ensureInitialized();
 
     const languageService = new TemplateLanguageService(storageProvider, preferenceService);
     await languageService.initialize();
@@ -59,7 +67,14 @@ describe('DataManager Import/Export Integration', () => {
       validateData: vi.fn().mockReturnValue(true),
     } as ContextRepo;
 
-    dataManager = new DataManager(modelManager, templateManager, historyManager, preferenceService, mockContextRepo);
+    dataManager = new DataManager(
+      modelManager,
+      templateManager,
+      historyManager,
+      preferenceService,
+      mockContextRepo,
+      imageModelManager,
+    );
   });
 
   afterEach(() => {
@@ -85,6 +100,24 @@ describe('DataManager Import/Export Integration', () => {
         paramOverrides: {}
       };
       await modelManager.addModel('test-model-key', testModel);
+      const imageAdapter = imageRegistry.getAdapter('openai');
+      const imageProvider = imageAdapter.getProvider();
+      const imageModel = imageAdapter.buildDefaultModel('gpt-image-1');
+      const testImageModel: ImageModelConfig = {
+        id: 'test-image-model-key',
+        name: 'Test Image Model',
+        providerId: imageProvider.id,
+        modelId: imageModel.id,
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-image-key',
+          baseURL: 'https://images.test.com/v1',
+        },
+        paramOverrides: {},
+        provider: imageProvider,
+        model: imageModel,
+      };
+      await imageModelManager.addConfig(testImageModel);
 
       // 添加模板
       const testTemplate: Template = {
@@ -129,6 +162,7 @@ describe('DataManager Import/Export Integration', () => {
 
       // 验证导出的数据结构
       expect(exportedData.data).toHaveProperty('models');
+      expect(exportedData.data).toHaveProperty('imageModels');
       expect(exportedData.data).toHaveProperty('userTemplates');
       expect(exportedData.data).toHaveProperty('history');
       expect(exportedData.data).toHaveProperty('userSettings');
@@ -137,6 +171,9 @@ describe('DataManager Import/Export Integration', () => {
       const exportedModel = exportedData.data.models.find((m: any) => m.id === 'test-model-key');
       expect(exportedModel).toBeDefined();
       expect(exportedModel.name).toBe('Test Model');
+      const exportedImageModel = exportedData.data.imageModels.find((m: any) => m.id === 'test-image-model-key');
+      expect(exportedImageModel).toBeDefined();
+      expect(exportedImageModel.name).toBe('Test Image Model');
 
       const exportedTemplate = exportedData.data.userTemplates.find((t: any) => t.id === 'test-template');
       expect(exportedTemplate).toBeDefined();
@@ -151,6 +188,7 @@ describe('DataManager Import/Export Integration', () => {
       // 3. 清空数据
       await historyManager.clearHistory();
       await preferenceService.clear();
+      await imageModelManager.deleteConfig('test-image-model-key');
       // 注意：模型和模板的清空需要通过删除操作
 
       // 4. 导入数据
@@ -163,6 +201,10 @@ describe('DataManager Import/Export Integration', () => {
       expect(importedModel).toBeDefined();
       expect(importedModel?.name).toBe('Test Model');
       expect(importedModel?.enabled).toBe(true);
+      const importedImageModel = await imageModelManager.getConfig('test-image-model-key');
+      expect(importedImageModel).toBeDefined();
+      expect(importedImageModel?.name).toBe('Test Image Model');
+      expect(importedImageModel?.connectionConfig?.apiKey).toBe('test-image-key');
 
       // 验证模板
       const importedTemplates = await templateManager.listTemplates();

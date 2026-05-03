@@ -636,7 +636,7 @@ async function initializeServices() {
     contextRepo = createContextRepo(storageProvider);
 
     console.log('[DESKTOP] Creating Data manager...');
-    dataManager = createDataManager(modelManager, templateManager, historyManager, preferenceService, contextRepo);
+    dataManager = createDataManager(modelManager, templateManager, historyManager, preferenceService, contextRepo, imageModelManager);
 
     console.log('[DESKTOP] Creating Favorite manager...');
     favoriteManager = new FavoriteManager(storageProvider);
