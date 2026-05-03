@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.10.0] - 2026-05-03
+- EN: This release standardizes prompt model/session structures, turns favorites into resource-aware prompt assets, adds Prompt Garden discovery/import/favorite flows, expands resource-complete backups, and improves desktop IPC reliability. See [Release Notes (EN)](releases/v2.10.0.en.md).
+- 中文：本次发布标准化提示词模型与会话结构，将收藏升级为资源感知的提示词资产，加入 Prompt Garden 发现 / 导入 / 收藏流程，扩展资源完整备份，并提升桌面端 IPC 可靠性。参见 [版本说明（中文）](releases/v2.10.0.zh-CN.md)。
+
 ## [2.9.6] - 2026-04-27
 - EN: This release enhances favorites with reproducibility example editing, media management, and one-click example application to workspace sessions. See [Release Notes (EN)](releases/v2.9.6.en.md).
 - 中文：本次发布增强收藏功能，支持可复现性示例编辑、媒体管理，以及一键将示例应用到工作区会话。参见 [版本说明（中文）](releases/v2.9.6.zh-CN.md)。
