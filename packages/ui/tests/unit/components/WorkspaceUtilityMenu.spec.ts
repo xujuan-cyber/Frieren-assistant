@@ -226,7 +226,7 @@ describe('WorkspaceUtilityMenu Prompt Garden actions', () => {
 
     await wrapper.find('[data-dropdown-key="import-code"]').trigger('click')
     await wrapper.find('[data-testid="workspace-prompt-garden-import-code"]').setValue(
-      'https://prompt.always200.com/#/image/text2image?importCode=garden_123&saveToFavorites=confirm',
+      'https://prompt.always200.com/#/image/text2image?importCode=garden_123&exampleId=ex-2&subModeKey=image-text2image&saveToFavorites=confirm',
     )
     await wrapper.find('[data-testid="modal-positive"]').trigger('click')
 
@@ -235,6 +235,8 @@ describe('WorkspaceUtilityMenu Prompt Garden actions', () => {
       query: {
         keep: '1',
         importCode: 'garden_123',
+        exampleId: 'ex-2',
+        subModeKey: 'image-text2image',
       },
     })
   })
@@ -246,7 +248,7 @@ describe('WorkspaceUtilityMenu Prompt Garden actions', () => {
     expect(wrapper.text()).toContain('Import Prompt Garden Favorite')
 
     await wrapper.find('[data-testid="workspace-prompt-garden-import-code"]').setValue(
-      'https://prompt.always200.com/#/image/text2image?importCode=garden_fav',
+      'https://prompt.always200.com/#/image/text2image?importCode=garden_fav&exampleId=ex-2',
     )
     await wrapper.find('[data-testid="modal-positive"]').trigger('click')
 

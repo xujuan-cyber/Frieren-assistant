@@ -1089,6 +1089,14 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
 
       inFlight.value = true
       isLoadingExternalData.value = true
+      let importingToast = toast.info(String(i18n.global.t('common.promptGarden.importingStatus')), {
+        duration: 0,
+        closable: false,
+      })
+      const closeImportingToast = () => {
+        toast.remove(importingToast)
+        importingToast = undefined
+      }
       try {
         const fetched = await fetchPromptFromGarden({
           gardenBaseUrl,
@@ -1165,6 +1173,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
           await router.replace({ path: router.currentRoute.value.path, query: cleanedQuery })
           await nextTick()
 
+          closeImportingToast()
           toast.success(String(i18n.global.t('toast.success.promptGardenImportSuccess')))
           return
         }
@@ -1356,11 +1365,14 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
         await router.replace({ path: router.currentRoute.value.path, query: cleanedQuery })
         await nextTick()
 
+        closeImportingToast()
         toast.success(String(i18n.global.t('toast.success.promptGardenImportSuccess')))
       } catch (error) {
         console.error('[PromptGardenImport] Failed:', error)
+        closeImportingToast()
         toast.error(String(i18n.global.t('toast.error.promptGardenImportFailed')))
       } finally {
+        closeImportingToast()
         isLoadingExternalData.value = false
         inFlight.value = false
       }

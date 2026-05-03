@@ -114,6 +114,7 @@ import { getEnvVar } from '@prompt-optimizer/core'
 import SourceAssetBadge from '../source/SourceAssetBadge.vue'
 import PromptGardenImportDialog from './PromptGardenImportDialog.vue'
 import ThemedTooltip from './ThemedTooltip.vue'
+import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import type { SourceAssetRef } from '../../utils/source-asset'
 
 withDefaults(defineProps<{
@@ -271,19 +272,31 @@ const handleConfirmClear = () => {
   emit('clear')
 }
 
-const handleConfirmPromptGardenImport = async (importCode: string) => {
-  if (!importCode || !router) return false
+const handleConfirmPromptGardenImport = async (request: PromptGardenImportRequest) => {
+  if (!request.importCode || !router) return false
 
   const currentRoute = router.currentRoute.value
   const query: LocationQueryRaw = {
     ...currentRoute.query,
-    importCode,
+    importCode: request.importCode,
   }
 
   if (promptGardenImportIntent.value === 'favorite') {
     query.saveToFavorites = 'confirm'
+    delete query.exampleId
   } else {
     delete query.saveToFavorites
+    if (request.exampleId) {
+      query.exampleId = request.exampleId
+    } else {
+      delete query.exampleId
+    }
+  }
+
+  if (request.subModeKey) {
+    query.subModeKey = request.subModeKey
+  } else {
+    delete query.subModeKey
   }
 
   await router.push({

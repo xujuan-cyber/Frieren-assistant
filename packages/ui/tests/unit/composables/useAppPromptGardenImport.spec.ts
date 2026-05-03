@@ -1736,15 +1736,17 @@ describe('useAppPromptGardenImport', () => {
   it('opens save-favorite dialog when saveToFavorites=confirm', async () => {
     const { pinia } = createTestPinia()
 
-    const createReactive = (): MessageReactive => ({
-      destroy: () => {},
+    const loadingDestroy = vi.fn()
+    const createReactive = (destroy = vi.fn()): MessageReactive => ({
+      destroy,
     } as unknown as MessageReactive)
-    setGlobalMessageApi({
+    const messageApi = {
       success: vi.fn(() => createReactive()),
       error: vi.fn(() => createReactive()),
       warning: vi.fn(() => createReactive()),
-      info: vi.fn(() => createReactive()),
-    })
+      info: vi.fn(() => createReactive(loadingDestroy)),
+    }
+    setGlobalMessageApi(messageApi)
 
     const basicSystemSession = useBasicSystemSession(pinia)
     basicSystemSession.updatePrompt('KEEP WORKSPACE')
@@ -1850,6 +1852,14 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(openSaveFavoriteDialog).toHaveBeenCalledTimes(1)
+      expect(messageApi.info).toHaveBeenCalledWith(
+        String(i18n.global.t('common.promptGarden.importingStatus')),
+        expect.objectContaining({
+          duration: 0,
+          closable: false,
+        })
+      )
+      expect(loadingDestroy).toHaveBeenCalledTimes(1)
       expect(basicSystemSession.prompt).toBe('KEEP WORKSPACE')
       const savedArg = openSaveFavoriteDialog.mock.calls[0]?.[0] as {
         content: string

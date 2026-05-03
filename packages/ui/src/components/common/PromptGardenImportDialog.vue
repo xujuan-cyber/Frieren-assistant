@@ -33,7 +33,10 @@
 import { computed, ref } from 'vue'
 import { NInput, NModal } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { normalizePromptGardenImportCode } from '../../utils/prompt-garden-import'
+import {
+  parsePromptGardenImportInput,
+  type PromptGardenImportRequest,
+} from '../../utils/prompt-garden-import'
 
 defineProps<{
   show: boolean
@@ -44,25 +47,24 @@ defineProps<{
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  confirm: [importCode: string]
+  confirm: [request: PromptGardenImportRequest]
 }>()
 
 const { t } = useI18n()
 const inputValue = ref('')
 
-const normalizedImportCode = computed(() =>
-  normalizePromptGardenImportCode(inputValue.value)
-)
+const normalizedImportRequest = computed(() => parsePromptGardenImportInput(inputValue.value))
+const normalizedImportCode = computed(() => normalizedImportRequest.value.importCode)
 
 const reset = () => {
   inputValue.value = ''
 }
 
 const handleConfirm = () => {
-  const importCode = normalizedImportCode.value
-  if (!importCode) return false
+  const request = normalizedImportRequest.value
+  if (!request.importCode) return false
 
-  emit('confirm', importCode)
+  emit('confirm', request)
   emit('update:show', false)
   return true
 }

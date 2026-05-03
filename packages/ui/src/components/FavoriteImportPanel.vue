@@ -149,7 +149,7 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, type LocationQueryRaw } from 'vue-router'
 
 import {
   NButton,
@@ -173,7 +173,7 @@ import { getEnvVar } from '@prompt-optimizer/core'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
-import { normalizePromptGardenImportCode } from '../utils/prompt-garden-import'
+import { parsePromptGardenImportInput } from '../utils/prompt-garden-import'
 import {
   importFavoriteResourcePackage,
   looksLikeFavoriteZipPackage,
@@ -198,7 +198,8 @@ const fileList = ref<UploadFileInfo[]>([])
 const importing = ref(false)
 
 const selectedFile = computed(() => fileList.value[0] || null)
-const normalizedGardenImportCode = computed(() => normalizePromptGardenImportCode(gardenImportInput.value))
+const parsedGardenImportRequest = computed(() => parsePromptGardenImportInput(gardenImportInput.value))
+const normalizedGardenImportCode = computed(() => parsedGardenImportRequest.value.importCode)
 
 const isPromptGardenEnabled = computed(() => {
   const value = getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT').trim().toLowerCase()
@@ -311,13 +312,21 @@ const handleImportConfirm = async () => {
     importing.value = true
     try {
       const currentRoute = router.currentRoute.value
+      const query: LocationQueryRaw = {
+        ...currentRoute.query,
+        importCode,
+        saveToFavorites: 'confirm',
+      }
+      delete query.exampleId
+      if (parsedGardenImportRequest.value.subModeKey) {
+        query.subModeKey = parsedGardenImportRequest.value.subModeKey
+      } else {
+        delete query.subModeKey
+      }
+
       await router.push({
         path: currentRoute.path,
-        query: {
-          ...currentRoute.query,
-          importCode,
-          saveToFavorites: 'confirm',
-        },
+        query,
       })
       emit('cancel')
     } catch (error) {

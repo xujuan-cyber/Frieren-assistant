@@ -898,7 +898,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, toRef, type Ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, type LocationQueryRaw } from 'vue-router'
 
 import {
     NCard,
@@ -937,6 +937,7 @@ import { getI18nErrorMessage } from '../../utils/error'
 import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
 import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { downloadImageSource } from '../../utils/image-download'
+import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import {
     resolveReferencePromptPreview,
     type ReferenceApplicationMode,
@@ -1172,17 +1173,28 @@ const handlePromptGardenDiscover = () => {
     void openExternalUrl(promptGardenBaseUrl.value)
 }
 
-const handlePromptGardenImportConfirm = async (importCode: string) => {
-    const trimmed = importCode.trim()
-    if (!trimmed) return false
+const handlePromptGardenImportConfirm = async (request: PromptGardenImportRequest) => {
+    if (!request.importCode) return false
 
     const currentRoute = router.currentRoute.value
+    const query: LocationQueryRaw = {
+        ...currentRoute.query,
+        importCode: request.importCode,
+    }
+    if (request.exampleId) {
+        query.exampleId = request.exampleId
+    } else {
+        delete query.exampleId
+    }
+    if (request.subModeKey) {
+        query.subModeKey = request.subModeKey
+    } else {
+        delete query.subModeKey
+    }
+
     await router.push({
         path: currentRoute.path,
-        query: {
-            ...currentRoute.query,
-            importCode: trimmed,
-        },
+        query,
     })
 
     return true

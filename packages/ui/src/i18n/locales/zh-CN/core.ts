@@ -48,7 +48,8 @@ const messages = {
       "text2ImageGuideTitle": "从 Prompt Garden 发现文生图提示词",
       "text2ImageGuideHint": "没有灵感时，可以先去花园挑一个提示词，或粘贴导入码直接带入当前工作区。",
       "discoverShort": "去发现",
-      "importShort": "粘贴导入码"
+      "importShort": "粘贴导入码",
+      "importingStatus": "正在从 Prompt Garden 获取提示词和图片资源..."
     },
     "clearContent": "清理内容",
     "clearContentWillLabel": "清理内容：",

@@ -50,7 +50,8 @@ const messages = {
       "text2ImageGuideTitle": "Discover text-to-image prompts in Prompt Garden",
       "text2ImageGuideHint": "When you need a starting point, browse Garden prompts or paste an import code into this workspace.",
       "discoverShort": "Discover",
-      "importShort": "Paste code"
+      "importShort": "Paste code",
+      "importingStatus": "Importing prompt and image resources from Prompt Garden..."
     },
     "clearContent": "Clear Content",
     "clearContentWillLabel": "Clears:",

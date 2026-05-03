@@ -222,7 +222,7 @@ describe('FavoriteImportPanel', () => {
 
     ;(wrapper.vm as unknown as { source: string; gardenImportInput: string }).source = 'garden'
     ;(wrapper.vm as unknown as { source: string; gardenImportInput: string }).gardenImportInput =
-      'https://prompt.local/#/image/text2image?importCode=ZH-NB-001@ex-001'
+      'https://prompt.local/#/image/text2image?importCode=ZH-NB-001@ex-001&exampleId=ex-002'
 
     await (wrapper.vm as unknown as { handleImportConfirm: () => Promise<void> }).handleImportConfirm()
     await flushPromises()
@@ -231,7 +231,7 @@ describe('FavoriteImportPanel', () => {
       path: '/favorites',
       query: {
         keep: '1',
-        importCode: 'ZH-NB-001@ex-001',
+        importCode: 'ZH-NB-001',
         saveToFavorites: 'confirm',
       },
     })
