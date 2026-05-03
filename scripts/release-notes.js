@@ -539,36 +539,10 @@ function buildTagScopedFileUrl(repository, tag, relativePath) {
 
 function renderMacSecurityNote(locale) {
   if (locale === 'en') {
-    return [
-      '### macOS Security Note',
-      'If macOS says the app is "damaged" or the developer cannot be verified, this is usually a system quarantine warning rather than an app defect.',
-      '',
-      '```bash',
-      'xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app',
-      '```',
-      '',
-      'For a downloaded DMG:',
-      '',
-      '```bash',
-      'xattr -rd com.apple.quarantine ~/Downloads/PromptOptimizer-*.dmg',
-      '```',
-    ].join('\n');
+    return '> macOS note: if the app is reported as damaged or unverified, remove quarantine with `xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app` (or run it on `~/Downloads/PromptOptimizer-*.dmg` before installing).';
   }
 
-  return [
-    '### macOS 安全提示',
-    '如果 macOS 提示“已损坏”或“无法验证开发者”，通常是系统隔离属性导致，并不一定是应用本身有问题。',
-    '',
-    '```bash',
-    'xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app',
-    '```',
-    '',
-    '如果是刚下载的 DMG：',
-    '',
-    '```bash',
-    'xattr -rd com.apple.quarantine ~/Downloads/PromptOptimizer-*.dmg',
-    '```',
-  ].join('\n');
+  return '> macOS 提示：如果提示“已损坏”或“无法验证开发者”，可用 `xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app` 移除隔离属性；DMG 可先对 `~/Downloads/PromptOptimizer-*.dmg` 执行。';
 }
 
 function renderGitHubReleaseBody({ cwd = process.cwd(), version, repository }) {
