@@ -727,7 +727,6 @@ const appOpenToolManager = inject<(() => void) | null>('openToolManager', null)
 const appOpenVariableManager = inject<((variableName?: string) => void) | null>('openVariableManager', null)
 const appHandleSaveFavorite = inject<((data: SaveFavoritePayload) => void) | null>('handleSaveFavorite', null)
 const appSaveToGlobal = inject<((name: string, value: string) => void) | null>('saveToGlobal', null)
-const appOpenPromptPreview = inject<(() => void) | null>('openPromptPreview', null)
 
 const handleOpenModelManager = () => {
     if (appOpenModelManager) {
@@ -745,17 +744,6 @@ const handleOpenTemplateManager = (typeOrPayload?: string | Record<string, unkno
         return
     }
     emit('open-template-manager', type)
-}
-
-// Pro 工作区专有功能的处理函数（优先使用 inject，emit 作为兜底）
-const handleOpenToolManager = () => {
-    if (appOpenToolManager) { appOpenToolManager(); return; }
-    emit('open-tool-manager')
-}
-
-const handleOpenVariableManager = () => {
-    if (appOpenVariableManager) { appOpenVariableManager(); return; }
-    emit('open-variable-manager')
 }
 
 const handleSaveFavorite = (data: SaveFavoritePayload) => {

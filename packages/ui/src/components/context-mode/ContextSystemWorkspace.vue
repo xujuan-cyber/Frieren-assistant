@@ -686,7 +686,6 @@ const appOpenToolManager = inject<(() => void) | null>('openToolManager', null)
 const appOpenVariableManager = inject<((variableName?: string) => void) | null>('openVariableManager', null)
 const appHandleSaveFavorite = inject<((data: SaveFavoritePayload) => void) | null>('handleSaveFavorite', null)
 const appSaveToGlobal = inject<((name: string, value: string) => void) | null>('saveToGlobal', null)
-const appOpenPromptPreview = inject<(() => void) | null>('openPromptPreview', null)
 
  // Pro Multi: message list is session-owned (per-submode isolation).
  // Keep emitting update:optimizationContext only as a backward-compat hook for non-App hosts.

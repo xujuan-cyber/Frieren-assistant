@@ -59,8 +59,8 @@ After analysis, it generates:
 Reference image: A cyberpunk-style city night scene
 
 Generated prompt:
-A futuristic city night scene, neon lights闪烁, towering buildings, 
-rain-soaked streets reflecting colorful lights, cyberpunk style, 
+A futuristic city night scene, neon lights闪烁, towering buildings,
+rain-soaked streets reflecting colorful lights, cyberpunk style,
 high contrast, purple and blue as main colors
 
 Extracted variables:
@@ -76,8 +76,8 @@ Extracted variables:
 Reference image: A portrait using golden ratio composition
 
 Generated prompt:
-A portrait of a young woman, using golden ratio composition, 
-soft natural light, shallow depth of field, warm tones, 
+A portrait of a young woman, using golden ratio composition,
+soft natural light, shallow depth of field, warm tones,
 photography style
 
 Extracted variables:

@@ -74,7 +74,7 @@ An orange cat sitting on a windowsill, sunlight shining on it
 Reference image: A warm-toned, soft-lighting photography work
 
 Generated stylized prompt:
-An orange cat sitting on a windowsill, sunlight shining on it, 
+An orange cat sitting on a windowsill, sunlight shining on it,
 warm tones, soft light transitions, cozy atmosphere, photography style
 
 Extracted variables:
@@ -93,8 +93,8 @@ A snowy mountain with snow on the peak
 Reference image: A landscape photo shot from low angle, emphasizing foreground
 
 Generated stylized prompt:
-A snowy mountain with snow on the peak, low angle shot, 
-emphasizing foreground, vast视野, magnificent atmosphere, 
+A snowy mountain with snow on the peak, low angle shot,
+emphasizing foreground, vast视野, magnificent atmosphere,
 landscape photography style
 
 Extracted variables:
@@ -113,7 +113,7 @@ A samurai holding a long sword
 Reference image: An ukiyo-e style illustration
 
 Generated stylized prompt:
-A samurai holding a long sword, ukiyo-e style, flat processing, 
+A samurai holding a long sword, ukiyo-e style, flat processing,
 traditional Japanese colors, decorative lines, artistic illustration
 
 Extracted variables:

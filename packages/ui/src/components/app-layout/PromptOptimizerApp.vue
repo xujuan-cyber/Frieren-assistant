@@ -1761,9 +1761,12 @@ provide("openVariableManager", (variableName?: string) => {
 
 // 提供 saveToGlobal 接口（供 Pro 工作区将临时变量保存到全局）
 provide("saveToGlobal", (name: string, value: string) => {
-    variableManager?.customVariables?.value
-        ? (variableManager.customVariables.value[name] = value)
-        : undefined;
+    try {
+        variableManager.addVariable(name, value);
+    } catch (error) {
+        console.error('[PromptOptimizerApp] Failed to save variable to global:', error);
+        throw error;
+    }
 });
 
 // 提供 openPromptPreview 接口（供 Pro 工作区打开提示词预览面板）
