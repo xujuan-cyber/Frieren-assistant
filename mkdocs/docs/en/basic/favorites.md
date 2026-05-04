@@ -123,6 +123,38 @@ If your deployment enables `Prompt Garden` integration, a favorite preview can a
 
 This is an optional integration, so it may not appear in every deployment.
 
+See [Prompt Garden](prompt-garden.md) for details.
+
+## v2.10.0 New Features
+
+### Resource-Aware Assets
+
+Favorites now support:
+
+- **Version History**: Track the evolution of prompts, view and restore historical versions
+- **Reproducible Examples**:附带 test results and context for later reproduction and verification
+- **Media Support**: Images and cover images fully preserved
+
+### Source Binding
+
+Favorites imported from Prompt Garden automatically record:
+
+- Import code
+- Source link
+- Import time
+
+Facilitating later updates and source verification.
+
+### Complete Backup
+
+Exporting favorites now packages referenced images and media resources together. Importing automatically restores resource references, no need to separately migrate image files.
+
+Suitable for:
+
+- Migrating favorites with images
+- Complete backup of favorite collections
+- Sharing prompts with media
+
 ## Practical suggestions
 
 - let history keep the process, and let favorites keep the result

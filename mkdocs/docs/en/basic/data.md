@@ -102,6 +102,38 @@ These two entry points are easy to confuse, but they work at different levels:
 
 If you only want to carry over a few verified prompts, start with [Favorites & Import](favorites.md).
 
+## Favorite Complete Backup (v2.10.0)
+
+Starting from v2.10.0, exporting favorites now packages referenced images and media resources together.
+
+This means:
+
+- Exported JSON files include all resources
+- Importing automatically restores resource references
+- No need to separately migrate image files
+
+Suitable for:
+
+- Migrating favorites with images
+- Complete backup of favorite collections
+- Sharing prompts with media
+
+### Difference from Normal Export
+
+| Feature | Normal Export | Complete Backup |
+|---------|--------------|-----------------|
+| Prompt content | ✅ | ✅ |
+| Variable definitions | ✅ | ✅ |
+| Image resources | ❌ | ✅ |
+| Media files | ❌ | ✅ |
+| File size | Smaller | Larger |
+
+### Usage Recommendations
+
+- Only migrating text prompts: Use normal export
+- Migrating favorites with images: Use complete backup
+- Sharing with others: Use complete backup (ensures resources are complete)
+
 ## Recommended usage
 
 - export one full backup before large changes

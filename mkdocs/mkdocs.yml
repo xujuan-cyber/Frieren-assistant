@@ -84,8 +84,13 @@ plugins:
                 - 模板管理: basic/templates.md
                 - 历史记录: basic/history.md
                 - 收藏与导入: basic/favorites.md
+                - Prompt Garden: basic/prompt-garden.md
                 - 数据管理: basic/data.md
                 - 工具调用: advanced/tools.md
+            - 辅助功能:
+                - 变量智能填充: auxiliary/smart-fill.md
+                - 文生图复刻: auxiliary/replicate.md
+                - 风格学习: auxiliary/style-learn.md
             - 部署与排障:
                 - Web版部署: deployment/web.md
                 - 桌面应用: deployment/desktop.md
@@ -142,8 +147,13 @@ plugins:
                 - Template Management: basic/templates.md
                 - History Management: basic/history.md
                 - Favorites & Import: basic/favorites.md
+                - Prompt Garden: basic/prompt-garden.md
                 - Data Management: basic/data.md
                 - Tool Calling: advanced/tools.md
+            - Auxiliary Features:
+                - Smart Variable Fill: auxiliary/smart-fill.md
+                - Text-to-Image Replicate: auxiliary/replicate.md
+                - Style Learning: auxiliary/style-learn.md
             - Deployment & Support:
                 - Web Deployment: deployment/web.md
                 - Desktop App: deployment/desktop.md

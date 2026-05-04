@@ -139,6 +139,43 @@ hide:
     </div>
   </section>
 
+  <section class="po-docs-section po-docs-section--auxiliary">
+    <div class="po-docs-section-head">
+      <h2>辅助功能</h2>
+      <p>这些小功能能让工作流更高效。</p>
+    </div>
+    <div class="po-docs-index-list">
+      <a class="po-docs-index-row" href="basic/prompt-garden/">
+        <div>
+          <h3>Prompt Garden</h3>
+          <p>发现、导入和收藏优质提示词，支持版本历史和来源绑定。</p>
+        </div>
+        <code>/basic/garden</code>
+      </a>
+      <a class="po-docs-index-row" href="auxiliary/smart-fill/">
+        <div>
+          <h3>变量智能填充</h3>
+          <p>填写核心变量，AI 自动推导其他变量。</p>
+        </div>
+        <code>/auxiliary/smart-fill</code>
+      </a>
+      <a class="po-docs-index-row" href="auxiliary/replicate/">
+        <div>
+          <h3>文生图复刻</h3>
+          <p>从参考图反推提示词和变量。</p>
+        </div>
+        <code>/auxiliary/replicate</code>
+      </a>
+      <a class="po-docs-index-row" href="auxiliary/style-learn/">
+        <div>
+          <h3>风格学习</h3>
+          <p>保留提示词主体，学习参考图风格。</p>
+        </div>
+        <code>/auxiliary/style-learn</code>
+      </a>
+    </div>
+  </section>
+
   <section class="po-docs-section po-docs-section--deep">
     <div class="po-docs-section-head">
       <h2>继续深入</h2>
