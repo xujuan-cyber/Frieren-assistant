@@ -150,7 +150,7 @@ hide:
           <h3>Prompt Garden</h3>
           <p>发现、导入和收藏优质提示词，支持版本历史和来源绑定。</p>
         </div>
-        <code>/basic/garden</code>
+        <code>/basic/prompt-garden</code>
       </a>
       <a class="po-docs-index-row" href="auxiliary/smart-fill/">
         <div>

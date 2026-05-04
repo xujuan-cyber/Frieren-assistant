@@ -150,7 +150,7 @@ hide:
           <h3>Prompt Garden</h3>
           <p>Discover, import, and collect quality prompts with version history and source binding.</p>
         </div>
-        <code>/basic/garden</code>
+        <code>/basic/prompt-garden</code>
       </a>
       <a class="po-docs-index-row" href="auxiliary/smart-fill/">
         <div>

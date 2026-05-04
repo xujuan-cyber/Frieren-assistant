@@ -96,7 +96,8 @@ plugins:
             - User Guide:
                 - Quick Start: user/quick-start.md
                 - Basic Features:
-                    - Prompt Optimization: basic/optimization.md
+                    - System Prompt Workspace: basic/system-optimization.md
+                    - User Prompt Workspace: basic/user-optimization.md
                     - Model Management: basic/models.md
                     - History Management: basic/history.md
                     - Template Management: basic/templates.md
