@@ -4,8 +4,8 @@ The Style Learning feature can extract style, composition, and color characteris
 
 ## When to Use
 
-- Already have a prompt主体 and want to learn a specific style from a reference image
-- Want to保持 the prompt's core content while only changing visual style
+- Already have a prompt subject and want to learn a specific style from a reference image
+- Want to preserve the prompt's core content while only changing visual style
 - Need to learn unified style characteristics from multiple reference images
 
 ## How to Use
@@ -13,7 +13,7 @@ The Style Learning feature can extract style, composition, and color characteris
 ### Steps
 
 1. Enter the Text-to-Image workspace
-2. First输入 what you want to draw (prompt subject)
+2. First enter what you want to draw (prompt subject)
 3. Upload a reference image (click the "Reference Image" button)
 4. Select **Style Learning** mode
 5. Click start processing
@@ -23,7 +23,7 @@ The Style Learning feature can extract style, composition, and color characteris
 
 ### Prerequisites
 
-- Must first输入 prompt subject content
+- Must first enter prompt subject content
 - Prompt cannot be empty
 - Reference image clarity must be sufficient
 
@@ -94,7 +94,7 @@ Reference image: A landscape photo shot from low angle, emphasizing foreground
 
 Generated stylized prompt:
 A snowy mountain with snow on the peak, low angle shot,
-emphasizing foreground, vast视野, magnificent atmosphere,
+emphasizing foreground, vast field of view, magnificent atmosphere,
 landscape photography style
 
 Extracted variables:
@@ -135,7 +135,7 @@ Extracted variables:
 
 ### Why must I input content first?
 
-The core of style learning is "preserve subject, learn style." Without subject content, it cannot判断 what needs to be preserved and what needs to be learned.
+The core of style learning is "preserve subject, learn style." Without subject content, it cannot determine what needs to be preserved and what needs to be learned.
 
 ### What if the learned style is not distinctive enough?
 
@@ -145,7 +145,7 @@ The core of style learning is "preserve subject, learn style." Without subject c
 
 ### Can I learn styles from multiple reference images at once?
 
-The current version only supports uploading one reference image at a time. If you need to融合 multiple styles, you can:
+The current version only supports uploading one reference image at a time. If you need to blend multiple styles, you can:
 
 1. First learn the style from the first reference image
 2. Apply to the prompt
@@ -155,7 +155,7 @@ The current version only supports uploading one reference image at a time. If yo
 
 - After applying to current prompt, you can continue using the optimization feature
 - Adjust variable values to fine-tune style intensity
-- Use testing功能 to verify效果
+- Use the testing feature to verify the result
 
 ## Related Pages
 

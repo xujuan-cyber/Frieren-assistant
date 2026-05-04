@@ -5,7 +5,7 @@ Smart Variable Fill uses AI to automatically generate reasonable values for empt
 ## When to Use
 
 - Prompt has multiple variables, but you only want to fill core variables
-- Want to quickly test prompt效果 without manually filling all variables
+- Want to quickly test prompt results without manually filling all variables
 - Unsure what value a variable should have
 
 ## How to Use
@@ -39,7 +39,7 @@ AI derives variable values based on:
 
 - Prompt's theme and style
 - Variable's semantic role in the prompt
-- Scene构成 by filled variables
+- Scene composition implied by filled variables
 - Mutual coordination between generated values
 
 ### Preview Dialog
@@ -95,7 +95,7 @@ Smart fill: user_group = AI developers and prompt engineers, core_selling_point 
 
 - Edit generated results in the preview dialog
 - Uncheck variables you don't want to apply
-- Regenerate (may得到 different results)
+- Regenerate if needed; each run may produce different results
 
 ## Related Pages
 

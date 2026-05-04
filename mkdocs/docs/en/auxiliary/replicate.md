@@ -49,7 +49,7 @@ After analysis, it generates:
 
 - Extracted variables automatically fill with default values
 - Variable names are semantic (e.g., "subject", "style", "tone")
-- You can modify variable values to adjust generation效果
+- You can modify variable values to adjust generation results
 
 ## Use Cases
 
@@ -59,7 +59,7 @@ After analysis, it generates:
 Reference image: A cyberpunk-style city night scene
 
 Generated prompt:
-A futuristic city night scene, neon lights闪烁, towering buildings,
+A futuristic city night scene, flickering neon lights, towering buildings,
 rain-soaked streets reflecting colorful lights, cyberpunk style,
 high contrast, purple and blue as main colors
 
@@ -101,19 +101,19 @@ Extracted variables:
 
 - Edit the generated results in the preview dialog
 - Adjust the extracted variable values
-- Regenerate (may得到 different results)
+- Regenerate if needed; each run may produce different results
 
 ### Can I replicate any image?
 
 - Supports PNG/JPEG format
-- File size不超过 10MB
+- File size must not exceed 10MB
 - Replication effect depends on image clarity and feature distinctiveness
 
 ### How to further optimize after replication?
 
 - After applying to current prompt, you can continue using the optimization feature
 - Adjust variable values for fine-tuning
-- Use testing功能 to verify效果
+- Use the testing feature to verify the result
 
 ## Related Pages
 
