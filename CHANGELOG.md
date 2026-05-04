@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.10.1] - 2026-05-04
+- EN: This patch fixes residual Chinese text in English docs, adds v2.10.0 feature documentation, corrects Prompt Garden nav paths, and restores variable manager event handling in Pro workspace. See [Release Notes (EN)](releases/v2.10.1.en.md).
+- 中文：本次补丁修复英文文档中的中文残留，补充 v2.10.0 功能文档，修正 Prompt Garden 导航路径，并恢复 Pro 工作区变量管理器事件处理。参见 [版本说明（中文）](releases/v2.10.1.zh-CN.md)。
+
 ## [2.10.0] - 2026-05-03
 - EN: This release standardizes prompt model/session structures, turns favorites into resource-aware prompt assets, adds Prompt Garden discovery/import/favorite flows, expands resource-complete backups, and improves desktop IPC reliability. See [Release Notes (EN)](releases/v2.10.0.en.md).
 - 中文：本次发布标准化提示词模型与会话结构，将收藏升级为资源感知的提示词资产，加入 Prompt Garden 发现 / 导入 / 收藏流程，扩展资源完整备份，并提升桌面端 IPC 可靠性。参见 [版本说明（中文）](releases/v2.10.0.zh-CN.md)。
