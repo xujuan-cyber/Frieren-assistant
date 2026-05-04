@@ -219,6 +219,7 @@
                         :global-variables="globalVariables"
                         :predefined-variables="predefinedVariables"
                         :temporary-variables="temporaryVariables"
+                        @open-variable-manager="handleOpenVariableManager"
                         @variable-change="handleTestVariableChange"
                         @save-to-global="handleSaveToGlobalFromTest"
                         @temporary-variable-remove="handleTestVariableRemove"
@@ -667,8 +668,6 @@ const emit = defineEmits<{
     // --- 打开面板/管理器 ---
     /** 打开变量管理器 */
     "open-variable-manager": [];
-    /** 打开工具管理器 */
-    "open-tool-manager": [];
     /** 打开模板管理器 */
     "open-template-manager": [type?: string];
     /** 配置模型 */
@@ -722,8 +721,7 @@ const appOpenTemplateManager = inject<((type?: string) => void) | null>(
     null,
 )
 
-// 注入 App 层统一的 open* 接口（Pro 工作区专有功能）
-const appOpenToolManager = inject<(() => void) | null>('openToolManager', null)
+// 注入 App 层统一的 Pro 工作区接口
 const appOpenVariableManager = inject<((variableName?: string) => void) | null>('openVariableManager', null)
 const appHandleSaveFavorite = inject<((data: SaveFavoritePayload) => void) | null>('handleSaveFavorite', null)
 const appSaveToGlobal = inject<((name: string, value: string) => void) | null>('saveToGlobal', null)
@@ -749,6 +747,11 @@ const handleOpenTemplateManager = (typeOrPayload?: string | Record<string, unkno
 const handleSaveFavorite = (data: SaveFavoritePayload) => {
     if (appHandleSaveFavorite) { appHandleSaveFavorite(data); return; }
     emit('save-favorite', data)
+}
+
+const handleOpenVariableManager = () => {
+    if (appOpenVariableManager) { appOpenVariableManager(); return; }
+    emit('open-variable-manager')
 }
 
 // ========================
