@@ -100,5 +100,5 @@ AI 会根据以下信息推导变量值：
 ## 相关页面
 
 - [变量工作区](../advanced/variables.md)
-- [模型管理](models.md)
-- [Prompt Garden](prompt-garden.md)
+- [模型管理](../basic/models.md)
+- [Prompt Garden](../basic/prompt-garden.md)

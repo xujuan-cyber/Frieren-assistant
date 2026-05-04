@@ -100,5 +100,5 @@ Smart fill: user_group = AI developers and prompt engineers, core_selling_point 
 ## Related Pages
 
 - [Variable Workspace](../advanced/variables.md)
-- [Model Management](models.md)
-- [Prompt Garden](prompt-garden.md)
+- [Model Management](../basic/models.md)
+- [Prompt Garden](../basic/prompt-garden.md)
