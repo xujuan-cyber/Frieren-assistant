@@ -137,6 +137,11 @@ In most cases you only need:
 3. select the model
 4. run connection testing
 
+Some providers have provider-specific request details:
+
+- OpenAI-compatible text models may use either Chat Completions or Responses request style, depending on the configured provider and model capability.
+- DeepSeek configurations can expose thinking or reasoning parameters in advanced settings. If output behavior looks different from what you expect, check whether those parameters are enabled.
+
 ### 2. Ollama
 
 If you run Ollama locally, use the built-in `Ollama` provider.
@@ -230,6 +235,8 @@ The image-side manager supports:
 - connection testing
 - preview test image
 - provider / model / capability tags
+
+Built-in image presets may expose capability differences between model versions. For example, Seedream 4.5 supports multi-image scenarios, while Seedream 5.0 Lite has its own default settings. Prefer checking the capability tags in the model manager instead of assuming from the model name alone.
 
 There is also a function-model area for image recognition.
 

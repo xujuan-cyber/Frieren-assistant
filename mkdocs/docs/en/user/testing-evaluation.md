@@ -157,6 +157,8 @@ The rule is:
 5. Apply the valuable suggestions back to the left workspace
 6. Save a new version only when the changes are worth keeping
 
+When you use `Run All`, available result columns are started in parallel where possible. This makes comparison setup faster, but the evaluation rule stays the same: compare outputs that share the same prompt/model baseline unless you intentionally want to test that variable.
+
 ## Common mistakes
 
 - **Mistake 1: left-side analysis should read right-side test input**  

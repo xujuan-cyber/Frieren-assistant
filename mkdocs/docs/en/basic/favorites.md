@@ -74,6 +74,20 @@ So favorites behave more like a reusable entry with workspace context, not just 
 
 If a favorite was saved from the multi-image workflow, `Use now` also tries to restore that sub-mode and its media context so you do not need to rebuild the image set manually.
 
+## Applying examples to workspaces
+
+Favorites can also carry reproducible examples. When an example is applied, Prompt Optimizer restores the prompt together with the values, parameters, input images, or media that belong to that example.
+
+Supported targets include:
+
+- variable prompt workspace
+- multi-message context workspace
+- text-to-image workspace
+- image-to-image workspace
+- multi-image workspace
+
+This is useful when a favorite was saved with a known-good test case and you want to continue from the same evidence instead of rebuilding the setup by hand.
+
 ## How favorites and history should work together
 
 A practical workflow is:
@@ -132,7 +146,7 @@ See [Prompt Garden](prompt-garden.md) for details.
 Favorites now support:
 
 - **Version History**: Track the evolution of prompts, view and restore historical versions
-- **Reproducible Examples**:附带 test results and context for later reproduction and verification
+- **Reproducible Examples**: Store test results and context for later reproduction and verification
 - **Media Support**: Images and cover images fully preserved
 
 ### Source Binding

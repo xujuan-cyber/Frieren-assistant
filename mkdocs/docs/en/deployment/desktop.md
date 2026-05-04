@@ -91,6 +91,8 @@ API Key: any non-empty string
 - An OpenAI-compatible endpoint inside an enterprise network
 - A setup where you need a special Base URL or extra request parameters
 
+For `localhost`, private-network, and LAN OpenAI-compatible endpoints, the desktop app can route requests directly where appropriate. This avoids common proxy or browser-network misrouting issues while still allowing public HTTPS providers to use the normal network path.
+
 ## Data And Logs
 
 The desktop app uses the standard OS application-data directory, and the folder name follows the product name `PromptOptimizer`.

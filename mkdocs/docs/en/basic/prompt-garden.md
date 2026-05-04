@@ -41,6 +41,7 @@ There are two modes when importing:
 
 - Prompt writes to the current workspace
 - Variables auto-fill with default values or example parameters
+- The target workspace is cleared before writing Garden content, while model choices, templates, and layout preferences are kept
 - Suitable for immediate testing and use
 
 **Save to Favorites**
@@ -48,6 +49,12 @@ There are two modes when importing:
 - Prompt, variables, and media resources save together as a favorite
 - Source information automatically recorded (import code, source link)
 - Suitable for building a personal prompt library
+
+### Direct use vs favorite saving
+
+Direct use is best when you want to test one Garden prompt immediately. If the import code includes `@example`, that example's values and parameters are applied to the workspace.
+
+Save to Favorites is best when you want to keep the prompt as an asset. It preserves the prompt, variables, media, examples, and source binding so the item can be updated, backed up, and restored later.
 
 ## What Happens After Import
 
@@ -80,6 +87,8 @@ If saving to favorites:
 - Import code and source link recorded
 - Supports later restoration from favorites
 
+Prompt-level favorites keep the source prompt and media, but do not treat one selected `@example` as the only reusable case. Use direct import when you specifically want to run one example's parameter set.
+
 ## Example Import Codes
 
 Here are some available import code examples:
@@ -96,7 +105,7 @@ Here are some available import code examples:
 ### What if the import code is invalid?
 
 - Check if the import code was copied completely
-- Confirm if the content对应 to the import code is still valid
+- Confirm that the content matching the import code is still valid
 - Try refreshing the page and re-importing
 
 ### How to view import history
@@ -105,7 +114,7 @@ Imported content goes to the corresponding workspace's history. If saved to favo
 
 ### How to update after saving to favorites
 
-If the content对应 to the import code has been updated, re-importing and saving to favorites will automatically update the existing favorite (deduplication based on import code).
+If the content matching the import code has been updated, re-importing and saving to favorites will automatically update the existing favorite (deduplication based on import code).
 
 ### Difference from direct JSON import
 
