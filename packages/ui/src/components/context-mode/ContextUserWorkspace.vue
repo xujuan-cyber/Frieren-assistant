@@ -185,7 +185,7 @@
                       @openTemplateManager="handleOpenTemplateManager"
                       @switchVersion="handleSwitchVersion"
                       @switchToV0="handleSwitchToV0"
-                      @save-favorite="emit('save-favorite', $event)"
+                      @save-favorite="handleSaveFavorite"
                      @open-preview="handleOpenPromptPreview"
                      @apply-improvement="handleApplyImprovement"
                      @save-local-edit="handleSaveLocalEdit"
@@ -667,6 +667,8 @@ const emit = defineEmits<{
     // --- 打开面板/管理器 ---
     /** 打开变量管理器 */
     "open-variable-manager": [];
+    /** 打开工具管理器 */
+    "open-tool-manager": [];
     /** 打开模板管理器 */
     "open-template-manager": [type?: string];
     /** 配置模型 */
@@ -720,6 +722,13 @@ const appOpenTemplateManager = inject<((type?: string) => void) | null>(
     null,
 )
 
+// 注入 App 层统一的 open* 接口（Pro 工作区专有功能）
+const appOpenToolManager = inject<(() => void) | null>('openToolManager', null)
+const appOpenVariableManager = inject<((variableName?: string) => void) | null>('openVariableManager', null)
+const appHandleSaveFavorite = inject<((data: SaveFavoritePayload) => void) | null>('handleSaveFavorite', null)
+const appSaveToGlobal = inject<((name: string, value: string) => void) | null>('saveToGlobal', null)
+const appOpenPromptPreview = inject<(() => void) | null>('openPromptPreview', null)
+
 const handleOpenModelManager = () => {
     if (appOpenModelManager) {
         appOpenModelManager('text')
@@ -736,6 +745,22 @@ const handleOpenTemplateManager = (typeOrPayload?: string | Record<string, unkno
         return
     }
     emit('open-template-manager', type)
+}
+
+// Pro 工作区专有功能的处理函数（优先使用 inject，emit 作为兜底）
+const handleOpenToolManager = () => {
+    if (appOpenToolManager) { appOpenToolManager(); return; }
+    emit('open-tool-manager')
+}
+
+const handleOpenVariableManager = () => {
+    if (appOpenVariableManager) { appOpenVariableManager(); return; }
+    emit('open-variable-manager')
+}
+
+const handleSaveFavorite = (data: SaveFavoritePayload) => {
+    if (appHandleSaveFavorite) { appHandleSaveFavorite(data); return; }
+    emit('save-favorite', data)
 }
 
 // ========================
@@ -1996,6 +2021,7 @@ const {
     temporaryVariables: computed(() => ({ ...temporaryVariables.value })),
     predefinedVariables,
     saveGlobalVariable: (name, value) => {
+        if (appSaveToGlobal) { appSaveToGlobal(name, value); return; }
         if (variableManager?.isReady.value) {
             variableManager.addVariable(name, value)
         }
@@ -2007,6 +2033,7 @@ const {
 })
 
 const handleSaveToGlobalFromTest = (name: string, value: string) => {
+    if (appSaveToGlobal) { appSaveToGlobal(name, value); return; }
     if (variableManager?.isReady.value) {
         variableManager.addVariable(name, value)
     }

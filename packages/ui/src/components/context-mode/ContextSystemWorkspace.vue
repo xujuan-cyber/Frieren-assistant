@@ -40,9 +40,9 @@
                             :scan-variables="scanVariables"
                             :optimization-mode="optimizationMode"
                             :tool-count="toolCount"
-                            @open-variable-manager="emit('open-variable-manager')"
+                            @open-variable-manager="handleOpenVariableManager"
                             @open-context-editor="handleOpenContextEditor"
-                            @open-tool-manager="emit('open-tool-manager')"
+                            @open-tool-manager="handleOpenToolManager"
                             :enable-tool-management="true"
                             :collapsible="true"
                             :max-height="300"
@@ -131,7 +131,7 @@
                                 @openTemplateManager="handleOpenTemplateManager"
                                 @switchVersion="handleSwitchVersion"
                                   @switchToV0="handleSwitchToV0"
-                                  @save-favorite="emit('save-favorite', $event)"
+                                  @save-favorite="handleSaveFavorite"
                                   @open-preview="handleOpenPromptPreview"
                                   @apply-to-conversation="handleApplyToConversation"
                                  @apply-improvement="handleApplyImprovement"
@@ -174,7 +174,7 @@
                         :input-mode="inputMode"
                         :button-size="buttonSize"
                         @variable-change="handleVariableChange"
-                        @save-to-global="(name: string, value: string) => emit('save-to-global', name, value)"
+                        @save-to-global="handleSaveToGlobal"
                         @temporary-variable-remove="handleVariableRemove"
                         @temporary-variables-clear="handleVariablesClear"
                     />
@@ -681,6 +681,13 @@ const appOpenContextEditor = inject<
     ((messagesOrTab?: ContextEditorOpenArg, variables?: Record<string, string>) => void) | null
 >('openContextEditor', null)
 
+// 注入 App 层统一的 open* 接口（Pro 工作区专有功能）
+const appOpenToolManager = inject<(() => void) | null>('openToolManager', null)
+const appOpenVariableManager = inject<((variableName?: string) => void) | null>('openVariableManager', null)
+const appHandleSaveFavorite = inject<((data: SaveFavoritePayload) => void) | null>('handleSaveFavorite', null)
+const appSaveToGlobal = inject<((name: string, value: string) => void) | null>('saveToGlobal', null)
+const appOpenPromptPreview = inject<(() => void) | null>('openPromptPreview', null)
+
  // Pro Multi: message list is session-owned (per-submode isolation).
  // Keep emitting update:optimizationContext only as a backward-compat hook for non-App hosts.
  const proMultiSession = useProMultiMessageSession()
@@ -731,6 +738,27 @@ const handleOpenContextEditor = (
     }
     // 兜底：旧链路（如果宿主仍通过 emit 打开编辑器）
     emit('open-context-editor')
+}
+
+// Pro 工作区专有功能的处理函数（优先使用 inject，emit 作为兜底）
+const handleOpenToolManager = () => {
+    if (appOpenToolManager) { appOpenToolManager(); return; }
+    emit('open-tool-manager')
+}
+
+const handleOpenVariableManager = () => {
+    if (appOpenVariableManager) { appOpenVariableManager(); return; }
+    emit('open-variable-manager')
+}
+
+const handleSaveFavorite = (data: SaveFavoritePayload) => {
+    if (appHandleSaveFavorite) { appHandleSaveFavorite(data); return; }
+    emit('save-favorite', data)
+}
+
+const handleSaveToGlobal = (name: string, value: string) => {
+    if (appSaveToGlobal) { appSaveToGlobal(name, value); return; }
+    emit('save-to-global', name, value)
 }
 
 // ✅ 优化模式：固定为 'system'（此组件专门用于系统模式优化）

@@ -1749,6 +1749,28 @@ void registerOptionalIntegrations({
 });
 provide("handleSaveFavorite", handleSaveFavorite);
 
+// 提供 openToolManager 接口（供 Pro 工作区直接调用）
+provide("openToolManager", () => {
+    showToolManager.value = true;
+});
+
+// 提供 openVariableManager 接口（供 Pro 工作区直接调用）
+provide("openVariableManager", (variableName?: string) => {
+    handleOpenVariableManager(variableName);
+});
+
+// 提供 saveToGlobal 接口（供 Pro 工作区将临时变量保存到全局）
+provide("saveToGlobal", (name: string, value: string) => {
+    variableManager?.customVariables?.value
+        ? (variableManager.customVariables.value[name] = value)
+        : undefined;
+});
+
+// 提供 openPromptPreview 接口（供 Pro 工作区打开提示词预览面板）
+provide("openPromptPreview", () => {
+    showPreviewPanel.value = true;
+});
+
 // 模板管理器
 const templateManagerState = useTemplateManager(services);
 
