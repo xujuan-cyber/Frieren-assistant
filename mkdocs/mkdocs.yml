@@ -113,6 +113,8 @@ plugins:
                     - 创意写作: examples/creative-writing.md
                     - 商务沟通: examples/business-communication.md
                     - 教学培训: examples/educational-training.md
+                - 图像提示词工作区:
+                    - 从提示词库导入并对比模型: examples/image-prompt-garden-nb151.md
             - 开发指南:
                 - 媒体示例: guide/media.md
         - locale: en
@@ -176,6 +178,8 @@ plugins:
                     - Creative Writing: examples/creative-writing.md
                     - Business Communication: examples/business-communication.md
                     - Educational Training: examples/educational-training.md
+                - Image Prompt Workspace:
+                    - Import from Prompt Library and Compare Models: examples/image-prompt-garden-nb151.md
             - Developer Guide:
                 - Media Examples: guide/media.md
   # 多版本：由 mike 管理（无需在此启用插件）
