@@ -141,16 +141,23 @@ hide:
 
   <section class="po-docs-section po-docs-section--auxiliary">
     <div class="po-docs-section-head">
-      <h2>Auxiliary Features</h2>
-      <p>These small features can make your workflow more efficient.</p>
+      <h2>Prompt Assets and Auxiliary Features</h2>
+      <p>Prompts can start from manual writing, templates, local imports, or Prompt Garden, then become reusable favorite assets.</p>
     </div>
     <div class="po-docs-index-list">
       <a class="po-docs-index-row" href="basic/prompt-garden/">
         <div>
           <h3>Prompt Garden</h3>
-          <p>Discover, import, and collect quality prompts with version history and source binding.</p>
+          <p>Use it as an optional prompt source for importable prompts, examples, and media.</p>
         </div>
         <code>/basic/prompt-garden</code>
+      </a>
+      <a class="po-docs-index-row" href="basic/favorites/">
+        <div>
+          <h3>Favorites &amp; Import</h3>
+          <p>Save stable prompts as reusable assets with examples, media, and source details.</p>
+        </div>
+        <code>/basic/favorites</code>
       </a>
       <a class="po-docs-index-row" href="auxiliary/smart-fill/">
         <div>

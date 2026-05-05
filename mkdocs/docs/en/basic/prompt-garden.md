@@ -1,6 +1,10 @@
 # Prompt Garden
 
-Prompt Garden is a platform for discovering, importing, and collecting quality prompts. Through import codes, you can quickly bring prompts from Garden into Prompt Optimizer for use or collection.
+Prompt Garden is an optional prompt source for discovering importable prompts, examples, and media assets. Through import codes, you can quickly bring prompts from Garden into Prompt Optimizer for use or collection.
+
+Entry point: [https://garden.always200.com](https://garden.always200.com)
+
+You can also use Prompt Optimizer without Prompt Garden by writing prompts manually, using templates, or importing local content. Optimization, testing, evaluation, and favorites do not depend on one specific prompt source.
 
 ## Import Code Format
 

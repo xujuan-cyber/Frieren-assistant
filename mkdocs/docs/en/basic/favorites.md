@@ -9,6 +9,8 @@ Favorites are best used for these jobs:
 
 Favorites are not the same thing as history.
 
+Favorites are also not tied to one prompt source. You can save manually written prompts, template results, local imports, or prompts that came from Prompt Garden.
+
 ## The simplest distinction
 
 - **History**: version chains and working process
@@ -131,11 +133,9 @@ That means a favorite can preserve not just text, but also a small media set rel
 
 ## About Prompt Garden
 
-The current implementation also supports a pluggable preview area for favorites.
+The current implementation also supports a pluggable preview area for favorites. Favorites can store prompt assets from different sources; when a favorite came from Prompt Garden, it can preserve the import code, source link, examples, and media snapshot.
 
-If your deployment enables `Prompt Garden` integration, a favorite preview can also show extra external snapshot information and media content.
-
-This is an optional integration, so it may not appear in every deployment.
+If your deployment enables `Prompt Garden` integration, a favorite preview can also show extra external snapshot information and media content. This is optional and not a prerequisite for using favorites.
 
 See [Prompt Garden](prompt-garden.md) for details.
 

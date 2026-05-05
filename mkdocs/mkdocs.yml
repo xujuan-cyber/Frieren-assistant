@@ -22,6 +22,7 @@ theme:
   favicon: assets/images/favicon.png
   features:
     - content.code.copy
+    - navigation.expand
     - navigation.tracking
     - navigation.top
     - navigation.footer
@@ -84,7 +85,7 @@ plugins:
                 - 模板管理: basic/templates.md
                 - 历史记录: basic/history.md
                 - 收藏与导入: basic/favorites.md
-                - Prompt Garden: basic/prompt-garden.md
+                - 提示词库: basic/prompt-garden.md
                 - 数据管理: basic/data.md
                 - 工具调用: advanced/tools.md
             - 辅助功能:
@@ -147,7 +148,7 @@ plugins:
                 - Template Management: basic/templates.md
                 - History Management: basic/history.md
                 - Favorites & Import: basic/favorites.md
-                - Prompt Garden: basic/prompt-garden.md
+                - Prompt Library: basic/prompt-garden.md
                 - Data Management: basic/data.md
                 - Tool Calling: advanced/tools.md
             - Auxiliary Features:
@@ -198,7 +199,8 @@ extra:
       link: https://github.com/linshenkx/prompt-optimizer
       name: GitHub
   website_url: https://always200.com
-  product_name: Product
+  garden_url: https://garden.always200.com
+  product_name: Optimizer
   product_url: https://prompt.always200.com
 
 # Markdown 扩展

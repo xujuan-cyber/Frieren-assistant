@@ -141,16 +141,23 @@ hide:
 
   <section class="po-docs-section po-docs-section--auxiliary">
     <div class="po-docs-section-head">
-      <h2>辅助功能</h2>
-      <p>这些小功能能让工作流更高效。</p>
+      <h2>提示词资产与辅助功能</h2>
+      <p>提示词可以来自手写、模板、本地导入或 Prompt Garden 提示词库，稳定后再沉淀为收藏资产。</p>
     </div>
     <div class="po-docs-index-list">
       <a class="po-docs-index-row" href="basic/prompt-garden/">
         <div>
-          <h3>Prompt Garden</h3>
-          <p>发现、导入和收藏优质提示词，支持版本历史和来源绑定。</p>
+          <h3>Prompt Garden 提示词库</h3>
+          <p>作为可选提示词来源，发现可导入的提示词、示例和媒体素材。</p>
         </div>
         <code>/basic/prompt-garden</code>
+      </a>
+      <a class="po-docs-index-row" href="basic/favorites/">
+        <div>
+          <h3>收藏与导入</h3>
+          <p>把稳定提示词保存为可复用资产，保留示例、媒体和来源信息。</p>
+        </div>
+        <code>/basic/favorites</code>
       </a>
       <a class="po-docs-index-row" href="auxiliary/smart-fill/">
         <div>

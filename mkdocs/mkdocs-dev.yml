@@ -18,6 +18,7 @@ theme:
   features:
     - content.code.copy
     - navigation.instant
+    - navigation.expand
     - navigation.top
     - navigation.footer
   palette:
@@ -53,7 +54,7 @@ plugins:
                     - 模板管理: basic/templates.md
                     - 历史记录: basic/history.md
                     - 收藏与导入: basic/favorites.md
-                    - Prompt Garden: basic/prompt-garden.md
+                    - 提示词库: basic/prompt-garden.md
                     - 数据管理: basic/data.md
                 - 基础模式:
                     - 系统提示词优化: basic/system-optimization.md
@@ -102,7 +103,7 @@ plugins:
                     - History Management: basic/history.md
                     - Template Management: basic/templates.md
                     - Favorites & Import: basic/favorites.md
-                    - Prompt Garden: basic/prompt-garden.md
+                    - Prompt Library: basic/prompt-garden.md
                     - Data Management: basic/data.md
                 - Advanced Features:
                     - Variable Management: advanced/variables.md
@@ -161,6 +162,10 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/linshenkx/prompt-optimizer
       name: GitHub
+  website_url: https://always200.com
+  garden_url: https://garden.always200.com
+  product_name: 优化器
+  product_url: https://prompt.always200.com
 
 # 开发优化设置
 dev_addr: '127.0.0.1:8000'

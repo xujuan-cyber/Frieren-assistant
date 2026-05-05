@@ -14,7 +14,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/linshenkx/prompt-optimizer?style=flat)
 [![Deploy with Vercel](https://img.shields.io/badge/Vercel-indigo?style=flat&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flinshenkx%2Fprompt-optimizer)
 
-[Live Demo](https://prompt.always200.com) | [Quick Start](#quick-start) | [FAQ](#faq) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
+[Website](https://always200.com) | [Online Optimizer](https://prompt.always200.com) | [Prompt Garden](https://garden.always200.com) | [Docs](https://docs.always200.com) | [Quick Start](#quick-start) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna)
 
 [Development Docs](dev.md) | [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) | [MCP Deployment Guide](docs/user/mcp-server_en.md) | [DeepWiki Docs](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead Docs](https://zread.ai/linshenkx/prompt-optimizer)
 
@@ -23,6 +23,8 @@
 ## 📖 Project Introduction
 
 Prompt Optimizer is a powerful AI prompt optimization tool that helps you write better AI prompts and improve the quality of AI outputs. It supports four usage methods: web application, desktop application, Chrome extension, and Docker deployment.
+
+Prompts can start from manual writing, templates, local imports, or sources such as [Prompt Garden](https://garden.always200.com). Prompt Optimizer is where those prompts are optimized, tested, evaluated, and saved as reusable prompt assets.
 
 ### 🎥 Feature Demonstration
 
@@ -47,8 +49,8 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 🔄 **Analysis and Compare Evaluation**: Supports analysis, single-result evaluation, and multi-result compare evaluation to help determine whether a prompt has truly improved
 - 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, MiniMax, etc.
 - 🖼️ **Image Generation**: Support for Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with models like Gemini, Seedream
-- 🌱 **Prompt Garden**: Discover, import, and collect quality prompts with version history, reproducible examples, and source binding
-- ⭐ **Smart Favorites**: Resource-aware prompt assets with version history, reproducible examples, media support, and workspace application
+- 🌱 **Prompt Sources**: Start from manual writing, templates, local imports, or Prompt Garden import codes
+- ⭐ **Smart Favorites**: Resource-aware prompt assets with version history, reproducible examples, media support, source binding, and workspace application
 - 📊 **Advanced Testing Mode**: Context variable management, multi-turn conversation testing, Function Calling support
 - 🔒 **Secure Architecture**: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
 - 📱 **Multi-platform Support**: Available as web application, desktop application, Chrome extension, and Docker deployment
@@ -66,11 +68,11 @@ Prompt Optimizer is a powerful AI prompt optimization tool that helps you write 
 - 📥 **Preview & Download**: Real-time preview of generated results with download support
 - 🔄 **Style Transfer**: Learn style, composition, and color from reference images
 
-### Prompt Garden & Smart Favorites
-- 🌱 **Prompt Discovery**: Browse and discover quality prompts from the community
-- 📥 **Import & Collect**: Import prompts with metadata, media, examples, and source binding
-- ⭐ **Resource-aware Assets**: Favorites as reusable prompt assets with version history
-- 🔗 **Source Binding**: Track prompt origins and maintain reproducible examples
+### Prompt Sources & Smart Favorites
+- 🌱 **Optional Prompt Sources**: Bring prompts from manual writing, templates, local files, or [Prompt Garden](https://garden.always200.com)
+- 📥 **Import & Collect**: Import prompts with metadata, media, examples, and source binding when available
+- ⭐ **Resource-aware Assets**: Save stable prompts as reusable favorites with version history
+- 🔗 **Source Binding**: Track prompt origins and maintain reproducible examples without requiring a specific source
 - 📦 **Complete Backup**: Export and import favorites with all referenced resources
 
 ### Advanced Testing Mode

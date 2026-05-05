@@ -16,6 +16,7 @@ theme:
   features:
     - content.code.copy
     - navigation.instant
+    - navigation.expand
     - navigation.tracking
     - navigation.top
     - navigation.footer
@@ -68,13 +69,19 @@ nav:
       - 多消息工作区: advanced/context.md
       - 文生图工作区: image/text2image-workspace.md
       - 图生图工作区: image/image2image-workspace.md
+      - 多图生图工作区: image/multiimage-workspace.md
   - 通用能力:
       - 模型管理: basic/models.md
       - 模板管理: basic/templates.md
       - 历史记录: basic/history.md
       - 收藏与导入: basic/favorites.md
+      - 提示词库: basic/prompt-garden.md
       - 数据管理: basic/data.md
       - 工具调用: advanced/tools.md
+  - 辅助功能:
+      - 变量智能填充: auxiliary/smart-fill.md
+      - 文生图复刻: auxiliary/replicate.md
+      - 风格学习: auxiliary/style-learn.md
   - 部署与排障:
       - Web版部署: deployment/web.md
       - 桌面应用: deployment/desktop.md
@@ -110,7 +117,8 @@ copyright: "© 2025 Prompt Optimizer"
 
 extra:
   website_url: https://always200.com
-  product_name: 产品
+  garden_url: https://garden.always200.com
+  product_name: 优化器
   product_url: https://prompt.always200.com
   social:
     - icon: fontawesome/brands/github

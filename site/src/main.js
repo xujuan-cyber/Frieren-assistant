@@ -12,7 +12,8 @@ const translations = {
     description: '在一个工作台里完成提示词优化、真实测试、结果评估与建议应用。',
     brandAriaLabel: 'Prompt Optimizer 官网首页',
     nav: {
-      product: '产品',
+      product: '优化器',
+      garden: '提示词库',
       docs: '文档',
       github: 'GitHub',
       githubLabel: '开源仓库',
@@ -28,77 +29,53 @@ const translations = {
     },
     hero: {
       eyebrow: '开源提示词工作台',
-      titleTop: '提示词优化',
-      titleMid: '应该基于',
-      titleBottom: '真实结果',
+      titleTop: '基于真实结果',
+      titleMid: '',
+      titleBottom: '优化提示词',
       lead: '在一个工作台里完成优化、测试、评估，让建议回到当前提示词。',
       primary: '打开产品',
       secondary: '查看文档',
       stats: [
-        { value: '4 类工作区', label: '文本、变量、上下文、图像' },
-        { value: '图像生成', label: '文生图、图生图、多图' },
-        { value: 'Prompt Garden', label: '发现、导入、收藏' },
-        { value: '智能收藏', label: '内部资产管理' }
+        { value: '真实测试', label: '先看结果' },
+        { value: '提示词库', label: '可选来源' },
+        { value: '智能收藏', label: '复用资产' }
       ],
       visualLabel: '结果闭环',
-      visualTitle: '左改右测，结论回流',
-      visualSummary: '左侧改提示词，右侧看结果，再把结论带回工作区。',
-      visualTags: ['左侧工作区', '右侧测试', '单结果评估'],
+      visualTitle: '优化、测试、评估在同一界面',
       screenshotBadge: '工作台预览',
       screenshotAlt: 'Prompt Optimizer 工作台截图'
     },
-    value: {
-      kicker: '为什么不同',
-      title: '不是改字工具，而是结果驱动的工作台',
-      lead: '先看真实输出，再决定提示词到底要不要改。',
-      manifestoLabel: '结果优先',
-      manifestoTitle: '先看结果，再决定修改',
-      manifestoBody: '它把分析、评估、对比和应用建议收进同一条可回溯的工作流。',
-      principles: [
-        {
-          index: '01',
-          title: '改动必须回应输出',
-          body: '不是润色文本，而是修正结果偏差。',
-          tags: ['分析', '评估', '应用']
-        },
-        {
-          index: '02',
-          title: '任务边界要清楚',
-          body: '分析、评估、对比各自独立建模。'
-        },
-        {
-          index: '03',
-          title: '结论要能继续迭代',
-          body: '输出结论最终要回到当前工作区。'
-        }
-      ]
-    },
     workflow: {
-      kicker: '工作方式',
-      title: '用一次闭环，把改动落回真实结果',
-      lead: '左侧设计提示词，右侧验证结果，再把结论收回来。',
+      kicker: '工作流',
+      title: '从来源到复用，一条闭环',
+      lead: '少解释，多验证。提示词进入优化器后，用真实结果决定下一步。',
       steps: [
         {
-          label: '工作区',
-          title: '设计层',
-          body: '在左侧持续改写当前可编辑提示词。'
+          label: '来源',
+          title: '任意提示词',
+          body: '手写、模板、本地导入或提示词库。'
         },
         {
-          label: '测试',
-          title: '执行层',
-          body: '在右侧用真实输入和模型配置跑结果。'
+          label: '核心',
+          title: '优化器',
+          body: '改写、变量、上下文和图像提示词。'
         },
         {
-          label: '回流',
-          title: '决策层',
-          body: '把结果收敛成可继续应用的改动建议。'
+          label: '判断',
+          title: '真实测试',
+          body: '用输出、评估和对比决定是否有效。'
+        },
+        {
+          label: '沉淀',
+          title: '智能收藏',
+          body: '保存版本、示例、媒体和来源信息。'
         }
       ]
     },
     scenario: {
       kicker: '工作区覆盖',
-      title: '适配不同的提示词结构',
-      lead: '单条提示词、变量模板、上下文链路和图像生成，都能放进同一套结果验证流程。',
+      title: '覆盖多类提示词',
+      lead: '四类结构都能进入同一套测试评估流程。',
       columns: {
         type: '结构类型',
         fit: '适用内容',
@@ -180,7 +157,8 @@ const translations = {
     description: 'One workspace for prompt iteration, real testing, result evaluation, and applying improvements.',
     brandAriaLabel: 'Prompt Optimizer website home',
     nav: {
-      product: 'Product',
+      product: 'Optimizer',
+      garden: 'Prompt Library',
       docs: 'Docs',
       github: 'GitHub',
       githubLabel: 'Open-source repository',
@@ -196,70 +174,46 @@ const translations = {
     },
     hero: {
       eyebrow: 'Open-source prompt workspace',
-      titleTop: 'Prompt optimization',
-      titleMid: 'should follow',
-      titleBottom: 'real outputs',
+      titleTop: 'Real outputs first',
+      titleMid: '',
+      titleBottom: 'Prompt optimization',
       lead: 'Iterate, test, evaluate, and return changes in one workspace.',
       primary: 'Open Product',
       secondary: 'Read Docs',
       stats: [
-        { value: '4 Workspace Types', label: 'Text, variables, context, image' },
-        { value: 'Image Generation', label: 'T2I, I2I, multi-image' },
-        { value: 'Prompt Garden', label: 'Discover, import, collect' },
-        { value: 'Smart Favorites', label: 'Internal asset management' }
+        { value: 'Real Tests', label: 'see outputs first' },
+        { value: 'Prompt Library', label: 'optional source' },
+        { value: 'Smart Favorites', label: 'reusable assets' }
       ],
       visualLabel: 'Closed Loop',
-      visualTitle: 'Edit left, test right',
-      visualSummary: 'Refine the prompt, inspect the result, then send the conclusion back.',
-      visualTags: ['Editable workspace', 'Real test run', 'Result evaluation'],
+      visualTitle: 'Optimize, test, and evaluate in one interface',
       screenshotBadge: 'Workspace preview',
       screenshotAlt: 'Prompt Optimizer workspace screenshot'
     },
-    value: {
-      kicker: 'Why it is different',
-      title: 'Not a rewrite toy, but an output-driven workspace',
-      lead: 'See the output first, then decide whether the prompt should change.',
-      manifestoLabel: 'Result First',
-      manifestoTitle: 'Look at the result before the rewrite',
-      manifestoBody: 'It keeps analysis, evaluation, compare, and apply actions inside one traceable loop.',
-      principles: [
-        {
-          index: '01',
-          title: 'Edits must answer the output',
-          body: 'The goal is not prettier wording, but better execution.',
-          tags: ['Analysis', 'Evaluation', 'Apply']
-        },
-        {
-          index: '02',
-          title: 'Action boundaries stay clear',
-          body: 'Analysis, evaluation, and compare are modeled separately.'
-        },
-        {
-          index: '03',
-          title: 'Findings should keep iterating',
-          body: 'Every conclusion should flow back into the editable workspace.'
-        }
-      ]
-    },
     workflow: {
-      kicker: 'How it works',
-      title: 'Close the loop from edit to real result',
-      lead: 'Design on the left, validate on the right, then fold the conclusion back.',
+      kicker: 'Workflow',
+      title: 'From source to reuse in one loop',
+      lead: 'Less explanation, more validation. Once a prompt enters Optimizer, real outputs decide what changes.',
       steps: [
         {
-          label: 'Workspace',
-          title: 'Design layer',
-          body: 'Keep refining the editable prompt in the left workspace.'
+          label: 'Source',
+          title: 'Any prompt',
+          body: 'Drafts, templates, local imports, or Prompt Garden.'
         },
         {
-          label: 'Run',
-          title: 'Execution layer',
-          body: 'Use real inputs and model settings on the right.'
+          label: 'Core',
+          title: 'Optimizer',
+          body: 'Rewrite text, variables, context, and image prompts.'
         },
         {
-          label: 'Return',
-          title: 'Decision layer',
-          body: 'Turn results into changes that can be applied back.'
+          label: 'Judge',
+          title: 'Real tests',
+          body: 'Use outputs, evaluation, and comparison to decide.'
+        },
+        {
+          label: 'Keep',
+          title: 'Smart Favorites',
+          body: 'Save versions, examples, media, and source details.'
         }
       ]
     },
@@ -445,6 +399,7 @@ function renderGithubPill(copy) {
 function renderNav(copy, themeMode) {
   return `
     <a href="https://prompt.always200.com" target="_blank" rel="noopener">${copy.nav.product}</a>
+    <a href="https://garden.always200.com" target="_blank" rel="noopener">${copy.nav.garden}</a>
     <a href="https://docs.always200.com" target="_blank" rel="noopener">${copy.nav.docs}</a>
     ${renderGithubPill(copy)}
     ${renderThemeButton(copy, themeMode)}
@@ -521,7 +476,7 @@ function renderApp(locale, themeMode) {
             </div>
             <h1 class="hero-title">
               <span class="hero-title__line hero-title__line--top">${copy.hero.titleTop}</span>
-              <span class="hero-title__line hero-title__line--mid">${copy.hero.titleMid}</span>
+              ${copy.hero.titleMid ? `<span class="hero-title__line hero-title__line--mid">${copy.hero.titleMid}</span>` : ''}
               <span class="hero-title__line hero-title__line--bottom">${copy.hero.titleBottom}</span>
             </h1>
             <p class="hero-lead">${copy.hero.lead}</p>
@@ -542,51 +497,6 @@ function renderApp(locale, themeMode) {
             <div class="hero-shot">
               <div class="hero-shot__badge">${copy.hero.screenshotBadge}</div>
               <img src="/images/demo/knowledge-graph-extractor.png" alt="${copy.hero.screenshotAlt}" />
-            </div>
-            <div class="hero-caption">
-              <strong>${copy.hero.visualSummary}</strong>
-              <div class="hero-caption__tags">
-                ${renderPills(copy.hero.visualTags)}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="section section--value">
-          <div class="value-layout">
-            <div class="section-head value-head" data-reveal>
-              <p class="section-kicker">${copy.value.kicker}</p>
-              <h2>${copy.value.title}</h2>
-              <p class="section-lead">${copy.value.lead}</p>
-              <div class="value-manifesto">
-                <span class="value-manifesto__label">${copy.value.manifestoLabel}</span>
-                <h3>${copy.value.manifestoTitle}</h3>
-                <p>${copy.value.manifestoBody}</p>
-              </div>
-            </div>
-            <div class="value-principles">
-              ${copy.value.principles
-                .map(
-                  (principle, index) => `
-                    <article class="value-principle" data-reveal style="--reveal-delay: ${80 + index * 70}ms">
-                      <span class="value-principle__index">${principle.index}</span>
-                      <div class="value-principle__body">
-                        <h3>${principle.title}</h3>
-                        <p>${principle.body}</p>
-                        ${
-                          principle.tags
-                            ? `
-                          <div class="value-principle__tags">
-                            ${renderPills(principle.tags)}
-                          </div>
-                        `
-                            : ''
-                        }
-                      </div>
-                    </article>
-                  `
-                )
-                .join('')}
             </div>
           </div>
         </section>
