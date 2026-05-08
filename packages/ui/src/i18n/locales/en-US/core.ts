@@ -113,6 +113,18 @@ const messages = {
     "copy": "Copy",
     "fullscreen": "Fullscreen"
   },
+  "copyOpen": {
+    "copyOnly": "Copy only",
+    "copyAndOpen": "Copy and open {platform}",
+    "selectAction": "Choose copy action",
+    "openFailed": "Copied, but failed to open the platform",
+    "platforms": {
+      "chatgpt": "ChatGPT",
+      "claude": "Claude",
+      "gemini": "Gemini",
+      "deepseek": "DeepSeek"
+    }
+  },
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",

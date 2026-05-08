@@ -113,6 +113,18 @@ const messages = {
     "copy": "复制",
     "fullscreen": "全屏"
   },
+  "copyOpen": {
+    "copyOnly": "仅复制",
+    "copyAndOpen": "复制并打开 {platform}",
+    "selectAction": "选择复制动作",
+    "openFailed": "已复制，但打开平台失败",
+    "platforms": {
+      "chatgpt": "ChatGPT",
+      "claude": "Claude",
+      "gemini": "Gemini",
+      "deepseek": "DeepSeek"
+    }
+  },
   "nav": {
     "home": "首页",
     "dashboard": "仪表盘",

@@ -218,7 +218,7 @@ describe('WorkspaceUtilityMenu Prompt Garden actions', () => {
 
     await wrapper.find('[data-dropdown-key="discover"]').trigger('click')
 
-    expect(window.open).toHaveBeenCalledWith('https://garden.always200.com', '_blank')
+    expect(window.open).toHaveBeenCalledWith('https://garden.always200.com', '_blank', 'noopener,noreferrer')
   })
 
   it('applies pasted Garden import links through the current route query', async () => {

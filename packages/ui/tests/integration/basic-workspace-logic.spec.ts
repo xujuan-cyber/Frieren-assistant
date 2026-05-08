@@ -286,4 +286,82 @@ describe('Basic workspace logic (smoke)', () => {
     expect(sessionStore.chainId).toBe('')
     expect(sessionStore.versionId).toBe('')
   })
+
+  it('clears stale chain metadata when loading versions for a missing history chain', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const sessionStore = reactive({
+      prompt: 'original',
+      optimizedPrompt: 'optimized',
+      reasoning: 'reasoning',
+      chainId: 'missing-chain',
+      versionId: 'missing-version',
+      testContent: 'input',
+      selectedOptimizeModelKey: 'model-1',
+      selectedTestModelKey: 'model-1',
+      selectedTemplateId: 'template-1',
+      selectedIterateTemplateId: null,
+      isCompareMode: false,
+      updatePrompt: (prompt: string) => {
+        sessionStore.prompt = prompt
+      },
+      updateOptimizedResult: (payload: {
+        optimizedPrompt: string
+        reasoning?: string
+        chainId: string
+        versionId: string
+      }) => {
+        sessionStore.optimizedPrompt = payload.optimizedPrompt
+        sessionStore.reasoning = payload.reasoning || ''
+        sessionStore.chainId = payload.chainId
+        sessionStore.versionId = payload.versionId
+      },
+      updateTestContent: (content: string) => {
+        sessionStore.testContent = content
+      },
+      updateOptimizeModel: (key: string) => {
+        sessionStore.selectedOptimizeModelKey = key
+      },
+      updateTestModel: (key: string) => {
+        sessionStore.selectedTestModelKey = key
+      },
+      updateTemplate: (id: string | null) => {
+        sessionStore.selectedTemplateId = id
+      },
+      updateIterateTemplate: (id: string | null) => {
+        sessionStore.selectedIterateTemplateId = id
+      }
+    }) as any
+
+    const historyManager = {
+      getChain: vi.fn(async () => {
+        throw {
+          code: 'error.history.record_not_found',
+          message: 'Chain with ID missing-chain not found',
+        }
+      }),
+    }
+    const services = ref({
+      historyManager,
+    } as unknown as AppServices)
+
+    const logic = useBasicWorkspaceLogic({
+      services,
+      sessionStore,
+      optimizationMode: 'system',
+      promptRecordType: 'optimize'
+    })
+
+    await logic.loadVersions()
+
+    expect(historyManager.getChain).toHaveBeenCalledWith('missing-chain')
+    expect(sessionStore.optimizedPrompt).toBe('optimized')
+    expect(sessionStore.reasoning).toBe('reasoning')
+    expect(sessionStore.chainId).toBe('')
+    expect(sessionStore.versionId).toBe('')
+    expect(logic.currentChainId.value).toBe('')
+    expect(logic.currentVersions.value).toEqual([])
+    expect(logic.currentVersionId.value).toBe('')
+
+    consoleErrorSpy.mockRestore()
+  })
 })

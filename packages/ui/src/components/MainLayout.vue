@@ -76,6 +76,7 @@ import { NLayout, NLayoutHeader, NLayoutContent, NFlex, NText } from 'naive-ui'
 import ToastUI from './Toast.vue'
 import logoImage from '../assets/logo.png'
 import AppPreviewImage from './media/AppPreviewImage.vue'
+import { openExternalUrl } from '../utils/open-external-url'
 
 const { t } = useI18n()
 
@@ -125,20 +126,7 @@ const logoSize = computed(() => {
 })
 
 const openBrandWebsite = async () => {
-  const url = 'https://always200.com'
-
-  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
-    try {
-      await window.electronAPI.shell.openExternal(url)
-      return
-    } catch (error) {
-      console.error('Failed to open brand website in Electron:', error)
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    window.open(url, '_blank')
-  }
+  await openExternalUrl('https://always200.com', { logPrefix: 'MainLayout' })
 }
 </script>
 

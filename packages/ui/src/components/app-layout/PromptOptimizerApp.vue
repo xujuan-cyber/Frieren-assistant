@@ -247,6 +247,7 @@ import {
     resolveWorkspacePathFallback,
 } from '../../router/workspaceRoutes';
 import { createExternalDataLoadingGate } from '../../utils/external-data-loading'
+import { openExternalUrl } from '../../utils/open-external-url'
 import { registerOptionalIntegrations } from '../../integrations/registerOptionalIntegrations';
 import { useI18n } from "vue-i18n";
 import {
@@ -1975,19 +1976,6 @@ watch(
     },
     { immediate: false },
 );
-
-const openExternalUrl = async (url: string) => {
-    if (typeof window !== "undefined" && window.electronAPI?.shell) {
-        try {
-            await window.electronAPI.shell.openExternal(url);
-        } catch (error) {
-            console.error("Failed to open external URL in Electron:", error);
-            window.open(url, "_blank");
-        }
-    } else {
-        window.open(url, "_blank");
-    }
-};
 
 const appVersion = `v${rootPackageJson.version}`;
 

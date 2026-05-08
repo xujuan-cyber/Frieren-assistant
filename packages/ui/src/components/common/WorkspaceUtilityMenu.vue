@@ -113,6 +113,7 @@ import { getEnvVar } from '@prompt-optimizer/core'
 import SourceAssetBadge from '../source/SourceAssetBadge.vue'
 import PromptGardenImportDialog from './PromptGardenImportDialog.vue'
 import ThemedTooltip from './ThemedTooltip.vue'
+import { openExternalUrl } from '../../utils/open-external-url'
 import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import type { SourceAssetRef } from '../../utils/source-asset'
 
@@ -146,23 +147,6 @@ const isPromptGardenEnabled = computed(() => {
 const promptGardenBaseUrl = computed(() => {
   return getEnvVar('VITE_PROMPT_GARDEN_BASE_URL').trim().replace(/\/$/, '')
 })
-
-const openExternalUrl = async (url: string) => {
-  if (!url) return
-
-  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
-    try {
-      await window.electronAPI.shell.openExternal(url)
-      return
-    } catch (error) {
-      console.error('[PromptGarden] Failed to open external URL in Electron:', error)
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    window.open(url, '_blank')
-  }
-}
 
 const updateTriggerPlacement = () => {
   if (typeof window === 'undefined') return
@@ -252,7 +236,7 @@ const handleSelect = (key: string) => {
 
 const handleGardenSelect = (key: string) => {
   if (key === 'discover') {
-    void openExternalUrl(promptGardenBaseUrl.value)
+    void openExternalUrl(promptGardenBaseUrl.value, { logPrefix: 'PromptGarden' })
     return
   }
 

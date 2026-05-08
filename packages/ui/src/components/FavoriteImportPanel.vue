@@ -173,6 +173,7 @@ import { getEnvVar } from '@prompt-optimizer/core'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
+import { openExternalUrl } from '../utils/open-external-url'
 import { parsePromptGardenImportInput } from '../utils/prompt-garden-import'
 import {
   importFavoriteResourcePackage,
@@ -230,25 +231,8 @@ const handleFileChange = (options: UploadChangeParam) => {
   fileList.value = options.fileList.slice(0, 1)
 }
 
-const openExternalUrl = async (url: string) => {
-  if (!url) return
-
-  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
-    try {
-      await window.electronAPI.shell.openExternal(url)
-      return
-    } catch (error) {
-      console.error('[PromptGarden] Failed to open external URL in Electron:', error)
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    window.open(url, '_blank')
-  }
-}
-
 const handlePromptGardenDiscover = () => {
-  void openExternalUrl(promptGardenBaseUrl.value)
+  void openExternalUrl(promptGardenBaseUrl.value, { logPrefix: 'PromptGarden' })
 }
 
 const readFileAsArrayBuffer = (file: File) =>

@@ -937,6 +937,7 @@ import { getI18nErrorMessage } from '../../utils/error'
 import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
 import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { downloadImageSource } from '../../utils/image-download'
+import { openExternalUrl } from '../../utils/open-external-url'
 import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import {
     resolveReferencePromptPreview,
@@ -1152,25 +1153,8 @@ const isPromptGardenGuideDisabled = computed(() =>
     isOptimizing.value || isIterating.value || isAnyVariantRunning.value || isExtractingFromImage.value,
 )
 
-const openExternalUrl = async (url: string) => {
-    if (!url) return
-
-    if (typeof window !== 'undefined' && window.electronAPI?.shell) {
-        try {
-            await window.electronAPI.shell.openExternal(url)
-            return
-        } catch (error) {
-            console.error('[PromptGarden] Failed to open external URL in Electron:', error)
-        }
-    }
-
-    if (typeof window !== 'undefined') {
-        window.open(url, '_blank')
-    }
-}
-
 const handlePromptGardenDiscover = () => {
-    void openExternalUrl(promptGardenBaseUrl.value)
+    void openExternalUrl(promptGardenBaseUrl.value, { logPrefix: 'PromptGarden' })
 }
 
 const handlePromptGardenImportConfirm = async (request: PromptGardenImportRequest) => {

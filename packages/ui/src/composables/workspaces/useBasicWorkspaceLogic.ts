@@ -28,6 +28,12 @@ import { getI18nErrorMessage } from '../../utils/error'
 import type { IteratePayload } from '../../types/workspace'
 import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
 
+const isHistoryRecordNotFoundError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false
+  const code = 'code' in error ? (error as { code?: unknown }).code : undefined
+  return code === 'error.history.record_not_found'
+}
+
 type BasicSessionStore = {
   prompt: string
   optimizedPrompt: string
@@ -547,6 +553,15 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
       currentVersions.value = []
       currentChainId.value = ''
       currentVersionId.value = ''
+
+      if (isHistoryRecordNotFoundError(error)) {
+        sessionStore.updateOptimizedResult({
+          optimizedPrompt: sessionStore.optimizedPrompt || '',
+          reasoning: sessionStore.reasoning || '',
+          chainId: '',
+          versionId: '',
+        })
+      }
     }
   }
 

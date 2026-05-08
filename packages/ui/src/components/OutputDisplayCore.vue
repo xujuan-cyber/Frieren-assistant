@@ -40,7 +40,6 @@
         <!-- 右侧：操作按钮 -->
         <NFlex align="center" :size="6" :wrap="false" class="output-toolbar-actions">
           <slot name="toolbar-right-extra"></slot>
-          <NButtonGroup class="output-toolbar-action-group">
           <NButton
             v-if="isActionEnabled('favorite')"
             :data-testid="testId ? `${testId}-favorite` : 'output-favorite'"
@@ -55,21 +54,51 @@
               </NIcon>
             </template>
           </NButton>
-          <NButton
+          <div
             v-if="isActionEnabled('copy')"
-            @click="handleCopy('content')"
-            size="small"
-            quaternary
-            circle
+            class="output-copy-split-button"
+            :class="{ 'is-disabled': !hasContent }"
+            role="group"
+            :aria-label="activeCopyActionTitle"
           >
-            <template #icon>
-              <NIcon>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.03 1.125 0 1.13.094 1.976 1.057 1.976 2.192V7.5M8.25 7.5h7.5M8.25 7.5h-1.5a1.5 1.5 0 00-1.5 1.5v11.25c0 .828.672 1.5 1.5 1.5h10.5a1.5 1.5 0 001.5-1.5V9a1.5 1.5 0 00-1.5-1.5h-1.5" />
-                </svg>
-              </NIcon>
-            </template>
-          </NButton>
+            <NButton
+              :data-testid="testId ? `${testId}-copy-action` : 'output-copy-action'"
+              class="output-copy-split-primary"
+              @click="handlePrimaryCopyAction"
+              size="small"
+              quaternary
+              :disabled="!hasContent"
+              :title="activeCopyActionTitle"
+              :aria-label="activeCopyActionTitle"
+            >
+              <template #icon>
+                <NIcon>
+                  <component :is="activeCopyActionIcon" />
+                </NIcon>
+              </template>
+            </NButton>
+            <NDropdown
+              trigger="click"
+              :options="copyActionOptions"
+              @select="handleCopyActionSelect"
+            >
+              <NButton
+                :data-testid="testId ? `${testId}-copy-action-menu` : 'output-copy-action-menu'"
+                class="output-copy-split-menu"
+                size="small"
+                quaternary
+                :disabled="!hasContent"
+                :title="t('copyOpen.selectAction')"
+                :aria-label="t('copyOpen.selectAction')"
+              >
+                <template #icon>
+                  <NIcon>
+                    <ChevronDown />
+                  </NIcon>
+                </template>
+              </NButton>
+            </NDropdown>
+          </div>
           <NButton
             v-if="isActionEnabled('fullscreen')"
             @click="handleFullscreen"
@@ -85,7 +114,6 @@
               </NIcon>
             </template>
           </NButton>
-          </NButtonGroup>
         </NFlex>
       </NFlex>
 
@@ -193,15 +221,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onMounted, inject, type Ref } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, inject, h, type Ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import {
   NCard, NButton, NButtonGroup, NIcon, NCollapse, NCollapseItem,
-  NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace
+  NInput, NEmpty, NSpin, NScrollbar, NFlex, NText, NSpace, NDropdown,
+  type DropdownOption
 } from 'naive-ui'
 import { useToast } from '../composables/ui/useToast'
-import { Star } from '@vicons/tabler'
+import {
+  ChevronDown,
+  Star,
+} from '@vicons/tabler'
 import { useClipboard } from '../composables/ui/useClipboard'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import XmlRenderer from './XmlRenderer.vue'
@@ -214,6 +246,17 @@ import { useVariableManager } from '../composables/prompt/useVariableManager'
 import type { AppServices } from '../types/services'
 import { router as routerInstance } from '../router'
 import { isValidXmlContent } from '../utils/xml-renderer'
+import {
+  buildCopyOpenActionUrl,
+  COPY_OPEN_ACTIONS,
+  DEFAULT_COPY_OPEN_ACTION_ID,
+  getCopyOpenAction,
+  readCopyOpenActionFromSession,
+  writeCopyOpenActionToSession,
+  type CopyOpenActionId,
+} from '../utils/copy-open-action'
+import { copyOpenActionIconMap } from '../utils/copy-open-icons'
+import { openExternalUrl } from '../utils/open-external-url'
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'favorite'
 
@@ -344,6 +387,10 @@ const hasToolbar = computed(() =>
 // 计算属性
 const displayContent = computed(() => (props.content || '').trim())
 const displayReasoning = computed(() => (props.reasoning || '').trim())
+const copyActionWorkspacePath = computed(() => routerInstance.currentRoute.value.path || '/')
+const activeCopyActionId = ref<CopyOpenActionId>(
+  readCopyOpenActionFromSession(copyActionWorkspacePath.value),
+)
 
 const renderContentType = computed<'markdown' | 'xml'>(() => {
   if (!displayContent.value) return 'markdown'
@@ -368,6 +415,33 @@ const shouldShowReasoning = computed(() => {
   return hasReasoning.value
 })
 
+const getCopyActionPlatformLabel = (actionId: CopyOpenActionId): string => {
+  const platform = getCopyOpenAction(actionId).platform
+  return platform ? t(`copyOpen.platforms.${actionId}`) : ''
+}
+
+const activeCopyActionIcon = computed(() => copyOpenActionIconMap[activeCopyActionId.value])
+
+const activeCopyActionTitle = computed(() => {
+  if (activeCopyActionId.value === DEFAULT_COPY_OPEN_ACTION_ID) {
+    return t('common.copy')
+  }
+
+  return t('copyOpen.copyAndOpen', {
+    platform: getCopyActionPlatformLabel(activeCopyActionId.value),
+  })
+})
+
+const copyActionOptions = computed<DropdownOption[]>(() =>
+  COPY_OPEN_ACTIONS.map((action) => ({
+    key: action.id,
+    label: action.id === 'copy'
+      ? t('copyOpen.copyOnly')
+      : t('copyOpen.copyAndOpen', { platform: getCopyActionPlatformLabel(action.id) }),
+    icon: () => h(NIcon, null, { default: () => h(copyOpenActionIconMap[action.id]) }),
+  })),
+)
+
 // 推理展开/折叠状态的计算属性
 const isReasoningExpanded = computed({
   get: () => reasoningExpandedNames.value.includes('reasoning'),
@@ -386,8 +460,25 @@ const handleSourceInput = (value: string) => {
   emit('update:content', value)
 }
 
+const copyDisplayText = async (
+  textToCopy: string,
+  emitType: 'content' | 'reasoning' | 'all',
+): Promise<boolean> => {
+  if (!textToCopy) return false
+
+  try {
+    await copyText(textToCopy)
+    emit('copy', textToCopy, emitType)
+    return true
+  } catch (error) {
+    console.error('[OutputDisplayCore] Failed to copy content:', error)
+    message.error(t('common.copyFailed'))
+    return false
+  }
+}
+
 // 复制功能
-const handleCopy = (type: 'content' | 'reasoning' | 'all') => {
+const handleCopy = async (type: 'content' | 'reasoning' | 'all') => {
   let textToCopy = ''
   const emitType: 'content' | 'reasoning' | 'all' = type
   
@@ -405,11 +496,33 @@ const handleCopy = (type: 'content' | 'reasoning' | 'all') => {
       ].filter(Boolean).join('\n\n')
       break
   }
-  
-  if (textToCopy) {
-    copyText(textToCopy)
-    emit('copy', textToCopy, emitType)
+
+  await copyDisplayText(textToCopy, emitType)
+}
+
+const handlePrimaryCopyAction = async () => {
+  const textToCopy = displayContent.value
+  const copied = await copyDisplayText(textToCopy, 'content')
+  if (!copied || activeCopyActionId.value === DEFAULT_COPY_OPEN_ACTION_ID) return
+
+  const url = buildCopyOpenActionUrl(activeCopyActionId.value)
+  if (!url) return
+
+  try {
+    await openExternalUrl(url, { logPrefix: 'OutputDisplayCore' })
+  } catch (error) {
+    console.error('[OutputDisplayCore] Failed to open external AI platform:', error)
+    message.error(t('copyOpen.openFailed'))
   }
+}
+
+const handleCopyActionSelect = async (key: string | number) => {
+  const selected = COPY_OPEN_ACTIONS.find((action) => action.id === key)
+  if (!selected) return
+
+  activeCopyActionId.value = selected.id
+  writeCopyOpenActionToSession(copyActionWorkspacePath.value, selected.id)
+  await handlePrimaryCopyAction()
 }
 
 // 全屏功能
@@ -507,6 +620,10 @@ watch(() => props.content, (newContent, oldContent) => {
   }
 })
 
+watch(copyActionWorkspacePath, (workspacePath) => {
+  activeCopyActionId.value = readCopyOpenActionFromSession(workspacePath)
+})
+
 // 监听推理折叠状态变化
 watch(reasoningExpandedNames, (newNames) => {
   const expanded = newNames.includes('reasoning')
@@ -578,7 +695,59 @@ defineExpose({ resetReasoningState, forceRefreshContent, forceExitEditing })
   flex-shrink: 0;
 }
 
-.output-toolbar-action-group {
+.output-copy-split-button {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  overflow: hidden;
+  color: inherit;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 6px;
+  background: transparent;
+}
+
+.output-copy-split-button:not(.is-disabled):hover {
+  border-color: color-mix(in srgb, currentColor 28%, transparent);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.output-copy-split-button.is-disabled {
+  opacity: 0.5;
+}
+
+.output-copy-split-button :deep(.n-button.output-copy-split-primary),
+.output-copy-split-button :deep(.n-button.output-copy-split-menu) {
+  height: 26px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.output-copy-split-button :deep(.n-button.output-copy-split-primary) {
+  min-width: 29px;
+  width: 29px;
+  padding: 0 6px;
+}
+
+.output-copy-split-button :deep(.n-button.output-copy-split-menu) {
+  position: relative;
+  min-width: 21px;
+  width: 21px;
+  padding: 0 4px;
+}
+
+.output-copy-split-button :deep(.n-button.output-copy-split-menu)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.output-copy-split-button:not(.is-disabled) :deep(.n-button:hover) {
+  background: color-mix(in srgb, currentColor 8%, transparent) !important;
 }
 </style>
