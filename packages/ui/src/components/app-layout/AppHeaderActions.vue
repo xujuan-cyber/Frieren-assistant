@@ -57,15 +57,18 @@
             :ghost="false"
             :round="true"
         />
-        <ActionButtonUI
-            icon="💾"
-            :text="$t('nav.dataManager')"
-            @click="emit('open-data-manager')"
-            type="default"
-            size="medium"
-            :ghost="false"
-            :round="true"
-        />
+        <NBadge :show="backupReminderDue" dot processing>
+            <ActionButtonUI
+                icon="💾"
+                :text="$t('nav.dataManager')"
+                @click="emit('open-data-manager')"
+                :type="backupReminderDue ? 'warning' : 'default'"
+                size="medium"
+                :ghost="false"
+                :round="true"
+                :title="backupReminderDue ? $t('dataManager.backupReminder.tooltip') : $t('nav.dataManager')"
+            />
+        </NBadge>
         <ActionButtonUI
             icon="🔣"
             :text="$t('nav.variableManager')"
@@ -219,15 +222,17 @@ import ActionButtonUI from '../ActionButton.vue'
 import ThemeToggleUI from '../ThemeToggleUI.vue'
 import LanguageSwitchDropdown from '../LanguageSwitchDropdown.vue'
 import UpdaterIcon from '../UpdaterIcon.vue'
-import { NButton, NPopover, NTag } from 'naive-ui'
+import { NBadge, NButton, NPopover, NTag } from 'naive-ui'
 
 interface Props {
     appVersion: string
     favoritesActive?: boolean
+    backupReminderDue?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
     favoritesActive: false,
+    backupReminderDue: false,
 })
 
 // ========================

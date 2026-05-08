@@ -237,9 +237,12 @@ const messages = {
   },
   "dataManager": {
     "title": "Data Manager",
+    "backupReminder": {
+      "tooltip": "No data export in over 10 days. Export a local copy."
+    },
     "export": {
       "title": "Export Data",
-      "description": "Export a complete app backup with configuration, history, contexts, favorites, and image resources.",
+      "description": "Export the selected app data, including settings, history, contexts, favorites, and related images.",
       "scopeTitle": "Export contents",
       "button": "Export Data",
       "success": "Data exported successfully",
@@ -248,19 +251,20 @@ const messages = {
     },
     "import": {
       "title": "Import Data",
-      "description": "Import a complete backup package. Legacy JSON backups are still supported.",
-      "selectFile": "Click to select file or drag file here",
-      "supportFormat": "Supports .po-backup.zip packages and legacy .json files",
+      "description": "Import data from a local file. Legacy JSON backups are still supported.",
+      "selectFile": "Click to select a local data file or drag it here",
+      "supportFormat": "Supports current export files and legacy .json files",
       "scopeTitle": "Import contents",
-      "packagePreview": "Package contains: {sections}",
-      "legacyJsonPreview": "Legacy JSON backups contain app main data only",
-      "favoriteMergeStrategy": "Favorites merge strategy",
-      "skipDuplicate": "Skip existing favorites",
-      "skipDuplicateHint": "Keep current data when the same favorite ID already exists",
-      "overwriteDuplicate": "Overwrite existing favorites",
-      "overwriteDuplicateHint": "Replace current data with imported data on matching favorite IDs",
-      "createCopy": "Create copies",
-      "createCopyHint": "Create new favorite copies when imported IDs already exist",
+      "settingsTitle": "Import settings",
+      "packagePreview": "Import file contains: {sections}",
+      "legacyJsonPreview": "Legacy JSON files contain app data only",
+      "favoriteMergeStrategy": "Duplicate favorites handling",
+      "skipDuplicate": "Keep existing favorites",
+      "skipDuplicateHint": "Keep current data when the same prompt content already exists",
+      "overwriteDuplicate": "Replace existing favorites",
+      "overwriteDuplicateHint": "Use imported data when the same prompt content already exists",
+      "createCopy": "Import as copies",
+      "createCopyHint": "Create a new copy when the same prompt content already exists",
       "noSelectedContent": "Select at least one content type to import",
       "changeFile": "Change File",
       "button": "Import Data",
@@ -274,12 +278,12 @@ const messages = {
       "successWithRefresh": "Data imported successfully, page will refresh to apply all changes"
     },
     "sections": {
-      "appData": "App main data",
-      "appDataHint": "History, model configuration, templates, contexts, and user settings",
-      "appDataImages": "Include history/result image resources",
-      "appDataImagesHint": "Restores images referenced by history or results; current workspace sessions are not included",
+      "appData": "App data",
+      "appDataHint": "History, models, templates, contexts, and user settings",
+      "appDataImages": "Related images",
+      "appDataImagesHint": "Images referenced by history and results; current workspace sessions are not included",
       "favoritesBundle": "Favorites",
-      "favoritesBundleHint": "Favorite data, categories, tags, prompt assets, examples, version chains, and favorite images"
+      "favoritesBundleHint": "Favorites, categories, tags, prompt assets, examples, versions, and favorite images"
     },
     "contexts": {
       "title": "Context Collections Management",
@@ -305,10 +309,156 @@ const messages = {
       "importModeRequired": "Please select import mode"
     },
     "backupWorkspace": {
-      "title": "Data Backup",
-      "description": "Export or import the full app dataset for migration, backup or recovery.",
-      "exportTitle": "Export Current App Data",
-      "importTitle": "Import Backup File"
+      "title": "Local Import/Export",
+      "description": "Export the current app data to a local file, or import data from one.",
+      "exportTitle": "Export Current Data",
+      "importTitle": "Import Local Data"
+    },
+    "remote": {
+      "title": "Remote Backup",
+      "webRecommendation": "Google Drive is recommended for Web. S3/R2/MinIO and WebDAV require browser CORS support on the server.",
+      "desktopRecommendation": "Google Drive is not supported on Desktop yet. Use Cloudflare R2, S3/MinIO, or WebDAV instead.",
+      "provider": "Backup provider",
+      "providers": {
+        "googleDrive": "Google Drive (Recommended)",
+        "cloudflareR2": "Cloudflare R2",
+        "s3Compatible": "S3 / R2 / MinIO",
+        "webdav": "WebDAV"
+      },
+      "authorizeGoogleDrive": "Authorize Google Drive",
+      "authorizedGoogleDrive": "Google Drive Authorized",
+      "authorizeSuccess": "Google Drive authorized",
+      "authorizeFailed": "Google Drive authorization failed: {message}",
+      "authorizeUnavailable": "This provider does not need a separate authorization step",
+      "googleDrivePath": "Google Drive backup path: {path}",
+      "configuration": "Configuration",
+      "configured": "Configured",
+      "setupRequired": "Setup Needed",
+      "showSetupGuide": "Show Setup",
+      "hideSetupGuide": "Hide Setup",
+      "showAllSetupSteps": "Show All Steps",
+      "hideExtraSetupSteps": "Current Step Only",
+      "cloudflareR2SetupSummary": "Set up R2 in 3 steps: Account ID, bucket/CORS, and account API token.",
+      "cloudflareR2ConfiguredSummary": "Cloudflare R2 is configured. Bucket: {bucket}, object prefix: {prefix}",
+      "cloudflareLinks": {
+        "dashboard": "Open Cloudflare",
+        "buckets": "R2 Buckets",
+        "apiTokens": "R2 API Tokens",
+        "docs": "R2 Docs"
+      },
+      "cloudflareSteps": {
+        "account": {
+          "title": "Enter Account ID",
+          "description": "Open the dashboard and copy the Account ID from https://dash.cloudflare.com/[AccountID]/home/overview.",
+          "action": "Open Cloudflare Dashboard"
+        },
+        "bucket": {
+          "title": "Create a dedicated bucket and configure CORS",
+          "description": "Open R2 Overview, create a bucket with the name below, then paste the copied CORS config in Settings - CORS policy.",
+          "action": "Open R2 Overview",
+          "corsAction": "Copy CORS Config"
+        },
+        "credentials": {
+          "title": "Create an account API token",
+          "description": "Create an account API token with Object Read/Write, scoped only to the bucket from step 2.",
+          "tokenAction": "Open R2 API Tokens",
+          "docsAction": "View R2 Docs"
+        }
+      },
+      "accountId": "Account ID",
+      "cloudflareAccountHint": "Find it in the Cloudflare dashboard account panel.",
+      "cloudflareBucketHint": "Use a dedicated bucket, for example prompt-optimizer-backups.",
+      "cloudflareEndpoint": "R2 endpoint will be: {endpoint}",
+      "cloudflareBackupPath": "R2 backup path: {path}",
+      "cloudflareBucketPreview": "R2 bucket: {bucket}",
+      "cloudflareObjectPrefix": "Object prefix: {prefix}",
+      "copyCors": "Copy CORS Config",
+      "copyCorsSuccess": "Recommended CORS config copied",
+      "copyCorsFailed": "Failed to copy CORS config",
+      "cloudflareCorsHint": "Browser direct R2 access requires bucket CORS. Copy the config and paste it into the R2 bucket settings.",
+      "endpoint": "Endpoint",
+      "bucket": "Bucket",
+      "region": "Region",
+      "prefix": "Prefix",
+      "accessKey": "Access Key",
+      "secretKey": "Secret Key",
+      "forcePathStyle": "Use path-style S3 URLs",
+      "username": "Username",
+      "password": "Password",
+      "directory": "Directory",
+      "connectionStatus": {
+        "unconfigured": "Not Configured",
+        "unverified": "Not Verified",
+        "checking": "Connecting",
+        "connected": "Connected",
+        "failed": "Failed"
+      },
+      "connectionSetupTitle": "Connect this backup provider",
+      "connectionReadyTitle": "This backup provider is connected",
+      "connectionMissingConfig": "Complete the required configuration first.",
+      "connectionNeedsCheck": "Configuration is saved. Click “Save and Connect” to verify it.",
+      "connectionChecking": "Checking remote storage: list, write, read, and test-file cleanup...",
+      "connectionFailedGeneric": "Remote storage check did not pass",
+      "connectionSuccess": "Remote storage connected",
+      "connectionFailed": "Remote storage connection failed: {message}",
+      "connectFirst": "Save and connect the current backup provider first.",
+      "saveAndConnect": "Save and Connect",
+      "editConfiguration": "Edit Configuration",
+      "hideConfiguration": "Hide Configuration",
+      "lastCheckedAt": "Last checked: {time}",
+      "connectionSummary": {
+        "r2": "Bucket: {bucket}, path: {path}",
+        "s3": "Bucket: {bucket}, prefix: {path}",
+        "webdav": "Directory: {path}"
+      },
+      "s3DesktopHelp": "Desktop connects to S3 through the main process, so browser CORS is not required.",
+      "s3WebHelp": "Web direct S3 access requires the server to allow this page through CORS.",
+      "webdavDesktopHelp": "Desktop connects to WebDAV through the main process, so WebDAV CORS is not required.",
+      "webdavWebHelp": "Web direct WebDAV access requires the server to allow this page through CORS.",
+      "backupNow": "Create Backup",
+      "backupSuccess": "Remote backup completed. Uploaded {uploaded} new image assets and skipped {skipped} existing assets.",
+      "backupFailed": "Remote backup failed: {message}",
+      "refreshList": "Refresh Remote Backup List",
+      "listFailed": "Failed to load remote backup list: {message}",
+      "restoreFrom": "Restore from remote backup",
+      "noBackups": "No remote backups",
+      "restoreSelected": "Restore Selected Backup",
+      "restoreFailed": "Failed to restore remote backup: {message}",
+      "cleanupAssets": "Clean Unreferenced Images",
+      "cleanupConfirm": "This will delete {count} remote image assets not referenced by any remote backup and free about {size}. Continue?",
+      "cleanupNothing": "No unreferenced remote image assets to clean",
+      "cleanupSuccess": "Cleaned {count} remote image assets and freed about {size}",
+      "cleanupPartial": "Remote image cleanup completed: deleted {deleted}, failed {failed}",
+      "cleanupFailed": "Remote image cleanup failed: {message}",
+      "progress": {
+        "working": "Working on remote backup...",
+        "list": {
+          "start": "Loading remote backups...",
+          "list": "Scanning remote snapshots..."
+        },
+        "backup": {
+          "start": "Preparing backup...",
+          "prepare": "Exporting app data and favorites...",
+          "scan": "Scanning image resources {item} {count}",
+          "asset-check": "Checking remote image asset: {item} {count}",
+          "asset-upload": "Uploading image asset: {item} {count}",
+          "metadata-upload": "Uploading backup data: {item} {count}",
+          "manifest-upload": "Committing backup manifest...",
+          "done": "Backup complete. Uploaded {uploaded} image assets and skipped {skipped} existing assets."
+        },
+        "restore": {
+          "start": "Preparing restore...",
+          "restore-validate": "Validating remote backup resource: {item} {count}",
+          "restore-write": "Writing local data: {item} {count}",
+          "done": "Restore complete"
+        },
+        "cleanup": {
+          "start": "Analyzing remote image cleanup...",
+          "cleanup-analyze": "Scanning snapshot references and remote image assets...",
+          "cleanup-delete": "Deleting unreferenced image: {item} {count}",
+          "done": "Cleanup complete"
+        }
+      }
     },
     "storage": {
       "title": "Storage Usage",
@@ -326,7 +476,7 @@ const messages = {
       "refresh": "Refresh",
       "refreshFailed": "Failed to refresh storage usage"
     },
-    "warning": "Importing a complete backup will overwrite or update existing history, model configuration, contexts, favorites, and user settings. Make sure important data is backed up first."
+    "warning": "Importing data may overwrite or update existing history, model configuration, contexts, favorites, and user settings. Make sure important data is backed up first."
   }
 } as const;
 

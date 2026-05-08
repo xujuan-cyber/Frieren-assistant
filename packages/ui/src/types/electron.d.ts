@@ -13,6 +13,7 @@ import type {
   ImportResult,
   ContextMode
 } from '@prompt-optimizer/core'
+import type { RemoteStorageIpcApi } from '../utils/remote-backup'
 
 // 基础响应类型
 interface ElectronErrorPayload {
@@ -205,6 +206,7 @@ interface ElectronAPI {
   imageModel: ImageModelAPI
   context: ContextAPI
   data: DataAPI
+  remoteStorage: RemoteStorageIpcApi
   on: EventAPI['on']
   off: EventAPI['off']
   once: EventAPI['once']
@@ -269,6 +271,7 @@ export type {
   ContextAPI,
   DataAPI,
   DataStorageInfo,
+  RemoteStorageIpcApi,
   ElectronAPI,
   DownloadProgress,
   UpdateInfo,

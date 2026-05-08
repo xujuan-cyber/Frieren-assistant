@@ -23,11 +23,13 @@
     "electron-builder": "^26.8.2"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1044.0",
     "@prompt-optimizer/core": "workspace:*",
     "dotenv": "^17.3.1",
     "electron-log": "^5.4.3",
     "electron-updater": "6.8.3",
-    "undici": "^7.24.6"
+    "undici": "^7.24.6",
+    "webdav": "^5.10.0"
   },
   "build": {
     "appId": "com.promptoptimizer.desktop",
@@ -38,6 +40,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "remote-storage.js",
       "config/**/*",
       "web-dist/**/*",
       "node_modules/**/*"

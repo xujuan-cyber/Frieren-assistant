@@ -13,6 +13,13 @@ vi.mock('naive-ui', async (importOriginal) => {
         return () => h('button', attrs, slots.default?.())
       },
     }),
+    NBadge: defineComponent({
+      name: 'NBadge',
+      props: ['show'],
+      setup(props, { slots }) {
+        return () => h('span', { class: 'n-badge-stub', 'data-show': String(Boolean(props.show)) }, slots.default?.())
+      },
+    }),
     NPopover: defineComponent({
       name: 'NPopover',
       setup(_, { slots }) {
@@ -153,5 +160,64 @@ describe('AppHeaderActions about menu layout hooks', () => {
     await favoritesAction.trigger('click')
 
     expect(wrapper.emitted('open-favorites')).toHaveLength(1)
+  })
+
+  it('marks the data manager action when an existing backup is stale', async () => {
+    const wrapper = mount(AppHeaderActions, {
+      props: {
+        appVersion: 'v2.7.0',
+        backupReminderDue: true,
+      },
+      global: {
+        mocks: {
+          $t: (key: string) => {
+            const map: Record<string, string> = {
+              'nav.templates': 'Templates',
+              'nav.history': 'History',
+              'nav.modelManager': 'Model Manager',
+              'nav.favorites': 'Favorite Library',
+              'nav.dataManager': 'Data Manager',
+              'nav.variableManager': 'Variable Manager',
+              'nav.about': 'About',
+              'updater.viewOnGitHub': 'View on GitHub',
+              'dataManager.backupReminder.tooltip': 'No data export in over 10 days. Export a local copy.',
+            }
+            return map[key] ?? key
+          },
+        },
+        stubs: {
+          ThemeToggleUI: true,
+          LanguageSwitchDropdown: true,
+          UpdaterIcon: true,
+          ActionButtonUI: defineComponent({
+            name: 'ActionButtonUI',
+            props: ['text', 'type'],
+            emits: ['click'],
+            setup(props, { emit, attrs }) {
+              return () =>
+                h(
+                  'button',
+                  {
+                    ...attrs,
+                    'data-type': props.type,
+                    onClick: () => emit('click'),
+                  },
+                  props.text,
+                )
+            },
+          }),
+        },
+      },
+    })
+
+    const dataManagerAction = wrapper.findAll('button').find((button) => button.text() === 'Data Manager')
+
+    expect(wrapper.find('.n-badge-stub[data-show="true"]').exists()).toBe(true)
+    expect(dataManagerAction?.attributes('data-type')).toBe('warning')
+    expect(dataManagerAction?.attributes('title')).toBe('No data export in over 10 days. Export a local copy.')
+
+    await dataManagerAction!.trigger('click')
+
+    expect(wrapper.emitted('open-data-manager')).toHaveLength(1)
   })
 })

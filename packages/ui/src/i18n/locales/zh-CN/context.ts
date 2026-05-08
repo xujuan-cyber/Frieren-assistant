@@ -237,30 +237,34 @@ const messages = {
   },
   "dataManager": {
     "title": "数据管理",
+    "backupReminder": {
+      "tooltip": "已超过 10 天未导出数据，建议导出一份本地副本"
+    },
     "export": {
       "title": "导出数据",
-      "description": "导出完整应用备份，包含配置、历史、上下文、收藏夹和图片资源。",
+      "description": "按所选内容导出当前应用数据，包含配置、历史、上下文、收藏夹和相关图片。",
       "scopeTitle": "导出内容",
       "button": "导出数据",
       "success": "数据导出成功",
-      "partialSuccess": "数据导出完成，但有 {count} 个图片资源缺失",
+      "partialSuccess": "数据已导出，但有 {count} 个图片资源缺失",
       "failed": "数据导出失败"
     },
     "import": {
       "title": "导入数据",
-      "description": "导入完整备份资源包，旧版 JSON 备份仍可导入。",
-      "selectFile": "点击选择文件或拖拽文件到此处",
-      "supportFormat": "支持 .po-backup.zip 资源包和历史 .json 文件",
+      "description": "从本地文件导入数据，兼容旧版 JSON 文件。",
+      "selectFile": "点击选择本地数据文件或拖拽到此处",
+      "supportFormat": "支持当前导出文件，也兼容历史 .json 文件",
       "scopeTitle": "导入内容",
-      "packagePreview": "资源包包含：{sections}",
-      "legacyJsonPreview": "旧版 JSON 备份仅包含应用主数据",
-      "favoriteMergeStrategy": "收藏夹合并策略",
-      "skipDuplicate": "跳过已有收藏",
-      "skipDuplicateHint": "遇到相同收藏 ID 时保留当前数据",
-      "overwriteDuplicate": "覆盖已有收藏",
-      "overwriteDuplicateHint": "遇到相同收藏 ID 时使用导入数据替换",
-      "createCopy": "创建副本",
-      "createCopyHint": "遇到相同收藏 ID 时生成新的收藏副本",
+      "settingsTitle": "导入设置",
+      "packagePreview": "导入文件包含：{sections}",
+      "legacyJsonPreview": "旧版 JSON 文件仅包含应用数据",
+      "favoriteMergeStrategy": "重复收藏处理方式",
+      "skipDuplicate": "保留已有收藏",
+      "skipDuplicateHint": "遇到相同提示词内容时保留当前数据",
+      "overwriteDuplicate": "替换已有收藏",
+      "overwriteDuplicateHint": "遇到相同提示词内容时使用导入数据",
+      "createCopy": "导入为副本",
+      "createCopyHint": "遇到相同提示词内容时新增一份副本",
       "noSelectedContent": "请选择要导入的内容",
       "changeFile": "更换文件",
       "button": "导入数据",
@@ -274,12 +278,12 @@ const messages = {
       "successWithRefresh": "数据导入成功，页面将刷新以应用所有更改"
     },
     "sections": {
-      "appData": "应用主数据",
-      "appDataHint": "历史记录、模型配置、模板、上下文和用户设置",
-      "appDataImages": "包含历史/结果图片资源",
-      "appDataImagesHint": "仅用于恢复历史或结果中引用的图片，不包含当前工作区会话",
+      "appData": "应用数据",
+      "appDataHint": "历史记录、模型、模板、上下文和用户设置",
+      "appDataImages": "相关图片",
+      "appDataImagesHint": "历史和结果中引用的图片，不包含当前工作区会话",
       "favoritesBundle": "收藏夹",
-      "favoritesBundleHint": "收藏数据、分类、标签、提示词资产、示例、版本链和收藏图片资源"
+      "favoritesBundleHint": "收藏、分类、标签、提示词资产、示例、版本链和收藏图片"
     },
     "contexts": {
       "title": "上下文集合管理",
@@ -305,10 +309,156 @@ const messages = {
       "importModeRequired": "请选择导入模式"
     },
     "backupWorkspace": {
-      "title": "数据备份",
-      "description": "导出或导入整个应用数据，用于迁移、备份或恢复当前应用状态。",
-      "exportTitle": "导出当前应用数据",
-      "importTitle": "导入备份文件"
+      "title": "本地导入/导出",
+      "description": "将当前应用数据导出到本地文件，或从本地文件导入数据。",
+      "exportTitle": "导出当前数据",
+      "importTitle": "导入本地数据"
+    },
+    "remote": {
+      "title": "远程备份",
+      "webRecommendation": "Web 版推荐使用 Google Drive；S3/R2/MinIO 和 WebDAV 需要服务端允许浏览器跨域。",
+      "desktopRecommendation": "桌面版暂不支持 Google Drive；推荐使用 Cloudflare R2、S3/MinIO 或 WebDAV。",
+      "provider": "备份方式",
+      "providers": {
+        "googleDrive": "Google Drive（推荐）",
+        "cloudflareR2": "Cloudflare R2",
+        "s3Compatible": "S3 / R2 / MinIO",
+        "webdav": "WebDAV"
+      },
+      "authorizeGoogleDrive": "授权 Google Drive",
+      "authorizedGoogleDrive": "已授权 Google Drive",
+      "authorizeSuccess": "Google Drive 授权成功",
+      "authorizeFailed": "Google Drive 授权失败：{message}",
+      "authorizeUnavailable": "当前备份方式不需要单独授权",
+      "googleDrivePath": "Google Drive 备份路径为：{path}",
+      "configuration": "配置方式",
+      "configured": "已配置",
+      "setupRequired": "待配置",
+      "showSetupGuide": "显示配置方式",
+      "hideSetupGuide": "收起配置方式",
+      "showAllSetupSteps": "显示全部步骤",
+      "hideExtraSetupSteps": "只看当前步骤",
+      "cloudflareR2SetupSummary": "按 3 步完成 R2：Account ID、Bucket/CORS、帐户 API 令牌。",
+      "cloudflareR2ConfiguredSummary": "Cloudflare R2 已配置。Bucket：{bucket}，对象前缀：{prefix}",
+      "cloudflareLinks": {
+        "dashboard": "打开 Cloudflare",
+        "buckets": "R2 Buckets",
+        "apiTokens": "R2 API Tokens",
+        "docs": "R2 文档"
+      },
+      "cloudflareSteps": {
+        "account": {
+          "title": "填写 Account ID",
+          "description": "打开控制台后，从地址 https://dash.cloudflare.com/[AccountID]/home/overview 复制 Account ID。",
+          "action": "打开 Cloudflare 控制台"
+        },
+        "bucket": {
+          "title": "创建专用 Bucket 并配置 CORS",
+          "description": "打开 R2 Overview，创建下方名称的 bucket；进入该 bucket 的 设置 - CORS 策略，粘贴复制的配置。",
+          "action": "打开 R2 Overview",
+          "corsAction": "复制 CORS 配置"
+        },
+        "credentials": {
+          "title": "创建帐户 API 令牌",
+          "description": "创建帐户 API 令牌，权限选对象读/写，并仅绑定上一步的 bucket。",
+          "tokenAction": "打开 R2 API Tokens",
+          "docsAction": "查看 R2 文档"
+        }
+      },
+      "accountId": "Account ID",
+      "cloudflareAccountHint": "在 Cloudflare Dashboard 右侧账户信息中查看。",
+      "cloudflareBucketHint": "建议使用专用 bucket，例如 prompt-optimizer-backups。",
+      "cloudflareEndpoint": "R2 Endpoint 将自动使用：{endpoint}",
+      "cloudflareBackupPath": "R2 备份路径为：{path}",
+      "cloudflareBucketPreview": "R2 Bucket：{bucket}",
+      "cloudflareObjectPrefix": "对象前缀：{prefix}",
+      "copyCors": "复制 CORS 配置",
+      "copyCorsSuccess": "已复制推荐 CORS 配置",
+      "copyCorsFailed": "复制 CORS 配置失败",
+      "cloudflareCorsHint": "浏览器直连 R2 需要在 bucket 中配置 CORS；复制配置后到 R2 bucket 设置里粘贴即可。",
+      "endpoint": "服务地址",
+      "bucket": "Bucket",
+      "region": "Region",
+      "prefix": "路径前缀",
+      "accessKey": "Access Key",
+      "secretKey": "Secret Key",
+      "forcePathStyle": "使用 path-style S3 地址",
+      "username": "用户名",
+      "password": "密码",
+      "directory": "目录",
+      "connectionStatus": {
+        "unconfigured": "未配置",
+        "unverified": "未验证",
+        "checking": "连接中",
+        "connected": "已连接",
+        "failed": "连接失败"
+      },
+      "connectionSetupTitle": "连接当前备份方式",
+      "connectionReadyTitle": "当前备份方式已连接",
+      "connectionMissingConfig": "请先补全必要配置。",
+      "connectionNeedsCheck": "配置已保存，请点击“保存并连接”确认可用。",
+      "connectionChecking": "正在检测远程存储：列表、写入、读取和清理测试文件...",
+      "connectionFailedGeneric": "远程存储检测未通过",
+      "connectionSuccess": "远程存储连接成功",
+      "connectionFailed": "远程存储连接失败：{message}",
+      "connectFirst": "请先保存并连接当前备份方式。",
+      "saveAndConnect": "保存并连接",
+      "editConfiguration": "修改配置",
+      "hideConfiguration": "收起配置",
+      "lastCheckedAt": "上次检测：{time}",
+      "connectionSummary": {
+        "r2": "Bucket：{bucket}，路径：{path}",
+        "s3": "Bucket：{bucket}，路径前缀：{path}",
+        "webdav": "目录：{path}"
+      },
+      "s3DesktopHelp": "桌面版通过主进程连接 S3，不需要浏览器 CORS。",
+      "s3WebHelp": "Web 版直连 S3 需要服务端允许当前网页跨域访问。",
+      "webdavDesktopHelp": "桌面版通过主进程连接 WebDAV，不需要 WebDAV 服务提供 CORS。",
+      "webdavWebHelp": "Web 版直连 WebDAV 需要服务端允许当前网页跨域访问。",
+      "backupNow": "创建备份",
+      "backupSuccess": "远程备份成功，新增 {uploaded} 个图片资源，跳过 {skipped} 个已有资源",
+      "backupFailed": "远程备份失败：{message}",
+      "refreshList": "刷新远程备份列表",
+      "listFailed": "获取远程备份列表失败：{message}",
+      "restoreFrom": "从远程备份还原",
+      "noBackups": "暂无远程备份",
+      "restoreSelected": "还原选中备份",
+      "restoreFailed": "还原远程备份失败：{message}",
+      "cleanupAssets": "清理未引用图片",
+      "cleanupConfirm": "将删除 {count} 个未被任何远程备份引用的图片资源，预计释放 {size}。是否继续？",
+      "cleanupNothing": "没有可清理的远程图片资源",
+      "cleanupSuccess": "已清理 {count} 个远程图片资源，释放约 {size}",
+      "cleanupPartial": "远程图片清理完成：已删除 {deleted} 个，失败 {failed} 个",
+      "cleanupFailed": "远程图片清理失败：{message}",
+      "progress": {
+        "working": "正在处理远程备份...",
+        "list": {
+          "start": "正在读取远程备份列表...",
+          "list": "正在扫描远程快照..."
+        },
+        "backup": {
+          "start": "正在准备备份...",
+          "prepare": "正在导出应用数据和收藏数据...",
+          "scan": "正在扫描图片资源 {item} {count}",
+          "asset-check": "正在检查远程图片是否已存在：{item} {count}",
+          "asset-upload": "正在上传图片资源：{item} {count}",
+          "metadata-upload": "正在上传备份数据：{item} {count}",
+          "manifest-upload": "正在提交备份清单...",
+          "done": "备份完成，新增 {uploaded} 个图片资源，跳过 {skipped} 个已有资源"
+        },
+        "restore": {
+          "start": "正在准备还原...",
+          "restore-validate": "正在校验远程备份资源：{item} {count}",
+          "restore-write": "正在写入本地数据：{item} {count}",
+          "done": "还原完成"
+        },
+        "cleanup": {
+          "start": "正在分析可清理图片...",
+          "cleanup-analyze": "正在扫描快照引用和远程图片资源...",
+          "cleanup-delete": "正在删除未引用图片：{item} {count}",
+          "done": "清理完成"
+        }
+      }
     },
     "storage": {
       "title": "存储占用",
@@ -326,7 +476,7 @@ const messages = {
       "refresh": "刷新",
       "refreshFailed": "刷新存储占用失败"
     },
-    "warning": "导入完整备份将覆盖或更新现有历史记录、模型配置、上下文、收藏夹和用户设置；请先确认已备份重要数据。"
+    "warning": "导入数据会覆盖或更新现有历史记录、模型配置、上下文、收藏夹和用户设置；请先确认重要数据已备份。"
   }
 } as const;
 

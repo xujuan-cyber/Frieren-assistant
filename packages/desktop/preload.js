@@ -20,6 +20,8 @@ const IPC_EVENTS = {
   UPDATE_DOWNLOAD_STARTED: 'updater-download-started'
 };
 
+const REMOTE_STORAGE_CHANNEL = 'remote-storage:invoke';
+
 // 简单的超时包装器，避免过度设计
 const withTimeout = (promise, timeoutMs = 30000) => {
   return Promise.race([
@@ -1083,6 +1085,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     }
+  },
+
+  remoteStorage: {
+    invoke: async (request) => {
+      const result = await ipcRenderer.invoke(REMOTE_STORAGE_CHANNEL, request);
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
   },
 
   // Context Repository interface

@@ -105,8 +105,7 @@
 
 <script setup lang="ts">
 import { computed, h, inject, nextTick, onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
-import { routerKey } from 'vue-router'
-import type { LocationQueryRaw } from 'vue-router'
+import { routerKey, type LocationQueryRaw } from 'vue-router'
 import { NButton, NDropdown, NIcon, NModal, type DropdownOption } from 'naive-ui'
 import { Bookmark, ClearAll, DotsVertical, ExternalLink, Plant2, FileImport } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'

@@ -32,6 +32,7 @@ const {
   DEFAULT_CONFIG
 } = require('./config/update-config');
 const { createGlobalDispatcherFromProxyDecision } = require('./config/proxy-dispatcher');
+const { setupRemoteStorageHandlers } = require('./remote-storage');
 const path = require('path');
 
 // 确定正确的配置文件路径
@@ -854,6 +855,10 @@ function createFavoriteErrorResponse(error) {
 function setupIPC() {
   console.log('[Main Process] Setting up high-level service IPC handlers...');
   setupPreferenceHandlers();
+  setupRemoteStorageHandlers(ipcMain, {
+    createSuccessResponse,
+    createErrorResponse,
+  });
   
   // LLM Service handlers
   ipcMain.handle('llm-testConnection', async (event, provider) => {
