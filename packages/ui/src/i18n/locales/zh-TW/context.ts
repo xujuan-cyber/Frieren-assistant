@@ -283,7 +283,9 @@ const messages = {
       "appDataImages": "相關圖片",
       "appDataImagesHint": "歷史和結果中引用的圖片，不包含目前工作區會話",
       "favoritesBundle": "收藏",
-      "favoritesBundleHint": "收藏、分類、標籤、提示詞資產、範例、版本鏈和收藏圖片"
+      "favoritesBundleHint": "收藏、分類、標籤、提示詞資產、範例、版本鏈和收藏圖片",
+      "favoriteImages": "收藏圖片",
+      "favoriteImagesHint": "收藏提示詞資產、範例和版本鏈引用的圖片"
     },
     "contexts": {
       "title": "情境集合管理",
@@ -421,6 +423,8 @@ const messages = {
       "refreshList": "重新整理遠端備份列表",
       "listFailed": "取得遠端備份列表失敗：{message}",
       "restoreFrom": "從遠端備份還原",
+      "restoreScope": "還原內容",
+      "restoreMissingAssetsHint": "此備份建立時有 {count} 個圖片資源缺失，可取消圖片內容後只還原 JSON 資料。",
       "noBackups": "暫無遠端備份",
       "restoreSelected": "還原選中備份",
       "restoreFailed": "還原遠端備份失敗：{message}",

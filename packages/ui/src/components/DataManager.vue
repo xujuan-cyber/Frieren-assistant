@@ -653,7 +653,54 @@
               />
             </div>
 
-            <div class="remote-field remote-restore-strategy">
+            <div v-if="selectedRemoteBackup" class="remote-field remote-restore-scope">
+              <NText depth="3" class="remote-field-label">
+                {{ $t('dataManager.remote.restoreScope') }}
+              </NText>
+              <NText
+                v-if="selectedRemoteBackupMissingAssetsCount > 0"
+                depth="3"
+                class="storage-note"
+              >
+                {{ $t('dataManager.remote.restoreMissingAssetsHint', { count: selectedRemoteBackupMissingAssetsCount }) }}
+              </NText>
+              <div class="local-scope-row">
+                <label class="local-scope-pill">
+                  <NCheckbox
+                    v-model:checked="remoteRestoreAppData"
+                    :disabled="!availableRemoteRestoreSections.has('appData')"
+                  >
+                    {{ $t('dataManager.sections.appData') }}
+                  </NCheckbox>
+                </label>
+                <label class="local-scope-pill">
+                  <NCheckbox
+                    v-model:checked="remoteRestoreAppDataImages"
+                    :disabled="!remoteRestoreAppData || !availableRemoteRestoreSections.has('imageCache')"
+                  >
+                    {{ $t('dataManager.sections.appDataImages') }}
+                  </NCheckbox>
+                </label>
+                <label class="local-scope-pill">
+                  <NCheckbox
+                    v-model:checked="remoteRestoreFavorites"
+                    :disabled="!availableRemoteRestoreSections.has('favorites')"
+                  >
+                    {{ $t('dataManager.sections.favoritesBundle') }}
+                  </NCheckbox>
+                </label>
+                <label class="local-scope-pill">
+                  <NCheckbox
+                    v-model:checked="remoteRestoreFavoriteImages"
+                    :disabled="!remoteRestoreFavorites || !availableRemoteRestoreSections.has('favoriteImages')"
+                  >
+                    {{ $t('dataManager.sections.favoriteImages') }}
+                  </NCheckbox>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="remoteRestoreFavorites" class="remote-field remote-restore-strategy">
               <NText depth="3" class="remote-field-label">
                 {{ $t('dataManager.import.favoriteMergeStrategy') }}
               </NText>
@@ -676,7 +723,7 @@
               type="success"
               block
               :loading="isRestoringRemote"
-              :disabled="!selectedRemoteBackup || isRemoteDataOperationActive"
+              :disabled="!selectedRemoteBackup || isRemoteDataOperationActive || !hasSelectedRemoteRestoreSection"
               @click="handleRemoteRestore"
             >
               <template #icon>
@@ -776,6 +823,7 @@ import {
   type RemoteSnapshotEntry,
 } from '../utils/remote-snapshot-backup'
 import { recordDataBackupCompleted } from '../utils/data-backup-reminder'
+import { openExternalUrl } from '../utils/open-external-url'
 
 interface Props {
   show: boolean
@@ -833,6 +881,10 @@ const exportFavorites = ref(true)
 const importAppData = ref(true)
 const importAppDataImages = ref(true)
 const importFavorites = ref(true)
+const remoteRestoreAppData = ref(true)
+const remoteRestoreAppDataImages = ref(true)
+const remoteRestoreFavorites = ref(true)
+const remoteRestoreFavoriteImages = ref(true)
 const favoriteMergeStrategy = ref<DataManagerFavoritesMergeStrategy>('overwrite')
 
 const storageSummary = ref<StorageBreakdownSummary | null>(null)
@@ -942,6 +994,41 @@ const googleDriveAuthorizationLabel = computed(() =>
 const selectedRemoteBackup = computed(() =>
   remoteBackups.value.find((entry) => entry.id === selectedRemoteBackupId.value) ?? null
 )
+const getRemoteBackupIncludedSectionSet = (entry: RemoteSnapshotEntry | null): Set<DataManagerPackageSection> => {
+  const included = entry?.manifest?.includedSections
+  if (!Array.isArray(included) || included.length === 0) {
+    return new Set(allPackageSections)
+  }
+
+  const filtered = included.filter((section): section is DataManagerPackageSection =>
+    allPackageSections.includes(section as DataManagerPackageSection),
+  )
+  return new Set(filtered.length > 0 ? filtered : allPackageSections)
+}
+const availableRemoteRestoreSections = computed(() =>
+  getRemoteBackupIncludedSectionSet(selectedRemoteBackup.value)
+)
+const selectedRemoteBackupMissingAssetsCount = computed(() => {
+  const missingAssets = selectedRemoteBackup.value?.manifest?.missingAssets
+  return Array.isArray(missingAssets) ? missingAssets.length : 0
+})
+const resetRemoteRestoreSelection = () => {
+  const available = availableRemoteRestoreSections.value
+  remoteRestoreAppData.value = available.has('appData')
+  remoteRestoreAppDataImages.value = available.has('imageCache')
+  remoteRestoreFavorites.value = available.has('favorites')
+  remoteRestoreFavoriteImages.value = available.has('favoriteImages')
+}
+const hasSelectedRemoteRestoreSection = computed(() =>
+  (remoteRestoreAppData.value && availableRemoteRestoreSections.value.has('appData')) ||
+  (remoteRestoreAppData.value && remoteRestoreAppDataImages.value && availableRemoteRestoreSections.value.has('imageCache')) ||
+  (remoteRestoreFavorites.value && availableRemoteRestoreSections.value.has('favorites')) ||
+  (remoteRestoreFavorites.value && remoteRestoreFavoriteImages.value && availableRemoteRestoreSections.value.has('favoriteImages'))
+)
+
+watch(selectedRemoteBackup, () => {
+  resetRemoteRestoreSelection()
+})
 
 const cloudflareR2Provider = computed(() =>
   remoteSettings.value.provider.kind === 'cloudflare-r2'
@@ -1273,23 +1360,10 @@ const finishRemoteProgress = (messageKey?: string) => {
   }
 }
 
-const openExternalUrl = async (url: string) => {
-  if (typeof window !== 'undefined' && window.electronAPI?.shell) {
-    try {
-      await window.electronAPI.shell.openExternal(url)
-      return
-    } catch (error) {
-      console.error('[DataManager] Failed to open external URL in Electron:', error)
-    }
-  }
-
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
 const openCloudflareR2Link = (
   key: 'dashboard' | 'buckets' | 'apiTokens' | 'docs',
 ) => {
-  void openExternalUrl(cloudflareR2Links.value[key])
+  void openExternalUrl(cloudflareR2Links.value[key], { logPrefix: 'DataManager' })
 }
 
 const writeClipboardText = async (text: string): Promise<void> => {
@@ -1606,7 +1680,16 @@ const toImportSectionSelection = (): DataManagerPackageSectionSelection => ({
 })
 
 const toRemoteRestoreSectionSelection = (): DataManagerPackageSectionSelection => ({
-  ...DEFAULT_DATA_MANAGER_PACKAGE_SECTIONS,
+  appData: remoteRestoreAppData.value && availableRemoteRestoreSections.value.has('appData'),
+  favorites: remoteRestoreFavorites.value && availableRemoteRestoreSections.value.has('favorites'),
+  imageCache:
+    remoteRestoreAppData.value &&
+    remoteRestoreAppDataImages.value &&
+    availableRemoteRestoreSections.value.has('imageCache'),
+  favoriteImages:
+    remoteRestoreFavorites.value &&
+    remoteRestoreFavoriteImages.value &&
+    availableRemoteRestoreSections.value.has('favoriteImages'),
 })
 
 const resetImportSelection = () => {

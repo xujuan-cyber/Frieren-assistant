@@ -283,7 +283,9 @@ const messages = {
       "appDataImages": "Related images",
       "appDataImagesHint": "Images referenced by history and results; current workspace sessions are not included",
       "favoritesBundle": "Favorites",
-      "favoritesBundleHint": "Favorites, categories, tags, prompt assets, examples, versions, and favorite images"
+      "favoritesBundleHint": "Favorites, categories, tags, prompt assets, examples, versions, and favorite images",
+      "favoriteImages": "Favorite images",
+      "favoriteImagesHint": "Images referenced by favorite prompt assets, examples, and versions"
     },
     "contexts": {
       "title": "Context Collections Management",
@@ -421,6 +423,8 @@ const messages = {
       "refreshList": "Refresh Remote Backup List",
       "listFailed": "Failed to load remote backup list: {message}",
       "restoreFrom": "Restore from remote backup",
+      "restoreScope": "Restore contents",
+      "restoreMissingAssetsHint": "This backup was created with {count} missing image resources. Clear image sections to restore only JSON data.",
       "noBackups": "No remote backups",
       "restoreSelected": "Restore Selected Backup",
       "restoreFailed": "Failed to restore remote backup: {message}",

@@ -283,7 +283,9 @@ const messages = {
       "appDataImages": "相关图片",
       "appDataImagesHint": "历史和结果中引用的图片，不包含当前工作区会话",
       "favoritesBundle": "收藏夹",
-      "favoritesBundleHint": "收藏、分类、标签、提示词资产、示例、版本链和收藏图片"
+      "favoritesBundleHint": "收藏、分类、标签、提示词资产、示例、版本链和收藏图片",
+      "favoriteImages": "收藏图片",
+      "favoriteImagesHint": "收藏提示词资产、示例和版本链引用的图片"
     },
     "contexts": {
       "title": "上下文集合管理",
@@ -421,6 +423,8 @@ const messages = {
       "refreshList": "刷新远程备份列表",
       "listFailed": "获取远程备份列表失败：{message}",
       "restoreFrom": "从远程备份还原",
+      "restoreScope": "还原内容",
+      "restoreMissingAssetsHint": "此备份创建时有 {count} 个图片资源缺失，可取消图片内容后只还原 JSON 数据。",
       "noBackups": "暂无远程备份",
       "restoreSelected": "还原选中备份",
       "restoreFailed": "还原远程备份失败：{message}",

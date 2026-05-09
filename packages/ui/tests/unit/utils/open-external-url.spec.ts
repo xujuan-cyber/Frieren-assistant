@@ -51,7 +51,7 @@ describe('openExternalUrl', () => {
     )
   })
 
-  it('falls back to window.open when the desktop bridge fails', async () => {
+  it('does not fall back to window.open when the desktop bridge rejects the URL', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const openExternal = vi.fn().mockRejectedValue(new Error('shell failed'))
     Object.defineProperty(window, 'electronAPI', {
@@ -62,16 +62,32 @@ describe('openExternalUrl', () => {
 
     const result = await openExternalUrl('https://example.com', { logPrefix: 'Test' })
 
-    expect(result).toBe(true)
+    expect(result).toBe(false)
     expect(openExternal).toHaveBeenCalledWith('https://example.com')
-    expect(openSpy).toHaveBeenCalledWith(
-      'https://example.com',
-      '_blank',
-      'noopener,noreferrer',
-    )
+    expect(openSpy).not.toHaveBeenCalled()
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       '[Test] Failed to open external URL in Electron:',
       expect.any(Error),
+    )
+  })
+
+  it('rejects unsupported protocols before any runtime opener is called', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const openExternal = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      writable: true,
+      value: { shell: { openExternal } },
+    })
+
+    const result = await openExternalUrl('file:///tmp/prompt.txt', { logPrefix: 'Test' })
+
+    expect(result).toBe(false)
+    expect(openExternal).not.toHaveBeenCalled()
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[Test] Refused to open unsupported external URL:',
+      'file:///tmp/prompt.txt',
     )
   })
 })

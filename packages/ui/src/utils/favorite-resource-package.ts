@@ -78,7 +78,7 @@ type ExportFavoriteResourcePackageOptions = {
 
 type ImportFavoriteResourcePackageOptions = {
   favoriteManager: Pick<IFavoriteManager, 'importFavorites'>
-  imageStorageService?: Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null
+  imageStorageService?: Pick<IImageStorageService, 'getImage' | 'saveImage'> | null
   mergeStrategy?: 'skip' | 'overwrite' | 'merge'
 }
 

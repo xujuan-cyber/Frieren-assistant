@@ -85,8 +85,8 @@ type ExportDataManagerResourcePackageOptions = {
 type ImportDataManagerResourcePackageOptions = {
   dataManager: Pick<IDataManager, 'importAllData'>
   favoriteManager: Pick<IFavoriteManager, 'importFavorites'> | null | undefined
-  imageStorageService?: Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null
-  favoriteImageStorageService?: Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null
+  imageStorageService?: Pick<IImageStorageService, 'getImage' | 'saveImage'> | null
+  favoriteImageStorageService?: Pick<IImageStorageService, 'getImage' | 'saveImage'> | null
   sections?: Partial<DataManagerPackageSectionSelection>
   favoriteMergeStrategy?: DataManagerFavoritesMergeStrategy
 }
@@ -307,7 +307,7 @@ export const readDataManagerResourcePackage = (
 const getImportStorageService = (
   store: DataManagerImageStoreKey,
   options: ImportDataManagerResourcePackageOptions,
-): Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null | undefined =>
+): Pick<IImageStorageService, 'getImage' | 'saveImage'> | null | undefined =>
   store === 'favoriteImages'
     ? options.favoriteImageStorageService
     : options.imageStorageService

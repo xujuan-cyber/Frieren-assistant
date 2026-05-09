@@ -25,7 +25,7 @@ export type ImageResourceRestoreReport<Problem> = {
   errors: string[]
 }
 
-export type ImageResourceStorage = Pick<IImageStorageService, 'getMetadata' | 'saveImage'>
+export type ImageResourceStorage = Pick<IImageStorageService, 'getImage' | 'saveImage'>
 
 export const copyBytes = (bytes: Uint8Array): Uint8Array => {
   const out = new globalThis.Uint8Array(bytes.byteLength)
@@ -203,8 +203,8 @@ export const restoreImageResource = async (
   bytes: Uint8Array,
   storageService: ImageResourceStorage,
 ): Promise<'restored' | 'skipped'> => {
-  const existing = await storageService.getMetadata(entry.id)
-  if (existing) {
+  const existing = await storageService.getImage(entry.id)
+  if (existing?.data) {
     return 'skipped'
   }
 

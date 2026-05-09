@@ -195,7 +195,7 @@ describe('FavoriteImportPanel', () => {
       }),
     }
     const favoriteImageStorageService = {
-      getMetadata: vi.fn(async () => null),
+      getImage: vi.fn(async () => null),
       saveImage: vi.fn(async (image: FullImageData) => {
         order.push(`save:${image.metadata.id}`)
         return image.metadata.id

@@ -143,8 +143,8 @@ type RestoreRemoteSnapshotOptions = {
   snapshotId: string
   dataManager: Pick<IDataManager, 'importAllData'>
   favoriteManager: Pick<IFavoriteManager, 'importFavorites'> | null | undefined
-  imageStorageService?: Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null
-  favoriteImageStorageService?: Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null
+  imageStorageService?: Pick<IImageStorageService, 'getImage' | 'saveImage'> | null
+  favoriteImageStorageService?: Pick<IImageStorageService, 'getImage' | 'saveImage'> | null
   sections?: Partial<DataManagerPackageSectionSelection>
   favoriteMergeStrategy?: DataManagerFavoritesMergeStrategy
   onProgress?: RemoteSnapshotProgressReporter
@@ -263,7 +263,7 @@ const validateJsonText = (text: string, label: string): void => {
 const getImportStorageService = (
   store: DataManagerImageStoreKey,
   options: RestoreRemoteSnapshotOptions,
-): Pick<IImageStorageService, 'getMetadata' | 'saveImage'> | null | undefined =>
+): Pick<IImageStorageService, 'getImage' | 'saveImage'> | null | undefined =>
   store === 'favoriteImages'
     ? options.favoriteImageStorageService
     : options.imageStorageService
@@ -551,8 +551,8 @@ const prepareRemoteSnapshotRestore = async (
         continue
       }
 
-      const existing = await storageService.getMetadata(asset.id)
-      if (existing) {
+      const existing = await storageService.getImage(asset.id)
+      if (existing?.data) {
         report.skipped += 1
         continue
       }

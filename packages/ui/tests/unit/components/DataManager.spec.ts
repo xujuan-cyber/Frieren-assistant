@@ -575,6 +575,69 @@ describe('DataManager storage breakdown', () => {
     }))
   })
 
+  it('allows remote restore to skip image sections from a partial backup', async () => {
+    window.localStorage.setItem('prompt-optimizer:remote-backup-settings', JSON.stringify({
+      provider: {
+        kind: 'cloudflare-r2',
+        accountId: 'account-123',
+        bucket: 'prompt-optimizer-backups',
+        accessKeyId: 'ak',
+        secretAccessKey: 'sk',
+      },
+    }))
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const setupState = (wrapper.vm as any).$?.setupState
+    setupState.remoteConnectionStates = {
+      ...setupState.remoteConnectionStates,
+      'cloudflare-r2': {
+        ...setupState.remoteConnectionStates['cloudflare-r2'],
+        status: 'connected',
+      },
+    }
+    setupState.remoteBackups = [{
+      id: 'snap-partial',
+      name: 'snap-partial',
+      manifestPath: 'v1/snapshots/snap-partial/manifest.json',
+      updatedAt: '2026-05-06T10:30:00.000Z',
+      manifest: {
+        includedSections: ['appData', 'favorites', 'imageCache', 'favoriteImages'],
+        missingAssets: [
+          { store: 'imageCache', id: 'missing-image' },
+          { store: 'favoriteImages', id: 'missing-favorite-image' },
+        ],
+      },
+    }]
+    setupState.selectedRemoteBackupId = 'snap-partial'
+    await flushPromises()
+
+    setupState.remoteRestoreAppData = true
+    setupState.remoteRestoreFavorites = true
+    setupState.remoteRestoreAppDataImages = false
+    setupState.remoteRestoreFavoriteImages = false
+    await flushPromises()
+
+    const restoreButton = wrapper.findAll('button').find((button) =>
+      button.text().includes('Restore Selected Backup')
+    )
+    expect(restoreButton).toBeTruthy()
+    await restoreButton!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('missing image resources')
+    expect(remoteSnapshotMocks.restoreRemoteSnapshotBackup).toHaveBeenCalledWith(expect.objectContaining({
+      snapshotId: 'snap-partial',
+      sections: {
+        appData: true,
+        favorites: true,
+        imageCache: false,
+        favoriteImages: false,
+      },
+    }))
+  })
+
   it('disables remote backup actions while a remote data operation is running', async () => {
     window.localStorage.setItem('prompt-optimizer:remote-backup-settings', JSON.stringify({
       provider: {

@@ -340,6 +340,32 @@ describe('favoriteResourcePackage', () => {
     expect(order).toEqual(['save:media-asset', 'import:favorites'])
   })
 
+  it('restores package resources when local metadata exists but image bytes are missing', async () => {
+    const favorite = createMediaOnlyFavorite([])
+    const exported = await createFavoriteResourcePackage({
+      favoriteManager: {
+        exportFavorites: vi.fn(async () => JSON.stringify({
+          version: '1.0',
+          favorites: [favorite],
+        })),
+      },
+      imageStorageService: createStorage([createImage('cover-asset', 'cover')]),
+    })
+    const target = createStorage([])
+    target.getMetadata.mockResolvedValue(createImage('cover-asset', 'metadata-only').metadata)
+
+    const result = await importFavoriteResourcePackage(await exported.blob.arrayBuffer(), {
+      favoriteManager: {
+        importFavorites: vi.fn(async () => ({ imported: 1, skipped: 0, errors: [] })),
+      },
+      imageStorageService: target,
+    })
+
+    expect(result.resources.restored).toBe(1)
+    expect(target.saveImage).toHaveBeenCalledTimes(1)
+    expect(target.store.has('cover-asset')).toBe(true)
+  })
+
   it('blocks favorites JSON import when package resources are corrupt', async () => {
     stubSha256Digest()
 

@@ -325,6 +325,42 @@ describe('remote snapshot backup', () => {
     ])
   })
 
+  it('restores remote image assets when local metadata exists but image bytes are missing', async () => {
+    const objectStore = createObjectStore()
+    const exported = await createRemoteSnapshotBackup({
+      objectStore,
+      dataManager: {
+        exportAllData: vi.fn(async () => JSON.stringify({ version: 1, data: {} })),
+      },
+      favoriteManager: null,
+      imageStorageService: createStorage([createImage('session-1', 'session-image')]),
+      favoriteImageStorageService: createStorage([]),
+      sections: {
+        appData: false,
+        favorites: false,
+        imageCache: true,
+        favoriteImages: false,
+      },
+    })
+    const target = createStorage([])
+    target.getMetadata.mockResolvedValue(createImage('session-1', 'metadata-only').metadata)
+
+    const result = await restoreRemoteSnapshotBackup({
+      objectStore,
+      snapshotId: exported.entry.id,
+      dataManager: {
+        importAllData: vi.fn(async () => {}),
+      },
+      favoriteManager: null,
+      imageStorageService: target,
+      favoriteImageStorageService: createStorage([]),
+    })
+
+    expect(result.restored).toBe(1)
+    expect(target.saveImage).toHaveBeenCalledTimes(1)
+    expect(target.store.has('session-1')).toBe(true)
+  })
+
   it('does not restore sections that were not included in the remote snapshot', async () => {
     const objectStore = createObjectStore()
     const exportAllData = vi.fn(async () => JSON.stringify({ version: 1, data: { history: ['local'] } }))

@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   assertImageResourceRestoreReportSafe,
   createFullImageDataFromResource,
+  restoreImageResource,
   safeImageResourceFileName,
   validateImageResourceBytes,
 } from '../../../src/utils/image-resource-backup'
@@ -61,5 +62,42 @@ describe('image resource backup helpers', () => {
 
     expect(image.metadata.mimeType).toBe('image/jpeg')
     expect(image.metadata.source).toBe('generated')
+  })
+
+  it('skips only when local storage can return complete image bytes', async () => {
+    const bytes = new TextEncoder().encode('backup-image')
+    const entry = {
+      kind: 'image' as const,
+      id: 'asset-3',
+      path: 'resources/images/asset-3.png',
+      mimeType: 'image/png',
+      createdAt: 1,
+      source: 'uploaded' as const,
+    }
+    const saveImage = vi.fn(async () => 'asset-3')
+    const metadataOnlyStorage = {
+      getImage: vi.fn(async () => null),
+      saveImage,
+    }
+
+    await expect(restoreImageResource(entry, bytes, metadataOnlyStorage)).resolves.toBe('restored')
+    expect(saveImage).toHaveBeenCalledTimes(1)
+
+    const completeStorage = {
+      getImage: vi.fn(async () => ({
+        metadata: {
+          id: 'asset-3',
+          mimeType: 'image/png',
+          sizeBytes: 1,
+          createdAt: 1,
+          source: 'uploaded' as const,
+        },
+        data: 'x',
+      })),
+      saveImage: vi.fn(async () => 'asset-3'),
+    }
+
+    await expect(restoreImageResource(entry, bytes, completeStorage)).resolves.toBe('skipped')
+    expect(completeStorage.saveImage).not.toHaveBeenCalled()
   })
 })
