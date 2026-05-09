@@ -238,6 +238,30 @@ describe('OutputDisplayCore copy and open action', () => {
     expect(openSpy).not.toHaveBeenCalled()
   })
 
+  it('shows an error when the desktop shell bridge cannot open the selected platform', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const openExternalMock = vi.fn().mockRejectedValue(new Error('shell failed'))
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      writable: true,
+      value: {
+        shell: {
+          openExternal: openExternalMock,
+        },
+      },
+    })
+    const wrapper = mountOutputDisplayCore('Desktop failure')
+
+    await selectCopyAction(wrapper, 'chatgpt')
+    await flushPromises()
+
+    expect(copyTextMock).toHaveBeenCalledWith('Desktop failure')
+    expect(openExternalMock).toHaveBeenCalledWith('https://chatgpt.com/')
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(errorMock).toHaveBeenCalledWith(expect.any(String))
+    consoleErrorSpy.mockRestore()
+  })
+
   it('keeps copy action selections isolated by workspace path', async () => {
     const firstWrapper = mountOutputDisplayCore('Workspace one')
 

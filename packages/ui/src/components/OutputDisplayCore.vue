@@ -477,29 +477,6 @@ const copyDisplayText = async (
   }
 }
 
-// 复制功能
-const handleCopy = async (type: 'content' | 'reasoning' | 'all') => {
-  let textToCopy = ''
-  const emitType: 'content' | 'reasoning' | 'all' = type
-  
-  switch (type) {
-    case 'content':
-      textToCopy = displayContent.value
-      break
-    case 'reasoning':
-      textToCopy = displayReasoning.value
-      break
-    case 'all':
-      textToCopy = [
-        displayReasoning.value && `${t('common.reasoning')}:\n${displayReasoning.value}`,
-        `${t('common.content')}:\n${displayContent.value}`
-      ].filter(Boolean).join('\n\n')
-      break
-  }
-
-  await copyDisplayText(textToCopy, emitType)
-}
-
 const handlePrimaryCopyAction = async () => {
   const textToCopy = displayContent.value
   const copied = await copyDisplayText(textToCopy, 'content')
@@ -509,7 +486,10 @@ const handlePrimaryCopyAction = async () => {
   if (!url) return
 
   try {
-    await openExternalUrl(url, { logPrefix: 'OutputDisplayCore' })
+    const opened = await openExternalUrl(url, { logPrefix: 'OutputDisplayCore' })
+    if (!opened) {
+      message.error(t('copyOpen.openFailed'))
+    }
   } catch (error) {
     console.error('[OutputDisplayCore] Failed to open external AI platform:', error)
     message.error(t('copyOpen.openFailed'))
