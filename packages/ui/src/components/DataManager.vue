@@ -593,19 +593,34 @@
 
           <article class="remote-config-panel">
             <div class="remote-action-row">
-              <NButton type="primary" :loading="isUploadingRemote" @click="handleRemoteUpload">
+              <NButton
+                type="primary"
+                :loading="isUploadingRemote"
+                :disabled="!isCurrentRemoteProviderConfigured || isRemoteDataOperationActive"
+                @click="handleRemoteUpload"
+              >
                 <template #icon>
                   <NIcon><Upload /></NIcon>
                 </template>
                 {{ $t('dataManager.remote.backupNow') }}
               </NButton>
-              <NButton secondary :loading="isLoadingRemoteList" @click="handleRemoteRefresh">
+              <NButton
+                secondary
+                :loading="isLoadingRemoteList"
+                :disabled="!isCurrentRemoteProviderConfigured || isRemoteDataOperationActive"
+                @click="handleRemoteRefresh"
+              >
                 <template #icon>
                   <NIcon><Refresh /></NIcon>
                 </template>
                 {{ $t('dataManager.remote.refreshList') }}
               </NButton>
-              <NButton secondary :loading="isCleaningRemoteAssets" @click="handleRemoteCleanup">
+              <NButton
+                secondary
+                :loading="isCleaningRemoteAssets"
+                :disabled="!isCurrentRemoteProviderConfigured || isRemoteDataOperationActive"
+                @click="handleRemoteCleanup"
+              >
                 <template #icon>
                   <NIcon><Trash /></NIcon>
                 </template>
@@ -661,7 +676,7 @@
               type="success"
               block
               :loading="isRestoringRemote"
-              :disabled="!selectedRemoteBackup"
+              :disabled="!selectedRemoteBackup || isRemoteDataOperationActive"
               @click="handleRemoteRestore"
             >
               <template #icon>
@@ -868,6 +883,12 @@ const isUploadingRemote = ref(false)
 const isLoadingRemoteList = ref(false)
 const isRestoringRemote = ref(false)
 const isCleaningRemoteAssets = ref(false)
+const isRemoteDataOperationActive = computed(() =>
+  isUploadingRemote.value ||
+  isLoadingRemoteList.value ||
+  isRestoringRemote.value ||
+  isCleaningRemoteAssets.value,
+)
 const remoteBackups = ref<RemoteSnapshotEntry[]>([])
 const selectedRemoteBackupId = ref<string | null>(null)
 const remoteProgress = ref({
@@ -1418,9 +1439,13 @@ const refreshRemoteBackups = async (options?: { skipConnectionCheck?: boolean })
   }
 }
 
-const handleRemoteRefresh = () => refreshRemoteBackups()
+const handleRemoteRefresh = () => {
+  if (isRemoteDataOperationActive.value) return
+  refreshRemoteBackups()
+}
 
 const handleRemoteUpload = async () => {
+  if (isRemoteDataOperationActive.value) return
   if (!ensureRemoteConnectionReady()) return
 
   try {
@@ -1465,6 +1490,7 @@ const handleRemoteUpload = async () => {
 }
 
 const handleRemoteRestore = async () => {
+  if (isRemoteDataOperationActive.value) return
   const entry = selectedRemoteBackup.value
   if (!entry) return
   if (!ensureRemoteConnectionReady()) return
@@ -1508,6 +1534,7 @@ const handleRemoteRestore = async () => {
 }
 
 const handleRemoteCleanup = async () => {
+  if (isRemoteDataOperationActive.value) return
   if (!ensureRemoteConnectionReady()) return
 
   try {

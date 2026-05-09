@@ -277,6 +277,80 @@ describe('dataManagerResourcePackage', () => {
     expect(target.store.get('legacy-jpeg')?.metadata.mimeType).toBe('image/jpeg')
   })
 
+  it('does not import app data when selected package resources are missing', async () => {
+    const manifest = {
+      schemaVersion: DATA_MANAGER_RESOURCE_PACKAGE_SCHEMA_VERSION,
+      createdAt: new Date(0).toISOString(),
+      appDataPath: 'app-data.json',
+      favoritesPath: 'favorites.json',
+      missingResources: [],
+      resourceCounts: { imageCache: 1, favoriteImages: 0 },
+      includedSections: ['appData', 'imageCache'],
+      resources: [
+        {
+          kind: 'image',
+          store: 'imageCache',
+          id: 'missing-image',
+          path: 'resources/image-cache/missing-image.png',
+          mimeType: 'image/png',
+          sizeBytes: 10,
+          createdAt: 1700000000000,
+          source: 'uploaded',
+        },
+      ],
+    }
+    const importAllData = vi.fn(async () => {})
+    const target = createStorage([])
+
+    await expect(importDataManagerResourcePackage(zipSync({
+      'manifest.json': toZipBytes(strToU8(JSON.stringify(manifest))),
+      'app-data.json': toZipBytes(strToU8(JSON.stringify({ version: 1, data: { models: ['new'] } }))),
+      'favorites.json': toZipBytes(strToU8(JSON.stringify({ version: '1.0', favorites: [] }))),
+    }), {
+      dataManager: { importAllData },
+      favoriteManager: null,
+      imageStorageService: target,
+      favoriteImageStorageService: createStorage([]),
+    })).rejects.toThrow('resource validation failed: missing=1')
+
+    expect(importAllData).not.toHaveBeenCalled()
+    expect(target.saveImage).not.toHaveBeenCalled()
+  })
+
+  it('ignores missing resources from package sections that are not selected', async () => {
+    const manifest = {
+      schemaVersion: DATA_MANAGER_RESOURCE_PACKAGE_SCHEMA_VERSION,
+      createdAt: new Date(0).toISOString(),
+      appDataPath: 'app-data.json',
+      favoritesPath: 'favorites.json',
+      missingResources: [{ store: 'imageCache', id: 'missing-image' }],
+      resourceCounts: { imageCache: 0, favoriteImages: 0 },
+      includedSections: ['appData', 'imageCache'],
+      resources: [],
+    }
+    const importAllData = vi.fn(async () => {})
+
+    const result = await importDataManagerResourcePackage(zipSync({
+      'manifest.json': toZipBytes(strToU8(JSON.stringify(manifest))),
+      'app-data.json': toZipBytes(strToU8(JSON.stringify({ version: 1, data: { models: ['new'] } }))),
+      'favorites.json': toZipBytes(strToU8(JSON.stringify({ version: '1.0', favorites: [] }))),
+    }), {
+      dataManager: { importAllData },
+      favoriteManager: null,
+      imageStorageService: createStorage([]),
+      favoriteImageStorageService: createStorage([]),
+      sections: {
+        appData: true,
+        favorites: false,
+        imageCache: false,
+        favoriteImages: false,
+      },
+    })
+
+    expect(result.resources.missing).toEqual([])
+    expect(importAllData).toHaveBeenCalledTimes(1)
+  })
+
   it('imports only selected package sections and passes the favorites merge strategy', async () => {
     const exported = await createDataManagerResourcePackage({
       dataManager: {

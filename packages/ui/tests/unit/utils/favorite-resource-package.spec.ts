@@ -133,6 +133,16 @@ const createFavorite = (): FavoritePrompt => ({
   },
 })
 
+const createMediaOnlyFavorite = (assetIds = ['media-asset']): FavoritePrompt => ({
+  ...createFavorite(),
+  metadata: {
+    media: {
+      coverAssetId: 'cover-asset',
+      assetIds,
+    },
+  },
+})
+
 const createStorage = (images: FullImageData[]) => {
   const store = new Map(images.map((image) => [image.metadata.id, image]))
   return {
@@ -282,7 +292,7 @@ describe('favoriteResourcePackage', () => {
   })
 
   it('restores package resources before importing favorites and skips existing resources', async () => {
-    const favorite = createFavorite()
+    const favorite = createMediaOnlyFavorite()
     const sourceStorage = createStorage([
       createImage('cover-asset', 'cover'),
       createImage('media-asset', 'media'),
@@ -330,7 +340,7 @@ describe('favoriteResourcePackage', () => {
     expect(order).toEqual(['save:media-asset', 'import:favorites'])
   })
 
-  it('reports corrupt resources and still imports favorites JSON', async () => {
+  it('blocks favorites JSON import when package resources are corrupt', async () => {
     stubSha256Digest()
 
     const manifest = {
@@ -361,20 +371,42 @@ describe('favoriteResourcePackage', () => {
       importFavorites: vi.fn(async () => ({ imported: 1, skipped: 0, errors: [] })),
     }
 
-    const result = await importFavoriteResourcePackage(packageBytes, {
+    await expect(importFavoriteResourcePackage(packageBytes, {
       favoriteManager: importManager,
       imageStorageService: createStorage([]),
-    })
+    })).rejects.toThrow('Favorite package resource validation failed: corrupt=1')
 
-    expect(result.resources.corrupt).toEqual(['bad-asset'])
-    expect(result.favorites.imported).toBe(1)
-    expect(importManager.importFavorites).toHaveBeenCalled()
+    expect(importManager.importFavorites).not.toHaveBeenCalled()
+  })
+
+  it('blocks favorites JSON import when package manifest has missing resources', async () => {
+    const manifest = {
+      schemaVersion: FAVORITE_RESOURCE_PACKAGE_SCHEMA_VERSION,
+      createdAt: new Date(0).toISOString(),
+      favoriteCount: 1,
+      resourceCount: 0,
+      missingResourceIds: ['missing-cover'],
+      resources: [],
+    }
+    const importManager = {
+      importFavorites: vi.fn(async () => ({ imported: 1, skipped: 0, errors: [] })),
+    }
+
+    await expect(importFavoriteResourcePackage(zipSync({
+      'manifest.json': toZipBytes(strToU8(JSON.stringify(manifest))),
+      'favorites.json': toZipBytes(strToU8(JSON.stringify({ version: '1.0', favorites: [createFavorite()] }))),
+    }), {
+      favoriteManager: importManager,
+      imageStorageService: createStorage([]),
+    })).rejects.toThrow('Favorite package resource validation failed: missing=1')
+
+    expect(importManager.importFavorites).not.toHaveBeenCalled()
   })
 
   it('imports legacy packages with estimated size drift when sha256 still matches', async () => {
     stubSha256Digest()
 
-    const favorite = createFavorite()
+    const favorite = createMediaOnlyFavorite([])
     const exportManager = {
       exportFavorites: vi.fn(async () => JSON.stringify({
         version: '1.0',

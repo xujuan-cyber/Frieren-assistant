@@ -686,6 +686,106 @@ describe('remote backup settings', () => {
     })
   })
 
+  it('lists every Google Drive page before returning recursive entries', async () => {
+    const folderMimeType = 'application/vnd.google-apps.folder'
+    ;(window as unknown as { runtime_config: Record<string, unknown> }).runtime_config = {
+      GOOGLE_DRIVE_CLIENT_ID: 'pagination-client-id.apps.googleusercontent.com',
+    }
+    ;(globalThis as unknown as { google: unknown }).google = {
+      accounts: {
+        oauth2: {
+          initTokenClient: ({ callback }: { callback: (response: { access_token: string }) => void }) => ({
+            requestAccessToken: () => callback({ access_token: 'access-token' }),
+          }),
+        },
+      },
+    }
+
+    const requestedSnapshotPageTokens: Array<string | null> = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      const query = url.searchParams.get('q') || ''
+
+      if (query.includes(`name='${GOOGLE_DRIVE_DEFAULT_BACKUP_FOLDER_NAME}'`)) {
+        return new Response(JSON.stringify({
+          files: [{ id: 'root-folder', name: GOOGLE_DRIVE_DEFAULT_BACKUP_FOLDER_NAME }],
+        }), { headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (query.includes("'root-folder' in parents") && query.includes("name='v1'")) {
+        return new Response(JSON.stringify({
+          files: [{ id: 'v1-folder', mimeType: folderMimeType }],
+        }), { headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (query.includes("'v1-folder' in parents") && query.includes("name='snapshots'")) {
+        return new Response(JSON.stringify({
+          files: [{ id: 'snapshots-folder', mimeType: folderMimeType }],
+        }), { headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (query.includes("'snapshots-folder' in parents")) {
+        const pageToken = url.searchParams.get('pageToken')
+        requestedSnapshotPageTokens.push(pageToken)
+        return new Response(JSON.stringify(pageToken === 'page-2'
+          ? {
+              files: [{ id: 'snap-b-folder', name: 'snap-b', mimeType: folderMimeType }],
+            }
+          : {
+              files: [{ id: 'snap-a-folder', name: 'snap-a', mimeType: folderMimeType }],
+              nextPageToken: 'page-2',
+            }), { headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (query.includes("'snap-a-folder' in parents")) {
+        return new Response(JSON.stringify({
+          files: [{
+            id: 'manifest-a',
+            name: 'manifest.json',
+            mimeType: 'application/json',
+            size: '10',
+            modifiedTime: '2026-05-07T00:00:00.000Z',
+          }],
+        }), { headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (query.includes("'snap-b-folder' in parents")) {
+        return new Response(JSON.stringify({
+          files: [{
+            id: 'manifest-b',
+            name: 'manifest.json',
+            mimeType: 'application/json',
+            size: '20',
+            modifiedTime: '2026-05-08T00:00:00.000Z',
+          }],
+        }), { headers: { 'Content-Type': 'application/json' } })
+      }
+
+      return new Response(JSON.stringify({ files: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+    globalThis.fetch = fetchMock as typeof fetch
+
+    const objectStore = createRemoteObjectStore({ kind: 'google-drive' })
+
+    await expect(objectStore.list('v1/snapshots')).resolves.toEqual([
+      {
+        path: 'v1/snapshots/snap-a/manifest.json',
+        sizeBytes: 10,
+        updatedAt: '2026-05-07T00:00:00.000Z',
+        contentType: 'application/json',
+      },
+      {
+        path: 'v1/snapshots/snap-b/manifest.json',
+        sizeBytes: 20,
+        updatedAt: '2026-05-08T00:00:00.000Z',
+        contentType: 'application/json',
+      },
+    ])
+    expect(requestedSnapshotPageTokens).toEqual([null, 'page-2'])
+  })
+
   it('retries transient Google Drive media download failures', async () => {
     const folderMimeType = 'application/vnd.google-apps.folder'
     ;(window as unknown as { runtime_config: Record<string, unknown> }).runtime_config = {

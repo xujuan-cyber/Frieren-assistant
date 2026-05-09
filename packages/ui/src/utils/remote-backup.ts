@@ -985,31 +985,41 @@ class GoogleDriveRemoteObjectStore extends BaseRemoteObjectStore {
   }
 
   private async listFolderRecursive(folderId: string, folderPath: string): Promise<RemoteObjectEntry[]> {
-    const url = new URL('https://www.googleapis.com/drive/v3/files')
-    url.searchParams.set('q', `'${folderId}' in parents and trashed=false`)
-    url.searchParams.set('fields', 'files(id,name,mimeType,size,modifiedTime)')
-    url.searchParams.set('pageSize', '1000')
-    const response = await this.fetchGoogleDrive(url, {}, 'Google Drive list failed')
-    const payload = await response.json()
-    const files = Array.isArray(payload.files) ? payload.files : []
     const entries: RemoteObjectEntry[] = []
-    for (const file of files) {
-      const name = String(file.name || '')
-      const childPath = joinRemotePath(folderPath, name)
-      const mimeType = String(file.mimeType || '')
-      if (mimeType === GOOGLE_DRIVE_FOLDER_MIME_TYPE) {
-        this.pathIdCache.set(childPath, String(file.id || ''))
-        entries.push(...await this.listFolderRecursive(String(file.id || ''), childPath))
-      } else {
-        this.pathIdCache.set(childPath, String(file.id || ''))
-        entries.push({
-          path: childPath,
-          sizeBytes: typeof file.size === 'string' ? Number(file.size) : undefined,
-          updatedAt: typeof file.modifiedTime === 'string' ? file.modifiedTime : undefined,
-          contentType: mimeType || undefined,
-        })
+    let pageToken: string | undefined
+
+    do {
+      const url = new URL('https://www.googleapis.com/drive/v3/files')
+      url.searchParams.set('q', `'${folderId}' in parents and trashed=false`)
+      url.searchParams.set('fields', 'nextPageToken,files(id,name,mimeType,size,modifiedTime)')
+      url.searchParams.set('pageSize', '1000')
+      if (pageToken) url.searchParams.set('pageToken', pageToken)
+
+      const response = await this.fetchGoogleDrive(url, {}, 'Google Drive list failed')
+      const payload = await response.json()
+      const files = Array.isArray(payload.files) ? payload.files : []
+      for (const file of files) {
+        const name = String(file.name || '')
+        const childPath = joinRemotePath(folderPath, name)
+        const mimeType = String(file.mimeType || '')
+        if (mimeType === GOOGLE_DRIVE_FOLDER_MIME_TYPE) {
+          this.pathIdCache.set(childPath, String(file.id || ''))
+          entries.push(...await this.listFolderRecursive(String(file.id || ''), childPath))
+        } else {
+          this.pathIdCache.set(childPath, String(file.id || ''))
+          entries.push({
+            path: childPath,
+            sizeBytes: typeof file.size === 'string' ? Number(file.size) : undefined,
+            updatedAt: typeof file.modifiedTime === 'string' ? file.modifiedTime : undefined,
+            contentType: mimeType || undefined,
+          })
+        }
       }
-    }
+      pageToken = typeof payload.nextPageToken === 'string' && payload.nextPageToken
+        ? payload.nextPageToken
+        : undefined
+    } while (pageToken)
+
     return entries
   }
 

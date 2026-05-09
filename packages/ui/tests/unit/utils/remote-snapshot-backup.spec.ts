@@ -14,6 +14,20 @@ import type { RemoteObjectStore } from '../../../src/utils/remote-backup'
 
 const encode = (value: string): string => globalThis.btoa(value)
 
+const sha256Hex = async (value: string): Promise<string> => {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+const imageAssetPath = async (
+  store: 'imageCache' | 'favoriteImages',
+  id: string,
+  data: string,
+): Promise<string> =>
+  `v1/assets/${store}/${encodeURIComponent(id)}.${await sha256Hex(data)}.png`
+
 const createImage = (id: string, data: string): FullImageData => ({
   metadata: {
     id,
@@ -129,8 +143,9 @@ const createObjectStore = (initial?: Record<string, string | Uint8Array>): Remot
 
 describe('remote snapshot backup', () => {
   it('creates a manifest snapshot and skips image assets that already exist remotely', async () => {
+    const existingPath = await imageAssetPath('imageCache', 'session-1', 'session-image')
     const objectStore = createObjectStore({
-      'v1/assets/imageCache/session-1.png': new TextEncoder().encode('session-image'),
+      [existingPath]: new TextEncoder().encode('session-image'),
     })
     const progressPhases: string[] = []
 
@@ -155,7 +170,7 @@ describe('remote snapshot backup', () => {
     expect(result.manifest.assets[0]).toMatchObject({
       store: 'imageCache',
       id: 'session-1',
-      path: 'v1/assets/imageCache/session-1.png',
+      path: existingPath,
       mimeType: 'image/png',
     })
     expect(objectStore.putCalls).toEqual([
@@ -171,9 +186,39 @@ describe('remote snapshot backup', () => {
     expect(progressPhases.at(-1)).toBe('done')
   })
 
-  it('reuploads existing image assets when remote size does not match', async () => {
+  it('uses content-addressed image asset paths so same-size stale objects are not reused', async () => {
+    const staleLegacyPath = 'v1/assets/imageCache/session-1.png'
     const objectStore = createObjectStore({
-      'v1/assets/imageCache/session-1.png': new Uint8Array([1, 2, 3]),
+      [staleLegacyPath]: new TextEncoder().encode('different-one'),
+    })
+
+    const result = await createRemoteSnapshotBackup({
+      objectStore,
+      dataManager: {
+        exportAllData: vi.fn(async () => JSON.stringify({ version: 1, data: { models: [] } })),
+      },
+      favoriteManager: {
+        exportFavorites: vi.fn(async () => JSON.stringify({ version: '1.0', favorites: [] })),
+      },
+      imageStorageService: createStorage([createImage('session-1', 'session-image')]),
+      favoriteImageStorageService: createStorage([]),
+    })
+
+    const expectedPath = await imageAssetPath('imageCache', 'session-1', 'session-image')
+    expect(result.uploadedAssets).toBe(1)
+    expect(result.skippedAssets).toBe(0)
+    expect(result.manifest.assets[0].path).toBe(expectedPath)
+    expect(result.manifest.assets[0].path).not.toBe(staleLegacyPath)
+    expect(objectStore.putCalls).toContain(expectedPath)
+    expect(Array.from(objectStore.objects.get(expectedPath)?.bytes ?? [])).toEqual(
+      Array.from(new TextEncoder().encode('session-image')),
+    )
+  })
+
+  it('reuploads existing image assets when remote size does not match', async () => {
+    const existingPath = await imageAssetPath('imageCache', 'session-1', 'session-image')
+    const objectStore = createObjectStore({
+      [existingPath]: new Uint8Array([1, 2, 3]),
     })
 
     const result = await createRemoteSnapshotBackup({
@@ -190,10 +235,36 @@ describe('remote snapshot backup', () => {
 
     expect(result.uploadedAssets).toBe(1)
     expect(result.skippedAssets).toBe(0)
-    expect(objectStore.putCalls).toContain('v1/assets/imageCache/session-1.png')
-    expect(Array.from(objectStore.objects.get('v1/assets/imageCache/session-1.png')?.bytes ?? [])).toEqual(
+    expect(objectStore.putCalls).toContain(existingPath)
+    expect(Array.from(objectStore.objects.get(existingPath)?.bytes ?? [])).toEqual(
       Array.from(new TextEncoder().encode('session-image')),
     )
+  })
+
+  it('reuploads content-addressed image assets when remote size metadata is unavailable', async () => {
+    const existingPath = await imageAssetPath('imageCache', 'session-1', 'session-image')
+    const objectStore = createObjectStore({
+      [existingPath]: new TextEncoder().encode('session-image'),
+    })
+    objectStore.head = vi.fn(async (path: string) =>
+      objectStore.objects.has(path) ? { path } : null,
+    )
+
+    const result = await createRemoteSnapshotBackup({
+      objectStore,
+      dataManager: {
+        exportAllData: vi.fn(async () => JSON.stringify({ version: 1, data: { models: [] } })),
+      },
+      favoriteManager: {
+        exportFavorites: vi.fn(async () => JSON.stringify({ version: '1.0', favorites: [] })),
+      },
+      imageStorageService: createStorage([createImage('session-1', 'session-image')]),
+      favoriteImageStorageService: createStorage([]),
+    })
+
+    expect(result.uploadedAssets).toBe(1)
+    expect(result.skippedAssets).toBe(0)
+    expect(objectStore.putCalls).toContain(existingPath)
   })
 
   it('lists committed snapshots by manifest and restores only after resources validate', async () => {
@@ -341,6 +412,37 @@ describe('remote snapshot backup', () => {
     expect(target.saveImage).not.toHaveBeenCalled()
   })
 
+  it('does not write local data when the remote snapshot was created with missing selected assets', async () => {
+    const manifest: RemoteSnapshotManifest = {
+      schemaVersion: REMOTE_SNAPSHOT_SCHEMA_VERSION,
+      snapshotId: '2026-05-06T10-45-00-000Z',
+      createdAt: new Date(0).toISOString(),
+      appDataPath: 'v1/snapshots/2026-05-06T10-45-00-000Z/app-data.json',
+      favoritesPath: 'v1/snapshots/2026-05-06T10-45-00-000Z/favorites.json',
+      assets: [],
+      missingAssets: [{ store: 'imageCache', id: 'already-missing' }],
+      assetCounts: { imageCache: 0, favoriteImages: 0 },
+      includedSections: ['appData', 'imageCache'],
+    }
+    const objectStore = createObjectStore({
+      [manifest.appDataPath]: JSON.stringify({ version: 1, data: {} }),
+      [manifest.favoritesPath]: JSON.stringify({ version: '1.0', favorites: [] }),
+      'v1/snapshots/2026-05-06T10-45-00-000Z/manifest.json': JSON.stringify(manifest),
+    })
+    const importAllData = vi.fn(async () => {})
+
+    await expect(restoreRemoteSnapshotBackup({
+      objectStore,
+      snapshotId: manifest.snapshotId,
+      dataManager: { importAllData },
+      favoriteManager: null,
+      imageStorageService: createStorage([]),
+      favoriteImageStorageService: createStorage([]),
+    })).rejects.toThrow('validation failed: missing=1')
+
+    expect(importAllData).not.toHaveBeenCalled()
+  })
+
   it('cleans only remote image assets not referenced by committed snapshots', async () => {
     const manifest: RemoteSnapshotManifest = {
       schemaVersion: REMOTE_SNAPSHOT_SCHEMA_VERSION,
@@ -377,6 +479,27 @@ describe('remote snapshot backup', () => {
     expect(result.deleted).toBe(1)
     expect(objectStore.objects.has('v1/assets/imageCache/kept.png')).toBe(true)
     expect(objectStore.objects.has('v1/assets/imageCache/orphan.png')).toBe(false)
+  })
+
+  it('does not clean fresh orphaned assets that may belong to an unfinished snapshot', async () => {
+    const objectStore = createObjectStore({
+      'v1/assets/imageCache/fresh-orphan.png': new Uint8Array([4, 5]),
+    })
+    const object = objectStore.objects.get('v1/assets/imageCache/fresh-orphan.png')
+    if (object) {
+      object.updatedAt = new Date('2026-05-09T00:00:00.000Z').toISOString()
+    }
+
+    const analysis = await analyzeRemoteSnapshotAssetCleanup(objectStore, undefined, {
+      now: new Date('2026-05-09T00:30:00.000Z'),
+    })
+
+    expect(analysis.candidates).toEqual([])
+    const result = await cleanupRemoteSnapshotAssets(objectStore, undefined, {
+      now: new Date('2026-05-09T00:30:00.000Z'),
+    })
+    expect(result.deleted).toBe(0)
+    expect(objectStore.objects.has('v1/assets/imageCache/fresh-orphan.png')).toBe(true)
   })
 
   it('does not clean remote image assets when any snapshot manifest cannot be read', async () => {

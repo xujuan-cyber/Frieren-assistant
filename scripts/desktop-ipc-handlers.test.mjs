@@ -99,6 +99,76 @@ test('desktop remote storage handler routes S3-compatible operations through AWS
   })
 })
 
+test('desktop remote storage S3 list operation follows continuation tokens', async () => {
+  const { handleRemoteStorageOperation } = await import('../packages/desktop/remote-storage.js')
+  const sentCommands = []
+
+  class S3Client {
+    async send(command) {
+      sentCommands.push(command)
+      if (!command.input.ContinuationToken) {
+        return {
+          IsTruncated: true,
+          NextContinuationToken: 'page-2',
+          Contents: [{
+            Key: 'root/v1/snapshots/a/manifest.json',
+            Size: 10,
+            LastModified: new Date('2026-05-07T00:00:00.000Z'),
+          }],
+        }
+      }
+
+      return {
+        IsTruncated: false,
+        Contents: [{
+          Key: 'root/v1/snapshots/b/manifest.json',
+          Size: 20,
+          LastModified: new Date('2026-05-08T00:00:00.000Z'),
+        }],
+      }
+    }
+  }
+
+  class ListObjectsV2Command {
+    constructor(input) {
+      this.input = input
+    }
+  }
+
+  const entries = await handleRemoteStorageOperation({
+    operation: 'list',
+    path: 'v1/snapshots',
+    provider: {
+      kind: 's3-compatible',
+      endpoint: 'https://s3.example.test',
+      region: 'auto',
+      bucket: 'po',
+      accessKeyId: 'ak',
+      secretAccessKey: 'sk',
+      prefix: 'root',
+      forcePathStyle: true,
+    },
+  }, {
+    S3Client,
+    ListObjectsV2Command,
+  })
+
+  assert.deepEqual(entries, [
+    {
+      path: 'v1/snapshots/a/manifest.json',
+      sizeBytes: 10,
+      updatedAt: '2026-05-07T00:00:00.000Z',
+    },
+    {
+      path: 'v1/snapshots/b/manifest.json',
+      sizeBytes: 20,
+      updatedAt: '2026-05-08T00:00:00.000Z',
+    },
+  ])
+  assert.equal(sentCommands.length, 2)
+  assert.deepEqual(sentCommands.map((command) => command.input.ContinuationToken), [undefined, 'page-2'])
+})
+
 test('desktop remote storage handler routes WebDAV operations through the WebDAV client library adapter', async () => {
   const { handleRemoteStorageOperation } = await import('../packages/desktop/remote-storage.js')
   const calls = []

@@ -8,6 +8,18 @@ import type {
 } from '@prompt-optimizer/core'
 
 import { collectFavoritesAssetIds } from './favorite-asset-refs'
+import {
+  assertImageResourceRestoreReportSafe,
+  base64ToBytes,
+  bytesToArrayBuffer,
+  copyBytes,
+  resolveResourceMimeType,
+  restoreImageResource,
+  safeImageResourceFileName,
+  sha256Hex,
+  validateImageResourceBytes,
+  type ImageResourceRestoreReport,
+} from './image-resource-backup'
 
 export const FAVORITE_RESOURCE_PACKAGE_SCHEMA_VERSION = 'prompt-optimizer/favorites-package/v1' as const
 
@@ -47,13 +59,7 @@ export type FavoriteResourcePackageExportResult = {
   missingResourceIds: string[]
 }
 
-export type FavoriteResourceRestoreReport = {
-  restored: number
-  skipped: number
-  missing: string[]
-  corrupt: string[]
-  errors: string[]
-}
+export type FavoriteResourceRestoreReport = ImageResourceRestoreReport<string>
 
 export type FavoriteResourcePackageImportResult = {
   resources: FavoriteResourceRestoreReport
@@ -83,18 +89,7 @@ const IMAGE_RESOURCE_ROOT = 'resources/images/'
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 
-const toZipBytes = (bytes: Uint8Array): Uint8Array => {
-  const out = new globalThis.Uint8Array(bytes.byteLength)
-  out.set(bytes)
-  return out
-}
-
-const textToZipBytes = (text: string): Uint8Array => toZipBytes(strToU8(text))
-
-const toArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const view = toZipBytes(bytes)
-  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer
-}
+const textToZipBytes = (text: string): Uint8Array => copyBytes(strToU8(text))
 
 const parseFavoriteExportJson = (json: string): FavoriteExportJson => {
   const parsed = JSON.parse(json) as unknown
@@ -116,115 +111,6 @@ const parseManifest = (json: string): FavoriteResourcePackageManifest => {
   }
   return parsed as FavoriteResourcePackageManifest
 }
-
-const extensionFromMimeType = (mimeType: string): string => {
-  const normalized = mimeType.toLowerCase().split(';')[0].trim()
-  if (normalized === 'image/jpeg' || normalized === 'image/jpg') return 'jpg'
-  if (normalized === 'image/png') return 'png'
-  if (normalized === 'image/webp') return 'webp'
-  if (normalized === 'image/gif') return 'gif'
-  if (normalized === 'image/svg+xml') return 'svg'
-  return 'bin'
-}
-
-const safeResourceFileName = (id: string, mimeType: string): string =>
-  `${encodeURIComponent(id)}.${extensionFromMimeType(mimeType)}`
-
-const inferMimeTypeFromBytes = (bytes: Uint8Array): string | null => {
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a
-  ) {
-    return 'image/png'
-  }
-
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return 'image/jpeg'
-  }
-
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return 'image/webp'
-  }
-
-  if (
-    bytes.length >= 6 &&
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x38 &&
-    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
-    bytes[5] === 0x61
-  ) {
-    return 'image/gif'
-  }
-
-  return null
-}
-
-const resolveResourceMimeType = (declaredMimeType: string | undefined, bytes: Uint8Array): string =>
-  inferMimeTypeFromBytes(bytes) || declaredMimeType || 'application/octet-stream'
-
-const bytesToBase64 = (bytes: Uint8Array): string => {
-  let binary = ''
-  const chunkSize = 0x8000
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize)
-    binary += String.fromCharCode(...chunk)
-  }
-  return globalThis.btoa(binary)
-}
-
-const base64ToBytes = (base64: string): Uint8Array => {
-  const binary = globalThis.atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return bytes
-}
-
-const sha256Hex = async (bytes: Uint8Array): Promise<string | undefined> => {
-  if (!globalThis.crypto?.subtle) return undefined
-  try {
-    const digest = await globalThis.crypto.subtle.digest('SHA-256', toArrayBuffer(bytes))
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('')
-  } catch {
-    return undefined
-  }
-}
-
-const normalizeImageMetadata = (
-  entry: FavoriteResourceManifestEntry,
-  sizeBytes: number,
-  mimeType: string,
-): ImageMetadata => ({
-  id: entry.id,
-  mimeType,
-  sizeBytes,
-  createdAt: typeof entry.createdAt === 'number' ? entry.createdAt : Date.now(),
-  accessedAt: Date.now(),
-  source: entry.source === 'generated' ? 'generated' : 'uploaded',
-  ...(entry.metadata ? { metadata: entry.metadata } : {}),
-})
 
 const getExportStorageCandidates = (
   options: ExportFavoriteResourcePackageOptions,
@@ -273,8 +159,8 @@ export const createFavoriteResourcePackage = async (
 
     const bytes = base64ToBytes(image.data)
     const mimeType = resolveResourceMimeType(image.metadata.mimeType, bytes)
-    const path = `${IMAGE_RESOURCE_ROOT}${safeResourceFileName(assetId, mimeType)}`
-    files[path] = toZipBytes(bytes)
+    const path = `${IMAGE_RESOURCE_ROOT}${safeImageResourceFileName(assetId, mimeType)}`
+    files[path] = copyBytes(bytes)
     resources.push({
       kind: 'image',
       id: assetId,
@@ -301,7 +187,7 @@ export const createFavoriteResourcePackage = async (
 
   const zipped = zipSync(files, { level: 6 })
   return {
-    blob: new Blob([toArrayBuffer(zipped)], { type: 'application/zip' }),
+    blob: new Blob([bytesToArrayBuffer(zipped)], { type: 'application/zip' }),
     manifest,
     missingResourceIds,
   }
@@ -366,47 +252,19 @@ const restoreFavoritePackageResources = async (
       continue
     }
 
-    if (bytes.byteLength === 0) {
-      report.corrupt.push(resource.id)
-      continue
-    }
-
     try {
-      if (resource.sha256) {
-        const actualHash = await sha256Hex(bytes)
-        if (actualHash && actualHash !== resource.sha256) {
-          report.corrupt.push(resource.id)
-          continue
-        }
-      }
-
-      if (
-        !resource.sha256 &&
-        typeof resource.sizeBytes === 'number' &&
-        Number.isFinite(resource.sizeBytes) &&
-        resource.sizeBytes > 0 &&
-        Math.abs(resource.sizeBytes - bytes.byteLength) > 2
-      ) {
+      const validation = await validateImageResourceBytes(resource, bytes)
+      if (validation !== 'ok') {
         report.corrupt.push(resource.id)
         continue
       }
 
-      const existing = await imageStorageService.getMetadata(resource.id)
-      if (existing) {
+      const restoreResult = await restoreImageResource(resource, bytes, imageStorageService)
+      if (restoreResult === 'skipped') {
         report.skipped += 1
-        continue
+      } else {
+        report.restored += 1
       }
-
-      const imageData: FullImageData = {
-        metadata: normalizeImageMetadata(
-          resource,
-          bytes.byteLength,
-          resolveResourceMimeType(resource.mimeType, bytes),
-        ),
-        data: bytesToBase64(bytes),
-      }
-      await imageStorageService.saveImage(imageData)
-      report.restored += 1
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       report.errors.push(`${resource.id}: ${message}`)
@@ -426,6 +284,7 @@ export const importFavoriteResourcePackage = async (
     files,
     options.imageStorageService,
   )
+  assertImageResourceRestoreReportSafe(resources, 'Favorite package')
   const favorites = await options.favoriteManager.importFavorites(favoritesJson, {
     mergeStrategy: options.mergeStrategy,
   })

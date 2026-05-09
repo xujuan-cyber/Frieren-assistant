@@ -13,6 +13,15 @@ import {
   type DataManagerPackageSection,
   type DataManagerPackageSectionSelection,
 } from './data-manager-resource-package'
+import {
+  base64ToBytes,
+  createFullImageDataFromResource,
+  resolveResourceMimeType,
+  safeImageResourceFileName,
+  sha256Hex,
+  validateImageResourceBytes,
+  type ImageResourceRestoreReport,
+} from './image-resource-backup'
 import { joinRemotePath, type RemoteObjectEntry, type RemoteObjectStore } from './remote-backup'
 
 export const REMOTE_SNAPSHOT_SCHEMA_VERSION = 'prompt-optimizer/remote-snapshot/v1' as const
@@ -21,6 +30,7 @@ export const REMOTE_SNAPSHOT_ROOT = 'v1'
 const APP_DATA_FILE_NAME = 'app-data.json'
 const FAVORITES_FILE_NAME = 'favorites.json'
 const MANIFEST_FILE_NAME = 'manifest.json'
+const REMOTE_SNAPSHOT_CLEANUP_MINIMUM_AGE_MS = 24 * 60 * 60 * 1000
 
 export type RemoteSnapshotAsset = {
   kind: 'image'
@@ -65,12 +75,10 @@ export type RemoteSnapshotBackupResult = {
   missingAssets: Array<{ store: DataManagerImageStoreKey; id: string }>
 }
 
-export type RemoteSnapshotRestoreReport = {
-  restored: number
-  skipped: number
-  missing: Array<{ store: DataManagerImageStoreKey; id: string }>
-  corrupt: Array<{ store: DataManagerImageStoreKey; id: string }>
-  errors: string[]
+export type RemoteSnapshotRestoreReport = ImageResourceRestoreReport<{
+  store: DataManagerImageStoreKey
+  id: string
+}> & {
   imported: {
     appData: boolean
     favorites: boolean
@@ -218,113 +226,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const textEncoder = new TextEncoder()
 
-const toArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const view = new Uint8Array(bytes.byteLength)
-  view.set(bytes)
-  return view.buffer
-}
-
-const bytesToBase64 = (bytes: Uint8Array): string => {
-  let binary = ''
-  const chunkSize = 0x8000
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize)
-    binary += String.fromCharCode(...chunk)
-  }
-  return globalThis.btoa(binary)
-}
-
-const base64ToBytes = (base64: string): Uint8Array => {
-  const binary = globalThis.atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return bytes
-}
-
-const sha256Hex = async (bytes: Uint8Array): Promise<string | undefined> => {
-  if (!globalThis.crypto?.subtle) return undefined
-  try {
-    const digest = await globalThis.crypto.subtle.digest('SHA-256', toArrayBuffer(bytes))
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('')
-  } catch {
-    return undefined
-  }
-}
-
-const extensionFromMimeType = (mimeType: string): string => {
-  const normalized = mimeType.toLowerCase().split(';')[0].trim()
-  if (normalized === 'image/jpeg' || normalized === 'image/jpg') return 'jpg'
-  if (normalized === 'image/png') return 'png'
-  if (normalized === 'image/webp') return 'webp'
-  if (normalized === 'image/gif') return 'gif'
-  if (normalized === 'image/svg+xml') return 'svg'
-  return 'bin'
-}
-
-const inferMimeTypeFromBytes = (bytes: Uint8Array): string | null => {
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a
-  ) {
-    return 'image/png'
-  }
-
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return 'image/jpeg'
-  }
-
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return 'image/webp'
-  }
-
-  if (
-    bytes.length >= 6 &&
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x38 &&
-    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
-    bytes[5] === 0x61
-  ) {
-    return 'image/gif'
-  }
-
-  return null
-}
-
-const resolveResourceMimeType = (declaredMimeType: string | undefined, bytes: Uint8Array): string =>
-  inferMimeTypeFromBytes(bytes) || declaredMimeType || 'application/octet-stream'
-
-const safeAssetFileName = (id: string, mimeType: string): string =>
-  `${encodeURIComponent(id)}.${extensionFromMimeType(mimeType)}`
-
 const remoteAssetPath = (
   store: DataManagerImageStoreKey,
   id: string,
   mimeType: string,
+  contentHash?: string,
 ): string =>
-  joinRemotePath(REMOTE_SNAPSHOT_ROOT, 'assets', store, safeAssetFileName(id, mimeType))
+  joinRemotePath(REMOTE_SNAPSHOT_ROOT, 'assets', store, safeImageResourceFileName(id, mimeType, contentHash))
 
 const parseManifest = (json: string): RemoteSnapshotManifest => {
   const parsed = JSON.parse(json) as unknown
@@ -352,20 +260,6 @@ const validateJsonText = (text: string, label: string): void => {
   }
 }
 
-const normalizeImageMetadata = (
-  asset: RemoteSnapshotAsset,
-  sizeBytes: number,
-  mimeType: string,
-): ImageMetadata => ({
-  id: asset.id,
-  mimeType,
-  sizeBytes,
-  createdAt: typeof asset.createdAt === 'number' ? asset.createdAt : Date.now(),
-  accessedAt: Date.now(),
-  source: asset.source === 'generated' ? 'generated' : 'uploaded',
-  ...(asset.metadata ? { metadata: asset.metadata } : {}),
-})
-
 const getImportStorageService = (
   store: DataManagerImageStoreKey,
   options: RestoreRemoteSnapshotOptions,
@@ -384,12 +278,14 @@ const getRemoteObjectEntry = async (
   return await objectStore.exists(path) ? { path } : null
 }
 
-const remoteObjectMatchesLocalBytes = (
+const remoteObjectCanReuseContentAddressedBytes = (
   remoteEntry: Pick<RemoteObjectEntry, 'sizeBytes'> | null,
   localSizeBytes: number,
+  contentHash: string | undefined,
 ): boolean => {
   if (!remoteEntry) return false
-  if (typeof remoteEntry.sizeBytes !== 'number') return true
+  if (!contentHash) return false
+  if (typeof remoteEntry.sizeBytes !== 'number') return false
   return remoteEntry.sizeBytes === localSizeBytes
 }
 
@@ -428,8 +324,8 @@ const collectStoreAssets = async (
 
     const bytes = base64ToBytes(image.data)
     const mimeType = resolveResourceMimeType(image.metadata.mimeType || metadata.mimeType, bytes)
-    const path = remoteAssetPath(config.key, metadata.id, mimeType)
     const sha256 = await sha256Hex(bytes)
+    const path = remoteAssetPath(config.key, metadata.id, mimeType, sha256)
 
     onProgress?.({
       phase: 'asset-check',
@@ -440,7 +336,7 @@ const collectStoreAssets = async (
       skipped,
     })
     const remoteEntry = await getRemoteObjectEntry(objectStore, path)
-    if (remoteObjectMatchesLocalBytes(remoteEntry, bytes.byteLength)) {
+    if (remoteObjectCanReuseContentAddressedBytes(remoteEntry, bytes.byteLength, sha256)) {
       skipped += 1
     } else {
       onProgress?.({
@@ -649,24 +545,8 @@ const prepareRemoteSnapshotRestore = async (
         item: asset.id,
       })
       const bytes = new Uint8Array(await options.objectStore.get(asset.path))
-      if (bytes.byteLength === 0) {
-        report.corrupt.push({ store: asset.store, id: asset.id })
-        continue
-      }
-      if (asset.sha256) {
-        const actualHash = await sha256Hex(bytes)
-        if (actualHash && actualHash !== asset.sha256) {
-          report.corrupt.push({ store: asset.store, id: asset.id })
-          continue
-        }
-      }
-      if (
-        !asset.sha256 &&
-        typeof asset.sizeBytes === 'number' &&
-        Number.isFinite(asset.sizeBytes) &&
-        asset.sizeBytes > 0 &&
-        Math.abs(asset.sizeBytes - bytes.byteLength) > 2
-      ) {
+      const validation = await validateImageResourceBytes(asset, bytes)
+      if (validation !== 'ok') {
         report.corrupt.push({ store: asset.store, id: asset.id })
         continue
       }
@@ -679,14 +559,7 @@ const prepareRemoteSnapshotRestore = async (
 
       images.push({
         store: asset.store,
-        image: {
-          metadata: normalizeImageMetadata(
-            asset,
-            bytes.byteLength,
-            resolveResourceMimeType(asset.mimeType, bytes),
-          ),
-          data: bytesToBase64(bytes),
-        },
+        image: createFullImageDataFromResource(asset, bytes),
       })
     } catch (error) {
       if (String((error as Error).message || error).includes('not found')) {
@@ -697,6 +570,8 @@ const prepareRemoteSnapshotRestore = async (
     }
   }
 
+  report.missing.push(...manifest.missingAssets.filter((asset) => selectedStores.has(asset.store)))
+
   if (report.missing.length > 0 || report.corrupt.length > 0 || report.errors.length > 0) {
     const details = [
       report.missing.length ? `missing=${report.missing.length}` : '',
@@ -705,8 +580,6 @@ const prepareRemoteSnapshotRestore = async (
     ].filter(Boolean).join(', ')
     throw new Error(`Remote snapshot restore validation failed: ${details}`)
   }
-
-  report.missing.push(...manifest.missingAssets.filter((asset) => selectedStores.has(asset.store)))
 
   return {
     appDataJson,
@@ -787,16 +660,34 @@ const readCommittedSnapshotManifests = async (
   return manifests
 }
 
+const isCleanupCandidateOldEnough = (
+  entry: Pick<RemoteObjectEntry, 'updatedAt'>,
+  nowMs: number,
+  minimumAgeMs: number,
+): boolean => {
+  if (minimumAgeMs <= 0) return true
+  if (!entry.updatedAt) return false
+  const updatedAtMs = Date.parse(entry.updatedAt)
+  return Number.isFinite(updatedAtMs) && nowMs - updatedAtMs >= minimumAgeMs
+}
+
 export const analyzeRemoteSnapshotAssetCleanup = async (
   objectStore: RemoteObjectStore,
   onProgress?: RemoteSnapshotProgressReporter,
+  options?: {
+    minimumAgeMs?: number
+    now?: Date
+  },
 ): Promise<RemoteSnapshotCleanupAnalysis> => {
   onProgress?.({ phase: 'cleanup-analyze' })
+  const nowMs = options?.now?.getTime() ?? Date.now()
+  const minimumAgeMs = options?.minimumAgeMs ?? REMOTE_SNAPSHOT_CLEANUP_MINIMUM_AGE_MS
   const manifests = await readCommittedSnapshotManifests(objectStore)
   const referenced = new Set(manifests.flatMap((manifest) => manifest.assets.map((asset) => asset.path)))
   const remoteAssets = await objectStore.list(joinRemotePath(REMOTE_SNAPSHOT_ROOT, 'assets'))
   const candidates = remoteAssets
     .filter((entry) => !referenced.has(entry.path))
+    .filter((entry) => isCleanupCandidateOldEnough(entry, nowMs, minimumAgeMs))
     .map((entry) => ({
       path: entry.path,
       sizeBytes: entry.sizeBytes,
@@ -813,11 +704,15 @@ export const analyzeRemoteSnapshotAssetCleanup = async (
 export const cleanupRemoteSnapshotAssets = async (
   objectStore: RemoteObjectStore,
   onProgress?: RemoteSnapshotProgressReporter,
+  options?: {
+    minimumAgeMs?: number
+    now?: Date
+  },
 ): Promise<RemoteSnapshotCleanupResult> => {
   if (!objectStore.delete) {
     throw new Error('Remote asset cleanup is not supported by this provider')
   }
-  const analysis = await analyzeRemoteSnapshotAssetCleanup(objectStore, onProgress)
+  const analysis = await analyzeRemoteSnapshotAssetCleanup(objectStore, onProgress, options)
   const failed: Array<{ path: string; message: string }> = []
   let deleted = 0
 

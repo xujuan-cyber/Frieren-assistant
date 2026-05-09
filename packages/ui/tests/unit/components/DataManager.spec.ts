@@ -520,7 +520,29 @@ describe('DataManager storage breakdown', () => {
   })
 
   it('restores remote backups without reusing the selected local import file sections', async () => {
-    remoteSnapshotMocks.listRemoteSnapshotBackups.mockResolvedValue([{
+    window.localStorage.setItem('prompt-optimizer:remote-backup-settings', JSON.stringify({
+      provider: {
+        kind: 'cloudflare-r2',
+        accountId: 'account-123',
+        bucket: 'prompt-optimizer-backups',
+        accessKeyId: 'ak',
+        secretAccessKey: 'sk',
+      },
+    }))
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const setupState = (wrapper.vm as any).$?.setupState
+    expect(setupState).toBeTruthy()
+    setupState.remoteConnectionStates = {
+      ...setupState.remoteConnectionStates,
+      'cloudflare-r2': {
+        ...setupState.remoteConnectionStates['cloudflare-r2'],
+        status: 'connected',
+      },
+    }
+    setupState.remoteBackups = [{
       id: 'snap-1',
       name: 'snap-1',
       manifestPath: 'v1/snapshots/snap-1/manifest.json',
@@ -528,23 +550,11 @@ describe('DataManager storage breakdown', () => {
       manifest: {
         includedSections: ['appData', 'favorites', 'imageCache', 'favoriteImages'],
       },
-    }])
-
-    const wrapper = mountComponent()
-    await flushPromises()
-
-    const setupState = (wrapper.vm as any).$?.setupState
-    expect(setupState).toBeTruthy()
+    }]
+    setupState.selectedRemoteBackupId = 'snap-1'
     setupState.availableImportSections = new Set(['appData'])
     setupState.importFavorites = false
     setupState.importAppDataImages = false
-    await flushPromises()
-
-    const refreshButton = wrapper.findAll('button').find((button) =>
-      button.text().includes('Refresh Remote Backup List')
-    )
-    expect(refreshButton).toBeTruthy()
-    await refreshButton!.trigger('click')
     await flushPromises()
 
     const restoreButton = wrapper.findAll('button').find((button) =>
@@ -563,5 +573,49 @@ describe('DataManager storage breakdown', () => {
         favoriteImages: true,
       },
     }))
+  })
+
+  it('disables remote backup actions while a remote data operation is running', async () => {
+    window.localStorage.setItem('prompt-optimizer:remote-backup-settings', JSON.stringify({
+      provider: {
+        kind: 'cloudflare-r2',
+        accountId: 'account-123',
+        bucket: 'prompt-optimizer-backups',
+        accessKeyId: 'ak',
+        secretAccessKey: 'sk',
+      },
+    }))
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const setupState = (wrapper.vm as any).$?.setupState
+    setupState.remoteBackups = [{
+      id: 'snap-1',
+      name: 'snap-1',
+      manifestPath: 'v1/snapshots/snap-1/manifest.json',
+    }]
+    setupState.selectedRemoteBackupId = 'snap-1'
+    await flushPromises()
+
+    const remoteActionButton = (label: string) => {
+      const button = wrapper.findAll('button').find((candidate) =>
+        candidate.text().includes(label)
+      )
+      expect(button, label).toBeTruthy()
+      return button!
+    }
+
+    const buttons = [
+      remoteActionButton('Create Backup'),
+      remoteActionButton('Refresh Remote Backup List'),
+      remoteActionButton('Clean Unreferenced Images'),
+      remoteActionButton('Restore Selected Backup'),
+    ]
+    expect(buttons.every((button) => (button.element as HTMLButtonElement).disabled)).toBe(false)
+
+    setupState.isLoadingRemoteList = true
+    await flushPromises()
+
+    expect(buttons.every((button) => (button.element as HTMLButtonElement).disabled)).toBe(true)
   })
 })
