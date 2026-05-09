@@ -48,7 +48,7 @@ describe('OpenAIImageAdapter', () => {
         capabilities: {
           text2image: true,
           image2image: expect.any(Boolean),
-          multiImage: expect.any(Boolean)
+          multiImage: true
         },
         parameterDefinitions: expect.any(Array)
       })
@@ -209,6 +209,109 @@ describe('OpenAIImageAdapter', () => {
 
       expect(result.images).toHaveLength(1)
       expect(result.images[0].b64).toBeDefined()
+    })
+
+    test('should submit single image edits with the single image field', async () => {
+      const config: ImageModelConfig = {
+        id: 'test-openai-edit-config',
+        name: 'Test OpenAI Edit Config',
+        providerId: 'openai',
+        modelId: 'gpt-image-2',
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-api-key'
+        },
+        paramOverrides: {
+          size: '1024x1024'
+        }
+      }
+
+      const request: ImageRequest = {
+        prompt: 'make this reference more cinematic',
+        configId: config.id,
+        inputImage: {
+          b64: 'aGVsbG8=',
+          mimeType: 'image/png'
+        },
+        count: 1
+      }
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          data: [{ b64_json: 'ZWRpdA==' }]
+        })
+      })
+
+      await adapter.generate(request, config)
+
+      const [url, options] = (global.fetch as any).mock.calls[0]
+      expect(url).toBe('https://api.openai.com/v1/images/edits')
+      expect(options.body).toBeInstanceOf(FormData)
+
+      const formData = options.body as FormData
+      expect(formData.get('model')).toBe('gpt-image-2')
+      expect(formData.get('prompt')).toBe('make this reference more cinematic')
+      expect(formData.get('size')).toBe('1024x1024')
+      expect(formData.get('n')).toBe('1')
+      expect(formData.getAll('image')).toHaveLength(1)
+      expect(formData.getAll('image[]')).toHaveLength(0)
+    })
+
+    test('should submit multiple edit images as OpenAI image array fields', async () => {
+      const config: ImageModelConfig = {
+        id: 'test-openai-multi-edit-config',
+        name: 'Test OpenAI Multi Edit Config',
+        providerId: 'openai',
+        modelId: 'gpt-image-2',
+        enabled: true,
+        connectionConfig: {
+          apiKey: 'test-api-key'
+        },
+        paramOverrides: {
+          size: '1024x1024',
+          outputMimeType: 'image/png'
+        }
+      }
+
+      const request: ImageRequest = {
+        prompt: 'combine these two references into one scene',
+        configId: config.id,
+        inputImages: [
+          { b64: 'aGVsbG8=', mimeType: 'image/png' },
+          { b64: 'd29ybGQ=', mimeType: 'image/jpeg' }
+        ],
+        count: 1,
+        paramOverrides: {
+          batch_size: 4,
+          n: 3,
+          outputMimeType: 'image/png'
+        }
+      }
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          data: [{ b64_json: 'bXVsdGktZWRpdA==' }]
+        })
+      })
+
+      const result = await adapter.generate(request, config)
+
+      expect(result.images).toHaveLength(1)
+      const [url, options] = (global.fetch as any).mock.calls[0]
+      expect(url).toBe('https://api.openai.com/v1/images/edits')
+      expect(options.body).toBeInstanceOf(FormData)
+
+      const formData = options.body as FormData
+      expect(formData.get('model')).toBe('gpt-image-2')
+      expect(formData.get('prompt')).toBe('combine these two references into one scene')
+      expect(formData.get('size')).toBe('1024x1024')
+      expect(formData.get('n')).toBe('1')
+      expect(formData.get('batch_size')).toBeNull()
+      expect(formData.get('outputMimeType')).toBeNull()
+      expect(formData.getAll('image')).toHaveLength(0)
+      expect(formData.getAll('image[]')).toHaveLength(2)
     })
 
     test('should handle content policy violation', async () => {

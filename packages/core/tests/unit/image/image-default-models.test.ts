@@ -71,6 +71,7 @@ describe('default image models', () => {
     expect(openaiConfig.providerId).toBe('openai')
     expect(openaiConfig.modelId).toBe('gpt-image-2')
     expect(openaiConfig.model.id).toBe('gpt-image-2')
+    expect(openaiConfig.model.capabilities.multiImage).toBe(true)
     expect(openaiConfig.connectionConfig?.apiKey).toBe('openai-key')
     expect(openaiConfig.enabled).toBe(true)
   })
