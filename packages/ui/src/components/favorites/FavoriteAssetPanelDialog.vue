@@ -15,6 +15,7 @@
         :category="category"
         @copy="$emit('copy', $event)"
         @use="(target, options) => $emit('use', target, options)"
+        @share="$emit('share', $event)"
         @edit="$emit('edit', $event)"
         @delete="$emit('delete', $event)"
         @favorite-updated="$emit('favorite-updated', $event)"
@@ -73,6 +74,7 @@ const emit = defineEmits<{
   'update:show': [value: boolean]
   'copy': [favorite: FavoritePrompt]
   'use': [favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }]
+  'share': [favorite: FavoritePrompt]
   'edit': [favorite: FavoritePrompt]
   'delete': [favorite: FavoritePrompt]
   'favorite-updated': [favoriteId: string]

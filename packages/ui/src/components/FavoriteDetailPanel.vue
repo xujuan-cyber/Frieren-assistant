@@ -50,6 +50,16 @@
             {{ t('favorites.manager.card.copyContent') }}
           </NButton>
           <NButton
+            data-testid="favorite-detail-share"
+            secondary
+            @click="$emit('share', favorite)"
+          >
+            <template #icon>
+              <NIcon><Share /></NIcon>
+            </template>
+            {{ t('favorites.share.action') }}
+          </NButton>
+          <NButton
             data-testid="favorite-detail-edit"
             quaternary
             @click="$emit('edit', favorite)"
@@ -445,6 +455,7 @@ import {
   Copy,
   Edit,
   PlayerPlay,
+  Share,
   Trash,
 } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
@@ -485,6 +496,7 @@ const emit = defineEmits<{
   'back': []
   'use': [favorite: FavoritePrompt, options?: { applyExample?: boolean; exampleId?: string; exampleIndex?: number }]
   'copy': [favorite: FavoritePrompt]
+  'share': [favorite: FavoritePrompt]
   'edit': [favorite: FavoritePrompt]
   'delete': [favorite: FavoritePrompt]
   'favorite-updated': [favoriteId: string]

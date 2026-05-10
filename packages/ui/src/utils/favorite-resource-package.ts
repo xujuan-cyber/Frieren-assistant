@@ -76,6 +76,12 @@ type ExportFavoriteResourcePackageOptions = {
   imageStorageServices?: Array<Pick<IImageStorageService, 'getImage'> | null | undefined>
 }
 
+type CreateFavoriteResourcePackageFromJsonOptions = {
+  favoritesJson: string
+  imageStorageService?: Pick<IImageStorageService, 'getImage'> | null
+  imageStorageServices?: Array<Pick<IImageStorageService, 'getImage'> | null | undefined>
+}
+
 type ImportFavoriteResourcePackageOptions = {
   favoriteManager: Pick<IFavoriteManager, 'importFavorites'>
   imageStorageService?: Pick<IImageStorageService, 'getImage' | 'saveImage'> | null
@@ -113,7 +119,7 @@ const parseManifest = (json: string): FavoriteResourcePackageManifest => {
 }
 
 const getExportStorageCandidates = (
-  options: ExportFavoriteResourcePackageOptions,
+  options: Pick<ExportFavoriteResourcePackageOptions, 'imageStorageService' | 'imageStorageServices'>,
 ): Array<Pick<IImageStorageService, 'getImage'>> => {
   const candidates = options.imageStorageServices?.length
     ? options.imageStorageServices
@@ -140,6 +146,17 @@ export const createFavoriteResourcePackage = async (
   options: ExportFavoriteResourcePackageOptions,
 ): Promise<FavoriteResourcePackageExportResult> => {
   const favoritesJson = await options.favoriteManager.exportFavorites()
+  return createFavoriteResourcePackageFromJson({
+    favoritesJson,
+    imageStorageService: options.imageStorageService,
+    imageStorageServices: options.imageStorageServices,
+  })
+}
+
+export const createFavoriteResourcePackageFromJson = async (
+  options: CreateFavoriteResourcePackageFromJsonOptions,
+): Promise<FavoriteResourcePackageExportResult> => {
+  const { favoritesJson } = options
   const exportData = parseFavoriteExportJson(favoritesJson)
   const assetIds = collectFavoritesAssetIds(exportData.favorites)
   const storageCandidates = getExportStorageCandidates(options)

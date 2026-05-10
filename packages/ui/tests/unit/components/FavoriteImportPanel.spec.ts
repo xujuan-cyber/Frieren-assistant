@@ -5,6 +5,7 @@ import type { FullImageData } from '@prompt-optimizer/core'
 
 import FavoriteImportPanel from '../../../src/components/FavoriteImportPanel.vue'
 import { createFavoriteResourcePackage } from '../../../src/utils/favorite-resource-package'
+import { createFavoriteShareHtml } from '../../../src/utils/favorite-share-export'
 
 const toastMock = vi.hoisted(() => ({
   success: vi.fn(),
@@ -111,9 +112,9 @@ const createImage = (id: string, data: string): FullImageData => ({
   data: globalThis.btoa(data),
 })
 
-const mountPanel = (services: Record<string, unknown>) =>
+const mountPanel = (services: Record<string, unknown>, shallow = true) =>
   mount(FavoriteImportPanel, {
-    shallow: true,
+    shallow,
     global: {
       stubs: naiveStubs,
       provide: {
@@ -133,6 +134,14 @@ describe('FavoriteImportPanel', () => {
       path: '/favorites',
       query: { keep: '1' },
     }
+  })
+
+  it('describes HTML and PNG shares as part of the same file upload entry', () => {
+    const wrapper = mountPanel({}, false)
+
+    expect(wrapper.text()).toContain('Same upload entry supports')
+    expect(wrapper.text()).toContain('share .html/.htm')
+    expect(wrapper.text()).toContain('original .png')
   })
 
   it('keeps legacy JSON file import on the file path', async () => {
@@ -214,6 +223,49 @@ describe('FavoriteImportPanel', () => {
       mergeStrategy: 'skip',
     })
     expect(order).toEqual(['save:cover-asset', 'import:favorites'])
+    expect(wrapper.emitted('imported')).toHaveLength(1)
+  })
+
+  it('imports favorite share HTML through the package restore path', async () => {
+    const share = await createFavoriteShareHtml({
+      favorite: {
+        id: 'fav-share',
+        title: 'Share favorite',
+        content: 'shared prompt',
+        createdAt: 1700000000000,
+        updatedAt: 1700000000001,
+        tags: [],
+        useCount: 0,
+        functionMode: 'basic',
+        optimizationMode: 'system',
+      },
+      sections: {
+        description: true,
+        content: true,
+        tags: true,
+        media: true,
+        variables: true,
+        examples: true,
+        versions: false,
+        watermark: true,
+      },
+      imageStorageServices: [],
+    })
+    const file = new File([share.blob], 'share.po-favorite-share.html', {
+      type: 'text/html',
+    })
+    const favoriteManager = {
+      importFavorites: vi.fn(async () => ({ imported: 1, skipped: 0, errors: [] })),
+    }
+    const wrapper = mountPanel({ favoriteManager })
+
+    ;(wrapper.vm as unknown as { fileList: unknown[] }).fileList = [{ file, name: file.name }]
+    await (wrapper.vm as unknown as { handleImportConfirm: () => Promise<void> }).handleImportConfirm()
+    await flushPromises()
+
+    expect(favoriteManager.importFavorites).toHaveBeenCalledWith(expect.stringContaining('Share favorite'), {
+      mergeStrategy: 'skip',
+    })
     expect(wrapper.emitted('imported')).toHaveLength(1)
   })
 

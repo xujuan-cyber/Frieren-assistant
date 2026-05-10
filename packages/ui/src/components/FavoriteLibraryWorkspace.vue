@@ -213,11 +213,17 @@
       :category="getCategoryById(assetPanelFavorite?.category)"
       @copy="handleCopyFavorite"
       @use="handleUseFavorite"
+      @share="handleShareFavorite"
       @edit="handleEditFavorite"
       @delete="handleDeleteFavorite"
       @favorite-updated="handleFavoriteDetailUpdated"
       @saved="handleEditorSaved"
       @imported="handleImportCompleted"
+    />
+
+    <FavoriteShareExportDialog
+      v-model:show="shareExportVisible"
+      :favorite="shareExportFavorite"
     />
 
     <NModal
@@ -283,6 +289,7 @@ import { createFavoriteResourcePackage } from '../utils/favorite-resource-packag
 import CategoryManager from './CategoryManager.vue'
 import CategoryTreeSelect from './CategoryTreeSelect.vue'
 import FavoriteAssetPanelDialog from './favorites/FavoriteAssetPanelDialog.vue'
+import FavoriteShareExportDialog from './favorites/FavoriteShareExportDialog.vue'
 import FavoriteWorkspaceListItem from './FavoriteWorkspaceListItem.vue'
 import TagManager from './TagManager.vue'
 
@@ -370,6 +377,8 @@ const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 14
 
 const categoryManagerVisible = ref(false)
 const tagManagerVisible = ref(false)
+const shareExportVisible = ref(false)
+const shareExportFavorite = ref<FavoritePrompt | null>(null)
 
 const isPageLayout = computed(() => props.layout === 'page')
 const isMobile = computed(() => viewportWidth.value < 1024)
@@ -876,6 +885,11 @@ const handleCopyFavorite = async (favorite: FavoritePrompt) => {
   if (!copied) return
 
   await incrementFavoriteUseCount(favorite.id)
+}
+
+const handleShareFavorite = (favorite: FavoritePrompt) => {
+  shareExportFavorite.value = favorite
+  shareExportVisible.value = true
 }
 
 const incrementFavoriteUseCount = async (id: string) => {
