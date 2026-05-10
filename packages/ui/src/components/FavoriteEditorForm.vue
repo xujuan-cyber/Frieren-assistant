@@ -402,6 +402,11 @@ import { getI18nErrorMessage } from '../utils/error'
 import { buildFavoriteMediaMetadata, parseFavoriteMediaMetadata } from '../utils/favorite-media'
 import { normalizeFavoriteFunctionMode } from '../utils/favorite-mode'
 import {
+  deriveFavoriteCategoryPathFromGardenMeta,
+  ensureFavoriteCategoryPath,
+  loadFavoriteCategoryPathLeafId,
+} from '../utils/favorite-category-path'
+import {
   getEmbeddedFavoritePromptAsset,
   promptContentToEditableText,
 } from '../utils/favorite-prompt-versions'
@@ -474,6 +479,9 @@ type FavoriteReproducibilityExamplePreviews = {
   images: Array<{ assetId: string; source: string }>
   inputImages: Array<{ assetId: string; source: string }>
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 
 const services = inject<Ref<AppServices | null>>('services')
 const message = useToast()
@@ -780,14 +788,35 @@ const hydrateMediaDraft = async (
   mediaDraft.coverIndex = coverSource ? Math.max(0, sources.indexOf(coverSource)) : 0
 }
 
-const resolvePrefillCategoryId = async (candidate?: string): Promise<string> => {
-  const normalized = String(candidate || '').trim()
-  if (!normalized) return ''
+const extractGardenCategoryPathFromMetadata = (metadata: unknown): string[] => {
+  if (!isRecord(metadata)) return []
+  const gardenSnapshot = isRecord(metadata.gardenSnapshot) ? metadata.gardenSnapshot : null
+  if (!gardenSnapshot) return []
+  return deriveFavoriteCategoryPathFromGardenMeta(gardenSnapshot.meta)
+}
 
+const resolvePrefillCategoryId = async (
+  candidate?: string,
+  metadata?: Record<string, unknown>,
+): Promise<string> => {
   const servicesValue = services?.value
   if (!servicesValue?.favoriteManager) return ''
 
   try {
+    const categoryPath = extractGardenCategoryPathFromMetadata(metadata)
+    if (categoryPath.length > 0) {
+      const resolvedFromPath = await loadFavoriteCategoryPathLeafId(
+        servicesValue.favoriteManager,
+        categoryPath,
+      )
+      if (resolvedFromPath) {
+        return resolvedFromPath
+      }
+    }
+
+    const normalized = String(candidate || '').trim()
+    if (!normalized) return ''
+
     const categories = await servicesValue.favoriteManager.getCategories()
     if (categories.some((category) => category.id === normalized)) {
       return normalized
@@ -800,6 +829,23 @@ const resolvePrefillCategoryId = async (candidate?: string): Promise<string> => 
     return matched?.id || ''
   } catch (error) {
     console.warn('[FavoriteEditorForm] Failed to resolve prefill category:', error)
+    return ''
+  }
+}
+
+const ensureSaveModeCategoryId = async (
+  metadata?: Record<string, unknown>,
+): Promise<string> => {
+  const servicesValue = services?.value
+  if (!servicesValue?.favoriteManager) return ''
+
+  const categoryPath = extractGardenCategoryPathFromMetadata(metadata)
+  if (categoryPath.length === 0) return ''
+
+  try {
+    return await ensureFavoriteCategoryPath(servicesValue.favoriteManager, categoryPath) || ''
+  } catch (error) {
+    console.warn('[FavoriteEditorForm] Failed to ensure category path from Garden metadata:', error)
     return ''
   }
 }
@@ -1153,11 +1199,21 @@ const handleSave = async () => {
 
     const sanitizedTags = Array.from(toRaw(formData.tags || [])).map((tag) => String(tag))
 
+    const prefillMetadata =
+      props.mode === 'save' && props.prefill?.metadata && typeof props.prefill.metadata === 'object'
+        ? (props.prefill.metadata as Record<string, unknown>)
+        : undefined
+
+    const resolvedCategoryId = formData.category || await ensureSaveModeCategoryId(prefillMetadata)
+    if (resolvedCategoryId && resolvedCategoryId !== formData.category) {
+      formData.category = resolvedCategoryId
+    }
+
     const basePayload = {
       title: formData.title.trim(),
       description: formData.description.trim(),
       content: formData.content.trim(),
-      category: formData.category,
+      category: resolvedCategoryId,
       tags: sanitizedTags,
       functionMode: formData.functionMode,
       optimizationMode: formData.optimizationMode,
@@ -1314,8 +1370,13 @@ watch(() => [
   }
 
   const prefill = props.prefill
+  const prefillMetadata =
+    prefill?.metadata && typeof prefill.metadata === 'object'
+      ? (prefill.metadata as Record<string, unknown>)
+      : undefined
   const resolvedCategory = await resolvePrefillCategoryId(
     typeof prefill?.category === 'string' ? prefill.category : '',
+    prefillMetadata,
   )
   if (isStale()) return
 
@@ -1361,10 +1422,6 @@ watch(() => [
     formData.imageSubMode = undefined
   }
 
-  const prefillMetadata =
-    prefill?.metadata && typeof prefill.metadata === 'object'
-      ? (prefill.metadata as Record<string, unknown>)
-      : undefined
   // Save prefill is normalized by useAppFavorite so create/save and edit hydrate the same metadata source.
   if (prefill?.reproducibilityDraft && prefill.reproducibilityDraft.examples.length > 0) {
     reviewAddedExampleIds.value = prefill.reproducibilityDraft.examples

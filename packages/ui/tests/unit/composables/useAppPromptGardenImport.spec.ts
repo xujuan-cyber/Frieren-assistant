@@ -217,7 +217,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/prompt-source/NB-001')
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/public/prompt-source/NB-001')
 
       // Navigated to target workspace.
       expect(currentRoute.value.path).toBe('/basic/system')
@@ -385,7 +385,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/prompt-source/NB-PRO-001')
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/public/prompt-source/NB-PRO-001')
 
       // Navigated to target workspace.
       expect(currentRoute.value.path).toBe('/pro/multi')
@@ -565,7 +565,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/prompt-source/NB-PVAR-001')
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/public/prompt-source/NB-PVAR-001')
 
       expect(currentRoute.value.path).toBe('/pro/variable')
 
@@ -821,7 +821,7 @@ describe('useAppPromptGardenImport', () => {
       (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
     >(async (input) => {
       const url = String(input)
-      if (url === 'http://garden.local/api/prompt-source/NB-MULTI-EXAMPLE-001') {
+      if (url === 'http://garden.local/api/public/prompt-source/NB-MULTI-EXAMPLE-001') {
         return new Response(JSON.stringify(v1Payload), {
           status: 200,
           headers: { 'content-type': 'application/json' },
@@ -1109,7 +1109,7 @@ describe('useAppPromptGardenImport', () => {
       await waitForCondition(() => isLoadingExternalData.value === false)
 
       expect(currentRoute.value.path).toBe('/pro/variable')
-      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/prompt-source/NB-PVAR-EX-002')
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('http://garden.local/api/public/prompt-source/NB-PVAR-EX-002')
       expect(proVariableSession.getTemporaryVariable('name')).toBe('Charlie')
 
       // Import params removed from the URL.
@@ -1370,7 +1370,7 @@ describe('useAppPromptGardenImport', () => {
       (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
     >(async (input) => {
       const url = String(input)
-      if (url === 'http://garden.local/api/prompt-source/NB-I2I-001') {
+      if (url === 'http://garden.local/api/public/prompt-source/NB-I2I-001') {
         return new Response(JSON.stringify(v1Payload), {
           status: 200,
           headers: { 'content-type': 'application/json' },
@@ -1598,6 +1598,8 @@ describe('useAppPromptGardenImport', () => {
 
     const favoriteManager = {
       getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      getCategories: vi.fn(async () => []),
+      addCategory: vi.fn(async ({ name }: { name: string }) => `cat-${name}`),
       addFavorite: vi.fn(async (
         _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
       ) => 'fav-new'),
@@ -1650,6 +1652,7 @@ describe('useAppPromptGardenImport', () => {
         title: 'Garden Prompt Title',
         description: 'Garden Prompt Description',
         tags: ['travel', 'city'],
+        categoryPath: ['图像创作', '海报'],
       },
     }
 
@@ -1696,7 +1699,17 @@ describe('useAppPromptGardenImport', () => {
       expect(savedArg.content).toBe('IMPORTED PROMPT')
       expect(savedArg.functionMode).toBe('basic')
       expect(savedArg.optimizationMode).toBe('system')
+      expect(savedArg.category).toBe('cat-海报')
       expect(savedArg.tags).toEqual(['travel', 'city'])
+      expect(favoriteManager.addCategory).toHaveBeenCalledTimes(2)
+      expect(favoriteManager.addCategory).toHaveBeenNthCalledWith(1, expect.objectContaining({
+        name: '图像创作',
+        parentId: undefined,
+      }))
+      expect(favoriteManager.addCategory).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        name: '海报',
+        parentId: 'cat-图像创作',
+      }))
 
       const metadata = savedArg.metadata as Record<string, unknown>
       const snapshot = metadata.gardenSnapshot as Record<string, unknown>
@@ -1791,6 +1804,23 @@ describe('useAppPromptGardenImport', () => {
 
     const favoriteManager = {
       getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      getCategories: vi.fn(async () => [
+        {
+          id: 'cat-text-root',
+          name: '文本生成',
+          parentId: undefined,
+          createdAt: Date.now(),
+          sortOrder: 0,
+        },
+        {
+          id: 'cat-marketing-leaf',
+          name: '营销文案',
+          parentId: 'cat-text-root',
+          createdAt: Date.now(),
+          sortOrder: 0,
+        },
+      ]),
+      addCategory: vi.fn(async ({ name }: { name: string }) => `cat-${name}`),
       addFavorite: vi.fn(async (
         _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
       ) => 'fav-new'),
@@ -1815,6 +1845,7 @@ describe('useAppPromptGardenImport', () => {
             title: 'Confirm Prompt Title',
             description: 'Confirm Prompt Description',
             tags: ['confirm', 'garden'],
+            categoryPath: ['文本生成', '营销文案'],
             categoryKey: '文本生成',
           },
         }),
@@ -1877,11 +1908,12 @@ describe('useAppPromptGardenImport', () => {
       expect(savedArg.prefill?.title).toBe('Confirm Prompt Title')
       expect(savedArg.prefill?.description).toBe('Confirm Prompt Description')
       expect(savedArg.prefill?.tags).toEqual(['confirm', 'garden'])
-      expect(savedArg.prefill?.category).toBe('文本生成')
+      expect(savedArg.prefill?.category).toBe('cat-marketing-leaf')
       expect(savedArg.prefill?.functionMode).toBe('basic')
       expect(savedArg.prefill?.metadata?.gardenSnapshot).toBeTruthy()
 
       expect(favoriteManager.getFavorites).not.toHaveBeenCalled()
+      expect(favoriteManager.getCategories).toHaveBeenCalledTimes(1)
       expect(favoriteManager.addFavorite).not.toHaveBeenCalled()
       expect(favoriteManager.updateFavorite).not.toHaveBeenCalled()
 
@@ -1948,6 +1980,8 @@ describe('useAppPromptGardenImport', () => {
 
     const favoriteManager = {
       getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      getCategories: vi.fn(async () => []),
+      addCategory: vi.fn(async ({ name }: { name: string }) => `cat-${name}`),
       addFavorite: vi.fn(async (
         _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
       ) => 'fav-new'),
@@ -2227,6 +2261,8 @@ describe('useAppPromptGardenImport', () => {
 
     const favoriteManager = {
       getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      getCategories: vi.fn(async () => []),
+      addCategory: vi.fn(async ({ name }: { name: string }) => `cat-${name}`),
       addFavorite: vi.fn(async (
         _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
       ) => 'fav-new'),
@@ -2359,6 +2395,8 @@ describe('useAppPromptGardenImport', () => {
       getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => [
         existingFavorite,
       ]),
+      getCategories: vi.fn(async () => []),
+      addCategory: vi.fn(async ({ name }: { name: string }) => `cat-${name}`),
       addFavorite: vi.fn(async (
         _favorite: Omit<FavoritePrompt, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>
       ) => 'fav-new'),
@@ -2505,6 +2543,8 @@ describe('useAppPromptGardenImport', () => {
 
     const favoriteManager = {
       getFavorites: vi.fn(async (): Promise<FavoritePrompt[]> => []),
+      getCategories: vi.fn(async () => []),
+      addCategory: vi.fn(async ({ name }: { name: string }) => `cat-${name}`),
       addFavorite: vi.fn(async () => {
         throw new Error('favorites payload exceeds hard limit')
       }),

@@ -40,22 +40,32 @@
                             {{ promptSummary }}
                         </NText>
                     </NFlex>
-                    <NButton
-                        type="tertiary"
-                        size="small"
-                        ghost
-                        round
-                        @click="isInputPanelCollapsed = false"
-                        :title="t('common.expand')"
-                    >
-                        <template #icon>
-                            <NIcon>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </NIcon>
-                        </template>
-                    </NButton>
+                    <NFlex align="center" :size="8">
+                        <PromptGardenInspirationPopover
+                            mode="image-image2image"
+                            :has-prompt="!!originalPrompt.trim()"
+                            :disabled="isPromptGardenGuideDisabled"
+                            test-id="image-image2image-prompt-garden-inspiration"
+                            @apply="handlePromptGardenImportConfirm"
+                            @open-import="showPromptGardenImport = true"
+                        />
+                        <NButton
+                            type="tertiary"
+                            size="small"
+                            ghost
+                            round
+                            @click="isInputPanelCollapsed = false"
+                            :title="t('common.expand')"
+                        >
+                            <template #icon>
+                                <NIcon>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </NIcon>
+                            </template>
+                        </NButton>
+                    </NFlex>
                 </NFlex>
 
                 <!-- 展开态：完整输入面板 -->
@@ -70,6 +80,14 @@
                             }}</NText
                         >
                         <NFlex align="center" :size="8">
+                            <PromptGardenInspirationPopover
+                                mode="image-image2image"
+                                :has-prompt="!!originalPrompt.trim()"
+                                :disabled="isPromptGardenGuideDisabled"
+                                test-id="image-image2image-prompt-garden-inspiration"
+                                @apply="handlePromptGardenImportConfirm"
+                                @open-import="showPromptGardenImport = true"
+                            />
                             <NButton
                                 type="tertiary"
                                 size="small"
@@ -145,56 +163,6 @@
                         show-count
                         :disabled="isOptimizing"
                     />
-
-                    <div
-                        v-if="showPromptGardenEmptyGuide"
-                        class="prompt-garden-empty-guide"
-                        data-testid="image-image2image-prompt-garden-guide"
-                    >
-                        <div class="prompt-garden-empty-guide__icon">
-                            <NIcon>
-                                <Plant2 />
-                            </NIcon>
-                        </div>
-                        <div class="prompt-garden-empty-guide__copy">
-                            <NText strong>
-                                {{ t('common.promptGarden.image2ImageGuideTitle') }}
-                            </NText>
-                            <NText depth="3" class="prompt-garden-empty-guide__hint">
-                                {{ t('common.promptGarden.image2ImageGuideHint') }}
-                            </NText>
-                        </div>
-                        <div class="prompt-garden-empty-guide__actions">
-                            <NButton
-                                size="small"
-                                secondary
-                                :disabled="isPromptGardenGuideDisabled"
-                                data-testid="image-image2image-prompt-garden-discover"
-                                @click="handlePromptGardenDiscover"
-                            >
-                                <template #icon>
-                                    <NIcon>
-                                        <ExternalLink />
-                                    </NIcon>
-                                </template>
-                                {{ t('common.promptGarden.discoverShort') }}
-                            </NButton>
-                            <NButton
-                                size="small"
-                                secondary
-                                :disabled="isPromptGardenGuideDisabled"
-                                data-testid="image-image2image-prompt-garden-import"
-                                @click="showPromptGardenImport = true"
-                            >
-                                <template #icon>
-                                    <NIcon>
-                                        <FileImport />
-                                    </NIcon>
-                                </template>
-                                {{ t('common.promptGarden.importShort') }}
-                            </NButton>
-                        </div>
-                    </div>
 
                     <!-- 图片上传区域 - Image2Image 模式始终显示 -->
                     <NSpace
@@ -843,10 +811,10 @@ import {
     NTooltip,
     type UploadFileInfo,
 } from "naive-ui";
-import { ExternalLink, FileImport, Plant2 } from '@vicons/tabler'
 import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
+import PromptGardenInspirationPopover from '../common/PromptGardenInspirationPopover.vue'
 import PromptGardenImportDialog from '../common/PromptGardenImportDialog.vue'
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
@@ -863,7 +831,6 @@ import { getI18nErrorMessage } from '../../utils/error'
 import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
 import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { downloadImageSource } from '../../utils/image-download'
-import { openExternalUrl } from '../../utils/open-external-url'
 import { createImagePromptAnalysisVersion } from '../../utils/imagePromptAnalysis'
 import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import { VariableAwareInput } from '../variable-extraction'
@@ -903,7 +870,6 @@ import { useElementSize } from '@vueuse/core'
 import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
     applyPatchOperationsToText,
-    getEnvVar,
     type ContextMode,
     type ImageModelConfig,
     type Image2ImageRequest,
@@ -1157,26 +1123,9 @@ const handleClearEvaluation = () => {
 
 const showPromptGardenImport = ref(false)
 
-const isPromptGardenEnabled = computed(() => {
-    const value = getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT').trim().toLowerCase()
-    return value === '1' || value === 'true'
-})
-
-const promptGardenBaseUrl = computed(() =>
-    getEnvVar('VITE_PROMPT_GARDEN_BASE_URL').trim().replace(/\/$/, ''),
-)
-
-const showPromptGardenEmptyGuide = computed(() =>
-    isPromptGardenEnabled.value && !originalPrompt.value.trim(),
-)
-
 const isPromptGardenGuideDisabled = computed(() =>
     isOptimizing.value || isIterating.value || isAnyVariantRunning.value,
 )
-
-const handlePromptGardenDiscover = () => {
-    void openExternalUrl(promptGardenBaseUrl.value, { logPrefix: 'PromptGarden' })
-}
 
 const handlePromptGardenImportConfirm = async (request: PromptGardenImportRequest) => {
     if (!request.importCode) return false
@@ -2768,53 +2717,4 @@ onUnmounted(() => {
     overflow: auto;
 }
 
-.prompt-garden-empty-guide {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
-    padding: 10px 12px;
-    border: 1px solid color-mix(in srgb, var(--n-success-color) 10%, var(--n-border-color));
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--n-success-color) 3%, var(--n-color));
-}
-
-.prompt-garden-empty-guide__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    color: color-mix(in srgb, var(--n-success-color) 76%, var(--n-text-color-3));
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--n-success-color) 7%, transparent);
-}
-
-.prompt-garden-empty-guide__copy {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-}
-
-.prompt-garden-empty-guide__hint {
-    line-height: 1.45;
-}
-
-.prompt-garden-empty-guide__actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
-}
-
-@media (max-width: 720px) {
-    .prompt-garden-empty-guide {
-        grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    .prompt-garden-empty-guide__actions {
-        grid-column: 1 / -1;
-        justify-content: flex-start;
-    }
-}
 </style>

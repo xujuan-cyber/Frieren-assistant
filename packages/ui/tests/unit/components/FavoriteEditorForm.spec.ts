@@ -213,6 +213,68 @@ describe('FavoriteEditorForm', () => {
     vi.unstubAllGlobals()
   })
 
+  it('creates missing category path from garden metadata only when save is confirmed', async () => {
+    const addFavorite = vi.fn(async () => 'fav-saved')
+    const getCategories = vi.fn(async () => [])
+    const addCategory = vi.fn(async ({ name }: { name: string }) => `cat-${name}`)
+
+    const wrapper = mount(FavoriteEditorForm, {
+      props: {
+        mode: 'save',
+        content: 'Imported content',
+        prefill: {
+          title: 'Garden Favorite',
+          metadata: {
+            gardenSnapshot: {
+              meta: {
+                categoryPath: ['图像创作', '海报'],
+              },
+            },
+          },
+        },
+      },
+      global: {
+        stubs: naiveStubs,
+        provide: {
+          services: ref({
+            favoriteImageStorageService: {},
+            imageStorageService: {},
+            favoriteManager: {
+              getAllTags: vi.fn(async () => []),
+              addTag: vi.fn(async () => {}),
+              getCategories,
+              addCategory,
+              addFavorite,
+            },
+          } as any),
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(addCategory).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="favorite-editor-save"]').trigger('click')
+    await flushPromises()
+
+    expect(addCategory).toHaveBeenCalledTimes(2)
+    expect(addCategory).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      name: '图像创作',
+      parentId: undefined,
+    }))
+    expect(addCategory).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      name: '海报',
+      parentId: 'cat-图像创作',
+    }))
+    expect(addFavorite).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Garden Favorite',
+      content: 'Imported content',
+      category: 'cat-海报',
+    }))
+    expect(getCategories).toHaveBeenCalled()
+  })
+
   it('ignores stale media hydration after switching edited favorites', async () => {
     const firstCover = createDeferred<string | null>()
     const secondCover = createDeferred<string | null>()

@@ -43,6 +43,11 @@ import {
   getWorkspaceTemporaryVariablesSession,
   type WorkspaceApplyTargetKey,
 } from '../../utils/workspace-external-apply'
+import {
+  deriveFavoriteCategoryPathFromGardenMeta,
+  ensureFavoriteCategoryPath,
+  loadFavoriteCategoryPathLeafId,
+} from '../../utils/favorite-category-path'
 
 type SupportedSubModeKey = WorkspaceApplyTargetKey
 
@@ -144,7 +149,10 @@ type FetchedPrompt = {
   gardenSnapshot: GardenSnapshot
 }
 
-type FavoriteManagerLike = Pick<IFavoriteManager, 'getFavorites' | 'addFavorite' | 'updateFavorite'>
+type FavoriteManagerLike = Pick<
+  IFavoriteManager,
+  'getFavorites' | 'addFavorite' | 'updateFavorite' | 'getCategories' | 'addCategory'
+>
 
 type GardenSnapshotVariable = {
   name: string
@@ -289,6 +297,10 @@ const deriveFavoriteTags = (fetched: FetchedPrompt): string[] => {
   return extractStringArray(snapshotMeta.tags)
 }
 
+const deriveFavoriteCategoryPath = (fetched: FetchedPrompt): string[] => {
+  return deriveFavoriteCategoryPathFromGardenMeta(fetched.gardenSnapshot.meta)
+}
+
 const deriveFavoriteCategory = (fetched: FetchedPrompt): string | undefined => {
   const snapshotMeta = fetched.gardenSnapshot.meta
   if (!snapshotMeta) return undefined
@@ -335,6 +347,8 @@ const saveImportedPromptToFavorites = async (opts: {
     { allowImageFallback: true },
   )
   const media = buildFavoriteMediaFromSnapshot(snapshot)
+  const categoryPath = deriveFavoriteCategoryPath(fetched)
+  const categoryId = await ensureFavoriteCategoryPath(manager, categoryPath)
   const favorites = await manager.getFavorites()
   const existing = favorites.find((favorite) => isSameGardenSnapshotFavorite(favorite, snapshot))
 
@@ -342,6 +356,7 @@ const saveImportedPromptToFavorites = async (opts: {
     const metadataBase = isPlainObject(existing.metadata) ? existing.metadata : {}
     await manager.updateFavorite(existing.id, {
       content,
+      ...(existing.category ? {} : categoryId ? { category: categoryId } : {}),
       functionMode: modeMapping.functionMode,
       optimizationMode: modeMapping.optimizationMode,
       imageSubMode: modeMapping.imageSubMode,
@@ -358,6 +373,7 @@ const saveImportedPromptToFavorites = async (opts: {
     title: deriveFavoriteTitle(fetched),
     description: deriveFavoriteDescription(fetched),
     content,
+    ...(categoryId ? { category: categoryId } : {}),
     tags: deriveFavoriteTags(fetched),
     functionMode: modeMapping.functionMode,
     optimizationMode: modeMapping.optimizationMode,
@@ -487,7 +503,7 @@ const fetchPromptFromGarden = async (opts: {
 
   const url = (() => {
     if (!normalizedGardenBaseUrl) return null
-    return `${normalizedGardenBaseUrl}/api/prompt-source/${encodeURIComponent(importCode)}`
+    return `${normalizedGardenBaseUrl}/api/public/prompt-source/${encodeURIComponent(importCode)}`
   })()
 
   if (!url) {
@@ -1151,6 +1167,11 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 gardenSnapshot: snapshot,
                 ...(media ? { media } : {}),
               }
+              const favoriteManager = getFavoriteManager?.() || null
+              const categoryPath = deriveFavoriteCategoryPath(fetched)
+              const resolvedCategoryFromPath = favoriteManager
+                ? await loadFavoriteCategoryPathLeafId(favoriteManager, categoryPath)
+                : undefined
 
               openSaveFavoriteDialog({
                 content,
@@ -1158,7 +1179,7 @@ export function useAppPromptGardenImport(options: AppPromptGardenImportOptions) 
                 prefill: {
                   title: deriveFavoriteTitle(fetched),
                   description: deriveFavoriteDescription(fetched),
-                  category: deriveFavoriteCategory(fetched),
+                  category: resolvedCategoryFromPath || deriveFavoriteCategory(fetched),
                   tags: deriveFavoriteTags(fetched),
                   functionMode: modeMapping.functionMode,
                   optimizationMode: modeMapping.optimizationMode,

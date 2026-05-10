@@ -22,7 +22,7 @@ Prompt Optimizer 在应用初始 session 恢复完成后检查当前路由 query
 - `importCode`（必填）
   - 外部提示词的唯一标识，例如 `NB-001`
   - 可在导入码后追加示例选择后缀，例如 `NB-001@ex-2`
-  - 追加后缀时，Prompt Optimizer 仍请求 `GET /api/prompt-source/NB-001`，并把 `ex-2` 当作本次导入的示例选择
+  - 追加后缀时，Prompt Optimizer 仍请求 `GET /api/public/prompt-source/NB-001`，并把 `ex-2` 当作本次导入的示例选择；旧路径 `/api/prompt-source/NB-001` 由 Garden 侧做 `307` 兼容跳转
 - `subModeKey`（可选）
   - 显式指定导入目标工作区
   - 若未提供，则优先使用 Garden 返回的 `optimizerTarget.subModeKey`
@@ -75,7 +75,7 @@ Prompt Optimizer 在应用初始 session 恢复完成后检查当前路由 query
 
 Prompt Optimizer 会调用：
 
-`GET {gardenBaseUrl}/api/prompt-source/{encodeURIComponent(importCode)}`
+`GET {gardenBaseUrl}/api/public/prompt-source/{encodeURIComponent(importCode)}`
 
 其中：
 
@@ -354,10 +354,24 @@ Prompt Optimizer 会调用：
   - 收藏描述预填充
 - `tags`
   - 收藏标签预填充
+- `categoryPath`
+  - 收藏分类树导入的首选字段
+  - Prompt Optimizer 会按路径逐级复用或创建分类节点，并将收藏挂到最后一个叶子节点
+- `categoryPathKey`
+  - `categoryPath` 的兼容回退
+  - 用法与 `categoryPath` 一致
 - `categoryKey`
-  - 收藏分类预填充，优先级高于 `category`
+  - 旧版单分类兼容字段
+  - 当 `categoryPath/categoryPathKey` 都缺失时，退化为单节点分类
 - `category`
-  - 收藏分类预填充，作为 `categoryKey` 的回退
+  - 旧版单分类兼容字段，作为 `categoryKey` 的回退
+
+Prompt Optimizer 当前的分类提取优先级为：
+
+1. `meta.categoryPath`
+2. `meta.categoryPathKey`
+3. 旧字段组合 `[meta.category, meta.subcategory]`
+4. `meta.categoryKey`
 
 如果 `meta.title` 缺失，Prompt Optimizer 会退回到 prompt 内容首行生成收藏标题。
 
@@ -392,7 +406,7 @@ Prompt Optimizer 会调用：
 - 用户会看到一个 warning toast
 - 常见原因是 Garden 静态素材的 CORS 配置不正确
 
-因此，若要支持 image2image 的“可复现实例导入”，Garden 不仅要开放 `/api/prompt-source/*`，也要开放示例图片地址。
+因此，若要支持 image2image 的“可复现实例导入”，Garden 不仅要开放 `/api/public/prompt-source/*`，也要开放示例图片地址。旧路径 `/api/prompt-source/*` 只需要保留 `307` 兼容跳转即可。
 
 ## 8. 收藏联动（`saveToFavorites`）
 
@@ -403,6 +417,7 @@ Prompt Optimizer 会调用：
 - Prompt Optimizer 会尝试自动保存到收藏
 - 收藏内容来自 Garden 返回的 prompt
 - `meta` 和 `assets` 会作为 `gardenSnapshot` 一起写入收藏 metadata
+- 如果 `meta.categoryPath/categoryPathKey` 存在，会自动创建或复用分类树，并保存到叶子分类
 - 不会写入或覆盖当前工作区
 
 ### 8.2 确认保存
@@ -411,6 +426,7 @@ Prompt Optimizer 会调用：
 
 - Prompt Optimizer 会打开“保存收藏”对话框
 - 自动带入标题、描述、标签、分类、模式信息和 `gardenSnapshot`
+- 若分类树节点尚不存在，不会在弹窗打开时提前创建；只有用户真正点击保存时才会补建缺失节点
 - 不会写入或覆盖当前工作区
 
 ### 8.3 去重与更新规则
@@ -495,12 +511,12 @@ Prompt Optimizer 仅支持 Mustache 风格变量占位符：
 
 至少需要覆盖两类资源：
 
-- `/api/prompt-source/*`
+- `/api/public/prompt-source/*`
 - `assets.cover.url`、`assets.showcases[*].url/images[*]`、`assets.examples[*].images[*]`、`assets.examples[*].inputImages[*]` 指向的静态资源地址
 
 建议：
 
-- `/api/prompt-source/*` 返回：
+- `/api/public/prompt-source/*` 返回：
   - `Access-Control-Allow-Origin: https://prompt.example.com`，或你的实际部署域名
 - 静态素材地址也返回相同的 `Access-Control-Allow-Origin`
 - 开发环境可临时使用 `*` 联调
