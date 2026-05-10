@@ -2,6 +2,7 @@ import type { TextModelConfig } from './types';
 import type { ITextAdapterRegistry } from '../llm/types';
 import { TextAdapterRegistry } from '../llm/adapters/registry';
 import { getEnvVar } from '../../utils/environment';
+import { normalizeCustomRequestHeaders, validateCustomRequestHeaders } from '../../utils/custom-request-headers';
 import { generateDynamicModels } from './model-utils';
 
 /**
@@ -103,6 +104,25 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
   const customApiKey = getEnvVar('VITE_CUSTOM_API_KEY').trim();
   const customBaseURL = getEnvVar('VITE_CUSTOM_API_BASE_URL');
   const customModelId = getEnvVar('VITE_CUSTOM_API_MODEL') || 'custom-model';
+  const rawCustomHeaders = getEnvVar('VITE_CUSTOM_API_HEADERS');
+  let customHeaders: Record<string, string> | undefined;
+  if (rawCustomHeaders) {
+    try {
+      const parsedHeaders = JSON.parse(rawCustomHeaders);
+      const validation = validateCustomRequestHeaders(parsedHeaders as any);
+      if (validation.valid) {
+        customHeaders = normalizeCustomRequestHeaders(parsedHeaders as any);
+      } else {
+        console.warn(
+          `[getDefaultTextModels] Ignored invalid VITE_CUSTOM_API_HEADERS: ${validation.errors
+            .map(error => `${error.key} (${error.reason})`)
+            .join(', ')}`
+        );
+      }
+    } catch (error) {
+      console.warn('[getDefaultTextModels] Failed to parse VITE_CUSTOM_API_HEADERS:', error);
+    }
+  }
   const customModelMeta = {
     ...openaiCompatibleAdapter.buildDefaultModel(customModelId),
     name: customModelId,
@@ -118,7 +138,8 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
     connectionConfig: {
       apiKey: customApiKey,
       baseURL: customBaseURL || 'http://localhost:11434/v1',
-      requestStyle: 'chat_completions'
+      requestStyle: 'chat_completions',
+      ...(customHeaders ? { customHeaders } : {})
     },
     paramOverrides: { ...(customModelMeta.defaultParameterValues || {}) },
     customParamOverrides: {}

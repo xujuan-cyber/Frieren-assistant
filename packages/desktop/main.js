@@ -600,7 +600,9 @@ async function initializeServices() {
       'VITE_MODELSCOPE_API_KEY',
       'VITE_CUSTOM_API_KEY',
       'VITE_CUSTOM_API_BASE_URL',
-      'VITE_CUSTOM_API_MODEL'
+      'VITE_CUSTOM_API_MODEL',
+      'VITE_CUSTOM_API_PARAMS',
+      'VITE_CUSTOM_API_HEADERS'
     ];
 
     // 扫描动态自定义模型环境变量

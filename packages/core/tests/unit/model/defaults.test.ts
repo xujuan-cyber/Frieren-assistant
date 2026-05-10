@@ -10,6 +10,7 @@ describe('model defaults provider env mapping', () => {
   const originalCustomApiKey = process.env.VITE_CUSTOM_API_KEY
   const originalCustomApiBaseUrl = process.env.VITE_CUSTOM_API_BASE_URL
   const originalCustomApiModel = process.env.VITE_CUSTOM_API_MODEL
+  const originalCustomApiHeaders = process.env.VITE_CUSTOM_API_HEADERS
 
   beforeEach(() => {
     delete process.env.VITE_ANTHROPIC_API_KEY
@@ -20,14 +21,15 @@ describe('model defaults provider env mapping', () => {
     delete process.env.VITE_CUSTOM_API_KEY
     delete process.env.VITE_CUSTOM_API_BASE_URL
     delete process.env.VITE_CUSTOM_API_MODEL
+    delete process.env.VITE_CUSTOM_API_HEADERS
   })
 
   afterAll(() => {
     if (originalAnthropicApiKey === undefined) {
       delete process.env.VITE_ANTHROPIC_API_KEY
-      return
+    } else {
+      process.env.VITE_ANTHROPIC_API_KEY = originalAnthropicApiKey
     }
-    process.env.VITE_ANTHROPIC_API_KEY = originalAnthropicApiKey
 
     if (originalCloudflareApiKey === undefined) {
       delete process.env.VITE_CF_API_TOKEN
@@ -69,6 +71,12 @@ describe('model defaults provider env mapping', () => {
       delete process.env.VITE_CUSTOM_API_MODEL
     } else {
       process.env.VITE_CUSTOM_API_MODEL = originalCustomApiModel
+    }
+
+    if (originalCustomApiHeaders === undefined) {
+      delete process.env.VITE_CUSTOM_API_HEADERS
+    } else {
+      process.env.VITE_CUSTOM_API_HEADERS = originalCustomApiHeaders
     }
   })
 
@@ -140,6 +148,16 @@ describe('model defaults provider env mapping', () => {
     expect(models.custom.enabled).toBe(true)
     expect(models.custom.connectionConfig.apiKey).toBe('')
     expect(models.custom.connectionConfig.requestStyle).toBe('chat_completions')
+  })
+
+  it('should expose VITE_CUSTOM_API_HEADERS on the custom preset connection config', () => {
+    process.env.VITE_CUSTOM_API_HEADERS = '{"x-auth-token":"gateway-token"}'
+
+    const models = getDefaultTextModels()
+
+    expect(models.custom.connectionConfig.customHeaders).toEqual({
+      'x-auth-token': 'gateway-token'
+    })
   })
 
   it('should use DeepSeek V4 Flash with thinking disabled by default', () => {

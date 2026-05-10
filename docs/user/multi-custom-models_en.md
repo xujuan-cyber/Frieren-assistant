@@ -23,6 +23,7 @@ VITE_CUSTOM_API_KEY_<suffix>=your-api-key          # Required
 VITE_CUSTOM_API_BASE_URL_<suffix>=your-base-url    # Required
 VITE_CUSTOM_API_MODEL_<suffix>=your-model-name     # Required
 VITE_CUSTOM_API_PARAMS_<suffix>=json-object-string # Optional extra request parameters
+VITE_CUSTOM_API_HEADERS_<suffix>=json-object-string # Optional extra request headers
 ```
 
 ### Configuration Requirements
@@ -32,6 +33,7 @@ VITE_CUSTOM_API_PARAMS_<suffix>=json-object-string # Optional extra request para
 - **BASE_URL**: Required, API service base URL
 - **MODEL**: Required, specific model name
 - **PARAMS**: Optional JSON object string injected into the final request body
+- **HEADERS**: Optional JSON object string sent as request headers, intended for gateway headers such as `x-auth-token` or `x-tenant-id`
 
 ### Configuration Examples
 
@@ -87,6 +89,14 @@ VITE_CUSTOM_API_PARAMS_dev={"temperature":0.4}
 
 ### Extra Request Parameters
 
+`VITE_CUSTOM_API_HEADERS_<suffix>` is useful when an enterprise gateway requires additional authentication or tenant headers, for example:
+
+```bash
+VITE_CUSTOM_API_HEADERS_company='{"x-auth-token":"gateway-token","x-tenant-id":"team-a"}'
+```
+
+Header configuration only applies to Custom API (OpenAI Compatible). `Authorization` is still generated from the API key, and `Content-Type` is managed by the client and SDK.
+
 `VITE_CUSTOM_API_PARAMS_<suffix>` is useful when you need to:
 
 - set standard OpenAI-compatible fields such as `temperature`, `top_p`, or `max_tokens`
@@ -111,6 +121,7 @@ Notes:
 - `PARAMS` must be a JSON object string
 - `model`, `messages`, and `stream` are reserved and will be ignored automatically
 - `timeout` is allowed and can be used to override request timeout behavior
+- `HEADERS` cannot override client/browser-managed headers such as `Authorization`, `Content-Type`, `Host`, or `Cookie`
 - for complex Docker Compose values, wrap the entire JSON string in single quotes
 
 ## Deployment Methods

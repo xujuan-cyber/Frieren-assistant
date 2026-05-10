@@ -363,6 +363,12 @@
                                         @focus="handleTextModelSelectFocus"
                                     />
                                 </template>
+                                <TextModelQuickSwitch
+                                    :model-key="selectedTextModelKey"
+                                    :options="textModelOptions"
+                                    :refresh-models="modelSelection.refreshTextModels"
+                                    :disabled="isOptimizing"
+                                />
                             </NSpace>
                         </NGridItem>
 
@@ -917,6 +923,7 @@ import PromptGardenInspirationPopover from '../common/PromptGardenInspirationPop
 import PromptGardenImportDialog from '../common/PromptGardenImportDialog.vue'
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
+import TextModelQuickSwitch from "../TextModelQuickSwitch.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import { AnalyzeActionIcon, EvaluationPanel, EvaluationScoreBadge, FocusAnalyzeButton } from '../evaluation'
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'

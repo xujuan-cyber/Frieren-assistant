@@ -15,6 +15,7 @@ import {
   isTextModelConfig
 } from './converter';
 import type { ITextAdapterRegistry } from '../llm/types';
+import { hasTextModelMetadataIdentityMismatch } from './metadata-resolver';
 
 /**
  * 模型管理器实现
@@ -871,6 +872,11 @@ export class ModelManager implements IModelManager {
     }
     if (!config.modelMeta || !config.modelMeta.id) {
       errors.push('Missing or invalid model metadata (modelMeta)');
+    }
+    if (hasTextModelMetadataIdentityMismatch(config.providerMeta, config.modelMeta)) {
+      errors.push(
+        `Provider/model metadata mismatch: providerMeta.id '${config.providerMeta?.id}' does not match modelMeta.providerId '${config.modelMeta?.providerId}'`
+      );
     }
     if (!config.connectionConfig) {
       errors.push('Missing connection configuration (connectionConfig)');

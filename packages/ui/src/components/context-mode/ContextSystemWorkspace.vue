@@ -74,6 +74,12 @@
                                         :getValue="OptionAccessors.getValue"
                                         @config="handleOpenModelManager"
                                     />
+                                    <TextModelQuickSwitch
+                                        :model-key="selectedOptimizeModelKeyModel"
+                                        :options="modelSelection.textModelOptions.value"
+                                        :refresh-models="modelSelection.refreshTextModels"
+                                        :disabled="conversationOptimization.isOptimizing.value"
+                                    />
                                 </NFlex>
 
                                 <!-- 模板选择 -->
@@ -505,6 +511,7 @@ import ConversationManager from "./ConversationManager.vue";
 import OutputDisplay from "../OutputDisplay.vue";
 import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import SelectWithConfig from "../SelectWithConfig.vue";
+import TextModelQuickSwitch from "../TextModelQuickSwitch.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ToolCallDisplay from "../ToolCallDisplay.vue";
 import {

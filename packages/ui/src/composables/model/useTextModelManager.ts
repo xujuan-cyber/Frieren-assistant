@@ -4,17 +4,22 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from '../ui/useToast'
 import {
   type ModelOption,
+  type CustomRequestHeaderInput,
   type TextModel,
   type TextModelConfig,
   type TextProvider,
-  getBuiltinModelIds
+  getBuiltinModelIds,
+  normalizeCustomRequestHeaders,
+  resolveTextModelMetadata,
+  validateCustomRequestHeaders
 } from '@prompt-optimizer/core'
 import { formatErrorSummary, getI18nErrorMessage } from '../../utils/error'
 import { useModelAdvancedParameters } from './useModelAdvancedParameters'
 import { computeConnectionConfig } from './useConnectionConfig'
 import type { AppServices } from '../../types/services'
 
-type TextConnectionValue = string | number | boolean | undefined
+type CustomHeaderRow = { key?: unknown; name?: unknown; value?: unknown }
+type TextConnectionValue = string | number | boolean | Record<string, string> | CustomHeaderRow[] | undefined
 interface TextConnectionConfig {
   [key: string]: TextConnectionValue
 }
@@ -216,6 +221,43 @@ export function useTextModelManager() {
 
   const isDefaultModel = (id: string) => {
     return getBuiltinModelIds().includes(id)
+  }
+
+  const getCustomHeaderValidationMessage = () => {
+    if (form.value.providerId !== 'openai-compatible') return null
+
+    const validation = validateCustomRequestHeaders(
+      form.value.connectionConfig.customHeaders as CustomRequestHeaderInput
+    )
+    if (validation.valid) return null
+
+    const details = validation.errors
+      .map((error) => {
+        const reasonKey = `modelManager.customHeaders.validation.${error.reason}`
+        const reason = t(reasonKey)
+        return `${error.key}: ${reason === reasonKey ? error.reason : reason}`
+      })
+      .join('; ')
+
+    return t('modelManager.customHeaders.validationError', { details })
+  }
+
+  const normalizeConnectionCustomHeaders = (connectionConfig: TextConnectionConfig): TextConnectionConfig => {
+    if (form.value.providerId !== 'openai-compatible') {
+      connectionConfig.customHeaders = undefined
+      return connectionConfig
+    }
+
+    const customHeaders = normalizeCustomRequestHeaders(
+      connectionConfig.customHeaders as CustomRequestHeaderInput
+    )
+    if (customHeaders) {
+      connectionConfig.customHeaders = customHeaders
+    } else {
+      connectionConfig.customHeaders = undefined
+    }
+
+    return connectionConfig
   }
 
   const resetFormState = () => {
@@ -523,6 +565,12 @@ export function useTextModelManager() {
   const refreshModelOptions = async (showSuccess = true) => {
     if (!form.value.providerId) return
 
+    const customHeaderError = getCustomHeaderValidationMessage()
+    if (customHeaderError) {
+      toast.error(customHeaderError)
+      return
+    }
+
     const baseURL = (form.value.connectionConfig.baseURL as string)?.trim()
     if (!baseURL) {
       toast.error(t('modelManager.needBaseUrl'))
@@ -542,11 +590,15 @@ export function useTextModelManager() {
           ? form.value.originalApiKey
           : form.value.connectionConfig.apiKey
       }
+      normalizeConnectionCustomHeaders(connectionConfig)
 
       const existingConfig = form.value.originalId ? await modelManager.getModel(form.value.originalId) : undefined
 
-      let providerMeta = providers.value.find(p => p.id === providerTemplateId) || existingConfig?.providerMeta
-      let modelMeta = existingConfig?.modelMeta
+      let { providerMeta, modelMeta } = resolveFormMetadata(
+        providerTemplateId,
+        form.value.modelId,
+        existingConfig
+      )
 
       if (textAdapterRegistry && providerTemplateId) {
         try {
@@ -582,6 +634,7 @@ export function useTextModelManager() {
 
       if (fetchedModels.length > 0 && !fetchedModels.some((m: { value: string }) => m.value === form.value.modelId)) {
         form.value.modelId = fetchedModels[0].value
+        form.value.defaultModel = fetchedModels[0].value
       }
     } catch (error: unknown) {
       console.error('Failed to fetch model list:', error)
@@ -610,22 +663,17 @@ export function useTextModelManager() {
     }
   }
 
-  const ensureProviderMeta = (providerId: string, existing?: TextProvider) => {
-    if (existing) return existing
-    const adapter = textAdapterRegistry.getAdapter(providerId)
-    return adapter.getProvider()
-  }
-
-   
-  const ensureModelMeta = (providerId: string, modelId: string, _existing?: TextModel) => {
-    const adapter = textAdapterRegistry.getAdapter(providerId)
-    const staticModels = adapter.getModels()
-    const foundModel = staticModels.find((m: TextModel) => m.id === modelId)
-    if (foundModel) {
-      return foundModel
-    }
-    return adapter.buildDefaultModel(modelId)
-  }
+  const resolveFormMetadata = (
+    providerId: string,
+    modelId: string,
+    existingConfig?: TextModelConfig
+  ) => resolveTextModelMetadata({
+    providerId,
+    modelId,
+    registry: textAdapterRegistry,
+    existingProviderMeta: existingConfig?.providerMeta,
+    existingModelMeta: existingConfig?.modelMeta
+  })
 
   const updateExistingModel = async () => {
     if (!form.value.originalId) {
@@ -653,9 +701,13 @@ export function useTextModelManager() {
     } else {
       delete connectionConfig.apiKey
     }
+    normalizeConnectionCustomHeaders(connectionConfig)
 
-    const providerMeta = ensureProviderMeta(form.value.providerId, existingConfig.providerMeta)
-    const modelMeta = ensureModelMeta(form.value.providerId, form.value.modelId, existingConfig.modelMeta)
+    const { providerMeta, modelMeta } = resolveFormMetadata(
+      form.value.providerId,
+      form.value.modelId,
+      existingConfig
+    )
 
     const updates = {
       name: form.value.name,
@@ -689,8 +741,10 @@ export function useTextModelManager() {
       throw new Error(t('modelManager.modelIdGenerateFailed'))
     }
 
-    const providerMeta = ensureProviderMeta(form.value.providerId)
-    const modelMeta = ensureModelMeta(form.value.providerId, form.value.defaultModel || form.value.modelId)
+    const { providerMeta, modelMeta } = resolveFormMetadata(
+      form.value.providerId,
+      form.value.defaultModel || form.value.modelId
+    )
 
     const connectionConfig: TextConnectionConfig = {
       ...form.value.connectionConfig
@@ -698,6 +752,7 @@ export function useTextModelManager() {
     if (form.value.displayMaskedKey && form.value.originalApiKey) {
       connectionConfig.apiKey = form.value.originalApiKey
     }
+    normalizeConnectionCustomHeaders(connectionConfig)
 
     const newConfig = {
       id: modelKey,
@@ -717,6 +772,11 @@ export function useTextModelManager() {
     if (isSaving.value) return null
     isSaving.value = true
     try {
+      const customHeaderError = getCustomHeaderValidationMessage()
+      if (customHeaderError) {
+        throw new Error(customHeaderError)
+      }
+
       const savedId = editingModelId.value ? await updateExistingModel() : await createNewModel()
       await loadModels()
       return savedId
@@ -737,11 +797,19 @@ export function useTextModelManager() {
         throw new Error('No model selected')
       }
 
+      const customHeaderError = getCustomHeaderValidationMessage()
+      if (customHeaderError) {
+        throw new Error(customHeaderError)
+      }
+
       // 编辑模式下获取现有配置，新增模式下为 undefined
       const existingConfig = editingModelId.value ? await modelManager.getModel(editingModelId.value) : undefined
 
-      const providerMeta = ensureProviderMeta(form.value.providerId, existingConfig?.providerMeta)
-      const modelMeta = ensureModelMeta(form.value.providerId, form.value.modelId, existingConfig?.modelMeta)
+      const { providerMeta, modelMeta } = resolveFormMetadata(
+        form.value.providerId,
+        form.value.modelId,
+        existingConfig
+      )
 
       const baseURL = typeof form.value.connectionConfig?.baseURL === 'string'
         ? form.value.connectionConfig.baseURL.trim()
@@ -755,6 +823,7 @@ export function useTextModelManager() {
           ? form.value.originalApiKey
           : (form.value.connectionConfig.apiKey || existingConfig?.connectionConfig?.apiKey)
       }
+      normalizeConnectionCustomHeaders(connectionConfig)
 
       const tempConfig = {
         id: `temp-test-${editingModelId.value || 'new'}-${Date.now()}`,

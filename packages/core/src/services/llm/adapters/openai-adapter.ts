@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { AbstractTextProviderAdapter } from './abstract-adapter'
 import { APIError } from '../errors'
+import { normalizeCustomRequestHeaders } from '../../../utils/custom-request-headers'
 import type {
   TextProvider,
   TextModel,
@@ -731,6 +732,18 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
     return sanitized
   }
 
+  private getCustomDefaultHeaders(config: TextModelConfig): Record<string, string> | undefined {
+    const isCustomOpenAICompatible =
+      this.getProvider().id === 'openai-compatible' ||
+      config.providerMeta?.id === 'openai-compatible'
+
+    if (!isCustomOpenAICompatible) {
+      return undefined
+    }
+
+    return normalizeCustomRequestHeaders(config.connectionConfig?.customHeaders as any)
+  }
+
   // ===== SDK实例创建（从service.ts迁移） =====
 
   /**
@@ -765,6 +778,11 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
       baseURL: processedBaseURL,
       timeout: timeout,
       maxRetries: isStream ? 2 : 3
+    }
+
+    const customDefaultHeaders = this.getCustomDefaultHeaders(config)
+    if (customDefaultHeaders) {
+      sdkConfig.defaultHeaders = customDefaultHeaders
     }
 
     const runtimeFetch =

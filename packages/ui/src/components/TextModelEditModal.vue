@@ -119,6 +119,49 @@
             </template>
           </NFormItem>
 
+          <NFormItem v-if="showCustomHeaders" :label="t('modelManager.customHeaders.label')">
+            <div class="custom-headers-editor">
+              <NText depth="3" class="custom-headers-hint">
+                {{ t('modelManager.customHeaders.hint') }}
+              </NText>
+
+              <div
+                v-for="(row, index) in customHeaderRows"
+                :key="index"
+                class="custom-header-row"
+              >
+                <NInput
+                  :value="row.key"
+                  :placeholder="t('modelManager.customHeaders.namePlaceholder')"
+                  @update:value="updateCustomHeaderRow(index, { key: $event })"
+                />
+                <NInput
+                  :value="row.value"
+                  type="password"
+                  show-password-on="click"
+                  :placeholder="t('modelManager.customHeaders.valuePlaceholder')"
+                  @update:value="updateCustomHeaderRow(index, { value: $event })"
+                />
+                <NButton
+                  quaternary
+                  type="error"
+                  size="small"
+                  @click="removeCustomHeaderRow(index)"
+                >
+                  {{ t('common.remove') }}
+                </NButton>
+              </div>
+
+              <NText v-if="customHeaderValidationMessage" type="error" class="custom-headers-error">
+                {{ customHeaderValidationMessage }}
+              </NText>
+
+              <NButton secondary size="small" @click="addCustomHeaderRow">
+                {{ t('modelManager.customHeaders.add') }}
+              </NButton>
+            </div>
+          </NFormItem>
+
           <NDivider style="margin: 12px 0 8px 0;" />
           <NH4 style="margin: 0 0 12px 0; font-size: 14px;">{{ t('modelManager.model.section') }}</NH4>
 
@@ -223,7 +266,7 @@ import { computed, inject, nextTick, h } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/ui/useToast'
-import { isRunningInElectron } from '@prompt-optimizer/core'
+import { isRunningInElectron, validateCustomRequestHeaders, type CustomRequestHeaderInput } from '@prompt-optimizer/core'
 import {
   NModal,
   NForm,
@@ -286,6 +329,71 @@ const canTestFormConnection = manager.canTestFormConnection
 const isSaving = manager.isSaving
 
 const isEditing = computed(() => !!manager.editingModelId.value)
+
+interface CustomHeaderRow {
+  key: string
+  value: string
+}
+
+const showCustomHeaders = computed(() => currentProviderType.value === 'openai-compatible')
+
+const customHeaderRows = computed<CustomHeaderRow[]>(() => {
+  const raw = form.value.connectionConfig.customHeaders
+
+  if (Array.isArray(raw)) {
+    return raw.map((row: { key?: unknown; name?: unknown; value?: unknown }) => ({
+      key: String(row?.key ?? row?.name ?? ''),
+      value: String(row?.value ?? '')
+    }))
+  }
+
+  if (raw && typeof raw === 'object') {
+    return Object.entries(raw as Record<string, unknown>).map(([key, value]) => ({
+      key,
+      value: String(value ?? '')
+    }))
+  }
+
+  return []
+})
+
+const setCustomHeaderRows = (rows: CustomHeaderRow[]) => {
+  form.value.connectionConfig.customHeaders = rows
+}
+
+const addCustomHeaderRow = () => {
+  setCustomHeaderRows([...customHeaderRows.value, { key: '', value: '' }])
+}
+
+const updateCustomHeaderRow = (index: number, patch: Partial<CustomHeaderRow>) => {
+  const rows = customHeaderRows.value.map(row => ({ ...row }))
+  rows[index] = {
+    ...rows[index],
+    ...patch
+  }
+  setCustomHeaderRows(rows)
+}
+
+const removeCustomHeaderRow = (index: number) => {
+  setCustomHeaderRows(customHeaderRows.value.filter((_, rowIndex) => rowIndex !== index))
+}
+
+const customHeaderValidationMessage = computed(() => {
+  const validation = validateCustomRequestHeaders(
+    form.value.connectionConfig.customHeaders as CustomRequestHeaderInput
+  )
+  if (validation.valid) return ''
+
+  const details = validation.errors
+    .map((error) => {
+      const reasonKey = `modelManager.customHeaders.validation.${error.reason}`
+      const reason = t(reasonKey)
+      return `${error.key}: ${reason === reasonKey ? error.reason : reason}`
+    })
+    .join('; ')
+
+  return t('modelManager.customHeaders.validationError', { details })
+})
 
 // 获取当前选择的 Provider 的 API Key URL
 const currentProviderApiKeyUrl = computed(() => {
@@ -424,5 +532,31 @@ const onProviderChange = (providerId: string) => {
   max-width: 360px;
   line-height: 1.5;
   white-space: normal;
+}
+
+.custom-headers-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.custom-headers-hint,
+.custom-headers-error {
+  line-height: 1.5;
+}
+
+.custom-header-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(200px, 1.4fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .custom-header-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

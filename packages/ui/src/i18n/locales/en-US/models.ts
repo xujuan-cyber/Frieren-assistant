@@ -38,6 +38,20 @@ const messages = {
         "responses": "Responses"
       }
     },
+    "customHeaders": {
+      "label": "Custom Request Headers",
+      "hint": "Custom API only. Use this for enterprise gateway headers such as x-auth-token; Authorization and Content-Type are managed by the client.",
+      "namePlaceholder": "Header name, e.g. x-auth-token",
+      "valuePlaceholder": "Header value",
+      "add": "Add Header",
+      "validationError": "Invalid custom request headers: {details}",
+      "validation": {
+        "invalid-name": "Invalid header name",
+        "forbidden-name": "This header is managed by the client or browser and cannot be overridden",
+        "missing-value": "Header value is required",
+        "invalid-value": "Header value must be text, number, or boolean"
+      }
+    },
     "model": {
       "section": "Model Configuration"
     },
@@ -151,6 +165,14 @@ const messages = {
       "configure": "Configure Model",
       "noModels": "No model",
       "noAvailableModels": "No available models"
+    },
+    "quickSwitch": {
+      "title": "Switch current model",
+      "placeholder": "Select a model",
+      "modelTagTitle": "Click to switch the model for this configuration",
+      "fetchFailed": "Failed to fetch online models: {error}. You can still choose a local default model.",
+      "updateSuccess": "Switched to {model}",
+      "updateFailed": "Failed to switch model: {error}"
     },
     "manager": {
       "displayName": "e.g., Custom Model",

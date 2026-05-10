@@ -23,6 +23,7 @@ VITE_CUSTOM_API_KEY_<suffix>=your-api-key          # 必需
 VITE_CUSTOM_API_BASE_URL_<suffix>=your-base-url    # 必需
 VITE_CUSTOM_API_MODEL_<suffix>=your-model-name     # 必需
 VITE_CUSTOM_API_PARAMS_<suffix>=json-object-string # 可选，额外请求参数
+VITE_CUSTOM_API_HEADERS_<suffix>=json-object-string # 可选，额外请求头
 ```
 
 ### 配置要求
@@ -32,6 +33,7 @@ VITE_CUSTOM_API_PARAMS_<suffix>=json-object-string # 可选，额外请求参数
 - **BASE_URL**：必需，API服务器地址
 - **MODEL**：必需，具体的模型名称
 - **PARAMS**：可选，JSON 对象字符串，会注入到最终请求体中
+- **HEADERS**：可选，JSON 对象字符串，会作为请求头发送，仅建议用于 `x-auth-token`、`x-tenant-id` 这类网关附加头
 
 ### 后缀名命名示例
 
@@ -58,6 +60,7 @@ VITE_CUSTOM_API_PARAMS_<suffix>=json-object-string # 可选，额外请求参数
 - **完整性要求**：所有三个配置项都必须提供，缺少任何一项都会跳过该模型
 - **额外参数要求**：`PARAMS` 必须是 JSON 对象字符串，不能是数组、字符串或数字
 - **保留字段**：`PARAMS` 中的 `model`、`messages`、`stream` 会被自动忽略，避免覆盖核心请求结构
+- **请求头限制**：`HEADERS` 不能覆盖 `Authorization`、`Content-Type`、`Host`、`Cookie` 等由客户端或浏览器管理的基础头
 
 ### 配置示例
 
@@ -66,6 +69,7 @@ VITE_CUSTOM_API_PARAMS_<suffix>=json-object-string # 可选，额外请求参数
 VITE_CUSTOM_API_KEY=default-custom-key
 VITE_CUSTOM_API_BASE_URL=http://localhost:11434/v1
 VITE_CUSTOM_API_MODEL=default-model
+VITE_CUSTOM_API_HEADERS={"x-auth-token":"gateway-token"}
 
 # Ollama Qwen3 模型
 VITE_CUSTOM_API_KEY_qwen3=ollama-qwen3-key
@@ -95,6 +99,16 @@ VITE_CUSTOM_API_BASE_URL_nvidia=https://integrate.api.nvidia.com/v1
 VITE_CUSTOM_API_MODEL_nvidia=qwen/qwen3.5-397b-a17b
 VITE_CUSTOM_API_PARAMS_nvidia={"chat_template_kwargs":{"enable_thinking":true},"temperature":0.6,"top_p":0.95,"max_tokens":16384}
 ```
+
+### 额外请求头说明
+
+`VITE_CUSTOM_API_HEADERS_<suffix>` 适合企业网关要求附加认证或租户信息的场景，例如：
+
+```bash
+VITE_CUSTOM_API_HEADERS_company='{"x-auth-token":"gateway-token","x-tenant-id":"team-a"}'
+```
+
+请求头配置只作用于 Custom API（OpenAI 兼容接口）。`Authorization` 仍由 API Key 生成，`Content-Type` 由客户端和 SDK 管理，不应放在这里。
 
 ### 额外请求参数说明
 

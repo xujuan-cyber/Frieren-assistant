@@ -233,6 +233,12 @@
                       @focus="handleTextModelSelectFocus"
                       @config="() => appOpenModelManager && appOpenModelManager('text')"
                     />
+                    <TextModelQuickSwitch
+                      :model-key="selectedTextModelKey"
+                      :options="textModelOptions"
+                      :refresh-models="modelSelection.refreshTextModels"
+                      :disabled="optimizing || isIterating"
+                    />
                   </NSpace>
                 </NGridItem>
 
@@ -635,6 +641,7 @@ import type { VariableManagerHooks } from '../../composables/prompt/useVariableM
 import PromptPanelUI from '../PromptPanel.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
 import SelectWithConfig from '../SelectWithConfig.vue'
+import TextModelQuickSwitch from '../TextModelQuickSwitch.vue'
 import FullscreenDialog from '../FullscreenDialog.vue'
 import AppPreviewImage from '../media/AppPreviewImage.vue'
 import { VariableAwareInput } from '../variable-extraction'

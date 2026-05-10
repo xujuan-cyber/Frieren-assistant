@@ -76,6 +76,18 @@ describe('ModelManager', () => {
       await expect(modelManager.addModel('invalidKey', invalidModel as TextModelConfig))
         .rejects.toThrow(ModelConfigError);
     });
+
+    it('should reject provider/model metadata mismatches', async () => {
+      const openaiModel = createTextModelConfig('badKey', 'BadModel', true, 'test_api_key', 'openai');
+      const compatibleProvider = registry.getAdapter('openai-compatible').getProvider();
+      const invalidModel: TextModelConfig = {
+        ...openaiModel,
+        providerMeta: compatibleProvider
+      };
+
+      await expect(modelManager.addModel('badKey', invalidModel))
+        .rejects.toThrow(ModelConfigError);
+    });
   });
   
   describe('getAllModels', () => {
@@ -336,7 +348,10 @@ describe('ModelManager', () => {
           ...providerWithoutCors,
           name: 'Legacy Provider Name'
         },
-        modelMeta: models[0] || baseAdapter.buildDefaultModel('test-model'),
+        modelMeta: {
+          ...(models[0] || baseAdapter.buildDefaultModel('test-model')),
+          providerId: 'test-provider'
+        },
         connectionConfig: {
           apiKey: 'test_api_key',
           baseURL: baseProvider.defaultBaseURL
@@ -377,7 +392,10 @@ describe('ModelManager', () => {
           name: 'Test Provider',
           corsRestricted: true
         },
-        modelMeta: models[0] || baseAdapter.buildDefaultModel('test-model'),
+        modelMeta: {
+          ...(models[0] || baseAdapter.buildDefaultModel('test-model')),
+          providerId: 'test-provider'
+        },
         connectionConfig: {
           apiKey: 'test_api_key',
           baseURL: baseProvider.defaultBaseURL
@@ -429,6 +447,15 @@ describe('ModelManager', () => {
     it('should throw ModelConfigError when updating a non-existent model', async () => {
       await expect(modelManager.updateModel('nonExistentKey', { name: 'NewName' }))
         .rejects.toThrow(ModelConfigError);
+    });
+
+    it('should reject updates that leave provider and model metadata out of sync', async () => {
+      const originalModel = createTextModelConfig('updateMismatchKey', 'OriginalName', true, 'test_api_key', 'openai');
+      await modelManager.addModel('updateMismatchKey', originalModel);
+
+      await expect(modelManager.updateModel('updateMismatchKey', {
+        providerMeta: registry.getAdapter('openai-compatible').getProvider()
+      })).rejects.toThrow(ModelConfigError);
     });
   });
 

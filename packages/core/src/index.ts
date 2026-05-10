@@ -58,6 +58,7 @@ export * from './services/llm/errors'
 export { ModelManager, createModelManager } from './services/model/manager'
 export * from './services/model/types'
 export * from './services/model/defaults'
+export * from './services/model/metadata-resolver'
 export * from './services/model/parameter-schema'
 export * from './services/model/parameter-utils'
 export * from './services/model/advancedParameterDefinitions'
@@ -162,6 +163,16 @@ export {
   MAX_SUFFIX_LENGTH
 } from './utils/environment'
 export type { CustomModelEnvConfig, ValidatedCustomModelEnvConfig, ValidationResult } from './utils/environment'
+export {
+  normalizeCustomRequestHeaders,
+  validateCustomRequestHeaders
+} from './utils/custom-request-headers'
+export type {
+  CustomRequestHeaders,
+  CustomRequestHeaderInput,
+  CustomRequestHeaderValidationError,
+  CustomRequestHeaderValidationResult
+} from './utils/custom-request-headers'
 export type { LLMValidationResult, ValidationError, ValidationWarning } from './services/model/validation'
 export { validateCustomModelConfig } from './utils/environment'
 

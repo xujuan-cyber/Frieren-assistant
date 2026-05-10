@@ -91,7 +91,8 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
     connectionConfig: {
       apiKey: envConfig.apiKey,
       baseURL: envConfig.baseURL,
-      requestStyle: 'chat_completions'
+      requestStyle: 'chat_completions',
+      ...(envConfig.customHeaders ? { customHeaders: { ...envConfig.customHeaders } } : {})
     },
     paramOverrides: envConfig.params ? { ...envConfig.params } : {}
   };

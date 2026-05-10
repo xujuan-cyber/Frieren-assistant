@@ -10,6 +10,7 @@ import type {
 } from './types';
 import type { TextModelConfig, ModelConfig } from '../model/types';
 import { ModelManager } from '../model/manager';
+import { resolveTextModelMetadata } from '../model/metadata-resolver';
 import { APIError, RequestConfigError } from './errors';
 import { isRunningInElectron } from '../../utils/environment';
 import { ElectronLLMProxy } from './electron-proxy';
@@ -311,30 +312,30 @@ export class LLMService implements ILLMService {
     const customLegacyConfig = isLegacyConfigLike(customConfig) ? customConfig : undefined;
 
     const providerId = (
-      baseConfig?.providerMeta.id ??
       customTextConfig?.providerMeta?.id ??
-      customLegacyConfig?.provider ??
+      normalizeLegacyProviderId(customLegacyConfig?.provider) ??
+      baseConfig?.providerMeta.id ??
       provider
     ).toLowerCase();
+    const baseProviderId = baseConfig?.providerMeta.id?.toLowerCase();
 
     const adapter = this.registry.getAdapter(providerId);
-    const providerMeta = adapter.getProvider();
 
     const desiredModelId = (
-      baseConfig?.modelMeta.id ??
       customTextConfig?.modelMeta?.id ??
       customLegacyConfig?.defaultModel ??
+      (baseProviderId === providerId ? baseConfig?.modelMeta.id : undefined) ??
       adapter.getModels()[0]?.id ??
-      providerMeta.id
+      providerId
     );
 
-    let modelMeta = baseConfig?.modelMeta;
-    if (!modelMeta || modelMeta.id !== desiredModelId) {
-      modelMeta = adapter.getModels().find(model => model.id === desiredModelId);
-      if (!modelMeta) {
-        modelMeta = adapter.buildDefaultModel(desiredModelId);
-      }
-    }
+    const { providerMeta, modelMeta } = resolveTextModelMetadata({
+      providerId,
+      modelId: desiredModelId,
+      registry: this.registry,
+      existingProviderMeta: customTextConfig?.providerMeta ?? (baseProviderId === providerId ? baseConfig?.providerMeta : undefined),
+      existingModelMeta: customTextConfig?.modelMeta ?? (baseProviderId === providerId ? baseConfig?.modelMeta : undefined)
+    });
 
     const connectionConfig = {
       ...(baseConfig?.connectionConfig ?? {}),
@@ -414,4 +415,11 @@ function isLegacyConfigLike(config?: Partial<TextModelConfig> | Partial<ModelCon
   return !!config && typeof config === 'object' && (
     'provider' in config || 'defaultModel' in config || 'baseURL' in config
   );
+}
+
+function normalizeLegacyProviderId(provider?: string): string | undefined {
+  if (!provider) {
+    return undefined;
+  }
+  return provider === 'custom' ? 'openai-compatible' : provider;
 }

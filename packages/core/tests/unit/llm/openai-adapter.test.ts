@@ -423,6 +423,75 @@ describe('OpenAIAdapter', () => {
         }
       }
     });
+
+    it('should pass custom request headers through defaultHeaders for OpenAI-compatible providers', async () => {
+      mockOpenAIInstance.chat.completions.create.mockResolvedValue({
+        id: 'chatcmpl-custom',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'custom-model',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: 'ok'
+          },
+          finish_reason: 'stop'
+        }]
+      });
+
+      const compatibleConfig: TextModelConfig = {
+        ...mockConfig,
+        id: 'openai-compatible',
+        name: 'Custom API (OpenAI Compatible)',
+        providerMeta: openAICompatibleAdapter.getProvider(),
+        modelMeta: openAICompatibleAdapter.buildDefaultModel('custom-model'),
+        connectionConfig: {
+          baseURL: 'https://gateway.example.com/v1',
+          apiKey: 'gateway-key',
+          customHeaders: [
+            { key: 'x-auth-token', value: 'gateway-token' },
+            { key: 'Authorization', value: 'Bearer should-not-win' },
+            { key: 'Content-Type', value: 'application/custom' },
+          ]
+        }
+      };
+
+      await openAICompatibleAdapter.sendMessage(mockMessages, compatibleConfig);
+
+      expect(mockOpenAIConfig?.defaultHeaders).toEqual({
+        'x-auth-token': 'gateway-token'
+      });
+    });
+
+    it('should not apply custom request headers to the official OpenAI provider', async () => {
+      mockOpenAIInstance.chat.completions.create.mockResolvedValue({
+        id: 'chatcmpl-openai',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-5-mini',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: 'ok'
+          },
+          finish_reason: 'stop'
+        }]
+      });
+
+      await adapter.sendMessage(mockMessages, {
+        ...mockConfig,
+        connectionConfig: {
+          ...mockConfig.connectionConfig,
+          customHeaders: {
+            'x-auth-token': 'gateway-token'
+          }
+        }
+      });
+
+      expect(mockOpenAIConfig?.defaultHeaders).toBeUndefined();
+    });
   });
 
   describe('sendMessageStream', () => {

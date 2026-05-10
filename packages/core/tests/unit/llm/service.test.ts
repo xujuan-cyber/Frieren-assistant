@@ -173,5 +173,40 @@ describe('LLMService', () => {
       expect(models[0]?.value).toBe('dyn-1');
       expect(models).toHaveLength(staticCount + 1);
     });
+
+    it('should let custom text config override the base provider when fetching models', async () => {
+      const openaiAdapter = registry.getAdapter('openai');
+      const compatibleAdapter = registry.getAdapter('openai-compatible');
+      const dynamicModel = compatibleAdapter.buildDefaultModel('remote-custom-model');
+
+      const openaiSpy = vi
+        .spyOn(openaiAdapter, 'getModelsAsync')
+        .mockResolvedValue([openaiAdapter.buildDefaultModel('should-not-use')]);
+      const compatibleSpy = vi
+        .spyOn(compatibleAdapter, 'getModelsAsync')
+        .mockResolvedValue([dynamicModel]);
+
+      const models = await service.fetchModelList('openai', {
+        providerMeta: compatibleAdapter.getProvider(),
+        modelMeta: compatibleAdapter.buildDefaultModel('custom-model'),
+        connectionConfig: {
+          baseURL: 'https://gateway.example.com/v1',
+          apiKey: 'test-key',
+          customHeaders: {
+            'x-auth-token': 'custom-token'
+          }
+        }
+      } as Partial<TextModelConfig>);
+
+      expect(models[0]?.value).toBe('remote-custom-model');
+      expect(openaiSpy).not.toHaveBeenCalled();
+      expect(compatibleSpy).toHaveBeenCalledTimes(1);
+
+      const fetchedConfig = compatibleSpy.mock.calls[0]?.[0] as TextModelConfig;
+      expect(fetchedConfig.providerMeta.id).toBe('openai-compatible');
+      expect(fetchedConfig.connectionConfig.customHeaders).toEqual({
+        'x-auth-token': 'custom-token'
+      });
+    });
   });
 }); 

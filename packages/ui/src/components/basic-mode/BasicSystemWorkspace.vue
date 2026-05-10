@@ -93,6 +93,12 @@
                                 :getValue="OptionAccessors.getValue"
                                 @config="handleOpenModelManager"
                             />
+                            <TextModelQuickSwitch
+                                :model-key="selectedOptimizeModelKeyModel"
+                                :options="modelSelection.textModelOptions.value"
+                                :refresh-models="modelSelection.refreshTextModels"
+                                :disabled="unwrappedLogicProps.isOptimizing"
+                            />
                         </template>
 
                         <!-- 模板选择 -->
@@ -499,6 +505,7 @@ import {
 } from '../evaluation'
 import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
 import SelectWithConfig from '../SelectWithConfig.vue'
+import TextModelQuickSwitch from '../TextModelQuickSwitch.vue'
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import { OptionAccessors } from '../../utils/data-transformer'
 import {

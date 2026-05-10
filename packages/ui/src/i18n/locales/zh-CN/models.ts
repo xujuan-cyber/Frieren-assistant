@@ -39,6 +39,20 @@ const messages = {
         "responses": "Responses"
       }
     },
+    "customHeaders": {
+      "label": "自定义请求头",
+      "hint": "仅用于 Custom API。适合企业网关要求的 x-auth-token 等附加头；Authorization、Content-Type 等基础头由客户端管理。",
+      "namePlaceholder": "Header 名称，如 x-auth-token",
+      "valuePlaceholder": "Header 值",
+      "add": "添加请求头",
+      "validationError": "自定义请求头配置无效：{details}",
+      "validation": {
+        "invalid-name": "Header 名称格式无效",
+        "forbidden-name": "该 Header 由客户端或浏览器管理，不能覆盖",
+        "missing-value": "Header 值不能为空",
+        "invalid-value": "Header 值必须是文本、数字或布尔值"
+      }
+    },
     "model": {
       "section": "模型配置"
     },
@@ -151,6 +165,14 @@ const messages = {
       "configure": "配置模型",
       "noModels": "请配置模型",
       "noAvailableModels": "暂无可用模型"
+    },
+    "quickSwitch": {
+      "title": "切换当前模型",
+      "placeholder": "选择模型",
+      "modelTagTitle": "点击切换当前配置的模型",
+      "fetchFailed": "获取在线模型列表失败：{error}，可继续选择本地默认模型。",
+      "updateSuccess": "已切换为 {model}",
+      "updateFailed": "切换模型失败：{error}"
     },
     "manager": {
       "displayName": "例如: 自定义模型",

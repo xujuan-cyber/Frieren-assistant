@@ -42,6 +42,19 @@ describe('generateTextModelConfig', () => {
     })
   })
 
+  it('should map env customHeaders into connectionConfig', () => {
+    const config = generateTextModelConfig({
+      ...baseEnvConfig,
+      customHeaders: {
+        'x-auth-token': 'gateway-token',
+      },
+    })
+
+    expect(config.connectionConfig.customHeaders).toEqual({
+      'x-auth-token': 'gateway-token',
+    })
+  })
+
   it('should default paramOverrides to an empty object when params are missing', () => {
     const config = generateTextModelConfig(baseEnvConfig)
 

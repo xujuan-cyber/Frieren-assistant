@@ -120,6 +120,11 @@ const workspaceRequirements: FileComponentRequirement[] = [
   ...buildFileRequirements(promptPanelOriginalVersionWorkspaceFiles, 'PromptPanelUI', [
     '@switchToV0',
   ]),
+  ...buildFileRequirements(workspaceFiles, 'TextModelQuickSwitch', [
+    ':model-key',
+    ':options',
+    ':refresh-models',
+  ]),
 ]
 
 const extractComponentBlocks = (source: string, component: string) => {
