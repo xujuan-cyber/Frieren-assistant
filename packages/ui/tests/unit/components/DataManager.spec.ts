@@ -478,6 +478,54 @@ describe('DataManager storage breakdown', () => {
     expect(wrapper.text()).not.toContain('Cloudflare R2 is configured')
   })
 
+  it('auto-connects saved direct storage settings before refreshing remote backups', async () => {
+    window.localStorage.setItem('prompt-optimizer:remote-backup-settings', JSON.stringify({
+      provider: {
+        kind: 'webdav',
+        endpoint: 'https://dav.example.test',
+        username: '',
+        password: '',
+        directory: 'prompt-optimizer-backups',
+      },
+    }))
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const method = init?.method || 'GET'
+      if (method === 'PROPFIND') {
+        return new Response(
+          '<?xml version="1.0"?><D:multistatus xmlns:D="DAV:"><D:response><D:href>/prompt-optimizer-backups/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>',
+          { status: 207, headers: { 'Content-Type': 'application/xml' } },
+        )
+      }
+      if (method === 'PUT') return new Response('', { status: 201 })
+      if (method === 'DELETE') return new Response(null, { status: 204 })
+      if (method === 'MKCOL') return new Response('', { status: 405 })
+      return new Response('ok')
+    })
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = fetchMock as typeof fetch
+
+    try {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      const refreshButton = wrapper.findAll('button').find((button) =>
+        button.text().includes('Refresh Remote Backup List')
+      )
+      expect(refreshButton).toBeTruthy()
+      await refreshButton!.trigger('click')
+      await flushPromises()
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://dav.example.test/prompt-optimizer-backups/',
+        expect.objectContaining({ method: 'PROPFIND' }),
+      )
+      expect(remoteSnapshotMocks.listRemoteSnapshotBackups).toHaveBeenCalledTimes(1)
+      expect(wrapper.text()).toContain('This backup provider is connected')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
   it('opens Cloudflare R2 links in the system browser on desktop', async () => {
     isRunningInElectronMock.mockReturnValue(true)
     const openExternal = vi.fn().mockResolvedValue(undefined)

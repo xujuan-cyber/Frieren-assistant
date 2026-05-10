@@ -406,6 +406,89 @@ describe('remote snapshot backup', () => {
     })
   })
 
+  it.each(['skip', 'overwrite', 'merge'] as const)(
+    'forwards duplicate favorite strategy "%s" during remote restore',
+    async (favoriteMergeStrategy) => {
+      const objectStore = createObjectStore()
+      const favoritesJson = JSON.stringify({
+        version: '1.0',
+        favorites: [
+          { id: 'duplicate-favorite', title: 'A' },
+          { id: 'new-favorite', title: 'B' },
+        ],
+      })
+      const exported = await createRemoteSnapshotBackup({
+        objectStore,
+        dataManager: {
+          exportAllData: vi.fn(async () => JSON.stringify({ version: 1, data: {} })),
+        },
+        favoriteManager: {
+          exportFavorites: vi.fn(async () => favoritesJson),
+        },
+        imageStorageService: createStorage([]),
+        favoriteImageStorageService: createStorage([]),
+        sections: {
+          appData: false,
+          favorites: true,
+          imageCache: false,
+          favoriteImages: false,
+        },
+      })
+      const importFavorites = vi.fn(async () => ({ imported: 1, skipped: 1, errors: [] }))
+
+      await restoreRemoteSnapshotBackup({
+        objectStore,
+        snapshotId: exported.entry.id,
+        dataManager: {
+          importAllData: vi.fn(async () => {}),
+        },
+        favoriteManager: {
+          importFavorites,
+        },
+        imageStorageService: createStorage([]),
+        favoriteImageStorageService: createStorage([]),
+        favoriteMergeStrategy,
+      })
+
+      expect(importFavorites).toHaveBeenCalledWith(favoritesJson, {
+        mergeStrategy: favoriteMergeStrategy,
+      })
+    },
+  )
+
+  it('stops before favorites import when app data import fails after resource validation', async () => {
+    const objectStore = createObjectStore()
+    const exported = await createRemoteSnapshotBackup({
+      objectStore,
+      dataManager: {
+        exportAllData: vi.fn(async () => JSON.stringify({ version: 1, data: { models: ['remote'] } })),
+      },
+      favoriteManager: {
+        exportFavorites: vi.fn(async () => JSON.stringify({ version: '1.0', favorites: [{ id: 'fav-1' }] })),
+      },
+      imageStorageService: createStorage([createImage('session-1', 'session-image')]),
+      favoriteImageStorageService: createStorage([]),
+    })
+    const target = createStorage([])
+    const importAllData = vi.fn(async () => {
+      throw new Error('app import failed')
+    })
+    const importFavorites = vi.fn(async () => ({ imported: 1, skipped: 0, errors: [] }))
+
+    await expect(restoreRemoteSnapshotBackup({
+      objectStore,
+      snapshotId: exported.entry.id,
+      dataManager: { importAllData },
+      favoriteManager: { importFavorites },
+      imageStorageService: target,
+      favoriteImageStorageService: createStorage([]),
+    })).rejects.toThrow('app import failed')
+
+    expect(target.saveImage).toHaveBeenCalledTimes(1)
+    expect(target.store.has('session-1')).toBe(true)
+    expect(importFavorites).not.toHaveBeenCalled()
+  })
+
   it('does not write local data when strict restore validation fails', async () => {
     const manifest: RemoteSnapshotManifest = {
       schemaVersion: REMOTE_SNAPSHOT_SCHEMA_VERSION,

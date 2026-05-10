@@ -1352,21 +1352,22 @@ class WebDavRemoteObjectStore extends BaseRemoteObjectStore {
     options?: { contentType?: string },
   ): Promise<RemoteObjectEntry> {
     const normalized = normalizeObjectPath(path)
-    const blob = bodyToBlob(body, options?.contentType || JSON_MIME_TYPE)
+    const bytes = await bodyToUint8Array(body)
+    const contentType = options?.contentType || JSON_MIME_TYPE
     await this.ensureDirectoryPath(parentPathOf(normalized))
     await assertOkResponse(await fetch(this.fileUrl(normalized), {
       method: 'PUT',
       headers: {
         ...this.authHeaders(),
-        'Content-Type': blob.type || JSON_MIME_TYPE,
+        'Content-Type': contentType,
       },
-      body: blob,
+      body: copyUint8ArrayToArrayBuffer(bytes),
     }), 'WebDAV upload failed')
     return {
       path: normalized,
-      sizeBytes: blob.size,
+      sizeBytes: bytes.byteLength,
       updatedAt: new Date().toISOString(),
-      contentType: blob.type || undefined,
+      contentType,
     }
   }
 

@@ -1435,17 +1435,43 @@ const handleRemoteSaveAndConnect = async () => {
   if (provider.kind === 'google-drive') return
 
   persistRemoteSettings()
+  try {
+    isConnectingRemote.value = true
+    const connected = await ensureRemoteConnectionReady({
+      showMissingToast: true,
+      showFailureToast: true,
+      showSuccessToast: true,
+    })
+    if (connected) {
+      await refreshRemoteBackups({ skipConnectionCheck: true })
+    }
+  } finally {
+    isConnectingRemote.value = false
+  }
+}
+
+const ensureRemoteConnectionReady = async (options?: {
+  showMissingToast?: boolean
+  showFailureToast?: boolean
+  showSuccessToast?: boolean
+}): Promise<boolean> => {
+  const provider = remoteSettings.value.provider
+  if (provider.kind === 'google-drive') return true
+  if (currentRemoteConnection.value.status === 'connected') return true
+
   if (!isRemoteProviderConfigured(provider)) {
     setRemoteConnectionState(provider.kind, {
       status: 'unconfigured',
       message: t('dataManager.remote.connectionMissingConfig'),
     })
-    toast.warning(t('dataManager.remote.connectionMissingConfig'))
-    return
+    if (options?.showMissingToast !== false) {
+      toast.warning(t('dataManager.remote.connectionMissingConfig'))
+    }
+    isRemoteConfigExpanded.value = true
+    return false
   }
 
   try {
-    isConnectingRemote.value = true
     setRemoteConnectionState(provider.kind, {
       status: 'checking',
       message: t('dataManager.remote.connectionChecking'),
@@ -1461,8 +1487,10 @@ const handleRemoteSaveAndConnect = async () => {
       message: '',
     })
     isRemoteConfigExpanded.value = false
-    toast.success(t('dataManager.remote.connectionSuccess'))
-    await refreshRemoteBackups({ skipConnectionCheck: true })
+    if (options?.showSuccessToast) {
+      toast.success(t('dataManager.remote.connectionSuccess'))
+    }
+    return true
   } catch (error) {
     console.error('[DataManager] Remote connection failed:', error)
     setRemoteConnectionState(provider.kind, {
@@ -1470,28 +1498,15 @@ const handleRemoteSaveAndConnect = async () => {
       message: (error as Error).message,
     })
     isRemoteConfigExpanded.value = true
-    toast.error(t('dataManager.remote.connectionFailed', { message: (error as Error).message }))
-  } finally {
-    isConnectingRemote.value = false
+    if (options?.showFailureToast !== false) {
+      toast.error(t('dataManager.remote.connectionFailed', { message: (error as Error).message }))
+    }
+    return false
   }
 }
 
-const ensureRemoteConnectionReady = (): boolean => {
-  const provider = remoteSettings.value.provider
-  if (provider.kind === 'google-drive') return true
-  if (currentRemoteConnection.value.status === 'connected') return true
-
-  toast.warning(
-    isRemoteProviderConfigured(provider)
-      ? t('dataManager.remote.connectFirst')
-      : t('dataManager.remote.connectionMissingConfig'),
-  )
-  isRemoteConfigExpanded.value = true
-  return false
-}
-
 const refreshRemoteBackups = async (options?: { skipConnectionCheck?: boolean }) => {
-  if (!options?.skipConnectionCheck && !ensureRemoteConnectionReady()) return
+  if (!options?.skipConnectionCheck && !(await ensureRemoteConnectionReady())) return
 
   try {
     persistRemoteSettings(false)
@@ -1520,7 +1535,7 @@ const handleRemoteRefresh = () => {
 
 const handleRemoteUpload = async () => {
   if (isRemoteDataOperationActive.value) return
-  if (!ensureRemoteConnectionReady()) return
+  if (!(await ensureRemoteConnectionReady())) return
 
   try {
     persistRemoteSettings(false)
@@ -1567,7 +1582,7 @@ const handleRemoteRestore = async () => {
   if (isRemoteDataOperationActive.value) return
   const entry = selectedRemoteBackup.value
   if (!entry) return
-  if (!ensureRemoteConnectionReady()) return
+  if (!(await ensureRemoteConnectionReady())) return
 
   try {
     isRestoringRemote.value = true
@@ -1609,7 +1624,7 @@ const handleRemoteRestore = async () => {
 
 const handleRemoteCleanup = async () => {
   if (isRemoteDataOperationActive.value) return
-  if (!ensureRemoteConnectionReady()) return
+  if (!(await ensureRemoteConnectionReady())) return
 
   try {
     persistRemoteSettings(false)
