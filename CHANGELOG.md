@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.1] - 2026-05-11
+- EN: This patch restores image-workspace analysis actions, adds single-favorite HTML/PNG sharing with import support, and updates the documentation for sharing and backups. See [Release Notes (EN)](releases/v2.11.1.en.md).
+- 中文：本次补丁修复图像工作区分析操作，新增单个收藏 HTML/PNG 分享与导入，并补充分享和备份相关文档。参见 [版本说明（中文）](releases/v2.11.1.zh-CN.md)。
+
 ## [2.11.0] - 2026-05-10
 - EN: This minor release adds deployment-aware remote backups, safer resource-complete restore flows, OpenAI multi-image edit support, and a Prompt Garden image-to-image guide. See [Release Notes (EN)](releases/v2.11.0.en.md).
 - 中文：本次小版本发布新增部署感知的远程备份、更安全的资源完整恢复流程、OpenAI 多图编辑支持，以及 Prompt Garden 图生图指南。参见 [版本说明（中文）](releases/v2.11.0.zh-CN.md)。
