@@ -63,3 +63,9 @@ export {
   evaluationImageImage2ImagePromptOnly,
   evaluationImageImage2ImagePromptOnlyEn,
 } from './image/image2image';
+
+// 图像模式 - 多图生图评估
+export {
+  evaluationImageMultiImagePromptOnly,
+  evaluationImageMultiImagePromptOnlyEn,
+} from './image/multiimage';

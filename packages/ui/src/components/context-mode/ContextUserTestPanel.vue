@@ -63,6 +63,7 @@
                 @show-primary-detail="emit('show-primary-detail')"
                 @show-secondary-detail="emit('show-secondary-detail')"
                 @apply-improvement="emit('apply-improvement', $event)"
+                @apply-patch="emit('apply-patch', $event)"
             >
                 <template #primary-result>
                     <slot name="primary-result"></slot>
@@ -105,7 +106,7 @@ import TestControlBar from "../TestControlBar.vue";
 import TestResultSection from "../TestResultSection.vue";
 import TemporaryVariablesPanel from "../variable/TemporaryVariablesPanel.vue";
 import VariableValuePreviewDialog from "../variable/VariableValuePreviewDialog.vue";
-import type { EvaluationResponse, EvaluationType } from '@prompt-optimizer/core';
+import type { EvaluationResponse, EvaluationType, PatchOperation } from '@prompt-optimizer/core';
 import type { ScoreLevel } from '../../composables/prompt/useEvaluation';
 import type { AppServices } from '../../types/services';
 
@@ -229,6 +230,7 @@ const emit = defineEmits<{
     "show-primary-detail": [];
     "show-secondary-detail": [];
     "apply-improvement": [payload: { improvement: string; type: EvaluationType }];
+    "apply-patch": [payload: { operation: PatchOperation }];
 }>();
 
 // 处理对比模式切换

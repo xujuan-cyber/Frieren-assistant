@@ -456,12 +456,32 @@
                         <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
                             <NSpace :size="8">
                                 <NButton
+                                    type="default"
+                                    size="medium"
+                                    data-testid="image-text2image-analyze-button"
+                                    :loading="isAnalyzing"
+                                    @click="handleAnalyzePrompt"
+                                    :disabled="
+                                        isAnalyzing ||
+                                        isExtractingFromImage ||
+                                        isOptimizing ||
+                                        !originalPrompt.trim()
+                                    "
+                                >
+                                    {{
+                                        isAnalyzing
+                                            ? t("promptOptimizer.analyzing")
+                                            : t("promptOptimizer.analyze")
+                                    }}
+                                </NButton>
+                                <NButton
                                     type="primary"
                                     size="medium"
                                     data-testid="image-text2image-optimize-button"
                                     :loading="isOptimizing"
                                     @click="handleOptimizePrompt"
                                     :disabled="
+                                        isAnalyzing ||
                                         isExtractingFromImage ||
                                         isOptimizing ||
                                         !originalPrompt.trim() ||
@@ -516,6 +536,8 @@
                     @switchVersion="handleSwitchVersion"
                     @save-favorite="handleSaveFavorite"
                     @save-local-edit="handleSaveLocalEdit"
+                    @apply-improvement="handleApplyImprovement"
+                    @apply-patch="handleApplyPatch"
                     @open-preview="handleOpenPromptPreview"
                 />
             </NCard>
@@ -589,6 +611,8 @@
                                         @show-detail="showCompareDetail"
                                         @evaluate="handleEvaluateCompare"
                                         @evaluate-with-feedback="handleCompareEvaluateWithFeedback"
+                                        @apply-improvement="handleApplyImprovement"
+                                        @apply-patch="handleApplyPatch"
                                     />
                                     <FocusAnalyzeButton
                                         v-else
@@ -724,6 +748,8 @@
                                                             @show-detail="() => showResultDetail(id)"
                                                             @evaluate="() => handleEvaluateResult(id)"
                                                             @evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"
+                                                            @apply-improvement="handleApplyImprovement"
+                                                            @apply-patch="handleApplyPatch"
                                                         />
                                                         <FocusAnalyzeButton
                                                             v-else
@@ -847,6 +873,8 @@
             :disable-evaluate="activeEvaluationDisableEvaluate"
             :disable-evaluate-reason="activeEvaluationDisableReason"
             :can-rewrite-from-evaluation="false"
+            @apply-local-patch="handleApplyPatch"
+            @apply-improvement="handleApplyImprovement"
             @re-evaluate="handleReEvaluateActive"
             @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
             @clear="handleClearEvaluation"
@@ -938,6 +966,7 @@ import { withHistorySourceBindingMetadata } from '../../utils/history-source-bin
 import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { downloadImageSource } from '../../utils/image-download'
 import { openExternalUrl } from '../../utils/open-external-url'
+import { createImagePromptAnalysisVersion } from '../../utils/imagePromptAnalysis'
 import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import {
     resolveReferencePromptPreview,
@@ -992,6 +1021,7 @@ import {
     shouldShowImageText2ImageResultAction,
 } from './imageText2ImageEvaluation'
 import {
+    applyPatchOperationsToText,
     getEnvVar,
     type ContextMode,
     type ImageModelConfig,
@@ -1000,6 +1030,7 @@ import {
     type ImageResultItem,
     type OptimizationMode,
     type OptimizationRequest,
+    type PatchOperation,
     type PromptRecordChain,
     type PromptRecordType,
     type Template,
@@ -1111,6 +1142,7 @@ const promptService = computed(() => services.value?.promptService)
 
 // 过程态（本地，不持久化）
 const isOptimizing = ref(false)
+const isAnalyzing = ref(false)
 const isIterating = ref(false)
 const isExtractingFromImage = ref(false)
 const extractImageInputRef = ref<HTMLInputElement | null>(null)
@@ -1730,6 +1762,34 @@ const panelProps = evaluationHandler.panelProps
 const getResultEvaluationProps = (variantId: string) =>
     evaluationHandler.getResultEvaluationProps(variantId)
 
+const handleAnalyzePrompt = async () => {
+    const prompt = originalPrompt.value.trim()
+    if (!prompt || isAnalyzing.value) return
+
+    isAnalyzing.value = true
+    try {
+        const virtualV0 = createImagePromptAnalysisVersion(
+            prompt,
+            'text2imageOptimize' as PromptRecordType,
+        )
+        currentChainId.value = ''
+        currentVersions.value = [virtualV0]
+        currentVersionId.value = virtualV0.id
+        session.updateOptimizedResult({
+            optimizedPrompt: prompt,
+            reasoning: '',
+            chainId: '',
+            versionId: '',
+        })
+        evaluation.clearResult('prompt-only')
+        evaluation.clearResult('prompt-iterate')
+        await nextTick()
+        await handleEvaluateInternal('prompt-only')
+    } finally {
+        isAnalyzing.value = false
+    }
+}
+
 const isEvaluatingCompare = evaluationHandler.compareEvaluation.isEvaluatingCompare
 const compareScore = computed(
     () => evaluationHandler.compareEvaluation.compareScore.value ?? 0,
@@ -2253,6 +2313,20 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
 
 // PromptPanel 引用，用于在语言切换后刷新迭代模板选择
 const promptPanelRef = ref<InstanceType<typeof PromptPanelUI> | null>(null);
+
+const handleApplyImprovement = evaluationHandler.createApplyImprovementHandler(promptPanelRef)
+
+const handleApplyPatch = (payload: { operation: PatchOperation }) => {
+    if (!payload.operation) return
+    const current = optimizedPrompt.value || ''
+    const result = applyPatchOperationsToText(current, payload.operation)
+    if (!result.ok) {
+        toast.warning(t('toast.warning.patchApplyFailed'))
+        return
+    }
+    optimizedPrompt.value = result.text
+    toast.success(t('evaluation.diagnose.applyFix'))
+}
 
 // 输入区折叠状态（初始展开）
 const isInputPanelCollapsed = ref(false);

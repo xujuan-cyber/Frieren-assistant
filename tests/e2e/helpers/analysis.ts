@@ -9,6 +9,7 @@ export type WorkspaceMode =
   | 'basic-user'
   | 'image-text2image'
   | 'image-image2image'
+  | 'image-multiimage'
   | 'pro-multi'
   | 'pro-variable'
 

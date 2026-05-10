@@ -374,12 +374,31 @@
                         <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
                             <NSpace :size="8">
                                 <NButton
+                                    type="default"
+                                    size="medium"
+                                    data-testid="image-image2image-analyze-button"
+                                    :loading="isAnalyzing"
+                                    @click="handleAnalyzePrompt"
+                                    :disabled="
+                                        isAnalyzing ||
+                                        isOptimizing ||
+                                        !originalPrompt.trim()
+                                    "
+                                >
+                                    {{
+                                        isAnalyzing
+                                            ? t("promptOptimizer.analyzing")
+                                            : t("promptOptimizer.analyze")
+                                    }}
+                                </NButton>
+                                <NButton
                                     type="primary"
                                     size="medium"
                                     data-testid="image-image2image-optimize-button"
                                     :loading="isOptimizing"
                                     @click="handleOptimizePrompt"
                                     :disabled="
+                                        isAnalyzing ||
                                         isOptimizing ||
                                         !originalPrompt.trim() ||
                                         !inputImageB64 ||
@@ -419,12 +438,15 @@
                     :optimization-mode="optimizationMode"
                     :advanced-mode-enabled="advancedModeEnabled"
                     :show-preview="true"
+                    evaluation-type-override="prompt-only"
                     iterate-template-type="imageIterate"
                     @iterate="handleIteratePrompt"
                     @openTemplateManager="onOpenTemplateManager"
                     @switchVersion="handleSwitchVersion"
                     @save-favorite="handleSaveFavorite"
                     @save-local-edit="handleSaveLocalEdit"
+                    @apply-improvement="handleApplyImprovement"
+                    @apply-patch="handleApplyPatch"
                     @open-preview="handleOpenPromptPreview"
                 />
             </NCard>
@@ -672,6 +694,29 @@
             </div>
         </div>
 
+        <EvaluationPanel
+            v-model:show="evaluation.isPanelVisible.value"
+            :is-evaluating="panelProps.isEvaluating"
+            :result="panelProps.result"
+            :stream-content="panelProps.streamContent"
+            :error="panelProps.error"
+            :current-type="panelProps.currentType"
+            :score-level="panelProps.scoreLevel"
+            :rewrite-recommendation="panelProps.rewriteRecommendation"
+            :rewrite-reasons="panelProps.rewriteReasons"
+            :stale="activeEvaluationStale"
+            :stale-message="activeEvaluationStaleMessage"
+            :disable-evaluate="activeEvaluationDisableEvaluate"
+            :disable-evaluate-reason="activeEvaluationDisableReason"
+            :can-rewrite-from-evaluation="false"
+            @apply-local-patch="handleApplyPatch"
+            @apply-improvement="handleApplyImprovement"
+            @re-evaluate="handleReEvaluateActive"
+            @evaluate-with-feedback="handleEvaluateActiveWithFeedback"
+            @clear="handleClearEvaluation"
+            @retry="handleReEvaluateActive"
+        />
+
         <!-- 原始提示词 - 全屏编辑器 -->
         <FullscreenDialog
             v-model="isFullscreen"
@@ -772,7 +817,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, type Ref } from 'vue'
+import { onMounted, onUnmounted, inject, ref, reactive, computed, watch, nextTick, toRef, type Ref } from 'vue'
 import { useRouter, type LocationQueryRaw } from 'vue-router'
 
 import {
@@ -806,6 +851,7 @@ import PromptGardenImportDialog from '../common/PromptGardenImportDialog.vue'
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
+import { EvaluationPanel } from '../evaluation'
 import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPromptPreviewPanel'
 import { OptionAccessors } from "../../utils/data-transformer";
 import type { AppServices } from "../../types/services";
@@ -818,6 +864,7 @@ import { withHistorySourceBindingMetadata } from '../../utils/history-source-bin
 import { resolveSourceAssetRef } from '../../utils/source-asset'
 import { downloadImageSource } from '../../utils/image-download'
 import { openExternalUrl } from '../../utils/open-external-url'
+import { createImagePromptAnalysisVersion } from '../../utils/imagePromptAnalysis'
 import type { PromptGardenImportRequest } from '../../utils/prompt-garden-import'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
@@ -828,6 +875,8 @@ import { useTemporaryVariables } from '../../composables/variable/useTemporaryVa
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
 import { useSmartVariableValueGeneration } from '../../composables/variable/useSmartVariableValueGeneration'
+import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
+import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager'
 import {
     buildPromptExecutionContext,
@@ -847,11 +896,13 @@ import {
 } from '../../stores/session/useImageImage2ImageSession'
 import { useImageGeneration } from '../../composables/image/useImageGeneration'
 import ImageTokenUsage from './ImageTokenUsage.vue'
+import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useElementSize } from '@vueuse/core'
 import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import {
+    applyPatchOperationsToText,
     getEnvVar,
     type ContextMode,
     type ImageModelConfig,
@@ -860,6 +911,7 @@ import {
     type ImageResultItem,
     type OptimizationMode,
     type OptimizationRequest,
+    type PatchOperation,
     type PromptRecordChain,
     type PromptRecordType,
     type Template,
@@ -965,6 +1017,7 @@ const promptService = computed(() => services.value?.promptService)
 
 // 过程态（本地，不持久化）
 const isOptimizing = ref(false)
+const isAnalyzing = ref(false)
 const isIterating = ref(false)
 const uploadStatus = ref<'idle' | 'uploading' | 'success' | 'error'>('idle')
 const uploadProgress = ref(0)
@@ -1007,6 +1060,7 @@ const optimizedReasoning = computed<string>({
 // Text 模型选择（与模板选择对齐：自动刷新 + 兜底写回 session store）
 const modelSelection = useWorkspaceTextModelSelection(services, session)
 const selectedTextModelKey = modelSelection.selectedTextModelKey
+const functionModelManager = useFunctionModelManager(services)
 
 const selectedImageModelKey = computed<string>({
     get: () => session.selectedImageModelKey || '',
@@ -1022,6 +1076,84 @@ const templateSelection = useWorkspaceTemplateSelection(
 
 const selectedTemplateId = templateSelection.selectedTemplateId
 const templateOptions = templateSelection.templateOptions
+
+const evaluationHandler = useEvaluationHandler({
+    services,
+    analysisOptimizedPrompt: computed(() => optimizedPrompt.value || ''),
+    analysisTargetResolver: (defaultTarget) => ({
+        ...defaultTarget,
+        referencePrompt: (originalPrompt.value || '').trim() || undefined,
+    }),
+    evaluationModelKey: computed(() => selectedTextModelKey.value || ''),
+    resolveEvaluationModelKey: async () => {
+        await functionModelManager.initialize()
+        return (
+            functionModelManager.evaluationModel.value ||
+            selectedTextModelKey.value ||
+            functionModelManager.effectiveEvaluationModel.value ||
+            ''
+        )
+    },
+    functionMode: computed(() => 'image'),
+    subMode: computed(() => 'image2image'),
+    persistedResults: toRef(session, 'evaluationResults'),
+})
+
+provideEvaluation(evaluationHandler.evaluation)
+
+const { evaluation, handleEvaluate: handleEvaluateInternal } = evaluationHandler
+const panelProps = evaluationHandler.panelProps
+
+const activeEvaluationStale = computed(() => false)
+const activeEvaluationStaleMessage = computed(() => t('evaluation.stale.promptOnly'))
+const activeEvaluationDisableEvaluate = computed(() =>
+    panelProps.value.currentType === 'prompt-only' &&
+    !optimizedPrompt.value.trim(),
+)
+const activeEvaluationDisableReason = computed(() => '')
+
+const handleAnalyzePrompt = async () => {
+    const prompt = originalPrompt.value.trim()
+    if (!prompt || isAnalyzing.value) return
+
+    isAnalyzing.value = true
+    try {
+        const virtualV0 = createImagePromptAnalysisVersion(
+            prompt,
+            'image2imageOptimize' as PromptRecordType,
+        )
+        currentChainId.value = ''
+        currentVersions.value = [virtualV0]
+        currentVersionId.value = virtualV0.id
+        session.updateOptimizedResult({
+            optimizedPrompt: prompt,
+            reasoning: '',
+            chainId: '',
+            versionId: '',
+        })
+        evaluation.clearResult('prompt-only')
+        evaluation.clearResult('prompt-iterate')
+        await nextTick()
+        await handleEvaluateInternal('prompt-only')
+    } finally {
+        isAnalyzing.value = false
+    }
+}
+
+const handleReEvaluateActive = async () => {
+    if (!evaluation.state.activeDetail) return
+    await evaluationHandler.handleReEvaluate()
+}
+
+const handleEvaluateActiveWithFeedback = async (payload: { feedback: string }) => {
+    if (!evaluation.state.activeDetail) return
+    await evaluationHandler.handleEvaluateActiveWithFeedback(payload.feedback)
+}
+
+const handleClearEvaluation = () => {
+    evaluation.closePanel()
+    evaluation.clearAllResults()
+}
 
 const showPromptGardenImport = ref(false)
 
@@ -1769,6 +1901,20 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
 
 // PromptPanel 引用，用于在语言切换后刷新迭代模板选择
 const promptPanelRef = ref<InstanceType<typeof PromptPanelUI> | null>(null);
+
+const handleApplyImprovement = evaluationHandler.createApplyImprovementHandler(promptPanelRef)
+
+const handleApplyPatch = (payload: { operation: PatchOperation }) => {
+    if (!payload.operation) return
+    const current = optimizedPrompt.value || ''
+    const result = applyPatchOperationsToText(current, payload.operation)
+    if (!result.ok) {
+        toast.warning(t('toast.warning.patchApplyFailed'))
+        return
+    }
+    optimizedPrompt.value = result.text
+    toast.success(t('evaluation.diagnose.applyFix'))
+}
 
 // 输入区折叠状态（初始展开）
 const isInputPanelCollapsed = ref(false);

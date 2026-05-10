@@ -4,6 +4,8 @@ import { template as text2imagePromptOnlyZh } from '../../../src/services/templa
 import { template as text2imagePromptOnlyEn } from '../../../src/services/template/default-templates/evaluation/image/text2image/evaluation-prompt-only_en';
 import { template as image2imagePromptOnlyZh } from '../../../src/services/template/default-templates/evaluation/image/image2image/evaluation-prompt-only';
 import { template as image2imagePromptOnlyEn } from '../../../src/services/template/default-templates/evaluation/image/image2image/evaluation-prompt-only_en';
+import { template as multiimagePromptOnlyZh } from '../../../src/services/template/default-templates/evaluation/image/multiimage/evaluation-prompt-only';
+import { template as multiimagePromptOnlyEn } from '../../../src/services/template/default-templates/evaluation/image/multiimage/evaluation-prompt-only_en';
 
 describe('image evaluation prompt-only templates JSON evidence injection', () => {
   const baseContext: TemplateContext = {
@@ -23,6 +25,8 @@ describe('image evaluation prompt-only templates JSON evidence injection', () =>
     ['en-text2image', text2imagePromptOnlyEn],
     ['zh-image2image', image2imagePromptOnlyZh],
     ['en-image2image', image2imagePromptOnlyEn],
+    ['zh-multiimage', multiimagePromptOnlyZh],
+    ['en-multiimage', multiimagePromptOnlyEn],
   ])('should render %s image evaluation prompt-only template with JSON-wrapped evidence', (_label, template) => {
     const messages = TemplateProcessor.processTemplate(template, baseContext);
 

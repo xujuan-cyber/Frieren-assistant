@@ -66,6 +66,18 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[0]?.content).toContain('只输出合法 JSON，禁止 Markdown')
   })
 
+  it('registers the zh-CN multiimage prompt-only template', async () => {
+    vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('zh-CN')
+
+    const promptOnlyTemplate = await templateManager.getTemplate('evaluation-image-multiimage-prompt-only')
+
+    expect(promptOnlyTemplate).toBeDefined()
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('当前工作区多图生图提示词')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('参考图融合明确性')
+    expect(promptOnlyTemplate?.content[1]?.content).toContain('"workspacePrompt":')
+    expect(promptOnlyTemplate?.content[1]?.content).toContain('"analysisStage":')
+  })
+
   it('registers the zh-CN image prompt-iterate template with iteration evidence', async () => {
     vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('zh-CN')
 
@@ -122,6 +134,18 @@ describe('image text2image evaluation templates', () => {
     expect(promptOnlyTemplate?.content[0]?.content).toContain('analysisStage = "workspace"')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('Stage Contract')
     expect(promptOnlyTemplate?.content[0]?.content).toContain('No Markdown, no code fences')
+  })
+
+  it('registers the en-US multiimage prompt-only template', async () => {
+    vi.spyOn(languageService, 'getCurrentLanguage').mockReturnValue('en-US')
+
+    const promptOnlyTemplate = await templateManager.getTemplate('evaluation-image-multiimage-prompt-only')
+
+    expect(promptOnlyTemplate).toBeDefined()
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('current workspace multi-image generation prompt')
+    expect(promptOnlyTemplate?.content[0]?.content).toContain('Reference Integration')
+    expect(promptOnlyTemplate?.content[1]?.content).toContain('"workspacePrompt":')
+    expect(promptOnlyTemplate?.content[1]?.content).toContain('"analysisStage":')
   })
 
   it('registers the en-US image prompt-iterate template with iteration evidence', async () => {

@@ -185,9 +185,10 @@
                       @openTemplateManager="handleOpenTemplateManager"
                       @switchVersion="handleSwitchVersion"
                       @switchToV0="handleSwitchToV0"
-                      @save-favorite="handleSaveFavorite"
+                     @save-favorite="handleSaveFavorite"
                      @open-preview="handleOpenPromptPreview"
                      @apply-improvement="handleApplyImprovement"
+                     @apply-patch="handleApplyLocalPatch"
                      @save-local-edit="handleSaveLocalEdit"
                  />
             </NCard>

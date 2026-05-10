@@ -5,11 +5,11 @@ import {
   verifyAnalyzeButtonDisabledWhenEmpty,
 } from '../helpers/analysis'
 
-const MODE = 'image-image2image' as const
+const MODE = 'image-multiimage' as const
 
-test.describe('Image Image2Image - 提示词分析入口', () => {
-  test('图生图工作区提供输入区提示词分析按钮', async ({ page }) => {
-    await navigateToMode(page, 'image', 'image2image')
+test.describe('Image MultiImage - 提示词分析入口', () => {
+  test('多图生图工作区提供输入区提示词分析按钮', async ({ page }) => {
+    await navigateToMode(page, 'image', 'multiimage')
 
     const workspace = page.locator(`[data-testid="workspace"][data-mode="${MODE}"]`).first()
     await expect(workspace).toBeVisible()
@@ -18,7 +18,7 @@ test.describe('Image Image2Image - 提示词分析入口', () => {
     await fillOriginalPrompt(
       page,
       MODE,
-      'Convert to watercolor painting style, soft colors, artistic brush strokes',
+      'Combine the reference images into one cohesive editorial poster with consistent lighting',
     )
     await expect(workspace.getByTestId(`${MODE}-analyze-button`)).toBeEnabled()
   })

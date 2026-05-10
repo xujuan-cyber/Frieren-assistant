@@ -135,6 +135,7 @@
                                   @open-preview="handleOpenPromptPreview"
                                   @apply-to-conversation="handleApplyToConversation"
                                  @apply-improvement="handleApplyImprovement"
+                                 @apply-patch="handleApplyLocalPatch"
                                  @save-local-edit="handleSaveLocalEdit"
                              />
                         </template>

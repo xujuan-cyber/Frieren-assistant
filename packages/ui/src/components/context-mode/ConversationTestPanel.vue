@@ -63,6 +63,7 @@
                 @show-primary-detail="emit('show-primary-detail')"
                 @show-secondary-detail="emit('show-secondary-detail')"
                 @apply-improvement="emit('apply-improvement', $event)"
+                @apply-patch="emit('apply-patch', $event)"
             >
                 <template #primary-result>
                     <div class="result-container">
@@ -135,6 +136,7 @@ import type {
     ToolCallResult,
     EvaluationResponse,
     EvaluationType,
+    PatchOperation,
 } from "@prompt-optimizer/core";
 import type { ScoreLevel } from '../../composables/prompt/useEvaluation';
 import { useResponsive } from '../../composables/ui/useResponsive';
@@ -269,6 +271,7 @@ const emit = defineEmits<{
     "show-primary-detail": [];
     "show-secondary-detail": [];
     "apply-improvement": [payload: { improvement: string; type: EvaluationType }];
+    "apply-patch": [payload: { operation: PatchOperation }];
 }>();
 
 // 🆕 工具调用状态管理（按 variantId 分桶）

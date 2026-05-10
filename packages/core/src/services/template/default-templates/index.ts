@@ -120,6 +120,9 @@ import { template as evaluation_image_text2image_compare_en } from './evaluation
 // 评估模板 - 图像模式/图生图
 import { template as evaluation_image_image2image_prompt_only } from './evaluation/image/image2image/evaluation-prompt-only';
 import { template as evaluation_image_image2image_prompt_only_en } from './evaluation/image/image2image/evaluation-prompt-only_en';
+// 评估模板 - 图像模式/多图生图
+import { template as evaluation_image_multiimage_prompt_only } from './evaluation/image/multiimage/evaluation-prompt-only';
+import { template as evaluation_image_multiimage_prompt_only_en } from './evaluation/image/multiimage/evaluation-prompt-only_en';
 
 // 变量提取模板
 import { variableExtractionTemplate } from './variable-extraction';
@@ -257,6 +260,9 @@ export const ALL_TEMPLATES = {
   // 评估模板 - 图像模式/图生图
   evaluation_image_image2image_prompt_only,
   evaluation_image_image2image_prompt_only_en,
+  // 评估模板 - 图像模式/多图生图
+  evaluation_image_multiimage_prompt_only,
+  evaluation_image_multiimage_prompt_only_en,
   // 变量提取模板
   variableExtractionTemplate,
   variableExtractionTemplateEn,
