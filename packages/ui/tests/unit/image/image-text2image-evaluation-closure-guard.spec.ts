@@ -25,7 +25,7 @@ describe('image text2image evaluation closure guard', () => {
     expect(source).toContain('@evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"')
   })
 
-  it('routes original-input analysis through reference action buttons instead of the legacy analyze button', () => {
+  it('routes original-input analysis through reference actions and keeps prompt analysis wired', () => {
     const source = readWorkspaceSource()
 
     expect(source).toContain('v-for="button in referenceActionButtons"')
@@ -34,6 +34,8 @@ describe('image text2image evaluation closure guard', () => {
     expect(source).toContain("kind: 'style-learn' as ReferenceActionKind")
     expect(source).toContain('referenceAction.requestAction(actionKind)')
     expect(source).toContain("extractImageInputRef.value?.click()")
-    expect(source).not.toContain('data-testid="image-text2image-analyze-button"')
+    expect(source).toContain('data-testid="image-text2image-analyze-button"')
+    expect(source).toContain('@click="handleAnalyzePrompt"')
+    expect(source).toContain("await handleEvaluateInternal('prompt-only')")
   })
 })
