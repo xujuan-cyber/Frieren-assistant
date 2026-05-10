@@ -56,11 +56,35 @@ Based on the current implementation, it supports:
 - use now
 - edit
 - delete
-- import JSON
-- export JSON
+- import JSON, resource packages, share HTML, and original share PNG files
+- export JSON, resource packages, share HTML, and original share PNG files
 - clear all favorites
 - category management
 - tag management
+
+## Sharing One Favorite
+
+If you only want to share one favorite, you do not need to export the whole collection.
+
+From the favorite detail view, use the share action to export the current favorite as:
+
+- **HTML**: a single-file page that can be opened directly, copied from, and imported back into Prompt Optimizer.
+- **PNG**: a polished long image for visual sharing; the original PNG file also carries import data.
+
+Both formats are generated from the visible export preview. Cover image, description, prompt body, tags, variables, and the product watermark are kept by default; examples and version history can be included or omitted before export. Before sharing, review the prompt, examples, images, and notes for private or sensitive information.
+
+### Importing a shared file
+
+Open [Prompt Optimizer](https://prompt.always200.com/), go to **Favorites -> Import**, and upload the file through the same import entry.
+
+Supported files:
+
+- `.po-favorites.zip`
+- `.json`
+- share `.html` / `.htm`
+- original share `.png`
+
+PNG import requires the original file. Screenshots, social-platform compression, re-saving, or format conversion may remove the embedded import data. If the recipient should be able to inspect and copy the content immediately, HTML is usually the better sharing format.
 
 ## What happens when you click “Use now”
 
@@ -161,7 +185,7 @@ Facilitating later updates and source verification.
 
 ### Complete Backup
 
-Exporting favorites now packages referenced images and media resources together. Importing automatically restores resource references, no need to separately migrate image files.
+Exporting a favorite resource package now packages referenced images and media resources together. Importing automatically restores resource references, no need to separately migrate image files.
 
 Suitable for:
 

@@ -36,6 +36,20 @@ Be careful when importing:
 - model configs may include saved API keys or other sensitive settings
 - if a backup file comes from someone else, inspect it before importing
 
+### Remote backup (v2.11.0)
+
+Data Management also supports deployment-aware remote backups. It is useful when you want to back up local app data, favorites, and related image resources to a configured remote storage provider, then restore from the remote backup list later.
+
+Keep these points in mind:
+
+- Remote backup is a data-safety and migration helper. It is not multi-user cloud sync.
+- Available providers depend on runtime and deployment configuration; desktop and web connections are not identical.
+- Backups try to include app data, favorites, image cache resources, and favorite image resources.
+- Before restore, you can choose the restore scope, such as app data, favorites, or the matching image resources.
+- If a backup was created with missing image resources, the restore UI warns you; when needed, restore only the JSON data.
+
+Before sharing or restoring a remote backup, check whether it contains model configs, API keys, private prompts, image assets, or other sensitive content.
+
 ### Context collection import and export
 
 Data management also supports separate import and export for context collections:
