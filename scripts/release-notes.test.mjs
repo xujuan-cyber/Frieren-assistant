@@ -348,7 +348,7 @@ test('validateReleaseArtifacts can validate a matching non-top changelog entry f
   assert.deepEqual(historicalResult.errors, []);
 });
 
-test('renderGitHubReleaseBody renders English first, then Chinese, with macOS note and guide links', () => {
+test('renderGitHubReleaseBody renders English first, then Chinese, with final macOS note and guide links', () => {
   const root = createTempRepo();
   writeFile(root, 'releases/v2.8.0.en.md', buildValidEnglishReleaseNotes('2.8.0'));
   writeFile(root, 'releases/v2.8.0.zh-CN.md', buildValidChineseReleaseNotes('2.8.0'));
@@ -361,15 +361,19 @@ test('renderGitHubReleaseBody renders English first, then Chinese, with macOS no
 
   assert.match(body, /^## English$/m);
   assert.match(body, /^### Summary$/m);
-  assert.match(body, /^### macOS Security Note$/m);
   assert.match(body, /^Installation guide: \[English\]\(https:\/\/github\.com\/linshenkx\/prompt-optimizer\/blob\/v2\.8\.0\/mkdocs\/docs\/en\/deployment\/desktop\.md\) \| \[中文\]\(https:\/\/github\.com\/linshenkx\/prompt-optimizer\/blob\/v2\.8\.0\/mkdocs\/docs\/zh\/deployment\/desktop\.md\)$/m);
   assert.match(body, /\[Full release notes \(EN\)\]\(https:\/\/github\.com\/linshenkx\/prompt-optimizer\/blob\/v2\.8\.0\/releases\/v2\.8\.0\.en\.md\)/);
   assert.match(body, /^---$/m);
   assert.match(body, /^## 中文$/m);
   assert.match(body, /^### 概括$/m);
-  assert.match(body, /^### macOS 安全提示$/m);
   assert.match(body, /^安装文档：\[English\]\(https:\/\/github\.com\/linshenkx\/prompt-optimizer\/blob\/v2\.8\.0\/mkdocs\/docs\/en\/deployment\/desktop\.md\) \| \[中文\]\(https:\/\/github\.com\/linshenkx\/prompt-optimizer\/blob\/v2\.8\.0\/mkdocs\/docs\/zh\/deployment\/desktop\.md\)$/m);
   assert.match(body, /\[完整发布说明（中文）\]\(https:\/\/github\.com\/linshenkx\/prompt-optimizer\/blob\/v2\.8\.0\/releases\/v2\.8\.0\.zh-CN\.md\)/);
+  assert.doesNotMatch(body, /^### macOS/m);
+  assert.match(body, /^macOS note: if macOS reports the app as damaged or cannot verify the developer, this is usually caused by the quarantine attribute on downloaded apps\./m);
+  assert.match(body, /^macOS 备注：如果 macOS 提示“已损坏”或“无法验证开发者”，通常是下载文件的隔离属性导致。/m);
+  assert.match(body, /xattr -rd com\.apple\.quarantine \/Applications\/PromptOptimizer\.app/);
+  assert.match(body, /~\/Downloads\/PromptOptimizer-\*\.dmg/);
+  assert.ok(body.lastIndexOf('macOS note:') > body.indexOf('[完整发布说明（中文）]'));
 });
 
 test('renderGitHubReleaseBody falls back to full text when summaries are absent', () => {

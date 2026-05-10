@@ -539,10 +539,18 @@ function buildTagScopedFileUrl(repository, tag, relativePath) {
 
 function renderMacSecurityNote(locale) {
   if (locale === 'en') {
-    return '> macOS note: if the app is reported as damaged or unverified, remove quarantine with `xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app` (or run it on `~/Downloads/PromptOptimizer-*.dmg` before installing).';
+    return [
+      'macOS note: if macOS reports the app as damaged or cannot verify the developer, this is usually caused by the quarantine attribute on downloaded apps. See the installation guide, or remove it after installing with `xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app`; for a downloaded DMG, you can run the same command on `~/Downloads/PromptOptimizer-*.dmg` before installing.',
+    ].join('\n');
   }
 
-  return '> macOS 提示：如果提示“已损坏”或“无法验证开发者”，可用 `xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app` 移除隔离属性；DMG 可先对 `~/Downloads/PromptOptimizer-*.dmg` 执行。';
+  if (locale === 'zh-CN') {
+    return [
+      'macOS 备注：如果 macOS 提示“已损坏”或“无法验证开发者”，通常是下载文件的隔离属性导致。请参考安装文档；也可以在安装后执行 `xattr -rd com.apple.quarantine /Applications/PromptOptimizer.app`，或在安装前对 `~/Downloads/PromptOptimizer-*.dmg` 执行同类命令。',
+    ].join('\n');
+  }
+
+  return [renderMacSecurityNote('en'), renderMacSecurityNote('zh-CN')].join('\n');
 }
 
 function renderGitHubReleaseBody({ cwd = process.cwd(), version, repository }) {
@@ -565,8 +573,6 @@ function renderGitHubReleaseBody({ cwd = process.cwd(), version, repository }) {
       '### Summary',
       englishSummary,
       '',
-      renderMacSecurityNote('en'),
-      '',
       `Installation guide: [English](${englishGuideUrl}) | [中文](${chineseGuideUrl})`,
       `[Full release notes (EN)](${buildTagScopedFileUrl(repository, tag, getReleaseNotesRelativePath(normalizedVersion, 'en', cwd))})`,
       '',
@@ -577,10 +583,12 @@ function renderGitHubReleaseBody({ cwd = process.cwd(), version, repository }) {
       '### 概括',
       chineseSummary,
       '',
-      renderMacSecurityNote('zh-CN'),
-      '',
       `安装文档：[English](${englishGuideUrl}) | [中文](${chineseGuideUrl})`,
       `[完整发布说明（中文）](${buildTagScopedFileUrl(repository, tag, getReleaseNotesRelativePath(normalizedVersion, 'zh-CN', cwd))})`,
+      '',
+      '---',
+      '',
+      renderMacSecurityNote(),
       '',
     ].join('\n');
   }
