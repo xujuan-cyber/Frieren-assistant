@@ -4,6 +4,7 @@ import type {
   PromptContent,
   PromptExample,
 } from '@prompt-optimizer/core'
+import { strFromU8, strToU8, unzlibSync, zlibSync } from 'fflate'
 
 import {
   createFavoriteResourcePackageFromJson,
@@ -1232,7 +1233,7 @@ export const createFavoriteSharePng = async (
   const rendered = await canvasToPngBlob(canvas)
   const pngBytes = new Uint8Array(await rendered.arrayBuffer())
   const payloadText = JSON.stringify(result.payload)
-  const withMetadata = insertPngTextChunk(pngBytes, FAVORITE_SHARE_PNG_TEXT_KEYWORD, payloadText)
+  const withMetadata = insertPngInternationalTextChunk(pngBytes, FAVORITE_SHARE_PNG_TEXT_KEYWORD, payloadText)
   return {
     blob: new Blob([uint8ArrayToArrayBuffer(withMetadata)], { type: 'image/png' }),
     result,
@@ -1286,6 +1287,60 @@ export const insertPngTextChunk = (
   const encoder = new TextEncoder()
   const type = encoder.encode('tEXt')
   const data = encoder.encode(`${keyword}\u0000${text}`)
+  const chunk = createPngChunk(type, data)
+
+  return insertPngChunkAfterIhdr(pngBytes, chunk)
+}
+
+export const insertPngInternationalTextChunk = (
+  pngBytes: Uint8Array,
+  keyword: string,
+  text: string,
+  options: {
+    compressed?: boolean
+    languageTag?: string
+    translatedKeyword?: string
+  } = {},
+): Uint8Array => {
+  if (!isPng(pngBytes)) throw new Error('Not a PNG file')
+  const encoder = new TextEncoder()
+  const type = encoder.encode('iTXt')
+  const keywordBytes = encoder.encode(keyword)
+  const languageBytes = encoder.encode(options.languageTag || '')
+  const translatedKeywordBytes = encoder.encode(options.translatedKeyword || '')
+  const textBytes = strToU8(text)
+  const compressed = options.compressed !== false
+  const encodedTextBytes = compressed ? zlibSync(textBytes) : textBytes
+  const data = new Uint8Array(
+    keywordBytes.length +
+      1 +
+      1 +
+      1 +
+      languageBytes.length +
+      1 +
+      translatedKeywordBytes.length +
+      1 +
+      encodedTextBytes.length,
+  )
+  let offset = 0
+  data.set(keywordBytes, offset)
+  offset += keywordBytes.length
+  data[offset++] = 0
+  data[offset++] = compressed ? 1 : 0
+  data[offset++] = 0
+  data.set(languageBytes, offset)
+  offset += languageBytes.length
+  data[offset++] = 0
+  data.set(translatedKeywordBytes, offset)
+  offset += translatedKeywordBytes.length
+  data[offset++] = 0
+  data.set(encodedTextBytes, offset)
+
+  const chunk = createPngChunk(type, data)
+  return insertPngChunkAfterIhdr(pngBytes, chunk)
+}
+
+const createPngChunk = (type: Uint8Array, data: Uint8Array): Uint8Array => {
   const chunk = new Uint8Array(12 + data.length)
   writeUint32(chunk, 0, data.length)
   chunk.set(type, 4)
@@ -1294,7 +1349,10 @@ export const insertPngTextChunk = (
   crcInput.set(type, 0)
   crcInput.set(data, type.length)
   writeUint32(chunk, 8 + data.length, crc32(crcInput))
+  return chunk
+}
 
+const insertPngChunkAfterIhdr = (pngBytes: Uint8Array, chunk: Uint8Array): Uint8Array => {
   const ihdrLength = readUint32(pngBytes, 8)
   const insertOffset = 8 + 12 + ihdrLength
   const output = new Uint8Array(pngBytes.length + chunk.length)
@@ -1328,9 +1386,47 @@ export const readPngTextChunk = (
         }
       }
     }
+    if (type === 'iTXt') {
+      const text = readPngInternationalTextData(pngBytes.slice(dataStart, dataEnd), keyword)
+      if (text !== null) return text
+    }
     offset = dataEnd + 4
   }
   return null
+}
+
+const readPngInternationalTextData = (
+  data: Uint8Array,
+  expectedKeyword: string,
+): string | null => {
+  const decoder = new TextDecoder()
+  const keywordEnd = data.indexOf(0)
+  if (keywordEnd <= 0 || keywordEnd + 5 > data.length) return null
+
+  const keyword = decoder.decode(data.slice(0, keywordEnd))
+  if (keyword !== expectedKeyword) return null
+
+  const compressionFlag = data[keywordEnd + 1]
+  const compressionMethod = data[keywordEnd + 2]
+  if (compressionFlag !== 0 && compressionFlag !== 1) return null
+  if (compressionMethod !== 0) return null
+
+  let offset = keywordEnd + 3
+  const languageEnd = data.indexOf(0, offset)
+  if (languageEnd < 0) return null
+  offset = languageEnd + 1
+  const translatedKeywordEnd = data.indexOf(0, offset)
+  if (translatedKeywordEnd < 0) return null
+  offset = translatedKeywordEnd + 1
+
+  const textBytes = data.slice(offset)
+  try {
+    return compressionFlag === 1
+      ? strFromU8(unzlibSync(textBytes))
+      : strFromU8(textBytes)
+  } catch {
+    return null
+  }
 }
 
 const parseSharePayload = (value: string): FavoriteSharePayload => {

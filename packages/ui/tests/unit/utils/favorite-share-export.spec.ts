@@ -7,6 +7,7 @@ import {
   createFavoriteShareFavorite,
   createFavoriteShareHtml,
   createFavoriteSharePng,
+  insertPngInternationalTextChunk,
   insertPngTextChunk,
   readFavoriteSharePackage,
   readPngTextChunk,
@@ -163,6 +164,18 @@ const createMinimalPng = (): Uint8Array => new Uint8Array([
   0x49, 0x45, 0x4e, 0x44,
   0xae, 0x42, 0x60, 0x82,
 ])
+
+const readPngChunkTypes = (bytes: Uint8Array): string[] => {
+  const decoder = new TextDecoder()
+  const types: string[] = []
+  let offset = 8
+  while (offset + 12 <= bytes.length) {
+    const length = new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getUint32(0)
+    types.push(decoder.decode(bytes.slice(offset + 4, offset + 8)))
+    offset += 12 + length
+  }
+  return types
+}
 
 describe('favorite share export', () => {
   it('filters the importable favorite with WYSIWYG section semantics', () => {
@@ -324,11 +337,29 @@ describe('favorite share export', () => {
     expect(example.inputImageAssetIds).toBeUndefined()
   })
 
-  it('can write and read PNG text metadata chunks', () => {
+  it('can read legacy PNG tEXt metadata chunks', () => {
     const png = createMinimalPng()
     const withChunk = insertPngTextChunk(png, 'PromptOptimizerFavoriteShare', '{"ok":true}')
 
     expect(readPngTextChunk(withChunk, 'PromptOptimizerFavoriteShare')).toBe('{"ok":true}')
+  })
+
+  it('writes and reads PNG iTXt metadata chunks with UTF-8 JSON', () => {
+    const png = createMinimalPng()
+    const payload = JSON.stringify({ ok: true, favoriteTitle: '纸偶微距童话 🧚' })
+    const withChunk = insertPngInternationalTextChunk(png, 'PromptOptimizerFavoriteShare', payload)
+
+    expect(readPngTextChunk(withChunk, 'PromptOptimizerFavoriteShare')).toBe(payload)
+  })
+
+  it('reads uncompressed PNG iTXt metadata chunks', () => {
+    const png = createMinimalPng()
+    const payload = JSON.stringify({ ok: true, favoriteTitle: '收藏分享' })
+    const withChunk = insertPngInternationalTextChunk(png, 'PromptOptimizerFavoriteShare', payload, {
+      compressed: false,
+    })
+
+    expect(readPngTextChunk(withChunk, 'PromptOptimizerFavoriteShare')).toBe(payload)
   })
 
   it('embeds an importable package in the original PNG export', async () => {
@@ -360,7 +391,10 @@ describe('favorite share export', () => {
     })
 
     const packageBytes = readFavoriteSharePackage(await blob.arrayBuffer())
+    const chunkTypes = readPngChunkTypes(new Uint8Array(await blob.arrayBuffer()))
     const exported = readFavoritesFromPackageBytes(packageBytes)
+    expect(chunkTypes).toContain('iTXt')
+    expect(chunkTypes).not.toContain('tEXt')
     expect(exported.favorites[0].content).toBe('')
     expect(exported.favorites[0].metadata.reproducibility.examples).toEqual([])
     expect(fillText).toHaveBeenCalledWith('IMPORT NOTE', expect.any(Number), expect.any(Number))
