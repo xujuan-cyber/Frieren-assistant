@@ -47,6 +47,8 @@ const messages = {
       "importPlaceholder": "输入导入码",
       "text2ImageGuideTitle": "从 Prompt Garden 发现文生图提示词",
       "text2ImageGuideHint": "没有灵感时，可以先去花园挑一个提示词，或粘贴导入码直接带入当前工作区。",
+      "image2ImageGuideTitle": "从 Prompt Garden 发现图生图提示词",
+      "image2ImageGuideHint": "没有改图思路时，可以先去花园挑一个图生图提示词，或粘贴导入码带入当前工作区。",
       "discoverShort": "去发现",
       "importShort": "粘贴导入码",
       "importingStatus": "正在从 Prompt Garden 获取提示词和图片资源..."
