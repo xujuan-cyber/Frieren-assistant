@@ -40,7 +40,7 @@ export interface HistoryContext {
  * 工作区组件引用类型
  */
 interface WorkspaceRef {
-    restoreFromHistory?: (payload: unknown) => void
+    restoreFromHistory?: (payload: unknown) => void | Promise<void>
 }
 
 /**
@@ -70,6 +70,8 @@ export interface AppHistoryRestoreOptions {
         targetKey: string,
         state: { assetBinding?: PromptAssetBinding; origin?: PromptSessionOrigin },
     ) => void
+    /** Persist the target workspace session after a history restore writes its session pointers. */
+    saveSessionForTargetKey?: (targetKey: string) => void | Promise<void>
 }
 
 type ConversationSnapshotMessage = {
@@ -104,9 +106,21 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
         t,
         isLoadingExternalData,
         restoreSourceBindingForTargetKey,
+        saveSessionForTargetKey,
     } = options
 
     const toast = useToast()
+
+    const persistRestoredSession = async (targetKey: string) => {
+        if (!saveSessionForTargetKey) return
+
+        try {
+            await saveSessionForTargetKey(targetKey)
+        } catch (error) {
+            console.error(`[App] Failed to save restored history session for ${targetKey}:`, error)
+            toast.warning(t('toast.warning.saveHistoryFailed'))
+        }
+    }
 
     /**
      * 处理历史记录使用 - 智能模式切换（内部实现）
@@ -178,6 +192,7 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                 )
             }
 
+            await persistRestoredSession(targetKey)
             toast.success(t('toast.success.imageHistoryRestored'))
             return // 图像模式不需要调用原有的历史记录处理逻辑
         } else {
@@ -236,7 +251,7 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                 (targetFunctionMode === 'pro' && targetMode === 'user')
             ) {
                 await nextTick()
-                userWorkspaceRef.value?.restoreFromHistory?.({
+                await userWorkspaceRef.value?.restoreFromHistory?.({
                     record,
                     chain,
                     rootPrompt: context.rootPrompt,
@@ -379,6 +394,8 @@ export function useAppHistoryRestore(options: AppHistoryRestoreOptions): AppHist
                     }
                 }
             }
+
+            await persistRestoredSession(targetKey)
         }
     }
 

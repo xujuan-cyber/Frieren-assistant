@@ -19,6 +19,7 @@ type PromptChain = PromptRecordChain
 type SourceBindingSessionLike = {
   assetBinding?: PromptAssetBinding
   origin?: PromptSessionOrigin
+  saveSession?: () => Promise<void> | void
 }
 
 export interface ContextUserOptimizationBindings {
@@ -29,6 +30,7 @@ export interface ContextUserOptimizationBindings {
   currentVersionId?: Ref<string>
   clearSessionContent?: () => void
   clearAssetBinding?: () => void
+  saveSession?: () => Promise<void> | void
   assetBinding?: PromptAssetBinding
   origin?: PromptSessionOrigin
   getSourceBindingSession?: () => SourceBindingSessionLike | null | undefined
@@ -110,6 +112,18 @@ export function useContextUserOptimization(
   const boundCurrentVersionId = bindings?.currentVersionId ?? ref('')
   const getSourceBindingSession = () => bindings?.getSourceBindingSession?.() ?? bindings
 
+  const saveSessionSnapshot = async (reason: string) => {
+    const sourceSession = getSourceBindingSession()
+    if (!sourceSession?.saveSession) return
+
+    try {
+      await sourceSession.saveSession()
+    } catch (error) {
+      console.error(`[useContextUserOptimization] Failed to save session after ${reason}:`, error)
+      toast.warning(t('toast.warning.saveHistoryFailed'))
+    }
+  }
+
   // 使用 reactive 创建响应式状态对象
   const state = reactive({
     // 状态
@@ -189,6 +203,7 @@ export function useContextUserOptimization(
                 state.currentChainId = newRecord.chainId
                 state.currentVersions = newRecord.versions
                 state.currentVersionId = newRecord.currentRecord.id
+                await saveSessionSnapshot('optimization commit')
 
                 toast.success(t('toast.success.optimizeSuccess'))
               } catch (error: unknown) {
@@ -301,6 +316,7 @@ export function useContextUserOptimization(
                 state.currentChainId = updatedChain.chainId
                 state.currentVersions = updatedChain.versions
                 state.currentVersionId = updatedChain.currentRecord.id
+                await saveSessionSnapshot('iteration commit')
 
                 toast.success(t('toast.success.iterateComplete'))
               } catch (error: unknown) {
@@ -431,6 +447,7 @@ export function useContextUserOptimization(
           state.currentChainId = newRecord.chainId
           state.currentVersions = newRecord.versions
           state.currentVersionId = newRecord.currentRecord.id
+          await saveSessionSnapshot('local edit commit')
           return
         }
 
@@ -451,6 +468,7 @@ export function useContextUserOptimization(
 
         state.currentVersions = updatedChain.versions
         state.currentVersionId = updatedChain.currentRecord.id
+        await saveSessionSnapshot('local edit commit')
       } catch (error: unknown) {
         console.error('[useContextUserOptimization] Failed to save local edits:', error)
         toast.warning(t('toast.warning.saveHistoryFailed'))

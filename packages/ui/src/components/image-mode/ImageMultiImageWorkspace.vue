@@ -1209,6 +1209,16 @@ const queueSessionSave = () => {
   sessionSaveChain = sessionSaveChain.then(() => session.saveSession()).catch((error) => {
     console.error('[ImageMultiImageWorkspace] Failed to persist image session:', error)
   })
+  return sessionSaveChain
+}
+
+const saveSessionAfterHistoryCommit = async (reason: string) => {
+  try {
+    await session.saveSession()
+  } catch (error) {
+    console.error(`[ImageMultiImageWorkspace] Failed to persist image session after ${reason}:`, error)
+    toast.warning(t('toast.warning.saveHistoryFailed'))
+  }
 }
 
 watch(
@@ -1491,6 +1501,7 @@ const createHistoryRecord = async () => {
     chainId: chain.chainId,
     versionId: chain.currentRecord.id,
   })
+  await saveSessionAfterHistoryCommit('optimization commit')
 }
 
 const optimizePrompt = async () => {
@@ -1598,6 +1609,7 @@ const handleIteratePrompt = async (payload: {
                 chainId: updatedChain.chainId,
                 versionId: updatedChain.currentRecord.id,
               })
+              await saveSessionAfterHistoryCommit('iteration commit')
             } else {
               await createHistoryRecord()
             }
@@ -1702,6 +1714,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
       chainId: chain.chainId,
       versionId: chain.currentRecord.id,
     })
+    await saveSessionAfterHistoryCommit('local edit commit')
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('prompt-optimizer:history-refresh'))

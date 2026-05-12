@@ -60,6 +60,7 @@ type BasicSessionStore = {
   updateIterateTemplate: (id: string | null) => void
   clearAssetBinding?: () => void
   clearContent: () => void
+  saveSession?: () => Promise<void> | void
   assetBinding?: PromptAssetBinding
   origin?: PromptSessionOrigin
 }
@@ -122,6 +123,17 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
     get: () => sessionStore.testContent || '',
     set: (value) => sessionStore.updateTestContent(value || '')
   })
+
+  const saveSessionSnapshot = async (reason: string) => {
+    if (!sessionStore.saveSession) return
+
+    try {
+      await sessionStore.saveSession()
+    } catch (error) {
+      console.error(`[useBasicWorkspaceLogic] Failed to save session after ${reason}:`, error)
+      toast.warning(t('toast.warning.saveHistoryFailed'))
+    }
+  }
 
   const selectedOptimizeModelKey = computed<string>({
     get: () => sessionStore.selectedOptimizeModelKey || '',
@@ -223,6 +235,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
                 chainId: chain.chainId,
                 versionId: chain.currentRecord.id
               })
+              await saveSessionSnapshot('optimization commit')
 
               onOptimizeComplete?.(chain)
               toast.success(t('toast.success.optimizeSuccess'))
@@ -356,6 +369,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
                 chainId: chain.chainId,
                 versionId: chain.currentRecord.id
               })
+              await saveSessionSnapshot('iteration commit')
 
               onIterateComplete?.(chain)
               toast.success(t('toast.success.iterateComplete'))
@@ -473,6 +487,7 @@ export function useBasicWorkspaceLogic(options: UseBasicWorkspaceLogicOptions) {
         chainId: chain.chainId,
         versionId: chain.currentRecord.id,
       })
+      await saveSessionSnapshot('local edit commit')
 
       onLocalEditComplete?.(chain)
       toast.success(t('toast.success.localEditSaved'))

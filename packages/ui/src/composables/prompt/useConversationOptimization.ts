@@ -117,6 +117,17 @@ export function useConversationOptimization(
     }
   }
 
+  const saveSessionSnapshot = async (reason: string) => {
+    if (optimizationMode.value !== 'system') return
+
+    try {
+      await proMultiMessageSession.saveSession()
+    } catch (error) {
+      console.error(`[useConversationOptimization] Failed to save session after ${reason}:`, error)
+      toast.warning(t('toast.warning.saveHistoryFailed'))
+    }
+  }
+
   // 🔧 Codex 修复：核心映射表现在直接使用 messageId → chainId，移除 mode 前缀
   // 原因：Session Store 已做子模式隔离（session/v1/pro-multi），无需在 key 中重复 mode 信息
   // 使用 Map 数据结构确保 O(1) 查找性能
@@ -520,6 +531,8 @@ export function useConversationOptimization(
                   syncMessageChainMapToSession()
               }
 
+              await saveSessionSnapshot('optimization commit')
+
               // 触发全局历史记录刷新事件
               if (typeof window !== 'undefined') {
                 window.dispatchEvent(new Event('prompt-optimizer:history-refresh'))
@@ -663,6 +676,8 @@ export function useConversationOptimization(
                 const updatedChain = await historyManager.value.addIteration(iterationData)
                 currentVersions.value = updatedChain.versions
                 currentRecordId.value = updatedChain.currentRecord.id
+
+                await saveSessionSnapshot('iteration commit')
 
                 // 触发全局历史记录刷新事件
                 if (typeof window !== 'undefined') {
@@ -873,6 +888,7 @@ export function useConversationOptimization(
           // ⚠️ Codex 修复：显式同步到 session store
           syncMessageChainMapToSession()
         }
+        await saveSessionSnapshot('local edit commit')
         return
       }
 
@@ -894,6 +910,7 @@ export function useConversationOptimization(
 
       currentVersions.value = updatedChain.versions
       currentRecordId.value = updatedChain.currentRecord.id
+      await saveSessionSnapshot('local edit commit')
     } catch (error: unknown) {
       console.error('[useConversationOptimization] Failed to save local edits:', error)
       toast.warning(t('toast.warning.saveHistoryFailed'))

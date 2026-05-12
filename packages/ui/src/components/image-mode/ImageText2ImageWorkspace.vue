@@ -2159,6 +2159,16 @@ const queueSessionSave = () => {
         .catch((e) => {
             console.error('[ImageText2ImageWorkspace] Failed to persist image session:', e)
         })
+    return sessionSaveChain
+}
+
+const saveSessionAfterHistoryCommit = async (reason: string) => {
+    try {
+        await session.saveSession()
+    } catch (e) {
+        console.error(`[ImageText2ImageWorkspace] Failed to persist image session after ${reason}:`, e)
+        toast.warning(t('toast.warning.saveHistoryFailed'))
+    }
 }
 
 const runVariant = async (
@@ -2310,6 +2320,7 @@ const handleSaveLocalEdit = async (payload: { note?: string }) => {
             chainId: chain.chainId,
             versionId: chain.currentRecord.id,
         })
+        await saveSessionAfterHistoryCommit('local edit commit')
 
         window.dispatchEvent(new CustomEvent('prompt-optimizer:history-refresh'))
         toast.success(t('toast.success.localEditSaved'))
@@ -2809,6 +2820,7 @@ const createHistoryRecord = async () => {
             chainId: newRecord.chainId,
             versionId: newRecord.currentRecord.id,
         })
+        await saveSessionAfterHistoryCommit('optimization commit')
 
         window.dispatchEvent(new CustomEvent('prompt-optimizer:history-refresh'))
     } catch (e) {
@@ -2919,6 +2931,7 @@ const handleIteratePrompt = async (payload: {
                                 chainId: updatedChain.chainId,
                                 versionId: updatedChain.currentRecord.id,
                             })
+                            await saveSessionAfterHistoryCommit('iteration commit')
                             window.dispatchEvent(new CustomEvent('prompt-optimizer:history-refresh'))
                         } else {
                             await createHistoryRecord()

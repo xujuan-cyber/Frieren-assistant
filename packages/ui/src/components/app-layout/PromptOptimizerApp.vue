@@ -1641,6 +1641,13 @@ const restoreSourceBindingForTargetKey = (
     }
 };
 
+const saveSessionForTargetKey = async (targetKey: string) => {
+    if (!WORKSPACE_SUB_MODE_KEYS.includes(targetKey as SubModeKey)) return;
+    const session = getSessionBySubModeKey(targetKey as SubModeKey);
+    if (!session?.saveSession) return;
+    await session.saveSession();
+};
+
 // App 级别历史记录恢复
 const { handleHistoryReuse } = useAppHistoryRestore({
     services: servicesForHistoryRestore,
@@ -1653,6 +1660,7 @@ const { handleHistoryReuse } = useAppHistoryRestore({
     t,
     isLoadingExternalData,
     restoreSourceBindingForTargetKey,
+    saveSessionForTargetKey,
 });
 
 // App 级别收藏管理
