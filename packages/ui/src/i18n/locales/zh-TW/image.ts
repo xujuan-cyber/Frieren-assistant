@@ -197,7 +197,15 @@ const messages = {
       "dynamicLoaded": "已載入動態模型",
       "dynamicFailed": "載入動態模型失敗，已回退靜態清單",
       "connectionRequired": "請先填寫並校驗連線資訊",
-      "refreshFailed": "重新整理模型失敗"
+      "refreshFailed": "重新整理模型失敗",
+      "quickSwitch": {
+        "title": "切換目前圖像模型",
+        "placeholder": "選擇圖像模型",
+        "modelTagTitle": "點擊切換目前圖像配置的模型",
+        "fetchFailed": "取得線上圖像模型列表失敗：{error}，可繼續選擇本地預設模型。",
+        "updateSuccess": "已切換為 {model}",
+        "updateFailed": "切換圖像模型失敗：{error}"
+      }
     },
     "parameters": {
       "noParameters": "該模型暫無可配置參數",

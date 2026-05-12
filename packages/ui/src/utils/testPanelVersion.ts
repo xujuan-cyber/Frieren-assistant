@@ -17,6 +17,8 @@ export interface TestPanelVersionLabels {
   original: string
 }
 
+export type TestPanelVersionSourceTone = 'workspace' | 'previous' | 'original' | 'version'
+
 export interface TestPanelVersionOption extends SelectOption {
   label: string
   fullLabel: string
@@ -322,6 +324,23 @@ export const formatTestPanelVersionSelectionLabel = (
   if (resolvedVersion === 0) return labels.original
   return `v${resolvedVersion}`
 }
+
+export const getTestPanelVersionSourceTone = (
+  selection: DynamicTestPanelVersionValue,
+  resolvedVersion: number,
+): TestPanelVersionSourceTone => {
+  if (selection === 'workspace') return 'workspace'
+  if (selection === 'previous') return 'previous'
+  if (resolvedVersion === 0) return 'original'
+  return 'version'
+}
+
+export const formatTestPanelVariantSourceLabel = (
+  variantLabel: string,
+  selection: DynamicTestPanelVersionValue,
+  resolvedVersion: number,
+  labels: TestPanelVersionLabels,
+): string => `${variantLabel} · ${formatTestPanelVersionSelectionLabel(selection, resolvedVersion, labels)}`
 
 export const buildTestPanelVersionOptions = (
   versions: TestPanelVersionEntryLike[] | null | undefined,

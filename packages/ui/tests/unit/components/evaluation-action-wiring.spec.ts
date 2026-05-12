@@ -184,6 +184,11 @@ const collectMissingListeners = (requirementsToCheck: FileComponentRequirement[]
   return missing
 }
 
+const countComponentOccurrences = (file: string, component: string) => {
+  const source = readFileSync(join(sourceRoot, file), 'utf8')
+  return extractComponentBlocks(source, component).length
+}
+
 describe('evaluation action wiring', () => {
   it('keeps apply action events connected at workspace boundaries', () => {
     const requirementsToCheck = filesToCheck.flatMap((file) =>
@@ -200,6 +205,38 @@ describe('evaluation action wiring', () => {
 
   it('keeps shared workspace action controls wired consistently across modes', () => {
     const missing = collectMissingListeners(workspaceRequirements)
+
+    expect(missing).toEqual([])
+  })
+
+  it('keeps text model quick switching available in primary and test model selectors', () => {
+    const expectedMinimumOccurrences: Record<string, number> = {
+      'components/basic-mode/BasicUserWorkspace.vue': 2,
+      'components/basic-mode/BasicSystemWorkspace.vue': 2,
+      'components/context-mode/ContextUserWorkspace.vue': 2,
+      'components/context-mode/ContextSystemWorkspace.vue': 2,
+      'components/image-mode/ImageText2ImageWorkspace.vue': 1,
+      'components/image-mode/ImageImage2ImageWorkspace.vue': 1,
+      'components/image-mode/ImageMultiImageWorkspace.vue': 1,
+    }
+
+    const missing = Object.entries(expectedMinimumOccurrences)
+      .filter(([file, minimum]) => countComponentOccurrences(file, 'TextModelQuickSwitch') < minimum)
+      .map(([file, minimum]) => `${file} needs at least ${minimum} <TextModelQuickSwitch> occurrences`)
+
+    expect(missing).toEqual([])
+  })
+
+  it('keeps image model quick switching available in image test model selectors', () => {
+    const expectedMinimumOccurrences: Record<string, number> = {
+      'components/image-mode/ImageText2ImageWorkspace.vue': 1,
+      'components/image-mode/ImageImage2ImageWorkspace.vue': 1,
+      'components/image-mode/ImageMultiImageWorkspace.vue': 1,
+    }
+
+    const missing = Object.entries(expectedMinimumOccurrences)
+      .filter(([file, minimum]) => countComponentOccurrences(file, 'ImageModelQuickSwitch') < minimum)
+      .map(([file, minimum]) => `${file} needs at least ${minimum} <ImageModelQuickSwitch> occurrences`)
 
     expect(missing).toEqual([])
   })

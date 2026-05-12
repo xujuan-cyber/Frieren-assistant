@@ -40,7 +40,6 @@ const messages = {
     },
     "customHeaders": {
       "label": "自訂請求頭",
-      "hint": "僅用於 Custom API。適合企業閘道要求的 x-auth-token 等附加頭；Authorization、Content-Type 等基礎頭由客戶端管理。",
       "namePlaceholder": "Header 名稱，如 x-auth-token",
       "valuePlaceholder": "Header 值",
       "add": "新增請求頭",

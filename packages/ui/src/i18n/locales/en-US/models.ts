@@ -40,7 +40,6 @@ const messages = {
     },
     "customHeaders": {
       "label": "Custom Request Headers",
-      "hint": "Custom API only. Use this for enterprise gateway headers such as x-auth-token; Authorization and Content-Type are managed by the client.",
       "namePlaceholder": "Header name, e.g. x-auth-token",
       "valuePlaceholder": "Header value",
       "add": "Add Header",

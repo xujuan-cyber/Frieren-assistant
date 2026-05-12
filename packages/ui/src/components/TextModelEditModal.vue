@@ -121,10 +121,6 @@
 
           <NFormItem v-if="showCustomHeaders" :label="t('modelManager.customHeaders.label')">
             <div class="custom-headers-editor">
-              <NText depth="3" class="custom-headers-hint">
-                {{ t('modelManager.customHeaders.hint') }}
-              </NText>
-
               <div
                 v-for="(row, index) in customHeaderRows"
                 :key="index"
@@ -541,7 +537,6 @@ const onProviderChange = (providerId: string) => {
   width: 100%;
 }
 
-.custom-headers-hint,
 .custom-headers-error {
   line-height: 1.5;
 }

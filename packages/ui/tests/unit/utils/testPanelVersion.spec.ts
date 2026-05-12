@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildTestPanelVersionOptions,
+  formatTestPanelVariantSourceLabel,
   formatTestPanelVersionSelectionLabel,
   getSelectablePreviousSavedVersionNumber,
+  getTestPanelVersionSourceTone,
   resolvePreviousSavedVersionNumber,
   resolveTestPanelVersionSelection,
 } from '../../../src/utils/testPanelVersion'
@@ -96,6 +98,20 @@ describe('testPanelVersion', () => {
   it('formats previous labels using the resolved saved version', () => {
     expect(formatTestPanelVersionSelectionLabel('previous', 2, labels)).toBe('Previous (v2)')
     expect(formatTestPanelVersionSelectionLabel('previous', 0, labels)).toBe('Previous (Original)')
+  })
+
+  it('formats compact variant source labels without adding another tag concept', () => {
+    expect(formatTestPanelVariantSourceLabel('A', 'workspace', -1, labels)).toBe('A · Workspace')
+    expect(formatTestPanelVariantSourceLabel('B', 'previous', 2, labels)).toBe('B · Previous (v2)')
+    expect(formatTestPanelVariantSourceLabel('C', 0, 0, labels)).toBe('C · Original')
+    expect(formatTestPanelVariantSourceLabel('D', 3, 3, labels)).toBe('D · v3')
+  })
+
+  it('maps source selections to a small semantic tone set', () => {
+    expect(getTestPanelVersionSourceTone('workspace', -1)).toBe('workspace')
+    expect(getTestPanelVersionSourceTone('previous', 2)).toBe('previous')
+    expect(getTestPanelVersionSourceTone(0, 0)).toBe('original')
+    expect(getTestPanelVersionSourceTone(2, 2)).toBe('version')
   })
 
   it('resolves previous to the current saved version when the workspace has unsaved edits', () => {

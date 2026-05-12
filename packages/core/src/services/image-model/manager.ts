@@ -379,6 +379,17 @@ export class ImageModelManager implements IImageModelManager {
         const latestStaticModel = this.registry
           .getStaticModels(config.providerId)
           .find(model => model.id === config.modelId)
+        const storedModelMatchesIdentity =
+          nextConfig.model.id === config.modelId &&
+          nextConfig.model.providerId === config.providerId
+        const resolvedModel = latestStaticModel
+          ? {
+              ...nextConfig.model,
+              ...latestStaticModel
+            }
+          : storedModelMatchesIdentity
+            ? nextConfig.model
+            : adapter.buildDefaultModel(config.modelId)
 
         nextConfig = {
           ...nextConfig,
@@ -386,12 +397,7 @@ export class ImageModelManager implements IImageModelManager {
             ...nextConfig.provider,
             ...latestProvider
           },
-          model: latestStaticModel
-            ? {
-                ...nextConfig.model,
-                ...latestStaticModel
-              }
-            : nextConfig.model
+          model: resolvedModel
         }
       } catch {
         // ignore - unknown provider or adapter failure

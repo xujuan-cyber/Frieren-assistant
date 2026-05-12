@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, ref } from 'vue'
-import type { TextModelConfig } from '@prompt-optimizer/core'
+import type { ImageModelConfig } from '@prompt-optimizer/core'
 
-import TextModelQuickSwitch from '../../../src/components/TextModelQuickSwitch.vue'
-import type { ModelSelectOption } from '../../../src/types/select-options'
+import ImageModelQuickSwitch from '../../../src/components/ImageModelQuickSwitch.vue'
+import type { SelectOption } from '../../../src/types/select-options'
 
 const toast = {
   success: vi.fn(),
@@ -30,9 +30,6 @@ vi.mock('vue-i18n', async (importOriginal) => {
 
 const NPopoverStub = defineComponent({
   name: 'NPopover',
-  props: {
-    show: { type: Boolean, default: false },
-  },
   emits: ['update:show'],
   setup(_, { slots, emit }) {
     return () =>
@@ -41,7 +38,7 @@ const NPopoverStub = defineComponent({
           'button',
           {
             type: 'button',
-            'data-testid': 'quick-switch-trigger',
+            'data-testid': 'image-quick-switch-trigger',
             onClick: () => emit('update:show', true),
           },
           slots.trigger?.(),
@@ -63,7 +60,7 @@ const NSelectStub = defineComponent({
       h(
         'select',
         {
-          'data-testid': 'quick-switch-select',
+          'data-testid': 'image-quick-switch-select',
           value: props.value,
           onChange: (event: Event) => {
             emit('update:value', (event.target as HTMLSelectElement).value)
@@ -84,75 +81,86 @@ const simpleStub = (name: string, tag = 'div') =>
     },
   })
 
-const createConfig = (): TextModelConfig => ({
-  id: 'config-1',
-  name: 'Gateway Config',
+const createConfig = (): ImageModelConfig => ({
+  id: 'image-config-1',
+  name: 'Image Gateway',
   enabled: true,
-  providerMeta: {
-    id: 'custom',
-    name: 'Custom API',
+  providerId: 'openai',
+  modelId: 'gpt-image-1',
+  provider: {
+    id: 'openai',
+    name: 'OpenAI Image',
     requiresApiKey: true,
-    defaultBaseURL: 'https://api.example.com/v1',
+    defaultBaseURL: 'https://api.openai.com/v1',
     supportsDynamicModels: true,
   },
-  modelMeta: {
-    id: 'model-a',
-    name: 'Model A',
-    providerId: 'custom',
+  model: {
+    id: 'gpt-image-1',
+    name: 'GPT Image 1',
+    providerId: 'openai',
     capabilities: {
-      supportsTools: false,
+      text2image: true,
+      image2image: true,
     },
     parameterDefinitions: [],
   },
   connectionConfig: {
     apiKey: 'secret',
     baseURL: 'https://api.example.com/v1',
-    customHeaders: {
-      'x-auth-token': 'token',
-    },
   },
 })
 
-const createOption = (config: TextModelConfig): ModelSelectOption => ({
+const createOption = (config: ImageModelConfig): SelectOption<ImageModelConfig> => ({
   primary: config.name,
-  secondary: config.providerMeta.name,
+  secondary: `${config.provider.name} · ${config.model.name}`,
   value: config.id,
   raw: config,
 })
 
 const mountComponent = (config = createConfig()) => {
-  const updateModel = vi.fn().mockResolvedValue(undefined)
-  const fetchModelList = vi.fn().mockResolvedValue([
-    { value: 'model-b', label: 'Model B' },
+  const updateConfig = vi.fn().mockResolvedValue(undefined)
+  const getDynamicModels = vi.fn().mockResolvedValue([
+    {
+      id: 'gpt-image-2',
+      name: 'GPT Image 2',
+      providerId: 'openai',
+      capabilities: {
+        text2image: true,
+        image2image: true,
+        multiImage: true,
+      },
+      parameterDefinitions: [],
+    },
   ])
   const refreshModels = vi.fn().mockResolvedValue(undefined)
 
   const services = ref({
-    modelManager: {
-      updateModel,
+    imageModelManager: {
+      updateConfig,
     },
-    llmService: {
-      fetchModelList,
+    imageService: {
+      getDynamicModels,
     },
-    textAdapterRegistry: {
+    imageAdapterRegistry: {
+      supportsDynamicModels: vi.fn().mockReturnValue(true),
+      getStaticModels: vi.fn().mockReturnValue([config.model]),
       getAdapter: vi.fn().mockReturnValue({
-        getProvider: vi.fn().mockReturnValue(config.providerMeta),
-        getModels: vi.fn().mockReturnValue([]),
+        getModels: vi.fn().mockReturnValue([config.model]),
         buildDefaultModel: vi.fn((modelId: string) => ({
           id: modelId,
           name: modelId,
-          providerId: config.providerMeta.id,
+          providerId: config.providerId,
           capabilities: {
-            supportsTools: false,
+            text2image: true,
+            image2image: true,
           },
           parameterDefinitions: [],
         })),
       }),
-      getStaticModels: vi.fn().mockReturnValue([config.modelMeta]),
     },
   })
 
-  const wrapper = mount(TextModelQuickSwitch, {
+  const wrapper = mount(ImageModelQuickSwitch, {
     props: {
       modelKey: config.id,
       options: [createOption(config)],
@@ -184,50 +192,45 @@ const mountComponent = (config = createConfig()) => {
 
   return {
     wrapper,
-    updateModel,
-    fetchModelList,
+    updateConfig,
+    getDynamicModels,
     refreshModels,
-    config,
   }
 }
 
-describe('TextModelQuickSwitch', () => {
-  it('shows a compact model tag for the selected text model config', () => {
+describe('ImageModelQuickSwitch', () => {
+  it('shows a compact model tag for the selected image model config', () => {
     const { wrapper } = mountComponent()
 
-    expect(wrapper.text()).toContain('Model A')
-    expect(wrapper.text()).not.toContain('Custom API')
-    expect(wrapper.get('.text-model-quick-switch__model').attributes('title')).toBe(
-      'model.quickSwitch.modelTagTitle - Custom API / Model A',
+    expect(wrapper.text()).toContain('GPT Image 1')
+    expect(wrapper.text()).not.toContain('OpenAI Image')
+    expect(wrapper.get('.image-model-quick-switch__model').attributes('title')).toBe(
+      'image.model.quickSwitch.modelTagTitle - OpenAI Image / GPT Image 1',
     )
   })
 
-  it('fetches available models and updates only modelMeta on the selected config', async () => {
-    const { wrapper, updateModel, fetchModelList, refreshModels, config } = mountComponent()
+  it('fetches image models and updates only model identity on the selected config', async () => {
+    const { wrapper, updateConfig, getDynamicModels, refreshModels } = mountComponent()
 
-    await wrapper.get('[data-testid="quick-switch-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="image-quick-switch-trigger"]').trigger('click')
     await flushPromises()
 
-    expect(fetchModelList).toHaveBeenCalledWith('custom', expect.objectContaining({
-      id: 'config-1',
-      connectionConfig: expect.objectContaining({
-        customHeaders: expect.objectContaining({
-          'x-auth-token': 'token',
-        }),
-      }),
+    expect(getDynamicModels).toHaveBeenCalledWith('openai', expect.objectContaining({
+      baseURL: 'https://api.example.com/v1',
     }))
 
-    await wrapper.get('[data-testid="quick-switch-select"]').setValue('model-b')
+    await wrapper.get('[data-testid="image-quick-switch-select"]').setValue('gpt-image-2')
     await flushPromises()
 
-    expect(updateModel).toHaveBeenCalledWith('config-1', {
-      modelMeta: expect.objectContaining({
-        id: 'model-b',
-        name: 'Model B',
-        providerId: config.providerMeta.id,
+    expect(updateConfig).toHaveBeenCalledWith('image-config-1', {
+      modelId: 'gpt-image-2',
+      model: expect.objectContaining({
+        id: 'gpt-image-2',
+        name: 'GPT Image 2',
+        providerId: 'openai',
       }),
     })
     expect(refreshModels).toHaveBeenCalled()
-    expect(toast.success).toHaveBeenCalledWith('model.quickSwitch.updateSuccess:Model B')
+    expect(toast.success).toHaveBeenCalledWith('image.model.quickSwitch.updateSuccess:GPT Image 2')
   })
 })

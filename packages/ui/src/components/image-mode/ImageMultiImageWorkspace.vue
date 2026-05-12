@@ -19,7 +19,12 @@
           size="medium"
           :style="{ overflow: 'auto', height: '100%', minHeight: 0 }"
         >
-          <NCard :style="{ flexShrink: 0 }">
+          <TestSourceLinkedCard
+            :style="{ flexShrink: 0 }"
+            :feedback-key="sourceAreaFeedback.original.key"
+            :feedback-tone="sourceAreaFeedback.original.tone"
+            :source-tone="sourceAreaFeedback.original.sourceTone"
+          >
             <NFlex
               v-if="isInputPanelCollapsed"
               justify="space-between"
@@ -214,9 +219,17 @@
               <NGrid :cols="24" :x-gap="8" responsive="screen">
                 <NGridItem :span="7" :xs="24" :sm="7">
                   <NSpace vertical :size="8">
-                    <NText :depth="2" style="font-size: 14px; font-weight: 500;">
-                      {{ t('imageWorkspace.input.textModel') }}
-                    </NText>
+                    <NFlex align="center" :size="6" :wrap="false">
+                      <NText :depth="2" style="font-size: 14px; font-weight: 500; flex-shrink: 0;">
+                        {{ t('imageWorkspace.input.textModel') }}
+                      </NText>
+                      <TextModelQuickSwitch
+                        :model-key="selectedTextModelKey"
+                        :options="textModelOptions"
+                        :refresh-models="modelSelection.refreshTextModels"
+                        :disabled="optimizing || isIterating"
+                      />
+                    </NFlex>
                     <SelectWithConfig
                       data-testid="image-multiimage-text-model-select"
                       v-model="selectedTextModelKey"
@@ -232,12 +245,6 @@
                       :show-empty-config-c-t-a="true"
                       @focus="handleTextModelSelectFocus"
                       @config="() => appOpenModelManager && appOpenModelManager('text')"
-                    />
-                    <TextModelQuickSwitch
-                      :model-key="selectedTextModelKey"
-                      :options="textModelOptions"
-                      :refresh-models="modelSelection.refreshTextModels"
-                      :disabled="optimizing || isIterating"
                     />
                   </NSpace>
                 </NGridItem>
@@ -292,11 +299,14 @@
                 </NGridItem>
               </NGrid>
             </NSpace>
-          </NCard>
+          </TestSourceLinkedCard>
 
-          <NCard
+          <TestSourceLinkedCard
             :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
             content-style="height: 100%; max-height: 100%; overflow: hidden;"
+            :feedback-key="sourceAreaFeedback.workspace.key"
+            :feedback-tone="sourceAreaFeedback.workspace.tone"
+            :source-tone="sourceAreaFeedback.workspace.sourceTone"
           >
             <PromptPanelUI
               v-if="services && services.templateManager"
@@ -310,6 +320,9 @@
               v-model:selected-iterate-template="selectedIterateTemplate"
               :versions="currentVersions"
               :current-version-id="currentVersionId"
+              :source-feedback-key="sourceAreaFeedback.workspace.key"
+              :source-feedback-tone="sourceAreaFeedback.workspace.tone"
+              :source-feedback-version="sourceAreaFeedback.workspace.resolvedVersion"
               :optimization-mode="optimizationMode"
               :advanced-mode-enabled="advancedModeEnabled"
               :show-preview="true"
@@ -324,7 +337,7 @@
               @apply-patch="handleApplyPatch"
               @open-preview="handleOpenPromptPreview"
             />
-          </NCard>
+          </TestSourceLinkedCard>
         </NFlex>
       </div>
 
@@ -381,9 +394,22 @@
                   :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
                 >
                   <div class="variant-cell__meta">
-                    <NTag size="small" :bordered="false" class="variant-cell__label">
-                      {{ getVariantLabel(id) }}
-                    </NTag>
+                    <TestVariantSourceTag
+                      class="variant-cell__label"
+                      :variant-label="getVariantLabel(id)"
+                      :selection="variantVersionModels[id].value"
+                      :resolved-version="getVariantResolvedVersion(id)"
+                      :labels="getTestPanelVersionLabels()"
+                      :feedback-key="variantSourceFeedback[id].key"
+                      :feedback-tone="variantSourceFeedback[id].tone"
+                      @activate="activateVariantSource(id)"
+                    />
+                    <ImageModelQuickSwitch
+                      :model-key="variantModelKeyModels[id].value"
+                      :options="imageModelOptions"
+                      :refresh-models="refreshImageModelsHandler"
+                      :disabled="variantRunning[id]"
+                    />
                   </div>
 
                   <div class="variant-cell__actions">
@@ -392,7 +418,7 @@
                       :options="versionOptions"
                       :disabled="variantRunning[id]"
                       :test-id="getVariantVersionTestId(id)"
-                      @update:value="(value) => { variantVersionModels[id].value = value as TestPanelVersionValue }"
+                      @update:value="(value) => handleVariantVersionChange(id, value)"
                     />
 
                     <div class="variant-cell__model">
@@ -595,7 +621,7 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch, toRef, type Ref } from 'vue'
-import { NButton, NCard, NEmpty, NFlex, NGrid, NGridItem, NIcon, NInput, NRadioButton, NRadioGroup, NSpace, NTag, NText, NTooltip } from 'naive-ui'
+import { NButton, NCard, NEmpty, NFlex, NGrid, NGridItem, NIcon, NInput, NRadioButton, NRadioGroup, NSpace, NText, NTooltip } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
   applyPatchOperationsToText,
@@ -622,6 +648,8 @@ import { useToast } from '../../composables/ui/useToast'
 import { useFullscreen } from '../../composables/ui/useFullscreen'
 import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
 import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
+import { useTestSourceAreaFeedback } from '../../composables/prompt/useTestSourceAreaFeedback'
+import { useTestVariantSourceFeedback } from '../../composables/prompt/useTestVariantSourceFeedback'
 import { useFunctionModelManager } from '../../composables/model'
 import { useWorkspaceTextModelSelection } from '../../composables/workspaces/useWorkspaceTextModelSelection'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
@@ -640,8 +668,11 @@ import { OptionAccessors } from '../../utils/data-transformer'
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager'
 import PromptPanelUI from '../PromptPanel.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
+import ImageModelQuickSwitch from '../ImageModelQuickSwitch.vue'
 import SelectWithConfig from '../SelectWithConfig.vue'
 import TextModelQuickSwitch from '../TextModelQuickSwitch.vue'
+import TestSourceLinkedCard from '../TestSourceLinkedCard.vue'
+import TestVariantSourceTag from '../TestVariantSourceTag.vue'
 import FullscreenDialog from '../FullscreenDialog.vue'
 import AppPreviewImage from '../media/AppPreviewImage.vue'
 import { VariableAwareInput } from '../variable-extraction'
@@ -694,6 +725,11 @@ const currentChainId = ref('')
 const currentVersions = ref<PromptRecordChain['versions']>([])
 const currentVersionId = ref('')
 const variantRunning = reactive<Record<TestVariantId, boolean>>({ a: false, b: false, c: false, d: false })
+
+const { variantSourceFeedback, pulseVariantSource } =
+  useTestVariantSourceFeedback<TestVariantId>(['a', 'b', 'c', 'd'])
+const { sourceAreaFeedback, pulseSourceAreaForSelection } =
+  useTestSourceAreaFeedback()
 
 const temporaryVariablePanelManager = useTestVariableManager({
   globalVariables: computed(() => variableManager?.customVariables.value || {}),
@@ -1014,6 +1050,19 @@ const variantModelKeyModels = { a: createVariantModelKeyModel('a'), b: createVar
 
 const getVariantLabel = (id: TestVariantId) => ({ a: 'A', b: 'B', c: 'C', d: 'D' }[id])
 
+const handleVariantVersionChange = (id: TestVariantId, value: string | number) => {
+  const selection = value as TestPanelVersionValue
+  variantVersionModels[id].value = selection
+  activateVariantSource(id)
+}
+
+const activateVariantSource = (id: TestVariantId) => {
+  const selection = variantVersionModels[id].value
+  const resolved = resolvePromptForSelection(selection)
+  pulseVariantSource(id, 'change')
+  pulseSourceAreaForSelection(selection, resolved.resolvedVersion, 'change')
+}
+
 const imageModelConfigMap = computed(() => {
   const map = new Map<string, ImageModelConfig>()
   for (const config of imageModels.value) {
@@ -1124,12 +1173,14 @@ const getVariantInputImagesInfo = (id: TestVariantId): VariantInputImageInfo[] =
   return infos
 }
 
-const versionOptions = computed(() =>
-  buildTestPanelVersionOptions(currentVersions.value || [], {
+const getTestPanelVersionLabels = () => ({
     workspace: t('test.layout.workspace'),
     previous: t('test.layout.previous'),
     original: t('test.layout.original'),
-  }, {
+})
+
+const versionOptions = computed(() =>
+  buildTestPanelVersionOptions(currentVersions.value || [], getTestPanelVersionLabels(), {
     currentVersionId: currentVersionId.value,
     workspacePrompt: session.optimizedPrompt || '',
     originalPrompt: session.originalPrompt || '',
@@ -1681,6 +1732,9 @@ const resolvePromptForSelection = (selection: TestPanelVersionValue) =>
     originalPrompt: session.originalPrompt || '',
   })
 
+const getVariantResolvedVersion = (id: TestVariantId): number =>
+  resolvePromptForSelection(variantVersionModels[id].value).resolvedVersion
+
 const getVariantRequest = (id: TestVariantId) => {
   const modelKey = (variantModelKeyModels[id].value || '').trim()
   if (!modelKey) {
@@ -1695,6 +1749,8 @@ const getVariantRequest = (id: TestVariantId) => {
   const resolved = resolvePromptForSelection(variantVersionModels[id].value)
   if (!resolved.text?.trim()) {
     toast.error(t('imageWorkspace.generation.missingRequiredFields'))
+    pulseVariantSource(id, 'error')
+    pulseSourceAreaForSelection(variantVersionModels[id].value, resolved.resolvedVersion, 'error')
     return null
   }
   const varsForRequest = {

@@ -25,7 +25,12 @@
                     size="medium"
                 >
                 <!-- 输入控制区域（可折叠） -->
-                <NCard :style="{ flexShrink: 0 }">
+                <TestSourceLinkedCard
+                    :style="{ flexShrink: 0 }"
+                    :feedback-key="sourceAreaFeedback.original.key"
+                    :feedback-tone="sourceAreaFeedback.original.tone"
+                    :source-tone="sourceAreaFeedback.original.sourceTone"
+                >
                     <!-- 折叠态：只显示标题栏 -->
                     <NFlex
                         v-if="isInputPanelCollapsed"
@@ -84,6 +89,15 @@
                         @configModel="handleOpenModelManager"
                     >
                         <!-- 模型选择 -->
+                        <template #model-label-extra>
+                            <TextModelQuickSwitch
+                                :model-key="selectedOptimizeModelKeyModel"
+                                :options="modelSelection.textModelOptions.value"
+                                :refresh-models="modelSelection.refreshTextModels"
+                                :disabled="unwrappedLogicProps.isOptimizing"
+                            />
+                        </template>
+
                         <template #model-select>
                             <SelectWithConfig
                                 v-model="selectedOptimizeModelKeyModel"
@@ -92,12 +106,6 @@
                                 :getSecondary="OptionAccessors.getSecondary"
                                 :getValue="OptionAccessors.getValue"
                                 @config="handleOpenModelManager"
-                            />
-                            <TextModelQuickSwitch
-                                :model-key="selectedOptimizeModelKeyModel"
-                                :options="modelSelection.textModelOptions.value"
-                                :refresh-models="modelSelection.refreshTextModels"
-                                :disabled="unwrappedLogicProps.isOptimizing"
                             />
                         </template>
 
@@ -133,12 +141,15 @@
                             </NButton>
                         </template>
                     </InputPanelUI>
-                </NCard>
+                </TestSourceLinkedCard>
 
                 <!-- 优化工作区 -->
-                <NCard
+                <TestSourceLinkedCard
                     :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
                     content-style="height: 100%; max-height: 100%; overflow: hidden;"
+                    :feedback-key="sourceAreaFeedback.workspace.key"
+                    :feedback-tone="sourceAreaFeedback.workspace.tone"
+                    :source-tone="sourceAreaFeedback.workspace.sourceTone"
                 >
                     <PromptPanelUI
                         test-id="basic-system"
@@ -151,6 +162,9 @@
                         v-model:selected-iterate-template="selectedIterateTemplate"
                         :versions="unwrappedLogicProps.currentVersions"
                         :current-version-id="unwrappedLogicProps.currentVersionId"
+                        :source-feedback-key="sourceAreaFeedback.workspace.key"
+                        :source-feedback-tone="sourceAreaFeedback.workspace.tone"
+                        :source-feedback-version="sourceAreaFeedback.workspace.resolvedVersion"
                         optimization-mode="system"
                         :advanced-mode-enabled="false"
                         :show-preview="false"
@@ -163,7 +177,7 @@
                         @apply-patch="handleApplyPatch"
                         @save-local-edit="handleSaveLocalEdit"
                     />
-                </NCard>
+                </TestSourceLinkedCard>
                 </NFlex>
             </div>
 
@@ -282,14 +296,27 @@
                                     :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
                                 >
                                     <div class="variant-cell__meta">
-                                        <NTag size="small" :bordered="false" class="variant-cell__label">
-                                            {{ getVariantLabel(id) }}
-                                        </NTag>
+                                        <TestVariantSourceTag
+                                            class="variant-cell__label"
+                                            :variant-label="getVariantLabel(id)"
+                                            :selection="variantVersionModels[id].value"
+                                            :resolved-version="getVariantResolvedVersion(id)"
+                                            :labels="getTestPanelVersionLabels()"
+                                            :feedback-key="variantSourceFeedback[id].key"
+                                            :feedback-tone="variantSourceFeedback[id].tone"
+                                            @activate="activateVariantSource(id)"
+                                        />
                                         <CompareRoleBadge
                                             v-if="activeVariantIds.length >= 2"
                                             :entry="compareRoleEntryMap[id]"
                                             clickable
                                             @click="openCompareRoleConfig"
+                                        />
+                                        <TextModelQuickSwitch
+                                            :model-key="variantModelKeyModels[id].value"
+                                            :options="modelSelection.textModelOptions.value"
+                                            :refresh-models="modelSelection.refreshTextModels"
+                                            :disabled="variantRunning[id] || isAnyVariantRunning"
                                         />
                                     </div>
 
@@ -299,7 +326,7 @@
                                             :options="versionOptions"
                                             :disabled="variantRunning[id] || isAnyVariantRunning"
                                             :test-id="getVariantVersionTestId(id)"
-                                            @update:value="(value) => { variantVersionModels[id].value = value as TestPanelVersionValue }"
+                                            @update:value="(value) => handleVariantVersionChange(id, value)"
                                         />
                                         <div class="variant-cell__model">
                                             <SelectWithConfig
@@ -484,7 +511,7 @@ import { useBasicWorkspaceLogic } from '../../composables/workspaces/useBasicWor
 import { useWorkspaceModelSelection } from '../../composables/workspaces/useWorkspaceModelSelection'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
-import { buildCompareEvaluationPayload, useCompareRoleConfig } from '../../composables/prompt'
+import { buildCompareEvaluationPayload, useCompareRoleConfig, useTestSourceAreaFeedback, useTestVariantSourceFeedback } from '../../composables/prompt'
 import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
 import { NButton, NCard, NFlex, NIcon, NText, NRadioGroup, NRadioButton, NTooltip, NTag } from 'naive-ui'
 import InputPanelUI from '../InputPanel.vue'
@@ -507,6 +534,8 @@ import { buildCompareToolbarStatus } from '../evaluation/compare-ui'
 import SelectWithConfig from '../SelectWithConfig.vue'
 import TextModelQuickSwitch from '../TextModelQuickSwitch.vue'
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
+import TestSourceLinkedCard from '../TestSourceLinkedCard.vue'
+import TestVariantSourceTag from '../TestVariantSourceTag.vue'
 import { OptionAccessors } from '../../utils/data-transformer'
 import {
   buildTestPanelVersionPromptRef,
@@ -887,9 +916,27 @@ const variantRunning = reactive<Record<TestVariantId, boolean>>({
   d: false,
 })
 
+const { variantSourceFeedback, pulseVariantSource } =
+  useTestVariantSourceFeedback<TestVariantId>(['a', 'b', 'c', 'd'])
+const { sourceAreaFeedback, pulseSourceAreaForSelection } =
+  useTestSourceAreaFeedback()
+
 const isAnyVariantRunning = computed(() => activeVariantIds.value.some((id) => !!variantRunning[id]))
 
 const getVariantLabel = (id: TestVariantId) => ({ a: 'A', b: 'B', c: 'C', d: 'D' }[id])
+
+const handleVariantVersionChange = (id: TestVariantId, value: string | number) => {
+  const selection = value as TestPanelVersionValue
+  variantVersionModels[id].value = selection
+  activateVariantSource(id)
+}
+
+const activateVariantSource = (id: TestVariantId) => {
+  const selection = variantVersionModels[id].value
+  const resolved = resolveTestPrompt(selection)
+  pulseVariantSource(id, 'change')
+  pulseSourceAreaForSelection(selection, resolved.resolvedVersion, 'change')
+}
 
 const getVariantVersionTestId = (id: TestVariantId) => {
   if (id === 'a') return 'basic-system-test-original-version-select'
@@ -949,6 +996,9 @@ const getVariantVersionLabel = (id: TestVariantId): string => {
     getTestPanelVersionLabels(),
   )
 }
+
+const getVariantResolvedVersion = (id: TestVariantId): number =>
+  resolveTestPrompt(variantVersionModels[id].value).resolvedVersion
 
 const compareReadyVariantIds = computed(() =>
   activeVariantIds.value.filter((id) => hasVariantResult(id) && !isVariantStale(id))
@@ -1044,6 +1094,8 @@ const getVariantTestInput = (id: TestVariantId): VariantTestInput | null => {
         ? 'test.error.noOriginalPrompt'
         : 'test.error.noOptimizedPrompt'
     toast.error(t(key))
+    pulseVariantSource(id, 'error')
+    pulseSourceAreaForSelection(variantVersionModels[id].value, resolved.resolvedVersion, 'error')
     return null
   }
 

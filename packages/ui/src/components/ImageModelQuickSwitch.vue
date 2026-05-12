@@ -1,10 +1,10 @@
 <template>
-  <div v-if="selectedConfig" class="text-model-quick-switch" data-testid="text-model-quick-switch">
+  <div v-if="selectedConfig" class="image-model-quick-switch" data-testid="image-model-quick-switch">
     <NTag
       v-if="disabled"
       size="small"
       :bordered="false"
-      class="text-model-quick-switch__model"
+      class="image-model-quick-switch__model"
       :title="fullModelTitle"
     >
       {{ modelLabel }}
@@ -22,7 +22,7 @@
         <NTag
           size="small"
           :bordered="false"
-          class="text-model-quick-switch__model text-model-quick-switch__model--clickable"
+          class="image-model-quick-switch__model image-model-quick-switch__model--clickable"
           :title="interactiveModelTitle"
           :aria-label="interactiveModelTitle"
           role="button"
@@ -32,10 +32,10 @@
         </NTag>
       </template>
 
-      <div class="text-model-quick-switch__popover">
+      <div class="image-model-quick-switch__popover">
         <NSpace vertical :size="8">
-          <NText depth="2" class="text-model-quick-switch__title">
-            {{ t('model.quickSwitch.title') }}
+          <NText depth="2" class="image-model-quick-switch__title">
+            {{ t('image.model.quickSwitch.title') }}
           </NText>
           <NSelect
             :value="selectedModelId"
@@ -43,11 +43,11 @@
             :loading="loading"
             filterable
             size="small"
-            :placeholder="t('model.quickSwitch.placeholder')"
+            :placeholder="t('image.model.quickSwitch.placeholder')"
             @update:value="handleModelSelect"
           />
-          <NText v-if="fetchError" type="warning" depth="3" class="text-model-quick-switch__hint">
-            {{ t('model.quickSwitch.fetchFailed', { error: fetchError }) }}
+          <NText v-if="fetchError" type="warning" depth="3" class="image-model-quick-switch__hint">
+            {{ t('image.model.quickSwitch.fetchFailed', { error: fetchError }) }}
           </NText>
         </NSpace>
       </div>
@@ -58,24 +58,18 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NPopover, NSelect, NSpace, NTag, NText, type SelectOption } from 'naive-ui'
-import {
-  resolveTextModelMetadata,
-  type ITextAdapterRegistry,
-  type ModelOption,
-  type TextModel,
-  type TextModelConfig,
-} from '@prompt-optimizer/core'
+import { NPopover, NSelect, NSpace, NTag, NText, type SelectOption as NaiveSelectOption } from 'naive-ui'
+import type { IImageAdapterRegistry, ImageModel, ImageModelConfig } from '@prompt-optimizer/core'
 
 import { useToast } from '../composables/ui/useToast'
-import type { ModelSelectOption } from '../types/select-options'
+import type { SelectOption } from '../types/select-options'
 import type { AppServices } from '../types/services'
 
 interface Props {
   modelKey: string
-  options: ModelSelectOption[]
+  options: SelectOption<ImageModelConfig>[]
   disabled?: boolean
-  refreshModels?: () => Promise<void>
+  refreshModels?: () => Promise<void> | void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -90,47 +84,46 @@ const injectedServices = inject<Ref<AppServices | null>>('services', ref<AppServ
 
 const popoverVisible = ref(false)
 const loading = ref(false)
-const modelOptions = ref<SelectOption[]>([])
+const modelOptions = ref<NaiveSelectOption[]>([])
 const fetchError = ref('')
 
 const selectedConfig = computed(() =>
   props.options.find((option) => option.value === props.modelKey)?.raw ?? null
 )
 
-const providerId = computed(() => selectedConfig.value?.providerMeta?.id ?? '')
-const selectedModelId = computed(() => selectedConfig.value?.modelMeta?.id ?? '')
+const providerId = computed(() => selectedConfig.value?.providerId || selectedConfig.value?.provider?.id || '')
+const selectedModelId = computed(() => selectedConfig.value?.modelId || selectedConfig.value?.model?.id || '')
 const providerLabel = computed(() =>
-  selectedConfig.value?.providerMeta?.name || selectedConfig.value?.providerMeta?.id || ''
+  selectedConfig.value?.provider?.name || selectedConfig.value?.providerId || ''
 )
 const modelLabel = computed(() =>
-  selectedConfig.value?.modelMeta?.name || selectedConfig.value?.modelMeta?.id || ''
+  selectedConfig.value?.model?.name || selectedConfig.value?.modelId || ''
 )
 const fullModelTitle = computed(() =>
   providerLabel.value ? `${providerLabel.value} / ${modelLabel.value}` : modelLabel.value
 )
 const interactiveModelTitle = computed(() =>
-  `${t('model.quickSwitch.modelTagTitle')} - ${fullModelTitle.value}`
+  `${t('image.model.quickSwitch.modelTagTitle')} - ${fullModelTitle.value}`
 )
 
-const normalizeOptions = (items: Array<ModelOption | TextModel>): SelectOption[] => {
+const normalizeOptions = (models: ImageModel[]): NaiveSelectOption[] => {
   const seen = new Set<string>()
-  const normalized: SelectOption[] = []
+  const normalized: NaiveSelectOption[] = []
 
-  for (const item of items) {
-    const value = 'value' in item ? item.value : item.id
-    if (!value || seen.has(value)) continue
+  for (const model of models) {
+    if (!model.id || seen.has(model.id)) continue
 
-    seen.add(value)
+    seen.add(model.id)
     normalized.push({
-      value,
-      label: 'label' in item ? item.label : item.name,
+      value: model.id,
+      label: model.name || model.id,
     })
   }
 
   return normalized
 }
 
-const getStaticOptions = (registry?: ITextAdapterRegistry): SelectOption[] => {
+const getStaticOptions = (registry?: IImageAdapterRegistry): NaiveSelectOption[] => {
   if (!registry || !providerId.value) return []
 
   try {
@@ -140,7 +133,7 @@ const getStaticOptions = (registry?: ITextAdapterRegistry): SelectOption[] => {
   }
 }
 
-const ensureCurrentOption = (options: SelectOption[]): SelectOption[] => {
+const ensureCurrentOption = (options: NaiveSelectOption[]): NaiveSelectOption[] => {
   const currentId = selectedModelId.value
   if (!currentId || options.some((option) => option.value === currentId)) return options
 
@@ -161,20 +154,27 @@ const loadModelOptions = async () => {
     return
   }
 
+  const registry = services.imageAdapterRegistry
+  const canFetchDynamic = !!(
+    registry &&
+    services.imageService &&
+    providerId.value &&
+    registry.supportsDynamicModels(providerId.value)
+  )
+
   loading.value = true
   fetchError.value = ''
 
   try {
-    const fetched = config.providerMeta.supportsDynamicModels
-      ? await services.llmService.fetchModelList(config.providerMeta.id, config)
+    const fetched = canFetchDynamic
+      ? await services.imageService!.getDynamicModels(providerId.value, config.connectionConfig || {})
       : []
-
     const dynamicOptions = normalizeOptions(fetched)
-    const staticOptions = getStaticOptions(services.textAdapterRegistry)
+    const staticOptions = getStaticOptions(registry)
     modelOptions.value = ensureCurrentOption(dynamicOptions.length ? dynamicOptions : staticOptions)
   } catch (error) {
     fetchError.value = error instanceof Error ? error.message : String(error)
-    modelOptions.value = ensureCurrentOption(getStaticOptions(services.textAdapterRegistry))
+    modelOptions.value = ensureCurrentOption(getStaticOptions(registry))
   } finally {
     loading.value = false
   }
@@ -186,35 +186,36 @@ const handlePopoverVisibility = (show: boolean) => {
   }
 }
 
-const buildFallbackModelMeta = (modelId: string, label: string, current: TextModelConfig): TextModel => ({
+const buildFallbackModel = (modelId: string, label: string, current: ImageModelConfig): ImageModel => ({
   id: modelId,
   name: label || modelId,
-  providerId: current.providerMeta.id,
+  providerId: providerId.value || current.providerId,
   capabilities: {
-    supportsTools: false,
+    text2image: true,
+    image2image: true,
   },
   parameterDefinitions: [],
 })
 
-const resolveModelMeta = (modelId: string, current: TextModelConfig): TextModel => {
-  const optionLabel = String(modelOptions.value.find((option) => option.value === modelId)?.label || modelId)
-  const registry = injectedServices.value?.textAdapterRegistry
+const resolveModel = (modelId: string, current: ImageModelConfig): ImageModel => {
+  const label = String(modelOptions.value.find((option) => option.value === modelId)?.label || modelId)
+  const registry = injectedServices.value?.imageAdapterRegistry
+  const currentProviderId = providerId.value || current.providerId
 
-  if (!registry) {
-    return buildFallbackModelMeta(modelId, optionLabel, current)
+  if (!registry || !currentProviderId) {
+    return buildFallbackModel(modelId, label, current)
   }
 
-  const resolved = resolveTextModelMetadata({
-    providerId: current.providerMeta.id,
-    modelId,
-    registry,
-    existingProviderMeta: current.providerMeta,
-    existingModelMeta: current.modelMeta,
-  })
-
-  return {
-    ...resolved.modelMeta,
-    name: optionLabel || resolved.modelMeta.name,
+  try {
+    const adapter = registry.getAdapter(currentProviderId)
+    const staticModel = adapter.getModels().find((model) => model.id === modelId)
+    const model = staticModel || adapter.buildDefaultModel(modelId)
+    return {
+      ...model,
+      name: label || model.name,
+    }
+  } catch {
+    return buildFallbackModel(modelId, label, current)
   }
 }
 
@@ -222,16 +223,19 @@ const handleModelSelect = async (value: string | number | Array<string | number>
   const modelId = Array.isArray(value) ? String(value[0] || '') : String(value || '')
   const current = selectedConfig.value
   const services = injectedServices.value
-  if (!modelId || !current || !services || modelId === selectedModelId.value) return
+  if (!modelId || !current || !services?.imageModelManager || modelId === selectedModelId.value) return
 
   try {
-    const modelMeta = resolveModelMeta(modelId, current)
-    await services.modelManager.updateModel(current.id, { modelMeta })
+    const model = resolveModel(modelId, current)
+    await services.imageModelManager.updateConfig(current.id, {
+      modelId: model.id,
+      model,
+    })
     await props.refreshModels?.()
     popoverVisible.value = false
-    toast.success(t('model.quickSwitch.updateSuccess', { model: modelMeta.name || modelMeta.id }))
+    toast.success(t('image.model.quickSwitch.updateSuccess', { model: model.name || model.id }))
   } catch (error) {
-    toast.error(t('model.quickSwitch.updateFailed', {
+    toast.error(t('image.model.quickSwitch.updateFailed', {
       error: error instanceof Error ? error.message : String(error),
     }))
   }
@@ -247,7 +251,7 @@ watch(
 </script>
 
 <style scoped>
-.text-model-quick-switch {
+.image-model-quick-switch {
   display: inline-flex;
   align-items: center;
   min-width: 0;
@@ -255,7 +259,7 @@ watch(
   vertical-align: middle;
 }
 
-.text-model-quick-switch__model {
+.image-model-quick-switch__model {
   max-width: min(180px, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -268,34 +272,34 @@ watch(
     color 0.15s ease;
 }
 
-.text-model-quick-switch__model :deep(.n-tag__content) {
+.image-model-quick-switch__model :deep(.n-tag__content) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.text-model-quick-switch__model--clickable {
+.image-model-quick-switch__model--clickable {
   cursor: pointer;
 }
 
-.text-model-quick-switch__model--clickable:hover,
-.text-model-quick-switch__model--clickable:focus-visible {
+.image-model-quick-switch__model--clickable:hover,
+.image-model-quick-switch__model--clickable:focus-visible {
   background: rgba(120, 113, 108, 0.16);
   color: #3f372d;
   box-shadow: inset 0 0 0 1px rgba(120, 113, 108, 0.2);
 }
 
-.text-model-quick-switch__popover {
+.image-model-quick-switch__popover {
   width: 260px;
 }
 
-.text-model-quick-switch__title {
+.image-model-quick-switch__title {
   font-size: 12px;
   font-weight: 500;
 }
 
-.text-model-quick-switch__hint {
+.image-model-quick-switch__hint {
   font-size: 12px;
   line-height: 1.35;
 }

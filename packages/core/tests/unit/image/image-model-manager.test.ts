@@ -97,4 +97,28 @@ describe('ImageModelManager initialization behavior', () => {
 
     expect(reloaded?.model.capabilities.multiImage).toBe(true)
   })
+
+  it('should refresh embedded provider and model metadata when providerId/modelId are updated directly', async () => {
+    await modelManager.ensureInitialized()
+    const existing = await modelManager.getConfig('image-seedream')
+    expect(existing).toBeDefined()
+    expect(existing?.providerId).toBe('seedream')
+
+    await modelManager.updateConfig(existing!.id, {
+      providerId: 'openai',
+      modelId: 'gpt-image-2',
+      connectionConfig: {
+        apiKey: 'openai-key',
+        baseURL: 'https://api.openai.com/v1'
+      }
+    })
+
+    const updated = await modelManager.getConfig(existing!.id)
+
+    expect(updated?.providerId).toBe('openai')
+    expect(updated?.provider.id).toBe('openai')
+    expect(updated?.modelId).toBe('gpt-image-2')
+    expect(updated?.model.id).toBe('gpt-image-2')
+    expect(updated?.model.providerId).toBe('openai')
+  })
 })

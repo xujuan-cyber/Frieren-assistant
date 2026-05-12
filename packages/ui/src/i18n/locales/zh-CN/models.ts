@@ -41,7 +41,6 @@ const messages = {
     },
     "customHeaders": {
       "label": "自定义请求头",
-      "hint": "仅用于 Custom API。适合企业网关要求的 x-auth-token 等附加头；Authorization、Content-Type 等基础头由客户端管理。",
       "namePlaceholder": "Header 名称，如 x-auth-token",
       "valuePlaceholder": "Header 值",
       "add": "添加请求头",

@@ -170,11 +170,14 @@
             <!-- 模型选择 -->
             <NGridItem :span="6" :xs="24" :sm="6">
                 <NSpace vertical :size="8">
-                    <NText
-                        :depth="2"
-                        style="font-size: 14px; font-weight: 500"
-                        >{{ modelLabel }}</NText
-                    >
+                    <NFlex align="center" :size="6" :wrap="false" class="input-panel-label-row">
+                        <NText
+                            :depth="2"
+                            style="font-size: 14px; font-weight: 500; flex-shrink: 0;"
+                            >{{ modelLabel }}</NText
+                        >
+                        <slot name="model-label-extra"></slot>
+                    </NFlex>
                     <slot name="model-select"></slot>
                 </NSpace>
             </NGridItem>

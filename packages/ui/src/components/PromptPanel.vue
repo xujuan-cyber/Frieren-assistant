@@ -32,16 +32,19 @@
                             <!-- V3, V2, V1... 按降序显示（最新版本在前） -->
                             <NTag
                                 v-for="version in versions.slice().reverse()"
-                                :key="version.id"
+                                :key="getVersionTagRenderKey(version)"
                                 :type="
                                     currentVersionId === version.id && !isV0Selected
                                         ? 'success'
                                         : 'default'
                                 "
                                 size="small"
+                                class="version-tag-clickable"
+                                :class="getVersionSourceFeedbackClass(version.version)"
                                 @click="switchVersion(version)"
                                 :bordered="currentVersionId !== version.id || isV0Selected"
                                 :data-testid="`prompt-panel-version-tag-v${version.version}`"
+                                :data-source-feedback-tone="getVersionSourceFeedbackTone(version.version) || undefined"
                             >
                                 V{{ version.version }}
                             </NTag>
@@ -49,11 +52,15 @@
                             <NTooltip v-if="showV0Tag" trigger="hover">
                                 <template #trigger>
                                     <NTag
+                                        :key="getV0TagRenderKey()"
                                         :type="isV0Selected ? 'success' : 'default'"
                                         size="small"
+                                        class="version-tag-clickable"
+                                        :class="getVersionSourceFeedbackClass(0)"
                                         @click="switchToV0"
                                         :bordered="!isV0Selected"
                                         data-testid="prompt-panel-version-tag-v0"
+                                        :data-source-feedback-tone="getVersionSourceFeedbackTone(0) || undefined"
                                     >
                                         {{ t("prompt.originalVersion") }}
                                     </NTag>
@@ -314,6 +321,8 @@ import type {
     Template,
 } from "@prompt-optimizer/core";
 
+type SourceFeedbackTone = "change" | "error";
+
 const { t } = useI18n();
 const toast = useToast();
 
@@ -356,6 +365,18 @@ const props = defineProps({
     currentVersionId: {
         type: String,
         default: "",
+    },
+    sourceFeedbackKey: {
+        type: Number,
+        default: 0,
+    },
+    sourceFeedbackTone: {
+        type: String as () => SourceFeedbackTone | null,
+        default: null,
+    },
+    sourceFeedbackVersion: {
+        type: Number as () => number | null,
+        default: null,
     },
     originalPrompt: {
         type: String,
@@ -401,6 +422,25 @@ const currentIterationNote = computed(() => {
     const currentVersion = props.versions.find((v) => v.id === props.currentVersionId);
     return currentVersion?.iterationNote || "";
 });
+
+const getVersionSourceFeedbackTone = (version: number): SourceFeedbackTone | null => {
+    if (!props.sourceFeedbackKey || props.sourceFeedbackVersion !== version) return null;
+    return props.sourceFeedbackTone;
+};
+
+const getVersionSourceFeedbackClass = (version: number) => {
+    const tone = getVersionSourceFeedbackTone(version);
+    return {
+        "version-tag-clickable--source-change": tone === "change",
+        "version-tag-clickable--source-error": tone === "error",
+    };
+};
+
+const getVersionTagRenderKey = (version: PromptRecord) =>
+    `${version.id}:${version.version}:${props.sourceFeedbackVersion === version.version ? props.sourceFeedbackKey : 0}`;
+
+const getV0TagRenderKey = () =>
+    `v0:${props.sourceFeedbackVersion === 0 ? props.sourceFeedbackKey : 0}`;
 
 // 计算评估相关的状态（从 context 获取）
 const showEvaluation = computed(() => !!evaluation);
@@ -858,6 +898,70 @@ defineExpose({
 
 .version-tag-clickable:active {
     transform: translateY(0);
+}
+
+.version-tag-clickable--source-change {
+    animation: prompt-version-source-change-pulse 780ms ease-out;
+}
+
+.version-tag-clickable--source-error {
+    animation: prompt-version-source-error-pulse 860ms ease-out;
+}
+
+@keyframes prompt-version-source-change-pulse {
+    0% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1) saturate(1);
+        box-shadow: 0 0 0 0 currentColor;
+    }
+    24% {
+        transform: translateY(-1px) scale(1.08);
+        filter: brightness(1.08) saturate(1.35);
+        box-shadow:
+            0 0 0 2px currentColor,
+            0 0 0 6px color-mix(in srgb, currentColor 18%, transparent);
+    }
+    62% {
+        transform: translateY(-1px) scale(1.03);
+        filter: brightness(1.04) saturate(1.18);
+        box-shadow:
+            0 0 0 1px currentColor,
+            0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1) saturate(1);
+        box-shadow: 0 0 0 0 currentColor;
+    }
+}
+
+@keyframes prompt-version-source-error-pulse {
+    0% {
+        transform: translateX(0);
+        filter: brightness(1) saturate(1);
+        box-shadow: 0 0 0 0 currentColor;
+    }
+    25% {
+        transform: translateX(-2px);
+        filter: brightness(1.1) saturate(1.35);
+    }
+    50% {
+        transform: translateX(2px);
+        filter: brightness(1.1) saturate(1.4);
+        box-shadow:
+            0 0 0 2px currentColor,
+            0 0 0 6px color-mix(in srgb, currentColor 20%, transparent);
+    }
+    70% {
+        box-shadow:
+            0 0 0 1px currentColor,
+            0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+    }
+    100% {
+        transform: translateX(0);
+        filter: brightness(1) saturate(1);
+        box-shadow: 0 0 0 0 currentColor;
+    }
 }
 
 @media (max-width: 640px) {
