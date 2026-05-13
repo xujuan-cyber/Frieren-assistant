@@ -105,6 +105,17 @@ describe('parameter-utils', () => {
       })
     })
 
+    it('preserves Python literal words inside strings when normalizing object values', () => {
+      expect(parseCustomValue('{"label": "False", "enable_thinking": False}')).toEqual({
+        label: 'False',
+        enable_thinking: false
+      })
+      expect(parseCustomValue('{"escaped": "say \\"True\\"", "value": None}')).toEqual({
+        escaped: 'say "True"',
+        value: null
+      })
+    })
+
     it('returns string when content is not valid JSON even after normalization', () => {
       expect(parseCustomValue('{broken')).toBe('{broken')
     })

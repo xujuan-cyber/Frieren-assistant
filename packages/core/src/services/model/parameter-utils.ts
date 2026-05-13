@@ -5,11 +5,57 @@ import {
   isValueEmpty
 } from './parameter-schema'
 
+const PYTHON_LITERAL_REPLACEMENTS: Array<[string, string]> = [
+  ['True', 'true'],
+  ['False', 'false'],
+  ['None', 'null']
+]
+
+function isIdentifierChar(char: string | undefined): boolean {
+  return char !== undefined && /[A-Za-z0-9_]/.test(char)
+}
+
 function normalizePythonLiterals(input: string): string {
-  return input
-    .replace(/\bTrue\b/g, 'true')
-    .replace(/\bFalse\b/g, 'false')
-    .replace(/\bNone\b/g, 'null')
+  let result = ''
+  let inString = false
+  let escaped = false
+
+  for (let index = 0; index < input.length; index++) {
+    const char = input[index]
+
+    if (inString) {
+      result += char
+      if (escaped) {
+        escaped = false
+      } else if (char === '\\') {
+        escaped = true
+      } else if (char === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      result += char
+      continue
+    }
+
+    const replacement = PYTHON_LITERAL_REPLACEMENTS.find(([token]) =>
+      input.startsWith(token, index) &&
+      !isIdentifierChar(input[index - 1]) &&
+      !isIdentifierChar(input[index + token.length])
+    )
+
+    if (replacement) {
+      result += replacement[1]
+      index += replacement[0].length - 1
+    } else {
+      result += char
+    }
+  }
+
+  return result
 }
 
 /**
