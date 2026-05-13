@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.2] - 2026-05-13
+- EN: This patch hardens prompt-template variable preservation, adds safer custom-model configuration controls, polishes workspace model switching and source cues, and restores the CI E2E replay gate after the DeepSeek fixture drift. See [Release Notes (EN)](releases/v2.11.2.en.md).
+- 中文：本次补丁强化提示词模板变量保留，补充更安全的自定义模型配置能力，优化工作区模型切换和来源提示，并修复 DeepSeek 夹具漂移导致的 CI E2E replay 门禁失败。参见 [版本说明（中文）](releases/v2.11.2.zh-CN.md)。
+
 ## [2.11.1] - 2026-05-11
 - EN: This patch restores image-workspace analysis actions, adds single-favorite HTML/PNG sharing with import support, and updates the documentation for sharing and backups. See [Release Notes (EN)](releases/v2.11.1.en.md).
 - 中文：本次补丁修复图像工作区分析操作，新增单个收藏 HTML/PNG 分享与导入，并补充分享和备份相关文档。参见 [版本说明（中文）](releases/v2.11.1.zh-CN.md)。

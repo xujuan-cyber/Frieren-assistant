@@ -553,6 +553,15 @@ function renderMacSecurityNote(locale) {
   return [renderMacSecurityNote('en'), renderMacSecurityNote('zh-CN')].join('\n');
 }
 
+function prepareReleaseNotesForGitHubBody(content, version, cwd = process.cwd()) {
+  const expectedTitle = `# Prompt Optimizer ${getTagVersion(version, cwd)}`;
+  return stripHtmlComments(content)
+    .replace(new RegExp(`^${escapeRegExp(expectedTitle)}\\s*\\n+`, 'm'), '')
+    .replace(/^###\s+/gm, '#### ')
+    .replace(/^##\s+/gm, '### ')
+    .trim();
+}
+
 function renderGitHubReleaseBody({ cwd = process.cwd(), version, repository }) {
   const normalizedVersion = normalizeVersion(version, cwd);
   const tag = getTagVersion(normalizedVersion);
@@ -562,38 +571,31 @@ function renderGitHubReleaseBody({ cwd = process.cwd(), version, repository }) {
   const chineseContent = fs.readFileSync(chinesePath, 'utf8').replace(/\r\n/g, '\n').trim();
   const englishGuideUrl = buildTagScopedFileUrl(repository, tag, 'mkdocs/docs/en/deployment/desktop.md');
   const chineseGuideUrl = buildTagScopedFileUrl(repository, tag, 'mkdocs/docs/zh/deployment/desktop.md');
+  const englishBody = prepareReleaseNotesForGitHubBody(englishContent, normalizedVersion, cwd);
+  const chineseBody = prepareReleaseNotesForGitHubBody(chineseContent, normalizedVersion, cwd);
 
-  const englishSummary = extractSectionBody(englishContent, '## Summary', '## Highlights');
-  const chineseSummary = extractSectionBody(chineseContent, '## 概括', '## 亮点');
-
-  if (englishSummary && chineseSummary) {
-    return [
-      '## English',
-      '',
-      '### Summary',
-      englishSummary,
-      '',
-      `Installation guide: [English](${englishGuideUrl}) | [中文](${chineseGuideUrl})`,
-      `[Full release notes (EN)](${buildTagScopedFileUrl(repository, tag, getReleaseNotesRelativePath(normalizedVersion, 'en', cwd))})`,
-      '',
-      '---',
-      '',
-      '## 中文',
-      '',
-      '### 概括',
-      chineseSummary,
-      '',
-      `安装文档：[English](${englishGuideUrl}) | [中文](${chineseGuideUrl})`,
-      `[完整发布说明（中文）](${buildTagScopedFileUrl(repository, tag, getReleaseNotesRelativePath(normalizedVersion, 'zh-CN', cwd))})`,
-      '',
-      '---',
-      '',
-      renderMacSecurityNote(),
-      '',
-    ].join('\n');
-  }
-
-  return [englishContent, '', '---', '', chineseContent, ''].join('\n');
+  return [
+    '## English',
+    '',
+    englishBody,
+    '',
+    `Installation guide: [English](${englishGuideUrl}) | [中文](${chineseGuideUrl})`,
+    `[Source release notes (EN)](${buildTagScopedFileUrl(repository, tag, getReleaseNotesRelativePath(normalizedVersion, 'en', cwd))})`,
+    '',
+    '---',
+    '',
+    '## 中文',
+    '',
+    chineseBody,
+    '',
+    `安装文档：[English](${englishGuideUrl}) | [中文](${chineseGuideUrl})`,
+    `[仓库版本说明（中文）](${buildTagScopedFileUrl(repository, tag, getReleaseNotesRelativePath(normalizedVersion, 'zh-CN', cwd))})`,
+    '',
+    '---',
+    '',
+    renderMacSecurityNote(),
+    '',
+  ].join('\n');
 }
 
 function printUsage() {
