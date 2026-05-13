@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'context-user-prompt-basic',
-  name: 'Contextual User Prompt Basic Refinement',
+  name: 'Basic Refinement',
   content: [
     {
       role: 'system',
@@ -60,7 +60,7 @@ Output Requirements
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: 'Minimal sufficient refinement of user prompts under contextual constraints',
+    description: 'Quickly clarify goals, scope, parameters, output format, and acceptance criteria',
     templateType: 'contextUserOptimize',
     language: 'en',
     variant: 'context',

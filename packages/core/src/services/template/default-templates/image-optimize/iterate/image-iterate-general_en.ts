@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image-iterate-general-en',
-  name: 'Image Iterate (General)',
+  name: 'General Iteration',
   content: [
     {
       role: 'system',

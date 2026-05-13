@@ -117,7 +117,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1736208000000,
     author: 'System',
-    description: '基于本源解构与奇幻重构的文生图提示词创世模板，聚焦创造全新品质的视觉语言',
+    description: '基于本源解构与奇幻重构，聚焦创造全新品质的视觉语言',
     templateType: 'text2imageOptimize',
     language: 'zh'
   },

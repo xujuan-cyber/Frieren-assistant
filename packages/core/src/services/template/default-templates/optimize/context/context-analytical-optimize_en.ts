@@ -165,7 +165,7 @@ Based on the analytical optimization principles and examples, please output the 
     version: '3.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: 'Analytical optimization template - best for code reviews, technical evaluations',
+    description: 'Best for code reviews and technical evaluations that need explicit reasoning and evidence',
     templateType: 'conversationMessageOptimize',
     language: 'en',
     variant: 'context',

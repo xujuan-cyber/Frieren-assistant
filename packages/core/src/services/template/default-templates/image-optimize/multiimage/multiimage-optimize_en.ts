@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types'
 
 export const template: Template = {
   id: 'multiimage-optimize-en',
-  name: 'Multi-Image Optimization',
+  name: 'Reference Relationship Builder',
   content: [
     {
       role: 'system',
@@ -46,7 +46,7 @@ Output only the optimized prompt:`
     version: '1.0.0',
     lastModified: 1712073600000,
     author: 'System',
-    description: 'Multi-image prompt optimization template, organizing user requests around Image 1 / Image 2 / Image 3 relationships',
+    description: 'Organizes user requests around Image 1, Image 2, Image 3, and their visual relationships',
     templateType: 'multiimageOptimize',
     language: 'en',
   },

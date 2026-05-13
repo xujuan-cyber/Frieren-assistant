@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types'
 
 export const template: Template = {
   id: 'multiimage-optimize',
-  name: '多图生图优化',
+  name: '多图关系整理',
   content: [
     {
       role: 'system',
@@ -46,7 +46,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1712073600000,
     author: 'System',
-    description: '多图生图提示词优化模板，围绕图1/图2/图3关系整理用户需求',
+    description: '围绕图1、图2、图3等参考图关系整理用户需求',
     templateType: 'multiimageOptimize',
     language: 'zh',
   },

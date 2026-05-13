@@ -131,7 +131,7 @@ export const template: Template = {
     version: '2.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: '通用消息优化模板 - 适用于各种对话场景，保持风格一致性（推荐首选）',
+    description: '适合多数对话场景，保持多消息角色与风格一致性（推荐首选）',
     templateType: 'conversationMessageOptimize',
     language: 'zh',
     variant: 'context',

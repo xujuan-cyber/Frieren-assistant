@@ -119,7 +119,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: '摄影场景自然语言优化模板，强调主体、构图、光线与氛围，无参数/权重语法',
+    description: '面向摄影场景的自然语言优化，强调主体、构图、光线与氛围，无参数和权重语法',
     templateType: 'text2imageOptimize',
     language: 'zh'
   },

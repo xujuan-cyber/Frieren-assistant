@@ -205,7 +205,7 @@ Based on the formatting optimization principles and examples, please output the 
     version: '3.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: 'Format optimization template - best for data analysis, report generation',
+    description: 'Best for data analysis and report generation that need stable structured output',
     templateType: 'conversationMessageOptimize',
     language: 'en',
     variant: 'context',

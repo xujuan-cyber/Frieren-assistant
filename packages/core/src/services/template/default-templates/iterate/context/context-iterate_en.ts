@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'context-iterate',
-  name: 'Contextual Iteration Optimization',
+  name: 'Targeted Iteration',
   content: [
     {
       role: 'system',
@@ -63,7 +63,7 @@ Please output the iterated prompt text only:
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: 'Context-aware iteration: minimal changes with tool-aware constraints and verifiable outputs',
+    description: 'Make small, verifiable prompt revisions using context and tool constraints',
     templateType: 'contextIterate',
     language: 'en',
     variant: 'context',

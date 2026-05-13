@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image-creative-text2image-en',
-  name: 'Deconstructive Creative Text-to-Image Prompt',
+  name: 'Deconstructive Creative Prompt',
   content: [
     {
       role: 'system',
@@ -117,7 +117,7 @@ Please provide the creative text-to-image prompt directly:`
     version: '1.0.0',
     lastModified: 1736208000000,
     author: 'System',
-    description: 'A text-to-image prompt creation template built on primordial deconstruction and fantastical reconstruction, focused on forging an entirely new visual language while preserving core imagery.',
+    description: 'Uses primordial deconstruction and fantastical reconstruction to forge a new visual language while preserving core imagery',
     templateType: 'text2imageOptimize',
     language: 'en'
   },

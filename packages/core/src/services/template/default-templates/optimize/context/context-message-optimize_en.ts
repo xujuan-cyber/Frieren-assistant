@@ -127,7 +127,7 @@ Based on the optimization principles and examples, please output the optimized m
     version: '2.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: 'General message optimization template - works for all conversation styles, maintains style consistency (recommended)',
+    description: 'Works for most conversation styles while preserving multi-message roles and style consistency (recommended)',
     templateType: 'conversationMessageOptimize',
     language: 'en',
     variant: 'context',

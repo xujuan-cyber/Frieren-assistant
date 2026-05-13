@@ -175,7 +175,7 @@ def process_data(data):
     version: '3.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: '分析型优化模板 - 适用于代码审查、方案评估等技术场景',
+    description: '适合代码审查、方案评估等需要明确推理依据的技术场景',
     templateType: 'conversationMessageOptimize',
     language: 'zh',
     variant: 'context',

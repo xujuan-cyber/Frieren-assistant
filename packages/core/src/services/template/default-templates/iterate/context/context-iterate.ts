@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'context-iterate',
-  name: '上下文版·迭代优化',
+  name: '小步迭代',
   content: [
     {
       role: 'system',
@@ -58,7 +58,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: '在保持核心意图的前提下，结合上下文与工具信息对现有提示词进行针对性、小步快迭的优化',
+    description: '基于上下文和工具信息，对现有提示词做小范围、可验证的定向调整',
     templateType: 'contextIterate',
     language: 'zh',
     variant: 'context',

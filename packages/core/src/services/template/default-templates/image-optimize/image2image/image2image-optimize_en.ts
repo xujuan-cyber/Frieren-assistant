@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image2image-general-optimize-en',
-  name: 'Image-to-Image Optimization',
+  name: 'General Image Editing',
   content: [
     {
       role: 'system',
@@ -121,7 +121,7 @@ Please output precise Image-to-Image optimization prompt:`
     version: '1.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (fixed value, built-in template cannot be modified)
     author: 'System',
-    description: 'Image-to-Image specialized prompt optimization template, using natural language for restrained editing guidance, avoiding parameter and weight syntax',
+    description: 'Uses natural language for restrained editing guidance while avoiding parameter and weight syntax',
     templateType: 'image2imageOptimize',
     language: 'en'
   },

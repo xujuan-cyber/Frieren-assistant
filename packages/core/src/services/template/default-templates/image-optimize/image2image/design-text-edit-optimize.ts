@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image2image-design-text-edit-optimize',
-  name: '设计文案替换（图生图）',
+  name: '设计文案替换',
   content: [
     {
       role: 'system',
@@ -81,7 +81,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: '设计稿文案替换的图生图自然语言模板：保持版式与品牌一致，仅替换文本',
+    description: '将设计稿文案替换需求改写为自然语言编辑指令：保持版式与品牌一致，仅替换文本',
     templateType: 'image2imageOptimize',
     language: 'zh'
   },

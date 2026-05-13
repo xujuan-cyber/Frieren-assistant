@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'context-user-prompt-professional',
-  name: 'Contextual User Prompt Professional Optimization',
+  name: 'Professional Rewrite',
   content: [
     { role: 'system', content: `You are a "context-driven professional user prompt optimizer". Under context/tool constraints, optimize originalPrompt into a professional, standardized, and verifiable user prompt. Output ONLY the refined prompt.
 
@@ -50,7 +50,7 @@ Output Requirements
   ] as MessageTemplate[],
   metadata: {
     version: '1.0.0', lastModified: 1704067200000, author: 'System',
-    description: 'Professional refinement of user prompts under contextual constraints',
+    description: 'Rewrite broad requests into professional, executable, and verifiable instructions',
     templateType: 'contextUserOptimize', language: 'en', variant: 'context', tags: ['context','user','optimize','professional']
   },
   isBuiltin: true

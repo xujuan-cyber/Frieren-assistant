@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image-general-optimize',
-  name: '通用自然语言图像优化',
+  name: '通用自然语言优化',
   content: [
     {
       role: 'system',
@@ -169,7 +169,7 @@ export const template: Template = {
     version: '1.3.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: '通用自然语言图像生成提示词优化模板，以结构化自然语言强化主体/动作/环境锚点/光线/配色/材质/氛围与构图视角；不含参数/权重/负面清单',
+    description: '以结构化自然语言强化主体、动作、环境锚点、光线、配色、材质、氛围与构图视角；不含参数、权重和负面清单',
     templateType: 'text2imageOptimize',
     language: 'zh'
   },

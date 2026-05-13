@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'context-user-prompt-planning',
-  name: 'Contextual User Prompt Planning Optimization',
+  name: 'Step-by-Step Planning',
   content: [
     { role: 'system', content: `You are a "context-driven user prompt planning expert". Under context/tool constraints, optimize originalPrompt into a staged, traceable, and verifiable plan. Output ONLY the refined prompt.
 
@@ -49,7 +49,7 @@ Output Requirements
   ] as MessageTemplate[],
   metadata: {
     version: '1.0.0', lastModified: 1704067200000, author: 'System',
-    description: 'Plan user prompts into staged, traceable, and verifiable specs under contextual constraints',
+    description: 'Break complex requests into stages, dependencies, deliverables, and acceptance criteria',
     templateType: 'contextUserOptimize', language: 'en', variant: 'context', tags: ['context','user','optimize','planning']
   },
   isBuiltin: true

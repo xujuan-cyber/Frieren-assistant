@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image2image-general-optimize',
-  name: '图生图优化',
+  name: '通用编辑优化',
   content: [
     {
       role: 'system',
@@ -121,7 +121,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '图生图专用提示词优化模板，使用自然语言进行克制的编辑指导，避免参数与权重语法',
+    description: '使用自然语言进行克制的编辑指导，避免参数与权重语法',
     templateType: 'image2imageOptimize',
     language: 'zh'
   },

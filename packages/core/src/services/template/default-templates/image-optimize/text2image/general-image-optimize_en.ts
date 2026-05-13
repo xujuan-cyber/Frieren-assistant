@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image-general-optimize-en',
-  name: 'General Natural-Language Image Optimization',
+  name: 'General Natural-Language Optimization',
   content: [
     {
       role: 'system',
@@ -168,7 +168,7 @@ Please output the optimized prompt:`
     version: '1.3.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: 'General natural-language image prompt optimization template; structured natural language to strengthen subject/action/environment anchors/lighting/palette/material/atmosphere and composition/viewpoint; no parameters/weights/negative lists',
+    description: 'Uses structured natural language to strengthen subject, action, environment anchors, lighting, palette, material, atmosphere, composition, and viewpoint; no parameters, weights, or negative lists',
     templateType: 'text2imageOptimize',
     language: 'en'
   },

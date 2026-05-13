@@ -119,7 +119,7 @@ Please output the optimized prompt:`
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: 'Photography natural-language optimization template, emphasizing subject, composition, lighting and atmosphere; no parameters/weighting syntax',
+    description: 'Natural-language optimization for photography scenes, emphasizing subject, composition, lighting, and atmosphere; no parameters or weighting syntax',
     templateType: 'text2imageOptimize',
     language: 'en'
   },

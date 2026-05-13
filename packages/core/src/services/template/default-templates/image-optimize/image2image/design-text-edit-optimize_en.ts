@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image2image-design-text-edit-optimize-en',
-  name: 'Design Text Replacement (Image-to-Image)',
+  name: 'Design Text Replacement',
   content: [
     {
       role: 'system',
@@ -81,7 +81,7 @@ Output the instructions:`
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: 'Natural-language template for design text replacement: preserve layout and brand, replace text only',
+    description: 'Rewrite design text replacement requests as natural-language editing instructions: preserve layout and brand, replace text only',
     templateType: 'image2imageOptimize',
     language: 'en'
   },

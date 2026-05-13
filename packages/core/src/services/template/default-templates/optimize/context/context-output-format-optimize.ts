@@ -215,7 +215,7 @@ export const template: Template = {
     version: '3.0.0',
     lastModified: Date.now(),
     author: 'System',
-    description: '格式化优化模板 - 适用于数据分析、报告生成等需要结构化输出的场景',
+    description: '适合数据分析、报告生成等需要稳定结构化输出的场景',
     templateType: 'conversationMessageOptimize',
     language: 'zh',
     variant: 'context',

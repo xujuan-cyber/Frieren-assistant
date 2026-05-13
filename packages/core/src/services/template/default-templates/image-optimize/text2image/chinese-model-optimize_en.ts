@@ -126,7 +126,7 @@ Please output the optimized prompt suitable for Chinese image models:`
     version: '1.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (fixed value, built-in template cannot be modified)
     author: 'System',
-    description: 'Prompt template specifically optimized for Chinese image generation models, excelling in Chinese cultural context and cultural element integration',
+    description: 'Enhances prompts for Chinese image generation models with Chinese-language context and cultural details',
     templateType: 'text2imageOptimize',
     language: 'en'
   },

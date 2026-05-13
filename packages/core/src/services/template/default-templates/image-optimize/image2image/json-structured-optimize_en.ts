@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image2image-json-structured-optimize-en',
-  name: 'JSON Structured Prompt (Img2Img / Generic)',
+  name: 'JSON Structured Prompt',
   content: [
     {
       role: 'system',
@@ -65,7 +65,7 @@ Img2img description evidence (JSON):
     version: '1.0.0',
     lastModified: 1736208000000,
     author: 'System',
-    description: 'Strict JSON output template for img2img; generic and freely extensible schema with preserve/change guidance',
+    description: 'Outputs strict JSON with a flexible schema and preserve/change guidance',
     templateType: 'image2imageOptimize',
     language: 'en'
   },

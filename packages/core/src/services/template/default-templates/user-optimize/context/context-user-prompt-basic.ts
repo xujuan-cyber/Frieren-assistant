@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'context-user-prompt-basic',
-  name: '上下文版·用户提示词基础优化',
+  name: '基础精炼',
   content: [
     {
       role: 'system',
@@ -60,7 +60,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1704067200000,
     author: 'System',
-    description: '在上下文约束下对用户提示词做最小充分精炼，明确范围、参数、格式与验收标准',
+    description: '快速补齐目标、范围、参数、输出格式与验收标准',
     templateType: 'contextUserOptimize',
     language: 'zh',
     variant: 'context',

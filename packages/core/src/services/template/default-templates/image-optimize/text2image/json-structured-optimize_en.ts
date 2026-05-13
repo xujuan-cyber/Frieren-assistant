@@ -2,7 +2,7 @@ import { Template, MessageTemplate } from '../../../types';
 
 export const template: Template = {
   id: 'image-json-structured-optimize-en',
-  name: 'JSON Structured Prompt (Generic)',
+  name: 'JSON Structured Prompt',
   content: [
     {
       role: 'system',
@@ -85,7 +85,7 @@ Image description evidence (JSON):
     version: '1.0.0',
     lastModified: 1736208000000,
     author: 'System',
-    description: 'Image prompt optimization template that outputs strict JSON; generic schema with flexible extensibility',
+    description: 'Outputs strict JSON with a flexible schema that can adapt to many visual scenarios',
     templateType: 'text2imageOptimize',
     language: 'en'
   },

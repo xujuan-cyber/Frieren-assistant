@@ -126,7 +126,7 @@ export const template: Template = {
     version: '1.0.0',
     lastModified: 1704067200000, // 2024-01-01 00:00:00 UTC (固定值，内置模板不可修改)
     author: 'System',
-    description: '专门针对中文图像生成模型优化的提示词模板，擅长中文语境和文化元素融合',
+    description: '面向中文图像生成模型做美学增强，擅长中文语境和文化元素融合',
     templateType: 'text2imageOptimize',
     language: 'zh'
   },
