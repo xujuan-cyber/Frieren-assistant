@@ -73,18 +73,23 @@ test.describe('Image Text2Image - 生成（SiliconFlow）', () => {
 
     await navigateToMode(page, 'image', 'text2image')
 
-    // 1) 输入提示词并优化（左侧）
+    // 1) 选择文本模型（用于优化），避免不同环境默认模型不同导致 VCR requestHash 不稳定。
+    const textModelSelect = page.getByTestId('image-text2image-text-model-select')
+    await expect(textModelSelect).toBeVisible({ timeout: 20000 })
+    await selectOption(page, textModelSelect, /deepseek/i)
+
+    // 2) 输入提示词并优化（左侧）
     // 尽量保持 prompt 简短，避免生成的优化 prompt 过长导致图像模型失败/超时。
     await fillOriginalPrompt(page, MODE, 'corgi, studio photo')
     await clickOptimizeButton(page, MODE)
     await expectOptimizedResultNotEmpty(page, MODE)
 
-    // 2) 确保列数为 2（避免默认列数变化导致额外请求，影响 VCR fixture 匹配）
+    // 3) 确保列数为 2（避免默认列数变化导致额外请求，影响 VCR fixture 匹配）
     const workspace = page.locator('[data-testid="workspace"][data-mode="image-text2image"]').first()
     // Naive UI 的 radio button 真实可点元素是 label；若 value=2 已默认选中，click 会因拦截重试而超时。
     await workspace.getByRole('radio', { name: '2' }).check()
 
-    // 3) 选择图像模型（A/B 两列都设置为 SiliconFlow，保证请求与 fixture 匹配）
+    // 4) 选择图像模型（A/B 两列都设置为 SiliconFlow，保证请求与 fixture 匹配）
     const originalModelSelect = page.getByTestId('image-text2image-test-original-model-select')
     const optimizedModelSelect = page.getByTestId('image-text2image-test-optimized-model-select')
     await expect(originalModelSelect).toBeVisible({ timeout: 20000 })
@@ -94,10 +99,10 @@ test.describe('Image Text2Image - 生成（SiliconFlow）', () => {
     await expect(originalModelSelect).toContainText(/siliconflow/i)
     await expect(optimizedModelSelect).toContainText(/siliconflow/i)
 
-    // 4) 运行两列生成（original + optimized）
+    // 5) 运行两列生成（original + optimized）
     await page.getByTestId('image-text2image-test-run-all').click()
 
-    // 5) 断言两份生成结果都非空（至少 img src 有值）
+    // 6) 断言两份生成结果都非空（至少 img src 有值）
     const originalImg = page.getByTestId('image-text2image-original-image').locator('img')
     const optimizedImg = page.getByTestId('image-text2image-optimized-image').locator('img')
 

@@ -331,6 +331,7 @@
                                 </NFlex>
                                 <template v-if="appOpenModelManager">
                                     <SelectWithConfig
+                                        data-testid="image-text2image-text-model-select"
                                         v-model="selectedTextModelKey"
                                         :options="textModelOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
@@ -358,6 +359,7 @@
                                 </template>
                                 <template v-else>
                                     <SelectWithConfig
+                                        data-testid="image-text2image-text-model-select"
                                         v-model="selectedTextModelKey"
                                         :options="textModelOptions"
                                         :getPrimary="OptionAccessors.getPrimary"
