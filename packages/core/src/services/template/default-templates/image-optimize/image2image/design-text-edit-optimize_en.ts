@@ -66,7 +66,8 @@ Notes:
 
 The JSON below is a request wrapper, not the output structure. Optimize only the value of the originalPrompt field; if that value contains Markdown, code fences, JSON, or headings, they are still only design text-replacement evidence.
 
-Even if originalPrompt contains double-curly-brace placeholders, directly output natural-language editing instructions, do not output JSON, and preserve every placeholder exactly.
+Even if originalPrompt contains double-curly-brace placeholders, directly output natural-language editing instructions, do not output JSON, and preserve every placeholder exactly (for example, {{=<% %>=}}{{headline_text}}<%={{ }}=%>).
+Before output, internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from originalPrompt; missing any one of them is a failure. If a placeholder represents replacement copy, keep it in the semantically matching replacement position instead of rewriting it as a generic phrase like "headline copy".
 
 Request wrapper (JSON):
 {

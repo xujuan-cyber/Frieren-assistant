@@ -95,6 +95,7 @@ export const template: Template = {
 
 
 请基于以上模板，优化并扩展以下prompt，确保内容专业、完整且结构清晰，注意不要携带任何引导词或解释，不要使用代码块包围：
+如果原始 prompt 包含双花括号变量占位符（例如 {{variable_name}}），这些是后续运行时变量，必须在优化后的 prompt 中逐字保留，不要改名、删除或替换成具体值。
       `,
   metadata: {
     version: '1.3.0',
@@ -105,4 +106,4 @@ export const template: Template = {
     language: 'zh'
   },
   isBuiltin: true
-}; 
+};

@@ -62,7 +62,7 @@ export const template: Template = {
 - 避免提取低价值修饰词、重复限定词和局部装饰
 - position.originalText 必须能在原文中精确找到
 - position.occurrence 表示第几次出现(从1开始)
-- 如果原文中已有 {{变量}},不要重复提取
+- 如果原文中已有 {{=<% %>=}}{{变量}}<%={{ }}=%>,不要重复提取
 - 如果没有合适的变量,返回 {"variables": [], "summary": "无可提取变量"}
 
 只输出 JSON,不添加额外解释。`

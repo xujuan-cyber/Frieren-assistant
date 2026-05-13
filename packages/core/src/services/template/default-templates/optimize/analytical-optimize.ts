@@ -33,6 +33,7 @@ export const template: Template = {
 - 不要胡说八道和编造事实
 - 保持专业性和准确性
 - 输出必须包含优化建议部分
+- 保留原始 Prompt 中的双花括号变量占位符（例如 {{=<% %>=}}{{variable_name}}<%={{ }}=%>），不要改名、删除或替换成具体值
 
 ## Suggestions:
 - 深入分析用户原始Prompt的核心意图，避免表面理解
@@ -128,7 +129,7 @@ export const template: Template = {
 
 ## 注意事项：
 - 直接输出优化后的Prompt，不要添加解释性文字，不要用代码块包围
-- 每个部分都要有具体内容，不要使用占位符
+- 每个部分都要有具体内容，不要使用空泛模板占位符（如[角色名称]）；但原始 Prompt 里的双花括号变量占位符（例如 {{=<% %>=}}{{variable_name}}<%={{ }}=%>）必须逐字保留
 - **数量要求**：Skills、Goals、Constrains、Workflow、Suggestions各部分需要5个要点，OutputFormat需要3个要点
 - **Suggestions是给角色的内在工作方法论**，专注于角色自身的技能提升和工作优化方法，避免涉及与用户互动的建议
 - **必须包含完整结构**：确保包含Role、Background、Attention、Profile、Skills、Goals、Constrains、Workflow、OutputFormat、Suggestions、Initialization等所有部分

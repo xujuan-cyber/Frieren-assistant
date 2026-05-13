@@ -21,6 +21,8 @@ Your job is to modify the original prompt according to the user's optimization r
 - Maintain the core intent and functionality of the original prompt
 - Integrate optimization requirements as new requirements or constraints into the original prompt
 - Maintain the original language style and structural format
+- Preserve double-curly variable placeholders from the original prompt (for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%>); do not rename, delete, merge, or replace them with concrete values
+- Before output, internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from lastOptimizedPrompt; missing any one of them is a failure. The iteration request may change wording around variables, but must not fill variables with concrete values
 - Make precise modifications, avoid over-adjustment
 
 ## Understanding Examples
@@ -50,6 +52,7 @@ Your job is to modify the original prompt according to the user's optimization r
 
 ## Output Requirements
 Output ONLY the updated prompt, maintain original format, do not add explanations.
+If the original prompt contains double-curly variable placeholders (for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%>), preserve them exactly in the output.
 `
     },
     {

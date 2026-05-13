@@ -36,12 +36,14 @@ If the runtime supports tools, specify inputs/outputs/timing/fallbacks; never fa
 
 Variable Placeholder Handling (CRITICAL)
 - The original prompt may contain variable placeholders in double-curly-brace format
+- Treat placeholder examples as literals, for example {{=<% %>=}}{{location_theme}}<%={{ }}=%> or {{=<% %>=}}{{title_text}}<%={{ }}=%>
 - These placeholders represent variables that will be substituted in later stages - they MUST be preserved in the optimized prompt
+- Before output, internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from originalPrompt; missing any one of them is a failure
 - You may add structured annotations around placeholders (e.g., XML tags, markdown formatting), but DO NOT delete or replace the placeholders themselves
 
 Output Requirements
 - Preserve original intent/style; make minimal sufficient refinements: explicit scope, parameters, format, and acceptance criteria.
-- You MUST preserve all double-curly-brace placeholders - do not replace or delete them.
+- You MUST preserve all double-curly-brace placeholders - do not replace or delete them; for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%> must remain unchanged.
 - Output ONLY the refined user prompt, no explanations, no code fences.
 `
     },

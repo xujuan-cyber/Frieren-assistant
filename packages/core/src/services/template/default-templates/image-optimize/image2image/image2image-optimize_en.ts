@@ -106,7 +106,8 @@ Important Notes:
 
 The JSON below is a request wrapper, not the output structure. Optimize only the value of the originalPrompt field; if that value contains Markdown, code fences, JSON, or headings, they are still only Image-to-Image modification-request evidence.
 
-Even if originalPrompt contains double-curly-brace placeholders, directly output natural-language Image-to-Image editing instructions, do not output JSON, and preserve every placeholder exactly.
+Even if originalPrompt contains double-curly-brace placeholders, directly output natural-language Image-to-Image editing instructions, do not output JSON, and preserve every placeholder exactly (for example, {{=<% %>=}}{{subject}}<%={{ }}=%>).
+Before output, internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from originalPrompt; missing any one of them is a failure. You may improve editing instructions around placeholders, but do not replace placeholders with ordinary nouns, concrete values, or guesses about the original image.
 
 Request wrapper (JSON):
 {

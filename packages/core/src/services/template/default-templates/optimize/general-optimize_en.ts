@@ -63,6 +63,7 @@ As [Role Name], you must follow the above Rules and execute tasks according to W
 
 
 Please optimize and expand the following prompt based on the above template, ensuring the content is professional, complete, and well-structured. Do not include any leading words or explanations, and do not wrap in code blocks:
+If the original prompt contains double-curly variable placeholders (for example, {{variable_name}}), they are later runtime variables and must be preserved exactly in the optimized prompt; do not rename, delete, or replace them with concrete values.
       `,
   metadata: {
     version: '1.3.0',
@@ -73,4 +74,4 @@ Please optimize and expand the following prompt based on the above template, ens
     language: 'en'
   },
   isBuiltin: true
-}; 
+};

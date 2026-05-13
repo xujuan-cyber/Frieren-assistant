@@ -36,6 +36,8 @@ export const user_prompt_planning_en: Template = {
 - **Structured Output**: The "new prompt" you generate must use Markdown format and strictly adhere to the structure defined in the "Output Requirements" below.
 - **Content Source**: All content of the new prompt must be developed around the user's requirements provided in "【...】", elaborating and specifying them. Do not add irrelevant objectives.
 - **Maintain Brevity**: While ensuring the plan is complete, the language should be as concise, clear, and professional as possible.
+- **Variable Preservation**: Double-curly variable placeholders in the original prompt (for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%>) are later runtime inputs and must remain unchanged; do not rename, delete, or replace them with concrete values.
+- **Variable Self-Check**: Before output, internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from originalPrompt; missing any one of them is a failure.
 
 ## Workflow
 1.  **Analyze and Extract**: Deeply analyze the user's input in "【...】" to extract the core objective and any hidden context.
@@ -47,6 +49,7 @@ export const user_prompt_planning_en: Template = {
 ## Output Requirements
 - **No Explanations**: Never add any explanatory text (e.g., "Here is the optimized prompt:"). Output the optimized prompt directly.
 - **Markdown Format**: Must use Markdown syntax to ensure a clear structure.
+- **Variable Placeholders**: If the original prompt contains double-curly variable placeholders (for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%>), preserve them exactly in the new prompt.
 - **Strictly follow this structure**:
 
 # Task: [Core task title derived from user requirements]

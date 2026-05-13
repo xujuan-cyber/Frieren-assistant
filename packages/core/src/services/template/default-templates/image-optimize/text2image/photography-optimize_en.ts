@@ -25,11 +25,17 @@ Optimize the user's brief description into photography-oriented natural-language
 ## Input Mode Detection and Structure Preservation
 You must choose the output mode from the shape of the content being optimized itself, not from an outer request body, wrapper field, field name, or the mere presence of placeholders.
 
+## Hard-Constraint Preservation
+- Before optimizing, identify double-curly variables, ratios, orientation, title text, field structure, conditional branches, forbidden items, and other must-keep information from the original text
+- Preserve every double-curly placeholder exactly; before output, check every original {{=<% %>=}}{{...}}<%={{ }}=%> token, and missing any one of them is a failure
+- Photographic enrichment may add lens, light, and texture detail, but must not cover, weaken, or replace original variables and hard constraints
+- If a variable or hard constraint has no natural place in polished prose, keep it in a constraint sentence, title note, or original structured field; do not delete it
+
 ### Natural-Language Mode
-When the content being optimized itself is a plain natural-language description, paragraph text, prompt body, or a natural-language template containing {{placeholder}} tokens:
+When the content being optimized itself is a plain natural-language description, paragraph text, prompt body, or a natural-language template containing {{=<% %>=}}{{placeholder}}<%={{ }}=%> tokens:
 - Output 3–6 separate yet coherent natural-language sentences
-- Even if the text contains {{placeholder}} tokens, still use natural-language mode
-- Preserve every {{placeholder}} token exactly; do not translate, rename, delete, split, explain, or replace it
+- Even if the text contains {{=<% %>=}}{{placeholder}}<%={{ }}=%> tokens, still use natural-language mode
+- Preserve every {{=<% %>=}}{{placeholder}}<%={{ }}=%> token exactly; do not translate, rename, delete, split, explain, or replace it
 - Do not output JSON, Markdown, headings, explanations, field names, or code fences
 - Do not wrap natural-language input as {"prompt": "..."}, {"originalPrompt": "..."}, or any other JSON object
 
@@ -39,8 +45,8 @@ Use JSON mode only when the content being optimized itself is a JSON object, JSO
 - Preserve original field names, hierarchy, array order, and data types
 - Only optimize string fields that semantically represent image descriptions, visual content, or prompt body while adding photography-oriented information in the matching fields
 - Keep non-image-description fields unchanged, such as id, key, name, title, type, model, ratio, size, url, path, tag, category, enum, etc.
-- If a string field is only a placeholder, such as "{{subject}}", keep it unchanged and do not expand it
-- Preserve every {{placeholder}} token exactly; do not translate, rename, delete, split, explain, merge, or move it to another field
+- If a string field is only a placeholder, such as "{{=<% %>=}}{{subject}}<%={{ }}=%>", keep it unchanged and do not expand it
+- Preserve every {{=<% %>=}}{{placeholder}}<%={{ }}=%> token exactly; do not translate, rename, delete, split, explain, merge, or move it to another field
 - If you cannot tell whether a string field is an image description, prefer keeping it unchanged
 - Do not add explanations, headings, code fences, or Markdown
 
@@ -74,7 +80,7 @@ Use JSON mode only when the content being optimized itself is a JSON object, JSO
 5. Use 3-6 structured sentences, each focusing on one core dimension
 
 ## Output Requirements
-- If the content being optimized itself is natural language, directly output the optimized photography prompt as natural-language plain text, even when it contains {{placeholder}} tokens; do not output JSON
+- If the content being optimized itself is natural language, directly output the optimized photography prompt as natural-language plain text, even when it contains {{=<% %>=}}{{placeholder}}<%={{ }}=%> tokens; do not output JSON
 - If the content being optimized itself is already structured JSON, directly output strict JSON; do not add explanations, headings, code fences, Markdown, or flatten structured JSON into prose
 - Do not add any prefixes (e.g., 'Optimized prompt:') or explanations; output the prompt only
 - Natural-language mode output structure: 3-6 independent but coherent sentences

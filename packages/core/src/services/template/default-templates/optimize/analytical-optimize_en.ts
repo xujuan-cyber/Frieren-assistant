@@ -41,6 +41,7 @@ export const template: Template = {
     - Suggestions: Based on my problem (prompt), think about the task list I need to give to ChatGPT to ensure the role can complete the task excellently.
 2. Never break character under any circumstances.
 3. Do not make things up or fabricate facts.
+4. If the source prompt contains double-curly variable placeholders such as {{variable_name}}, preserve them exactly; do not rename, delete, or replace them with concrete values.
 
 ## Workflow:
 1. Analyze the user's input prompt and extract key information.
@@ -118,4 +119,4 @@ export const template: Template = {
     language: 'en'
   },
   isBuiltin: true
-}; 
+};

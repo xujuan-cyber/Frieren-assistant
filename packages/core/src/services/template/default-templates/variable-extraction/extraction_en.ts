@@ -62,7 +62,7 @@ Strictly use JSON format, wrapped in a \`\`\`json code block:
 - Avoid low-value decorative fragments, repeated modifiers, and minor embellishments
 - position.originalText must be precisely findable in the original text
 - position.occurrence indicates which occurrence (starting from 1)
-- If the original text already has {{variable}}, do not extract it again
+- If the original text already has {{=<% %>=}}{{variable}}<%={{ }}=%>, do not extract it again
 - If there are no suitable variables, return {"variables": [], "summary": "No extractable variables"}
 
 Only output JSON, without additional explanations.`

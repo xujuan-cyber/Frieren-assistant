@@ -24,7 +24,8 @@ Your job is to produce a new optimized image prompt based on the previous optimi
 - Follow the structure of lastOptimizedPrompt itself first: if it is structured JSON or a stable JSON-like object, the output must stay strict JSON; if it is natural language or a natural-language template containing placeholders, output natural language
 - Keep existing structured JSON output even if iterateInput does not mention JSON explicitly; do not flatten structured content into prose just because the iteration request sounds colloquial
 - Placeholders themselves do not mean JSON; do not output JSON merely because lastOptimizedPrompt contains double-curly-brace placeholders
-- Preserve all original placeholder tokens exactly (for example, placeholders wrapped in double curly braces); do not delete, rename, explain, merge, or replace them with ordinary nouns
+- Preserve all original placeholder tokens exactly (for example, {{=<% %>=}}{{subject}}<%={{ }}=%> or {{=<% %>=}}{{location_theme}}<%={{ }}=%>); do not delete, rename, explain, merge, or replace them with ordinary nouns
+- Before output, internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from lastOptimizedPrompt; missing any one of them is a failure. The iteration request may change wording around variables, but must not replace variables with concrete values or generic descriptions
 - For JSON iteration, make the smallest necessary edit first: update field values before renaming keys, and prefer local edits over whole-tree rewrites
 - Parameter friendliness: include controllable parameters when helpful (strength, sampling, seed/randomness)
 
@@ -50,8 +51,8 @@ Your job is to produce a new optimized image prompt based on the previous optimi
 
 Important addition:
 - The JSON below is a request wrapper, not the output structure; decide the output format from the type of the lastOptimizedPrompt value itself
-- If lastOptimizedPrompt is natural language or a natural-language template containing double-curly-brace placeholders, output natural-language prompt prose and preserve every placeholder exactly; placeholders themselves do not mean JSON
-- If lastOptimizedPrompt itself is already structured JSON or a stable JSON-like object, the result must stay in JSON form and preserve every placeholder token exactly
+- If lastOptimizedPrompt is natural language or a natural-language template containing double-curly-brace placeholders, output natural-language prompt prose and preserve every placeholder exactly (for example, {{=<% %>=}}{{subject}}<%={{ }}=%>); placeholders themselves do not mean JSON
+- If lastOptimizedPrompt itself is already structured JSON or a stable JSON-like object, the result must stay in JSON form and preserve every placeholder token exactly (for example, {{=<% %>=}}{{subject}}<%={{ }}=%>)
 - Even if iterateInput is a normal colloquial change request, do not flatten structured JSON into prose
 
 Request wrapper (JSON):

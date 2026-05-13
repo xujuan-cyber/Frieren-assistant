@@ -49,11 +49,17 @@ export const template: Template = {
 ## Input Mode Detection and Structure Preservation
 You must choose the output mode from the shape of the content being optimized itself, not from an outer request body, wrapper field, field name, or the mere presence of placeholders.
 
+## Hard-Constraint Preservation
+- Before optimizing, identify double-curly variables, ratios, orientation, title text, field structure, conditional branches, forbidden items, and other must-keep information from the original text
+- Preserve every double-curly placeholder exactly; before output, check every original {{=<% %>=}}{{...}}<%={{ }}=%> token, and missing any one of them is a failure
+- Creative reconstruction may amplify visual expression, but must not cover, weaken, or replace original variables and hard constraints
+- If a variable or hard constraint has no natural place in freer prose, keep it in a constraint sentence, title note, or original structured field; do not delete it
+
 ### Natural-Language Mode
-When the content being optimized itself is a plain natural-language description, paragraph text, prompt body, or a natural-language template containing {{placeholder}} tokens:
+When the content being optimized itself is a plain natural-language description, paragraph text, prompt body, or a natural-language template containing {{=<% %>=}}{{placeholder}}<%={{ }}=%> tokens:
 - Output free-form creative natural-language prompt prose
-- Even if the text contains {{placeholder}} tokens, still use natural-language mode
-- Preserve every {{placeholder}} token exactly; do not translate, rename, delete, split, explain, or replace it
+- Even if the text contains {{=<% %>=}}{{placeholder}}<%={{ }}=%> tokens, still use natural-language mode
+- Preserve every {{=<% %>=}}{{placeholder}}<%={{ }}=%> token exactly; do not translate, rename, delete, split, explain, or replace it
 - Do not output JSON, Markdown, headings, explanations, field names, or code fences
 - Do not wrap natural-language input as {"prompt": "..."}, {"originalPrompt": "..."}, or any other JSON object
 
@@ -63,8 +69,8 @@ Use JSON mode only when the content being optimized itself is a JSON object, JSO
 - Preserve original field names, hierarchy, array order, and data types
 - Only optimize string fields that semantically represent image descriptions, visual content, or prompt body while applying the creative transformation inside field values rather than rewriting the whole prompt as free prose
 - Keep non-image-description fields unchanged, such as id, key, name, title, type, model, ratio, size, url, path, tag, category, enum, etc.
-- If a string field is only a placeholder, such as "{{subject}}", keep it unchanged and do not expand it
-- Preserve every {{placeholder}} token exactly; do not translate, rename, delete, split, explain, merge, or move it to another field
+- If a string field is only a placeholder, such as "{{=<% %>=}}{{subject}}<%={{ }}=%>", keep it unchanged and do not expand it
+- Preserve every {{=<% %>=}}{{placeholder}}<%={{ }}=%> token exactly; do not translate, rename, delete, split, explain, merge, or move it to another field
 - If you cannot tell whether a string field is an image description, prefer keeping it unchanged
 - Do not add explanations, headings, code fences, or Markdown
 

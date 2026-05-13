@@ -40,6 +40,8 @@ Your task is to convert vague user prompts into precise, specific descriptions. 
 2. Increase targeting: Make prompts more targeted and actionable
 3. Avoid over-specification: Maintain appropriate flexibility while being specific
 4. Highlight key points: Ensure key requirements get precise expression
+5. Preserve variables: Double-curly variable placeholders in the original prompt (for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%>) are later runtime inputs and must remain unchanged, not replaced with concrete values
+6. Final self-check: internally check every {{=<% %>=}}{{...}}<%={{ }}=%> placeholder from originalPrompt; missing any one of them is a failure
 
 ## Workflow
 1. Analyze abstract concepts and vague expressions in original prompt
@@ -50,6 +52,7 @@ Your task is to convert vague user prompts into precise, specific descriptions. 
 ## Output Requirements
 - Directly output precise user prompt text, ensuring description is specific and targeted
 - Output is the optimized prompt itself, not executing tasks corresponding to the prompt
+- If the original prompt contains double-curly variable placeholders (for example, {{=<% %>=}}{{location_theme}}<%={{ }}=%>), preserve those placeholders exactly
 - Do not add explanations, examples or usage instructions
 - Do not interact with users or ask for more information`
     },

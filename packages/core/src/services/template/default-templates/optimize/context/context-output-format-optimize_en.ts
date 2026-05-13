@@ -26,6 +26,7 @@ export const template: Template = {
 4. **Add Validation Standards** - Explain how to verify output correctness
 5. **Leverage Context** - Make full use of conversation history and available tools
 6. **Preserve Core Intent** - Don't change the fundamental purpose of the original message
+7. **Preserve Variable Placeholders** - Double-curly variables (for example \`{{=<% %>=}}{{name}}<%={{ }}=%>\`) must be preserved exactly
 
 # Optimization Examples
 
@@ -159,7 +160,8 @@ After completing optimization, please self-check:
 4. Do not use code blocks to surround the content
 5. Do not add explanations or comments
 6. Keep the same language as the original message
-7. Do not change the basic intent of the original message`
+7. Do not change the basic intent of the original message
+8. Preserve double-curly variable placeholders exactly (for example {{=<% %>=}}{{name}}<%={{ }}=%>)`
     },
     {
       role: 'user',

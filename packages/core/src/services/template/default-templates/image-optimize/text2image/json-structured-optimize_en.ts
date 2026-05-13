@@ -18,7 +18,7 @@ Rewrite the user's description into a structured JSON image prompt that can be u
 3. Top-level must be an object (not an array)
 4. Strict JSON: double quotes, no comments, no trailing commas
 5. If the original description is already structured JSON, prefer to keep the existing JSON structure, field hierarchy, and key semantics, refining it in place instead of rewriting the whole tree
-6. Preserve all original placeholder tokens exactly (for example, placeholders wrapped in double curly braces); do not delete, rename, explain, or replace them
+6. Preserve all original placeholder tokens exactly (for example, {{=<% %>=}}{{subject}}<%={{ }}=%> or {{=<% %>=}}{{title_text}}<%={{ }}=%>); do not delete, rename, explain, or replace them
 7. Do not replace placeholders with generic nouns; for example, do not rewrite the core-subject placeholder as "main figure or object" and do not rewrite the title placeholder as "headline copy"
 8. If the original description is already structured JSON, keep the original top-level key set by default; do not add new top-level blocks unless the original structure truly has no place for the information and the addition is absolutely necessary
 9. If the original description is already structured JSON, the output top-level key set must match the input exactly; only add nested fields inside the existing top-level blocks
@@ -68,7 +68,7 @@ If the input contains inappropriate content, replace/soften it to a compliant va
 Requirements:
 - Output JSON only (strict JSON; no explanations / no code fences)
 - Only when the original input is not already structured JSON may the JSON schema be freely extended, and it must still remain faithful and more visually specific
-- If the original image description is already structured JSON or already contains double-curly-brace placeholders, prefer to keep the existing structure and preserve every placeholder token exactly instead of replacing them with generic nouns
+- If the original image description is already structured JSON or already contains double-curly-brace placeholders (for example, {{=<% %>=}}{{subject}}<%={{ }}=%>), prefer to keep the existing structure and preserve every placeholder token exactly instead of replacing them with generic nouns
 - If the original JSON structure is already complete and usable, refine within the existing fields instead of adding extra top-level keys just to make it feel fuller
 - If the original input is already structured JSON, keep the original top-level key set by default and do not add new top-level blocks such as "negative_prompt", "lighting", or "style" on your own
 - If the original input is already structured JSON, the output top-level key set must match the input exactly; only enrich content under those existing top-level keys
