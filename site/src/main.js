@@ -1,4 +1,7 @@
 import './styles.css'
+import { inject } from '@vercel/analytics'
+
+inject()
 
 const STORAGE_KEY = 'prompt-optimizer-site-locale'
 const THEME_STORAGE_KEY = 'prompt-optimizer-site-theme'
