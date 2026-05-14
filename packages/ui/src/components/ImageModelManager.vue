@@ -38,7 +38,7 @@
               <!-- 标签行：Provider、Model、能力标签合并 -->
               <NSpace :size="6" class="image-model-tags">
                 <NTag size="small" type="default" round :bordered="false">
-                  {{ config.provider?.name || config.providerId }}
+                  {{ providerDisplayName(config) }}
                 </NTag>
                 <NTag size="small" type="info" round :bordered="false">
                   {{ config.model?.name || config.modelId }}
@@ -89,7 +89,7 @@
               width="24"
               height="24"
               object-fit="cover"
-              :style="{ borderRadius: '4px', border: '1px solid #d9d9d9' }"
+              :style="{ borderRadius: '4px', border: '1px solid var(--n-border-color)' }"
               :preview-disabled="false"
               :alt="t('image.connection.testImagePreview')"
             />
@@ -170,14 +170,17 @@ import {
   NSpace, NCard, NText, NTag, NButton, NEmpty, useDialog
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/model/useImageModelManager'
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'
 import { getI18nErrorMessage } from '../utils/error'
 import { isRunningInElectron, type IImageService, type ImageModel } from '@prompt-optimizer/core'
+import { getProviderDisplayName } from '../utils/provider-display'
 import AppPreviewImage from './media/AppPreviewImage.vue'
 
 const { t } = useI18n()
 const toast = useToast()
 const dialog = useDialog()
+const confirmDialog = useConfirmDialog()
 const isElectronEnv = isRunningInElectron()
 
 // 定义事件
@@ -211,6 +214,8 @@ const testResults = ref<Record<string, {
 }>>({})
 
 const isTestingConnectionFor = (configId: string) => !!testingConnections.value[configId]
+const providerDisplayName = (config: { provider?: { id?: string; name?: string }; providerId?: string }) =>
+  getProviderDisplayName(config.provider || { id: config.providerId }, t)
 
 // 辅助函数：根据模型能力选择测试类型
 const selectTestType = (model: ImageModel): 'text2image' | 'image2image' => {
@@ -326,7 +331,7 @@ const testConnection = async (configId: string) => {
     if (config?.provider?.corsRestricted) {
       dialog.warning({
         title: t('modelManager.corsRestrictedTag'),
-        content: () => h('div', { style: 'white-space: pre-line;' }, t('modelManager.corsRestrictedConfirm', { provider: config.provider.name || config.providerId })),
+        content: () => h('div', { style: 'white-space: pre-line;' }, t('modelManager.corsRestrictedConfirm', { provider: providerDisplayName(config) })),
         positiveText: t('common.confirm'),
         negativeText: t('common.cancel'),
         // Don't block dialog close while the async test runs.
@@ -353,15 +358,21 @@ const toggleConfig = async (config: { id: string; enabled: boolean }) => {
 }
 
 const deleteConfig = async (configId: string) => {
-  if (confirm(t('modelManager.deleteConfirm'))) {
-    try {
-      await deleteConfigFromManager(configId)
-      await loadConfigs()
-      toast.success(t('modelManager.deleteSuccess'))
-    } catch (error) {
-      console.error('[ImageModelManager] Failed to delete model:', error)
-      toast.error(t('modelManager.deleteFailed', { error: getI18nErrorMessage(error, t('common.error')) }))
-    }
+  const confirmed = await confirmDialog.warning({
+    title: t('common.warning'),
+    content: t('modelManager.deleteConfirm'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+  })
+  if (!confirmed) return
+
+  try {
+    await deleteConfigFromManager(configId)
+    await loadConfigs()
+    toast.success(t('modelManager.deleteSuccess'))
+  } catch (error) {
+    console.error('[ImageModelManager] Failed to delete model:', error)
+    toast.error(t('modelManager.deleteFailed', { error: getI18nErrorMessage(error, t('common.error')) }))
   }
 }
 

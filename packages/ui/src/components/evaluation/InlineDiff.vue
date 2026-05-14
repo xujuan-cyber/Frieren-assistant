@@ -17,20 +17,11 @@
 import { computed, inject, ref, type Ref } from 'vue'
 import { createCompareService, type ChangeType, type TextFragment, type ICompareService } from '@prompt-optimizer/core'
 import type { AppServices } from '../../types/services'
-import { useNaiveTheme } from '../../composables/ui/useNaiveTheme'
 
 const props = defineProps<{
   oldText: string
   newText: string
 }>()
-
-// 获取主题配置并计算颜色变量
-const { themeOverrides } = useNaiveTheme()
-const successBg = computed(() => themeOverrides.value?.common?.successColorSuppl || 'rgba(34, 197, 94, 0.15)')
-const successColor = computed(() => themeOverrides.value?.common?.successColor || '#16a34a')
-const errorBg = computed(() => themeOverrides.value?.common?.errorColorSuppl || 'rgba(239, 68, 68, 0.15)')
-const errorColor = computed(() => themeOverrides.value?.common?.errorColor || '#dc2626')
-const textColor3 = computed(() => themeOverrides.value?.common?.textColor3 || '#6b7280')
 
 // 长度阈值：超过此值降级显示
 // 图像模式的 JSON 提示词可能很长；为保持与其它模式一致，这里不再做长度限制
@@ -111,21 +102,21 @@ const getFragmentClass = (type: ChangeType): string => {
 }
 
 .diff-added {
-  background-color: v-bind(successBg);
-  color: v-bind(successColor);
+  background-color: var(--n-success-color-suppl);
+  color: var(--n-success-color);
   border-radius: 2px;
   padding: 0 2px;
 }
 
 .diff-removed {
-  background-color: v-bind(errorBg);
-  color: v-bind(errorColor);
+  background-color: var(--n-error-color-suppl);
+  color: var(--n-error-color);
   text-decoration: line-through;
   border-radius: 2px;
   padding: 0 2px;
 }
 
 .diff-unchanged {
-  color: v-bind(textColor3);
+  color: var(--n-text-color-3);
 }
 </style>

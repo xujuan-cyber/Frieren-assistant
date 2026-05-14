@@ -68,6 +68,7 @@ import {
 } from '@prompt-optimizer/core'
 
 import { useToast } from '../composables/ui/useToast'
+import { getProviderDisplayName } from '../utils/provider-display'
 import type { ModelSelectOption } from '../types/select-options'
 import type { AppServices } from '../types/services'
 
@@ -100,7 +101,7 @@ const selectedConfig = computed(() =>
 const providerId = computed(() => selectedConfig.value?.providerMeta?.id ?? '')
 const selectedModelId = computed(() => selectedConfig.value?.modelMeta?.id ?? '')
 const providerLabel = computed(() =>
-  selectedConfig.value?.providerMeta?.name || selectedConfig.value?.providerMeta?.id || ''
+  selectedConfig.value ? getProviderDisplayName(selectedConfig.value.providerMeta, t, '') : ''
 )
 const modelLabel = computed(() =>
   selectedConfig.value?.modelMeta?.name || selectedConfig.value?.modelMeta?.id || ''
@@ -260,8 +261,8 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: rgba(120, 113, 108, 0.1);
-  color: #5f5548;
+  background: var(--n-tag-color, var(--n-color-embedded));
+  color: var(--n-text-color-2);
   transition:
     background-color 0.15s ease,
     box-shadow 0.15s ease,
@@ -281,9 +282,9 @@ watch(
 
 .text-model-quick-switch__model--clickable:hover,
 .text-model-quick-switch__model--clickable:focus-visible {
-  background: rgba(120, 113, 108, 0.16);
-  color: #3f372d;
-  box-shadow: inset 0 0 0 1px rgba(120, 113, 108, 0.2);
+  background: var(--n-hover-color);
+  color: var(--n-text-color);
+  box-shadow: inset 0 0 0 1px var(--n-border-color);
 }
 
 .text-model-quick-switch__popover {

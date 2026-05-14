@@ -25,6 +25,7 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
       requiresApiKey: true,
       defaultBaseURL: 'https://openrouter.ai/api/v1',
       supportsDynamicModels: true,
+      apiKeyUrl: 'https://openrouter.ai/settings/keys',
       connectionSchema: {
         required: ['apiKey'],
         optional: ['baseURL'],

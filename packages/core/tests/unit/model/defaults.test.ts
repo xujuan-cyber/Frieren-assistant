@@ -144,7 +144,7 @@ describe('model defaults provider env mapping', () => {
 
     expect(models.custom).toBeDefined()
     expect(models.custom.providerMeta.id).toBe('openai-compatible')
-    expect(models.custom.providerMeta.name).toBe('Custom API (OpenAI Compatible)')
+    expect(models.custom.providerMeta.name).toBe('OpenAI Compatible (Custom)')
     expect(models.custom.enabled).toBe(true)
     expect(models.custom.connectionConfig.apiKey).toBe('')
     expect(models.custom.connectionConfig.requestStyle).toBe('chat_completions')

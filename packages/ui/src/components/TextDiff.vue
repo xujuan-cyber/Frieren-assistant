@@ -26,11 +26,8 @@
 </template>
   
   <script setup lang="ts">
-import { computed } from 'vue'
-
 import { NTag, NCard, NFlex, NScrollbar } from 'naive-ui'
 import type { CompareResult, ChangeType } from '@prompt-optimizer/core'
-import { useNaiveTheme } from '../composables/ui/useNaiveTheme'
   
   interface Props {
     /** 原始文本 */
@@ -42,10 +39,6 @@ import { useNaiveTheme } from '../composables/ui/useNaiveTheme'
   }
   
   defineProps<Props>()
-
-// 获取当前主题配置
-const { themeOverrides } = useNaiveTheme()
-const theme = computed(() => themeOverrides.value)
 
 const getFragmentClass = (type: ChangeType): string => {
   switch (type) {
@@ -85,18 +78,18 @@ const getFragmentClass = (type: ChangeType): string => {
 }
 
 .diff-added {
-  background-color: v-bind('theme.common?.successColorSuppl || "rgba(34, 197, 94, 0.15)"');
-  color: v-bind('theme.common?.successColor || "#16a34a"');
+  background-color: var(--n-success-color-suppl);
+  color: var(--n-success-color);
 }
 
 .diff-removed {
-  background-color: v-bind('theme.common?.errorColorSuppl || "rgba(239, 68, 68, 0.15)"');
-  color: v-bind('theme.common?.errorColor || "#dc2626"');
+  background-color: var(--n-error-color-suppl);
+  color: var(--n-error-color);
   text-decoration: line-through;
 }
 
 .diff-unchanged {
-  color: v-bind('theme.common?.textColor3 || "#6b7280"');
+  color: var(--n-text-color-3);
 }
 
 /* 响应式设计 */

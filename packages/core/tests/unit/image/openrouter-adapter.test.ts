@@ -24,6 +24,7 @@ describe('OpenRouterImageAdapter', () => {
       expect(provider.requiresApiKey).toBe(true)
       expect(provider.supportsDynamicModels).toBe(true)
       expect(provider.defaultBaseURL).toBe('https://openrouter.ai/api/v1')
+      expect(provider.apiKeyUrl).toBe('https://openrouter.ai/settings/keys')
     })
 
     it('should have correct connection schema', () => {

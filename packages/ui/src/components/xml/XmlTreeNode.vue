@@ -1,7 +1,18 @@
 <template>
   <template v-if="node.kind === 'element'">
-    <details v-if="hasChildren" class="xml-details" :open="isOpenByDefault">
-      <summary class="xml-summary" :style="lineStyle">
+    <div v-if="hasChildren" class="xml-details">
+      <NButton
+        text
+        class="xml-summary"
+        :style="lineStyle"
+        :aria-expanded="isExpanded"
+        @click="toggleExpanded"
+      >
+        <template #icon>
+          <NIcon class="xml-summary-icon" :class="{ 'xml-summary-icon--expanded': isExpanded }">
+            <ChevronRight />
+          </NIcon>
+        </template>
         <span class="xml-punct">&lt;</span>
         <span class="xml-tag">{{ node.name }}</span>
         <template v-for="attribute in node.attributes" :key="`${node.name || 'node'}:${attribute.name}`">
@@ -11,22 +22,24 @@
           <span class="xml-attr-value">"{{ attribute.value }}"</span>
         </template>
         <span class="xml-punct">&gt;</span>
-      </summary>
+      </NButton>
 
-      <XmlTreeNode
-        v-for="(child, childIndex) in node.children"
-        :key="buildChildKey(child, childIndex)"
-        :node="child"
-        :depth="depth + 1"
-        :default-expanded-depth="defaultExpandedDepth"
-      />
+      <template v-if="isExpanded">
+        <XmlTreeNode
+          v-for="(child, childIndex) in node.children"
+          :key="buildChildKey(child, childIndex)"
+          :node="child"
+          :depth="depth + 1"
+          :default-expanded-depth="defaultExpandedDepth"
+        />
 
-      <div class="xml-line xml-closing" :style="lineStyle">
-        <span class="xml-punct">&lt;/</span>
-        <span class="xml-tag">{{ node.name }}</span>
-        <span class="xml-punct">&gt;</span>
-      </div>
-    </details>
+        <div class="xml-line xml-closing" :style="lineStyle">
+          <span class="xml-punct">&lt;/</span>
+          <span class="xml-tag">{{ node.name }}</span>
+          <span class="xml-punct">&gt;</span>
+        </div>
+      </template>
+    </div>
 
     <div v-else class="xml-line" :style="lineStyle">
       <span class="xml-punct">&lt;</span>
@@ -59,7 +72,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { NButton, NIcon } from 'naive-ui'
+import { ChevronRight } from '@vicons/tabler'
 import type { XmlNodeModel } from '../../types/xml-renderer'
 
 defineOptions({
@@ -82,6 +97,7 @@ const hasChildren = computed(
 )
 
 const isOpenByDefault = computed(() => props.depth < props.defaultExpandedDepth)
+const isExpanded = ref(isOpenByDefault.value)
 
 const lineStyle = computed(() => ({
   paddingLeft: `${props.depth * 16}px`,
@@ -95,6 +111,10 @@ const buildChildKey = (child: XmlNodeModel, index: number): string => {
     return `${child.kind}:${child.name}:${index}`
   }
   return `${child.kind}:${index}`
+}
+
+const toggleExpanded = () => {
+  isExpanded.value = !isExpanded.value
 }
 </script>
 
@@ -117,40 +137,58 @@ const buildChildKey = (child: XmlNodeModel, index: number): string => {
 .xml-summary {
   cursor: pointer;
   user-select: none;
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .xml-summary:hover {
-  background-color: rgba(24, 160, 88, 0.08);
+  background-color: var(--n-hover-color);
+}
+
+.xml-summary :deep(.n-button__content) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.xml-summary-icon {
+  color: var(--n-text-color-3);
+  transition: transform 0.15s ease;
+}
+
+.xml-summary-icon--expanded {
+  transform: rotate(90deg);
 }
 
 .xml-punct {
-  color: rgba(100, 116, 139, 0.95);
+  color: var(--n-text-color-3);
 }
 
 .xml-tag {
-  color: #0f766e;
+  color: var(--n-primary-color);
   font-weight: 600;
 }
 
 .xml-attr-name {
-  color: #2563eb;
+  color: var(--n-info-color);
 }
 
 .xml-attr-value {
-  color: #9333ea;
+  color: var(--n-warning-color);
 }
 
 .xml-text-node {
-  color: #334155;
+  color: var(--n-text-color);
 }
 
 .xml-comment {
-  color: #64748b;
+  color: var(--n-text-color-3);
   font-style: italic;
 }
 
 .xml-cdata,
 .xml-processing {
-  color: #475569;
+  color: var(--n-text-color-2);
 }
 </style>

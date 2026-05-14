@@ -7,8 +7,8 @@
     class="compare-role-badge__popover"
   >
     <template #trigger>
-      <button
-        type="button"
+      <NButton
+        text
         class="compare-role-badge"
         :class="{ 'compare-role-badge--clickable': clickable }"
         @click="handleClick"
@@ -28,7 +28,7 @@
         >
           !
         </span>
-      </button>
+      </NButton>
     </template>
 
     <div class="compare-role-badge__content">
@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NPopover, NTag, NText } from 'naive-ui'
+import { NButton, NPopover, NTag, NText } from 'naive-ui'
 import {
   buildCompareRoleTooltipCopy,
   getCompareRoleTagType,
@@ -78,16 +78,14 @@ function handleClick() {
 
 <style scoped>
 .compare-role-badge {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  margin: 0;
   position: relative;
+  cursor: default;
+}
+
+.compare-role-badge :deep(.n-button__content) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  cursor: default;
 }
 
 .compare-role-badge--clickable {
@@ -95,7 +93,7 @@ function handleClick() {
 }
 
 .compare-role-badge--clickable:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.28);
+  outline: 2px solid var(--n-primary-color-suppl);
   outline-offset: 3px;
   border-radius: 999px;
 }
@@ -115,8 +113,8 @@ function handleClick() {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: rgba(240, 160, 32, 0.16);
-  color: #d97706;
+  background: var(--n-warning-color-suppl);
+  color: var(--n-warning-color);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;

@@ -277,8 +277,10 @@ import type { ToolDefinition } from '@prompt-optimizer/core'
 import type {
     ToolManagerModalProps,
 } from '../../types/components'
+import { useConfirmDialog } from '../../composables/ui/useConfirmDialog'
 
 const { t } = useI18n()
+const confirmDialog = useConfirmDialog()
 
 const props = withDefaults(defineProps<ToolManagerModalProps>(), {
     disabled: false,
@@ -444,13 +446,16 @@ const editTool = (index: number) => {
     showEditor.value = true
 }
 
-const deleteTool = (index: number) => {
+const deleteTool = async (index: number) => {
     const tool = localTools.value[index]
-    const confirmed = confirm(
-        t('contextEditor.deleteToolConfirm', {
+    const confirmed = await confirmDialog.warning({
+        title: t('common.warning'),
+        content: t('contextEditor.deleteToolConfirm', {
             name: tool?.function?.name || '',
-        })
-    )
+        }),
+        positiveText: t('common.confirm'),
+        negativeText: t('common.cancel'),
+    })
     if (!confirmed) return
     localTools.value.splice(index, 1)
     emit('toolChange', [...localTools.value], 'delete', index)

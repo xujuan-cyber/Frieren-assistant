@@ -1,35 +1,31 @@
 <template>
-  <NTooltip trigger="hover" :disabled="!disabledTooltip">
-    <template #trigger>
-      <span
-        class="focus-analyze-tooltip-trigger"
-        :title="disabledTooltip || undefined"
-      >
+  <ThemedTooltip :label="disabledTooltip" :disabled="!disabledTooltip">
+    <span
+      class="focus-analyze-tooltip-trigger"
+      :title="disabledTooltip || undefined"
+    >
         <NButtonGroup
           class="focus-analyze-group"
           :class="{ 'focus-analyze-group--toolbar': isToolbarVariant }"
           :data-evaluation-type="type"
         >
-          <NTooltip v-if="isToolbarVariant" trigger="hover" :disabled="!!disabledTooltip">
-            <template #trigger>
-              <NButton
-                v-bind="buttonPropsMerged"
-                :disabled="isDisabled"
-                :loading="loading"
-                class="focus-analyze-main focus-analyze-main--toolbar"
-                :aria-label="label"
-                :title="label"
-                data-testid="focus-analyze-main"
-                @click="handleEvaluate"
-              >
-                <template #icon>
-                  <slot v-if="$slots.icon" name="icon" />
-                  <AnalyzeActionIcon v-else />
-                </template>
-              </NButton>
-            </template>
-            {{ label }}
-          </NTooltip>
+          <ThemedTooltip v-if="isToolbarVariant" :label="label" :disabled="!!disabledTooltip">
+            <NButton
+              v-bind="buttonPropsMerged"
+              :disabled="isDisabled"
+              :loading="loading"
+              class="focus-analyze-main focus-analyze-main--toolbar"
+              :aria-label="label"
+              :title="label"
+              data-testid="focus-analyze-main"
+              @click="handleEvaluate"
+            >
+              <template #icon>
+                <slot v-if="$slots.icon" name="icon" />
+                <AnalyzeActionIcon v-else />
+              </template>
+            </NButton>
+          </ThemedTooltip>
           <NButton
             v-else
             v-bind="buttonPropsMerged"
@@ -58,7 +54,13 @@
             @clickoutside="handleClickOutside"
           >
             <template #trigger>
-              <NTooltip trigger="hover" :disabled="!!disabledTooltip">
+              <NTooltip
+                trigger="hover"
+                :disabled="!!disabledTooltip"
+                :theme-overrides="tooltipThemeOverrides"
+                :overlay-style="tooltipOverlayStyle"
+                :content-style="tooltipContentStyle"
+              >
                 <template #trigger>
                   <NButton
                     v-bind="buttonPropsMerged"
@@ -120,9 +122,7 @@
           </NPopover>
         </NButtonGroup>
       </span>
-    </template>
-    {{ disabledTooltip }}
-  </NTooltip>
+  </ThemedTooltip>
 </template>
 
 <script setup lang="ts">
@@ -143,6 +143,8 @@ import type { EvaluationType } from '@prompt-optimizer/core'
 import { Focus2 } from '@vicons/tabler'
 import FeedbackEditor from './FeedbackEditor.vue'
 import AnalyzeActionIcon from './AnalyzeActionIcon.vue'
+import ThemedTooltip from '../common/ThemedTooltip.vue'
+import { useTooltipTheme } from '../../composables/ui/useTooltipTheme'
 
 const props = withDefaults(
   defineProps<{
@@ -173,6 +175,11 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const {
+  tooltipThemeOverrides,
+  tooltipOverlayStyle,
+  tooltipContentStyle,
+} = useTooltipTheme()
 
 const focusVisible = ref(false)
 const focusDraft = ref('')

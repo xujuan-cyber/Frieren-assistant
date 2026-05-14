@@ -450,28 +450,25 @@
                     </div>
 
                     <div class="variant-cell__run">
-                      <NTooltip trigger="hover">
-                        <template #trigger>
-                          <span class="variant-cell__run-trigger">
-                            <NButton
-                              type="primary"
-                              size="small"
-                              circle
-                              :loading="variantRunning[id]"
-                              :disabled="variantRunning[id] || isVariantModelUnsupported(id)"
-                              :data-testid="getVariantRunTestId(id)"
-                              @click="runVariant(id)"
-                            >
-                              <template #icon>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </template>
-                            </NButton>
-                          </span>
-                        </template>
-                        {{ getVariantRunTooltip(id) }}
-                      </NTooltip>
+                      <ThemedTooltip :label="getVariantRunTooltip(id)">
+                        <span class="variant-cell__run-trigger">
+                          <NButton
+                            type="primary"
+                            size="small"
+                            circle
+                            :loading="variantRunning[id]"
+                            :disabled="variantRunning[id] || isVariantModelUnsupported(id)"
+                            :data-testid="getVariantRunTestId(id)"
+                            @click="runVariant(id)"
+                          >
+                            <template #icon>
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </template>
+                          </NButton>
+                        </span>
+                      </ThemedTooltip>
                     </div>
                   </div>
                 </div>
@@ -621,7 +618,7 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch, toRef, type Ref } from 'vue'
-import { NButton, NCard, NEmpty, NFlex, NGrid, NGridItem, NIcon, NInput, NRadioButton, NRadioGroup, NSpace, NText, NTooltip } from 'naive-ui'
+import { NButton, NCard, NEmpty, NFlex, NGrid, NGridItem, NIcon, NInput, NRadioButton, NRadioGroup, NSpace, NText } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
   applyPatchOperationsToText,
@@ -678,6 +675,7 @@ import AppPreviewImage from '../media/AppPreviewImage.vue'
 import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
+import ThemedTooltip from '../common/ThemedTooltip.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ImageTokenUsage from './ImageTokenUsage.vue'

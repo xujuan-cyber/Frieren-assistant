@@ -283,7 +283,7 @@ function createProviderMeta(providerId: string, legacy: ModelConfig): TextProvid
   } else if (providerId === 'openai-compatible') {
     return {
       id: 'openai-compatible',
-      name: 'Custom API (OpenAI Compatible)',
+      name: 'OpenAI Compatible (Custom)',
       description: 'Custom endpoints that implement OpenAI Chat Completions or Responses APIs',
       requiresApiKey: false,
       defaultBaseURL: legacy.baseURL || 'http://localhost:11434/v1',

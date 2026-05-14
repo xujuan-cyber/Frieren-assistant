@@ -12,7 +12,7 @@
         <NSpace justify="space-between" align="center">
           <NSpace vertical :size="4" class="model-card-heading">
             <NSpace align="center" :size="8">
-              <NText strong>{{ model.name }}</NText>
+              <NText strong>{{ modelDisplayName(model) }}</NText>
               <NTag v-if="!model.enabled" type="warning" size="small" round :bordered="false">
                 {{ t('modelManager.disabled') }}
               </NTag>
@@ -20,7 +20,7 @@
 
             <NSpace :size="6" class="model-card-tags">
               <NTag size="small" type="default" round :bordered="false">
-                {{ model.providerMeta?.name || model.providerMeta?.id }}
+                {{ providerDisplayName(model) }}
               </NTag>
               <NTag size="small" type="info" round :bordered="false">
                 {{ model.modelMeta?.name || model.modelMeta?.id }}
@@ -202,6 +202,7 @@ import { type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NText, NSpace } from 'naive-ui'
 import { isRunningInElectron, type TextModelConfig } from '@prompt-optimizer/core'
+import { getProviderDisplayName, getTextModelConfigDisplayName } from '../utils/provider-display'
 
 const { models, isTestingConnectionFor, isDefaultModel } = defineProps({
   models: {
@@ -223,6 +224,8 @@ const emit = defineEmits(['test', 'edit', 'clone', 'enable', 'disable', 'delete'
 const { t } = useI18n()
 
 const isElectronEnv = isRunningInElectron()
+const modelDisplayName = (model: TextModelConfig) => getTextModelConfigDisplayName(model, t)
+const providerDisplayName = (model: TextModelConfig) => getProviderDisplayName(model.providerMeta, t)
 </script>
 
 <style scoped>

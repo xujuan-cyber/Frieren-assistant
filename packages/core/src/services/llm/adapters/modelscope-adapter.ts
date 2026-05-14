@@ -17,7 +17,7 @@ const MODELSCOPE_STATIC_MODELS: ModelOverride[] = [
   {
     id: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
     name: 'Qwen3-Coder-480B-A35B-Instruct',
-    description: '通义千问 Qwen/Qwen3-Coder-480B-A35B-Instruct，专为代码生成和理解优化',
+    description: 'Qwen3-Coder model optimized for code generation and understanding',
     capabilities: {
       supportsTools: false, // 未验证 ModelScope 的工具调用兼容性
       supportsReasoning: false,
@@ -43,7 +43,7 @@ export class ModelScopeAdapter extends OpenAIAdapter {
     return {
       id: 'modelscope',
       name: 'ModelScope',
-      description: '阿里云魔搭社区 API 推理服务，每天免费 2000 次调用',
+      description: 'ModelScope API-Inference service for community-hosted open models',
       requiresApiKey: true,
       defaultBaseURL: 'https://api-inference.modelscope.cn/v1',
       supportsDynamicModels: true,

@@ -121,7 +121,6 @@ import {
   NText,
   NPopconfirm,
   NSelect,
-  NTooltip,
   type DataTableColumns
 } from 'naive-ui';
 import { Search, Edit, Trash, GitMerge } from '@vicons/tabler';
@@ -130,6 +129,7 @@ import { useToast } from '../composables/ui/useToast';
 import type { AppServices } from '../types/services';
 import { TagTypeConverter, type TagStatistics } from '@prompt-optimizer/core';
 import { getI18nErrorMessage } from '../utils/error';
+import ThemedTooltip from './common/ThemedTooltip.vue';
 
 const { t } = useI18n();
 
@@ -231,10 +231,12 @@ const columns = computed<DataTableColumns<TagStatistics>>(() => [
             }
           ),
           h(
-            NTooltip,
-            {},
+            ThemedTooltip,
             {
-              trigger: () => h(
+              label: t('favorites.manager.tagManager.mergeTooltip')
+            },
+            {
+              default: () => h(
                 NButton,
                 {
                   size: 'small',
@@ -245,8 +247,7 @@ const columns = computed<DataTableColumns<TagStatistics>>(() => [
                   icon: () => h(NIcon, null, { default: () => h(GitMerge) }),
                   default: () => t('favorites.manager.tagManager.merge')
                 }
-              ),
-              default: () => t('favorites.manager.tagManager.mergeTooltip')
+              )
             }
           ),
           h(

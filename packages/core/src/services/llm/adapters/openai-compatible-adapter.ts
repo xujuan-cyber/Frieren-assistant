@@ -17,7 +17,7 @@ export class OpenAICompatibleAdapter extends OpenAIAdapter {
   public getProvider(): TextProvider {
     return {
       id: 'openai-compatible',
-      name: 'Custom API (OpenAI Compatible)',
+      name: 'OpenAI Compatible (Custom)',
       description: 'Custom endpoints that implement OpenAI Chat Completions or Responses APIs',
       requiresApiKey: false,
       defaultBaseURL: 'http://localhost:11434/v1',

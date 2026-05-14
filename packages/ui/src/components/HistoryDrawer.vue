@@ -227,6 +227,7 @@ import {
   NDivider, NCollapse, NCollapseItem, NEmpty, NInput
 } from 'naive-ui'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'
 import SourceAssetBadge from './source/SourceAssetBadge.vue'
 import { extractHistorySourceBinding } from '../utils/history-source-binding'
@@ -256,6 +257,7 @@ const emit = defineEmits<{
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _toast = useToast()
+const confirmDialog = useConfirmDialog()
 const expandedVersions = ref<Record<string, boolean>>({})
 const searchQuery = ref('')
 
@@ -298,10 +300,16 @@ const _toggleVersion = (recordId: string) => {
 
 // 清空历史记录
 const handleClear = async () => {
-  if (confirm(t('history.confirmClear'))) {
-    emit('clear')
-    // 不需要强制刷新，因为现在使用props.history
-  }
+  const confirmed = await confirmDialog.warning({
+    title: t('common.warning'),
+    content: t('history.confirmClear'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+  })
+  if (!confirmed) return
+
+  emit('clear')
+  // 不需要强制刷新，因为现在使用props.history
 }
 
 // 监听显示状态变化
@@ -370,11 +378,17 @@ const getFunctionModeLabel = (recordType: string) => {
 }
 
 // 添加删除单条记录的方法
-const deleteChain = (chainId: string) => {
-  if (confirm(t('history.confirmDeleteChain'))) {
-    emit('deleteChain', chainId)
-    // 不需要强制刷新，因为现在使用props.history
-  }
+const deleteChain = async (chainId: string) => {
+  const confirmed = await confirmDialog.warning({
+    title: t('common.warning'),
+    content: t('history.confirmDeleteChain'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+  })
+  if (!confirmed) return
+
+  emit('deleteChain', chainId)
+  // 不需要强制刷新，因为现在使用props.history
 }
 </script>
 

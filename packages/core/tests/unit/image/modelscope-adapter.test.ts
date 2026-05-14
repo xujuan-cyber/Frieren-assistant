@@ -19,6 +19,7 @@ describe('ModelScopeImageAdapter', () => {
       expect(provider.requiresApiKey).toBe(true)
       expect(provider.defaultBaseURL).toBe('https://api-inference.modelscope.cn/v1')
       expect(provider.supportsDynamicModels).toBe(false)
+      expect(provider.apiKeyUrl).toBe('https://modelscope.cn/my/myaccesstoken')
       expect(provider.connectionSchema?.required).toContain('apiKey')
       expect(provider.connectionSchema?.optional).toEqual(expect.arrayContaining(['baseURL']))
     })

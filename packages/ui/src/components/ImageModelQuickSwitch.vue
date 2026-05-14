@@ -264,8 +264,8 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: rgba(120, 113, 108, 0.1);
-  color: #5f5548;
+  background: var(--n-tag-color, var(--n-color-embedded));
+  color: var(--n-text-color-2);
   transition:
     background-color 0.15s ease,
     box-shadow 0.15s ease,
@@ -285,9 +285,9 @@ watch(
 
 .image-model-quick-switch__model--clickable:hover,
 .image-model-quick-switch__model--clickable:focus-visible {
-  background: rgba(120, 113, 108, 0.16);
-  color: #3f372d;
-  box-shadow: inset 0 0 0 1px rgba(120, 113, 108, 0.2);
+  background: var(--n-hover-color);
+  color: var(--n-text-color);
+  box-shadow: inset 0 0 0 1px var(--n-border-color);
 }
 
 .image-model-quick-switch__popover {

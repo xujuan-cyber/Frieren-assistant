@@ -364,7 +364,7 @@ onMounted(renderMarkdown);
     font-weight: 600;
     padding-bottom: 0.1em;
     color: inherit;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--n-divider-color, var(--n-border-color));
 }
 
 .markdown-content h3 {
@@ -421,8 +421,8 @@ onMounted(renderMarkdown);
     overflow: auto;
     margin-bottom: 0.1em;
     position: relative;
-    background: rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: var(--n-color-embedded, color-mix(in srgb, var(--n-color) 92%, var(--n-text-color) 8%));
+    border: 1px solid var(--n-border-color);
     /* 添加滚动条样式 */
     scrollbar-width: thin; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
@@ -434,7 +434,7 @@ onMounted(renderMarkdown);
 }
 
 .markdown-content pre::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--n-scrollbar-color, var(--n-border-color));
     border-radius: 3px;
 }
 
@@ -459,8 +459,8 @@ onMounted(renderMarkdown);
         "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     border-bottom-left-radius: 4px;
     user-select: none;
-    background-color: #18a058;
-    color: white;
+    background-color: var(--n-primary-color);
+    color: var(--n-text-color-primary);
 }
 
 .markdown-content code {
@@ -471,9 +471,9 @@ onMounted(renderMarkdown);
     margin: 0.3em;
     border-radius: 6px;
     white-space: pre;
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: var(--n-color-embedded, color-mix(in srgb, var(--n-color) 92%, var(--n-text-color) 8%));
     color: inherit;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--n-border-color);
 }
 
 /* 引用样式 */
@@ -482,8 +482,8 @@ onMounted(renderMarkdown);
     margin: var(--md-spacing-sm);
     border-left-width: 0.25em;
     border-left-style: solid;
-    border-left-color: #18a058;
-    background-color: rgba(0, 0, 0, 0.02);
+    border-left-color: var(--n-primary-color);
+    background-color: var(--n-color-embedded, color-mix(in srgb, var(--n-color) 92%, var(--n-text-color) 8%));
     color: inherit;
 }
 
@@ -494,19 +494,19 @@ onMounted(renderMarkdown);
     margin: var(--md-spacing-sm);
     overflow: auto;
     font-size: 0.9em;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--n-border-color);
 }
 
 .markdown-content table th,
 .markdown-content table td {
     line-height: 1.5;
     padding: 0.3em 0.5em;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--n-border-color);
     color: inherit;
 }
 
 .markdown-content table th {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: var(--n-color-embedded, color-mix(in srgb, var(--n-color) 92%, var(--n-text-color) 8%));
     font-weight: 600;
 }
 
@@ -544,7 +544,7 @@ onMounted(renderMarkdown);
 .markdown-content a {
     text-decoration: none;
     transition: color 0.2s ease; /* 平滑颜色变化 */
-    color: #18a058;
+    color: var(--n-primary-color);
 }
 
 .markdown-content a:hover {

@@ -131,7 +131,7 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
 
   result.custom = {
     id: 'custom',
-    name: 'Custom API (OpenAI Compatible)',
+    name: 'OpenAI Compatible (Custom)',
     enabled: true,
     providerMeta: openaiCompatibleAdapter.getProvider(),
     modelMeta: customModelMeta,

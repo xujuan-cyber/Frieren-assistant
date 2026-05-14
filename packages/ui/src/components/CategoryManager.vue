@@ -525,7 +525,8 @@ watch(() => services?.value?.favoriteManager, (favoriteManager) => {
 }
 
 .toolbar {
-  @apply p-4 border-b border-gray-200 dark:border-gray-700;
+  @apply p-4;
+  border-bottom: 1px solid var(--n-border-color);
 }
 
 .tree-container {
@@ -545,6 +546,6 @@ watch(() => services?.value?.favoriteManager, (favoriteManager) => {
 }
 
 :deep(.n-tree-node-content:hover) {
-  @apply bg-gray-50 dark:bg-gray-800;
+  background: var(--n-hover-color);
 }
 </style>

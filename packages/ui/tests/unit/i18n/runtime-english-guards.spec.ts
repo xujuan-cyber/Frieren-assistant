@@ -141,7 +141,7 @@ describe('ui runtime english guards', () => {
   it('keeps text model API URL and MiniMax guidance locale-backed', () => {
     const source = readUiSource('src/components/TextModelEditModal.vue')
 
-    expect(source).toMatch(/NTooltip/)
+    expect(source).toMatch(/ThemedTooltip/)
     expect(source).toMatch(/modelManager\.apiUrlHintAriaLabel/)
     expect(source).toMatch(/modelManager\.provider\.minimaxHint/)
     expect(source).not.toMatch(/:title="t\('modelManager\.apiUrlHint'\)"/)

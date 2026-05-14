@@ -42,6 +42,7 @@ export class ModelScopeImageAdapter extends AbstractImageProviderAdapter {
       requiresApiKey: true,
       defaultBaseURL: 'https://api-inference.modelscope.cn/v1',
       supportsDynamicModels: false,
+      apiKeyUrl: 'https://modelscope.cn/my/myaccesstoken',
       connectionSchema: {
         required: ['apiKey'],
         optional: ['baseURL'],

@@ -1,6 +1,7 @@
 // UI 交互相关 composables
 export * from './useModals'
 export * from './useToast'
+export * from './useConfirmDialog'
 export * from './useNaiveTheme'
 export * from './useTooltipTheme'
 export * from './useFullscreen'

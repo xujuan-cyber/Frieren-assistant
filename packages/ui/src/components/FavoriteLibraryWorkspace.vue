@@ -277,6 +277,7 @@ import { useI18n } from 'vue-i18n'
 import type { FavoriteCategory, FavoritePrompt } from '@prompt-optimizer/core'
 
 import { useFavoriteInitializer } from '../composables/storage/useFavoriteInitializer'
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'
 import type { AppServices } from '../types/services'
 import { getI18nErrorMessage } from '../utils/error'
@@ -349,6 +350,7 @@ const emit = defineEmits<{
 
 const services = inject<Ref<AppServices | null> | null>('services', null)
 const message = useToast()
+const confirmDialog = useConfirmDialog()
 
 let ensuredDefaultCategoryManager: NonNullable<AppServices['favoriteManager']> | null = null
 
@@ -900,28 +902,29 @@ const incrementFavoriteUseCount = async (id: string) => {
   bumpUseCountLocally(id)
 }
 
-const handleDeleteFavorite = (favorite: FavoritePrompt) => {
+const handleDeleteFavorite = async (favorite: FavoritePrompt) => {
   const deletingOpenFavorite = selectedFavorite.value?.id === favorite.id || taskFavorite.value?.id === favorite.id
-  const confirmed = typeof window === 'undefined'
-    ? true
-    : window.confirm(t('favorites.manager.actions.deleteConfirm', { title: favorite.title }))
+  const confirmed = await confirmDialog.warning({
+    title: t('common.warning'),
+    content: t('favorites.manager.actions.deleteConfirm', { title: favorite.title }),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+  })
 
   if (!confirmed) return
 
-  ;(async () => {
-    try {
-      const servicesValue = services?.value
-      if (servicesValue?.favoriteManager) {
-        await servicesValue.favoriteManager.deleteFavorite(favorite.id)
-        message.success(t('favorites.manager.actions.deleteSuccess'))
-        await loadFavorites()
-      } else {
-        message.warning(t('favorites.manager.messages.unavailable'))
-      }
-    } catch (error) {
-      message.error(buildErrorMessage(t('favorites.manager.actions.deleteFailed'), error))
+  try {
+    const servicesValue = services?.value
+    if (servicesValue?.favoriteManager) {
+      await servicesValue.favoriteManager.deleteFavorite(favorite.id)
+      message.success(t('favorites.manager.actions.deleteSuccess'))
+      await loadFavorites()
+    } else {
+      message.warning(t('favorites.manager.messages.unavailable'))
     }
-  })()
+  } catch (error) {
+    message.error(buildErrorMessage(t('favorites.manager.actions.deleteFailed'), error))
+  }
 
   if (selectedFavorite.value?.id === favorite.id) {
     selectedFavorite.value = null
@@ -965,7 +968,7 @@ const handleUseFavorite = async (
   }
 }
 
-const handleActionMenuSelect = (key: string) => {
+const handleActionMenuSelect = async (key: string) => {
   switch (key) {
     case 'manageTags':
       tagManagerVisible.value = true
@@ -977,29 +980,30 @@ const handleActionMenuSelect = (key: string) => {
       handleExportFavorites()
       break
     case 'clear': {
-      const confirmed = typeof window === 'undefined'
-        ? true
-        : window.confirm(t('favorites.manager.actions.clearConfirm'))
+      const confirmed = await confirmDialog.warning({
+        title: t('common.warning'),
+        content: t('favorites.manager.actions.clearConfirm'),
+        positiveText: t('common.confirm'),
+        negativeText: t('common.cancel'),
+      })
 
       if (!confirmed) {
         break
       }
 
-      ;(async () => {
-        try {
-          const servicesValue = services?.value
-          if (servicesValue?.favoriteManager) {
-            const allIds = favorites.value.map((favorite) => favorite.id)
-            await servicesValue.favoriteManager.deleteFavorites(allIds)
-            message.success(t('favorites.manager.actions.clearSuccess'))
-            await loadFavorites()
-          } else {
-            message.warning(t('favorites.manager.messages.unavailable'))
-          }
-        } catch (error) {
-          message.error(buildErrorMessage(t('favorites.manager.actions.clearFailed'), error))
+      try {
+        const servicesValue = services?.value
+        if (servicesValue?.favoriteManager) {
+          const allIds = favorites.value.map((favorite) => favorite.id)
+          await servicesValue.favoriteManager.deleteFavorites(allIds)
+          message.success(t('favorites.manager.actions.clearSuccess'))
+          await loadFavorites()
+        } else {
+          message.warning(t('favorites.manager.messages.unavailable'))
         }
-      })()
+      } catch (error) {
+        message.error(buildErrorMessage(t('favorites.manager.actions.clearFailed'), error))
+      }
       break
     }
   }

@@ -14,8 +14,8 @@
           <!-- 左侧：Logo + 标题 + 核心导航 -->
           <NFlex align="center" :size="16" :wrap="false">
             <!-- Logo + 标题 -->
-            <button
-              type="button"
+            <NButton
+              text
               class="brand-link"
               @click="openBrandWebsite"
             >
@@ -35,7 +35,7 @@
                   <slot name="title">{{ t('common.appName') }}</slot>
                 </NText>
               </NFlex>
-            </button>
+            </NButton>
 
             <!-- 核心导航元素 -->
             <div class="core-navigation">
@@ -72,7 +72,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 import { useI18n } from 'vue-i18n'
-import { NLayout, NLayoutHeader, NLayoutContent, NFlex, NText } from 'naive-ui'
+import { NButton, NLayout, NLayoutHeader, NLayoutContent, NFlex, NText } from 'naive-ui'
 import ToastUI from './Toast.vue'
 import logoImage from '../assets/logo.png'
 import AppPreviewImage from './media/AppPreviewImage.vue'
@@ -162,14 +162,10 @@ const openBrandWebsite = async () => {
 }
 
 .brand-link {
-  display: inline-flex;
   align-items: center;
   padding: 6px 10px 6px 6px;
-  border: 0;
   border-radius: 12px;
-  background: transparent;
   color: inherit;
-  cursor: pointer;
   transition:
     background-color 0.2s ease-in-out,
     box-shadow 0.2s ease-in-out,
@@ -177,7 +173,7 @@ const openBrandWebsite = async () => {
 }
 
 .brand-link:hover {
-  background: color-mix(in srgb, var(--primary-color, #18a058) 10%, transparent);
+  background: color-mix(in srgb, var(--n-primary-color) 10%, transparent);
   transform: translateY(-1px);
 }
 
@@ -191,8 +187,8 @@ const openBrandWebsite = async () => {
 
 .brand-link:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--primary-color, #18a058) 14%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #18a058) 28%, transparent);
+  background: color-mix(in srgb, var(--n-primary-color) 14%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--n-primary-color) 28%, transparent);
 }
 
 /* Logo样式优化 */
@@ -216,7 +212,7 @@ const openBrandWebsite = async () => {
   align-items: center;
   margin-left: 16px;
   padding-left: 16px;
-  border-left: 1px solid var(--border-color, rgba(239, 239, 245, 0.6));
+  border-left: 1px solid var(--n-border-color);
   min-height: 32px;
 }
 

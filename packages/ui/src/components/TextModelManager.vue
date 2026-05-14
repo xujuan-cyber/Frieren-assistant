@@ -29,10 +29,13 @@ import { useTextModelManager } from '../composables/model/useTextModelManager'
 import TextModelList from './TextModelList.vue'
 import TextModelEditModal from './TextModelEditModal.vue'
 import { useDialog } from 'naive-ui'
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
+import { getProviderDisplayName } from '../utils/provider-display'
 
 const emit = defineEmits(['modelsUpdated'])
 const { t } = useI18n()
 const dialog = useDialog()
+const confirmDialog = useConfirmDialog()
 const manager = useTextModelManager()
 provide('textModelManager', manager)
 
@@ -62,7 +65,7 @@ const handleTestConnection = async (id: string) => {
     if (model) {
       const isCorsRestricted = !!model.providerMeta?.corsRestricted
       if (isCorsRestricted) {
-        const providerName = model.providerMeta?.name || model.providerMeta?.id || 'Unknown Provider'
+        const providerName = getProviderDisplayName(model.providerMeta, t, 'Unknown Provider')
         dialog.warning({
           title: t('modelManager.corsRestrictedTag'),
           content: () => h('div', { style: 'white-space: pre-line;' }, t('modelManager.corsRestrictedConfirm', { provider: providerName })),
@@ -126,12 +129,18 @@ const handleDisableModel = async (id: string) => {
 }
 
 const handleDeleteModel = async (id: string) => {
-  if (confirm(t('modelManager.deleteConfirm'))) {
-    await manager.deleteModel(id)
-    const firstId = manager.models.value[0]?.id
-    if (firstId) {
-      emit('modelsUpdated', firstId)
-    }
+  const confirmed = await confirmDialog.warning({
+    title: t('common.warning'),
+    content: t('modelManager.deleteConfirm'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+  })
+  if (!confirmed) return
+
+  await manager.deleteModel(id)
+  const firstId = manager.models.value[0]?.id
+  if (firstId) {
+    emit('modelsUpdated', firstId)
   }
 }
 

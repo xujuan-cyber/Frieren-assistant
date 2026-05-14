@@ -24,10 +24,11 @@ describe('SeedreamImageAdapter', () => {
       const provider = adapter.getProvider()
 
       expect(provider.id).toBe('seedream')
-      expect(provider.name).toContain('Seedream')
+      expect(provider.name).toBe('Seedream')
       expect(provider.requiresApiKey).toBe(true)
       expect(provider.defaultBaseURL).toBe('https://ark.cn-beijing.volces.com/api/v3')
       expect(provider.supportsDynamicModels).toBe(false)
+      expect(provider.apiKeyUrl).toBe('https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey')
       expect(provider.connectionSchema?.required).toContain('apiKey')
       expect(provider.connectionSchema?.optional).toEqual(expect.arrayContaining(['baseURL']))
     })

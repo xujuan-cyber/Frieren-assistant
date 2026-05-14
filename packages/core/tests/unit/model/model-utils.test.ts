@@ -65,7 +65,7 @@ describe('generateTextModelConfig', () => {
     const config = generateTextModelConfig(baseEnvConfig)
 
     expect(config.providerMeta.id).toBe('openai-compatible')
-    expect(config.providerMeta.name).toBe('Custom API (OpenAI Compatible)')
+    expect(config.providerMeta.name).toBe('OpenAI Compatible (Custom)')
     expect(config.connectionConfig.requestStyle).toBe('chat_completions')
     expect(config.modelMeta.providerId).toBe('openai-compatible')
   })

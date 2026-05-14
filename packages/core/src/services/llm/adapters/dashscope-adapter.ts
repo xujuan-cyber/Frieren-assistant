@@ -16,7 +16,7 @@ const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
   {
     id: 'qwen3.5-27b',
     name: 'Qwen3.5-27B',
-    description: '通义千问3.5 27B 模型，默认用于阿里百炼文本与视觉理解场景',
+    description: 'Qwen3.5 27B model for DashScope text and vision understanding scenarios',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
@@ -26,7 +26,7 @@ const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
   {
     id: 'qwen-plus',
     name: 'Qwen Plus',
-    description: '通义千问高性能模型，适合复杂任务，支持超长上下文',
+    description: 'High-performance Qwen model for complex tasks with long-context support',
     capabilities: {
       supportsTools: true,
       supportsReasoning: false,
@@ -36,7 +36,7 @@ const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
   {
     id: 'qwen-turbo',
     name: 'Qwen Turbo',
-    description: '通义千问快速模型，支持超长上下文（1M tokens）',
+    description: 'Fast Qwen model with long-context support up to 1M tokens',
     capabilities: {
       supportsTools: true,
       supportsReasoning: false,
@@ -46,7 +46,7 @@ const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
   {
     id: 'qwen-flash',
     name: 'Qwen Flash',
-    description: '通义千问极速模型，响应快速，适合简单任务',
+    description: 'Lightweight Qwen model optimized for fast responses and simple tasks',
     capabilities: {
       supportsTools: true,
       supportsReasoning: false,
@@ -67,7 +67,7 @@ export class DashScopeAdapter extends OpenAIAdapter {
     return {
       id: 'dashscope',
       name: 'DashScope',
-      description: '阿里云百炼大模型服务平台，提供通义千问系列模型，支持 OpenAI 兼容的 Chat Completions 与 Responses 接口',
+      description: 'Alibaba Cloud Model Studio provider for Qwen models with OpenAI-compatible Chat Completions and Responses APIs',
       requiresApiKey: true,
       defaultBaseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       supportsDynamicModels: true,

@@ -23,6 +23,7 @@ export class SiliconFlowImageAdapter extends AbstractImageProviderAdapter {
       requiresApiKey: true,
       defaultBaseURL: 'https://api.siliconflow.cn/v1',
       supportsDynamicModels: false,
+      apiKeyUrl: 'https://cloud.siliconflow.cn/account/ak',
       connectionSchema: {
         required: ['apiKey'],
         optional: ['baseURL'],

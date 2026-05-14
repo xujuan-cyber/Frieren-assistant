@@ -13,6 +13,7 @@ describe('app preview image adoption guards', () => {
       'src/components/ImageModelEditModal.vue',
       'src/components/ImageModelManager.vue',
       'src/components/MainLayout.vue',
+      'src/components/common/PromptGardenInspirationPopover.vue',
       'src/components/FavoriteEditorForm.vue',
       'src/components/image-mode/ImageImage2ImageWorkspace.vue',
       'src/components/image-mode/ImageText2ImageWorkspace.vue',
@@ -30,6 +31,7 @@ describe('app preview image adoption guards', () => {
       'src/components/FavoriteMediaPreviewPanel.vue',
       'src/components/GardenSnapshotPreview.vue',
       'src/components/FavoriteEditorForm.vue',
+      'src/components/common/PromptGardenInspirationPopover.vue',
     ]
 
     for (const file of files) {

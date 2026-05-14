@@ -40,7 +40,7 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
   // OpenAI 兼容 Provider（所有自定义模型都使用 OpenAI 兼容 API）
   const customProvider: TextProvider = {
     id: 'openai-compatible',
-    name: 'Custom API (OpenAI Compatible)',
+    name: 'OpenAI Compatible (Custom)',
     description: 'Custom endpoint using an OpenAI-compatible API',
     requiresApiKey: false,
     defaultBaseURL: 'http://localhost:11434/v1',

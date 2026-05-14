@@ -1,8 +1,8 @@
 import { Fragment, h, type Ref, type VNode, type VNodeChild } from 'vue'
-import { NTooltip } from 'naive-ui'
 import type { ImageRenderToolbar, ImageRenderToolbarProps } from 'naive-ui/es/image/src/public-types'
 
 import { downloadImageSource } from '../../utils/image-download'
+import ThemedTooltip from '../common/ThemedTooltip.vue'
 
 type SafePreviewToolbarOptions = {
   clsPrefixRef: Ref<string>
@@ -96,14 +96,14 @@ export const createSafeImageToolbarRenderer = (
     }
 
     return h(
-      NTooltip,
+      ThemedTooltip,
       {
+        label: options.downloadLabel,
         to: false,
         keepAliveOnHover: false,
       },
       {
-        default: () => options.downloadLabel,
-        trigger: () => iconNode,
+        default: () => iconNode,
       },
     )
   }

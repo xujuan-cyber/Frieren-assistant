@@ -389,7 +389,7 @@ describe('OpenAIAdapter', () => {
       const compatibleConfig: TextModelConfig = {
         ...mockConfig,
         id: 'openai-compatible',
-        name: 'Custom API (OpenAI Compatible)',
+        name: 'OpenAI Compatible (Custom)',
         providerMeta: openAICompatibleAdapter.getProvider(),
         modelMeta: openAICompatibleAdapter.buildDefaultModel('custom-model'),
         connectionConfig: {
@@ -443,7 +443,7 @@ describe('OpenAIAdapter', () => {
       const compatibleConfig: TextModelConfig = {
         ...mockConfig,
         id: 'openai-compatible',
-        name: 'Custom API (OpenAI Compatible)',
+        name: 'OpenAI Compatible (Custom)',
         providerMeta: openAICompatibleAdapter.getProvider(),
         modelMeta: openAICompatibleAdapter.buildDefaultModel('custom-model'),
         connectionConfig: {

@@ -27,7 +27,7 @@ const CLOUDFLARE_STATIC_MODELS: ModelOverride[] = [
   {
     id: '@cf/qwen/qwen3-30b-a3b-fp8',
     name: 'Qwen3 30B A3B FP8',
-    description: 'Cloudflare Workers AI 默认推荐文本模型，成本较低，支持工具调用和推理输出。',
+    description: 'Default recommended Cloudflare Workers AI text model with tool calling and reasoning output support',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
@@ -41,7 +41,7 @@ export class CloudflareAdapter extends OpenAIAdapter {
     return {
       id: 'cloudflare',
       name: 'Cloudflare',
-      description: 'Cloudflare Workers AI 文本模型，支持动态检索可用模型，默认推荐 Qwen3。',
+      description: 'Cloudflare Workers AI text models with dynamic model discovery',
       corsRestricted: true,
       requiresApiKey: true,
       defaultBaseURL: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/v1',

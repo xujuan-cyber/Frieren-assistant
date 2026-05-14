@@ -49,24 +49,21 @@
                                 V{{ version.version }}
                             </NTag>
                             <!-- 🆕 原始版本固定放在最后 -->
-                            <NTooltip v-if="showV0Tag" trigger="hover">
-                                <template #trigger>
-                                    <NTag
-                                        :key="getV0TagRenderKey()"
-                                        :type="isV0Selected ? 'success' : 'default'"
-                                        size="small"
-                                        class="version-tag-clickable"
-                                        :class="getVersionSourceFeedbackClass(0)"
-                                        @click="switchToV0"
-                                        :bordered="!isV0Selected"
-                                        data-testid="prompt-panel-version-tag-v0"
-                                        :data-source-feedback-tone="getVersionSourceFeedbackTone(0) || undefined"
-                                    >
-                                        {{ t("prompt.originalVersion") }}
-                                    </NTag>
-                                </template>
-                                {{ t("prompt.originalVersionTooltip") }}
-                            </NTooltip>
+                            <ThemedTooltip v-if="showV0Tag" :label="t('prompt.originalVersionTooltip')">
+                                <NTag
+                                    :key="getV0TagRenderKey()"
+                                    :type="isV0Selected ? 'success' : 'default'"
+                                    size="small"
+                                    class="version-tag-clickable"
+                                    :class="getVersionSourceFeedbackClass(0)"
+                                    @click="switchToV0"
+                                    :bordered="!isV0Selected"
+                                    data-testid="prompt-panel-version-tag-v0"
+                                    :data-source-feedback-tone="getVersionSourceFeedbackTone(0) || undefined"
+                                >
+                                    {{ t("prompt.originalVersion") }}
+                                </NTag>
+                            </ThemedTooltip>
                         </NSpace>
                     </NSpace>
                 </NSpace>
@@ -304,13 +301,15 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag, NIcon, NTooltip } from "naive-ui";
+import { NButton, NText, NInput, NCard, NFlex, NSpace, NTag, NIcon } from "naive-ui";
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog';
 import { useToast } from '../composables/ui/useToast';
 import { useEvaluationContextOptional } from '../composables/prompt/useEvaluationContext';
 import { useProContextOptional } from '../composables/prompt/useProContext';
 import TemplateSelect from "./TemplateSelect.vue";
 import Modal from "./Modal.vue";
 import OutputDisplay from "./OutputDisplay.vue";
+import ThemedTooltip from './common/ThemedTooltip.vue';
 import { AnalyzeActionIcon, EvaluationScoreBadge, FocusAnalyzeButton } from "./evaluation";
 import type {
     EvaluationContentBlock,
@@ -325,6 +324,7 @@ type SourceFeedbackTone = "change" | "error";
 
 const { t } = useI18n();
 const toast = useToast();
+const confirmDialog = useConfirmDialog();
 
 interface IteratePayload {
     originalPrompt: string;
@@ -798,7 +798,12 @@ const switchVersion = async (version: PromptRecord) => {
     if (version.id === props.currentVersionId && !isV0Selected.value) return;
 
     if (showSaveChanges.value) {
-        const ok = window.confirm(t("prompt.unsavedChangesConfirm"));
+        const ok = await confirmDialog.warning({
+            title: t("common.warning"),
+            content: t("prompt.unsavedChangesConfirm"),
+            positiveText: t("common.confirm"),
+            negativeText: t("common.cancel"),
+        });
         if (!ok) return;
     }
 

@@ -17,15 +17,15 @@
         :hljs="hljsInstance"
     >
         <div v-if="isInitializing" class="loading-container">
-            <div class="spinner"></div>
-            <p>{{ t("log.info.initializing") }}</p>
+            <NSpin size="medium" />
+            <NText depth="2">{{ t("log.info.initializing") }}</NText>
         </div>
         <div v-else-if="!services" class="loading-container error">
-            <p>{{ t("toast.error.appInitFailed") }}</p>
+            <NResult status="error" :title="t('toast.error.appInitFailed')" />
         </div>
         <div v-else-if="!isReady" class="loading-container">
-            <div class="spinner"></div>
-            <p>{{ t("log.info.initializing") }}</p>
+            <NSpin size="medium" />
+            <NText depth="2">{{ t("log.info.initializing") }}</NText>
         </div>
         <template v-else>
             <MainLayoutUI>
@@ -253,6 +253,9 @@ import { useI18n } from "vue-i18n";
 import {
     NConfigProvider,
     NGlobalStyle,
+    NResult,
+    NSpin,
+    NText,
 } from "naive-ui";
 import hljs from "highlight.js/lib/core";
 import jsonLang from "highlight.js/lib/languages/json";
@@ -302,6 +305,7 @@ import {
     useTemporaryVariables,
     // UI 相关
     useToast,
+    useConfirmDialog,
     useNaiveTheme,
      // 系统相关
      useAppInitializer,
@@ -333,6 +337,7 @@ import type { TemplateManagerTemplateType } from '../../composables/prompt/useTe
 
 // Data Transformation
 import { DataTransformer } from '../../utils/data-transformer'
+import { getProviderDisplayName, getTextModelConfigDisplayName } from '../../utils/provider-display'
 import {
   DATA_BACKUP_STATUS_EVENT,
   isDataBackupReminderDue,
@@ -348,6 +353,7 @@ const i18n = useI18n();
  
 const t = i18n.t;  // 在模板中使用
 const toast = useToast();
+const confirmDialog = useConfirmDialog();
 
 // ========= Chunk-load failure recovery =========
 // A long-lived tab can keep running an old main bundle after a new deployment.
@@ -383,7 +389,12 @@ const promptRefreshForNewDeploy = async (reason: unknown) => {
     }
     window.sessionStorage.setItem(CHUNK_LOAD_REFRESH_GUARD_KEY, '1');
 
-    const ok = window.confirm(t('toast.warning.chunkLoadRefreshConfirm'));
+    const ok = await confirmDialog.warning({
+      title: t('common.warning'),
+      content: t('toast.warning.chunkLoadRefreshConfirm'),
+      positiveText: t('common.confirm'),
+      negativeText: t('common.cancel'),
+    });
     if (!ok) {
       toast.warning(t('toast.warning.chunkLoadRefreshDeclined'), 8000);
       return;
@@ -1873,7 +1884,10 @@ const refreshTextModels = async () => {
             await m.ensureInitialized();
         }
         const enabledModels = await manager.getEnabledModels();
-        textModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels);
+        textModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels, {
+            getProviderName: (model) => getProviderDisplayName(model.providerMeta, t),
+            getModelName: (model) => getTextModelConfigDisplayName(model, t)
+        });
 
         const availableKeys = new Set(textModelOptions.value.map((opt) => opt.value));
         const fallbackValue = textModelOptions.value[0]?.value || "";
@@ -2413,14 +2427,14 @@ onBeforeUnmount(async () => {
 
 <style scoped>
 .active-button {
-    background-color: var(--primary-color, #3b82f6) !important;
-    color: white !important;
-    border-color: var(--primary-color, #3b82f6) !important;
+    background-color: var(--n-primary-color) !important;
+    color: var(--n-text-color-primary) !important;
+    border-color: var(--n-primary-color) !important;
 }
 
 .active-button:hover {
-    background-color: var(--primary-hover-color, #2563eb) !important;
-    border-color: var(--primary-hover-color, #2563eb) !important;
+    background-color: var(--n-primary-color-hover) !important;
+    border-color: var(--n-primary-color-hover) !important;
 }
 
 .loading-container {
@@ -2428,32 +2442,10 @@ onBeforeUnmount(async () => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 12px;
     height: 100vh;
     font-size: 1.2rem;
-    color: var(--text-color);
-    background-color: var(--background-color);
-}
-
-.loading-container.error {
-    color: #f56c6c;
-}
-
-.spinner {
-    border: 4px solid rgba(128, 128, 128, 0.2);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border-left-color: var(--primary-color);
-    animation: spin 1s ease infinite;
-    margin-bottom: 20px;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+    color: var(--n-text-color);
+    background-color: var(--n-body-color, var(--n-color));
 }
 </style>

@@ -702,8 +702,8 @@ function handleConfirm() {
 
 .compare-role-config__summary-card,
 .compare-role-config__slot-card {
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--n-border-color);
+  box-shadow: var(--n-box-shadow-1);
 }
 
 .compare-role-config__section-copy {
@@ -771,25 +771,25 @@ function handleConfirm() {
   gap: 6px;
   padding: 9px 11px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid var(--n-border-color);
+  background: var(--n-color-embedded);
 }
 
 .compare-role-config__slot-summary--target {
-  border-left: 3px solid rgba(16, 185, 129, 0.9);
+  border-left: 3px solid var(--n-success-color);
 }
 
 .compare-role-config__slot-summary--baseline {
-  border-left: 3px solid rgba(245, 158, 11, 0.9);
+  border-left: 3px solid var(--n-warning-color);
 }
 
 .compare-role-config__slot-summary--reference {
-  border-left: 3px solid rgba(59, 130, 246, 0.9);
+  border-left: 3px solid var(--n-info-color);
 }
 
 .compare-role-config__slot-summary--referenceBaseline,
 .compare-role-config__slot-summary--replica {
-  border-left: 3px solid rgba(99, 102, 241, 0.75);
+  border-left: 3px solid var(--n-primary-color);
 }
 
 .compare-role-config__slot-summary-tags {
@@ -805,7 +805,7 @@ function handleConfirm() {
 .compare-role-config__slot-hint {
   line-height: 1.45;
   min-width: 0;
-  color: rgba(71, 85, 105, 0.96);
+  color: var(--n-text-color-3);
   font-size: 12px;
 }
 
@@ -824,9 +824,9 @@ function handleConfirm() {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   padding: 3px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--n-border-color);
   border-radius: 12px;
-  background: rgba(248, 250, 252, 0.9);
+  background: var(--n-color-embedded);
 }
 
 .compare-role-config__role-segment-button {

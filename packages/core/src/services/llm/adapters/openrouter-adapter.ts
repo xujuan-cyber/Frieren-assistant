@@ -13,7 +13,7 @@ const OPENROUTER_STATIC_MODELS: ModelOverride[] = [
   {
     id: 'google/gemma-3-27b-it:free',
     name: 'Gemma 3 27B IT (Free)',
-    description: 'Google Gemma 3 27B 免费模型，通过 OpenRouter 访问',
+    description: 'Free Google Gemma 3 27B model served through OpenRouter',
     capabilities: {
       supportsTools: true,
       supportsReasoning: false,
@@ -27,7 +27,7 @@ export class OpenRouterAdapter extends OpenAIAdapter {
     return {
       id: 'openrouter',
       name: 'OpenRouter',
-      description: 'OpenRouter 聚合多种 AI 模型的 OpenAI 兼容 API',
+      description: 'OpenAI-compatible gateway for accessing models from many providers',
       requiresApiKey: true,
       defaultBaseURL: 'https://openrouter.ai/api/v1',
       supportsDynamicModels: true,

@@ -1,28 +1,25 @@
 <template>
   <div class="feedback-analyze">
-    <NTooltip v-if="compact" trigger="hover">
-      <template #trigger>
-        <NButton
-          :size="size"
-          :quaternary="true"
-          :circle="true"
-          :disabled="disabled || loading"
-          :loading="loading"
-          class="feedback-trigger"
-          :aria-label="t('evaluation.feedbackAnalyze')"
-          :title="t('evaluation.feedbackAnalyze')"
-          data-testid="feedback-analyze-trigger"
-          @click="handleOpen"
-        >
-          <template #icon>
-            <NIcon :size="14" aria-hidden="true">
-              <Focus2 />
-            </NIcon>
-          </template>
-        </NButton>
-      </template>
-      {{ t('evaluation.feedbackAnalyze') }}
-    </NTooltip>
+    <ThemedTooltip v-if="compact" :label="t('evaluation.feedbackAnalyze')">
+      <NButton
+        :size="size"
+        :quaternary="true"
+        :circle="true"
+        :disabled="disabled || loading"
+        :loading="loading"
+        class="feedback-trigger"
+        :aria-label="t('evaluation.feedbackAnalyze')"
+        :title="t('evaluation.feedbackAnalyze')"
+        data-testid="feedback-analyze-trigger"
+        @click="handleOpen"
+      >
+        <template #icon>
+          <NIcon :size="14" aria-hidden="true">
+            <Focus2 />
+          </NIcon>
+        </template>
+      </NButton>
+    </ThemedTooltip>
 
     <NButton
       v-else
@@ -61,10 +58,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NDivider, NIcon, NTooltip } from 'naive-ui'
+import { NButton, NCard, NDivider, NIcon } from 'naive-ui'
 import type { EvaluationType } from '@prompt-optimizer/core'
 import { Focus2 } from '@vicons/tabler'
 import FeedbackEditor from './FeedbackEditor.vue'
+import ThemedTooltip from '../common/ThemedTooltip.vue'
 
 const props = withDefaults(
   defineProps<{

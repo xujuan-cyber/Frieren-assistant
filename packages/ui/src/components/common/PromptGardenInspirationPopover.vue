@@ -77,7 +77,7 @@
         <NText depth="3">{{ t('common.promptGarden.loadingSuggestions') }}</NText>
       </div>
 
-      <div
+      <AppPreviewImageGroup
         v-else-if="suggestions.length > 0"
         class="prompt-garden-inspiration-list"
       >
@@ -87,11 +87,15 @@
           class="prompt-garden-inspiration-item"
           :data-testid="`${rootTestId}-suggestion-${index}`"
         >
-          <img
+          <AppPreviewImage
             v-if="item.thumbnailUrl"
             class="prompt-garden-inspiration-item__thumb"
             :src="item.thumbnailUrl"
+            :preview-src="item.thumbnailUrl"
             :alt="item.title"
+            width="44"
+            height="44"
+            object-fit="cover"
             loading="lazy"
           />
           <div class="prompt-garden-inspiration-item__body">
@@ -124,7 +128,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </AppPreviewImageGroup>
 
       <div v-else class="prompt-garden-inspiration-popover__empty">
         <NText depth="3">{{ t('common.promptGarden.noSuggestions') }}</NText>
@@ -174,6 +178,8 @@ import {
   fetchPromptGardenSuggestions,
   type PromptGardenSuggestionItem,
 } from '../../utils/prompt-garden-suggestions'
+import AppPreviewImage from '../media/AppPreviewImage.vue'
+import AppPreviewImageGroup from '../media/AppPreviewImageGroup.vue'
 
 type PopoverInst = {
   syncPosition?: () => void
@@ -537,8 +543,15 @@ const handleOpenImport = () => {
   width: 44px;
   height: 44px;
   border-radius: 6px;
-  object-fit: cover;
+  overflow: hidden;
   background: var(--n-border-color);
+  cursor: zoom-in;
+}
+
+.prompt-garden-inspiration-item__thumb :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .prompt-garden-inspiration-item__body {

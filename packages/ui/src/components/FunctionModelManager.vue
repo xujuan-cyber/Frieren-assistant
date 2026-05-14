@@ -99,6 +99,7 @@ import { NCard, NSpace, NTag, NText } from 'naive-ui'
 import SelectWithConfig from './SelectWithConfig.vue'
 import { useFunctionModelManager } from '../composables/model/useFunctionModelManager'
 import { DataTransformer, OptionAccessors } from '../utils/data-transformer'
+import { getProviderDisplayName, getTextModelConfigDisplayName } from '../utils/provider-display'
 import type { AppServices } from '../types/services'
 import type { ModelSelectOption } from '../types/select-options'
 
@@ -138,7 +139,7 @@ const findModelInfo = (modelKey: string) => {
   const option = evaluationModelOptions.value.find(opt => opt.value === modelKey)
   if (!option?.raw) return null
   return {
-    provider: option.raw.providerMeta?.name || null,
+    provider: getProviderDisplayName(option.raw.providerMeta, t, ''),
     model: option.raw.modelMeta?.id || null,
   }
 }
@@ -172,8 +173,10 @@ const refreshModels = async () => {
     await ensureInitializedIfSupported(manager)
     const enabledModels = await manager.getEnabledModels()
 
-    evaluationModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
-    imageRecognitionModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
+    const getProviderName = (model: ModelSelectOption['raw']) => getProviderDisplayName(model.providerMeta, t)
+    const getModelName = (model: ModelSelectOption['raw']) => getTextModelConfigDisplayName(model, t)
+    evaluationModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels, { getProviderName, getModelName })
+    imageRecognitionModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels, { getProviderName, getModelName })
   } catch (error) {
     console.error('[FunctionModelManager] Failed to refresh models:', error)
     evaluationModelOptions.value = []

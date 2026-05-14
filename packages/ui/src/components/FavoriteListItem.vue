@@ -236,7 +236,10 @@ const handleActionSelect = (key: string) => {
 
 .favorite-list-item {
   @apply transition-colors duration-200;
-  @apply hover:bg-gray-50 dark:hover:bg-gray-800;
+}
+
+.favorite-list-item:hover {
+  background: var(--n-hover-color);
 }
 
 .item-checkbox {
@@ -252,7 +255,8 @@ const handleActionSelect = (key: string) => {
 }
 
 .title-text {
-  @apply font-medium text-gray-900 dark:text-gray-100;
+  @apply font-medium;
+  color: var(--n-text-color);
 }
 
 .item-actions {
@@ -264,7 +268,8 @@ const handleActionSelect = (key: string) => {
 }
 
 .content-preview {
-  @apply text-sm text-gray-700 dark:text-gray-300 mb-1;
+  @apply text-sm mb-1;
+  color: var(--n-text-color-2);
   line-height: 1.5;
   max-height: 3em;
   overflow: hidden;
@@ -274,7 +279,8 @@ const handleActionSelect = (key: string) => {
 }
 
 .description-text {
-  @apply text-xs text-gray-500 dark:text-gray-400;
+  @apply text-xs;
+  color: var(--n-text-color-3);
   max-height: 2em;
   overflow: hidden;
   display: -webkit-box;
@@ -283,7 +289,8 @@ const handleActionSelect = (key: string) => {
 }
 
 .item-footer {
-  @apply flex justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-800;
+  @apply flex justify-between items-center mt-3 pt-3 border-t;
+  border-color: var(--n-border-color);
 }
 
 .footer-left {

@@ -25,13 +25,14 @@
           <NH4 style="margin: 0 0 12px 0; font-size: 14px;">{{ t('image.provider.section') }}</NH4>
 
           <NFormItem :label="t('image.provider.label')">
-            <NSelect
+            <ProviderPillSelect
               v-model:value="configForm.providerId"
               :options="providerOptions"
-              :placeholder="t('image.provider.placeholder')"
               :loading="isLoadingProviders"
+              :aria-label="t('image.provider.label')"
+              :more-label="t('modelManager.provider.more')"
+              :label-overrides="providerLabelOverrides"
               @update:value="onProviderChange"
-              required
             />
           </NFormItem>
 
@@ -114,29 +115,30 @@
                 @update:value="handleModelChange"
               />
 
-              <NTooltip :disabled="canRefreshModels" :show-arrow="false">
-                <template #trigger>
-                  <NButton
-                    @click="refreshModels"
-                    :loading="isLoadingModels"
-                    :disabled="!canRefreshModels"
-                    circle
-                    secondary
-                    type="primary"
-                    size="small"
-                    style="flex-shrink: 0;"
-                  >
-                    <template #icon>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <polyline points="1 20 1 14 7 14"/>
-                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-                      </svg>
-                    </template>
-                  </NButton>
-                </template>
-                {{ refreshButtonTooltip }}
-              </NTooltip>
+              <ThemedTooltip
+                :label="refreshButtonTooltip"
+                :disabled="canRefreshModels"
+                :show-arrow="false"
+              >
+                <NButton
+                  @click="refreshModels"
+                  :loading="isLoadingModels"
+                  :disabled="!canRefreshModels"
+                  circle
+                  secondary
+                  type="primary"
+                  size="small"
+                  style="flex-shrink: 0;"
+                >
+                  <template #icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                      <polyline points="23 4 23 10 17 10"/>
+                      <polyline points="1 20 1 14 7 14"/>
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                  </template>
+                </NButton>
+              </ThemedTooltip>
             </NSpace>
           </NFormItem>
 
@@ -208,7 +210,7 @@
             width="32"
             height="32"
             object-fit="cover"
-            :style="{ borderRadius: '4px', border: '1px solid #d9d9d9' }"
+            :style="{ borderRadius: '4px', border: '1px solid var(--n-border-color)' }"
             :preview-disabled="false"
             :alt="t('image.connection.testImagePreview')"
           />
@@ -237,15 +239,17 @@ import { computed, watch, nextTick, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NModal, NSpace, NInput, NInputNumber,
-  NCheckbox, NSelect, NButton, NTag, NTooltip, NText,
+  NCheckbox, NSelect, NButton, NTag, NText,
   NDivider, NH4, NForm, NFormItem, useDialog
 } from 'naive-ui'
 import { useImageModelManager } from '../composables/model/useImageModelManager'
 import { useToast } from '../composables/ui/useToast'
 import { isRunningInElectron, type ImageModelConfig } from '@prompt-optimizer/core'
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
+import ProviderPillSelect from './ProviderPillSelect.vue'
 import ExternalLinkIcon from './icons/ExternalLinkIcon.vue'
 import AppPreviewImage from './media/AppPreviewImage.vue'
+import ThemedTooltip from './common/ThemedTooltip.vue'
 
 
 const { t } = useI18n()
@@ -343,6 +347,10 @@ const providerOptions = computed(() =>
     disabled: false
   }))
 )
+
+const providerLabelOverrides = computed(() => ({
+  'openai-compatible': t('modelManager.provider.openaiCompatibleCustomLabel')
+}))
 
 const modelOptions = computed(() =>
   models.value.map(m => ({

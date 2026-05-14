@@ -152,7 +152,7 @@
                 fontSize: '12px',
                 color: paramOverrides[entry.key] !== null && typeof paramOverrides[entry.key] === 'object'
                   ? undefined
-                  : 'var(--n-color-error, #d03050)'
+                  : 'var(--n-error-color)'
               }"
             >
               {{
@@ -308,7 +308,7 @@
                 fontSize: '12px',
                 color: paramOverrides[entry.key] !== null && typeof paramOverrides[entry.key] === 'object'
                   ? undefined
-                  : 'var(--n-color-error, #d03050)'
+                  : 'var(--n-error-color)'
               }"
             >
               {{

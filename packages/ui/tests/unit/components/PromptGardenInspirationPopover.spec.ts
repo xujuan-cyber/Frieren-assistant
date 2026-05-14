@@ -42,6 +42,51 @@ vi.mock('../../../src/utils/prompt-garden-suggestions', () => ({
   fetchPromptGardenSuggestions: fetchSuggestionsMock,
 }))
 
+vi.mock('../../../src/components/media/AppPreviewImage.vue', () => ({
+  default: defineComponent({
+    name: 'AppPreviewImage',
+    props: {
+      src: String,
+      previewSrc: String,
+      alt: String,
+    },
+    setup(props, { attrs }) {
+      return () => {
+        const { class: className, ...restAttrs } = attrs
+        return h(
+          'button',
+          {
+            ...restAttrs,
+            type: 'button',
+            class: ['app-preview-image-stub', className],
+            'data-preview-src': props.previewSrc,
+          },
+          h('img', { src: props.src, alt: props.alt }),
+        )
+      }
+    },
+  }),
+}))
+
+vi.mock('../../../src/components/media/AppPreviewImageGroup.vue', () => ({
+  default: defineComponent({
+    name: 'AppPreviewImageGroup',
+    setup(_, { attrs, slots }) {
+      return () => {
+        const { class: className, ...restAttrs } = attrs
+        return h(
+          'div',
+          {
+            ...restAttrs,
+            class: ['app-preview-image-group-stub', className],
+          },
+          slots.default?.(),
+        )
+      }
+    },
+  }),
+}))
+
 vi.mock('naive-ui', () => ({
   NButton: defineComponent({
     name: 'NButton',
@@ -195,6 +240,47 @@ describe('PromptGardenInspirationPopover', () => {
     expect(openExternalUrlMock).toHaveBeenCalledWith(
       'https://garden.always200.com/prompts?mode=image-text2image',
       { logPrefix: 'PromptGarden' },
+    )
+  })
+
+  it('renders suggestion thumbnails through the preview image component', async () => {
+    fetchSuggestionsMock.mockResolvedValue({
+      items: [
+        {
+          id: 'prompt-1',
+          title: 'Cinematic portrait',
+          summary: 'Keep the subject and improve lighting.',
+          importCode: 'NB-001',
+          tags: [],
+          mode: 'image-text2image',
+          thumbnailUrl: 'https://garden.always200.com/prompt-assets/thumb.webp',
+          updatedAt: null,
+          source: 'featured',
+        },
+      ],
+      browseUrl: 'https://garden.always200.com/prompts?mode=image-text2image',
+      nextExclude: ['NB-001'],
+      ttlSeconds: 300,
+    })
+
+    const wrapper = mount(PromptGardenInspirationPopover, {
+      props: {
+        mode: 'image-text2image',
+        testId: 'garden-test',
+      },
+    })
+
+    await wrapper.find('[data-testid="garden-test-trigger"]').trigger('click')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const previewImage = wrapper.find('.app-preview-image-stub')
+    expect(previewImage.exists()).toBe(true)
+    expect(previewImage.attributes('data-preview-src')).toBe(
+      'https://garden.always200.com/prompt-assets/thumb.webp',
+    )
+    expect(previewImage.find('img').attributes('src')).toBe(
+      'https://garden.always200.com/prompt-assets/thumb.webp',
     )
   })
 })

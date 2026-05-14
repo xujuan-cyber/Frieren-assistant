@@ -1,28 +1,25 @@
 <template>
-  <NTooltip trigger="hover">
-    <template #trigger>
-      <NButton
-        size="small"
-        quaternary
-        circle
-        :disabled="disabled"
-        :data-testid="testId"
-        @click="handleSaveExample"
-      >
-        <template #icon>
-          <NIcon>
-            <Star />
-          </NIcon>
-        </template>
-      </NButton>
-    </template>
-    {{ t('favorites.dialog.reproducibility.saveTestResultExample') }}
-  </NTooltip>
+  <ThemedTooltip :label="t('favorites.dialog.reproducibility.saveTestResultExample')">
+    <NButton
+      size="small"
+      quaternary
+      circle
+      :disabled="disabled"
+      :data-testid="testId"
+      @click="handleSaveExample"
+    >
+      <template #icon>
+        <NIcon>
+          <Star />
+        </NIcon>
+      </template>
+    </NButton>
+  </ThemedTooltip>
 </template>
 
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import { NButton, NIcon, NTooltip } from 'naive-ui'
+import { NButton, NIcon } from 'naive-ui'
 import { Star } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
 import {
@@ -32,6 +29,7 @@ import {
 } from '@prompt-optimizer/core'
 
 import { useToast } from '../composables/ui/useToast'
+import ThemedTooltip from './common/ThemedTooltip.vue'
 import { useSessionManager, type SubModeKey } from '../stores/session/useSessionManager'
 import type { SaveFavoritePayload } from '../types/workspace'
 import {

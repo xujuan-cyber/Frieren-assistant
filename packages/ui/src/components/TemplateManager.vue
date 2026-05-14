@@ -643,6 +643,7 @@ import {
   NGrid, NGridItem, NEl
 } from 'naive-ui'
 import { TemplateProcessor, type Template, type MessageTemplate, type ITemplateManager, TemplateLanguageService } from '@prompt-optimizer/core'
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import BuiltinTemplateLanguageSwitch from './BuiltinTemplateLanguageSwitch.vue'
@@ -657,6 +658,7 @@ import { useImageImage2ImageSession } from '../stores/session/useImageImage2Imag
 import { useImageMultiImageSession } from '../stores/session/useImageMultiImageSession'
 
 const { t } = useI18n()
+const confirmDialog = useConfirmDialog()
 
 interface Services {
   templateManager: ITemplateManager;
@@ -1187,16 +1189,22 @@ const handleSubmit = async () => {
 
 // 确认删除
 const confirmDelete = async (templateId: string) => {
-  if (confirm(t('template.deleteConfirm'))) {
-    try {
-      await getTemplateManager.value.deleteTemplate(templateId)
-      await loadTemplates()
+  const confirmed = await confirmDialog.warning({
+    title: t('common.warning'),
+    content: t('template.deleteConfirm'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+  })
+  if (!confirmed) return
 
-      toast.success(t('template.success.deleted'))
-    } catch (error) {
-      console.error('Failed to delete template:', error)
-      toast.error(t('template.error.deleteFailed'))
-    }
+  try {
+    await getTemplateManager.value.deleteTemplate(templateId)
+    await loadTemplates()
+
+    toast.success(t('template.success.deleted'))
+  } catch (error) {
+    console.error('Failed to delete template:', error)
+    toast.error(t('template.error.deleteFailed'))
   }
 }
 

@@ -1289,23 +1289,23 @@ watch(() => props.show, (visible) => {
 
 /* 评分等级颜色 */
 .score-excellent {
-  color: #18a058;
+  color: var(--n-success-color);
 }
 
 .score-good {
-  color: #2080f0;
+  color: var(--n-info-color);
 }
 
 .score-acceptable {
-  color: #f0a020;
+  color: var(--n-warning-color);
 }
 
 .score-poor {
-  color: #d03050;
+  color: var(--n-error-color);
 }
 
 .score-very-poor {
-  color: #d03050;
+  color: var(--n-error-color);
 }
 
 .dimension-item {
@@ -1323,7 +1323,7 @@ watch(() => props.show, (visible) => {
   flex-direction: column;
   gap: 6px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.16);
+  border-bottom: 1px solid var(--n-border-color);
 }
 
 .compare-judgement-item:last-child {
@@ -1362,7 +1362,7 @@ watch(() => props.show, (visible) => {
   padding: 8px 10px;
   border-radius: 8px;
   background: var(--n-color-embedded);
-  border: 1px solid rgba(128, 128, 128, 0.12);
+  border: 1px solid var(--n-border-color);
 }
 
 .compare-role-inline-list {
@@ -1377,11 +1377,11 @@ watch(() => props.show, (visible) => {
   gap: 6px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(128, 128, 128, 0.08);
+  background: var(--n-hover-color);
 }
 
 .compare-role-inline-item--target {
-  background: rgba(24, 160, 88, 0.12);
+  background: var(--n-success-color-suppl);
 }
 
 .compare-role-inline-label {
@@ -1412,7 +1412,7 @@ watch(() => props.show, (visible) => {
 
 .compare-focus-panel {
   padding: 10px 12px;
-  border: 1px solid rgba(128, 128, 128, 0.16);
+  border: 1px solid var(--n-border-color);
   border-radius: 8px;
   background: var(--n-color-embedded);
 }

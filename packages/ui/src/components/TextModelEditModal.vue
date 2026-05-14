@@ -27,13 +27,14 @@
           <NH4 style="margin: 0 0 12px 0; font-size: 14px;">{{ t('modelManager.provider.section') }}</NH4>
 
           <NFormItem :label="t('modelManager.provider.label')">
-            <NSelect
+            <ProviderPillSelect
               v-model:value="form.providerId"
               :options="providerOptions"
               :loading="isLoadingProviders"
-              :placeholder="t('modelManager.provider.placeholder')"
+              :aria-label="t('modelManager.provider.label')"
+              :more-label="t('modelManager.provider.more')"
+              :label-overrides="providerLabelOverrides"
               @update:value="onProviderChange"
-              required
             />
           </NFormItem>
 
@@ -49,20 +50,20 @@
             <template v-if="field.name === 'baseURL'" #label>
               <NSpace align="center" :size="4">
                 <span>{{ t('modelManager.apiUrl') }}</span>
-                <NTooltip :show-arrow="false" placement="top">
-                  <template #trigger>
-                    <NButton
-                      class="api-url-help-button"
-                      quaternary
-                      circle
-                      size="tiny"
-                      :aria-label="t('modelManager.apiUrlHintAriaLabel')"
-                    >
-                      ?
-                    </NButton>
-                  </template>
+                <ThemedTooltip :show-arrow="false" placement="top">
+                  <NButton
+                    class="api-url-help-button"
+                    quaternary
+                    circle
+                    size="tiny"
+                    :aria-label="t('modelManager.apiUrlHintAriaLabel')"
+                  >
+                    ?
+                  </NButton>
+                  <template #content>
                   <span class="api-url-help-text">{{ t('modelManager.apiUrlHint') }}</span>
-                </NTooltip>
+                  </template>
+                </ThemedTooltip>
               </NSpace>
             </template>
 
@@ -181,29 +182,30 @@
                 @update:value="handleModelChange"
               />
 
-              <NTooltip :disabled="!canRefreshModelOptions" :show-arrow="false">
-                <template #trigger>
-                  <NButton
-                    @click="refreshModelOptions()"
-                    :loading="isLoadingModelOptions"
-                    :disabled="!canRefreshModelOptions"
-                    circle
-                    secondary
-                    type="primary"
-                    size="small"
-                    style="flex-shrink: 0;"
-                  >
-                    <template #icon>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <polyline points="1 20 1 14 7 14"/>
-                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-                      </svg>
-                    </template>
-                  </NButton>
-                </template>
-                {{ t('modelManager.clickToFetchModels') }}
-              </NTooltip>
+              <ThemedTooltip
+                :label="t('modelManager.clickToFetchModels')"
+                :disabled="!canRefreshModelOptions"
+                :show-arrow="false"
+              >
+                <NButton
+                  @click="refreshModelOptions()"
+                  :loading="isLoadingModelOptions"
+                  :disabled="!canRefreshModelOptions"
+                  circle
+                  secondary
+                  type="primary"
+                  size="small"
+                  style="flex-shrink: 0;"
+                >
+                  <template #icon>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                      <polyline points="23 4 23 10 17 10"/>
+                      <polyline points="1 20 1 14 7 14"/>
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                  </template>
+                </NButton>
+              </ThemedTooltip>
             </NSpace>
           </NFormItem>
         </NForm>
@@ -278,14 +280,16 @@ import {
   NDivider,
   NText,
   NTag,
-  NTooltip,
   NSpin,
   useDialog
 } from 'naive-ui'
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
+import ProviderPillSelect from './ProviderPillSelect.vue'
 import ExternalLinkIcon from './icons/ExternalLinkIcon.vue'
+import ThemedTooltip from './common/ThemedTooltip.vue'
 import type { TextModelManager } from '../composables/model/useTextModelManager'
 import { resolveTextConnectionFieldLabel } from '../utils/model-connection-label'
+import { getProviderDisplayName } from '../utils/provider-display'
 
 const { show } = defineProps({
   show: {
@@ -325,6 +329,10 @@ const canTestFormConnection = manager.canTestFormConnection
 const isSaving = manager.isSaving
 
 const isEditing = computed(() => !!manager.editingModelId.value)
+
+const providerLabelOverrides = computed(() => ({
+  'openai-compatible': t('modelManager.provider.openaiCompatibleCustomLabel')
+}))
 
 interface CustomHeaderRow {
   key: string
@@ -431,7 +439,7 @@ const handleTestFormConnection = async () => {
   if (!isRunningInElectron()) {
     const provider = manager.selectedProvider.value
     if (provider?.corsRestricted) {
-      const providerName = provider.name || provider.id || 'Unknown Provider'
+      const providerName = getProviderDisplayName(provider, t, 'Unknown Provider')
       dialog.warning({
         title: t('modelManager.corsRestrictedTag'),
         content: () => h('div', { style: 'white-space: pre-line;' }, t('modelManager.corsRestrictedConfirm', { provider: providerName })),

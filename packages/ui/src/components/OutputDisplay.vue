@@ -169,35 +169,43 @@ defineExpose({ forceRefreshContent, forceExitEditing });
 @reference "../styles/index.css";
 
 .output-display {
-  @apply flex flex-col h-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 relative;
+  @apply flex flex-col h-full rounded-lg relative;
+  border: 1px solid var(--n-border-color);
+  background: var(--n-card-color, var(--n-color));
+  color: var(--n-text-color);
 }
 
 /* 悬浮工具栏样式 */
 .floating-toolbar {
-  @apply absolute top-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg;
-  background: rgba(255, 255, 255, 0.8);
+  @apply absolute top-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg;
+  background: color-mix(in srgb, var(--n-popover-color, var(--n-color)) 88%, transparent);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--n-border-color);
+  box-shadow: var(--n-box-shadow-2, 0 8px 20px color-mix(in srgb, var(--n-text-color) 12%, transparent));
 }
 
 /* 全屏模式下的悬浮复制按钮 */
 .floating-copy-btn {
-  @apply absolute top-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg;
-  background: rgba(255, 255, 255, 0.8);
+  @apply absolute top-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg;
+  background: color-mix(in srgb, var(--n-popover-color, var(--n-color)) 88%, transparent);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.dark .floating-toolbar,
-.dark .floating-copy-btn {
-  background: rgba(31, 41, 55, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--n-border-color);
+  box-shadow: var(--n-box-shadow-2, 0 8px 20px color-mix(in srgb, var(--n-text-color) 12%, transparent));
 }
 
 .toolbar-btn {
   @apply flex items-center gap-1 px-2 py-1 text-sm rounded transition-colors;
-  @apply hover:bg-gray-100 dark:hover:bg-gray-700;
-  @apply focus:outline-hidden focus:ring-2 focus:ring-blue-500/50;
+  color: var(--n-text-color-2);
+}
+
+.toolbar-btn:hover {
+  background: var(--n-hover-color);
+  color: var(--n-text-color);
+}
+
+.toolbar-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--n-primary-color-suppl);
 }
 
 /* 悬浮工具栏动画 */
@@ -225,7 +233,11 @@ defineExpose({ forceRefreshContent, forceExitEditing });
 }
 
 .reasoning-header {
-  @apply flex justify-between items-center cursor-pointer p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors;
+  @apply flex justify-between items-center cursor-pointer p-2 rounded transition-colors;
+}
+
+.reasoning-header:hover {
+  background: var(--n-hover-color);
 }
 
 .reasoning-toggle {
@@ -273,7 +285,8 @@ defineExpose({ forceRefreshContent, forceExitEditing });
 
 .loading-placeholder,
 .empty-placeholder {
-  @apply flex items-center justify-center h-full text-gray-500 text-sm italic;
+  @apply flex items-center justify-center h-full text-sm italic;
+  color: var(--n-text-color-3);
 }
 
 .edit-actions {
@@ -285,11 +298,13 @@ defineExpose({ forceRefreshContent, forceExitEditing });
 }
 
 .output-display--editable .output-display__content {
-  @apply border border-dashed border-gray-300 dark:border-gray-600;
+  @apply border border-dashed;
+  border-color: var(--n-border-color);
 }
 
 .output-display--editing .output-display__content {
-  @apply border-solid border-blue-500;
+  @apply border-solid;
+  border-color: var(--n-primary-color);
 }
 
 /* 隐藏滚动条但保持可滚动 */

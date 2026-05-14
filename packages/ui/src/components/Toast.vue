@@ -14,24 +14,36 @@
 
 <script setup lang="ts">
 import { onMounted, defineComponent, h } from "vue";
-import { NMessageProvider, NDialogProvider, useMessage } from "naive-ui";
+import { NMessageProvider, NDialogProvider, useMessage, useDialog } from "naive-ui";
 
 import { setGlobalMessageApi } from '../composables/ui/useToast';
+import { setGlobalDialogApi } from '../composables/ui/useConfirmDialog';
 
 // 内部组件用于在正确的上下文中初始化消息API
 const MessageApiInitializer = defineComponent({
     name: "MessageApiInitializer",
     setup() {
+        let messageApi: ReturnType<typeof useMessage> | null = null;
+        let dialogApi: ReturnType<typeof useDialog> | null = null;
+
+        try {
+            messageApi = useMessage();
+            dialogApi = useDialog();
+        } catch (error) {
+            console.warn(
+                "[Toast] Naive UI API initialization failed (this is normal during SSR or when provider is not ready):",
+                error,
+            );
+        }
+
         onMounted(() => {
-            try {
-                const messageApi = useMessage();
+            if (messageApi) {
                 setGlobalMessageApi(messageApi);
                 console.log("[Toast] Message API initialized successfully");
-            } catch (error) {
-                console.warn(
-                    "[Toast] Message API initialization failed (this is normal during SSR or when provider is not ready):",
-                    error,
-                );
+            }
+            if (dialogApi) {
+                setGlobalDialogApi(dialogApi);
+                console.log("[Toast] Dialog API initialized successfully");
             }
         });
         return () => h("div", { style: { display: "none" } });

@@ -40,7 +40,7 @@
     <!-- 提示文本 -->
     <transition name="fade">
       <div v-if="!isOpen && !isLoading && showHint" 
-          class="absolute right-12 top-0 bottom-0 min-w-[120px] flex items-center text-xs text-gray-500 pointer-events-none">
+          class="select-hint absolute right-12 top-0 bottom-0 min-w-[120px] flex items-center pointer-events-none">
         {{ hintText }}
       </div>
     </transition>
@@ -55,17 +55,20 @@
       <NEmpty v-if="isLoading" size="small" :description="loadingText" />
       <NEmpty v-else-if="filteredOptions.length === 0" size="small" :description="noOptionsText" />
       <NSpace v-else vertical size="small">
-        <div
+        <NButton
           v-for="option in filteredOptions"
           :key="option.value"
+          text
+          block
+          size="small"
           @click="selectOption(option)"
-          class="cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          class="select-option"
           :class="{
-            'bg-blue-100 dark:bg-blue-900': modelValue === option.value
+            'select-option--selected': modelValue === option.value
           }"
         >
           {{ option.label }}
-        </div>
+        </NButton>
       </NSpace>
     </NCard>
   </div>
@@ -170,15 +173,8 @@ const selectOption = (option) => {
 
 // Close dropdown when clicking outside
 const handleClickOutside = (event) => {
-  console.log('Click detected', {
-    isOpen: isOpen.value,
-    isComponent: componentRef.value && componentRef.value.contains(event.target),
-    target: event.target
-  });
-  
   // 只有在下拉菜单打开且点击的是组件外部时才关闭下拉菜单
   if (isOpen.value && componentRef.value && !componentRef.value.contains(event.target)) {
-    console.log('Closing dropdown');
     isOpen.value = false;
     searchText.value = '';
   }
@@ -215,4 +211,23 @@ onUnmounted(() => {
 }
 
 /* Pure Naive UI implementation - dropdown and hover styles handled by Naive UI */
+.select-hint {
+  font-size: 12px;
+  color: var(--n-text-color-3);
+}
+
+.select-option {
+  justify-content: flex-start;
+  color: var(--n-text-color-2);
+}
+
+.select-option:hover,
+.select-option--selected {
+  background: var(--n-hover-color);
+  color: var(--n-text-color);
+}
+
+.select-option--selected {
+  box-shadow: inset 2px 0 0 var(--n-primary-color);
+}
 </style>

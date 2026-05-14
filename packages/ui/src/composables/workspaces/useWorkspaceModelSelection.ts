@@ -12,9 +12,11 @@
  * @param sessionStore - Session store 实例（ProMultiMessageSession 或 ProVariableSession）
  */
 import { computed, ref, watch, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { AppServices } from '../../types/services'
 import type { ModelSelectOption } from '../../types/select-options'
 import { DataTransformer } from '../../utils/data-transformer'
+import { getProviderDisplayName, getTextModelConfigDisplayName } from '../../utils/provider-display'
 
 type WorkspaceModelSessionStore = {
   selectedOptimizeModelKey: string
@@ -27,6 +29,7 @@ export function useWorkspaceModelSelection<T extends WorkspaceModelSessionStore>
   services: Ref<AppServices | null>,
   sessionStore: T
 ) {
+  const { t } = useI18n()
   const textModelOptions = ref<ModelSelectOption[]>([])
 
   // 优化模型（双向绑定）
@@ -50,7 +53,7 @@ export function useWorkspaceModelSelection<T extends WorkspaceModelSessionStore>
     const key = selectedOptimizeModelKey.value
     const option = textModelOptions.value.find(opt => opt.value === key)
     return {
-      provider: option?.raw?.providerMeta?.name || null,
+      provider: option?.raw ? getProviderDisplayName(option.raw.providerMeta, t, '') : null,
       model: option?.raw?.modelMeta?.name || null
     }
   })
@@ -60,7 +63,7 @@ export function useWorkspaceModelSelection<T extends WorkspaceModelSessionStore>
     const key = selectedTestModelKey.value
     const option = textModelOptions.value.find(opt => opt.value === key)
     return {
-      provider: option?.raw?.providerMeta?.name || null,
+      provider: option?.raw ? getProviderDisplayName(option.raw.providerMeta, t, '') : null,
       model: option?.raw?.modelMeta?.name || null
     }
   })
@@ -89,7 +92,10 @@ export function useWorkspaceModelSelection<T extends WorkspaceModelSessionStore>
       const enabledModels = await mgr.getEnabledModels()
       if (token !== refreshModelToken) return
 
-      textModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels)
+      textModelOptions.value = DataTransformer.modelsToSelectOptions(enabledModels, {
+        getProviderName: (model) => getProviderDisplayName(model.providerMeta, t),
+        getModelName: (model) => getTextModelConfigDisplayName(model, t)
+      })
 
       // 自动 fallback：如果当前选中模型不在列表中，使用第一个
       const fallback = textModelOptions.value[0]?.value || ''

@@ -178,10 +178,9 @@
             </NButton>
           </div>
 
-          <details v-if="selectedFile" class="local-import-settings">
-            <summary>{{ $t('dataManager.import.settingsTitle') }}</summary>
-
-            <div class="local-import-settings-body">
+          <NCollapse v-if="selectedFile" class="local-import-settings" :default-expanded-names="['import-settings']">
+            <NCollapseItem :title="$t('dataManager.import.settingsTitle')" name="import-settings">
+              <div class="local-import-settings-body">
               <div class="local-settings-group">
                 <NText depth="3" class="local-settings-title">
                   {{ $t('dataManager.import.scopeTitle') }}
@@ -232,8 +231,9 @@
                   </div>
                 </NRadioGroup>
               </div>
-            </div>
-          </details>
+              </div>
+            </NCollapseItem>
+          </NCollapse>
 
           <NText depth="3" class="local-import-warning">
             {{ $t('dataManager.warning') }}
@@ -376,8 +376,8 @@
                     'remote-step--collapsed': !isCloudflareR2StepExpanded('account'),
                   }"
                 >
-                  <button
-                    type="button"
+                  <NButton
+                    text
                     class="remote-step-header"
                     @click="toggleCloudflareR2Step('account')"
                   >
@@ -394,7 +394,7 @@
                     >
                       <NIcon><ChevronDown /></NIcon>
                     </span>
-                  </button>
+                  </NButton>
                   <div v-if="isCloudflareR2StepExpanded('account')" class="remote-step-body">
                     <div class="remote-field">
                       <NText depth="3" class="remote-field-label">{{ $t('dataManager.remote.accountId') }}</NText>
@@ -418,8 +418,8 @@
                     'remote-step--collapsed': !isCloudflareR2StepExpanded('bucket'),
                   }"
                 >
-                  <button
-                    type="button"
+                  <NButton
+                    text
                     class="remote-step-header"
                     @click="toggleCloudflareR2Step('bucket')"
                   >
@@ -436,7 +436,7 @@
                     >
                       <NIcon><ChevronDown /></NIcon>
                     </span>
-                  </button>
+                  </NButton>
                   <div v-if="isCloudflareR2StepExpanded('bucket')" class="remote-step-body">
                     <div class="remote-field">
                       <NText depth="3" class="remote-field-label">{{ $t('dataManager.remote.bucket') }}</NText>
@@ -477,8 +477,8 @@
                     'remote-step--collapsed': !isCloudflareR2StepExpanded('credentials'),
                   }"
                 >
-                  <button
-                    type="button"
+                  <NButton
+                    text
                     class="remote-step-header"
                     @click="toggleCloudflareR2Step('credentials')"
                   >
@@ -495,7 +495,7 @@
                     >
                       <NIcon><ChevronDown /></NIcon>
                     </span>
-                  </button>
+                  </NButton>
                   <div v-if="isCloudflareR2StepExpanded('credentials')" class="remote-step-body">
                     <div class="remote-two-column">
                       <div class="remote-field">
@@ -770,11 +770,13 @@ import { useI18n } from 'vue-i18n'
 import {
   NModal, NText, NButton, NUpload, NUploadDragger,
   NIcon, NCheckbox, NRadio, NRadioGroup, NSelect, NInput, NProgress, NTag,
+  NCollapse, NCollapseItem,
   type UploadFileInfo,
 } from 'naive-ui'
 import { isRunningInElectron } from '@prompt-optimizer/core'
 import { ChevronDown, Clipboard, Download, ExternalLink, Folder, Refresh, Trash, Upload } from '@vicons/tabler'
 import { useToast } from '../composables/ui/useToast'
+import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import type { AppServices } from '../types/services'
 import {
   DEFAULT_DATA_MANAGER_PACKAGE_SECTIONS,
@@ -840,6 +842,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const toast = useToast()
+const confirmDialog = useConfirmDialog()
 const isDesktopRuntime = isRunningInElectron()
 const remoteRuntime: RemoteBackupRuntime = isDesktopRuntime ? 'desktop' : 'web'
 const DATA_MANAGER_MODAL_MAX_WIDTH = '1200px'
@@ -1641,10 +1644,15 @@ const handleRemoteCleanup = async () => {
       return
     }
 
-    const confirmed = window.confirm(t('dataManager.remote.cleanupConfirm', {
-      count: analysis.candidates.length,
-      size: formatFileSize(analysis.totalCandidateBytes),
-    }))
+    const confirmed = await confirmDialog.warning({
+      title: t('common.warning'),
+      content: t('dataManager.remote.cleanupConfirm', {
+        count: analysis.candidates.length,
+        size: formatFileSize(analysis.totalCandidateBytes),
+      }),
+      positiveText: t('common.confirm'),
+      negativeText: t('common.cancel'),
+    })
     if (!confirmed) return
 
     const cleanup = await cleanupRemoteSnapshotAssets(objectStore, (event) =>
@@ -2264,18 +2272,21 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 }
 
 .remote-step-header {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+}
+
+.remote-step-header :deep(.n-button__content) {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) 18px;
   gap: 8px;
   align-items: start;
-  min-width: 0;
   width: 100%;
-  padding: 0;
-  border: 0;
-  color: inherit;
+  min-width: 0;
   text-align: left;
-  background: transparent;
-  cursor: pointer;
 }
 
 .remote-step-toggle {
@@ -2461,16 +2472,18 @@ const getStorageItemDetail = (item: Pick<StorageBreakdownItem, 'key' | 'count'>)
 }
 
 .local-import-settings {
-  padding: 8px 10px;
+  padding: 0 2px;
   border-radius: 8px;
   background: var(--n-color);
 }
 
-.local-import-settings > summary {
-  cursor: pointer;
+.local-import-settings :deep(.n-collapse-item__header) {
+  padding: 8px 10px;
   font-size: 12px;
-  color: var(--n-text-color-3);
-  user-select: none;
+}
+
+.local-import-settings :deep(.n-collapse-item__content-inner) {
+  padding: 0 10px 10px;
 }
 
 .local-import-settings-body {

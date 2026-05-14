@@ -304,11 +304,11 @@ const handleOpenDocs = () => {
 
 .page-destination-group {
     padding-right: 8px;
-    border-right: 1px solid var(--border-color, rgba(239, 239, 245, 0.72));
+    border-right: 1px solid var(--n-border-color);
 }
 
 .page-destination-active {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #18a058) 18%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--n-primary-color) 18%, transparent);
 }
 
 .about-panel {
@@ -345,14 +345,14 @@ const handleOpenDocs = () => {
 .about-link-label {
     flex-shrink: 0;
     font-size: 11px;
-    color: var(--text-color-3);
+    color: var(--n-text-color-3);
 }
 
 .about-link-value {
     min-width: 0;
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-color-2);
+    color: var(--n-text-color-2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -362,6 +362,6 @@ const handleOpenDocs = () => {
     width: 12px;
     height: 12px;
     flex-shrink: 0;
-    color: var(--text-color-3);
+    color: var(--n-text-color-3);
 }
 </style>

@@ -24,6 +24,7 @@ describe('SiliconFlowImageAdapter', () => {
       expect(provider.requiresApiKey).toBe(true)
       expect(provider.defaultBaseURL).toBe('https://api.siliconflow.cn/v1')
       expect(provider.supportsDynamicModels).toBe(false)
+      expect(provider.apiKeyUrl).toBe('https://cloud.siliconflow.cn/account/ak')
       expect(provider.connectionSchema?.required).toContain('apiKey')
       expect(provider.connectionSchema?.optional).toEqual(expect.arrayContaining(['baseURL']))
     })
