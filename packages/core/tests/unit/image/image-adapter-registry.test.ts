@@ -19,6 +19,7 @@ describe('ImageAdapterRegistry', () => {
     expect(providerIds).toContain('siliconflow')
     expect(providerIds).toContain('ollama')
     expect(providerIds).toContain('cloudflare')
+    expect(providerIds).toContain('grok')
   })
 
   it('should return providers with correct structure', () => {

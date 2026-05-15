@@ -14,7 +14,8 @@ const IMAGE_PROVIDER_ENV_KEYS = {
   seedream: ['VITE_SEEDREAM_API_KEY', 'VITE_ARK_API_KEY'],
   dashscope: ['VITE_DASHSCOPE_API_KEY'],
   modelscope: ['VITE_MODELSCOPE_API_KEY'],
-  cloudflare: ['VITE_CF_API_TOKEN']
+  cloudflare: ['VITE_CF_API_TOKEN'],
+  grok: ['VITE_GROK_API_KEY', 'VITE_XAI_API_KEY']
 } as const
 
 type BuiltinImageConfigSpec = {
@@ -37,7 +38,8 @@ const IMAGE_BUILTIN_CONFIGS: readonly BuiltinImageConfigSpec[] = [
   { providerId: 'seedream', configId: 'image-seedream-50-lite', modelId: 'doubao-seedream-5-0-260128', displayName: 'Doubao Seedream 5.0 Lite' },
   { providerId: 'dashscope', configId: 'image-dashscope' },
   { providerId: 'modelscope', configId: 'image-modelscope' },
-  { providerId: 'cloudflare', configId: 'image-cloudflare-flux-klein' }
+  { providerId: 'cloudflare', configId: 'image-cloudflare-flux-klein' },
+  { providerId: 'grok', configId: 'image-grok-imagine' }
 ] as const
 
 /**

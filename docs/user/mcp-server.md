@@ -59,6 +59,7 @@ pnpm mcp:dev
 VITE_OPENAI_API_KEY=your-openai-key
 VITE_GEMINI_API_KEY=your-gemini-key
 VITE_DEEPSEEK_API_KEY=your-deepseek-key
+VITE_GROK_API_KEY=your-xai-key
 VITE_SILICONFLOW_API_KEY=your-siliconflow-key
 VITE_ZHIPU_API_KEY=your-zhipu-key
 
@@ -72,7 +73,7 @@ VITE_CUSTOM_API_MODEL=qwen2.5:0.5b
 
 ```bash
 # 首选模型提供商（当配置了多个 API 密钥时）
-# 可选值：openai, gemini, anthropic, deepseek, siliconflow, zhipu, dashscope, openrouter, modelscope, custom
+# 可选值：openai, gemini, anthropic, deepseek, grok, siliconflow, zhipu, dashscope, openrouter, modelscope, custom
 MCP_DEFAULT_MODEL_PROVIDER=openai
 
 # 日志级别（可选，默认 debug）

@@ -104,6 +104,7 @@ docker compose -f docker-compose.dev.yml up -d --build
 -e VITE_OPENAI_API_KEY=your_openai_key
 -e VITE_GEMINI_API_KEY=your_gemini_key
 -e VITE_DEEPSEEK_API_KEY=your_deepseek_key
+-e VITE_GROK_API_KEY=your_xai_key
 -e VITE_SILICONFLOW_API_KEY=your_siliconflow_key
 ```
 

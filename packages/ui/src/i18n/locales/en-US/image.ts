@@ -217,6 +217,14 @@ const messages = {
         "label": "Image Size",
         "description": "Generated image resolution/size, e.g., 1024x1024"
       },
+      "aspect_ratio": {
+        "label": "Aspect Ratio",
+        "description": "Generated image aspect ratio"
+      },
+      "resolution": {
+        "label": "Resolution",
+        "description": "Generated image resolution tier"
+      },
       "quality": {
         "label": "Image Quality",
         "description": "Generated image quality level: auto (automatic), high (high quality), medium (medium), low (low quality)"

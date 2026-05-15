@@ -30,6 +30,7 @@ Docker容器
 ```bash
 VITE_OPENAI_API_KEY=sk-your-key
 VITE_GEMINI_API_KEY=your-key
+VITE_GROK_API_KEY=your-xai-key
 # ... 其他Web应用API配置
 ```
 

@@ -217,6 +217,14 @@ const messages = {
         "label": "图像尺寸",
         "description": "生成图像的分辨率/尺寸，如 1024x1024"
       },
+      "aspect_ratio": {
+        "label": "画面比例",
+        "description": "生成图像的画面宽高比例"
+      },
+      "resolution": {
+        "label": "分辨率档位",
+        "description": "生成图像的分辨率档位"
+      },
       "quality": {
         "label": "图像质量",
         "description": "生成图像的质量等级：auto（自动）、high（高质量）、medium（中等）、low（低质量）"

@@ -128,6 +128,7 @@ Examples:
 - OpenAI
 - Gemini
 - DeepSeek
+- Grok
 - SiliconFlow
 
 In most cases you only need:
@@ -141,6 +142,7 @@ Some providers have provider-specific request details:
 
 - OpenAI-compatible text models may use either Chat Completions or Responses request style, depending on the configured provider and model capability.
 - DeepSeek configurations can expose thinking or reasoning parameters in advanced settings. If output behavior looks different from what you expect, check whether those parameters are enabled.
+- Grok uses the xAI API. The built-in Grok preset defaults reasoning off and can reuse the same API key for text and image models.
 
 ### 2. Ollama
 
@@ -209,6 +211,7 @@ The current codebase currently includes:
 - Gemini
 - Anthropic
 - DeepSeek
+- Grok
 - SiliconFlow
 - Zhipu AI
 - DashScope
@@ -236,7 +239,7 @@ The image-side manager supports:
 - preview test image
 - provider / model / capability tags
 
-Built-in image presets may expose capability differences between model versions. For example, Seedream 4.5 supports multi-image scenarios, while Seedream 5.0 Lite has its own default settings. Prefer checking the capability tags in the model manager instead of assuming from the model name alone.
+Built-in image presets may expose capability differences between model versions. For example, Seedream 4.5 supports multi-image scenarios, Grok supports xAI image generation through the same API key as text models, and Seedream 5.0 Lite has its own default settings. Prefer checking the capability tags in the model manager instead of assuming from the model name alone.
 
 There is also a function-model area for image recognition.
 

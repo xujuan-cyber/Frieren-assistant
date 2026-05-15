@@ -2895,6 +2895,7 @@ export default {
       input_image_invalid_format: "Invalid input image format",
       input_image_unsupported_mime: "Only PNG/JPEG is supported (current: {mimeType})",
       input_image_too_large: "Input image is too large (max {maxSizeMB}MB)",
+      input_image_too_many: "Too many input images (max {maxCount}, got {actualCount})",
       model_not_support_text2image: "Model does not support text-to-image: {modelName}",
       model_not_support_image2image: "Model does not support image-to-image: {modelName}",
       model_only_supports_image2image_need_input: "Model only supports image-to-image. Please provide an input image: {modelName}",

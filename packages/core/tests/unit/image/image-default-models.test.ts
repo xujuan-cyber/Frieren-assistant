@@ -11,6 +11,8 @@ describe('default image models', () => {
     process.env = { ...env }
     delete process.env.VITE_OPENAI_API_KEY
     delete process.env.VITE_OPENAI_BASE_URL
+    delete process.env.VITE_GROK_API_KEY
+    delete process.env.VITE_XAI_API_KEY
     delete process.env.VITE_CF_API_TOKEN
     delete process.env.VITE_CF_ACCOUNT_ID
     delete process.env.CF_API_TOKEN
@@ -134,5 +136,21 @@ describe('default image models', () => {
     expect(models['image-cloudflare-flux-klein'].connectionConfig?.apiKey).toBe('')
     expect(models['image-cloudflare-flux-klein'].connectionConfig?.accountId).toBe('')
     expect(models['image-cloudflare-flux-klein'].enabled).toBe(false)
+  })
+
+  it('includes Grok Imagine configuration with the current image-quality model', () => {
+    process.env.VITE_GROK_API_KEY = 'grok-image-key'
+
+    const models = getDefaultImageModels(registry)
+    const grokConfig = models['image-grok-imagine']
+
+    expect(grokConfig).toBeDefined()
+    expect(grokConfig.providerId).toBe('grok')
+    expect(grokConfig.modelId).toBe('grok-imagine-image-quality')
+    expect(grokConfig.model.capabilities.text2image).toBe(true)
+    expect(grokConfig.model.capabilities.image2image).toBe(true)
+    expect(grokConfig.model.capabilities.multiImage).toBe(true)
+    expect(grokConfig.connectionConfig?.apiKey).toBe('grok-image-key')
+    expect(grokConfig.enabled).toBe(true)
   })
 })

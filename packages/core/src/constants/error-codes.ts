@@ -148,6 +148,7 @@ export const IMAGE_ERROR_CODES = {
   INPUT_IMAGE_INVALID_FORMAT: 'error.image.input_image_invalid_format',
   INPUT_IMAGE_UNSUPPORTED_MIME: 'error.image.input_image_unsupported_mime',
   INPUT_IMAGE_TOO_LARGE: 'error.image.input_image_too_large',
+  INPUT_IMAGE_TOO_MANY: 'error.image.input_image_too_many',
   MULTI_IMAGE_AT_LEAST_TWO_REQUIRED: 'error.image.multi_image_at_least_two_required',
   MODEL_NOT_SUPPORT_TEXT2IMAGE: 'error.image.model_not_support_text2image',
   MODEL_NOT_SUPPORT_IMAGE2IMAGE: 'error.image.model_not_support_image2image',

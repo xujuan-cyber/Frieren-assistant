@@ -2814,6 +2814,7 @@ export default {
       input_image_invalid_format: "输入图像格式无效",
       input_image_unsupported_mime: "仅支持 PNG/JPEG 格式（当前: {mimeType}）",
       input_image_too_large: "输入图像过大（最大 {maxSizeMB}MB）",
+      input_image_too_many: "输入图像数量过多（最多 {maxCount} 张，当前 {actualCount} 张）",
       model_not_support_text2image: "当前模型不支持文生图: {modelName}",
       model_not_support_image2image: "当前模型不支持图生图: {modelName}",
       model_only_supports_image2image_need_input: "当前模型仅支持图生图，请提供输入图像: {modelName}",

@@ -11,6 +11,8 @@ describe('model defaults provider env mapping', () => {
   const originalCustomApiBaseUrl = process.env.VITE_CUSTOM_API_BASE_URL
   const originalCustomApiModel = process.env.VITE_CUSTOM_API_MODEL
   const originalCustomApiHeaders = process.env.VITE_CUSTOM_API_HEADERS
+  const originalGrokApiKey = process.env.VITE_GROK_API_KEY
+  const originalXaiApiKey = process.env.VITE_XAI_API_KEY
 
   beforeEach(() => {
     delete process.env.VITE_ANTHROPIC_API_KEY
@@ -22,6 +24,8 @@ describe('model defaults provider env mapping', () => {
     delete process.env.VITE_CUSTOM_API_BASE_URL
     delete process.env.VITE_CUSTOM_API_MODEL
     delete process.env.VITE_CUSTOM_API_HEADERS
+    delete process.env.VITE_GROK_API_KEY
+    delete process.env.VITE_XAI_API_KEY
   })
 
   afterAll(() => {
@@ -77,6 +81,18 @@ describe('model defaults provider env mapping', () => {
       delete process.env.VITE_CUSTOM_API_HEADERS
     } else {
       process.env.VITE_CUSTOM_API_HEADERS = originalCustomApiHeaders
+    }
+
+    if (originalGrokApiKey === undefined) {
+      delete process.env.VITE_GROK_API_KEY
+    } else {
+      process.env.VITE_GROK_API_KEY = originalGrokApiKey
+    }
+
+    if (originalXaiApiKey === undefined) {
+      delete process.env.VITE_XAI_API_KEY
+    } else {
+      process.env.VITE_XAI_API_KEY = originalXaiApiKey
     }
   })
 
@@ -170,5 +186,26 @@ describe('model defaults provider env mapping', () => {
     expect(models.deepseek.paramOverrides).toEqual({
       thinking_type: 'disabled'
     })
+  })
+
+  it('should include Grok with reasoning disabled by default', () => {
+    const models = getDefaultTextModels()
+
+    expect(models.grok).toBeDefined()
+    expect(models.grok.providerMeta.id).toBe('grok')
+    expect(models.grok.modelMeta.id).toBe('grok-4.3')
+    expect(models.grok.enabled).toBe(false)
+    expect(models.grok.paramOverrides).toEqual({
+      reasoning_effort: 'none'
+    })
+  })
+
+  it('should enable Grok when VITE_XAI_API_KEY is provided', () => {
+    process.env.VITE_XAI_API_KEY = 'test-xai-key'
+
+    const models = getDefaultTextModels()
+
+    expect(models.grok.enabled).toBe(true)
+    expect(models.grok.connectionConfig.apiKey).toBe('test-xai-key')
   })
 })

@@ -16,6 +16,7 @@ import { DashScopeImageAdapter } from './dashscope'
 import { ModelScopeImageAdapter } from './modelscope'
 import { OllamaImageAdapter } from './ollama'
 import { CloudflareImageAdapter } from './cloudflare'
+import { GrokImageAdapter } from './grok'
 
 /**
  * 图像适配器注册表实现
@@ -52,6 +53,7 @@ export class ImageAdapterRegistry
     const modelscopeAdapter = new ModelScopeImageAdapter()
     const ollamaAdapter = new OllamaImageAdapter()
     const cloudflareAdapter = new CloudflareImageAdapter()
+    const grokAdapter = new GrokImageAdapter()
 
     this.adapters.set('gemini', geminiAdapter)
     this.adapters.set('seedream', seedreamAdapter)
@@ -62,6 +64,7 @@ export class ImageAdapterRegistry
     this.adapters.set('modelscope', modelscopeAdapter)
     this.adapters.set('ollama', ollamaAdapter)
     this.adapters.set('cloudflare', cloudflareAdapter)
+    this.adapters.set('grok', grokAdapter)
 
     // 预加载静态模型缓存
     this.preloadStaticModels()

@@ -5,9 +5,9 @@ import { template as multiimageOptimizeEn } from '../../../src/services/template
 describe('multiimage template metadata', () => {
   it('uses the standardized english builtin metadata', () => {
     expect(multiimageOptimizeEn.id).toBe('multiimage-optimize-en')
-    expect(multiimageOptimizeEn.name).toBe('Multi-Image Optimization')
+    expect(multiimageOptimizeEn.name).toBe('Reference Relationship Builder')
     expect(multiimageOptimizeEn.metadata.description).toBe(
-      'Multi-image prompt optimization template, organizing user requests around Image 1 / Image 2 / Image 3 relationships',
+      'Organizes user requests around Image 1, Image 2, Image 3, and their visual relationships',
     )
   })
 })

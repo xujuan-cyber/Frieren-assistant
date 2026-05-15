@@ -123,7 +123,7 @@
 
 ### 1. 公开模型平台
 
-例如 OpenAI、Gemini、DeepSeek、SiliconFlow。
+例如 OpenAI、Gemini、DeepSeek、Grok、SiliconFlow。
 
 你通常只需要：
 
@@ -136,6 +136,7 @@
 
 - OpenAI 兼容文本模型可能根据 provider 和模型能力使用 Chat Completions 或 Responses 请求风格。
 - DeepSeek 配置可能在高级参数中暴露思考或推理相关选项。如果输出行为和预期不一致，可以先检查这些参数是否启用。
+- Grok 使用 xAI API，内置预设默认关闭 reasoning，并且文本模型和图像模型可以复用同一组 API Key。
 
 ### 2. Ollama
 
@@ -208,6 +209,7 @@ Docker 更像“把 Web 页面和 MCP 一起打包部署”。
 - Gemini
 - Anthropic
 - DeepSeek
+- Grok
 - SiliconFlow
 - 智谱 AI
 - DashScope
@@ -235,7 +237,7 @@ Docker 更像“把 Web 页面和 MCP 一起打包部署”。
 - 测试图预览
 - provider / model / 能力标签展示
 
-内置图像模型预设会区分不同版本的能力。例如 Seedream 4.5 支持多图场景，Seedream 5.0 Lite 有独立的默认参数。判断一个图像模型适合什么工作区时，优先看模型管理器里的能力标签，不要只靠模型名猜。
+内置图像模型预设会区分不同版本的能力。例如 Seedream 4.5 支持多图场景，Grok 通过同一组 xAI API Key 支持图像生成，Seedream 5.0 Lite 有独立的默认参数。判断一个图像模型适合什么工作区时，优先看模型管理器里的能力标签，不要只靠模型名猜。
 
 功能模型区域还会涉及图像识别模型。
 

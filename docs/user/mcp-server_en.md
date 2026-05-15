@@ -59,6 +59,7 @@ At least one API key must be configured:
 VITE_OPENAI_API_KEY=your-openai-key
 VITE_GEMINI_API_KEY=your-gemini-key
 VITE_DEEPSEEK_API_KEY=your-deepseek-key
+VITE_GROK_API_KEY=your-xai-key
 VITE_SILICONFLOW_API_KEY=your-siliconflow-key
 VITE_ZHIPU_API_KEY=your-zhipu-key
 
@@ -72,7 +73,7 @@ VITE_CUSTOM_API_MODEL=qwen2.5:0.5b
 
 ```bash
 # Preferred model provider (when multiple API keys are configured)
-# Options: openai, gemini, anthropic, deepseek, siliconflow, zhipu, dashscope, openrouter, modelscope, custom
+# Options: openai, gemini, anthropic, deepseek, grok, siliconflow, zhipu, dashscope, openrouter, modelscope, custom
 MCP_DEFAULT_MODEL_PROVIDER=openai
 
 # Log level (optional, default: debug)

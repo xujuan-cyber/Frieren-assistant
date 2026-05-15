@@ -24,7 +24,7 @@
 - ✅ 浏览器插件开发
 - ✅ 桌面应用开发
 - ✅ MCP 协议支持
-- ✅ 多 LLM 模型支持（OpenAI、Gemini、DeepSeek、智谱、SiliconFlow、MiniMax、Cloudflare）
+- ✅ 多 LLM 模型支持（OpenAI、Gemini、DeepSeek、Grok、智谱、SiliconFlow、MiniMax、Cloudflare）
 - ✅ 图像生成（文生图、图生图、多图生图）
 - ✅ Prompt Garden 集成
 - ✅ 智能收藏系统

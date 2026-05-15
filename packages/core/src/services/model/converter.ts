@@ -40,6 +40,9 @@ export async function convertLegacyToTextModelConfigWithRegistry(
     case 'openai':
       providerId = 'openai';
       break;
+    case 'grok':
+      providerId = 'grok';
+      break;
     case 'custom':
       providerId = 'openai-compatible';
       break;
@@ -148,6 +151,9 @@ export function convertLegacyToTextModelConfig(
       break;
     case 'openai':
       providerId = 'openai';
+      break;
+    case 'grok':
+      providerId = 'grok';
       break;
     case 'custom':
       providerId = 'openai-compatible';
@@ -280,6 +286,24 @@ function createProviderMeta(providerId: string, legacy: ModelConfig): TextProvid
         }
       }
     };
+  } else if (providerId === 'grok') {
+    return {
+      id: 'grok',
+      name: 'Grok',
+      description: 'xAI Grok models via OpenAI-compatible API',
+      requiresApiKey: true,
+      defaultBaseURL: legacy.baseURL || 'https://api.x.ai/v1',
+      supportsDynamicModels: true,
+      connectionSchema: {
+        required: ['apiKey'],
+        optional: ['baseURL', 'timeout'],
+        fieldTypes: {
+          apiKey: 'string',
+          baseURL: 'string',
+          timeout: 'number'
+        }
+      }
+    };
   } else if (providerId === 'openai-compatible') {
     return {
       id: 'openai-compatible',
@@ -344,6 +368,10 @@ function createModelMeta(modelId: string, providerId: string, legacy: ModelConfi
     defaultCapabilities.maxContextLength = 200000;
   } else if (modelId.includes('deepseek')) {
     defaultCapabilities.maxContextLength = 64000;
+  } else if (modelId.includes('grok')) {
+    defaultCapabilities.maxContextLength = 1000000;
+    defaultCapabilities.supportsTools = true;
+    defaultCapabilities.supportsReasoning = true;
   }
 
   if (providerId === 'siliconflow') {

@@ -47,8 +47,8 @@ Prompts can start from manual writing, templates, local imports, or sources such
 - 🎯 **Intelligent Optimization**: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
 - 📝 **Dual Mode Optimization**: Support for both system prompt optimization and user prompt optimization to meet different usage scenarios
 - 🔄 **Analysis and Compare Evaluation**: Supports analysis, single-result evaluation, and multi-result compare evaluation to help determine whether a prompt has truly improved
-- 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, MiniMax, etc.
-- 🖼️ **Image Generation**: Support for Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with models like Gemini, Seedream
+- 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Grok, Zhipu AI, SiliconFlow, MiniMax, etc.
+- 🖼️ **Image Generation**: Support for Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with models like Gemini, Seedream, Grok
 - 🌱 **Prompt Sources**: Start from manual writing, templates, local imports, or Prompt Garden import codes
 - ⭐ **Smart Favorites**: Resource-aware prompt assets with version history, reproducible examples, media support, source binding, and workspace application
 - 📊 **Advanced Testing Mode**: Context variable management, multi-turn conversation testing, Function Calling support
@@ -63,7 +63,7 @@ Prompts can start from manual writing, templates, local imports, or sources such
 - 🖼️ **Text-to-Image (T2I)**: Generate images from text prompts
 - 🎨 **Image-to-Image (I2I)**: Transform and optimize images based on local files
 - 🖼️ **Multi-Image Generation**: Use multiple input images to constrain subject relationships, sequential semantics, and final generation goals
-- 🔌 **Multi-model Support**: Integrated with mainstream image generation models like Gemini, Seedream
+- 🔌 **Multi-model Support**: Integrated with mainstream image generation models like Gemini, Seedream, Grok
 - ⚙️ **Model Parameters**: Support model-specific parameter configuration (size, style, etc.)
 - 📥 **Preview & Download**: Real-time preview of generated results with download support
 - 🔄 **Style Transfer**: Learn style, composition, and color from reference images
@@ -153,6 +153,7 @@ cat > .env << EOF
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+VITE_GROK_API_KEY=your_xai_api_key
 VITE_ZHIPU_API_KEY=your_zhipu_api_key
 VITE_SILICONFLOW_API_KEY=your_siliconflow_api_key
 
@@ -189,6 +190,7 @@ services:
     environment:
       - VITE_OPENAI_API_KEY=your_openai_key
       - VITE_GEMINI_API_KEY=your_gemini_key
+      - VITE_GROK_API_KEY=your_xai_key
       # Access Control (Optional)
       - ACCESS_USERNAME=admin
       - ACCESS_PASSWORD=your_password
@@ -209,7 +211,7 @@ MCP Server requires API key configuration to function properly. Main MCP-specifi
 
 ```bash
 # MCP Server Configuration
-MCP_DEFAULT_MODEL_PROVIDER=openai  # Options: openai, gemini, anthropic, deepseek, siliconflow, zhipu, dashscope, openrouter, modelscope, custom
+MCP_DEFAULT_MODEL_PROVIDER=openai  # Options: openai, gemini, anthropic, deepseek, grok, siliconflow, zhipu, dashscope, openrouter, modelscope, custom
 MCP_LOG_LEVEL=info                 # Log level
 ```
 
@@ -269,11 +271,11 @@ For more detailed information, please refer to the [MCP Server User Guide](docs/
 ### Method 1: Via Interface (Recommended)
 1. Click the "⚙️Settings" button in the upper right corner
 2. Select the "Model Management" tab
-3. Click on the model you need to configure (such as OpenAI, Gemini, DeepSeek, etc.)
+3. Click on the model you need to configure (such as OpenAI, Gemini, DeepSeek, Grok, etc.)
 4. Enter the corresponding API key in the configuration box
 5. Click "Save"
 
-Supported models: OpenAI, Gemini, DeepSeek, Zhipu AI, SiliconFlow, Custom API (OpenAI compatible interface)
+Supported models: OpenAI, Gemini, DeepSeek, Grok, Zhipu AI, SiliconFlow, Custom API (OpenAI compatible interface)
 
 In addition to API keys, you can configure advanced LLM parameters for each model individually. These parameters are configured through a field called `llmParams`, which allows you to specify any parameters supported by the LLM SDK in key-value pairs for fine-grained control over model behavior.
 
@@ -291,6 +293,7 @@ Configure environment variables through the `-e` parameter when deploying with D
 -e VITE_OPENAI_API_KEY=your_key
 -e VITE_GEMINI_API_KEY=your_key
 -e VITE_DEEPSEEK_API_KEY=your_key
+-e VITE_GROK_API_KEY=your_key
 -e VITE_ZHIPU_API_KEY=your_key
 -e VITE_SILICONFLOW_API_KEY=your_key
 
