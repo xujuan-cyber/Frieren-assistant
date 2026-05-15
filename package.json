@@ -31,6 +31,7 @@
     "test:repo": "node --test scripts/run-many.test.mjs scripts/check-locale-parity.test.mjs scripts/check-no-chinese-runtime.test.mjs scripts/package-scripts.test.mjs scripts/desktop-ipc-handlers.test.mjs && pnpm check:locale && pnpm check:no-chinese-runtime",
     "check:locale": "node scripts/check-locale-parity.mjs",
     "check:no-chinese-runtime": "node scripts/check-no-chinese-runtime.mjs",
+    "check:extension-release-secrets": "node scripts/check-extension-release-secrets.mjs packages/extension/dist",
     "test:e2e": "playwright test",
     "test:e2e:smart": "node scripts/smart-e2e.js",
     "test:e2e:gate": "node scripts/run-e2e-group.js gate",
