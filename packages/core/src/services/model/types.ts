@@ -44,6 +44,10 @@ export interface TextModelConfig {
   id: string;
   name: string;
   enabled: boolean;
+  activationState?: {
+    userConfigured?: boolean;
+    autoEnabledBy?: string;
+  };
   providerMeta: TextProvider;
   modelMeta: TextModel;
   connectionConfig: {
@@ -67,6 +71,10 @@ export interface StoredTextModelConfig {
   id: string;
   name: string;
   enabled: boolean;
+  activationState?: {
+    userConfigured?: boolean;
+    autoEnabledBy?: string;
+  };
   providerMeta: TextProvider;
   modelMeta: TextModel;
   connectionConfig: Record<string, any>;

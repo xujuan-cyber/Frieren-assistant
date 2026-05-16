@@ -5,11 +5,17 @@ import { useToast } from '../ui/useToast'
 import {
   type ModelOption,
   type CustomRequestHeaderInput,
+  CHROME_BUILT_IN_PROVIDER_ID,
+  type ChromeBuiltInDownloadProgress,
+  type ChromeBuiltInStatus,
   type TextModel,
   type TextModelConfig,
   type TextProvider,
+  checkChromeBuiltInAvailability,
   getBuiltinModelIds,
+  markChromeBuiltInUserConfigured,
   normalizeCustomRequestHeaders,
+  prepareChromeBuiltInModel,
   resolveTextModelMetadata,
   validateCustomRequestHeaders
 } from '@prompt-optimizer/core'
@@ -112,10 +118,15 @@ export function useTextModelManager() {
     type: 'success' | 'error' | 'warning' | 'info'
     message: string
   } | null>(null)
+  const chromeBuiltInStatus = ref<ChromeBuiltInStatus | null>(null)
+  const isCheckingChromeBuiltIn = ref(false)
+  const isPreparingChromeBuiltIn = ref(false)
+  const chromeBuiltInDownloadProgress = ref<ChromeBuiltInDownloadProgress | null>(null)
 
   const modelOptions = ref<ModelOption[]>([])
   const isLoadingModelOptions = ref(false)
   const currentProviderType = computed(() => form.value.providerId || 'custom')
+  const isChromeBuiltInProvider = computed(() => currentProviderType.value === CHROME_BUILT_IN_PROVIDER_ID)
 
   const providerOptions = computed(() =>
     providers.value.map(provider => ({
@@ -210,6 +221,7 @@ export function useTextModelManager() {
     if (!form.value.modelId?.trim()) return false
     // 必须有 provider
     if (!form.value.providerId) return false
+    if (isChromeBuiltInProvider.value && chromeBuiltInStatus.value?.availability !== 'available') return false
 
     return true
   })
@@ -276,6 +288,8 @@ export function useTextModelManager() {
     formReady.value = false
     modelOptions.value = []
     formConnectionStatus.value = null
+    chromeBuiltInStatus.value = null
+    chromeBuiltInDownloadProgress.value = null
   }
 
   const ensureProvidersLoaded = async () => {
@@ -307,6 +321,64 @@ export function useTextModelManager() {
     } catch (error) {
       console.error('Failed to load provider models:', error)
       modelOptions.value = []
+    }
+  }
+
+  const refreshChromeBuiltInStatus = async () => {
+    if (!isChromeBuiltInProvider.value) {
+      chromeBuiltInStatus.value = null
+      chromeBuiltInDownloadProgress.value = null
+      return
+    }
+
+    isCheckingChromeBuiltIn.value = true
+    try {
+      chromeBuiltInStatus.value = await checkChromeBuiltInAvailability()
+    } catch (error) {
+      chromeBuiltInStatus.value = {
+        availability: 'unavailable',
+        error: getErrorDetail(error)
+      }
+    } finally {
+      isCheckingChromeBuiltIn.value = false
+    }
+  }
+
+  const prepareChromeBuiltInDownload = async () => {
+    if (!isChromeBuiltInProvider.value || isPreparingChromeBuiltIn.value) return
+
+    isPreparingChromeBuiltIn.value = true
+    chromeBuiltInDownloadProgress.value = null
+    formConnectionStatus.value = { type: 'info', message: t('modelManager.chromeBuiltIn.preparing') }
+
+    try {
+      chromeBuiltInStatus.value = await prepareChromeBuiltInModel((progress) => {
+        chromeBuiltInDownloadProgress.value = progress
+        chromeBuiltInStatus.value = { availability: 'downloading' }
+      })
+
+      if (chromeBuiltInStatus.value.availability === 'available') {
+        form.value.enabled = true
+        formConnectionStatus.value = { type: 'success', message: t('modelManager.chromeBuiltIn.ready') }
+        toast.success(t('modelManager.chromeBuiltIn.ready'))
+      } else {
+        formConnectionStatus.value = {
+          type: 'warning',
+          message: t(`modelManager.chromeBuiltIn.status.${chromeBuiltInStatus.value.availability}`)
+        }
+      }
+    } catch (error) {
+      chromeBuiltInStatus.value = {
+        availability: 'unavailable',
+        error: getErrorDetail(error)
+      }
+      formConnectionStatus.value = {
+        type: 'error',
+        message: t('modelManager.chromeBuiltIn.prepareFailed', { error: getErrorDetail(error) })
+      }
+      toast.error(t('modelManager.chromeBuiltIn.prepareFailed', { error: getErrorDetail(error) }))
+    } finally {
+      isPreparingChromeBuiltIn.value = false
     }
   }
 
@@ -362,7 +434,11 @@ export function useTextModelManager() {
     try {
       const model = await modelManager.getModel(id)
       if (!model) throw new Error(t('modelManager.noModelsAvailable'))
-      await modelManager.enableModel(id)
+      if (id === CHROME_BUILT_IN_PROVIDER_ID) {
+        await modelManager.updateModel(id, markChromeBuiltInUserConfigured(model, true))
+      } else {
+        await modelManager.enableModel(id)
+      }
       await loadModels()
       toast.success(t('modelManager.enableSuccess'))
     } catch (error: unknown) {
@@ -375,7 +451,11 @@ export function useTextModelManager() {
     try {
       const model = await modelManager.getModel(id)
       if (!model) throw new Error(t('modelManager.noModelsAvailable'))
-      await modelManager.disableModel(id)
+      if (id === CHROME_BUILT_IN_PROVIDER_ID) {
+        await modelManager.updateModel(id, markChromeBuiltInUserConfigured(model, false))
+      } else {
+        await modelManager.disableModel(id)
+      }
       await loadModels()
       toast.success(t('modelManager.disableSuccess'))
     } catch (error: unknown) {
@@ -455,6 +535,7 @@ export function useTextModelManager() {
 
     form.value.providerId = providerId
     formConnectionStatus.value = null
+    chromeBuiltInDownloadProgress.value = null
     if (resetOverrides) {
       form.value.paramOverrides = {}
     }
@@ -717,6 +798,9 @@ export function useTextModelManager() {
       connectionConfig,
       paramOverrides: { ...(form.value.paramOverrides || {}) }
     } as Partial<TextModelConfig>
+    if (form.value.originalId === CHROME_BUILT_IN_PROVIDER_ID || providerMeta.id === CHROME_BUILT_IN_PROVIDER_ID) {
+      updates.activationState = markChromeBuiltInUserConfigured(existingConfig, form.value.enabled).activationState
+    }
 
     await modelManager.updateModel(form.value.originalId, updates)
     return form.value.originalId
@@ -876,6 +960,13 @@ export function useTextModelManager() {
     }
   })
 
+  watch(
+    () => form.value.providerId,
+    () => {
+      void refreshChromeBuiltInStatus()
+    }
+  )
+
   const onModelChange = (modelId: string) => {
     form.value.modelId = modelId
     form.value.defaultModel = modelId || ''
@@ -920,6 +1011,13 @@ export function useTextModelManager() {
     currentParameterDefinitions,
     availableParameterCount,
     currentProviderType,
+    isChromeBuiltInProvider,
+    chromeBuiltInStatus,
+    isCheckingChromeBuiltIn,
+    isPreparingChromeBuiltIn,
+    chromeBuiltInDownloadProgress,
+    refreshChromeBuiltInStatus,
+    prepareChromeBuiltInDownload,
     selectedProvider,
     updateParamOverrides,
     onModelChange,

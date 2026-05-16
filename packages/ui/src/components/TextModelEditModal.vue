@@ -42,6 +42,46 @@
             {{ currentProviderHint }}
           </NText>
 
+          <NAlert
+            v-if="isChromeBuiltInProvider"
+            class="chrome-built-in-status"
+            :type="chromeBuiltInAlertType"
+            :show-icon="true"
+          >
+            <div class="chrome-built-in-status__body">
+              <NText strong>{{ chromeBuiltInStatusTitle }}</NText>
+              <NText depth="3" class="chrome-built-in-status__description">
+                {{ chromeBuiltInStatusDescription }}
+              </NText>
+              <NProgress
+                v-if="chromeBuiltInDownloadPercent !== null"
+                type="line"
+                :percentage="chromeBuiltInDownloadPercent"
+                :show-indicator="true"
+              />
+              <NSpace align="center" :size="8">
+                <NButton
+                  v-if="showChromeBuiltInPrepareButton"
+                  size="small"
+                  secondary
+                  type="primary"
+                  :loading="isPreparingChromeBuiltIn"
+                  @click="prepareChromeBuiltInDownload"
+                >
+                  {{ t('modelManager.chromeBuiltIn.downloadAction') }}
+                </NButton>
+                <NButton
+                  size="small"
+                  quaternary
+                  :loading="isCheckingChromeBuiltIn"
+                  @click="refreshChromeBuiltInStatus"
+                >
+                  {{ t('modelManager.chromeBuiltIn.recheckAction') }}
+                </NButton>
+              </NSpace>
+            </div>
+          </NAlert>
+
           <NFormItem
             v-for="field in connectionFields"
             :key="field.name"
@@ -281,6 +321,8 @@ import {
   NText,
   NTag,
   NSpin,
+  NAlert,
+  NProgress,
   useDialog
 } from 'naive-ui'
 import ModelAdvancedSection from './ModelAdvancedSection.vue'
@@ -327,6 +369,13 @@ const testFormConnection = manager.testFormConnection
 const isTestingFormConnection = manager.isTestingFormConnection
 const canTestFormConnection = manager.canTestFormConnection
 const isSaving = manager.isSaving
+const isChromeBuiltInProvider = manager.isChromeBuiltInProvider
+const chromeBuiltInStatus = manager.chromeBuiltInStatus
+const isCheckingChromeBuiltIn = manager.isCheckingChromeBuiltIn
+const isPreparingChromeBuiltIn = manager.isPreparingChromeBuiltIn
+const chromeBuiltInDownloadProgress = manager.chromeBuiltInDownloadProgress
+const refreshChromeBuiltInStatus = manager.refreshChromeBuiltInStatus
+const prepareChromeBuiltInDownload = manager.prepareChromeBuiltInDownload
 
 const isEditing = computed(() => !!manager.editingModelId.value)
 
@@ -424,7 +473,54 @@ const currentProviderHint = computed(() => {
     return t('modelManager.provider.minimaxHint')
   }
 
+  if (provider.id === 'chrome-built-in') {
+    return t('modelManager.provider.chromeBuiltInHint')
+  }
+
   return provider.description || ''
+})
+
+const chromeBuiltInAvailability = computed(() => chromeBuiltInStatus.value?.availability || 'checking')
+
+const chromeBuiltInAlertType = computed(() => {
+  const availability = chromeBuiltInAvailability.value
+  if (availability === 'available') return 'success'
+  if (availability === 'downloadable' || availability === 'downloading' || availability === 'checking') return 'info'
+  return 'warning'
+})
+
+const chromeBuiltInStatusTitle = computed(() => {
+  const key = `modelManager.chromeBuiltIn.title.${chromeBuiltInAvailability.value}`
+  return t(key)
+})
+
+const chromeBuiltInStatusDescription = computed(() => {
+  const status = chromeBuiltInStatus.value
+  if (status?.error) {
+    return t('modelManager.chromeBuiltIn.statusWithError', {
+      status: t(`modelManager.chromeBuiltIn.status.${status.availability}`),
+      error: status.error
+    })
+  }
+
+  const key = `modelManager.chromeBuiltIn.status.${chromeBuiltInAvailability.value}`
+  return t(key)
+})
+
+const chromeBuiltInDownloadPercent = computed(() => {
+  const progress = chromeBuiltInDownloadProgress.value
+  if (!progress) return null
+
+  const loaded = Number(progress.loaded)
+  if (!Number.isFinite(loaded)) return null
+
+  const percent = loaded <= 1 ? loaded * 100 : loaded
+  return Math.max(0, Math.min(100, Math.round(percent)))
+})
+
+const showChromeBuiltInPrepareButton = computed(() => {
+  const availability = chromeBuiltInAvailability.value
+  return availability === 'downloadable' || availability === 'downloading'
 })
 
 const resolveConnectionFieldLabel = (fieldName: string) => {
@@ -555,6 +651,21 @@ const onProviderChange = (providerId: string) => {
   gap: 8px;
   align-items: center;
   width: 100%;
+}
+
+.chrome-built-in-status {
+  margin: -4px 0 12px;
+}
+
+.chrome-built-in-status__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chrome-built-in-status__description {
+  display: block;
+  line-height: 1.5;
 }
 
 @media (max-width: 640px) {

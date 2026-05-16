@@ -136,6 +136,19 @@ describe('model defaults provider env mapping', () => {
     expect(models.ollama.enabled).toBe(false)
   })
 
+  it('should include Chrome built-in AI but keep it disabled until the user opts in', () => {
+    const builtinModelIds = getBuiltinModelIds()
+    const models = getDefaultTextModels()
+
+    expect(builtinModelIds).toContain('chrome-built-in')
+    expect(models['chrome-built-in']).toBeDefined()
+    expect(models['chrome-built-in'].providerMeta.id).toBe('chrome-built-in')
+    expect(models['chrome-built-in'].providerMeta.requiresApiKey).toBe(false)
+    expect(models['chrome-built-in'].modelMeta.id).toBe('gemini-nano')
+    expect(models['chrome-built-in'].enabled).toBe(false)
+    expect(models['chrome-built-in'].activationState).toEqual({ userConfigured: false })
+  })
+
   it('should include cloudflare config and keep it disabled when credentials are empty', () => {
     const models = getDefaultTextModels()
 

@@ -113,6 +113,7 @@ const providerOrder = [
   'openrouter',
   'zhipu',
   'zhipuai',
+  'chrome-built-in',
   'ollama',
   'seedream',
   'volcengine',

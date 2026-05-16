@@ -62,6 +62,7 @@ import {
   attachFavoriteAssetGc,
   runFavoriteAssetGc,
 } from '../../utils/favorite-asset-maintenance'
+import { autoEnableChromeBuiltInModelIfReady } from '../../utils/chrome-built-in-auto-enable'
 
 const appendStartupRepairReport = (
   currentReport: StartupRepairReport | null,
@@ -326,6 +327,14 @@ export function useAppInitializer(): {
         // Now ensure model manager with async init is ready (template manager no longer needs async init)
         console.log('[AppInitializer] Ensuring model manager initialization is complete...');
         await modelManagerInstance.ensureInitialized();
+        try {
+          const chromeBuiltInSync = await autoEnableChromeBuiltInModelIfReady(modelManagerInstance)
+          if (chromeBuiltInSync.enabled) {
+            console.log('[AppInitializer] Auto-enabled Chrome built-in AI because the browser model is available.');
+          }
+        } catch (err) {
+          console.warn('[AppInitializer] Chrome built-in AI auto-enable check failed (non-critical):', err);
+        }
 
         // Assign instances after they are fully initialized
         modelManager = modelManagerInstance;

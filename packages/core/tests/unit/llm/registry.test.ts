@@ -84,6 +84,14 @@ describe('TextAdapterRegistry', () => {
       expect(adapter.getProvider().id).toBe('grok');
     });
 
+    it('should return Chrome built-in adapter for "chrome-built-in" provider', () => {
+      const adapter = registry.getAdapter('chrome-built-in');
+
+      expect(adapter).toBeDefined();
+      expect(adapter.getProvider().id).toBe('chrome-built-in');
+      expect(adapter.getProvider().requiresApiKey).toBe(false);
+    });
+
     it('should be case-insensitive for provider ID', () => {
       const adapter1 = registry.getAdapter('OpenAI');
       const adapter2 = registry.getAdapter('OPENAI');
@@ -103,11 +111,11 @@ describe('TextAdapterRegistry', () => {
       const providers = registry.getAllProviders();
 
       expect(Array.isArray(providers)).toBe(true);
-      expect(providers.length).toBe(14);
+      expect(providers.length).toBe(15);
 
       const providerIds = providers.map(p => p.id);
       expect(providerIds).toEqual(
-        expect.arrayContaining(['openai', 'openai-compatible', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax', 'cloudflare', 'grok'])
+        expect.arrayContaining(['openai', 'openai-compatible', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax', 'cloudflare', 'grok', 'chrome-built-in'])
       );
     });
 

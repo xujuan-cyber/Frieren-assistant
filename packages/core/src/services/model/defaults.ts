@@ -4,6 +4,7 @@ import { TextAdapterRegistry } from '../llm/adapters/registry';
 import { getEnvVar } from '../../utils/environment';
 import { normalizeCustomRequestHeaders, validateCustomRequestHeaders } from '../../utils/custom-request-headers';
 import { generateDynamicModels } from './model-utils';
+import { CHROME_BUILT_IN_PROVIDER_ID } from '../llm/chrome-built-in';
 
 /**
  * Provider ID -> 环境变量 key 映射
@@ -61,7 +62,7 @@ function shouldEnableFromRequiredFields(
  * 包括 PROVIDER_ENV_KEYS 中的所有 Provider 和 'custom'
  */
 export function getBuiltinModelIds(): string[] {
-  return [...Object.keys(PROVIDER_ENV_KEYS), 'custom'];
+  return [...Object.keys(PROVIDER_ENV_KEYS), CHROME_BUILT_IN_PROVIDER_ID, 'custom'];
 }
 
 /**
@@ -161,6 +162,24 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
       ...(customHeaders ? { customHeaders } : {})
     },
     paramOverrides: { ...(customModelMeta.defaultParameterValues || {}) },
+    customParamOverrides: {}
+  };
+
+  const chromeBuiltInAdapter = adapterRegistry.getAdapter(CHROME_BUILT_IN_PROVIDER_ID);
+  const chromeBuiltInProvider = chromeBuiltInAdapter.getProvider();
+  const chromeBuiltInModel = chromeBuiltInAdapter.getModels()[0] || chromeBuiltInAdapter.buildDefaultModel('gemini-nano');
+
+  result[CHROME_BUILT_IN_PROVIDER_ID] = {
+    id: CHROME_BUILT_IN_PROVIDER_ID,
+    name: chromeBuiltInProvider.name,
+    enabled: false,
+    activationState: {
+      userConfigured: false
+    },
+    providerMeta: chromeBuiltInProvider,
+    modelMeta: chromeBuiltInModel,
+    connectionConfig: {},
+    paramOverrides: { ...(chromeBuiltInModel.defaultParameterValues || {}) },
     customParamOverrides: {}
   };
 

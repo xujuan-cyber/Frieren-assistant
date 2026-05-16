@@ -30,7 +30,32 @@ const messages = {
       "openaiHint": "This is the official OpenAI API. If you want a custom base URL, a third-party compatible service, or a local model, choose \"OpenAI Compatible (Custom)\" instead.",
       "customApiHint": "Use this for custom OpenAI-compatible endpoints. You can configure the base URL, use your own model name, and choose Chat Completions or Responses as the request style.",
       "dashscopeHint": "DashScope supports both OpenAI-compatible Chat Completions and Responses APIs. You can switch the request style here directly.",
-      "minimaxHint": "The default endpoint is the global MiniMax OpenAI-compatible API. Mainland China users should set API URL to https://api.minimaxi.com/v1. Do not use Anthropic-format MiniMax endpoints here."
+      "minimaxHint": "The default endpoint is the global MiniMax OpenAI-compatible API. Mainland China users should set API URL to https://api.minimaxi.com/v1. Do not use Anthropic-format MiniMax endpoints here.",
+      "chromeBuiltInHint": "Use Chrome's local Gemini Nano model without a third-party API key. Chrome manages the model, and first use may require an explicit user download."
+    },
+    "chromeBuiltIn": {
+      "downloadAction": "Download / prepare local model",
+      "recheckAction": "Recheck",
+      "preparing": "Preparing Chrome local model...",
+      "ready": "Chrome local model is ready",
+      "prepareFailed": "Failed to prepare Chrome local model: {error}",
+      "statusWithError": "{status} ({error})",
+      "title": {
+        "checking": "Checking Chrome built-in AI",
+        "available": "Chrome built-in AI is ready",
+        "downloadable": "Chrome local model needs download",
+        "downloading": "Chrome is downloading the local model",
+        "unavailable": "This environment is not supported",
+        "api-missing": "This browser does not expose Chrome Prompt API"
+      },
+      "status": {
+        "checking": "Checking whether this browser exposes the Prompt API and whether the local model is ready.",
+        "available": "Ready to use without an API URL or API key.",
+        "downloadable": "Your Chrome supports this feature, but the local model is not downloaded yet. Chrome is only asked to download it after you click the button below.",
+        "downloading": "Chrome is downloading the model. This may take a while; once it finishes, you can test or save this model.",
+        "unavailable": "This browser, device, user profile, or managed policy may not support the feature. You can still configure another text model provider.",
+        "api-missing": "Open the Web app in a Chrome version that supports the Prompt API. Other browsers safely degrade without runtime errors."
+      }
     },
     "connection": {
       "accountId": "Account ID",

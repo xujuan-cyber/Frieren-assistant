@@ -51,6 +51,21 @@ export type {
 } from './services/llm/types'
 export { LLMService, createLLMService } from './services/llm/service'
 export { TextAdapterRegistry, createTextAdapterRegistry } from './services/llm/adapters/registry'
+export {
+  CHROME_BUILT_IN_MODEL_ID,
+  CHROME_BUILT_IN_AUTO_ENABLE_SOURCE,
+  CHROME_BUILT_IN_PROVIDER_ID,
+  canAutoEnableChromeBuiltInConfig,
+  checkChromeBuiltInAvailability,
+  markChromeBuiltInAutoEnabled,
+  markChromeBuiltInUserConfigured,
+  prepareChromeBuiltInModel
+} from './services/llm/chrome-built-in'
+export type {
+  ChromeBuiltInAvailability,
+  ChromeBuiltInDownloadProgress,
+  ChromeBuiltInStatus
+} from './services/llm/chrome-built-in'
 export { ElectronLLMProxy } from './services/llm/electron-proxy'
 export * from './services/llm/errors'
 
