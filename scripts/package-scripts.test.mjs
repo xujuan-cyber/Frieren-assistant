@@ -61,6 +61,21 @@ test('web and extension package typecheck scripts use isolated tsconfig files', 
   assert.match(extensionTypecheckConfig.include.join(' '), /\benv\.d\.ts\b/)
 })
 
+test('web dev loads root env while extension build stays isolated from root env', () => {
+  const webViteConfig = fs.readFileSync(path.join(process.cwd(), 'packages', 'web', 'vite.config.ts'), 'utf8')
+  const extensionViteConfig = fs.readFileSync(path.join(process.cwd(), 'packages', 'extension', 'vite.config.ts'), 'utf8')
+
+  assert.match(webViteConfig, /loadEnv\(mode,\s*monorepoRoot\)/)
+  assert.match(webViteConfig, /envDir:\s*monorepoRoot/)
+  assert.match(webViteConfig, /DEFAULT_VITE_ENV/)
+  assert.match(webViteConfig, /'process\.env'/)
+
+  assert.doesNotMatch(extensionViteConfig, /loadEnv\(mode,\s*monorepoRoot\)/)
+  assert.doesNotMatch(extensionViteConfig, /envDir:\s*monorepoRoot/)
+  assert.doesNotMatch(extensionViteConfig, /DEFAULT_VITE_ENV/)
+  assert.doesNotMatch(extensionViteConfig, /'process\.env'/)
+})
+
 test('mcp-server bin points to a file that exists before build output is generated', () => {
   const mcpPackagePath = path.join('packages', 'mcp-server', 'package.json')
   const mcpPackage = readJson(mcpPackagePath)
