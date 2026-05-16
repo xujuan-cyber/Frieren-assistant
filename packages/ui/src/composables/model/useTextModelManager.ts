@@ -477,13 +477,13 @@ export function useTextModelManager() {
         id: '',
         name: `${model.name || id} (Copy)`,
         enabled: model.enabled,
-        providerId: model.providerMeta?.id ?? 'custom',
-        modelId: model.modelMeta?.id ?? '',
+        providerId: model.providerId ?? model.providerMeta?.id ?? 'custom',
+        modelId: model.modelId ?? model.modelMeta?.id ?? '',
         connectionConfig: JSON.parse(JSON.stringify(model.connectionConfig ?? {})) as TextConnectionConfig,
         paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {},
         displayMaskedKey: false,
         originalApiKey: typeof model.connectionConfig?.apiKey === 'string' ? model.connectionConfig.apiKey : undefined,
-        defaultModel: String(model.modelMeta?.id ?? '')
+        defaultModel: String(model.modelId ?? model.modelMeta?.id ?? '')
       }
       editingModelMeta.value = model.modelMeta
 
@@ -614,13 +614,13 @@ export function useTextModelManager() {
         originalId: model.id,
         name: model.name,
         enabled: model.enabled,
-        providerId: model.providerMeta?.id ?? 'custom',
-        modelId: model.modelMeta?.id ?? '',
+        providerId: model.providerId ?? model.providerMeta?.id ?? 'custom',
+        modelId: model.modelId ?? model.modelMeta?.id ?? '',
         connectionConfig,
         paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {},
         displayMaskedKey: !!rawApiKey,
         originalApiKey: String(rawApiKey) || undefined,
-        defaultModel: String(model.modelMeta?.id ?? '')
+        defaultModel: String(model.modelId ?? model.modelMeta?.id ?? '')
       }
       editingModelMeta.value = model.modelMeta
 
@@ -703,6 +703,8 @@ export function useTextModelManager() {
       }
 
       const fetchedModels = await llmService.fetchModelList(providerTemplateId, {
+        providerId: providerMeta?.id || providerTemplateId,
+        modelId: form.value.modelId || modelMeta?.id,
         connectionConfig,
         providerMeta,
         modelMeta: modelMeta ? { ...modelMeta, id: form.value.modelId || modelMeta.id } : undefined
@@ -793,6 +795,8 @@ export function useTextModelManager() {
     const updates = {
       name: form.value.name,
       enabled: form.value.enabled,
+      providerId: form.value.providerId,
+      modelId: form.value.modelId,
       providerMeta,
       modelMeta,
       connectionConfig,
@@ -842,6 +846,8 @@ export function useTextModelManager() {
       id: modelKey,
       name: form.value.name,
       enabled: form.value.enabled,
+      providerId: providerMeta.id,
+      modelId: modelMeta.id,
       providerMeta,
       modelMeta,
       connectionConfig,
@@ -913,6 +919,8 @@ export function useTextModelManager() {
         id: `temp-test-${editingModelId.value || 'new'}-${Date.now()}`,
         name: form.value.name || form.value.modelId,
         enabled: form.value.enabled,
+        providerId: providerMeta.id,
+        modelId: modelMeta.id,
         providerMeta,
         modelMeta,
         connectionConfig,

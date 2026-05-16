@@ -68,6 +68,11 @@ export interface ImageModelConfig {
   model: ImageModel                    // 完整的模型信息副本
 }
 
+export type ImageModelConfigInput = Omit<ImageModelConfig, 'provider' | 'model'> & {
+  provider?: ImageProvider
+  model?: ImageModel
+}
+
 // === 基础类型（请求/结果/进度） ===
 
 export interface ImageInputRef {
@@ -147,8 +152,8 @@ export interface IImageModelManager extends IImportExportable {
   ensureInitialized?(): Promise<void>
   isInitialized?(): Promise<boolean>
   // 配置 CRUD 操作
-  addConfig(config: ImageModelConfig): Promise<void>
-  updateConfig(id: string, updates: Partial<ImageModelConfig>): Promise<void>
+  addConfig(config: ImageModelConfigInput): Promise<void>
+  updateConfig(id: string, updates: Partial<ImageModelConfigInput>): Promise<void>
   deleteConfig(id: string): Promise<void>
   getConfig(id: string): Promise<ImageModelConfig | null>
   getAllConfigs(): Promise<ImageModelConfig[]>

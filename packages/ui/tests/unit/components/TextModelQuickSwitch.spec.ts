@@ -202,7 +202,7 @@ describe('TextModelQuickSwitch', () => {
     )
   })
 
-  it('fetches available models and updates only modelMeta on the selected config', async () => {
+  it('fetches available models and updates model identity on the selected config', async () => {
     const { wrapper, updateModel, fetchModelList, refreshModels, config } = mountComponent()
 
     await wrapper.get('[data-testid="quick-switch-trigger"]').trigger('click')
@@ -221,6 +221,7 @@ describe('TextModelQuickSwitch', () => {
     await flushPromises()
 
     expect(updateModel).toHaveBeenCalledWith('config-1', {
+      modelId: 'model-b',
       modelMeta: expect.objectContaining({
         id: 'model-b',
         name: 'Model B',

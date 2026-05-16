@@ -227,7 +227,7 @@ const handleModelSelect = async (value: string | number | Array<string | number>
 
   try {
     const modelMeta = resolveModelMeta(modelId, current)
-    await services.modelManager.updateModel(current.id, { modelMeta })
+    await services.modelManager.updateModel(current.id, { modelId, modelMeta })
     await props.refreshModels?.()
     popoverVisible.value = false
     toast.success(t('model.quickSwitch.updateSuccess', { model: modelMeta.name || modelMeta.id }))

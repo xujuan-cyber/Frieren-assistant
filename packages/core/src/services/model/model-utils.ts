@@ -86,6 +86,8 @@ export function generateTextModelConfig(envConfig: ValidatedCustomModelEnvConfig
     id: `custom_${envConfig.suffix}`,
     name: modelName,
     enabled: true,
+    providerId: customProvider.id,
+    modelId: customModel.id,
     providerMeta: customProvider,
     modelMeta: customModel,
     connectionConfig: {

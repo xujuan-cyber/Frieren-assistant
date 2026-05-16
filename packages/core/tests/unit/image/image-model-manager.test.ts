@@ -121,4 +121,100 @@ describe('ImageModelManager initialization behavior', () => {
     expect(updated?.model.id).toBe('gpt-image-2')
     expect(updated?.model.providerId).toBe('openai')
   })
+
+  it('should add configs from identity fields without UI-provided metadata snapshots', async () => {
+    await modelManager.addConfig({
+      id: 'image-identity-only',
+      name: 'Identity Only',
+      providerId: 'openai',
+      modelId: 'gpt-image-2',
+      enabled: true,
+      connectionConfig: {
+        apiKey: 'openai-key',
+        baseURL: 'https://api.openai.com/v1'
+      },
+      paramOverrides: {}
+    })
+
+    const stored = await modelManager.getConfig('image-identity-only')
+
+    expect(stored?.providerId).toBe('openai')
+    expect(stored?.provider.id).toBe('openai')
+    expect(stored?.modelId).toBe('gpt-image-2')
+    expect(stored?.model.id).toBe('gpt-image-2')
+    expect(stored?.model.providerId).toBe('openai')
+  })
+
+  it('should import identity-only configs and export resolved snapshots', async () => {
+    await modelManager.importData([{
+      id: 'image-import-identity-only',
+      name: 'Image Import Identity Only',
+      providerId: 'openai',
+      modelId: 'gpt-image-2',
+      enabled: true,
+      connectionConfig: {
+        apiKey: 'openai-key',
+        baseURL: 'https://api.openai.com/v1'
+      },
+      paramOverrides: {}
+    }])
+
+    const exported = await modelManager.exportData()
+    const imported = exported.find(config => config.id === 'image-import-identity-only')
+
+    expect(imported?.providerId).toBe('openai')
+    expect(imported?.provider.id).toBe('openai')
+    expect(imported?.modelId).toBe('gpt-image-2')
+    expect(imported?.model.id).toBe('gpt-image-2')
+    expect(imported?.model.providerId).toBe('openai')
+  })
+
+  it('should infer identity from legacy provider/model snapshots on read', async () => {
+    await modelManager.ensureInitialized()
+    const existing = await modelManager.getConfig('image-seedream')
+    expect(existing).toBeDefined()
+
+    const legacySnapshot = {
+      ...existing!,
+      providerId: undefined,
+      modelId: undefined
+    }
+
+    await storageProvider.setItem(
+      CORE_SERVICE_KEYS.IMAGE_MODELS,
+      JSON.stringify({ 'legacy-image-snapshot': legacySnapshot })
+    )
+
+    const restored = await modelManager.getConfig('legacy-image-snapshot')
+
+    expect(restored?.providerId).toBe(existing?.provider.id)
+    expect(restored?.modelId).toBe(existing?.model.id)
+    expect(restored?.provider.id).toBe(existing?.provider.id)
+    expect(restored?.model.providerId).toBe(existing?.provider.id)
+  })
+
+  it('should export legacy provider/model snapshots with repaired identity fields', async () => {
+    await modelManager.ensureInitialized()
+    const existing = await modelManager.getConfig('image-seedream')
+    expect(existing).toBeDefined()
+
+    const legacySnapshot = {
+      ...existing!,
+      providerId: undefined,
+      modelId: undefined
+    }
+
+    await storageProvider.setItem(
+      CORE_SERVICE_KEYS.IMAGE_MODELS,
+      JSON.stringify({ 'legacy-image-export': legacySnapshot })
+    )
+
+    const exported = await modelManager.exportData()
+    const repaired = exported.find(config => config.id === 'legacy-image-export')
+
+    expect(repaired?.providerId).toBe(existing?.provider.id)
+    expect(repaired?.modelId).toBe(existing?.model.id)
+    expect(repaired?.provider.id).toBe(existing?.provider.id)
+    expect(repaired?.model.providerId).toBe(existing?.provider.id)
+  })
 })

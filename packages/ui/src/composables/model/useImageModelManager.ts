@@ -7,6 +7,7 @@ import type {
   ImageProvider,
   ImageModel,
   ImageModelConfig,
+  ImageModelConfigInput,
   IImageAdapterRegistry,
   IImageModelManager,
   IImageService
@@ -603,7 +604,6 @@ export function useImageModelManager() {
     isSaving.value = true
 
     try {
-      // 从缓存中获取provider信息
       const cachedProvider = providers.value.find(p => p.id === selectedProviderId.value)
 
       if (!cachedProvider) {
@@ -625,12 +625,11 @@ export function useImageModelManager() {
         }
       }
 
-      // 组装完整的自包含配置
-      const completeConfig: ImageModelConfig = {
+      // Manager owns authoritative provider/model metadata resolution.
+      const completeConfig: ImageModelConfigInput = {
         ...configForm.value,
-        // 嵌入完整的provider和model信息
-        provider: cachedProvider,
-        model: cachedModel
+        providerId: selectedProviderId.value,
+        modelId: selectedModelId.value
       }
 
       if (configForm.value.id) {

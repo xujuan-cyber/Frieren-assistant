@@ -104,6 +104,8 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
       id: provider.id,
       name: provider.name,
       enabled: enabled,
+      providerId: provider.id,
+      modelId: defaultModel.id,
       providerMeta: provider,
       modelMeta: defaultModel,
       connectionConfig,
@@ -153,6 +155,8 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
     id: 'custom',
     name: 'OpenAI Compatible (Custom)',
     enabled: hasExplicitCustomConfig,
+    providerId: 'openai-compatible',
+    modelId: customModelMeta.id,
     providerMeta: openaiCompatibleAdapter.getProvider(),
     modelMeta: customModelMeta,
     connectionConfig: {
@@ -176,6 +180,8 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
     activationState: {
       userConfigured: false
     },
+    providerId: chromeBuiltInProvider.id,
+    modelId: chromeBuiltInModel.id,
     providerMeta: chromeBuiltInProvider,
     modelMeta: chromeBuiltInModel,
     connectionConfig: {},

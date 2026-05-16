@@ -5,6 +5,7 @@ import { DashScopeImageAdapter } from '../../../src/services/image/adapters/dash
 import type {
   IImageModelManager,
   ImageModelConfig,
+  ImageModelConfigInput,
   ImageRequest,
   MultiImageGenerationRequest,
   IImageAdapterRegistry,
@@ -167,14 +168,14 @@ class MockImageModelManager implements IImageModelManager {
     })
   }
 
-  async addConfig(config: ImageModelConfig): Promise<void> {
-    this.configs.set(config.id, config)
+  async addConfig(config: ImageModelConfigInput): Promise<void> {
+    this.configs.set(config.id, config as ImageModelConfig)
   }
 
-  async updateConfig(id: string, updates: Partial<ImageModelConfig>): Promise<void> {
+  async updateConfig(id: string, updates: Partial<ImageModelConfigInput>): Promise<void> {
     const existing = this.configs.get(id)
     if (existing) {
-      this.configs.set(id, { ...existing, ...updates })
+      this.configs.set(id, { ...existing, ...updates } as ImageModelConfig)
     }
   }
 

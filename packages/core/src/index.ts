@@ -99,6 +99,7 @@ export type {
   ImageResultItem,
   ImageProgressHandlers,
   ImageModelConfig,
+  ImageModelConfigInput,
   IImageModelManager,
   IImageProviderAdapter,
   IImageAdapterRegistry,

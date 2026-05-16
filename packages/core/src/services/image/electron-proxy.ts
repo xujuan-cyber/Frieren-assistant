@@ -4,6 +4,7 @@ import type {
   ImageRequest,
   ImageResult,
   ImageModelConfig,
+  ImageModelConfigInput,
   ImageModel,
   Text2ImageRequest,
   Image2ImageRequest,
@@ -30,8 +31,8 @@ type ElectronAPI = {
   imageModel: {
     ensureInitialized: () => Promise<void>
     isInitialized: () => Promise<boolean>
-    addConfig: (config: ImageModelConfig) => Promise<void>
-    updateConfig: (id: string, updates: Partial<ImageModelConfig>) => Promise<void>
+    addConfig: (config: ImageModelConfigInput) => Promise<void>
+    updateConfig: (id: string, updates: Partial<ImageModelConfigInput>) => Promise<void>
     deleteConfig: (id: string) => Promise<void>
     getConfig: (id: string) => Promise<ImageModelConfig | null>
     getAllConfigs: () => Promise<ImageModelConfig[]>
@@ -123,12 +124,12 @@ export class ElectronImageModelManagerProxy implements IImageModelManager {
   }
 
   // 新的配置 CRUD 操作
-  async addConfig(config: ImageModelConfig): Promise<void> {
+  async addConfig(config: ImageModelConfigInput): Promise<void> {
     const safeCfg = safeSerializeForIPC(config)
     await this.electronAPI.imageModel.addConfig(safeCfg)
   }
 
-  async updateConfig(id: string, updates: Partial<ImageModelConfig>): Promise<void> {
+  async updateConfig(id: string, updates: Partial<ImageModelConfigInput>): Promise<void> {
     const safeUpdates = safeSerializeForIPC(updates)
     await this.electronAPI.imageModel.updateConfig(id, safeUpdates)
   }

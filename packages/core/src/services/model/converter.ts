@@ -78,6 +78,8 @@ export async function convertLegacyToTextModelConfigWithRegistry(
       id: key,
       name: legacy.name,
       enabled: legacy.enabled,
+      providerId,
+      modelId: modelMeta.id,
       providerMeta: providerMeta,
       modelMeta: modelMeta,
       connectionConfig: {
@@ -102,6 +104,8 @@ export async function convertLegacyToTextModelConfigWithRegistry(
         id: key,
         name: legacy.name,
         enabled: false, // 转换失败，禁用配置
+        providerId: providerMeta.id,
+        modelId: modelMeta.id,
         providerMeta: providerMeta,
         modelMeta: modelMeta,
         connectionConfig: {
@@ -178,6 +182,8 @@ export function convertLegacyToTextModelConfig(
     id: key,
     name: legacy.name,
     enabled: legacy.enabled,
+    providerId,
+    modelId: modelMeta.id,
     providerMeta: providerMeta,
     modelMeta: modelMeta,
     connectionConfig: {

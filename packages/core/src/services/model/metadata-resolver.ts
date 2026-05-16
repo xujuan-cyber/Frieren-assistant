@@ -1,5 +1,10 @@
 import type { ITextAdapterRegistry } from '../llm/types'
-import type { TextModel, TextProvider } from './types'
+import type { TextModel, TextModelConfig, TextProvider } from './types'
+
+export interface TextModelIdentity {
+  providerId: string
+  modelId: string
+}
 
 export interface ResolveTextModelMetadataInput {
   providerId: string
@@ -12,6 +17,21 @@ export interface ResolveTextModelMetadataInput {
 export interface ResolvedTextModelMetadata {
   providerMeta: TextProvider
   modelMeta: TextModel
+}
+
+export function getTextModelConfigIdentity(
+  config: Partial<TextModelConfig>
+): TextModelIdentity | null {
+  const providerId = config.providerId
+    || config.providerMeta?.id
+    || config.modelMeta?.providerId
+  const modelId = config.modelId || config.modelMeta?.id
+
+  if (!providerId || !modelId) {
+    return null
+  }
+
+  return { providerId, modelId }
 }
 
 /**
@@ -50,4 +70,8 @@ export function hasTextModelMetadataIdentityMismatch(
   modelMeta: Pick<TextModel, 'providerId'> | undefined
 ): boolean {
   return !!providerMeta?.id && !!modelMeta?.providerId && providerMeta.id !== modelMeta.providerId
+}
+
+export function hasExplicitTextModelIdentity(config: Partial<TextModelConfig>): boolean {
+  return !!config.providerId || !!config.modelId
 }

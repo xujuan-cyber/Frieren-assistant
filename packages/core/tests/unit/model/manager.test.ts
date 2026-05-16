@@ -27,6 +27,8 @@ describe('ModelManager', () => {
       id,
       name,
       enabled,
+      providerId: provider.id,
+      modelId: (models[0] || adapter.buildDefaultModel('test-model')).id,
       providerMeta: provider,
       modelMeta: models[0] || adapter.buildDefaultModel('test-model'),
       connectionConfig: {
@@ -82,6 +84,8 @@ describe('ModelManager', () => {
       const compatibleProvider = registry.getAdapter('openai-compatible').getProvider();
       const invalidModel: TextModelConfig = {
         ...openaiModel,
+        providerId: undefined,
+        modelId: undefined,
         providerMeta: compatibleProvider
       };
 
@@ -292,6 +296,7 @@ describe('ModelManager', () => {
         ...existing!,
         id: 'custom-deepseek',
         name: 'Custom DeepSeek',
+        modelId: 'custom-deepseek-model',
         modelMeta: {
           ...existing!.modelMeta,
           id: 'custom-deepseek-model',
@@ -456,6 +461,68 @@ describe('ModelManager', () => {
       await expect(modelManager.updateModel('updateMismatchKey', {
         providerMeta: registry.getAdapter('openai-compatible').getProvider()
       })).rejects.toThrow(ModelConfigError);
+    });
+
+    it('should resolve metadata from providerId/modelId identity updates', async () => {
+      const originalModel = createTextModelConfig('identityUpdateKey', 'OriginalName', true, 'test_api_key', 'openai');
+      await modelManager.addModel('identityUpdateKey', originalModel);
+
+      await modelManager.updateModel('identityUpdateKey', {
+        providerId: 'openai-compatible',
+        modelId: 'vendor-custom-model'
+      });
+
+      const updated = await modelManager.getModel('identityUpdateKey');
+      expect(updated?.providerId).toBe('openai-compatible');
+      expect(updated?.providerMeta.id).toBe('openai-compatible');
+      expect(updated?.modelId).toBe('vendor-custom-model');
+      expect(updated?.modelMeta.id).toBe('vendor-custom-model');
+      expect(updated?.modelMeta.providerId).toBe('openai-compatible');
+    });
+
+    it('should repair stale stored metadata when explicit identity fields exist', async () => {
+      const originalModel = createTextModelConfig('staleStoredKey', 'OriginalName', true, 'test_api_key', 'openai');
+      await storageProvider.setItem('models', JSON.stringify({
+        staleStoredKey: {
+          ...originalModel,
+          providerId: 'openai-compatible',
+          modelId: 'vendor-custom-model'
+        }
+      }));
+
+      const updated = await modelManager.getModel('staleStoredKey');
+
+      expect(updated?.providerId).toBe('openai-compatible');
+      expect(updated?.providerMeta.id).toBe('openai-compatible');
+      expect(updated?.modelId).toBe('vendor-custom-model');
+      expect(updated?.modelMeta.providerId).toBe('openai-compatible');
+    });
+
+    it('should import identity-only text model configs by resolving metadata', async () => {
+      await modelManager.importData([{
+        id: 'identity-import',
+        name: 'Identity Import',
+        enabled: true,
+        providerId: 'openai-compatible',
+        modelId: 'imported-custom-model',
+        connectionConfig: {
+          apiKey: 'import-key',
+          baseURL: 'https://gateway.example.com/v1'
+        },
+        paramOverrides: {}
+      }]);
+
+      const imported = await modelManager.getModel('identity-import');
+      expect(imported?.providerMeta.id).toBe('openai-compatible');
+      expect(imported?.modelMeta.id).toBe('imported-custom-model');
+      expect(imported?.modelMeta.providerId).toBe('openai-compatible');
+
+      const exported = await modelManager.exportData();
+      const exportedImport = exported.find(config => config.id === 'identity-import');
+      expect(exportedImport?.providerId).toBe('openai-compatible');
+      expect(exportedImport?.modelId).toBe('imported-custom-model');
+      expect(exportedImport?.providerMeta.id).toBe('openai-compatible');
+      expect(exportedImport?.modelMeta.providerId).toBe('openai-compatible');
     });
   });
 
