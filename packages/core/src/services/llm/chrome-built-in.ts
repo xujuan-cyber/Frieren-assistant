@@ -73,6 +73,7 @@ export interface ChromeLanguageModelMonitor {
 }
 
 export type ChromeLanguageModelPromptRole = 'system' | 'user' | 'assistant'
+export type ChromeLanguageModelSupportedLanguage = 'en' | 'es' | 'ja'
 
 export interface ChromeLanguageModelPrompt {
   role: ChromeLanguageModelPromptRole
@@ -81,14 +82,29 @@ export interface ChromeLanguageModelPrompt {
 
 export type ChromeLanguageModelPromptInput = string | ChromeLanguageModelPrompt[]
 
-export interface ChromeLanguageModelCreateOptions {
+export interface ChromeLanguageModelTextExpectation {
+  type: 'text'
+  languages: ChromeLanguageModelSupportedLanguage[]
+}
+
+export interface ChromeLanguageModelLanguageOptions {
+  expectedInputs?: ChromeLanguageModelTextExpectation[]
+  expectedOutputs?: ChromeLanguageModelTextExpectation[]
+}
+
+export interface ChromeLanguageModelCreateOptions extends ChromeLanguageModelLanguageOptions {
   initialPrompts?: ChromeLanguageModelPrompt[]
   monitor?: (monitor: ChromeLanguageModelMonitor) => void
 }
 
 export interface ChromeLanguageModelGlobal {
-  availability(options?: Record<string, unknown>): Promise<Exclude<ChromeBuiltInAvailability, 'api-missing'>>
+  availability(options?: ChromeLanguageModelLanguageOptions): Promise<Exclude<ChromeBuiltInAvailability, 'api-missing'>>
   create(options?: ChromeLanguageModelCreateOptions): Promise<ChromeLanguageModelSession>
+}
+
+export const CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS: ChromeLanguageModelLanguageOptions = {
+  expectedInputs: [{ type: 'text', languages: ['en'] }],
+  expectedOutputs: [{ type: 'text', languages: ['en'] }]
 }
 
 declare global {
@@ -103,7 +119,7 @@ const getLanguageModel = (): ChromeLanguageModelGlobal | undefined => {
 }
 
 export const checkChromeBuiltInAvailability = async (
-  options?: Record<string, unknown>
+  options?: ChromeLanguageModelLanguageOptions
 ): Promise<ChromeBuiltInStatus> => {
   const languageModel = getLanguageModel()
   if (!languageModel) {
@@ -111,7 +127,10 @@ export const checkChromeBuiltInAvailability = async (
   }
 
   try {
-    const availability = await languageModel.availability(options)
+    const availability = await languageModel.availability({
+      ...CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS,
+      ...options
+    })
     return { availability }
   } catch (error) {
     return {
@@ -129,7 +148,10 @@ export const createChromeBuiltInSession = async (
     throw new Error('Chrome built-in AI is not available in this browser')
   }
 
-  return await languageModel.create(options)
+  return await languageModel.create({
+    ...CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS,
+    ...options
+  })
 }
 
 export const prepareChromeBuiltInModel = async (

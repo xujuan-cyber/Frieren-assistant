@@ -32,7 +32,7 @@ const messages = {
       "customApiHint": "用于接入自定义 OpenAI 兼容接口。你可以配置 Base URL、自定义模型名，并选择 Chat Completions 或 Responses 请求风格。",
       "dashscopeHint": "阿里百炼已支持 OpenAI 兼容的 Chat Completions 与 Responses 接口。当前可直接在这里切换请求风格进行使用。",
       "minimaxHint": "默认地址是 MiniMax 海外 OpenAI 兼容接口。国内用户请将 API 地址改为 https://api.minimaxi.com/v1；这里不要使用 MiniMax 的 Anthropic 格式地址。",
-      "chromeBuiltInHint": "使用 Chrome 自带的本地 Gemini Nano 模型，无需第三方 API Key。模型由 Chrome 管理，首次使用可能需要用户明确下载。"
+      "chromeBuiltInHint": "使用 Chrome 自带的本地 Gemini Nano 模型，无需第三方 API Key。模型由 Chrome 管理，首次使用可能需要用户明确下载。目前 Chrome 官方仅支持英语、西班牙语、日语输出，本提供商会默认按英语会话兼容处理。"
     },
     "chromeBuiltIn": {
       "downloadAction": "下载/准备本地模型",
@@ -51,7 +51,7 @@ const messages = {
       },
       "status": {
         "checking": "正在检查浏览器是否提供 Prompt API 以及本地模型是否已准备好。",
-        "available": "可以直接使用，无需填写 API 地址或密钥。",
+        "available": "可以直接使用，无需填写 API 地址或密钥。当前会按英语输出能力创建会话；Chrome 官方目前仅支持英语、西班牙语、日语输出。",
         "downloadable": "你的 Chrome 支持该能力，但本地模型尚未下载。只有点击下方按钮后，才会请求 Chrome 下载模型。",
         "downloading": "Chrome 正在下载模型。下载可能需要一些时间，完成后可以直接测试或保存启用。",
         "unavailable": "当前浏览器、设备、用户配置或企业策略可能不支持该能力。你仍然可以配置其他文本模型提供商。",

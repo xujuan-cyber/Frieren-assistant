@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS,
   checkChromeBuiltInAvailability,
+  createChromeBuiltInSession,
   prepareChromeBuiltInModel
 } from '../../../src/services/llm/chrome-built-in'
 import { ChromeBuiltInAdapter } from '../../../src/services/llm/adapters/chrome-built-in-adapter'
@@ -27,7 +29,21 @@ describe('Chrome built-in AI integration', () => {
       availability: 'downloadable'
     })
     expect(availability).toHaveBeenCalledTimes(1)
+    expect(availability).toHaveBeenCalledWith(CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS)
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('creates sessions with explicit default text language expectations', async () => {
+    const session = { destroy: vi.fn() }
+    const create = vi.fn().mockResolvedValue(session)
+    vi.stubGlobal('LanguageModel', {
+      availability: vi.fn(),
+      create
+    })
+
+    await expect(createChromeBuiltInSession()).resolves.toBe(session)
+
+    expect(create).toHaveBeenCalledWith(CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS)
   })
 
   it('prepares the model only through the explicit prepare path', async () => {
@@ -50,6 +66,10 @@ describe('Chrome built-in AI integration', () => {
       availability: 'available'
     })
     expect(create).toHaveBeenCalledTimes(1)
+    expect(create).toHaveBeenCalledWith({
+      ...CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS,
+      monitor: expect.any(Function)
+    })
     expect(onProgress).toHaveBeenCalledWith({ loaded: 0.5 })
   })
 
@@ -115,6 +135,7 @@ describe('Chrome built-in AI integration', () => {
     })
 
     expect(create).toHaveBeenCalledWith({
+      ...CHROME_BUILT_IN_DEFAULT_LANGUAGE_OPTIONS,
       initialPrompts: [
         { role: 'system', content: 'Follow the system prompt.' },
         { role: 'user', content: 'First question' },

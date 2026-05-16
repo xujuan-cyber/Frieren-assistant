@@ -64,6 +64,7 @@ export {
 export type {
   ChromeBuiltInAvailability,
   ChromeBuiltInDownloadProgress,
+  ChromeLanguageModelLanguageOptions,
   ChromeBuiltInStatus
 } from './services/llm/chrome-built-in'
 export { ElectronLLMProxy } from './services/llm/electron-proxy'

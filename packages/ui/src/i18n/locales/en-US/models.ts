@@ -31,7 +31,7 @@ const messages = {
       "customApiHint": "Use this for custom OpenAI-compatible endpoints. You can configure the base URL, use your own model name, and choose Chat Completions or Responses as the request style.",
       "dashscopeHint": "DashScope supports both OpenAI-compatible Chat Completions and Responses APIs. You can switch the request style here directly.",
       "minimaxHint": "The default endpoint is the global MiniMax OpenAI-compatible API. Mainland China users should set API URL to https://api.minimaxi.com/v1. Do not use Anthropic-format MiniMax endpoints here.",
-      "chromeBuiltInHint": "Use Chrome's local Gemini Nano model without a third-party API key. Chrome manages the model, and first use may require an explicit user download."
+      "chromeBuiltInHint": "Use Chrome's local Gemini Nano model without a third-party API key. Chrome manages the model, and first use may require an explicit user download. Chrome currently officially supports English, Spanish, and Japanese output; this provider defaults to English for compatibility."
     },
     "chromeBuiltIn": {
       "downloadAction": "Download / prepare local model",
@@ -50,7 +50,7 @@ const messages = {
       },
       "status": {
         "checking": "Checking whether this browser exposes the Prompt API and whether the local model is ready.",
-        "available": "Ready to use without an API URL or API key.",
+        "available": "Ready to use without an API URL or API key. Sessions default to English because Chrome currently officially supports English, Spanish, and Japanese output.",
         "downloadable": "Your Chrome supports this feature, but the local model is not downloaded yet. Chrome is only asked to download it after you click the button below.",
         "downloading": "Chrome is downloading the model. This may take a while; once it finishes, you can test or save this model.",
         "unavailable": "This browser, device, user profile, or managed policy may not support the feature. You can still configure another text model provider.",
