@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.4] - 2026-05-16
+- EN: This patch adds Grok text/image and Chrome built-in AI provider support, keeps local providers opt-in by default, restores web root env loading while isolating extension release builds, and softens themed tooltip surfaces. See [Release Notes (EN)](releases/v2.11.4.en.md).
+- 中文：本次补丁新增 Grok 文本 / 图像和 Chrome built-in AI provider，保持本地 provider 默认显式启用，恢复 Web 根环境变量加载并隔离扩展发布构建，同时优化主题化 tooltip 视觉。参见 [版本说明（中文）](releases/v2.11.4.zh-CN.md)。
+
 ## [2.11.3] - 2026-05-14
 - EN: This patch improves model provider selection and themed UI polish, enables Prompt Garden inspiration image previews, clarifies built-in template labels, and adds analytics plus support links. See [Release Notes (EN)](releases/v2.11.3.en.md).
 - 中文：本次补丁优化模型供应商选择与主题化 UI，启用 Prompt Garden 灵感图片预览，澄清内置模板标签，并接入 analytics 与支持入口。参见 [版本说明（中文）](releases/v2.11.3.zh-CN.md)。
