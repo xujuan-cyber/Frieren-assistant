@@ -98,6 +98,41 @@ ACCESS_PASSWORD=your_password
 
 站点会先显示密码页。对应逻辑由根目录的 `middleware.js` 和 `api/auth.js` 提供。
 
+## 部署到 Cloudflare Pages
+
+推荐流程和 Vercel 的推荐方式类似：先 Fork 项目，再在 Cloudflare Pages 中导入自己的 fork。这样后续你同步 upstream 更新后，Cloudflare Pages 会自动重新部署。
+
+1. Fork 本仓库
+2. 在 Cloudflare Dashboard 中进入 **Workers & Pages**
+3. 选择 **Create application** -> **Pages** -> **Connect to Git**
+4. 选择你 fork 后的 `prompt-optimizer` 仓库
+5. 使用下面的构建配置：
+
+| 配置项 | 推荐值 |
+| --- | --- |
+| Framework preset | `None` 或留空 |
+| Root directory | `/` 或留空 |
+| Build command | `pnpm -F @prompt-optimizer/core build && pnpm -F @prompt-optimizer/ui build && pnpm -F @prompt-optimizer/web build` |
+| Build output directory | `packages/web/dist` |
+
+建议在 Cloudflare Pages 环境变量中设置：
+
+```bash
+NODE_VERSION=22
+PNPM_VERSION=10.6.1
+```
+
+如果你想预置模型 API Key，可以继续添加 `VITE_OPENAI_API_KEY`、`VITE_GEMINI_API_KEY` 等 `VITE_*` 变量。也可以不在部署平台配置 API Key，让用户在应用界面的模型管理中自行填写。
+
+### 可选：Cloudflare Access 和 Web Analytics
+
+Cloudflare Pages 不会使用 Vercel 的 `ACCESS_PASSWORD`、`middleware.js` 或 `/api/auth`。如果你需要限制访问，推荐在 Cloudflare Zero Trust 中为 Pages 域名配置 Cloudflare Access。
+
+Cloudflare Web Analytics 可以在 Pages 项目的 **Metrics** -> **Web Analytics** 中启用。Cloudflare 会在后续部署中自动注入统计脚本，不需要安装 `@vercel/analytics` 之类的前端依赖。
+
+!!! note
+    当前 Web 版使用 hash 路由。Cloudflare Web Analytics 可以统计站点访问和性能数据，但不会自动把 `/#/xxx` 这类 hash 内页面切换当作独立页面浏览。
+
 ## 部署到其他静态托管
 
 本地构建：

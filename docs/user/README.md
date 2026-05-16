@@ -25,6 +25,8 @@
 ### 自部署
 - [Vercel部署指南（中文）](./deployment/vercel.md) - 在Vercel上部署Web版
 - [Vercel部署指南（英文）](./deployment/vercel_en.md) - Vercel deployment guide (English)
+- [Cloudflare Pages部署指南（中文）](./deployment/cloudflare-pages.md) - 在 Cloudflare Pages 上部署 Web 前端
+- [Cloudflare Pages Deployment Guide (English)](./deployment/cloudflare-pages_en.md) - Deploy the Web frontend on Cloudflare Pages
 
 ## ❓ 常见问题
 
