@@ -123,6 +123,19 @@ describe('model defaults provider env mapping', () => {
     expect(builtinModelIds).toContain('cloudflare')
   })
 
+  it('should include ollama but keep it disabled without explicit user configuration', () => {
+    const builtinModelIds = getBuiltinModelIds()
+    const models = getDefaultTextModels()
+
+    expect(builtinModelIds).toContain('ollama')
+    expect(models.ollama).toBeDefined()
+    expect(models.ollama.providerMeta.id).toBe('ollama')
+    expect(models.ollama.providerMeta.requiresApiKey).toBe(false)
+    expect(models.ollama.connectionConfig.apiKey).toBe('')
+    expect(models.ollama.connectionConfig.baseURL).toBe('http://localhost:11434/v1')
+    expect(models.ollama.enabled).toBe(false)
+  })
+
   it('should include cloudflare config and keep it disabled when credentials are empty', () => {
     const models = getDefaultTextModels()
 
@@ -155,15 +168,24 @@ describe('model defaults provider env mapping', () => {
     expect(models.cloudflare.connectionConfig.accountId).toBe('')
   })
 
-  it('should expose the custom preset as OpenAI-compatible with chat completions by default', () => {
+  it('should expose the custom preset as OpenAI-compatible with chat completions but keep it disabled by default', () => {
     const models = getDefaultTextModels()
 
     expect(models.custom).toBeDefined()
     expect(models.custom.providerMeta.id).toBe('openai-compatible')
     expect(models.custom.providerMeta.name).toBe('OpenAI Compatible (Custom)')
-    expect(models.custom.enabled).toBe(true)
+    expect(models.custom.enabled).toBe(false)
     expect(models.custom.connectionConfig.apiKey).toBe('')
     expect(models.custom.connectionConfig.requestStyle).toBe('chat_completions')
+  })
+
+  it('should enable the custom preset when explicit custom connection config is provided', () => {
+    process.env.VITE_CUSTOM_API_BASE_URL = 'http://localhost:11434/v1'
+
+    const models = getDefaultTextModels()
+
+    expect(models.custom.enabled).toBe(true)
+    expect(models.custom.connectionConfig.baseURL).toBe('http://localhost:11434/v1')
   })
 
   it('should expose VITE_CUSTOM_API_HEADERS on the custom preset connection config', () => {

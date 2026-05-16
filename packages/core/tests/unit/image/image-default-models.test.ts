@@ -86,6 +86,18 @@ describe('default image models', () => {
     expect(models['image-openrouter-nanobanana'].enabled).toBe(false)
   })
 
+  it('includes Ollama but keeps it disabled without explicit user configuration', () => {
+    const models = getDefaultImageModels(registry)
+    const ollamaConfig = models['image-ollama']
+
+    expect(ollamaConfig).toBeDefined()
+    expect(ollamaConfig.providerId).toBe('ollama')
+    expect(ollamaConfig.provider.requiresApiKey).toBe(false)
+    expect(ollamaConfig.connectionConfig?.apiKey).toBe('')
+    expect(ollamaConfig.connectionConfig?.baseURL).toBe('http://localhost:11434/v1')
+    expect(ollamaConfig.enabled).toBe(false)
+  })
+
   it('OpenRouter model has correct provider and model information', () => {
     process.env.VITE_OPENROUTER_API_KEY = 'test-key'
     const models = getDefaultImageModels(registry)

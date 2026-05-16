@@ -19,6 +19,7 @@ const PROVIDER_ENV_KEYS = {
   dashscope: ['VITE_DASHSCOPE_API_KEY'],
   openrouter: ['VITE_OPENROUTER_API_KEY'],
   modelscope: ['VITE_MODELSCOPE_API_KEY'],
+  ollama: [],
   minimax: ['VITE_MINIMAX_API_KEY'],
   cloudflare: ['VITE_CF_API_TOKEN'],
   grok: ['VITE_GROK_API_KEY', 'VITE_XAI_API_KEY']
@@ -31,6 +32,7 @@ const PROVIDER_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]
 };
 
 const PROVIDER_REQUIRED_CONNECTION_FIELDS: Record<string, string[]> = {
+  ollama: [],
   cloudflare: ['apiKey', 'accountId']
 };
 
@@ -40,6 +42,18 @@ function getFirstEnvValue(envKeys: readonly string[]): string {
     if (value) return value;
   }
   return '';
+}
+
+function hasConnectionValue(value: unknown): boolean {
+  return typeof value === 'string' ? value.trim().length > 0 : !!value;
+}
+
+function shouldEnableFromRequiredFields(
+  connectionConfig: Record<string, unknown>,
+  requiredConnectionFields: readonly string[]
+): boolean {
+  return requiredConnectionFields.length > 0
+    && requiredConnectionFields.every((field) => hasConnectionValue(connectionConfig[field]));
 }
 
 /**
@@ -83,10 +97,7 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
     // 使用模型的默认参数值初始化 paramOverrides
     const defaultParamValues = defaultModel.defaultParameterValues || {};
     const requiredConnectionFields = PROVIDER_REQUIRED_CONNECTION_FIELDS[providerId] || ['apiKey'];
-    const enabled = requiredConnectionFields.every((field) => {
-      const value = connectionConfig[field];
-      return typeof value === 'string' ? value.trim().length > 0 : !!value;
-    });
+    const enabled = shouldEnableFromRequiredFields(connectionConfig, requiredConnectionFields);
 
     result[providerId] = {
       id: provider.id,
@@ -103,9 +114,16 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
   // Custom 单独处理（baseURL 和 model 来自环境变量）
   const openaiCompatibleAdapter = adapterRegistry.getAdapter('openai-compatible');
   const customApiKey = getEnvVar('VITE_CUSTOM_API_KEY').trim();
-  const customBaseURL = getEnvVar('VITE_CUSTOM_API_BASE_URL');
-  const customModelId = getEnvVar('VITE_CUSTOM_API_MODEL') || 'custom-model';
+  const customBaseURL = getEnvVar('VITE_CUSTOM_API_BASE_URL').trim();
+  const rawCustomModelId = getEnvVar('VITE_CUSTOM_API_MODEL').trim();
+  const customModelId = rawCustomModelId || 'custom-model';
   const rawCustomHeaders = getEnvVar('VITE_CUSTOM_API_HEADERS');
+  const hasExplicitCustomConfig = [
+    customApiKey,
+    customBaseURL,
+    rawCustomModelId,
+    rawCustomHeaders
+  ].some((value) => value.trim().length > 0);
   let customHeaders: Record<string, string> | undefined;
   if (rawCustomHeaders) {
     try {
@@ -133,7 +151,7 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
   result.custom = {
     id: 'custom',
     name: 'OpenAI Compatible (Custom)',
-    enabled: true,
+    enabled: hasExplicitCustomConfig,
     providerMeta: openaiCompatibleAdapter.getProvider(),
     modelMeta: customModelMeta,
     connectionConfig: {

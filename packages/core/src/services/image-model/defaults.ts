@@ -14,6 +14,7 @@ const IMAGE_PROVIDER_ENV_KEYS = {
   seedream: ['VITE_SEEDREAM_API_KEY', 'VITE_ARK_API_KEY'],
   dashscope: ['VITE_DASHSCOPE_API_KEY'],
   modelscope: ['VITE_MODELSCOPE_API_KEY'],
+  ollama: [],
   cloudflare: ['VITE_CF_API_TOKEN'],
   grok: ['VITE_GROK_API_KEY', 'VITE_XAI_API_KEY']
 } as const
@@ -38,6 +39,7 @@ const IMAGE_BUILTIN_CONFIGS: readonly BuiltinImageConfigSpec[] = [
   { providerId: 'seedream', configId: 'image-seedream-50-lite', modelId: 'doubao-seedream-5-0-260128', displayName: 'Doubao Seedream 5.0 Lite' },
   { providerId: 'dashscope', configId: 'image-dashscope' },
   { providerId: 'modelscope', configId: 'image-modelscope' },
+  { providerId: 'ollama', configId: 'image-ollama' },
   { providerId: 'cloudflare', configId: 'image-cloudflare-flux-klein' },
   { providerId: 'grok', configId: 'image-grok-imagine' }
 ] as const
@@ -63,6 +65,7 @@ const IMAGE_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]>> 
  * 某些 Provider 需要多个字段都存在时才视为可用
  */
 const IMAGE_REQUIRED_CONNECTION_FIELDS: Record<string, string[]> = {
+  ollama: [],
   cloudflare: ['apiKey', 'accountId']
 }
 
@@ -72,6 +75,18 @@ function getFirstEnvValue(envKeys: readonly string[]): string {
     if (value) return value
   }
   return ''
+}
+
+function hasConnectionValue(value: unknown): boolean {
+  return typeof value === 'string' ? value.trim().length > 0 : !!value
+}
+
+function shouldEnableFromRequiredFields(
+  connectionConfig: Record<string, unknown>,
+  requiredConnectionFields: readonly string[]
+): boolean {
+  return requiredConnectionFields.length > 0
+    && requiredConnectionFields.every(field => hasConnectionValue(connectionConfig[field]))
 }
 
 /**
@@ -123,10 +138,7 @@ export function getDefaultImageModels(registry?: IImageAdapterRegistry): Record<
     }
 
     const requiredConnectionFields = IMAGE_REQUIRED_CONNECTION_FIELDS[providerId] || ['apiKey']
-    const enabled = requiredConnectionFields.every(field => {
-      const value = connectionConfig[field]
-      return typeof value === 'string' ? value.trim().length > 0 : !!value
-    })
+    const enabled = shouldEnableFromRequiredFields(connectionConfig, requiredConnectionFields)
 
     result[builtinConfig.configId] = {
       id: builtinConfig.configId,
