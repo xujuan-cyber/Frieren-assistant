@@ -227,7 +227,7 @@ docker run -d -p 8081:80 --env-file .env \
 
 #### 方式3：Docker Compose
 
-修改 `docker-compose.yml` 添加 `env_file` 配置：
+修改 `docker/docker-compose.yml` 添加 `env_file` 配置：
 
 ```yaml
 services:

@@ -3,7 +3,7 @@ services:
     image: linshen/prompt-optimizer:latest
 #     Alternatively, you can build from source:
 #     build:
-#        context: .
+#        context: ..
 #        dockerfile: Dockerfile
     container_name: prompt-optimizer
     restart: unless-stopped

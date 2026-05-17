@@ -18,13 +18,14 @@ prompt-optimizer/
 │   │   └── package.json # Web包配置
 │   └── extension/       # Chrome插件
 ├── docs/                # 项目文档
-├── tools/               # 工具脚本
+├── docker/              # Docker 配置和服务脚本
+├── scripts/             # 工具脚本
 └── ...配置文件
 ```
 
 ### 1.2 配置文件
 - `pnpm-workspace.yaml` - 工作区配置
-- `.env.example` - 环境变量示例
+- `env.local.example` - 环境变量示例
 - `package.json` - 项目配置
 - `.vscode/` - VSCode配置目录
 - `.gitignore` - Git忽略配置
@@ -36,7 +37,7 @@ prompt-optimizer/
 
 ### 1.4 文档目录 (docs/)
 - `README.md` - 文档索引
-- `development-guidelines.md` - 开发指南
+- `developer/development.md` - 开发指南
 - `project-status.md` - 项目状态
 - `project-structure.md` - 项目结构
 - `technical-documentation.md` - 技术文档

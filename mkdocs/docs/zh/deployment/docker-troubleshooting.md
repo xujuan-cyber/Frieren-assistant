@@ -12,8 +12,8 @@
 排查前先分清：
 
 - `docker run -p 8081:80 ...`
-- `docker compose up -d` 使用仓库自带 `docker-compose.yml`
-- `docker compose -f docker-compose.dev.yml up -d --build`
+- `docker compose -f docker/docker-compose.yml up -d` 使用仓库自带 Compose 配置
+- `docker compose -f docker/docker-compose.dev.yml up -d --build`
 
 因为三种方式默认端口不一样，很多“服务打不开”其实只是看错了端口。
 
@@ -41,8 +41,8 @@ docker logs prompt-optimizer
 如果你用的是仓库自带 compose，再看：
 
 ```bash
-docker compose ps
-docker compose logs -f
+docker compose -f docker/docker-compose.yml ps
+docker compose -f docker/docker-compose.yml logs -f
 ```
 
 常见原因：
@@ -54,8 +54,8 @@ docker compose logs -f
 端口对应关系：
 
 - `docker run -p 8081:80` 对外一般是 `8081`
-- `docker-compose.yml` 默认是 `28081`
-- `docker-compose.dev.yml` 默认是 `28082`
+- `docker/docker-compose.yml` 默认是 `28081`
+- `docker/docker-compose.dev.yml` 默认是 `28082`
 
 ## 常见问题 2：`/mcp` 访问失败
 
@@ -138,7 +138,7 @@ http://localhost:11434/v1
 http://host.docker.internal:11434/v1
 ```
 
-如果你使用 `docker-compose.dev.yml`，仓库已经帮你加了：
+如果你使用 `docker/docker-compose.dev.yml`，仓库已经帮你加了：
 
 ```yaml
 extra_hosts:
@@ -156,8 +156,8 @@ extra_hosts:
 可以按这个顺序试：
 
 ```bash
-docker compose down
-docker compose up -d
+docker compose -f docker/docker-compose.yml down
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 或者：

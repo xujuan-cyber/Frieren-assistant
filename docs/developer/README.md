@@ -4,7 +4,7 @@
 
 ## 🚀 快速开始
 
-- 快速开始指南（待创建） - 开发环境搭建和项目启动
+- [开发指南](./development.md) - 开发环境搭建、Docker 开发和常用工作流
 - [技术开发指南](./technical-development-guide.md) - 完整的技术栈和开发规范
 - [项目结构](./project-structure.md) - 项目文件和目录组织说明
 - [AI开发流程规范](./ai-development-workflow.md) - AI辅助开发的标准化流程

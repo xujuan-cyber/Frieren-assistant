@@ -16,7 +16,7 @@
 
 [Website](https://always200.com) | [Online Optimizer](https://prompt.always200.com) | [Prompt Garden](https://garden.always200.com) | [Docs](https://docs.always200.com) | [Quick Start](#quick-start) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna) | [💖 Support](https://ko-fi.com/linshenkx)
 
-[Development Docs](dev.md) | [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) | [Cloudflare Pages Deployment Guide](docs/user/deployment/cloudflare-pages_en.md) | [MCP Deployment Guide](docs/user/mcp-server_en.md) | [DeepWiki Docs](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead Docs](https://zread.ai/linshenkx/prompt-optimizer)
+[Development Docs](docs/developer/development.md) | [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) | [Cloudflare Pages Deployment Guide](docs/user/deployment/cloudflare-pages_en.md) | [MCP Deployment Guide](docs/user/mcp-server_en.md) | [DeepWiki Docs](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead Docs](https://zread.ai/linshenkx/prompt-optimizer)
 
 </div>
 
@@ -172,10 +172,10 @@ ACCESS_PASSWORD=your_password  # Set access password
 EOF
 
 # 3. Start the service
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 
 # 4. View logs
-docker compose logs -f
+docker compose -f docker/docker-compose.yml logs -f
 
 # 5. Access the service
 Web Interface: http://localhost:8081
@@ -183,9 +183,9 @@ MCP Server: http://localhost:8081/mcp
 ```
 </details>
 
-You can also directly edit the docker-compose.yml file to customize your configuration:
+You can also directly edit the docker/docker-compose.yml file to customize your configuration:
 <details>
-<summary>Click to view docker-compose.yml example</summary>
+<summary>Click to view docker/docker-compose.yml example</summary>
 
 ```yaml
 services:
@@ -317,7 +317,7 @@ Configure environment variables through the `-e` parameter when deploying with D
 </details>
 
 ## Local Development
-For detailed documentation, see [Development Documentation](dev.md)
+For detailed documentation, see [Development Documentation](docs/developer/development.md)
 
 <details>
 <summary>Click to view local development commands</summary>

@@ -189,7 +189,7 @@ docker run -d -p 8081:80 --env-file .env \
 
 #### Method 3: Docker Compose
 
-Modify `docker-compose.yml` to add `env_file` configuration:
+Modify `docker/docker-compose.yml` to add `env_file` configuration:
 
 ```yaml
 services:

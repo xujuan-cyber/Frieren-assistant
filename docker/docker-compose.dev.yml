@@ -2,7 +2,7 @@ services:
   prompt-optimizer:
     # 开发模式：从源码构建
     build:
-       context: .
+       context: ..
        dockerfile: Dockerfile
     image: linshen/prompt-optimizer:dev
     container_name: prompt-optimizer-dev
@@ -12,7 +12,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"  # 允许容器访问宿主机
     env_file:
-      - .env.local     # 读取本地环境变量文件
+      - ../.env.local     # 读取仓库根目录的本地环境变量文件
     healthcheck:
       test: ["CMD", "sh", "-c", "curl -f http://localhost:${NGINX_PORT:-80}/ && curl -f http://localhost:${NGINX_PORT:-80}/mcp"]
       interval: 30s

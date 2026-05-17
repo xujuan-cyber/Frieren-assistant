@@ -16,7 +16,7 @@
 
 [官网](https://always200.com) | [在线优化器](https://prompt.always200.com) | [提示词库](https://garden.always200.com) | [文档站](https://docs.always200.com) | [快速开始](#快速开始) | [Chrome插件](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna) | [💖赞助支持](images/other/sponsor_wx.jpg)
 
-[开发文档](dev.md) | [Vercel部署指南](docs/user/deployment/vercel.md) | [Cloudflare Pages部署指南](docs/user/deployment/cloudflare-pages.md) | [MCP部署使用说明](docs/user/mcp-server.md) | [DeepWiki文档](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead文档](https://zread.ai/linshenkx/prompt-optimizer)
+[开发文档](docs/developer/development.md) | [Vercel部署指南](docs/user/deployment/vercel.md) | [Cloudflare Pages部署指南](docs/user/deployment/cloudflare-pages.md) | [MCP部署使用说明](docs/user/mcp-server.md) | [DeepWiki文档](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead文档](https://zread.ai/linshenkx/prompt-optimizer)
 
 </div>
 
@@ -165,10 +165,10 @@ cp env.local.example .env
 # 编辑 .env 文件，填入实际的 API 密钥和配置
 
 # 3. 启动服务
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 
 # 4. 查看日志
-docker compose logs -f
+docker compose -f docker/docker-compose.yml logs -f
 
 # 5. 访问服务
 Web 界面：http://localhost:8081
@@ -176,9 +176,9 @@ MCP 服务器：http://localhost:8081/mcp
 ```
 </details>
 
-你还可以直接编辑docker-compose.yml文件，自定义配置：
+你还可以直接编辑 docker/docker-compose.yml 文件，自定义配置：
 <details>
-<summary>点击查看 docker-compose.yml 示例</summary>
+<summary>点击查看 docker/docker-compose.yml 示例</summary>
 
 ```yaml
 services:
@@ -313,7 +313,7 @@ Docker部署时通过 `-e` 参数配置环境变量：
 </details>
 
 ## 本地开发
-详细文档可查看 [开发文档](dev.md)
+详细文档可查看 [开发文档](docs/developer/development.md)
 
 <details>
 <summary>点击查看本地开发命令</summary>

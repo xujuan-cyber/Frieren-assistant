@@ -10,7 +10,7 @@ pnpm test
 pnpm test:unit
 pnpm test:fast
 
-# pre-commit 门禁：core/ui，不含 Playwright
+# 提交前快速门禁：core/ui，不含 Playwright
 pnpm test:gate
 
 # 提交前 / CI：门禁 + 关键 E2E 白名单

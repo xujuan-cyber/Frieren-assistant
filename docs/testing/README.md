@@ -5,7 +5,7 @@
 - `pnpm test`
   只跑单元测试，适合日常开发的快速反馈。
 - `pnpm test:gate`
-  运行 core/ui 的门禁测试，不含 Playwright E2E，适合 pre-commit。
+  运行 core/ui 的门禁测试，不含 Playwright E2E，适合提交前快速检查。
 - `pnpm test:gate:full`
   在 `test:gate` 基础上追加关键 E2E 白名单，适合提交前或 CI。
 
@@ -15,7 +15,7 @@
 # 日常开发：快速反馈
 pnpm test
 
-# pre-commit：core/ui 门禁，不含 E2E
+# 提交前快速门禁：core/ui，不含 E2E
 pnpm test:gate
 
 # 提交前 / CI：门禁 + 关键 E2E

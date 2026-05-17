@@ -123,7 +123,7 @@ docker run -d -p 8081:80 --name prompt-optimizer-local prompt-optimizer:local
 
 ## 更适合放进 `.env.local` 的内容
 
-如果你长期在本地开发，建议把这类变量放进 `.env.local`，再配合 `docker-compose.dev.yml`：
+如果你长期在本地开发，建议把这类变量放进 `.env.local`，再配合 `docker/docker-compose.dev.yml`：
 
 - 各种 `VITE_*` 模型配置
 - `ACCESS_USERNAME`
