@@ -57,9 +57,11 @@ cp env.local.example .env
 # 编辑.env文件，填入实际的API密钥
 ```
 
+由于 Compose 文件位于 `docker/` 目录下，下面的生产环境命令都显式传入仓库根目录的 `.env` 文件。
+
 ### 2. 启动服务
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
 ### 3. 访问服务
@@ -71,13 +73,13 @@ docker compose -f docker/docker-compose.yml up -d
 ### 4. 健康检查
 ```bash
 # 检查容器状态
-docker compose -f docker/docker-compose.yml ps
+docker compose --env-file .env -f docker/docker-compose.yml ps
 
 # 查看日志
-docker compose -f docker/docker-compose.yml logs -f
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
 
 # 查看MCP服务器日志
-docker compose -f docker/docker-compose.yml exec prompt-optimizer supervisorctl tail -f mcp-server
+docker compose --env-file .env -f docker/docker-compose.yml exec prompt-optimizer supervisorctl tail -f mcp-server
 ```
 
 ## MCP服务器API
@@ -111,21 +113,21 @@ curl -X POST http://localhost:8081/mcp \
 
 ### 查看服务状态
 ```bash
-docker compose -f docker/docker-compose.yml exec prompt-optimizer supervisorctl status
+docker compose --env-file .env -f docker/docker-compose.yml exec prompt-optimizer supervisorctl status
 ```
 
 ### 重启MCP服务器
 ```bash
-docker compose -f docker/docker-compose.yml exec prompt-optimizer supervisorctl restart mcp-server
+docker compose --env-file .env -f docker/docker-compose.yml exec prompt-optimizer supervisorctl restart mcp-server
 ```
 
 ### 查看详细日志
 ```bash
 # Nginx日志
-docker compose -f docker/docker-compose.yml exec prompt-optimizer tail -f /var/log/nginx/error.log
+docker compose --env-file .env -f docker/docker-compose.yml exec prompt-optimizer tail -f /var/log/nginx/error.log
 
 # MCP服务器日志
-docker compose -f docker/docker-compose.yml exec prompt-optimizer tail -f /var/log/supervisor/mcp-server.out.log
+docker compose --env-file .env -f docker/docker-compose.yml exec prompt-optimizer tail -f /var/log/supervisor/mcp-server.out.log
 ```
 
 ## 开发模式

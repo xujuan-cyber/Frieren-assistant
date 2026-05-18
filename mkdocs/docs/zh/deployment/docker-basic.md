@@ -49,10 +49,10 @@ docker run -d -p 8081:80 --restart unless-stopped --name prompt-optimizer \
 
 ## 使用仓库自带的 Docker Compose
 
-仓库 `docker/` 目录已经带了 `docker-compose.yml`，可以直接使用：
+仓库 `docker/` 目录已经带了 `docker-compose.yml`。如果你在仓库根目录放了 `.env`，需要在命令里显式传入：
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
 默认端口映射是：
@@ -69,8 +69,8 @@ docker compose -f docker/docker-compose.yml up -d
 常用命令：
 
 ```bash
-docker compose -f docker/docker-compose.yml logs -f
-docker compose -f docker/docker-compose.yml down
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
+docker compose --env-file .env -f docker/docker-compose.yml down
 ```
 
 ## 开发用 Compose

@@ -12,7 +12,7 @@
 排查前先分清：
 
 - `docker run -p 8081:80 ...`
-- `docker compose -f docker/docker-compose.yml up -d` 使用仓库自带 Compose 配置
+- `docker compose --env-file .env -f docker/docker-compose.yml up -d` 使用仓库自带 Compose 配置
 - `docker compose -f docker/docker-compose.dev.yml up -d --build`
 
 因为三种方式默认端口不一样，很多“服务打不开”其实只是看错了端口。
@@ -41,8 +41,8 @@ docker logs prompt-optimizer
 如果你用的是仓库自带 compose，再看：
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml logs -f
+docker compose --env-file .env -f docker/docker-compose.yml ps
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
 ```
 
 常见原因：
@@ -156,8 +156,8 @@ extra_hosts:
 可以按这个顺序试：
 
 ```bash
-docker compose -f docker/docker-compose.yml down
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file .env -f docker/docker-compose.yml down
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
 或者：

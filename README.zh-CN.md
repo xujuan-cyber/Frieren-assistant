@@ -160,15 +160,16 @@ docker run -d -p 8081:80 \
 git clone https://github.com/linshenkx/prompt-optimizer.git
 cd prompt-optimizer
 
-# 2. 可选：创建.env文件配置API密钥和访问认证
+# 2. 创建 .env 文件配置 API 密钥和访问认证
 cp env.local.example .env
 # 编辑 .env 文件，填入实际的 API 密钥和配置
+# docker-compose.yml 位于 docker/ 目录下，所以后续命令显式传入根目录 .env
 
 # 3. 启动服务
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 
 # 4. 查看日志
-docker compose -f docker/docker-compose.yml logs -f
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
 
 # 5. 访问服务
 Web 界面：http://localhost:8081

@@ -156,7 +156,7 @@ docker run -d -p 8081:80 \
 git clone https://github.com/linshenkx/prompt-optimizer.git
 cd prompt-optimizer
 
-# 2. Optional: Create .env file for API keys and authentication
+# 2. Create .env file for API keys and authentication
 cat > .env << EOF
 # API Key Configuration
 VITE_OPENAI_API_KEY=your_openai_api_key
@@ -171,11 +171,13 @@ ACCESS_USERNAME=your_username  # Optional, defaults to "admin"
 ACCESS_PASSWORD=your_password  # Set access password
 EOF
 
+# Because the compose file is under docker/, pass the root .env explicitly.
+
 # 3. Start the service
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 
 # 4. View logs
-docker compose -f docker/docker-compose.yml logs -f
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
 
 # 5. Access the service
 Web Interface: http://localhost:8081
