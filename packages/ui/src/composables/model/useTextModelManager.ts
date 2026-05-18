@@ -225,6 +225,13 @@ export function useTextModelManager() {
 
     return true
   })
+  const canSaveForm = computed(() => {
+    if (isSaving.value) return false
+    if (!form.value.name?.trim()) return false
+    if (!form.value.providerId?.trim()) return false
+    if (!form.value.modelId?.trim()) return false
+    return true
+  })
   const canRefreshModelOptions = computed(() => {
     return selectedProvider.value?.supportsDynamicModels && isConnectionConfigured.value && !isLoadingModelOptions.value
   })
@@ -322,6 +329,22 @@ export function useTextModelManager() {
       console.error('Failed to load provider models:', error)
       modelOptions.value = []
     }
+  }
+
+  const isUnknownIdentity = (value: unknown) => {
+    return typeof value !== 'string' || value.trim().length === 0 || value === 'unknown'
+  }
+
+  const getEditableIdentity = (model: TextModelConfig) => {
+    const providerId = model.providerId ?? model.providerMeta?.id ?? ''
+    const modelId = model.modelId ?? model.modelMeta?.id ?? ''
+    const providerExists = providers.value.some(provider => provider.id === providerId)
+
+    if (isUnknownIdentity(providerId) || isUnknownIdentity(modelId) || !providerExists) {
+      return { providerId: '', modelId: '' }
+    }
+
+    return { providerId, modelId }
   }
 
   const refreshChromeBuiltInStatus = async () => {
@@ -477,21 +500,25 @@ export function useTextModelManager() {
         id: '',
         name: `${model.name || id} (Copy)`,
         enabled: model.enabled,
-        providerId: model.providerId ?? model.providerMeta?.id ?? 'custom',
-        modelId: model.modelId ?? model.modelMeta?.id ?? '',
+        providerId: getEditableIdentity(model).providerId,
+        modelId: getEditableIdentity(model).modelId,
         connectionConfig: JSON.parse(JSON.stringify(model.connectionConfig ?? {})) as TextConnectionConfig,
         paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {},
         displayMaskedKey: false,
         originalApiKey: typeof model.connectionConfig?.apiKey === 'string' ? model.connectionConfig.apiKey : undefined,
-        defaultModel: String(model.modelId ?? model.modelMeta?.id ?? '')
+        defaultModel: getEditableIdentity(model).modelId
       }
-      editingModelMeta.value = model.modelMeta
+      editingModelMeta.value = form.value.modelId ? model.modelMeta : null
 
-      setProvider(form.value.providerId, {
-        autoSelectFirstModel: false,
-        resetOverrides: false,
-        resetConnectionConfig: false
-      })
+      if (form.value.providerId) {
+        setProvider(form.value.providerId, {
+          autoSelectFirstModel: false,
+          resetOverrides: false,
+          resetConnectionConfig: false
+        })
+      } else {
+        modelOptions.value = []
+      }
 
       if (!modelOptions.value.some(option => option.value === form.value.modelId) && form.value.modelId) {
         modelOptions.value.push({ value: form.value.modelId, label: form.value.modelId })
@@ -533,10 +560,14 @@ export function useTextModelManager() {
       resetConnectionConfig = true
     } = options
 
+    const repairingMissingProvider = !form.value.providerId && !!providerId
+    const shouldResetOverrides = resetOverrides && !repairingMissingProvider
+    const shouldResetConnectionConfig = resetConnectionConfig && !repairingMissingProvider
+
     form.value.providerId = providerId
     formConnectionStatus.value = null
     chromeBuiltInDownloadProgress.value = null
-    if (resetOverrides) {
+    if (shouldResetOverrides) {
       form.value.paramOverrides = {}
     }
 
@@ -553,7 +584,7 @@ export function useTextModelManager() {
     form.value.connectionConfig = computeConnectionConfig(
       form.value.connectionConfig,
       providerMeta,
-      resetConnectionConfig
+      shouldResetConnectionConfig
     ) as TextConnectionConfig
 
     if (autoSelectFirstModel && modelOptions.value.length > 0) {
@@ -561,7 +592,7 @@ export function useTextModelManager() {
       form.value.modelId = firstModelId
       form.value.defaultModel = firstModelId
       // 切换提供商后自动应用第一个模型的默认参数
-      if (firstModelId && providerId) {
+      if (firstModelId && providerId && !repairingMissingProvider) {
         advancedParameters.applyDefaultsFromModel(false)
       }
     }
@@ -614,21 +645,25 @@ export function useTextModelManager() {
         originalId: model.id,
         name: model.name,
         enabled: model.enabled,
-        providerId: model.providerId ?? model.providerMeta?.id ?? 'custom',
-        modelId: model.modelId ?? model.modelMeta?.id ?? '',
+        providerId: getEditableIdentity(model).providerId,
+        modelId: getEditableIdentity(model).modelId,
         connectionConfig,
         paramOverrides: model.paramOverrides ? JSON.parse(JSON.stringify(model.paramOverrides)) : {},
         displayMaskedKey: !!rawApiKey,
         originalApiKey: String(rawApiKey) || undefined,
-        defaultModel: String(model.modelId ?? model.modelMeta?.id ?? '')
+        defaultModel: getEditableIdentity(model).modelId
       }
-      editingModelMeta.value = model.modelMeta
+      editingModelMeta.value = form.value.modelId ? model.modelMeta : null
 
-      setProvider(form.value.providerId, {
-        autoSelectFirstModel: false,
-        resetOverrides: false,
-        resetConnectionConfig: false
-      })
+      if (form.value.providerId) {
+        setProvider(form.value.providerId, {
+          autoSelectFirstModel: false,
+          resetOverrides: false,
+          resetConnectionConfig: false
+        })
+      } else {
+        modelOptions.value = []
+      }
       if (!modelOptions.value.some(option => option.value === form.value.modelId) && form.value.modelId) {
         modelOptions.value.push({ value: form.value.modelId, label: form.value.modelId })
       }
@@ -860,6 +895,9 @@ export function useTextModelManager() {
 
   const saveForm = async () => {
     if (isSaving.value) return null
+    if (!canSaveForm.value) {
+      throw new Error('No provider or model selected')
+    }
     isSaving.value = true
     try {
       const customHeaderError = getCustomHeaderValidationMessage()
@@ -1010,6 +1048,7 @@ export function useTextModelManager() {
     form,
     formReady,
     isSaving,
+    canSaveForm,
     modalTitle,
     editingModelId,
     providerOptions,

@@ -1,4 +1,4 @@
-import { IModelManager, ModelConfig, TextModelConfig } from './types';
+import { IModelManager, ModelConfig, TextModel, TextModelConfig, TextProvider } from './types';
 import { IStorageProvider } from '../storage/types';
 import { StorageAdapter } from '../storage/adapter';
 import { getAllModels, getBuiltinModelIds } from './defaults';
@@ -285,6 +285,252 @@ export class ModelManager implements IModelManager {
     }
   }
 
+  private isRecord(value: unknown): value is Record<string, any> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+  }
+
+  private toOptionalString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+  }
+
+  private getProviderIdFromRaw(raw: Record<string, any>): string | undefined {
+    const providerId = this.toOptionalString(raw.providerId)
+      || this.toOptionalString(raw.providerMeta?.id)
+      || this.toOptionalString(raw.modelMeta?.providerId)
+      || this.toOptionalString(raw.provider)
+
+    return providerId === 'custom' ? 'openai-compatible' : providerId
+  }
+
+  private getModelIdFromRaw(raw: Record<string, any>): string | undefined {
+    return this.toOptionalString(raw.modelId)
+      || this.toOptionalString(raw.modelMeta?.id)
+      || this.toOptionalString(raw.defaultModel)
+  }
+
+  private createDisabledPlaceholderConfig(
+    key: string,
+    rawConfig: unknown,
+    error?: unknown
+  ): TextModelConfig {
+    const raw = this.isRecord(rawConfig) ? rawConfig : {}
+    const providerId = this.getProviderIdFromRaw(raw) || 'unknown'
+    const modelId = this.toOptionalString(raw.modelId)
+      || this.toOptionalString(raw.modelMeta?.id)
+      || this.toOptionalString(raw.defaultModel)
+      || 'unknown'
+    const providerMeta = this.resolvePlaceholderProviderMeta(providerId, raw.providerMeta)
+    const modelMeta = this.resolvePlaceholderModelMeta(providerId, modelId, raw.modelMeta)
+    const connectionConfig = this.isRecord(raw.connectionConfig)
+      ? { ...raw.connectionConfig }
+      : {
+          ...(this.toOptionalString(raw.apiKey) ? { apiKey: raw.apiKey } : {}),
+          ...(this.toOptionalString(raw.baseURL) ? { baseURL: raw.baseURL } : {})
+        }
+    const paramOverrides = this.isRecord(raw.paramOverrides)
+      ? { ...raw.paramOverrides }
+      : this.isRecord(raw.llmParams)
+        ? { ...raw.llmParams }
+        : {}
+
+    console.warn(
+      `[ModelManager] Failed to normalize model config ${key}, returning disabled placeholder:`,
+      error
+    )
+
+    return {
+      id: this.toOptionalString(raw.id) || key,
+      name: this.toOptionalString(raw.name) || `Invalid Model (${key})`,
+      enabled: false,
+      providerId,
+      modelId,
+      providerMeta,
+      modelMeta,
+      connectionConfig,
+      paramOverrides
+    }
+  }
+
+  private buildDefaultBackfilledConfig(
+    key: string,
+    rawConfig: unknown
+  ): TextModelConfig | null {
+    if (!this.isRecord(rawConfig)) {
+      return null
+    }
+
+    const defaultConfig = this.getDefaultModels()[key]
+    if (!defaultConfig) {
+      return null
+    }
+
+    const providerId = this.getProviderIdFromRaw(rawConfig)
+      || defaultConfig.providerId
+      || defaultConfig.providerMeta.id
+    const modelId = this.getModelIdFromRaw(rawConfig)
+      || defaultConfig.modelId
+      || defaultConfig.modelMeta.id
+    const repairedConfig = {
+      ...defaultConfig,
+      ...rawConfig,
+      id: this.toOptionalString(rawConfig.id) || defaultConfig.id,
+      name: this.toOptionalString(rawConfig.name) || defaultConfig.name,
+      enabled: typeof rawConfig.enabled === 'boolean' ? rawConfig.enabled : defaultConfig.enabled,
+      providerId,
+      modelId,
+      providerMeta: this.isRecord(rawConfig.providerMeta) && rawConfig.providerMeta.id === providerId
+        ? rawConfig.providerMeta as TextProvider
+        : defaultConfig.providerMeta,
+      modelMeta: this.isRecord(rawConfig.modelMeta) && rawConfig.modelMeta.id === modelId && rawConfig.modelMeta.providerId === providerId
+        ? rawConfig.modelMeta as TextModel
+        : defaultConfig.modelMeta,
+      connectionConfig: this.isRecord(rawConfig.connectionConfig)
+        ? { ...defaultConfig.connectionConfig, ...rawConfig.connectionConfig }
+        : { ...defaultConfig.connectionConfig },
+      paramOverrides: this.isRecord(rawConfig.paramOverrides)
+        ? { ...rawConfig.paramOverrides }
+        : defaultConfig.paramOverrides,
+      customParamOverrides: this.isRecord(rawConfig.customParamOverrides)
+        ? { ...rawConfig.customParamOverrides }
+        : defaultConfig.customParamOverrides
+    }
+
+    return this.migrateConfig(repairedConfig)
+  }
+
+  private resolvePlaceholderProviderMeta(
+    providerId: string,
+    existingProviderMeta: unknown
+  ): TextProvider {
+    if (this.isRecord(existingProviderMeta) && existingProviderMeta.id === providerId) {
+      return {
+        id: providerId,
+        name: this.toOptionalString(existingProviderMeta.name) || providerId,
+        description: this.toOptionalString(existingProviderMeta.description),
+        corsRestricted: existingProviderMeta.corsRestricted,
+        requiresApiKey: !!existingProviderMeta.requiresApiKey,
+        defaultBaseURL: this.toOptionalString(existingProviderMeta.defaultBaseURL) || '',
+        supportsDynamicModels: !!existingProviderMeta.supportsDynamicModels,
+        connectionSchema: this.isRecord(existingProviderMeta.connectionSchema)
+          ? existingProviderMeta.connectionSchema as TextProvider['connectionSchema']
+          : { required: [], optional: [], fieldTypes: {} },
+        apiKeyUrl: this.toOptionalString(existingProviderMeta.apiKeyUrl)
+      }
+    }
+
+    try {
+      return this.registry?.getAdapter(providerId).getProvider() || this.getUnknownProviderMeta(providerId)
+    } catch {
+      return this.getUnknownProviderMeta(providerId)
+    }
+  }
+
+  private resolvePlaceholderModelMeta(
+    providerId: string,
+    modelId: string,
+    existingModelMeta: unknown
+  ): TextModel {
+    if (
+      this.isRecord(existingModelMeta) &&
+      existingModelMeta.id === modelId &&
+      existingModelMeta.providerId === providerId
+    ) {
+      return {
+        id: modelId,
+        name: this.toOptionalString(existingModelMeta.name) || modelId,
+        description: this.toOptionalString(existingModelMeta.description),
+        providerId,
+        capabilities: this.isRecord(existingModelMeta.capabilities)
+          ? existingModelMeta.capabilities as TextModel['capabilities']
+          : { supportsTools: false },
+        parameterDefinitions: Array.isArray(existingModelMeta.parameterDefinitions)
+          ? existingModelMeta.parameterDefinitions
+          : [],
+        defaultParameterValues: this.isRecord(existingModelMeta.defaultParameterValues)
+          ? existingModelMeta.defaultParameterValues
+          : {}
+      }
+    }
+
+    try {
+      const adapter = this.registry?.getAdapter(providerId)
+      return adapter?.getModels().find((model) => model.id === modelId)
+        || adapter?.buildDefaultModel(modelId)
+        || this.getUnknownModelMeta(providerId, modelId)
+    } catch {
+      return this.getUnknownModelMeta(providerId, modelId)
+    }
+  }
+
+  private getUnknownProviderMeta(providerId: string): TextProvider {
+    return {
+      id: providerId,
+      name: providerId === 'unknown' ? 'Unknown Provider' : `Unknown Provider (${providerId})`,
+      description: 'This configuration could not be normalized. Please edit or delete it.',
+      requiresApiKey: false,
+      defaultBaseURL: '',
+      supportsDynamicModels: false,
+      connectionSchema: { required: [], optional: [], fieldTypes: {} }
+    }
+  }
+
+  private getUnknownModelMeta(providerId: string, modelId: string): TextModel {
+    return {
+      id: modelId,
+      name: modelId === 'unknown' ? 'Unknown Model' : `Unknown Model (${modelId})`,
+      description: 'This configuration could not be normalized. Please edit or delete it.',
+      providerId,
+      capabilities: {
+        supportsTools: false
+      },
+      parameterDefinitions: [],
+      defaultParameterValues: {}
+    }
+  }
+
+  private normalizeStoredTextModelConfig(
+    key: string,
+    rawConfig: unknown,
+    registry: ITextAdapterRegistry
+  ): TextModelConfig {
+    try {
+      let textConfig: TextModelConfig
+
+      if (isTextModelConfig(rawConfig)) {
+        textConfig = rawConfig as TextModelConfig;
+      } else if (isLegacyConfig(rawConfig)) {
+        textConfig = convertLegacyToTextModelConfig(key, rawConfig);
+      } else {
+        textConfig = convertLegacyToTextModelConfig(key, rawConfig as ModelConfig);
+      }
+
+      const migrated = this.migrateConfig(textConfig)
+      return this.normalizeTextModelConfig(
+        this.patchProviderMeta(this.patchDeepseekConfig(migrated)),
+        registry,
+        { allowLegacyMetadataMismatch: true }
+      )
+    } catch (error) {
+      const defaultBackfilledConfig = this.buildDefaultBackfilledConfig(key, rawConfig)
+      if (defaultBackfilledConfig) {
+        try {
+          return this.normalizeTextModelConfig(
+            this.patchProviderMeta(this.patchDeepseekConfig(defaultBackfilledConfig)),
+            registry,
+            { allowLegacyMetadataMismatch: true }
+          )
+        } catch (repairError) {
+          console.warn(
+            `[ModelManager] Failed to repair default model config ${key}, returning disabled placeholder:`,
+            repairError
+          )
+        }
+      }
+
+      return this.createDisabledPlaceholderConfig(key, rawConfig, error)
+    }
+  }
+
   private normalizeTextModelConfig(
     config: Partial<TextModelConfig> & Pick<TextModelConfig, 'id' | 'name' | 'enabled'>,
     registry: ITextAdapterRegistry,
@@ -538,35 +784,11 @@ export class ModelManager implements IModelManager {
   async getAllModels(): Promise<TextModelConfig[]> {
     await this.ensureInitialized();
     const models = await this.getModelsFromStorage();
-
-    // 转换为 TextModelConfig 数组（先完成格式/字段迁移）
-    const migratedConfigs = Object.entries(models).map(([key, config]) => {
-      let textConfig: TextModelConfig
-
-      // 检查是否已经是新格式
-      if (isTextModelConfig(config)) {
-        textConfig = config as TextModelConfig;
-      }
-      // 传统格式，转换为新格式
-      else if (isLegacyConfig(config)) {
-        textConfig = convertLegacyToTextModelConfig(key, config);
-      }
-      // 未知格式，尝试转换
-      else {
-        textConfig = convertLegacyToTextModelConfig(key, config as ModelConfig);
-      }
-
-      // 读时迁移：合并 customParamOverrides 到 paramOverrides
-      return this.migrateConfig(textConfig)
-    });
-
     const registry = await this.getRegistry()
 
-    return migratedConfigs.map((cfg) => this.normalizeTextModelConfig(
-      this.patchProviderMeta(this.patchDeepseekConfig(cfg)),
-      registry,
-      { allowLegacyMetadataMismatch: true }
-    ))
+    return Object.entries(models).map(([key, config]) =>
+      this.normalizeStoredTextModelConfig(key, config, registry)
+    )
   }
 
   /**
@@ -581,30 +803,8 @@ export class ModelManager implements IModelManager {
       return undefined;
     }
 
-    let textConfig: TextModelConfig
-
-    // 检查是否已经是新格式
-    if (isTextModelConfig(config)) {
-      textConfig = config as TextModelConfig;
-    }
-    // 传统格式，转换为新格式
-    else if (isLegacyConfig(config)) {
-      textConfig = convertLegacyToTextModelConfig(key, config);
-    }
-    // 未知格式，尝试转换
-    else {
-      textConfig = convertLegacyToTextModelConfig(key, config as ModelConfig);
-    }
-
-    // 读时迁移：合并 customParamOverrides 到 paramOverrides
-    const migrated = this.migrateConfig(textConfig)
     const registry = await this.getRegistry()
-
-    return this.normalizeTextModelConfig(
-      this.patchProviderMeta(this.patchDeepseekConfig(migrated)),
-      registry,
-      { allowLegacyMetadataMismatch: true }
-    )
+    return this.normalizeStoredTextModelConfig(key, config, registry)
   }
 
   /**

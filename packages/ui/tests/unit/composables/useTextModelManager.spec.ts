@@ -110,4 +110,97 @@ describe('useTextModelManager', () => {
       'x-auth-token': 'gateway-token',
     })
   })
+
+  it('treats unknown placeholder configs as unselected drafts and preserves repair inputs', async () => {
+    const registry = new TextAdapterRegistry()
+    const brokenConfig: TextModelConfig = {
+      id: 'broken-model',
+      name: 'Broken Model',
+      enabled: false,
+      providerId: 'unknown',
+      modelId: 'unknown',
+      providerMeta: {
+        id: 'unknown',
+        name: 'Unknown Provider',
+        requiresApiKey: false,
+        defaultBaseURL: '',
+        supportsDynamicModels: false,
+        connectionSchema: { required: [], optional: [], fieldTypes: {} },
+      },
+      modelMeta: {
+        id: 'unknown',
+        name: 'Unknown Model',
+        providerId: 'unknown',
+        capabilities: {
+          supportsTools: false,
+        },
+        parameterDefinitions: [],
+        defaultParameterValues: {},
+      },
+      connectionConfig: {
+        apiKey: 'preserve-key',
+        baseURL: 'https://gateway.example.com/v1',
+      },
+      paramOverrides: {
+        temperature: 0.2,
+      },
+    }
+
+    const modelManager = {
+      getAllModels: vi.fn().mockResolvedValue([brokenConfig]),
+      getModel: vi.fn(async (id: string) => (id === 'broken-model' ? brokenConfig : undefined)),
+      addModel: vi.fn().mockResolvedValue(undefined),
+      deleteModel: vi.fn().mockResolvedValue(undefined),
+      updateModel: vi.fn().mockResolvedValue(undefined),
+      enableModel: vi.fn().mockResolvedValue(undefined),
+      disableModel: vi.fn().mockResolvedValue(undefined),
+    }
+    const llmService = {
+      testConnection: vi.fn().mockResolvedValue(undefined),
+      fetchModelList: vi.fn().mockResolvedValue([]),
+    }
+
+    const Harness = defineComponent({
+      setup() {
+        const manager = useTextModelManager()
+        return { manager }
+      },
+      template: '<div />',
+    })
+
+    const wrapper = mount(Harness, {
+      global: {
+        provide: {
+          services: ref({
+            modelManager,
+            llmService,
+            textAdapterRegistry: registry,
+          }),
+        },
+      },
+    })
+
+    const manager = (wrapper.vm as any).manager as ReturnType<typeof useTextModelManager>
+    await manager.prepareForEdit('broken-model')
+
+    expect(manager.form.value.providerId).toBe('')
+    expect(manager.form.value.modelId).toBe('')
+    expect(manager.form.value.connectionConfig.apiKey).toBe('pres****-key')
+    expect(manager.form.value.originalApiKey).toBe('preserve-key')
+    expect(manager.form.value.connectionConfig.baseURL).toBe('https://gateway.example.com/v1')
+    expect(manager.form.value.paramOverrides).toEqual({ temperature: 0.2 })
+    expect(manager.canSaveForm.value).toBe(false)
+    expect(manager.canTestFormConnection.value).toBe(false)
+
+    manager.selectProvider('openai-compatible')
+    await nextTick()
+
+    expect(manager.form.value.providerId).toBe('openai-compatible')
+    expect(manager.form.value.modelId).not.toBe('')
+    expect(manager.form.value.connectionConfig.apiKey).toBe('pres****-key')
+    expect(manager.form.value.originalApiKey).toBe('preserve-key')
+    expect(manager.form.value.connectionConfig.baseURL).toBe('https://gateway.example.com/v1')
+    expect(manager.form.value.paramOverrides).toEqual({ temperature: 0.2 })
+    expect(manager.canSaveForm.value).toBe(true)
+  })
 })

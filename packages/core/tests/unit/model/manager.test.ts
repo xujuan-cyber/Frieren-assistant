@@ -524,6 +524,125 @@ describe('ModelManager', () => {
       expect(exportedImport?.providerMeta.id).toBe('openai-compatible');
       expect(exportedImport?.modelMeta.providerId).toBe('openai-compatible');
     });
+
+    it('should isolate malformed metadata configs instead of failing the full model list', async () => {
+      await storageProvider.setItem('models', JSON.stringify({
+        custom_broken: {
+          id: 'custom_broken',
+          name: 'Broken Model',
+          enabled: true,
+          providerMeta: {},
+          modelMeta: {},
+          connectionConfig: {
+            apiKey: 'keep-key',
+            baseURL: 'https://broken.example.com/v1'
+          },
+          paramOverrides: {
+            temperature: 0.2
+          }
+        },
+        openai: createTextModelConfig('openai', 'OpenAI')
+      }));
+
+      const allModels = await modelManager.getAllModels();
+      const broken = allModels.find(model => model.id === 'custom_broken');
+      const enabled = await modelManager.getEnabledModels();
+
+      expect(broken).toBeDefined();
+      expect(broken?.enabled).toBe(false);
+      expect(broken?.providerId).toBe('unknown');
+      expect(broken?.modelId).toBe('unknown');
+      expect(broken?.connectionConfig.apiKey).toBe('keep-key');
+      expect(broken?.paramOverrides).toEqual({ temperature: 0.2 });
+      expect(enabled.some(model => model.id === 'custom_broken')).toBe(false);
+      expect(allModels.some(model => model.id === 'openai')).toBe(true);
+    });
+
+    it('should repair malformed builtin custom config from defaults while preserving user settings', async () => {
+      await storageProvider.setItem('models', JSON.stringify({
+        custom: {
+          id: 'custom',
+          name: 'My Custom Gateway',
+          enabled: true,
+          providerMeta: {},
+          modelMeta: {},
+          connectionConfig: {
+            apiKey: 'keep-custom-key',
+            baseURL: 'https://gateway.example.com/v1'
+          },
+          paramOverrides: {
+            temperature: 0.2
+          }
+        }
+      }));
+
+      const repaired = await modelManager.getModel('custom');
+
+      expect(repaired?.enabled).toBe(true);
+      expect(repaired?.name).toBe('My Custom Gateway');
+      expect(repaired?.providerId).toBe('openai-compatible');
+      expect(repaired?.providerMeta.id).toBe('openai-compatible');
+      expect(repaired?.modelId).toBeTruthy();
+      expect(repaired?.modelId).not.toBe('unknown');
+      expect(repaired?.modelMeta.id).toBe(repaired?.modelId);
+      expect(repaired?.modelMeta.providerId).toBe('openai-compatible');
+      expect(repaired?.connectionConfig.apiKey).toBe('keep-custom-key');
+      expect(repaired?.connectionConfig.baseURL).toBe('https://gateway.example.com/v1');
+      expect(repaired?.paramOverrides).toEqual({ temperature: 0.2 });
+    });
+
+    it('should preserve partial builtin custom identity and legacy custom parameter overrides during repair', async () => {
+      await storageProvider.setItem('models', JSON.stringify({
+        custom: {
+          id: 'custom',
+          name: 'Partial Custom Gateway',
+          enabled: true,
+          providerMeta: {},
+          modelMeta: {
+            id: 'user-selected-model'
+          },
+          connectionConfig: {
+            apiKey: 'keep-custom-key',
+            baseURL: 'https://gateway.example.com/v1'
+          },
+          customParamOverrides: {
+            temperature: 0.3,
+            top_p: 0.8
+          }
+        }
+      }));
+
+      const repaired = await modelManager.getModel('custom');
+
+      expect(repaired?.providerId).toBe('openai-compatible');
+      expect(repaired?.modelId).toBe('user-selected-model');
+      expect(repaired?.modelMeta.id).toBe('user-selected-model');
+      expect(repaired?.modelMeta.providerId).toBe('openai-compatible');
+      expect(repaired?.connectionConfig.apiKey).toBe('keep-custom-key');
+      expect(repaired?.paramOverrides).toMatchObject({
+        temperature: 0.3,
+        top_p: 0.8
+      });
+    });
+
+    it('should return a disabled placeholder for a single malformed model config', async () => {
+      await storageProvider.setItem('models', JSON.stringify({
+        brokenSingle: {
+          id: 'brokenSingle',
+          name: 'Broken Single',
+          providerMeta: {},
+          modelMeta: {},
+          connectionConfig: {}
+        }
+      }));
+
+      const broken = await modelManager.getModel('brokenSingle');
+
+      expect(broken?.id).toBe('brokenSingle');
+      expect(broken?.enabled).toBe(false);
+      expect(broken?.providerMeta.id).toBe('unknown');
+      expect(broken?.modelMeta.id).toBe('unknown');
+    });
   });
 
   describe('deleteModel', () => {

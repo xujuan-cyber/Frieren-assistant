@@ -290,7 +290,7 @@
 
         <NSpace>
           <NButton @click="handleCancel">{{ t('common.cancel') }}</NButton>
-          <NButton type="primary" :loading="isSaving" @click="handleSubmit">
+          <NButton type="primary" :loading="isSaving" :disabled="!canSaveForm" @click="handleSubmit">
             {{ isEditing ? t('common.save') : t('common.create') }}
           </NButton>
         </NSpace>
@@ -368,6 +368,7 @@ const formConnectionStatus = manager.formConnectionStatus
 const testFormConnection = manager.testFormConnection
 const isTestingFormConnection = manager.isTestingFormConnection
 const canTestFormConnection = manager.canTestFormConnection
+const canSaveForm = manager.canSaveForm
 const isSaving = manager.isSaving
 const isChromeBuiltInProvider = manager.isChromeBuiltInProvider
 const chromeBuiltInStatus = manager.chromeBuiltInStatus
