@@ -1,7 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "if [[ $(pwd) == */packages/extension ]]; then cd ../.. && pnpm build && mkdir -p packages/extension/packages/web && cp -r packages/web/dist packages/extension/packages/web/dist; else pnpm build; fi",
   "outputDirectory": "packages/web/dist",
-  "installCommand": "pwd && if [[ $(pwd) == */packages/extension ]]; then cd ../.. && pnpm install && pnpm i @vercel/analytics -w; else pnpm install && pnpm i @vercel/analytics -w; fi",
+  "installCommand": "pwd && if [[ $(pwd) == */packages/extension ]]; then cd ../..; fi && pnpm install",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -20,9 +21,6 @@
       "main": true,
       "master": true
     }
-  },
-  "env": {
-    "VITE_VERCEL_DEPLOYMENT": "true"
   },
   "build": {
     "env": {
