@@ -138,15 +138,19 @@ describe('ui runtime english guards', () => {
     expect(source).not.toMatch(/'Unknown error'/)
   })
 
-  it('keeps text model API URL and MiniMax guidance locale-backed', () => {
+  it('keeps text model API URL and provider guidance locale-backed', () => {
     const source = readUiSource('src/components/TextModelEditModal.vue')
 
     expect(source).toMatch(/ThemedTooltip/)
     expect(source).toMatch(/modelManager\.apiUrlHintAriaLabel/)
+    expect(source).toMatch(/modelManager\.provider\.xiaomiMimoHint/)
     expect(source).toMatch(/modelManager\.provider\.minimaxHint/)
     expect(source).not.toMatch(/:title="t\('modelManager\.apiUrlHint'\)"/)
 
     expect(enUS.modelManager.apiUrlHintAriaLabel).toBe('Show API URL help')
+    expect(enUS.modelManager.provider.xiaomiMimoHint).toContain('https://token-plan-cn.xiaomimimo.com/v1')
+    expect(zhCN.modelManager.provider.xiaomiMimoHint).toContain('https://token-plan-cn.xiaomimimo.com/v1')
+    expect(zhTW.modelManager.provider.xiaomiMimoHint).toContain('https://token-plan-cn.xiaomimimo.com/v1')
     expect(enUS.modelManager.provider.minimaxHint).toContain('https://api.minimaxi.com/v1')
     expect(zhCN.modelManager.provider.minimaxHint).toContain('https://api.minimaxi.com/v1')
     expect(zhTW.modelManager.provider.minimaxHint).toContain('https://api.minimaxi.com/v1')

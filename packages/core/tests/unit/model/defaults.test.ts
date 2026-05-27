@@ -13,6 +13,8 @@ describe('model defaults provider env mapping', () => {
   const originalCustomApiHeaders = process.env.VITE_CUSTOM_API_HEADERS
   const originalGrokApiKey = process.env.VITE_GROK_API_KEY
   const originalXaiApiKey = process.env.VITE_XAI_API_KEY
+  const originalMimoTokenPlanApiKey = process.env.VITE_MIMO_TOKEN_PLAN_API_KEY
+  const originalMimoTokenPlanApiBaseUrl = process.env.VITE_MIMO_TOKEN_PLAN_API_BASE_URL
 
   beforeEach(() => {
     delete process.env.VITE_ANTHROPIC_API_KEY
@@ -26,6 +28,8 @@ describe('model defaults provider env mapping', () => {
     delete process.env.VITE_CUSTOM_API_HEADERS
     delete process.env.VITE_GROK_API_KEY
     delete process.env.VITE_XAI_API_KEY
+    delete process.env.VITE_MIMO_TOKEN_PLAN_API_KEY
+    delete process.env.VITE_MIMO_TOKEN_PLAN_API_BASE_URL
   })
 
   afterAll(() => {
@@ -93,6 +97,18 @@ describe('model defaults provider env mapping', () => {
       delete process.env.VITE_XAI_API_KEY
     } else {
       process.env.VITE_XAI_API_KEY = originalXaiApiKey
+    }
+
+    if (originalMimoTokenPlanApiKey === undefined) {
+      delete process.env.VITE_MIMO_TOKEN_PLAN_API_KEY
+    } else {
+      process.env.VITE_MIMO_TOKEN_PLAN_API_KEY = originalMimoTokenPlanApiKey
+    }
+
+    if (originalMimoTokenPlanApiBaseUrl === undefined) {
+      delete process.env.VITE_MIMO_TOKEN_PLAN_API_BASE_URL
+    } else {
+      process.env.VITE_MIMO_TOKEN_PLAN_API_BASE_URL = originalMimoTokenPlanApiBaseUrl
     }
   })
 
@@ -242,5 +258,29 @@ describe('model defaults provider env mapping', () => {
 
     expect(models.grok.enabled).toBe(true)
     expect(models.grok.connectionConfig.apiKey).toBe('test-xai-key')
+  })
+
+  it('should include Xiaomi MiMo Token Plan with MiMo 2.5 Pro and China endpoint by default', () => {
+    const builtinModelIds = getBuiltinModelIds()
+    const models = getDefaultTextModels()
+
+    expect(builtinModelIds).toContain('xiaomi-mimo-token-plan')
+    expect(models['xiaomi-mimo']).toBeUndefined()
+    expect(models['xiaomi-mimo-token-plan']).toBeDefined()
+    expect(models['xiaomi-mimo-token-plan'].providerMeta.id).toBe('xiaomi-mimo-token-plan')
+    expect(models['xiaomi-mimo-token-plan'].modelMeta.id).toBe('mimo-v2.5-pro')
+    expect(models['xiaomi-mimo-token-plan'].connectionConfig.baseURL).toBe('https://token-plan-cn.xiaomimimo.com/v1')
+    expect(models['xiaomi-mimo-token-plan'].enabled).toBe(false)
+  })
+
+  it('should enable Xiaomi MiMo Token Plan from Token Plan env keys only', () => {
+    process.env.VITE_MIMO_TOKEN_PLAN_API_KEY = 'tp-test-key'
+    process.env.VITE_MIMO_TOKEN_PLAN_API_BASE_URL = 'https://token-plan-sgp.xiaomimimo.com/v1'
+
+    const models = getDefaultTextModels()
+
+    expect(models['xiaomi-mimo-token-plan'].enabled).toBe(true)
+    expect(models['xiaomi-mimo-token-plan'].connectionConfig.apiKey).toBe('tp-test-key')
+    expect(models['xiaomi-mimo-token-plan'].connectionConfig.baseURL).toBe('https://token-plan-sgp.xiaomimimo.com/v1')
   })
 })

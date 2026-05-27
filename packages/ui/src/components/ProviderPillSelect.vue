@@ -120,6 +120,7 @@ const providerOrder = [
   'volcano',
   'siliconflow',
   'minimax',
+  'xiaomi-mimo-token-plan',
   'modelscope',
   'cloudflare',
   'openai-compatible'
@@ -128,6 +129,7 @@ const providerOrder = [
 const overflowProviderIds = new Set([
   'siliconflow',
   'minimax',
+  'xiaomi-mimo-token-plan',
   'modelscope',
   'cloudflare'
 ])

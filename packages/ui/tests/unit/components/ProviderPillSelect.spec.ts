@@ -8,6 +8,7 @@ describe('ProviderPillSelect', () => {
     { label: 'Custom API', value: 'openai-compatible' },
     { label: 'SiliconFlow', value: 'siliconflow' },
     { label: 'MiniMax', value: 'minimax' },
+    { label: 'Xiaomi MiMo Token Plan', value: 'xiaomi-mimo-token-plan' },
     { label: 'Ollama', value: 'ollama' },
     { label: 'Disabled', value: 'disabled', disabled: true }
   ]
@@ -61,6 +62,7 @@ describe('ProviderPillSelect', () => {
       '更多',
       'SiliconFlow',
       'MiniMax',
+      'Xiaomi MiMo Token Plan',
       'Disabled'
     ])
   })

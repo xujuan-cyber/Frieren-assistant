@@ -31,6 +31,7 @@ const messages = {
       "openaiHint": "官方 OpenAI API 入口。如果你想接入自定义 Base URL、第三方兼容服务或本地模型，请选择“OpenAI 兼容（自定义）”。",
       "customApiHint": "用于接入自定义 OpenAI 兼容接口。你可以配置 Base URL、自定义模型名，并选择 Chat Completions 或 Responses 请求风格。",
       "dashscopeHint": "阿里百炼已支持 OpenAI 兼容的 Chat Completions 与 Responses 接口。当前可直接在这里切换请求风格进行使用。",
+      "xiaomiMimoHint": "默认使用小米 MiMo Token Plan 中国区地址：https://token-plan-cn.xiaomimimo.com/v1。也可按订阅管理页改为新加坡 https://token-plan-sgp.xiaomimimo.com/v1 或阿姆斯特丹 https://token-plan-ams.xiaomimimo.com/v1。环境变量预置使用 VITE_MIMO_TOKEN_PLAN_*。",
       "minimaxHint": "默认地址是 MiniMax 海外 OpenAI 兼容接口。国内用户请将 API 地址改为 https://api.minimaxi.com/v1；这里不要使用 MiniMax 的 Anthropic 格式地址。",
       "chromeBuiltInHint": "使用 Chrome 自带的本地 Gemini Nano 模型，无需第三方 API Key。模型由 Chrome 管理，首次使用可能需要用户明确下载。目前 Chrome 官方仅支持英语、西班牙语、日语输出，本提供商会默认按英语会话兼容处理。"
     },

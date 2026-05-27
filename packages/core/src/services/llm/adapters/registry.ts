@@ -21,6 +21,7 @@ import { MinimaxAdapter } from './minimax-adapter';
 import { CloudflareAdapter } from './cloudflare-adapter';
 import { GrokAdapter } from './grok-adapter';
 import { ChromeBuiltInAdapter } from './chrome-built-in-adapter';
+import { XiaomiMimoTokenPlanAdapter } from './xiaomi-mimo-token-plan-adapter';
 import { RequestConfigError } from '../errors';
 
 /**
@@ -68,6 +69,7 @@ export class TextAdapterRegistry
     const cloudflareAdapter = new CloudflareAdapter();
     const grokAdapter = new GrokAdapter();
     const chromeBuiltInAdapter = new ChromeBuiltInAdapter();
+    const xiaomiMimoTokenPlanAdapter = new XiaomiMimoTokenPlanAdapter();
 
     this.adapters.set('openai', openaiAdapter);
     this.adapters.set('openai-compatible', openaiCompatibleAdapter);
@@ -84,6 +86,7 @@ export class TextAdapterRegistry
     this.adapters.set('cloudflare', cloudflareAdapter);
     this.adapters.set('grok', grokAdapter);
     this.adapters.set('chrome-built-in', chromeBuiltInAdapter);
+    this.adapters.set('xiaomi-mimo-token-plan', xiaomiMimoTokenPlanAdapter);
 
     // 预加载静态模型缓存
     this.preloadStaticModels();

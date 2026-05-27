@@ -30,6 +30,7 @@ const messages = {
       "openaiHint": "This is the official OpenAI API. If you want a custom base URL, a third-party compatible service, or a local model, choose \"OpenAI Compatible (Custom)\" instead.",
       "customApiHint": "Use this for custom OpenAI-compatible endpoints. You can configure the base URL, use your own model name, and choose Chat Completions or Responses as the request style.",
       "dashscopeHint": "DashScope supports both OpenAI-compatible Chat Completions and Responses APIs. You can switch the request style here directly.",
+      "xiaomiMimoHint": "Defaults to the Xiaomi MiMo Token Plan China endpoint: https://token-plan-cn.xiaomimimo.com/v1. You can change it to the Singapore endpoint https://token-plan-sgp.xiaomimimo.com/v1 or Amsterdam endpoint https://token-plan-ams.xiaomimimo.com/v1 shown in Subscription Management. Env presets use VITE_MIMO_TOKEN_PLAN_*.",
       "minimaxHint": "The default endpoint is the global MiniMax OpenAI-compatible API. Mainland China users should set API URL to https://api.minimaxi.com/v1. Do not use Anthropic-format MiniMax endpoints here.",
       "chromeBuiltInHint": "Use Chrome's local Gemini Nano model without a third-party API key. Chrome manages the model, and first use may require an explicit user download. Chrome currently officially supports English, Spanish, and Japanese output; this provider defaults to English for compatibility."
     },

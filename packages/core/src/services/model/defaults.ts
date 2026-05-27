@@ -23,12 +23,16 @@ const PROVIDER_ENV_KEYS = {
   ollama: [],
   minimax: ['VITE_MINIMAX_API_KEY'],
   cloudflare: ['VITE_CF_API_TOKEN'],
-  grok: ['VITE_GROK_API_KEY', 'VITE_XAI_API_KEY']
+  grok: ['VITE_GROK_API_KEY', 'VITE_XAI_API_KEY'],
+  'xiaomi-mimo-token-plan': ['VITE_MIMO_TOKEN_PLAN_API_KEY']
 } as const;
 
 const PROVIDER_EXTRA_CONNECTION_ENV_KEYS: Record<string, Record<string, string[]>> = {
   cloudflare: {
     accountId: ['VITE_CF_ACCOUNT_ID']
+  },
+  'xiaomi-mimo-token-plan': {
+    baseURL: ['VITE_MIMO_TOKEN_PLAN_API_BASE_URL']
   }
 };
 
@@ -92,7 +96,11 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
 
     const extraConnectionFields = PROVIDER_EXTRA_CONNECTION_ENV_KEYS[providerId] || {};
     for (const [field, fieldEnvKeys] of Object.entries(extraConnectionFields)) {
-      connectionConfig[field] = getFirstEnvValue(fieldEnvKeys);
+      const envValue = getFirstEnvValue(fieldEnvKeys);
+      if (field === 'baseURL' && !envValue) {
+        continue;
+      }
+      connectionConfig[field] = envValue;
     }
 
     // 使用模型的默认参数值初始化 paramOverrides

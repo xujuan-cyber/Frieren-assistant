@@ -84,6 +84,13 @@ describe('TextAdapterRegistry', () => {
       expect(adapter.getProvider().id).toBe('grok');
     });
 
+    it('should return Xiaomi MiMo Token Plan adapter for "xiaomi-mimo-token-plan" provider', () => {
+      const adapter = registry.getAdapter('xiaomi-mimo-token-plan');
+
+      expect(adapter).toBeDefined();
+      expect(adapter.getProvider().id).toBe('xiaomi-mimo-token-plan');
+    });
+
     it('should return Chrome built-in adapter for "chrome-built-in" provider', () => {
       const adapter = registry.getAdapter('chrome-built-in');
 
@@ -111,11 +118,11 @@ describe('TextAdapterRegistry', () => {
       const providers = registry.getAllProviders();
 
       expect(Array.isArray(providers)).toBe(true);
-      expect(providers.length).toBe(15);
+      expect(providers.length).toBe(16);
 
       const providerIds = providers.map(p => p.id);
       expect(providerIds).toEqual(
-        expect.arrayContaining(['openai', 'openai-compatible', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax', 'cloudflare', 'grok', 'chrome-built-in'])
+        expect.arrayContaining(['openai', 'openai-compatible', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax', 'cloudflare', 'grok', 'chrome-built-in', 'xiaomi-mimo-token-plan'])
       );
     });
 

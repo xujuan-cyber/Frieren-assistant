@@ -470,6 +470,10 @@ const currentProviderHint = computed(() => {
     return t('modelManager.provider.dashscopeHint')
   }
 
+  if (provider.id === 'xiaomi-mimo-token-plan') {
+    return t('modelManager.provider.xiaomiMimoHint')
+  }
+
   if (provider.id === 'minimax') {
     return t('modelManager.provider.minimaxHint')
   }
