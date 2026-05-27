@@ -16,7 +16,7 @@
 
 [Website](https://always200.com) | [Online Optimizer](https://prompt.always200.com) | [Prompt Garden](https://garden.always200.com) | [Docs](https://docs.always200.com) | [Quick Start](#quick-start) | [Chrome Extension](https://chromewebstore.google.com/detail/prompt-optimizer/cakkkhboolfnadechdlgdcnjammejlna) | [💖 Support](https://ko-fi.com/linshenkx)
 
-[Development Docs](docs/developer/development.md) | [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) | [Cloudflare Pages Deployment Guide](docs/user/deployment/cloudflare-pages_en.md) | [MCP Deployment Guide](docs/user/mcp-server_en.md) | [DeepWiki Docs](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead Docs](https://zread.ai/linshenkx/prompt-optimizer)
+[Development Docs](docs/developer/development.md) | [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) | [Cloudflare Deployment Guide](docs/user/deployment/cloudflare-pages_en.md) | [MCP Deployment Guide](docs/user/mcp-server_en.md) | [DeepWiki Docs](https://deepwiki.com/linshenkx/prompt-optimizer) | [ZRead Docs](https://zread.ai/linshenkx/prompt-optimizer)
 
 </div>
 
@@ -103,15 +103,17 @@ Method 2: Fork the project and import to Vercel (Recommended):
    - This allows tracking of source project updates for easy syncing of new features and fixes
 - Configure environment variables:
   - `ACCESS_PASSWORD`: Set access password to enable access restriction
-  - `VITE_OPENAI_API_KEY` etc.: Configure API keys for various AI service providers
+  - `VITE_OPENAI_API_KEY` etc.: Optional private-deployment model settings. Do not preconfigure API keys on public frontend deployments because `VITE_*` values are exposed in browser assets.
 
 For more detailed deployment steps and important notes, please check:
 - [Vercel Deployment Guide](docs/user/deployment/vercel_en.md)
-- [Cloudflare Pages Deployment Guide](docs/user/deployment/cloudflare-pages_en.md)
+- [Cloudflare Deployment Guide](docs/user/deployment/cloudflare-pages_en.md)
 
-#### Cloudflare Pages Deployment
+#### Cloudflare Deployment
 
-Fork the project and import your fork into Cloudflare Pages. Use the repository root, set the build output directory to `packages/web/dist`, and sync your fork later to trigger automatic redeploys.
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/linshenkx/prompt-optimizer)
+
+Use the Deploy to Cloudflare button for the quickest public-repository setup. It creates a repository under your GitHub/GitLab account and deploys with Workers Builds. For private repositories or stricter repository-access control, import your own repository manually; keep the default deploy commands and clear the build command if Cloudflare auto-fills `pnpm run build`, because `wrangler.jsonc` builds the Web frontend and publishes `packages/web/dist` as static assets.
 
 For access control and analytics on Cloudflare, configure Cloudflare Access and Cloudflare Web Analytics in the Cloudflare dashboard. No frontend dependency or application-code change is required.
 
@@ -364,7 +366,7 @@ For detailed project status, see [Project Status Document](docs/project/project-
 - [Project Status](docs/project/project-status.md) - Current progress and plans
 - [Product Requirements](docs/project/prd.md) - Product requirements document
 - [Vercel Deployment Guide](docs/user/deployment/vercel_en.md) - Detailed instructions for Vercel deployment
-- [Cloudflare Pages Deployment Guide](docs/user/deployment/cloudflare-pages_en.md) - Web frontend deployment on Cloudflare Pages
+- [Cloudflare Deployment Guide](docs/user/deployment/cloudflare-pages_en.md) - Web frontend deployment on Cloudflare Workers / Pages
 
 ## Star History
 

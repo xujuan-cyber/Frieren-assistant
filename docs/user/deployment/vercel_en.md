@@ -42,7 +42,8 @@ This method allows you to track project updates, making it easier to sync the la
 4. **Configure environment variables (Optional)**
    - After deployment is complete, go to project settings
    - Click "Environment Variables"
-   - Add the required API keys (e.g., `VITE_OPENAI_API_KEY`)
+   - Do not preconfigure model API keys for a public Vercel site. `VITE_*` variables are bundled into the frontend build output, so visitors can download those values in the browser. For public sites, let users configure their own API keys in the application UI.
+   - Only consider preconfigured `VITE_*` model settings for controlled private deployments, and use keys that are rotatable, scoped, and cost-limited.
    - To add access restriction functionality:
      - Add an environment variable named `ACCESS_PASSWORD`
      - Set a secure password as its value

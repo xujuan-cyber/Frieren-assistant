@@ -62,31 +62,11 @@
 4. 配置环境变量
 5. 部署
 
-### 常用环境变量
+### 环境变量安全
 
-文本模型：
+不要在公开 Web 站点中预置模型 API Key。`VITE_*` 变量会进入前端构建产物，访问者可以在浏览器下载到这些值。公开站点应让用户在应用界面的模型管理中自行填写自己的 API Key。
 
-```bash
-VITE_OPENAI_API_KEY=...
-VITE_GEMINI_API_KEY=...
-VITE_ANTHROPIC_API_KEY=...
-VITE_DEEPSEEK_API_KEY=...
-VITE_GROK_API_KEY=...
-VITE_SILICONFLOW_API_KEY=...
-VITE_ZHIPU_API_KEY=...
-VITE_DASHSCOPE_API_KEY=...
-VITE_OPENROUTER_API_KEY=...
-VITE_MODELSCOPE_API_KEY=...
-VITE_MINIMAX_API_KEY=...
-```
-
-自定义 OpenAI 兼容接口：
-
-```bash
-VITE_CUSTOM_API_KEY=...
-VITE_CUSTOM_API_BASE_URL=https://your-api.example.com/v1
-VITE_CUSTOM_API_MODEL=your-model-name
-```
+只有在受控的私有部署中，才考虑预置 `VITE_*` 模型配置；同时应配合访问控制，并使用可轮换、权限受限、费用受控的密钥。
 
 ### 可选：站点密码保护
 
@@ -98,15 +78,40 @@ ACCESS_PASSWORD=your_password
 
 站点会先显示密码页。对应逻辑由根目录的 `middleware.js` 和 `api/auth.js` 提供。
 
-## 部署到 Cloudflare Pages
+## 部署到 Cloudflare
 
-推荐流程和 Vercel 的推荐方式类似：先 Fork 项目，再在 Cloudflare Pages 中导入自己的 fork。这样后续你同步 upstream 更新后，Cloudflare Pages 会自动重新部署。
+公开仓库用户可以优先使用 Cloudflare 官方的一键部署按钮：
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/linshenkx/prompt-optimizer)
+
+这个流程会把源仓库克隆到你的 GitHub/GitLab 账号下，并使用 Workers Builds 创建和部署 Worker。仓库根目录的 `wrangler.jsonc` 会配置 Web 前端构建命令，把 `packages/web/dist` 配置为 Workers Static Assets 的静态资源目录，并为单页应用启用 `index.html` 回退。
+
+需要注意：
+
+- Deploy to Cloudflare 按钮要求源仓库是公开的 GitHub/GitLab 仓库。
+- 如果你想使用私有仓库，或想手动限制 Cloudflare GitHub App 只访问指定仓库，请使用下面的手动导入方式。
+
+### 手动导入仓库
+
+手动导入适合私有仓库、组织仓库、需要精细控制 GitHub App 权限，或一键部署按钮失败的场景。当前 Cloudflare Dashboard 可能会进入 **Workers Static Assets** 流程；如果界面显示“创建 Worker”“部署命令 `npx wrangler deploy`”，请使用 Workers 配置。
 
 1. Fork 本仓库
 2. 在 Cloudflare Dashboard 中进入 **Workers & Pages**
-3. 选择 **Create application** -> **Pages** -> **Connect to Git**
+3. 选择通过 GitHub/Git 仓库创建应用
 4. 选择你 fork 后的 `prompt-optimizer` 仓库
-5. 使用下面的构建配置：
+5. 如果界面显示“创建 Worker”，大多数配置保持默认：
+
+| 配置项 | 推荐值 |
+| --- | --- |
+| Worker name | 如果自动填入 `prompt-optimizer`，保持不变；否则改成 `prompt-optimizer` |
+| Root directory / Path | 保持默认，通常是 `/` 或留空 |
+| Build command | 清空；如果自动填入 `pnpm run build`，请删除。`wrangler.jsonc` 已配置构建命令 |
+| Deploy command | 保持默认 `npx wrangler deploy` |
+| Non-production branch deploy command | 保持默认 `npx wrangler versions upload` |
+
+如果部署日志出现 `The Wrangler application detection logic has been run in the root of a workspace`，说明 Wrangler 没有读到项目根目录的 `wrangler.jsonc`，于是尝试在 monorepo 根目录自动识别应用。请确认当前部署的提交已经包含 `wrangler.jsonc`；如果仍然报错，再把部署命令改成 `npx wrangler deploy --config wrangler.jsonc`，把非生产分支部署命令改成 `npx wrangler versions upload --config wrangler.jsonc`。
+
+如果你的 Cloudflare Dashboard 仍然显示 **Create application** -> **Pages** -> **Connect to Git**，也可以继续使用 Pages 表单：
 
 | 配置项 | 推荐值 |
 | --- | --- |
@@ -115,20 +120,24 @@ ACCESS_PASSWORD=your_password
 | Build command | `pnpm -F @prompt-optimizer/core build && pnpm -F @prompt-optimizer/ui build && pnpm -F @prompt-optimizer/web build` |
 | Build output directory | `packages/web/dist` |
 
-建议在 Cloudflare Pages 环境变量中设置：
+通常不需要手动配置构建环境变量。Cloudflare 会根据仓库里的 `packageManager` 和 `engines` 检测 `pnpm` 和 Node.js 版本。
+
+如果 Cloudflare 检测到的版本不正确，再在构建环境变量中设置：
 
 ```bash
 NODE_VERSION=22
 PNPM_VERSION=10.6.1
 ```
 
-如果你想预置模型 API Key，可以继续添加 `VITE_OPENAI_API_KEY`、`VITE_GEMINI_API_KEY` 等 `VITE_*` 变量。也可以不在部署平台配置 API Key，让用户在应用界面的模型管理中自行填写。
+不要在公开 Cloudflare 站点中预置模型 API Key。所有 `VITE_*` 变量都会进入前端构建产物，访问者可以在浏览器下载到这些值。公开站点应让用户在应用界面的模型管理中自行填写自己的 API Key。
+
+只有在受控的私有部署中，才考虑预置 `VITE_*` 模型配置；同时应配合 Cloudflare Access，并使用可轮换、权限受限、费用受控的密钥。
 
 ### 可选：Cloudflare Access 和 Web Analytics
 
-Cloudflare Pages 不会使用 Vercel 的 `ACCESS_PASSWORD`、`middleware.js` 或 `/api/auth`。如果你需要限制访问，推荐在 Cloudflare Zero Trust 中为 Pages 域名配置 Cloudflare Access。
+Cloudflare 部署不会使用 Vercel 的 `ACCESS_PASSWORD`、`middleware.js` 或 `/api/auth`。如果你需要限制访问，推荐在 Cloudflare Zero Trust 中为 Workers 或 Pages 域名配置 Cloudflare Access。
 
-Cloudflare Web Analytics 可以在 Pages 项目的 **Metrics** -> **Web Analytics** 中启用。Cloudflare 会在后续部署中自动注入统计脚本，不需要安装 `@vercel/analytics` 之类的前端依赖。
+Cloudflare Web Analytics 可以在 Cloudflare 控制台启用，不需要安装 `@vercel/analytics` 之类的前端依赖。
 
 !!! note
     当前 Web 版使用 hash 路由。Cloudflare Web Analytics 可以统计站点访问和性能数据，但不会自动把 `/#/xxx` 这类 hash 内页面切换当作独立页面浏览。
