@@ -102,6 +102,10 @@ import {
     type FormInst,
     type FormRules,
 } from "naive-ui";
+import {
+    PREDEFINED_VARIABLES,
+    getVariableNameValidationError,
+} from "../../types/variable";
 
 const { t } = useI18n();
 
@@ -164,7 +168,8 @@ const formRules: FormRules = {
         },
         {
             validator: (_rule: unknown, value: string) => {
-                if (value && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value.trim())) {
+                const name = value?.trim();
+                if (name && getVariableNameValidationError(name)) {
                     return new Error(t("variables.editor.errors.nameInvalid"));
                 }
             },
@@ -172,16 +177,12 @@ const formRules: FormRules = {
         },
         {
             validator: (_rule: unknown, value: string) => {
-                const predefinedNames = [
-                    "originalPrompt",
-                    "lastOptimizedPrompt",
-                    "iterateInput",
-                    "currentPrompt",
-                    "userQuestion",
-                    "conversationContext",
-                    "toolsContext",
-                ];
-                if (value && predefinedNames.includes(value.trim())) {
+                if (
+                    value &&
+                    PREDEFINED_VARIABLES.includes(
+                        value.trim() as typeof PREDEFINED_VARIABLES[number],
+                    )
+                ) {
                     return new Error(
                         t("variables.editor.errors.namePredefined"),
                     );

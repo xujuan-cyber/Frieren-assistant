@@ -369,7 +369,7 @@ import { useConfirmDialog } from "../../composables/ui/useConfirmDialog";
 import type {
     VariableManagerModalProps,
 } from "../../types/components";
-import type { VariableSource } from "../../types/variable";
+import { isValidVariableName, type VariableSource } from "../../types/variable";
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager';
 import type { VariableExportData, VariableImportOptions } from '@prompt-optimizer/core';
 import VariableEditor from "./VariableEditor.vue";
@@ -825,8 +825,7 @@ const cancelInlineEdit = () => {
 // 快速添加功能
 const quickAddVariable = async () => {
     if (!props.variableManager?.variableManager.value) return;
-    if (!quickAddForm.value.name.trim() || !quickAddForm.value.value.trim())
-        return;
+    if (!canQuickAdd.value) return;
 
     try {
         loading.value = true;
@@ -859,8 +858,8 @@ const canQuickAdd = computed(() => {
 
     if (!name || !value) return false;
 
-    // 验证变量名格式
-    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) return false;
+    // Reuse the shared variable-name contract used by workspaces and storage.
+    if (!isValidVariableName(name)) return false;
 
     // 检查是否与预定义变量重名（标准化）
     if (
