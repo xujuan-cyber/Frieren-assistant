@@ -59,6 +59,44 @@ describe('getI18nErrorMessage', () => {
     expect(msg).toBe('RAW_MESSAGE')
   })
 
+  it('plain object provider errors are formatted without [object Object]', () => {
+    const msg = getI18nErrorMessage({
+      status: 429,
+      body: {
+        error: {
+          message: 'rate limit exceeded',
+        },
+      },
+    })
+
+    expect(msg).toContain('HTTP 429')
+    expect(msg).toContain('rate limit exceeded')
+    expect(msg).not.toContain('[object Object]')
+  })
+
+  it('normalizes object i18n params before interpolation', () => {
+    setLocale('zh-CN')
+
+    const msg = getI18nErrorMessage({
+      code: 'error.evaluation.execution',
+      params: {
+        details: {
+          status: 429,
+          body: {
+            error: {
+              message: 'rate limit exceeded',
+            },
+          },
+        },
+      },
+    })
+
+    expect(msg).toContain('评估执行错误')
+    expect(msg).toContain('HTTP 429')
+    expect(msg).toContain('rate limit exceeded')
+    expect(msg).not.toContain('[object Object]')
+  })
+
   it('formatErrorSummary 在只有英文 fallback 时不重复拼接详情', () => {
     const result = formatErrorSummary('Failed to save configuration', { foo: 'bar' }, 'Unknown error')
     expect(result).toBe('Failed to save configuration')

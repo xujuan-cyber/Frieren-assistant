@@ -200,6 +200,75 @@ export class EvaluationService implements IEvaluationService {
     this.imageUnderstandingService = dependencies.imageUnderstandingService;
   }
 
+  private formatExecutionErrorMessage(error: unknown, fallback = 'Unknown evaluation execution error'): string {
+    if (typeof error === 'string') {
+      return error.trim() || fallback;
+    }
+
+    if (error instanceof Error) {
+      const message = error.message?.trim();
+      if (message && !/^\[object .+\]$/.test(message)) {
+        return message;
+      }
+
+      const cause = (error as Error & { cause?: unknown }).cause;
+      if (cause !== undefined) {
+        return this.formatExecutionErrorMessage(cause, fallback);
+      }
+
+      return message || fallback;
+    }
+
+    if (error && typeof error === 'object') {
+      const record = error as Record<string, unknown>;
+      const directMessage = record.message;
+      if (typeof directMessage === 'string' && directMessage.trim() && !/^\[object .+\]$/.test(directMessage.trim())) {
+        return directMessage.trim();
+      }
+      if (directMessage !== undefined && directMessage !== error) {
+        return this.formatExecutionErrorMessage(directMessage, fallback);
+      }
+
+      const nestedError = record.error;
+      if (nestedError !== undefined && nestedError !== error) {
+        const nestedMessage = this.formatExecutionErrorMessage(nestedError, '');
+        if (nestedMessage) {
+          return nestedMessage;
+        }
+      }
+
+      const status = record.status ?? record.statusCode ?? (record.response as Record<string, unknown> | undefined)?.status;
+      const body = record.body ?? record.data ?? (record.response as Record<string, unknown> | undefined)?.data;
+      const bodyMessage = body !== undefined && body !== error
+        ? this.formatExecutionErrorMessage(body, '')
+        : '';
+
+      if (status !== undefined) {
+        return bodyMessage
+          ? `HTTP ${String(status)}: ${bodyMessage}`
+          : `HTTP ${String(status)} error`;
+      }
+
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return fallback;
+      }
+    }
+
+    if (error === null || error === undefined) {
+      return fallback;
+    }
+
+    return String(error);
+  }
+
+  private toError(error: unknown): Error {
+    return error instanceof Error
+      ? error
+      : new Error(this.formatExecutionErrorMessage(error));
+  }
+
   /**
    * 执行评估（非流式）
    */
@@ -251,7 +320,7 @@ export class EvaluationService implements IEvaluationService {
       return this.parseEvaluationResult(result, request.type, responseMetadata);
     } catch (error) {
       throw new EvaluationExecutionError(
-        error instanceof Error ? error.message : String(error),
+        this.formatExecutionErrorMessage(error),
         error instanceof Error ? error : undefined
       );
     }
@@ -267,7 +336,7 @@ export class EvaluationService implements IEvaluationService {
     try {
       this.validateRequest(request);
     } catch (error) {
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      callbacks.onError(this.toError(error));
       return;
     }
 
@@ -275,7 +344,7 @@ export class EvaluationService implements IEvaluationService {
       const modelConfig = await this.validateModel(request.evaluationModelKey);
       await this.evaluateStreamInternal(request, callbacks, modelConfig);
     } catch (error) {
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      callbacks.onError(this.toError(error));
     }
   }
 
@@ -291,7 +360,7 @@ export class EvaluationService implements IEvaluationService {
         try {
           await this.evaluateStructuredCompareStream(request, normalizedCompare, callbacks);
         } catch (error) {
-          callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+          callbacks.onError(this.toError(error));
         }
         return;
       }
@@ -301,7 +370,7 @@ export class EvaluationService implements IEvaluationService {
     try {
       template = await this.getEvaluationTemplate(request.type, request.mode);
     } catch (error) {
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      callbacks.onError(this.toError(error));
       return;
     }
 
@@ -328,7 +397,7 @@ export class EvaluationService implements IEvaluationService {
         );
         callbacks.onComplete(response);
       } catch (error) {
-        callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+        callbacks.onError(this.toError(error));
       }
       return;
     }
@@ -357,11 +426,11 @@ export class EvaluationService implements IEvaluationService {
           );
           callbacks.onComplete(response);
         } catch (error) {
-          callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+          callbacks.onError(this.toError(error));
         }
       },
       onError: (error) => {
-        callbacks.onError(new EvaluationExecutionError(error.message, error));
+        callbacks.onError(new EvaluationExecutionError(this.formatExecutionErrorMessage(error), error));
       },
     };
 
@@ -370,7 +439,7 @@ export class EvaluationService implements IEvaluationService {
     } catch (error) {
       callbacks.onError(
         new EvaluationExecutionError(
-          error instanceof Error ? error.message : String(error),
+          this.formatExecutionErrorMessage(error),
           error instanceof Error ? error : undefined
         )
       );
@@ -2053,7 +2122,7 @@ export class EvaluationService implements IEvaluationService {
       return this.parseEvaluationResult(synthesisResult, request.type, responseMetadata);
     } catch (error) {
       throw new EvaluationExecutionError(
-        error instanceof Error ? error.message : String(error),
+        this.formatExecutionErrorMessage(error),
         error instanceof Error ? error : undefined
       );
     }
@@ -2114,17 +2183,17 @@ export class EvaluationService implements IEvaluationService {
             );
             callbacks.onComplete(response);
           } catch (error) {
-            callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+            callbacks.onError(this.toError(error));
           }
         },
         onError: (error) => {
-          callbacks.onError(new EvaluationExecutionError(error.message, error));
+          callbacks.onError(new EvaluationExecutionError(this.formatExecutionErrorMessage(error), error));
         },
       });
     } catch (error) {
       callbacks.onError(
         new EvaluationExecutionError(
-          error instanceof Error ? error.message : String(error),
+          this.formatExecutionErrorMessage(error),
           error instanceof Error ? error : undefined
         )
       );

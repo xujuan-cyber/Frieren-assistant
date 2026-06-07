@@ -1,6 +1,7 @@
 import { vi, describe, beforeEach, it, expect, afterEach } from 'vitest'
 import { EvaluationService } from '../../../src/services/evaluation/service'
 import {
+  EvaluationExecutionError,
   EvaluationValidationError,
   EvaluationModelError,
   EvaluationTemplateError,
@@ -348,6 +349,30 @@ describe('EvaluationService', () => {
       await expect(evaluationService.evaluate(createPromptOnlyRequest())).rejects.toThrow(
         EvaluationTemplateError
       )
+    })
+  })
+
+  describe('execution errors', () => {
+    it('formats plain object provider errors without leaking [object Object]', async () => {
+      mockLLMService.sendMessage.mockRejectedValueOnce({
+        status: 429,
+        body: {
+          error: {
+            message: 'rate limit exceeded',
+          },
+        },
+      })
+
+      try {
+        await evaluationService.evaluate(createPromptOnlyRequest())
+        throw new Error('Expected evaluation to fail')
+      } catch (error) {
+        expect(error).toBeInstanceOf(EvaluationExecutionError)
+        expect((error as Error).message).toContain('HTTP 429')
+        expect((error as Error).message).toContain('rate limit exceeded')
+        expect((error as Error).message).not.toContain('[object Object]')
+        expect((error as EvaluationExecutionError).params?.details).not.toContain('[object Object]')
+      }
     })
   })
 
