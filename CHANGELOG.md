@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.6] - 2026-06-09
+- EN: This patch updates the MiniMax default model to M3, fixes OpenAI large image-model parameter handling, supports Unicode variable names, and improves provider error details. See [Release Notes (EN)](releases/v2.11.6.en.md).
+- 中文：本次补丁将 MiniMax 默认模型更新到 M3，修复 OpenAI 大图模型参数兼容，支持 Unicode 变量名，并优化 provider 错误详情。参见 [版本说明（中文）](releases/v2.11.6.zh-CN.md)。
+
 ## [2.11.5] - 2026-05-28
 - EN: This patch adds Xiaomi MiMo Token Plan provider support, hardens malformed text-model configuration handling, expands deployment guidance, and tidies deployment/project scaffolding. See [Release Notes (EN)](releases/v2.11.5.en.md).
 - 中文：本次补丁新增 Xiaomi MiMo Token Plan provider，强化异常文本模型配置处理，扩展部署说明，并整理部署与项目脚手架。参见 [版本说明（中文）](releases/v2.11.5.zh-CN.md)。
