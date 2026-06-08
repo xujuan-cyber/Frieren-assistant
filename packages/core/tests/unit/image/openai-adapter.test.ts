@@ -170,6 +170,10 @@ describe('OpenAIImageAdapter', () => {
       expect(result.text).toBe('A beautiful landscape with mountains and lakes, painted in a realistic style')
       expect(result.metadata?.configId).toBe(config.id)
       expect(result.metadata?.modelId).toBe(config.modelId)
+
+      const [, options] = (global.fetch as any).mock.calls[0]
+      const body = JSON.parse(options.body)
+      expect(body.response_format).toBeUndefined()
     })
 
     test('should generate single image with legacy id allowed', async () => {
@@ -196,7 +200,7 @@ describe('OpenAIImageAdapter', () => {
       const mockResponse = {
         created: Date.now(),
         data: [
-          { b64_json: 'Y2F0LWltYWdlLWJhc2U2NA==' }
+          { url: 'https://example.com/cat.png' }
         ]
       }
 
@@ -208,7 +212,7 @@ describe('OpenAIImageAdapter', () => {
       const result = await adapter.generate(request, config)
 
       expect(result.images).toHaveLength(1)
-      expect(result.images[0].b64).toBeDefined()
+      expect(result.images[0].url).toBe('https://example.com/cat.png')
     })
 
     test('should submit single image edits with the single image field', async () => {
@@ -254,6 +258,7 @@ describe('OpenAIImageAdapter', () => {
       expect(formData.get('prompt')).toBe('make this reference more cinematic')
       expect(formData.get('size')).toBe('1024x1024')
       expect(formData.get('n')).toBe('1')
+      expect(formData.get('response_format')).toBeNull()
       expect(formData.getAll('image')).toHaveLength(1)
       expect(formData.getAll('image[]')).toHaveLength(0)
     })
@@ -310,6 +315,7 @@ describe('OpenAIImageAdapter', () => {
       expect(formData.get('n')).toBe('1')
       expect(formData.get('batch_size')).toBeNull()
       expect(formData.get('outputMimeType')).toBeNull()
+      expect(formData.get('response_format')).toBeNull()
       expect(formData.getAll('image')).toHaveLength(0)
       expect(formData.getAll('image[]')).toHaveLength(2)
     })

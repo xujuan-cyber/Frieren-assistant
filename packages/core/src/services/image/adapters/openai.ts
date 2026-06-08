@@ -11,7 +11,7 @@ import { ImageError } from '../errors'
 import { IMAGE_ERROR_CODES } from '../../../constants/error-codes'
 
 export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
-  private static readonly FORCED_SINGLE_OUTPUT_PARAM_KEYS = ['n', 'batch_size', 'outputMimeType']
+  private static readonly FORCED_SINGLE_OUTPUT_PARAM_KEYS = ['n', 'batch_size', 'outputMimeType', 'response_format']
 
   protected normalizeBaseUrl(base: string): string {
     const trimmed = base.replace(/\/$/, '')
@@ -229,7 +229,6 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
     const merged: Record<string, any> = {
       model: config.modelId,
       prompt: request.prompt,
-      response_format: 'b64_json',
       output_format: 'png', // 固定为png
       stream: false,
       // 合并参数覆盖（先合并，后强制覆盖）
@@ -262,7 +261,6 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
     const formData = new FormData()
     formData.append('model', config.modelId)
     formData.append('prompt', request.prompt)
-    formData.append('response_format', 'b64_json')
     formData.append('output_format', 'png') // 固定为png
 
     // 添加参数覆盖（隐藏结果数量与 UI 内部参数）
@@ -327,18 +325,25 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
     }
 
     const images = response.data.map((item: any) => {
-      if (!item.b64_json) {
+      if (item.b64_json) {
+        // GPT Image 系列默认返回 base64；无需发送已废弃的 response_format 参数。
+        const dataUrl = `data:image/png;base64,${item.b64_json}`
+
+        return {
+          b64: item.b64_json,
+          mimeType: 'image/png',
+          url: dataUrl
+        }
+      }
+
+      if (item.url) {
+        return {
+          url: item.url,
+          mimeType: 'image/png'
+        }
+      }
+
         throw new ImageError(IMAGE_ERROR_CODES.INVALID_RESPONSE_FORMAT)
-      }
-
-      // 构建 data URL
-      const dataUrl = `data:image/png;base64,${item.b64_json}`
-
-      return {
-        b64: item.b64_json,
-        mimeType: 'image/png',
-        url: dataUrl
-      }
     })
 
     return {
