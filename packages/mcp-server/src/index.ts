@@ -39,6 +39,7 @@ import { loadConfig, type MCPServerConfig } from './config/environment.js';
 import * as logger from './utils/logging.js';
 import { ParameterValidator } from './adapters/parameter-adapter.js';
 import { getTemplateOptions, getDefaultTemplateId } from './config/templates.js';
+import { registerHealthzRoute } from './health.js';
 import { randomUUID } from 'node:crypto';
 import express from 'express';
 
@@ -377,6 +378,7 @@ async function main() {
       // 使用 Express 和会话管理支持多客户端连接
       const app = express();
       app.use(express.json());
+      registerHealthzRoute(app, coreServices);
       logger.info('Express app configured');
 
       // 存储每个会话的传输实例

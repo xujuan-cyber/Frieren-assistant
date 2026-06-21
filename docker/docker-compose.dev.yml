@@ -14,7 +14,7 @@ services:
     env_file:
       - ../.env.local     # 读取仓库根目录的本地环境变量文件
     healthcheck:
-      test: ["CMD", "sh", "-c", "curl -f http://localhost:${NGINX_PORT:-80}/ && curl -f http://localhost:${NGINX_PORT:-80}/mcp"]
+      test: ["CMD", "sh", "-c", "curl -fsS http://localhost:${NGINX_PORT:-80}/healthz >/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 3
