@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.7] - 2026-06-22
+- EN: This patch restores desktop page zoom shortcuts, adds a dedicated `/healthz` endpoint for container probes, and switches Docker MCP startup to `node server.js` to avoid `pnpm verify-deps` crashes. See [Release Notes (EN)](releases/v2.11.7.en.md).
+- 中文：本次补丁恢复桌面端页面缩放快捷键，新增容器探活专用 `/healthz` 端点，并将 Docker 中的 MCP 启动切换为 `node server.js` 以规避 `pnpm verify-deps` 崩溃。参见 [版本说明（中文）](releases/v2.11.7.zh-CN.md)。
+
 ## [2.11.6] - 2026-06-09
 - EN: This patch updates the MiniMax default model to M3, fixes OpenAI large image-model parameter handling, supports Unicode variable names, and improves provider error details. See [Release Notes (EN)](releases/v2.11.6.en.md).
 - 中文：本次补丁将 MiniMax 默认模型更新到 M3，修复 OpenAI 大图模型参数兼容，支持 Unicode 变量名，并优化 provider 错误详情。参见 [版本说明（中文）](releases/v2.11.6.zh-CN.md)。
