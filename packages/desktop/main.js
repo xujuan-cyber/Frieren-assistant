@@ -32,6 +32,16 @@ const {
   DEFAULT_CONFIG
 } = require('./config/update-config');
 const { createGlobalDispatcherFromProxyDecision } = require('./config/proxy-dispatcher');
+const {
+  buildAppMenuTemplate,
+  getPageZoomShortcutAction,
+} = require('./config/app-menu');
+const {
+  DEFAULT_PAGE_ZOOM_LEVEL,
+  VISUAL_ZOOM_LIMITS,
+  applyPageZoomAction,
+  getPageZoomActionFromDirection,
+} = require('./config/page-zoom');
 const { setupRemoteStorageHandlers } = require('./remote-storage');
 const path = require('path');
 
@@ -465,6 +475,41 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
+  });
+
+  const handlePageZoomAction = (action, targetWebContents = mainWindow?.webContents) => {
+    applyPageZoomAction(targetWebContents, action);
+  };
+
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      buildAppMenuTemplate({
+        isMac: process.platform === 'darwin',
+        onPageZoomAction: handlePageZoomAction,
+      })
+    )
+  );
+  mainWindow.webContents.setZoomLevel(DEFAULT_PAGE_ZOOM_LEVEL);
+  void mainWindow.webContents
+    .setVisualZoomLevelLimits(VISUAL_ZOOM_LIMITS.minimum, VISUAL_ZOOM_LIMITS.maximum)
+    .catch((error) => {
+      console.warn('[Main Process] Failed to keep visual zoom locked:', error);
+    });
+
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    const action = getPageZoomShortcutAction(input);
+    if (!action) return;
+
+    event.preventDefault();
+    handlePageZoomAction(action);
+  });
+
+  // Keep pinch zoom disabled so keyboard/menu reset stays authoritative.
+  // Wheel-based page zoom still arrives through Electron's zoom-changed event.
+  mainWindow.webContents.on('zoom-changed', (_event, zoomDirection) => {
+    const action = getPageZoomActionFromDirection(zoomDirection);
+    if (!action) return;
+    handlePageZoomAction(action);
   });
 
   // Enable native-like context menu for text inputs (cut/copy/paste/selectAll).
