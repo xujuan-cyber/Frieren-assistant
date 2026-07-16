@@ -26,11 +26,17 @@ const { app, BrowserWindow, ipcMain, shell, session, Menu, nativeImage } = requi
 const { autoUpdater } = require('electron-updater');
 const {
   buildReleaseUrl,
+  resolveUpdateRepositoryConfig,
   validateVersion,
   IPC_EVENTS,
   PREFERENCE_KEYS,
   DEFAULT_CONFIG
 } = require('./config/update-config');
+const {
+  createManualUpdateRequiredError,
+  getUpdateDeliveryPolicy,
+  isManualReleaseDelivery,
+} = require('./config/update-delivery-policy');
 const { createGlobalDispatcherFromProxyDecision } = require('./config/proxy-dispatcher');
 const {
   buildAppMenuTemplate,
@@ -2431,21 +2437,21 @@ async function setupUpdateHandlers() {
   autoUpdater.allowPrerelease = DEFAULT_CONFIG.allowPrerelease;
   autoUpdater.allowDowngrade = false; // 默认不允许降级，只在渠道切换时临时启用
 
-  // 环境变量动态配置支持（仅支持公开仓库）
-  const defaultRepo = 'linshenkx/prompt-optimizer';
-  let currentRepo = null;
-
-  // 检测环境变量中的仓库信息
-  if (process.env.GITHUB_REPOSITORY) {
-    currentRepo = process.env.GITHUB_REPOSITORY;
-  } else if (process.env.DEV_REPO_OWNER && process.env.DEV_REPO_NAME) {
-    currentRepo = `${process.env.DEV_REPO_OWNER}/${process.env.DEV_REPO_NAME}`;
-  }
+  // Resolve the repository once so the feed, delivery policy, and Release URLs
+  // cannot diverge when development repository overrides are enabled.
+  const {
+    packagedRepositoryInfo,
+    repositoryInfo: resolvedRepositoryInfo,
+    packagedRepositorySlug: defaultRepo,
+    repositorySlug: currentRepo,
+    shouldOverrideFeed,
+  } = resolveUpdateRepositoryConfig();
+  let repositoryInfo = resolvedRepositoryInfo;
 
   // 如果环境变量中的仓库与默认仓库不同，使用setFeedURL动态配置
-  if (currentRepo && currentRepo !== defaultRepo) {
+  if (shouldOverrideFeed) {
     try {
-      const [owner, repo] = currentRepo.split('/');
+      const { owner, repo } = repositoryInfo;
 
       const feedConfig = {
         provider: 'github',
@@ -2465,10 +2471,15 @@ async function setupUpdateHandlers() {
     } catch (configError) {
       console.error('[Updater] Failed to configure custom repository:', configError);
       console.log('[Updater] Falling back to default configuration');
+      repositoryInfo = packagedRepositoryInfo;
     }
   } else {
-    console.log('[Updater] Using default repository configuration:', defaultRepo);
+    console.log('[Updater] Using default repository configuration:', defaultRepo || 'unknown');
   }
+
+  // Main-process source of truth for how this effective repository can deliver updates.
+  // macOS remains check-only until release artifacts are Developer ID signed.
+  const updateDelivery = getUpdateDeliveryPolicy({ repositoryInfo });
 
   // 开发模式下的更新检查配置
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
@@ -2523,7 +2534,7 @@ async function setupUpdateHandlers() {
       // 构建安全的GitHub Release页面链接
       let releaseUrl;
       try {
-        releaseUrl = buildReleaseUrl(info.version);
+        releaseUrl = buildReleaseUrl(info.version, repositoryInfo);
       } catch (urlError) {
         console.error('[Updater] Failed to build release URL:', urlError);
         // 使用fallback URL或跳过URL
@@ -2583,10 +2594,8 @@ async function setupUpdateHandlers() {
       console.log('[Updater Debug] =====================================');
     }
 
-    // 重置所有状态锁，允许用户重试
-    isCheckingForUpdate = false;
-    isDownloadingUpdate = false;
-    isInstallingUpdate = false;
+    // Operation handlers and download callbacks own their respective locks.
+    // A global updater error must not unlock an unrelated in-flight operation.
 
     // 创建详细的错误信息
     const detailedErrorResponse = createDetailedErrorResponse(error);
@@ -2710,7 +2719,7 @@ async function setupUpdateHandlers() {
 
         // 构建发布页面URL
         try {
-          responseData.remoteReleaseUrl = buildReleaseUrl(updateInfo.version);
+          responseData.remoteReleaseUrl = buildReleaseUrl(updateInfo.version, repositoryInfo);
         } catch (urlError) {
           console.warn('[Updater] Failed to build release URL:', urlError);
         }
@@ -2758,11 +2767,16 @@ async function setupUpdateHandlers() {
   // 统一检查所有版本（解决并发冲突问题）
   ipcMain.handle(IPC_EVENTS.UPDATE_CHECK_ALL_VERSIONS, async () => {
     console.log('[Updater] Starting unified version check for all versions');
+    const currentVersion = require('./package.json').version;
     
     // 检查是否已有更新检查在进行中
     if (isCheckingForUpdate) {
       console.log('[Updater] Update check already in progress, ignoring request');
       return createSuccessResponse({
+        currentVersion,
+        updateDelivery,
+        stable: null,
+        prerelease: null,
         message: 'Update check already in progress',
         inProgress: true
       });
@@ -2772,10 +2786,9 @@ async function setupUpdateHandlers() {
     isCheckingForUpdate = true;
 
     try {
-      // 获取当前版本
-      const currentVersion = require('./package.json').version;
       const results = {
         currentVersion,
+        updateDelivery,
         stable: null,
         prerelease: null
       };
@@ -2826,7 +2839,7 @@ async function setupUpdateHandlers() {
 
         // 构建发布页面URL
         try {
-          remoteReleaseUrl = buildReleaseUrl(updateInfo.version);
+          remoteReleaseUrl = buildReleaseUrl(updateInfo.version, repositoryInfo);
         } catch (urlError) {
           console.warn(`[Updater] Failed to build ${versionType} release URL:`, urlError);
         }
@@ -2919,8 +2932,34 @@ async function setupUpdateHandlers() {
     }
   });
 
+  // Open only a main-process constructed URL for an updater release page.
+  ipcMain.handle(IPC_EVENTS.UPDATE_OPEN_RELEASE_PAGE, async (event, version) => {
+    try {
+      const releaseUrl = version
+        ? buildReleaseUrl(version, repositoryInfo)
+        : updateDelivery.fallbackReleaseUrl;
+
+      if (!releaseUrl) {
+        const error = new Error('Release page URL is unavailable');
+        error.code = 'UPDATER_RELEASE_URL_UNAVAILABLE';
+        throw error;
+      }
+
+      await shell.openExternal(releaseUrl);
+      return createSuccessResponse({ url: releaseUrl });
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
   // 开始下载更新
   ipcMain.handle(IPC_EVENTS.UPDATE_START_DOWNLOAD, async () => {
+    if (isManualReleaseDelivery(updateDelivery)) {
+      return createErrorResponse(
+        createManualUpdateRequiredError('start-download', updateDelivery)
+      );
+    }
+
     // 检查是否已有下载在进行中
     if (isDownloadingUpdate) {
       console.log('[Updater] Download already in progress, ignoring request');
@@ -2946,6 +2985,12 @@ async function setupUpdateHandlers() {
 
   // 安装更新
   ipcMain.handle(IPC_EVENTS.UPDATE_INSTALL, async () => {
+    if (isManualReleaseDelivery(updateDelivery)) {
+      return createErrorResponse(
+        createManualUpdateRequiredError('install', updateDelivery)
+      );
+    }
+
     // 检查是否已有安装在进行中
     if (isInstallingUpdate) {
       console.log('[Updater] Install already in progress, ignoring request');
@@ -3070,6 +3115,14 @@ async function setupUpdateHandlers() {
 
   // 下载特定版本（原子操作）
   ipcMain.handle(IPC_EVENTS.UPDATE_DOWNLOAD_SPECIFIC_VERSION, async (event, versionType) => {
+    if (isManualReleaseDelivery(updateDelivery)) {
+      return createErrorResponse(
+        createManualUpdateRequiredError('download-specific-version', updateDelivery, {
+          versionType,
+        })
+      );
+    }
+
     try {
       console.log('[Updater] Starting atomic download for version type:', versionType);
 

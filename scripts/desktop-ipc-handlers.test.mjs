@@ -50,6 +50,169 @@ test('desktop preload IPC channels have main-process handlers', () => {
   assert.deepEqual(missingHandlers, [])
 })
 
+test('macOS manual-update policy guards every mutating updater entry point first', () => {
+  const main = readText('packages/desktop/main.js')
+
+  for (const [eventName, signature] of [
+    ['UPDATE_START_DOWNLOAD', 'async \\(\\)'],
+    ['UPDATE_INSTALL', 'async \\(\\)'],
+    ['UPDATE_DOWNLOAD_SPECIFIC_VERSION', 'async \\(event, versionType\\)'],
+  ]) {
+    const handlerStartsWithGuard = new RegExp(
+      `ipcMain\\.handle\\(IPC_EVENTS\\.${eventName}, ${signature} => \\{\\s*` +
+      'if \\(isManualReleaseDelivery\\(updateDelivery\\)\\)',
+    )
+    assert.match(main, handlerStartsWithGuard, `${eventName} must fail before mutating updater state`)
+  }
+})
+
+test('global updater errors do not release handler-owned operation locks', () => {
+  const main = readText('packages/desktop/main.js')
+  const errorHandlerStart = main.indexOf("autoUpdater.on('error'")
+  const errorHandlerEnd = main.indexOf("autoUpdater.on('download-progress'", errorHandlerStart)
+
+  assert.notEqual(errorHandlerStart, -1)
+  assert.notEqual(errorHandlerEnd, -1)
+
+  const errorHandler = main.slice(errorHandlerStart, errorHandlerEnd)
+  for (const lock of ['isCheckingForUpdate', 'isDownloadingUpdate', 'isInstallingUpdate']) {
+    assert.doesNotMatch(errorHandler, new RegExp(`${lock}\\s*=\\s*false`))
+  }
+
+  for (const [startMarker, endMarker] of [
+    ['ipcMain.handle(IPC_EVENTS.UPDATE_CHECK,', '// 统一检查所有版本'],
+    ['ipcMain.handle(IPC_EVENTS.UPDATE_CHECK_ALL_VERSIONS', '// Open only a main-process'],
+  ]) {
+    const handlerStart = main.indexOf(startMarker)
+    const handlerEnd = main.indexOf(endMarker, handlerStart)
+    assert.notEqual(handlerStart, -1)
+    assert.notEqual(handlerEnd, -1)
+
+    const handler = main.slice(handlerStart, handlerEnd)
+    assert.match(handler, /finally\s*\{[\s\S]*isCheckingForUpdate\s*=\s*false/)
+  }
+})
+
+test('concurrent unified update checks keep the delivery-policy response contract', () => {
+  const main = readText('packages/desktop/main.js')
+  const handlerStart = main.indexOf('ipcMain.handle(IPC_EVENTS.UPDATE_CHECK_ALL_VERSIONS')
+  const lockStart = main.indexOf('// 设置检查状态锁', handlerStart)
+
+  assert.notEqual(handlerStart, -1)
+  assert.notEqual(lockStart, -1)
+
+  const inProgressBranch = main.slice(handlerStart, lockStart)
+  assert.match(inProgressBranch, /const currentVersion = require\('\.\/package\.json'\)\.version/)
+  assert.match(inProgressBranch, /currentVersion/)
+  assert.match(inProgressBranch, /updateDelivery/)
+  assert.match(inProgressBranch, /stable:\s*null/)
+  assert.match(inProgressBranch, /prerelease:\s*null/)
+  assert.match(inProgressBranch, /inProgress:\s*true/)
+})
+
+test('renderer preserves updater state while a unified check is already in progress', () => {
+  const updater = readText('packages/ui/src/composables/system/useUpdater.ts')
+  const inProgressStart = updater.indexOf('if (results.inProgress)')
+  const completedResultStart = updater.indexOf('// Unknown/missing capability', inProgressStart)
+
+  assert.notEqual(inProgressStart, -1)
+  assert.notEqual(completedResultStart, -1)
+
+  const inProgressBranch = updater.slice(inProgressStart, completedResultStart)
+  assert.match(inProgressBranch, /return/)
+  assert.doesNotMatch(inProgressBranch, /state\.isDownloading\s*=\s*false/)
+
+  const checkUpdateStart = updater.indexOf('const checkUpdate = async')
+  const checkBothVersionsCall = updater.indexOf('await checkBothVersions()', checkUpdateStart)
+  assert.notEqual(checkUpdateStart, -1)
+  assert.notEqual(checkBothVersionsCall, -1)
+
+  const preRequestState = updater.slice(checkUpdateStart, checkBothVersionsCall)
+  assert.doesNotMatch(preRequestState, /state\.stableVersion\s*=\s*null/)
+  assert.doesNotMatch(preRequestState, /state\.updateDelivery\s*=\s*null/)
+  assert.doesNotMatch(preRequestState, /state\.downloadMessage\s*=\s*null/)
+})
+
+test('renderer invalidates actionable version state after a terminal unified-check failure', () => {
+  const updater = readText('packages/ui/src/composables/system/useUpdater.ts')
+  const checkStart = updater.indexOf('const checkBothVersions = async')
+  const catchStart = updater.indexOf("console.error('[useUpdater] Error checking all versions:'", checkStart)
+  const finallyStart = updater.indexOf('} finally {', catchStart)
+
+  assert.notEqual(checkStart, -1)
+  assert.notEqual(catchStart, -1)
+  assert.notEqual(finallyStart, -1)
+
+  const terminalErrorBranch = updater.slice(catchStart, finallyStart)
+  assert.match(terminalErrorBranch, /invalidateActionableCheckState\(state\)/)
+  assert.match(terminalErrorBranch, /state\.lastCheckResult\s*=\s*'error'/)
+})
+
+test('updater feed, delivery policy, and release URLs share one repository snapshot', () => {
+  const main = readText('packages/desktop/main.js')
+  const setupStart = main.indexOf('async function setupUpdateHandlers()')
+  const eventHandlersStart = main.indexOf('// 设置更新事件处理', setupStart)
+
+  assert.notEqual(setupStart, -1)
+  assert.notEqual(eventHandlersStart, -1)
+
+  const repositorySetup = main.slice(setupStart, eventHandlersStart)
+  assert.match(repositorySetup, /resolveUpdateRepositoryConfig\(\)/)
+  assert.match(repositorySetup, /shouldOverrideFeed/)
+  assert.match(repositorySetup, /getUpdateDeliveryPolicy\(\{ repositoryInfo \}\)/)
+  assert.match(repositorySetup, /const \{ owner, repo \} = repositoryInfo/)
+  assert.match(repositorySetup, /repositoryInfo = packagedRepositoryInfo/)
+  assert.doesNotMatch(repositorySetup, /process\.env\.DEV_REPO_/)
+})
+
+test('updater release navigation is constructed and opened in the main process', () => {
+  const main = readText('packages/desktop/main.js')
+  const handlerStart = main.indexOf('ipcMain.handle(IPC_EVENTS.UPDATE_OPEN_RELEASE_PAGE')
+  const handlerEnd = main.indexOf('ipcMain.handle(IPC_EVENTS.UPDATE_START_DOWNLOAD', handlerStart)
+
+  assert.notEqual(handlerStart, -1)
+  assert.notEqual(handlerEnd, -1)
+
+  const handler = main.slice(handlerStart, handlerEnd)
+  assert.match(handler, /buildReleaseUrl\(version, repositoryInfo\)/)
+  assert.match(handler, /updateDelivery\.fallbackReleaseUrl/)
+  assert.match(handler, /shell\.openExternal\(releaseUrl\)/)
+  assert.doesNotMatch(handler, /shell\.openExternal\(version\)/)
+})
+
+test('manual release workflow normalizes tags used by release-page navigation', () => {
+  const workflow = readText('.github/workflows/release.yml')
+  const normalization = /VERSION="\$\{\{ inputs\.version \}\}"\s+if \[\[ "\$VERSION" != v\* \]\]; then\s+VERSION="v\$VERSION"\s+fi/g
+
+  assert.equal([...workflow.matchAll(normalization)].length, 2)
+  assert.match(workflow, /gh release create "\$VERSION"/)
+})
+
+test('desktop release jobs keep repository metadata and updater publish config aligned', () => {
+  const workflow = readText('.github/workflows/release.yml')
+  const jobBlock = (jobName, nextJobName) => {
+    const start = workflow.indexOf(`  ${jobName}:`)
+    const end = workflow.indexOf(`  ${nextJobName}:`, start)
+    assert.notEqual(start, -1, `${jobName} job must exist`)
+    assert.notEqual(end, -1, `${nextJobName} job must follow ${jobName}`)
+    return workflow.slice(start, end)
+  }
+
+  const windowsJob = jobBlock('build-windows', 'build-macos')
+  const macosJob = jobBlock('build-macos', 'build-linux')
+  const linuxJob = jobBlock('build-linux', 'build-extension')
+
+  assert.match(windowsJob, /\$pkgJson\.repository\.url\s*=\s*\$repoUrl/)
+  assert.match(windowsJob, /\$pkgJson\.build\.publish\.owner\s*=\s*\$repoOwner/)
+  assert.match(windowsJob, /\$pkgJson\.build\.publish\.repo\s*=\s*\$repoName/)
+
+  for (const [name, job] of [['build-macos', macosJob], ['build-linux', linuxJob]]) {
+    assert.match(job, /\.repository\.url\s*=\s*\$repo_url/, `${name} must update repository.url`)
+    assert.match(job, /\.build\.publish\.owner\s*=\s*\$repo_owner/, `${name} must update publish owner`)
+    assert.match(job, /\.build\.publish\.repo\s*=\s*\$repo_name/, `${name} must update publish repo`)
+  }
+})
+
 test('desktop remote storage handler routes S3-compatible operations through AWS SDK commands', async () => {
   const { handleRemoteStorageOperation } = await import('../packages/desktop/remote-storage.js')
   const sentCommands = []

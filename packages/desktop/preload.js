@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // IPC事件名称常量 - 直接内联避免沙箱环境的模块加载问题
 const IPC_EVENTS = {
   UPDATE_CHECK: 'updater-check-update',
+  UPDATE_OPEN_RELEASE_PAGE: 'updater-open-release-page',
   UPDATE_START_DOWNLOAD: 'updater-start-download',
   UPDATE_INSTALL: 'updater-install-update',
   UPDATE_IGNORE_VERSION: 'updater-ignore-version',
@@ -1370,6 +1371,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     },
+
+    openReleasePage: async (version) => {
+      const result = await withTimeout(
+        ipcRenderer.invoke(IPC_EVENTS.UPDATE_OPEN_RELEASE_PAGE, version),
+        10000
+      );
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
     
     startDownload: async () => {
       const result = await withTimeout(
@@ -1377,11 +1389,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         10000 // 10秒超时，启动下载应该很快
       );
       if (!result.success) {
-        // 保留完整的错误信息
-        const error = new Error(result.error);
-        error.originalError = result.error;
-        error.detailedMessage = result.error;
-        throw error;
+        throw createIpcError(result.error);
       }
       return result.data;
     },
@@ -1391,11 +1399,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         10000 // 10秒超时，安装启动应该很快
       );
       if (!result.success) {
-        // 保留完整的错误信息
-        const error = new Error(result.error);
-        error.originalError = result.error;
-        error.detailedMessage = result.error;
-        throw error;
+        throw createIpcError(result.error);
       }
       return result.data;
     },
@@ -1448,10 +1452,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         30000 // 30秒超时，现在只等待下载启动，不等待完成，所以30秒足够
       );
       if (!result.success) {
-        const error = new Error(result.error || 'Failed to download specific version');
-        error.originalError = result.error;
-        error.detailedMessage = result.error;
-        throw error;
+        throw createIpcError(result.error || 'Failed to download specific version');
       }
       return result.data;
     },
