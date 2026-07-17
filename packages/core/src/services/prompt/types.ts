@@ -156,6 +156,7 @@ export interface IPromptService {
     systemPrompt: string,
     userPrompt: string,
     modelKey: string,
+    inputImages?: ImageInputRef[],
   ): Promise<string>;
 
   /** 获取历史记录 */
@@ -198,6 +199,7 @@ export interface IPromptService {
     userPrompt: string,
     modelKey: string,
     callbacks: StreamHandlers,
+    inputImages?: ImageInputRef[],
   ): Promise<void>;
 
   /** 自定义会话测试（流式）- 高级模式功能 */

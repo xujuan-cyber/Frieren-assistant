@@ -1050,9 +1050,9 @@ function setupIPC() {
     }
   });
 
-  ipcMain.handle('prompt-testPrompt', async (event, systemPrompt, userPrompt, modelKey) => {
+  ipcMain.handle('prompt-testPrompt', async (event, systemPrompt, userPrompt, modelKey, inputImages) => {
     try {
-      const result = await promptService.testPrompt(systemPrompt, userPrompt, modelKey);
+      const result = await promptService.testPrompt(systemPrompt, userPrompt, modelKey, inputImages);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
@@ -1140,10 +1140,10 @@ function setupIPC() {
     }
   });
 
-  ipcMain.handle('prompt-testPromptStream', async (event, systemPrompt, userPrompt, modelKey, streamId) => {
+  ipcMain.handle('prompt-testPromptStream', async (event, systemPrompt, userPrompt, modelKey, streamId, inputImages) => {
     const streamHandlers = createIpcStreamHandlers(mainWindow, streamId);
     try {
-      await promptService.testPromptStream(systemPrompt, userPrompt, modelKey, streamHandlers);
+      await promptService.testPromptStream(systemPrompt, userPrompt, modelKey, streamHandlers, inputImages);
       return createSuccessResponse(null);
     } catch (error) {
       streamHandlers.onError(error);

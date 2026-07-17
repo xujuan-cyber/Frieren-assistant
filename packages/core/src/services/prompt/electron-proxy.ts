@@ -6,6 +6,7 @@ import {
   CustomConversationRequest,
 } from './types';
 import { PromptRecord } from '../history/types';
+import type { ImageInputRef } from '../image/types';
 import { safeSerializeForIPC } from '../../utils/ipc-serialization';
 import { ServiceDependencyError } from './errors';
 
@@ -60,9 +61,11 @@ export class ElectronPromptServiceProxy implements IPromptService {
   async testPrompt(
     systemPrompt: string,
     userPrompt: string,
-    modelKey: string
+    modelKey: string,
+    inputImages?: ImageInputRef[]
   ): Promise<string> {
-    return this.api.testPrompt(systemPrompt, userPrompt, modelKey);
+    const safeInputImages = inputImages ? safeSerializeForIPC(inputImages) : undefined;
+    return this.api.testPrompt(systemPrompt, userPrompt, modelKey, safeInputImages);
   }
 
   async getHistory(): Promise<PromptRecord[]> {
@@ -109,9 +112,11 @@ export class ElectronPromptServiceProxy implements IPromptService {
     systemPrompt: string,
     userPrompt: string,
     modelKey: string,
-    callbacks: StreamHandlers
+    callbacks: StreamHandlers,
+    inputImages?: ImageInputRef[]
   ): Promise<void> {
-    await this.api.testPromptStream(systemPrompt, userPrompt, modelKey, callbacks);
+    const safeInputImages = inputImages ? safeSerializeForIPC(inputImages) : undefined;
+    await this.api.testPromptStream(systemPrompt, userPrompt, modelKey, callbacks, safeInputImages);
   }
 
   async testCustomConversationStream(

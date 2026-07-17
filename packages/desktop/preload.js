@@ -928,7 +928,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw createIpcError(result.error);
       }
     },
-    testPromptStream: async (systemPrompt, userPrompt, modelKey, callbacks) => {
+    testPromptStream: async (systemPrompt, userPrompt, modelKey, callbacks, inputImages) => {
       const streamId = generateStreamId();
 
       const tokenListener = (event, token) => {
@@ -958,7 +958,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on(`stream-finish-${streamId}`, finishListener);
       ipcRenderer.on(`stream-error-${streamId}`, errorListener);
 
-      const result = await ipcRenderer.invoke('prompt-testPromptStream', systemPrompt, userPrompt, modelKey, streamId);
+      const result = await ipcRenderer.invoke('prompt-testPromptStream', systemPrompt, userPrompt, modelKey, streamId, inputImages);
       if (!result.success) {
         cleanup();
         throw createIpcError(result.error);
@@ -1013,8 +1013,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data;
     },
-    testPrompt: async (systemPrompt, userPrompt, modelKey) => {
-      const result = await ipcRenderer.invoke('prompt-testPrompt', systemPrompt, userPrompt, modelKey);
+    testPrompt: async (systemPrompt, userPrompt, modelKey, inputImages) => {
+      const result = await ipcRenderer.invoke('prompt-testPrompt', systemPrompt, userPrompt, modelKey, inputImages);
       if (!result.success) {
         throw createIpcError(result.error);
       }

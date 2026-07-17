@@ -50,6 +50,47 @@ test('desktop preload IPC channels have main-process handlers', () => {
   assert.deepEqual(missingHandlers, [])
 })
 
+test('desktop prompt test IPC preserves optional image payloads without transforming or logging them', () => {
+  const proxy = readText('packages/core/src/services/prompt/electron-proxy.ts')
+  const preload = readText('packages/desktop/preload.js')
+  const main = readText('packages/desktop/main.js')
+
+  assert.match(
+    proxy,
+    /const safeInputImages = inputImages \? safeSerializeForIPC\(inputImages\) : undefined;/,
+  )
+  assert.match(
+    proxy,
+    /this\.api\.testPrompt\(systemPrompt, userPrompt, modelKey, safeInputImages\)/,
+  )
+  assert.match(
+    proxy,
+    /this\.api\.testPromptStream\(systemPrompt, userPrompt, modelKey, callbacks, safeInputImages\)/,
+  )
+
+  assert.match(
+    preload,
+    /ipcRenderer\.invoke\('prompt-testPrompt', systemPrompt, userPrompt, modelKey, inputImages\)/,
+  )
+  assert.match(
+    preload,
+    /ipcRenderer\.invoke\('prompt-testPromptStream', systemPrompt, userPrompt, modelKey, streamId, inputImages\)/,
+  )
+  assert.match(
+    main,
+    /promptService\.testPrompt\(systemPrompt, userPrompt, modelKey, inputImages\)/,
+  )
+  assert.match(
+    main,
+    /promptService\.testPromptStream\(systemPrompt, userPrompt, modelKey, streamHandlers, inputImages\)/,
+  )
+
+  for (const bridgeSource of [proxy, preload]) {
+    assert.doesNotMatch(bridgeSource, /console\.(?:log|info|warn|error)\([^\n]*inputImages/)
+    assert.doesNotMatch(bridgeSource, /data:image\/[^;]+;base64,[^'"`\s]+/)
+  }
+})
+
 test('macOS manual-update policy guards every mutating updater entry point first', () => {
   const main = readText('packages/desktop/main.js')
 

@@ -12,6 +12,7 @@ import { IModelManager } from "../model/types";
 import { ITemplateManager } from "../template/types";
 import { IHistoryManager } from "../history/types";
 import type { IImageUnderstandingService } from "../image-understanding/types";
+import type { ImageInputRef } from "../image/types";
 import {
   OptimizationError,
   IterationError,
@@ -383,6 +384,7 @@ export class PromptService implements IPromptService {
     systemPrompt: string,
     userPrompt: string,
     modelKey: string,
+    inputImages?: ImageInputRef[],
   ): Promise<string> {
     try {
       // 对于用户提示词优化，systemPrompt 可以为空
@@ -396,6 +398,17 @@ export class PromptService implements IPromptService {
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new TestError(systemPrompt, userPrompt, "Model not found");
+      }
+
+      if (this.hasTestInputImages(inputImages)) {
+        const result = await this.requireImageUnderstandingService().understand({
+          modelConfig,
+          systemPrompt: systemPrompt?.trim() ? systemPrompt : undefined,
+          userPrompt,
+          images: inputImages,
+        });
+
+        return result.content;
       }
 
       const messages: Message[] = [];
@@ -414,8 +427,7 @@ export class PromptService implements IPromptService {
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = this.getSafeTestErrorMessage(error, inputImages);
       throw new TestError(
         systemPrompt,
         userPrompt,
@@ -446,6 +458,7 @@ export class PromptService implements IPromptService {
     userPrompt: string,
     modelKey: string,
     callbacks: StreamHandlers,
+    inputImages?: ImageInputRef[],
   ): Promise<void> {
     try {
       // 对于用户提示词优化，systemPrompt 可以为空
@@ -459,6 +472,24 @@ export class PromptService implements IPromptService {
       const modelConfig = await this.modelManager.getModel(modelKey);
       if (!modelConfig) {
         throw new TestError(systemPrompt, userPrompt, "Model not found");
+      }
+
+      if (this.hasTestInputImages(inputImages)) {
+        await this.requireImageUnderstandingService().understandStream(
+          {
+            modelConfig,
+            systemPrompt: systemPrompt?.trim() ? systemPrompt : undefined,
+            userPrompt,
+            images: inputImages,
+          },
+          {
+            onToken: callbacks.onToken,
+            onReasoningToken: callbacks.onReasoningToken,
+            onComplete: callbacks.onComplete,
+            onError: callbacks.onError,
+          },
+        );
+        return;
       }
 
       const messages: Message[] = [];
@@ -478,8 +509,7 @@ export class PromptService implements IPromptService {
         onError: callbacks.onError,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = this.getSafeTestErrorMessage(error, inputImages);
       throw new TestError(
         systemPrompt,
         userPrompt,
@@ -825,6 +855,31 @@ export class PromptService implements IPromptService {
 
   private hasInputImages(request: OptimizationRequest): request is OptimizationRequest & { inputImages: NonNullable<OptimizationRequest["inputImages"]> } {
     return Array.isArray(request.inputImages) && request.inputImages.length > 0;
+  }
+
+  private hasTestInputImages(inputImages?: ImageInputRef[]): inputImages is ImageInputRef[] {
+    return Array.isArray(inputImages) && inputImages.length > 0;
+  }
+
+  private getSafeTestErrorMessage(error: unknown, inputImages?: ImageInputRef[]): string {
+    let message = error instanceof Error ? error.message : String(error);
+    if (!this.hasTestInputImages(inputImages)) {
+      return message;
+    }
+
+    message = message.replace(
+      /data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+/gi,
+      "[redacted-image]",
+    );
+
+    for (const image of inputImages) {
+      const rawB64 = image.b64.trim();
+      if (rawB64 && message.includes(rawB64)) {
+        message = message.split(rawB64).join("[redacted-image]");
+      }
+    }
+
+    return message;
   }
 
   private requireImageUnderstandingService(): IImageUnderstandingService {
