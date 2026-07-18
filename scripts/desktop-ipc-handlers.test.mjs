@@ -91,6 +91,28 @@ test('desktop prompt test IPC preserves optional image payloads without transfor
   }
 })
 
+test('desktop multimodal evaluation routes image understanding through the main process', () => {
+  const proxy = readText('packages/core/src/services/image-understanding/electron-proxy.ts')
+  const initializer = readText('packages/ui/src/composables/system/useAppInitializer.ts')
+  const preload = readText('packages/desktop/preload.js')
+  const main = readText('packages/desktop/main.js')
+
+  assert.match(proxy, /this\.api\.understand\(safeSerializeForIPC\(request\)\)/)
+  assert.match(initializer, /imageUnderstandingService: new ElectronImageUnderstandingServiceProxy\(\)/)
+  assert.match(
+    preload,
+    /ipcRenderer\.invoke\('image-understanding-understand', request\)/,
+  )
+  assert.match(
+    main,
+    /imageUnderstandingService = createImageUnderstandingService\(\{[\s\S]*?imageInputConverter: convertImageInputWithElectronNativeImage/,
+  )
+  assert.match(
+    main,
+    /imageUnderstandingService\.understand\(safeSerialize\(request\)\)/,
+  )
+})
+
 test('macOS manual-update policy guards every mutating updater entry point first', () => {
   const main = readText('packages/desktop/main.js')
 

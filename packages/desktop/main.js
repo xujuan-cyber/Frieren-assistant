@@ -152,7 +152,7 @@ async function convertImageInputWithElectronNativeImage(input) {
 
 let mainWindow;
 let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager, contextRepo, favoriteManager;
-let imageModelManager, imageService;
+let imageModelManager, imageService, imageUnderstandingService;
 let imageAdapterRegistry; // 全局引用以供 IPC 处理器使用
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
 
@@ -733,15 +733,18 @@ async function initializeServices() {
     console.log('[DESKTOP] Creating LLM service...');
     llmService = createLLMService(modelManager);
 
+    console.log('[DESKTOP] Creating image understanding service...');
+    imageUnderstandingService = createImageUnderstandingService({
+      imageInputConverter: convertImageInputWithElectronNativeImage,
+    });
+
     console.log('[DESKTOP] Creating Prompt service...');
     promptService = createPromptService(
       modelManager,
       llmService,
       templateManager,
       historyManager,
-      createImageUnderstandingService({
-        imageInputConverter: convertImageInputWithElectronNativeImage,
-      }),
+      imageUnderstandingService,
     );
     console.log('[DESKTOP] Creating Image service...');
     imageService = createImageService(imageModelManager, imageAdapterRegistry, {
@@ -944,6 +947,15 @@ function setupIPC() {
   ipcMain.handle('llm-fetchModelList', async (event, provider, customConfig) => {
     try {
       const result = await llmService.fetchModelList(provider, customConfig);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('image-understanding-understand', async (event, request) => {
+    try {
+      const result = await imageUnderstandingService.understand(safeSerialize(request));
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);
