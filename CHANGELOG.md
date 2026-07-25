@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.8] - 2026-07-25
+- EN: This patch adds single-image attachments to Basic/System tests, routes unsigned macOS updates to manual GitHub Release downloads, and includes focused UI correctness and scrolling fixes. See [Release Notes (EN)](releases/v2.11.8.en.md).
+- 中文：本次补丁为 Basic/System 测试新增单图附件支持，将未签名 macOS 更新引导至 GitHub Release 手动下载，并包含一组 UI 正确性与滚动性能修复。参见 [版本说明（中文）](releases/v2.11.8.zh-CN.md)。
+
 ## [2.11.7] - 2026-06-22
 - EN: This patch restores desktop page zoom shortcuts, adds a dedicated `/healthz` endpoint for container probes, and switches Docker MCP startup to `node server.js` to avoid `pnpm verify-deps` crashes. See [Release Notes (EN)](releases/v2.11.7.en.md).
 - 中文：本次补丁恢复桌面端页面缩放快捷键，新增容器探活专用 `/healthz` 端点，并将 Docker 中的 MCP 启动切换为 `node server.js` 以规避 `pnpm verify-deps` 崩溃。参见 [版本说明（中文）](releases/v2.11.7.zh-CN.md)。
