@@ -2,11 +2,13 @@ export const config = {
   matcher: [
     /*
      * 匹配除以下路径之外的所有路径:
-     * - api routes (以 /api/ 开头)
+     * - 认证接口 /api/auth（登录/登出本身不能要求已登录）
      * - 静态文件 (以 . 结尾)
      * - 其他静态资源
+     * 注意：/api 及其他 /api/* 路径必须经过认证检查，
+     * 否则 /api 会命中 SPA 兜底 rewrite 返回完整前端，造成未授权访问绕过
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|assets/|.*\\.).*)' 
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|assets/|.*\\.).*)'
   ],
 };
 
