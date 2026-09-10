@@ -69,10 +69,16 @@
                 </NSpace>
 
                 <!-- 右侧：操作按钮 -->
-                <NSpace align="center" :size="8" class="flex-shrink-0">
+                <NSpace
+                    align="center"
+                    :size="8"
+                    :wrap-item="false"
+                    class="flex-shrink-0"
+                >
                     <!-- 预览按钮 -->
                     <NButton
                         v-if="showPreview && optimizedPrompt"
+                        key="preview-action"
                         @click="$emit('open-preview')"
                         type="tertiary"
                         size="small"
@@ -106,6 +112,7 @@
                     <!-- 应用到会话 -->
                     <NButton
                         v-if="showApplyButton && versions && versions.length > 0"
+                        key="apply-action"
                         @click="$emit('apply-to-conversation')"
                         type="success"
                         size="small"
@@ -131,7 +138,11 @@
                         {{ t("prompt.applyToConversation") }}
                     </NButton>
                     <!-- 评估入口：分数徽章或评估按钮 -->
-                    <div v-if="showEvaluation && optimizedPrompt" class="evaluation-entry">
+                    <div
+                        v-if="showEvaluation && optimizedPrompt"
+                        key="evaluation-action"
+                        class="evaluation-entry"
+                    >
                         <EvaluationScoreBadge
                             v-if="hasEvaluationResult || isEvaluating"
                             :score="evaluationScore"
@@ -165,6 +176,7 @@
                     <!-- 保存本地修改（手动编辑/直接修复后建议保存到历史版本） -->
                     <NButton
                         v-if="showSaveChanges"
+                        key="save-action"
                         type="default"
                         size="small"
                         class="min-w-[100px]"
@@ -175,6 +187,7 @@
                     <!-- 继续优化按钮 -->
                     <NButton
                         v-if="optimizedPrompt"
+                        key="iterate-action"
                         @click="handleIterate"
                         :disabled="isIterating"
                         :loading="isIterating"
