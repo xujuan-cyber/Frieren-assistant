@@ -21,13 +21,15 @@ test('parseArgs supports parallel aliases', () => {
   });
 });
 
-test('getRunnerSpec uses shell mode for Windows pnpm invocation', () => {
-  assert.deepEqual(getRunnerSpec('win32'), {
-    command: 'pnpm',
-    shell: true,
+test('getRunnerSpec avoids shell mode while preserving Windows pnpm compatibility', () => {
+  assert.deepEqual(getRunnerSpec('win32', { ComSpec: 'C:\\Windows\\System32\\cmd.exe' }), {
+    command: 'C:\\Windows\\System32\\cmd.exe',
+    argsPrefix: ['/d', '/s', '/c', 'pnpm'],
+    shell: false,
   });
   assert.deepEqual(getRunnerSpec('linux'), {
     command: 'pnpm',
+    argsPrefix: [],
     shell: false,
   });
 });

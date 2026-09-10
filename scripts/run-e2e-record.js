@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { spawnSync } = require('child_process')
+const { spawnPnpmSync } = require('./pnpm-runner')
 
 const extraArgs = process.argv.slice(2)
 
@@ -10,14 +10,12 @@ if (extraArgs.length === 0) {
   process.exit(1)
 }
 
-const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-const result = spawnSync(pnpmCommand, ['exec', 'playwright', 'test', ...extraArgs], {
+const result = spawnPnpmSync(['exec', 'playwright', 'test', ...extraArgs], {
   stdio: 'inherit',
   env: {
     ...process.env,
     E2E_VCR_MODE: 'record'
-  },
-  shell: process.platform === 'win32'
+  }
 })
 
 if (result.error) {

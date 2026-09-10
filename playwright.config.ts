@@ -11,6 +11,30 @@ const E2E_PORT = process.env.E2E_PORT || 15555;
 const BASE_URL = `http://localhost:${E2E_PORT}`;
 const E2E_VCR_MODE = process.env.E2E_VCR_MODE || 'auto';
 const USE_VCR_PLACEHOLDER_KEYS = E2E_VCR_MODE === 'replay';
+const USE_EMPTY_MODEL_CONFIG = process.env.E2E_EMPTY_MODEL_CONFIG === '1';
+const MODEL_CREDENTIAL_ENV_KEYS = [
+  'VITE_ANTHROPIC_API_KEY',
+  'VITE_ARK_API_KEY',
+  'VITE_CF_ACCOUNT_ID',
+  'VITE_CF_API_TOKEN',
+  'VITE_CUSTOM_API_BASE_URL',
+  'VITE_CUSTOM_API_HEADERS',
+  'VITE_CUSTOM_API_KEY',
+  'VITE_CUSTOM_API_MODEL',
+  'VITE_DASHSCOPE_API_KEY',
+  'VITE_DEEPSEEK_API_KEY',
+  'VITE_GEMINI_API_KEY',
+  'VITE_GROK_API_KEY',
+  'VITE_MIMO_TOKEN_PLAN_API_KEY',
+  'VITE_MINIMAX_API_KEY',
+  'VITE_MODELSCOPE_API_KEY',
+  'VITE_OPENAI_API_KEY',
+  'VITE_OPENROUTER_API_KEY',
+  'VITE_SEEDREAM_API_KEY',
+  'VITE_SILICONFLOW_API_KEY',
+  'VITE_XAI_API_KEY',
+  'VITE_ZHIPU_API_KEY',
+] as const;
 
 export default defineConfig({
   // 测试目录
@@ -90,6 +114,9 @@ export default defineConfig({
     // 避免因本机缺少真实 key 而导致 UI 不渲染对应选项，从而无法命中既有 VCR fixtures。
     env: {
       ...process.env,
+      ...(USE_EMPTY_MODEL_CONFIG
+        ? Object.fromEntries(MODEL_CREDENTIAL_ENV_KEYS.map((key) => [key, '']))
+        : {}),
       ...(USE_VCR_PLACEHOLDER_KEYS
         ? {
             VITE_SILICONFLOW_API_KEY: process.env.VITE_SILICONFLOW_API_KEY || 'vcr',

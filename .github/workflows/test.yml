@@ -46,7 +46,5 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run gate E2E checks (VCR replay)
+      - name: Run real UI smoke and gate E2E checks
         run: pnpm test:gate:e2e
-        env:
-          E2E_VCR_MODE: replay

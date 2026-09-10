@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const { spawnSync } = require('child_process')
 const { groups } = require('./e2e-groups')
+const { spawnPnpmSync } = require('./pnpm-runner')
 
 function runGroup(groupName, extraArgs = []) {
   const specs = groups[groupName]
@@ -17,11 +17,9 @@ function runGroup(groupName, extraArgs = []) {
   }
   console.log('')
 
-  const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-  const result = spawnSync(pnpmCommand, ['exec', 'playwright', 'test', ...specs, ...extraArgs], {
+  const result = spawnPnpmSync(['exec', 'playwright', 'test', ...specs, ...extraArgs], {
     stdio: 'inherit',
-    env: process.env,
-    shell: process.platform === 'win32'
+    env: process.env
   })
 
   if (result.error) {

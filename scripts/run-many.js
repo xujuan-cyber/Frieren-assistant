@@ -1,20 +1,6 @@
 #!/usr/bin/env node
 
-const { spawn } = require('node:child_process');
-
-function getRunnerSpec(platform = process.platform) {
-  if (platform === 'win32') {
-    return {
-      command: 'pnpm',
-      shell: true,
-    };
-  }
-
-  return {
-    command: 'pnpm',
-    shell: false,
-  };
-}
+const { getPnpmRunnerSpec, spawnPnpm } = require('./pnpm-runner');
 
 function parseArgs(argv) {
   let parallel = false;
@@ -40,10 +26,8 @@ function parseArgs(argv) {
 
 function runPackageScript(script, options = {}) {
   return new Promise((resolve, reject) => {
-    const { command, shell } = getRunnerSpec();
-    const child = spawn(command, ['run', script], {
+    const child = spawnPnpm(['run', script], {
       stdio: 'inherit',
-      shell,
       env: process.env,
       ...options,
     });
@@ -90,7 +74,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-  getRunnerSpec,
+  getRunnerSpec: getPnpmRunnerSpec,
   main,
   parseArgs,
   runPackageScript,

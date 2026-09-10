@@ -1,4 +1,7 @@
 const groups = {
+  uiSmoke: [
+    'tests/e2e/regression/model-configuration-smoke.spec.ts',
+  ],
   gate: [
     'tests/e2e/workflows/p0-route-smoke.spec.ts',
     'tests/e2e/regression/root-route-bootstrap.spec.ts',

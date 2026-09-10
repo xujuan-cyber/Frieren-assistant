@@ -13,6 +13,7 @@
           <NText depth="3">{{ emptyText || t('model.select.noAvailableModels') }}</NText>
           <NButton
             v-if="shouldShowEmptyConfigCTA"
+            data-testid="select-empty-config-action"
             type="tertiary"
             size="small"
             ghost

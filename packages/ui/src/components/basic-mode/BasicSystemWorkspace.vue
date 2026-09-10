@@ -101,6 +101,7 @@
                         <template #model-select>
                             <SelectWithConfig
                                 v-model="selectedOptimizeModelKeyModel"
+                                data-testid="basic-system-model-select"
                                 :options="modelSelection.textModelOptions"
                                 :getPrimary="OptionAccessors.getPrimary"
                                 :getSecondary="OptionAccessors.getSecondary"
