@@ -16,8 +16,8 @@
     "vue": "^3.5.31"
   },
   "devDependencies": {
-    "@tsconfig/node22": "^22.0.5",
-    "@types/node": "^22.19.15",
+    "@tsconfig/node24": "^24.0.5",
+    "@types/node": "^24.13.4",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/tsconfig": "^0.9.1",

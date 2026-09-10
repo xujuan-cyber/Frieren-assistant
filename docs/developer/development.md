@@ -12,7 +12,7 @@
 ## 本地开发环境配置
 
 ### 基础环境要求
-- Node.js 22.x
+- Node.js 24.x
 - pnpm >= 8
 - Git >= 2.0
 - VSCode (推荐)

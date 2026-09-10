@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import ModelManager from '../../../src/components/ModelManager.vue'
 
 // Provide minimal mocks for dependencies injected by the component
@@ -105,10 +105,6 @@ describe('ModelManager', () => {
             template: '<input class="stub-input" :value="value" @input="$emit(\'update:value\', $event.target.value)" />',
             props: ['value']
           },
-          NTabs: { template: '<div class="stub-tabs"><slot /></div>' },
-          'n-tabs': { template: '<div class="stub-tabs"><slot /></div>' },
-          NTabPane: { template: '<div class="stub-tab-pane"><slot /></div>' },
-          'n-tab-pane': { template: '<div class="stub-tab-pane"><slot /></div>' },
           NDivider: { template: '<hr class="stub-divider" />' },
           'n-divider': { template: '<hr class="stub-divider" />' },
           NH4: { template: '<h4 class="stub-h4"><slot /></h4>' },
@@ -149,5 +145,22 @@ describe('ModelManager', () => {
 
     // 验证组件结构包含 TextModelManager 和 ImageModelManager 存根
     expect(wrapper.html()).toBeTruthy()
+  })
+
+  it('renders model category labels and switches to image models', async () => {
+    const wrapper = mountComponent()
+    const tabs = wrapper.findAll('.n-tabs-tab').filter(tab => tab.text())
+
+    expect(tabs.map(tab => tab.text())).toEqual([
+      'modelManager.textModels',
+      'modelManager.imageModels',
+      'modelManager.functionModels'
+    ])
+
+    await tabs[1].trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.stub-image-manager').attributes('style')).not.toContain('display: none')
+    expect(wrapper.find('.stub-text-manager').attributes('style')).toContain('display: none')
   })
 })
