@@ -356,6 +356,46 @@ describe('HistoryManager Import/Export', () => {
   });
 
   describe('data integrity', () => {
+    const makeRecord = (index: number): PromptRecord => ({
+      id: `record-${index}`,
+      originalPrompt: `Prompt ${index}`,
+      optimizedPrompt: `Response ${index}`,
+      type: 'optimize',
+      chainId: `chain-${index}`,
+      version: 1,
+      timestamp: 1000 + index,
+      modelKey: 'openai',
+      templateId: 'template-1'
+    });
+
+    it('should preserve record order through an export/import round trip', async () => {
+      for (let index = 1; index <= 3; index++) {
+        await historyManager.addRecord(makeRecord(index));
+      }
+      const backup = JSON.parse(JSON.stringify(await historyManager.exportData()));
+      const originalIds = backup.map((record: PromptRecord) => record.id);
+
+      await historyManager.importData(backup);
+
+      expect((await historyManager.getRecords()).map(record => record.id)).toEqual(originalIds);
+      expect(backup.map((record: PromptRecord) => record.id)).toEqual(originalIds);
+    });
+
+    it('should evict the oldest record after restoring a full history', async () => {
+      for (let index = 1; index <= 50; index++) {
+        await historyManager.addRecord(makeRecord(index));
+      }
+      const backup = JSON.parse(JSON.stringify(await historyManager.exportData()));
+
+      await historyManager.importData(backup);
+      await historyManager.addRecord(makeRecord(51));
+
+      const records = await historyManager.getRecords();
+      expect(records).toHaveLength(50);
+      expect(records.map(record => record.id)).toContain('record-50');
+      expect(records.map(record => record.id)).not.toContain('record-1');
+    });
+
     it('should maintain chain relationships after import', async () => {
       // 创建一个完整的对话链
       const importData: PromptRecord[] = [
