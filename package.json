@@ -82,6 +82,9 @@
   "author": "",
   "license": "AGPL-3.0-only",
   "pnpm": {
+    "overrides": {
+      "esbuild": "0.28.1"
+    },
     "onlyBuiltDependencies": [
       "electron"
     ]
