@@ -412,8 +412,8 @@ export class HistoryManager implements IHistoryManager {
 
     const failedRecords: { record: PromptRecord; error: Error }[] = [];
 
-    // Import each record individually, capturing failures
-    for (const record of records) {
+    // addRecord prepends, so replay the exported order backwards without mutating it.
+    for (const record of [...records].reverse()) {
       try {
         // 保持原始ID，维护数据关联性（chainId、previousId等）
         await this.addRecord(record);
