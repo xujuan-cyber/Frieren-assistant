@@ -105,6 +105,13 @@
                                 :getPrimary="OptionAccessors.getPrimary"
                                 :getSecondary="OptionAccessors.getSecondary"
                                 :getValue="OptionAccessors.getValue"
+                                :placeholder="t('model.select.placeholder')"
+                                size="medium"
+                                :disabled="unwrappedLogicProps.isOptimizing"
+                                filterable
+                                :show-config-action="true"
+                                :show-empty-config-c-t-a="true"
+                                @focus="modelSelection.refreshTextModels"
                                 @config="handleOpenModelManager"
                             />
                         </template>
@@ -117,6 +124,13 @@
                                 :getPrimary="OptionAccessors.getPrimary"
                                 :getSecondary="OptionAccessors.getSecondary"
                                 :getValue="OptionAccessors.getValue"
+                                :placeholder="t('template.select')"
+                                size="medium"
+                                :disabled="unwrappedLogicProps.isOptimizing"
+                                filterable
+                                :show-config-action="true"
+                                :show-empty-config-c-t-a="true"
+                                @focus="templateSelection.refreshOptimizeTemplates"
                                 @config="() => handleOpenTemplateManager('userOptimize')"
                             />
                         </template>
@@ -327,6 +341,13 @@
                                                 :getPrimary="OptionAccessors.getPrimary"
                                                 :getSecondary="OptionAccessors.getSecondary"
                                                 :getValue="OptionAccessors.getValue"
+                                                :placeholder="t('model.select.placeholder')"
+                                                size="medium"
+                                                :disabled="variantRunning[id] || isAnyVariantRunning"
+                                                filterable
+                                                :show-config-action="true"
+                                                :show-empty-config-c-t-a="true"
+                                                @focus="modelSelection.refreshTextModels"
                                                 @config="handleOpenModelManager"
                                                 style="min-width: 0; width: 100%;"
                                             />

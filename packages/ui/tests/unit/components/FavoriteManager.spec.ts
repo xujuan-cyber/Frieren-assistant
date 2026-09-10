@@ -636,18 +636,19 @@ describe('FavoriteManager', () => {
     const { wrapper, services } = await mountComponent(favorites)
 
     expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(1)
+    const loadCountBeforeReopen = services.favoriteManager.getFavorites.mock.calls.length
 
     await wrapper.setProps({ show: false })
     await flushPromises()
 
-    services.favoriteManager.getFavorites.mockResolvedValueOnce([
+    services.favoriteManager.getFavorites.mockResolvedValue([
       ...favorites,
       createFavorite(2),
     ])
     await wrapper.setProps({ show: true })
     await flushPromises()
 
-    expect(services.favoriteManager.getFavorites).toHaveBeenCalledTimes(2)
+    expect(services.favoriteManager.getFavorites.mock.calls.length).toBeGreaterThan(loadCountBeforeReopen)
     expect(wrapper.findAll('.favorite-list-item-stub')).toHaveLength(2)
   })
 

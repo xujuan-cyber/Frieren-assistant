@@ -31,17 +31,17 @@
     "msw": "^2.12.14",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
-    "@google/genai": "^1.46.0",
+    "@anthropic-ai/sdk": "^0.124.0",
+    "@google/genai": "^1.52.0",
     "dexie": "^4.4.1",
     "diff": "^8.0.4",
     "jsonrepair": "^3.13.3",
     "mustache": "^4.2.0",
     "openai": "^6.33.0",
-    "uuid": "^13.0.0",
+    "uuid": "^13.0.2",
     "zod": "^4.3.6"
   }
 }

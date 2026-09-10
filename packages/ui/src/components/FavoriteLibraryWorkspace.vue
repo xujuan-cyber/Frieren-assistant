@@ -1050,21 +1050,11 @@ const updateViewportWidth = () => {
 
 const debouncedViewportUpdate = useDebounceFn(updateViewportWidth, 120)
 
-onMounted(async () => {
+onMounted(() => {
   updateViewportWidth()
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', debouncedViewportUpdate)
     window.addEventListener(FAVORITE_UPDATED_EVENT, handleExternalFavoriteUpdated)
-  }
-
-  try {
-    await ensureDefaultCategoriesForManager()
-  } catch (error) {
-    console.warn('[FavoriteLibraryWorkspace] Failed to ensure default categories:', error)
-  }
-
-  if (services?.value?.favoriteManager) {
-    await Promise.all([loadFavorites(), loadCategories()])
   }
 })
 
@@ -1080,6 +1070,7 @@ watch(
       console.warn('[FavoriteLibraryWorkspace] Failed to initialize favorite manager:', error)
     }
   },
+  { immediate: true },
 )
 
 onBeforeUnmount(() => {

@@ -672,6 +672,7 @@
                                                 filterable
                                                 :show-config-action="!!appOpenModelManager"
                                                 :show-empty-config-c-t-a="true"
+                                                @focus="refreshImageModels"
                                                 @config="() => appOpenModelManager && appOpenModelManager('image')"
                                                 style="min-width: 0; width: 100%;"
                                             />
