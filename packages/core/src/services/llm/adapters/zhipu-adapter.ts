@@ -1,4 +1,4 @@
-import type { TextModel, TextProvider } from '../types'
+import type { ParameterDefinition, TextModel, TextProvider } from '../types'
 import { OpenAIAdapter } from './openai-adapter'
 
 interface ModelOverride {
@@ -11,9 +11,9 @@ interface ModelOverride {
 
 const ZHIPU_STATIC_MODELS: ModelOverride[] = [
   {
-    id: 'glm-5.2',
-    name: 'GLM-5.2',
-    description: 'Latest GLM flagship model for reasoning, coding, and agentic tasks',
+    id: 'glm-5.3-flash',
+    name: 'GLM-5.3-Flash',
+    description: 'Latest efficient multimodal GLM model for reasoning, coding, and agentic tasks',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
@@ -21,23 +21,23 @@ const ZHIPU_STATIC_MODELS: ModelOverride[] = [
     }
   },
   {
-    id: 'glm-4.7',
-    name: 'GLM-4.7',
-    description: 'GLM-4.7 是最新的旗舰模型系列，专为智能体应用打造的基础模型',
+    id: 'glm-5.3',
+    name: 'GLM-5.3',
+    description: 'Latest GLM flagship model for complex reasoning, coding, and agentic tasks',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
-      maxContextLength: 128000
+      maxContextLength: 1000000
     }
   },
   {
-    id: 'glm-4.6',
-    name: 'GLM-4.6',
-    description: 'GLM-4.6 是最新的旗舰模型系列，专为智能体应用打造的基础模型',
+    id: 'glm-5.2',
+    name: 'GLM-5.2',
+    description: 'Previous GLM flagship model retained for compatibility',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
-      maxContextLength: 128000
+      maxContextLength: 1000000
     }
   }
 ]
@@ -81,6 +81,23 @@ export class ZhipuAdapter extends OpenAIAdapter {
               ...definition.defaultParameterValues
             }
           : baseModel.defaultParameterValues
+      }
+    })
+  }
+
+  protected getParameterDefinitions(modelId: string): readonly ParameterDefinition[] {
+    return super.getParameterDefinitions(modelId).map((definition) => {
+      if (definition.name !== 'reasoning_effort' || !/^glm-5\.(?:2|3)/.test(modelId)) {
+        return definition
+      }
+
+      const allowedValues = modelId === 'glm-5.2' ? ['high', 'max'] : ['low', 'high', 'max']
+      return {
+        ...definition,
+        description: 'Reasoning effort for current GLM models.',
+        defaultValue: 'max',
+        default: 'max',
+        allowedValues
       }
     })
   }

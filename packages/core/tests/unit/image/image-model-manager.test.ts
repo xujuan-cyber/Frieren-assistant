@@ -101,36 +101,64 @@ describe('ImageModelManager initialization behavior', () => {
   it('should migrate exact legacy builtin image model ids', async () => {
     await modelManager.ensureInitialized()
     const defaults = {
+      openrouter: await modelManager.getConfig('image-openrouter-nanobanana'),
       gemini: await modelManager.getConfig('image-gemini-nanobanana'),
+      openai: await modelManager.getConfig('image-openai-gpt'),
       dashscope: await modelManager.getConfig('image-dashscope'),
-      seedream: await modelManager.getConfig('image-seedream-50-lite')
+      seedream: await modelManager.getConfig('image-seedream-50-lite'),
+      grok: await modelManager.getConfig('image-grok-imagine')
     }
-    expect(defaults.gemini && defaults.dashscope && defaults.seedream).toBeTruthy()
+    expect(
+      defaults.openrouter
+      && defaults.gemini
+      && defaults.openai
+      && defaults.dashscope
+      && defaults.seedream
+      && defaults.grok
+    ).toBeTruthy()
 
     await storageProvider.setItem(CORE_SERVICE_KEYS.IMAGE_MODELS, JSON.stringify({
+      'image-openrouter-nanobanana': {
+        ...defaults.openrouter,
+        modelId: 'google/gemini-2.5-flash-image',
+        model: { ...defaults.openrouter!.model, id: 'google/gemini-2.5-flash-image' }
+      },
       'image-gemini-nanobanana': {
         ...defaults.gemini,
         modelId: 'gemini-2.5-flash-image',
         model: { ...defaults.gemini!.model, id: 'gemini-2.5-flash-image' }
       },
+      'image-openai-gpt': {
+        ...defaults.openai,
+        modelId: 'gpt-image-2',
+        model: { ...defaults.openai!.model, id: 'gpt-image-2' }
+      },
       'image-dashscope': {
         ...defaults.dashscope,
-        modelId: 'qwen-image',
-        model: { ...defaults.dashscope!.model, id: 'qwen-image' }
+        modelId: 'qwen-image-2.0',
+        model: { ...defaults.dashscope!.model, id: 'qwen-image-2.0' }
       },
       'image-seedream-50-lite': {
         ...defaults.seedream,
         modelId: 'doubao-seedream-5-0-260128',
         model: { ...defaults.seedream!.model, id: 'doubao-seedream-5-0-260128' }
+      },
+      'image-grok-imagine': {
+        ...defaults.grok,
+        modelId: 'grok-imagine-image-quality',
+        model: { ...defaults.grok!.model, id: 'grok-imagine-image-quality' }
       }
     }))
 
     const reloadedManager = new ImageModelManager(storageProvider, new ImageAdapterRegistry())
     await reloadedManager.ensureInitialized()
 
+    expect((await reloadedManager.getConfig('image-openrouter-nanobanana'))?.modelId).toBe('google/gemini-3.1-flash-image')
     expect((await reloadedManager.getConfig('image-gemini-nanobanana'))?.modelId).toBe('gemini-3.1-flash-image')
-    expect((await reloadedManager.getConfig('image-dashscope'))?.modelId).toBe('qwen-image-2.0')
+    expect((await reloadedManager.getConfig('image-openai-gpt'))?.modelId).toBe('gpt-image-2.5-flare')
+    expect((await reloadedManager.getConfig('image-dashscope'))?.modelId).toBe('qwen-image-3.0-pro')
     expect((await reloadedManager.getConfig('image-seedream-50-lite'))?.modelId).toBe('doubao-seedream-5-0-lite-260128')
+    expect((await reloadedManager.getConfig('image-grok-imagine'))?.modelId).toBe('grok-imagine-image-2.0')
   })
 
   it('should refresh embedded provider and model metadata when providerId/modelId are updated directly', async () => {

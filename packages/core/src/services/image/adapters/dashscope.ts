@@ -55,9 +55,9 @@ export class DashScopeImageAdapter extends AbstractImageProviderAdapter {
   getModels(): ImageModel[] {
     return [
       {
-        id: 'qwen-image-2.0',
-        name: 'Qwen Image 2.0',
-        description: 'Unified Qwen image model for text-to-image generation and image editing',
+        id: 'qwen-image-3.0-pro',
+        name: 'Qwen Image 3.0 Pro',
+        description: 'Flagship unified Qwen image model for text-to-image generation and image editing',
         providerId: 'dashscope',
         capabilities: {
           text2image: true,
@@ -71,16 +71,15 @@ export class DashScopeImageAdapter extends AbstractImageProviderAdapter {
           watermark: false
         }
       },
-      // Qwen-Image 文生图模型
       {
-        id: 'qwen-image',
-        name: 'Qwen Image',
-        description: 'Qwen text-to-image model with strong text rendering, multi-line layout, and paragraph-level text generation support',
+        id: 'qwen-image-3.0',
+        name: 'Qwen Image 3.0',
+        description: 'Fast unified Qwen image model for text-to-image generation and image editing',
         providerId: 'dashscope',
         capabilities: {
           text2image: true,
-          image2image: false,
-          multiImage: false
+          image2image: true,
+          multiImage: true
         },
         parameterDefinitions: this.getQwenImageParameterDefinitions(),
         defaultParameterValues: {
@@ -238,7 +237,7 @@ export class DashScopeImageAdapter extends AbstractImageProviderAdapter {
   }
 
   private isQwenImageUnifiedModel(modelId: string): boolean {
-    return modelId === 'qwen-image-2.0'
+    return modelId === 'qwen-image-2.0' || modelId.startsWith('qwen-image-3.0')
   }
 
   protected async doGenerate(request: ImageRequest, config: ImageModelConfig): Promise<ImageResult> {

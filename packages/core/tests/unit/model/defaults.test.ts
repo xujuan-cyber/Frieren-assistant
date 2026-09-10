@@ -239,16 +239,24 @@ describe('model defaults provider env mapping', () => {
     })
   })
 
-  it('should include Grok 4.5 with high reasoning effort by default', () => {
+  it('should include Grok 4.6 with high reasoning effort by default', () => {
     const models = getDefaultTextModels()
 
     expect(models.grok).toBeDefined()
     expect(models.grok.providerMeta.id).toBe('grok')
-    expect(models.grok.modelMeta.id).toBe('grok-4.5')
+    expect(models.grok.modelMeta.id).toBe('grok-4.6')
     expect(models.grok.enabled).toBe(false)
     expect(models.grok.paramOverrides).toEqual({
       reasoning_effort: 'high'
     })
+  })
+
+  it('should use GLM-5.3-Flash as the Zhipu default', () => {
+    const models = getDefaultTextModels()
+
+    expect(models.zhipu.modelMeta.id).toBe('glm-5.3-flash')
+    expect(models.zhipu.modelMeta.parameterDefinitions.find((definition) => definition.name === 'reasoning_effort')?.allowedValues)
+      .toEqual(['low', 'high', 'max'])
   })
 
   it('should enable Grok when VITE_XAI_API_KEY is provided', () => {

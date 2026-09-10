@@ -24,8 +24,8 @@ const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
     }
   },
   {
-    id: 'qwen3.6-flash',
-    name: 'Qwen3.6 Flash',
+    id: 'qwen3.8-flash',
+    name: 'Qwen3.8 Flash',
     description: 'Fast Qwen model for low-latency general-purpose workloads',
     capabilities: {
       supportsTools: true,
@@ -34,13 +34,13 @@ const DASHSCOPE_STATIC_MODELS: ModelOverride[] = [
     }
   },
   {
-    id: 'qwen3.5-27b',
-    name: 'Qwen3.5-27B',
-    description: 'Qwen3.5 27B model for DashScope text and vision understanding scenarios',
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8 Max',
+    description: 'Latest Qwen flagship model for complex reasoning and agentic workloads',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
-      maxContextLength: 131072
+      maxContextLength: 1000000
     }
   },
   {

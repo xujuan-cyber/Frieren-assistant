@@ -104,7 +104,7 @@ describe('DashScopeImageAdapter', () => {
 
     const [, init] = vi.mocked(fetch).mock.calls[0]!
     const body = JSON.parse(String(init?.body))
-    expect(body.model).toBe('qwen-image-2.0')
+    expect(body.model).toBe('qwen-image-3.0-pro')
     expect(body.input.messages[0].content).toEqual([
       { image: 'data:image/png;base64,aGVsbG8=' },
       { image: 'data:image/jpeg;base64,d29ybGQ=' },

@@ -16,9 +16,9 @@ interface ModelOverride {
 
 const GROK_STATIC_MODELS: ModelOverride[] = [
   {
-    id: 'grok-4.5',
-    name: 'Grok 4.5',
-    description: 'xAI Grok 4.5 reasoning model via OpenAI-compatible Chat Completions API',
+    id: 'grok-4.6',
+    name: 'Grok 4.6',
+    description: 'xAI Grok 4.6 reasoning model via OpenAI-compatible Chat Completions API',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
@@ -30,7 +30,7 @@ const GROK_STATIC_MODELS: ModelOverride[] = [
   }
 ]
 
-type GrokReasoningEffort = 'low' | 'medium' | 'high'
+type GrokReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh'
 
 export class GrokAdapter extends OpenAIAdapter {
   public getProvider(): TextProvider {
@@ -125,11 +125,11 @@ export class GrokAdapter extends OpenAIAdapter {
         name: 'reasoning_effort',
         labelKey: 'params.reasoning_effort.label',
         descriptionKey: 'params.reasoning_effort.description',
-        description: 'Reasoning effort for Grok 4.5.',
+        description: 'Reasoning effort for Grok 4.6.',
         type: 'string',
         defaultValue: 'high',
         default: 'high',
-        allowedValues: ['low', 'medium', 'high']
+        allowedValues: ['low', 'medium', 'high', 'xhigh']
       },
       {
         name: 'temperature',
@@ -215,7 +215,7 @@ export class GrokAdapter extends OpenAIAdapter {
   }
 
   private normalizeReasoningEffort(value: unknown): GrokReasoningEffort | undefined {
-    return value === 'low' || value === 'medium' || value === 'high'
+    return value === 'low' || value === 'medium' || value === 'high' || value === 'xhigh'
       ? value
       : undefined
   }

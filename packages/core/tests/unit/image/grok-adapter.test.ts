@@ -38,7 +38,9 @@ describe('GrokImageAdapter', () => {
   it('should expose current non-retired Grok Imagine model', () => {
     const models = adapter.getModels()
 
-    expect(models.map(model => model.id)).toEqual(['grok-imagine-image-quality'])
+    expect(models.map(model => model.id)).toEqual(['grok-imagine-image-2.0'])
+    expect(models[0].parameterDefinitions.find(parameter => parameter.name === 'quality')?.allowedValues)
+      .toEqual(['auto', 'low', 'medium'])
     expect(models[0].providerId).toBe('grok')
     expect(models[0].capabilities).toEqual({
       text2image: true,
@@ -83,7 +85,7 @@ describe('GrokImageAdapter', () => {
     const payload = JSON.parse(options.body)
     expect(payload).toEqual(
       expect.objectContaining({
-        model: 'grok-imagine-image-quality',
+        model: 'grok-imagine-image-2.0',
         prompt: 'a city at dawn',
         response_format: 'b64_json',
         n: 1
@@ -118,7 +120,7 @@ describe('GrokImageAdapter', () => {
     const payload = JSON.parse(options.body)
     expect(payload).toEqual(
       expect.objectContaining({
-        model: 'grok-imagine-image-quality',
+        model: 'grok-imagine-image-2.0',
         prompt: 'make it cinematic',
         response_format: 'b64_json',
         n: 1,
@@ -130,11 +132,11 @@ describe('GrokImageAdapter', () => {
     )
   })
 
-  it('should reject more than three input images before calling xAI', async () => {
+  it('should reject more than five input images before calling xAI', async () => {
     const request: ImageRequest = {
       prompt: 'combine references',
       configId: config.id,
-      inputImages: Array.from({ length: 4 }, () => ({
+      inputImages: Array.from({ length: 6 }, () => ({
         b64: 'cmVmZXJlbmNl',
         mimeType: 'image/png'
       })),
@@ -146,8 +148,8 @@ describe('GrokImageAdapter', () => {
     await expect(adapter.generate(request, config)).rejects.toMatchObject({
       code: IMAGE_ERROR_CODES.INPUT_IMAGE_TOO_MANY,
       params: {
-        maxCount: 3,
-        actualCount: 4
+        maxCount: 5,
+        actualCount: 6
       }
     })
     expect(global.fetch).not.toHaveBeenCalled()

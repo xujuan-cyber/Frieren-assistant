@@ -13,7 +13,7 @@ import { IMAGE_ERROR_CODES } from '../../../constants/error-codes'
 
 export class GrokImageAdapter extends AbstractImageProviderAdapter {
   private static readonly FORCED_SINGLE_OUTPUT_PARAM_KEYS = ['n', 'batch_size', 'count']
-  private static readonly MAX_INPUT_IMAGES = 3
+  private static readonly MAX_INPUT_IMAGES = 5
 
   protected normalizeBaseUrl(base: string): string {
     const trimmed = base.replace(/\/$/, '')
@@ -43,17 +43,17 @@ export class GrokImageAdapter extends AbstractImageProviderAdapter {
   getModels(): ImageModel[] {
     return [
       {
-        id: 'grok-imagine-image-quality',
-        name: 'Grok Imagine Image Quality',
-        description: 'xAI Grok Imagine image generation and JSON-based image editing model',
+        id: 'grok-imagine-image-2.0',
+        name: 'Grok Imagine Image 2.0',
+        description: 'xAI Grok Imagine 2.0 image generation and JSON-based image editing model',
         providerId: 'grok',
         capabilities: {
           text2image: true,
           image2image: true,
           multiImage: true
         },
-        parameterDefinitions: this.getParameterDefinitions('grok-imagine-image-quality'),
-        defaultParameterValues: this.getDefaultParameterValues('grok-imagine-image-quality')
+        parameterDefinitions: this.getParameterDefinitions('grok-imagine-image-2.0'),
+        defaultParameterValues: this.getDefaultParameterValues('grok-imagine-image-2.0')
       }
     ]
   }
@@ -138,7 +138,7 @@ export class GrokImageAdapter extends AbstractImageProviderAdapter {
         descriptionKey: 'image.params.aspect_ratio.description',
         type: 'string',
         defaultValue: 'auto',
-        allowedValues: ['auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '19.5:9', '9:19.5', '20:9', '9:20']
+        allowedValues: ['auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '19.5:9', '9:19.5', '20:9', '9:20', '21:9', '5:2']
       },
       {
         name: 'resolution',
@@ -147,6 +147,14 @@ export class GrokImageAdapter extends AbstractImageProviderAdapter {
         type: 'string',
         defaultValue: '1k',
         allowedValues: ['1k', '2k']
+      },
+      {
+        name: 'quality',
+        labelKey: 'image.params.quality.label',
+        descriptionKey: 'image.params.quality.description',
+        type: 'string',
+        defaultValue: 'auto',
+        allowedValues: ['auto', 'low', 'medium']
       }
     ]
   }
@@ -155,6 +163,7 @@ export class GrokImageAdapter extends AbstractImageProviderAdapter {
     return {
       aspect_ratio: 'auto',
       resolution: '1k',
+      quality: 'auto',
       response_format: 'b64_json'
     }
   }

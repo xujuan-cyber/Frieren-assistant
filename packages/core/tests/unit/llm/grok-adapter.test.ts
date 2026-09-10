@@ -67,14 +67,16 @@ describe('GrokAdapter', () => {
     expect(provider.connectionSchema?.required).toContain('apiKey')
   })
 
-  it('should default Grok 4.5 with high reasoning effort', () => {
+  it('should default Grok 4.6 with high reasoning effort', () => {
     const models = adapter.getModels()
 
-    expect(models.map(model => model.id)).toEqual(['grok-4.5'])
+    expect(models.map(model => model.id)).toEqual(['grok-4.6'])
     expect(models[0].defaultParameterValues).toEqual({
       reasoning_effort: 'high'
     })
     expect(models[0].parameterDefinitions.map(definition => definition.name)).toContain('reasoning_effort')
+    expect(models[0].parameterDefinitions.find(definition => definition.name === 'reasoning_effort')?.allowedValues)
+      .toEqual(['low', 'medium', 'high', 'xhigh'])
   })
 
   it('should send reasoning_effort high through chat completions by default', async () => {
@@ -93,7 +95,7 @@ describe('GrokAdapter', () => {
 
     expect(mockOpenAIInstance.chat.completions.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'grok-4.5',
+        model: 'grok-4.6',
         messages: [{ role: 'user', content: 'Hello' }],
         reasoning_effort: 'high'
       })

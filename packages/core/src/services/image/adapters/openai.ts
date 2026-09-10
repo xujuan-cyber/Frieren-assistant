@@ -10,7 +10,7 @@ import type {
 import { ImageError } from '../errors'
 import { IMAGE_ERROR_CODES } from '../../../constants/error-codes'
 
-const GPT_IMAGE_2_SIZE_VALUES = [
+const GPT_IMAGE_SIZE_VALUES = [
   '1024x1024',
   '1536x1024',
   '1024x1536',
@@ -21,7 +21,7 @@ const GPT_IMAGE_2_SIZE_VALUES = [
   'auto'
 ] as const
 
-const GPT_IMAGE_2_BACKGROUND_VALUES = ['auto', 'opaque'] as const
+const GPT_IMAGE_BACKGROUND_VALUES = ['auto', 'opaque'] as const
 
 export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
   private static readonly FORCED_SINGLE_OUTPUT_PARAM_KEYS = ['n', 'batch_size', 'outputMimeType', 'response_format']
@@ -53,9 +53,9 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
   getModels(): ImageModel[] {
     return [
       {
-        id: 'gpt-image-2',
-        name: 'GPT Image 2',
-        description: 'OpenAI GPT Image 2 image generation model with text-to-image and image editing support',
+        id: 'gpt-image-2.5-flare',
+        name: 'GPT Image 2.5 Flare',
+        description: 'OpenAI fast, high-quality image generation and editing model for everyday use',
         providerId: 'openai',
         capabilities: {
           text2image: true,
@@ -69,7 +69,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
             descriptionKey: 'image.params.size.description',
             type: 'string',
             defaultValue: '1024x1024',
-            allowedValues: [...GPT_IMAGE_2_SIZE_VALUES]
+            allowedValues: [...GPT_IMAGE_SIZE_VALUES]
           },
           {
             name: 'quality',
@@ -77,7 +77,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
             descriptionKey: 'image.params.quality.description',
             type: 'string',
             defaultValue: 'auto',
-            allowedValues: ['auto', 'high', 'medium', 'low']
+            allowedValues: ['auto', 'max', 'xhigh', 'high', 'medium', 'low']
           },
           {
             name: 'background',
@@ -85,7 +85,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
             descriptionKey: 'image.params.background.description',
             type: 'string',
             defaultValue: 'auto',
-            allowedValues: [...GPT_IMAGE_2_BACKGROUND_VALUES]
+            allowedValues: [...GPT_IMAGE_BACKGROUND_VALUES]
           }
         ],
         defaultParameterValues: {
@@ -158,7 +158,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
   }
 
   protected getParameterDefinitions(_modelId: string): readonly ImageParameterDefinition[] {
-    // GPT Image 2 使用统一的参数定义，n参数固定为1不暴露给用户
+    // GPT Image 2.x 使用统一的参数定义，n参数固定为1不暴露给用户
     return [
       {
         name: 'size',
@@ -166,7 +166,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
         descriptionKey: 'image.params.size.description',
         type: 'string',
         defaultValue: '1024x1024',
-        allowedValues: [...GPT_IMAGE_2_SIZE_VALUES]
+        allowedValues: [...GPT_IMAGE_SIZE_VALUES]
       },
       {
         name: 'quality',
@@ -174,7 +174,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
         descriptionKey: 'image.params.quality.description',
         type: 'string',
         defaultValue: 'auto',
-        allowedValues: ['auto', 'high', 'medium', 'low']
+        allowedValues: ['auto', 'max', 'xhigh', 'high', 'medium', 'low']
       },
       {
         name: 'background',
@@ -182,7 +182,7 @@ export class OpenAIImageAdapter extends AbstractImageProviderAdapter {
         descriptionKey: 'image.params.background.description',
         type: 'string',
         defaultValue: 'auto',
-        allowedValues: [...GPT_IMAGE_2_BACKGROUND_VALUES]
+        allowedValues: [...GPT_IMAGE_BACKGROUND_VALUES]
       }
     ]
   }

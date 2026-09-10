@@ -40,16 +40,16 @@ const OPENAI_STATIC_MODELS: ModelOverride[] = [
     }
   },
   {
-    id: 'gpt-5.6-sol',
-    name: 'GPT-5.6 Sol',
-    description: 'Most capable GPT-5.6 model for complex coding and agentic tasks',
+    id: 'gpt-6-astra',
+    name: 'GPT-6 Astra',
+    description: 'Most capable OpenAI model for the hardest end-to-end work',
     capabilities: {
       supportsTools: true,
       supportsReasoning: true,
       maxContextLength: 1050000
     },
     defaultParameterValues: {
-      reasoning_effort: 'none'
+      reasoning_effort: 'low'
     }
   },
   {
@@ -194,17 +194,20 @@ export class OpenAIAdapter extends AbstractTextProviderAdapter {
    * 获取参数定义
    * 基于 OpenAI 官方文档: https://platform.openai.com/docs/api-reference/chat/create
    */
-  protected getParameterDefinitions(_modelId: string): readonly ParameterDefinition[] {
+  protected getParameterDefinitions(modelId: string): readonly ParameterDefinition[] {
+    const isAstra = modelId === 'gpt-6-astra'
     return [
       {
         name: 'reasoning_effort',
         labelKey: 'params.reasoning_effort.label',
         descriptionKey: 'params.reasoning_effort.description',
-        description: 'Reasoning effort for GPT-5.6 models.',
+        description: 'Reasoning effort for current OpenAI models.',
         type: 'string',
-        defaultValue: 'none',
-        default: 'none',
-        allowedValues: ['none', 'low', 'medium', 'high', 'xhigh', 'max']
+        defaultValue: isAstra ? 'low' : 'none',
+        default: isAstra ? 'low' : 'none',
+        allowedValues: isAstra
+          ? ['low', 'medium', 'high', 'xhigh', 'max']
+          : ['none', 'low', 'medium', 'high', 'xhigh', 'max']
       },
       {
         name: 'temperature',

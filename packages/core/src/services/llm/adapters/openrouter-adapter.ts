@@ -11,13 +11,13 @@ interface ModelOverride {
 
 const OPENROUTER_STATIC_MODELS: ModelOverride[] = [
   {
-    id: 'google/gemma-3-27b-it:free',
-    name: 'Gemma 3 27B IT (Free)',
-    description: 'Free Google Gemma 3 27B model served through OpenRouter',
+    id: 'openrouter/free',
+    name: 'OpenRouter Free Models Router',
+    description: 'OpenRouter router that selects a compatible free model for each request',
     capabilities: {
       supportsTools: true,
       supportsReasoning: false,
-      maxContextLength: 96000
+      maxContextLength: 200000
     }
   }
 ]

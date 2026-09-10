@@ -129,7 +129,7 @@ describe('OpenAIAdapter', () => {
 
       expect(models.map(model => model.id)).toEqual([
         'gpt-5.6-terra',
-        'gpt-5.6-sol',
+        'gpt-6-astra',
         'gpt-5.6-luna'
       ]);
       const terra = models[0];
@@ -138,6 +138,12 @@ describe('OpenAIAdapter', () => {
       expect(terra.capabilities.supportsTools).toBe(true);
       expect(terra.capabilities.supportsReasoning).toBe(true);
       expect(terra.capabilities.maxContextLength).toBe(1050000);
+
+      const astra = models[1];
+      expect(astra.name).toBe('GPT-6 Astra');
+      expect(astra.defaultParameterValues).toMatchObject({ reasoning_effort: 'low' });
+      expect(astra.parameterDefinitions.find(p => p.name === 'reasoning_effort')?.allowedValues)
+        .toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
     });
 
     it('should have capabilities for each model', () => {

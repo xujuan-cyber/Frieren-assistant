@@ -142,9 +142,12 @@ export class ImageModelManager implements IImageModelManager {
     defaultConfig: ImageModelConfig
   ): ImageModelConfig {
     const legacyDefaultIds: Record<string, readonly string[]> = {
+      'image-openrouter-nanobanana': ['google/gemini-2.5-flash-image'],
       'image-gemini-nanobanana': ['gemini-2.5-flash-image', 'gemini-3.1-flash-image-preview'],
-      'image-dashscope': ['qwen-image'],
-      'image-seedream-50-lite': ['doubao-seedream-5-0-260128']
+      'image-openai-gpt': ['gpt-image-2'],
+      'image-dashscope': ['qwen-image', 'qwen-image-2.0'],
+      'image-seedream-50-lite': ['doubao-seedream-5-0-260128'],
+      'image-grok-imagine': ['grok-imagine-image-quality']
     }
     const currentModelId = config.modelId || config.model?.id
     if (!currentModelId || !legacyDefaultIds[key]?.includes(currentModelId)) {

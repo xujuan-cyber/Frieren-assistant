@@ -75,7 +75,7 @@ describe('GeminiAdapter', () => {
       expect(models.length).toBeGreaterThan(0);
 
       expect(models.map(model => model.id)).toEqual([
-        'gemini-3.6-flash',
+        'gemini-3.8-flash',
         'gemini-3.5-flash-lite',
         'gemini-3.1-pro-preview'
       ]);
@@ -100,7 +100,7 @@ describe('GeminiAdapter', () => {
 
       const paramNames = model.parameterDefinitions.map(p => p.name);
 
-      // Gemini 3.5/3.6 已弃用这些采样参数
+      // Gemini 3.5/3.8 已弃用这些采样参数
       expect(paramNames).not.toContain('temperature');
       expect(paramNames).not.toContain('topP');
       expect(paramNames).not.toContain('topK');
@@ -112,7 +112,7 @@ describe('GeminiAdapter', () => {
       expect(paramNames).toContain('includeThoughts');
 
       const thinkingLevel = model.parameterDefinitions.find(p => p.name === 'thinkingLevel');
-      expect(thinkingLevel?.allowedValues).toEqual(['minimal', 'low', 'medium', 'high']);
+      expect(thinkingLevel?.allowedValues).toEqual(['low', 'medium', 'high']);
 
       const includeThoughts = model.parameterDefinitions.find(p => p.name === 'includeThoughts');
       expect(includeThoughts).toBeDefined();

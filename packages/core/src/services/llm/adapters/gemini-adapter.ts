@@ -33,8 +33,8 @@ interface ModelOverride {
  */
 const GEMINI_STATIC_MODELS: ModelOverride[] = [
   {
-    id: 'gemini-3.6-flash',
-    name: 'Gemini 3.6 Flash',
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
     description: 'Latest Gemini Flash model for fast multimodal reasoning and agentic workloads',
     capabilities: {
       supportsTools: true,
@@ -292,7 +292,8 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
     ]
 
     if (this.isGemini3Model(modelId)) {
-      const allowedValues = modelId.replace(/^models\//, '').startsWith('gemini-3.1-pro')
+      const normalizedModelId = modelId.replace(/^models\//, '')
+      const allowedValues = normalizedModelId.startsWith('gemini-3.1-pro') || normalizedModelId.startsWith('gemini-3.8-')
         ? ['low', 'medium', 'high']
         : ['minimal', 'low', 'medium', 'high']
       return [
@@ -434,7 +435,7 @@ export class GeminiAdapter extends AbstractTextProviderAdapter {
 
   private usesDeprecatedSamplingParameters(modelId: string): boolean {
     const normalizedModelId = modelId.replace(/^models\//, '')
-    return normalizedModelId.startsWith('gemini-3.5-') || normalizedModelId.startsWith('gemini-3.6-')
+    return normalizedModelId.startsWith('gemini-3.5-') || normalizedModelId.startsWith('gemini-3.6-') || normalizedModelId.startsWith('gemini-3.8-')
   }
 
   private isGemini3Model(modelId: string): boolean {

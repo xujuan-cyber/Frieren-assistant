@@ -28,7 +28,7 @@ function pickRealVisionProvider(): RealVisionProvider | null {
 
   if (dashscopeApiKey) {
     const adapter = new DashScopeAdapter()
-    const modelId = process.env.REAL_QWEN_VISION_MODEL || 'qwen3.5-27b'
+    const modelId = process.env.REAL_QWEN_VISION_MODEL || 'qwen3.8-flash'
 
     return {
       label: `dashscope/${modelId}`,

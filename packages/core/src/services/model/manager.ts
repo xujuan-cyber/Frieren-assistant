@@ -258,11 +258,11 @@ export class ModelManager implements IModelManager {
   ): TextModelConfig {
     const legacyDefaultIds: Record<string, readonly string[]> = {
       openai: ['gpt-5-mini'],
-      gemini: ['gemini-2.5-flash'],
+      gemini: ['gemini-2.5-flash', 'gemini-3.6-flash'],
       anthropic: ['claude-opus-4-20250514', 'claude-sonnet-4-20250514'],
-      zhipu: ['glm-4.7'],
+      zhipu: ['glm-4.7', 'glm-5.2'],
       dashscope: ['qwen3.5-27b'],
-      grok: ['grok-4.3']
+      grok: ['grok-4.3', 'grok-4.5']
     };
     const currentModelId = config.modelId || config.modelMeta?.id;
     if (!currentModelId || !legacyDefaultIds[key]?.includes(currentModelId)) {

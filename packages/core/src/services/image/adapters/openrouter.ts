@@ -41,9 +41,9 @@ export class OpenRouterImageAdapter extends AbstractImageProviderAdapter {
   getModels(): ImageModel[] {
     return [
       {
-        id: 'google/gemini-2.5-flash-image',
-        name: 'Gemini 2.5 Flash Image (Nano Banana)',
-        description: 'Google Gemini 2.5 Flash image model via OpenRouter with text-to-image, image editing, and multi-turn editing support',
+        id: 'google/gemini-3.1-flash-image',
+        name: 'Gemini 3.1 Flash Image (Nano Banana 2)',
+        description: 'Google Gemini 3.1 Flash image model via OpenRouter with text-to-image, image editing, and multi-turn editing support',
         providerId: 'openrouter',
         capabilities: {
           text2image: true,
