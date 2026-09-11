@@ -35,6 +35,7 @@
   "build": {
     "appId": "com.promptoptimizer.desktop",
     "productName": "PromptOptimizer",
+    "executableName": "PromptOptimizer",
     "directories": {
       "output": "dist"
     },

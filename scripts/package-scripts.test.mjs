@@ -105,3 +105,15 @@ test('desktop package includes every runtime window icon', () => {
     assert.equal(fs.existsSync(iconPath), true, `Expected runtime icon ${iconPath} to exist`)
   }
 })
+
+test('desktop package defines a path-safe executable name', () => {
+  const desktopPackage = readJson(path.join('packages', 'desktop', 'package.json'))
+  const executableName = desktopPackage.build?.executableName
+
+  assert.equal(executableName, 'PromptOptimizer')
+  assert.match(
+    executableName,
+    /^[A-Za-z0-9._() -]+$/,
+    'Desktop executableName must remain safe for Linux AppImage file paths',
+  )
+})
