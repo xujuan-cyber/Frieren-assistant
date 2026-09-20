@@ -85,11 +85,18 @@ const messages = {
     "upload": {
       "title": "上傳參考圖片",
       "dragText": "點選或拖拽上傳圖片",
-      "fileRequirements": "支援 PNG/JPEG 格式，檔案大小不超過 10MB",
+      "fileRequirements": "支援最大 50MB 的 PNG/JPEG，大圖會自動預處理",
       "uploadFailed": "上傳失敗",
       "uploadSuccess": "上傳成功",
+      "preparedSuccess": "圖片已完成模型相容性處理：{before} → {after}",
+      "preparedBatchSuccess": "已為模型相容性處理 {count} 張圖片",
+      "processingFailed": "圖片處理失敗，請嘗試較小的圖片",
+      "confirmTitle": "確認處理圖片",
+      "confirmDescription": "為滿足模型輸入限制，將調整 {count} 張圖片的尺寸或重新編碼；處理後的檔案大小可能略有增加。",
+      "confirmItem": "{name}：{beforeSize}，{beforeDimensions} → {afterSize}，{afterDimensions}",
+      "confirmAction": "處理並繼續",
       "fileTypeNotSupported": "僅支援 PNG/JPEG 格式",
-      "fileTooLarge": "檔案大小不能超過 10MB",
+      "fileTooLarge": "所選圖片不能超過 50MB",
       "readFailed": "檔案讀取失敗，請重試"
     }
   },

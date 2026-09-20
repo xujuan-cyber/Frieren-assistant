@@ -85,11 +85,18 @@ const messages = {
     "upload": {
       "title": "上传参考图片",
       "dragText": "点击或拖拽上传图片",
-      "fileRequirements": "支持 PNG/JPEG 格式，文件大小不超过 10MB",
+      "fileRequirements": "支持最大 50MB 的 PNG/JPEG，大图会自动预处理",
       "uploadFailed": "上传失败",
       "uploadSuccess": "上传成功",
+      "preparedSuccess": "图片已完成模型兼容性处理：{before} → {after}",
+      "preparedBatchSuccess": "已为模型兼容性处理 {count} 张图片",
+      "processingFailed": "图片处理失败，请尝试更小的图片",
+      "confirmTitle": "确认处理图片",
+      "confirmDescription": "为满足模型输入限制，将调整 {count} 张图片的尺寸或重新编码；处理后的文件大小可能略有增加。",
+      "confirmItem": "{name}：{beforeSize}，{beforeDimensions} → {afterSize}，{afterDimensions}",
+      "confirmAction": "处理并继续",
       "fileTypeNotSupported": "仅支持 PNG/JPEG 格式",
-      "fileTooLarge": "文件大小不能超过 10MB",
+      "fileTooLarge": "所选图片不能超过 50MB",
       "readFailed": "文件读取失败，请重试"
     }
   },

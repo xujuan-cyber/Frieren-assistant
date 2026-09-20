@@ -83,11 +83,11 @@ describe('ImageUnderstandingService', () => {
     )
   })
 
-  it('keeps original image understanding inputs when conversion fails', async () => {
+  it('does not send image understanding inputs when required normalization fails', async () => {
     const imageInputConverter = vi.fn().mockRejectedValue(new Error('decode failed'))
     service = new ImageUnderstandingService({ registry, imageInputConverter })
 
-    await service.understand({
+    await expect(service.understand({
       ...request,
       images: [
         {
@@ -95,14 +95,10 @@ describe('ImageUnderstandingService', () => {
           mimeType: 'image/webp',
         },
       ],
-    } as any)
-
-    expect(adapter.sendImageUnderstanding).toHaveBeenCalledWith(
-      expect.objectContaining({
-        images: [{ b64: 'WEBP_BASE64', mimeType: 'image/webp' }],
-      }),
-      request.modelConfig,
-    )
+    } as any)).rejects.toMatchObject({
+      code: 'error.image.input_image_normalization_failed',
+    })
+    expect(adapter.sendImageUnderstanding).not.toHaveBeenCalled()
   })
 
   it('delegates understandStream to the provider adapter', async () => {

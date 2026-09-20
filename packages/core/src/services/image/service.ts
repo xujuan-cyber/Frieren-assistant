@@ -19,7 +19,13 @@ import { IMAGE_ERROR_CODES } from '../../constants/error-codes'
 import { mergeOverrides } from '../model/parameter-utils'
 import { ImageError } from './errors'
 import { toErrorWithCode } from '../../utils/error'
-import { normalizeImageInputForLlm, normalizeImageInputsForLlm } from './input-normalizer'
+import {
+  DEFAULT_IMAGE_INPUT_POLICY,
+  estimateBase64Bytes,
+  isStandardLlmInputMimeType,
+  normalizeImageInputForLlm,
+  normalizeImageInputsForLlm,
+} from './input-normalizer'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -124,8 +130,7 @@ export class ImageService implements IImageService {
       throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_B64_REQUIRED)
     }
 
-    // 复用原有的输入图像格式/大小校验
-    this.validateInputImage(request.inputImage)
+    this.validateSourceInputImage(request.inputImage)
 
     const config = await this.imageModelManager.getConfig(request.configId)
     if (!config) {
@@ -161,7 +166,7 @@ export class ImageService implements IImageService {
         throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_B64_REQUIRED)
       }
 
-      this.validateInputImage(inputImage)
+      this.validateSourceInputImage(inputImage)
     }
   }
 
@@ -198,7 +203,7 @@ export class ImageService implements IImageService {
     }
   }
 
-  private validateInputImage(inputImage: ImageInputRef): void {
+  private validateSourceInputImage(inputImage: ImageInputRef): void {
     // validateImage2ImageRequest 已经校验 b64 非空
 
     // 验证输入图像格式
@@ -206,15 +211,29 @@ export class ImageService implements IImageService {
       throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_INVALID_FORMAT)
     }
 
-    // 非标准 MIME 由 LLM 请求前的兼容层尽力转成 PNG；转换失败时保留原格式交给 provider。
-    // 估算 base64 大小：每4字符≈3字节，去除末尾填充
-    const len = inputImage.b64.length
-    const padding = (inputImage.b64.endsWith('==') ? 2 : inputImage.b64.endsWith('=') ? 1 : 0)
-    const bytes = Math.floor((len * 3) / 4) - padding
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    if (bytes > maxSize) {
-      throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_TOO_LARGE, undefined, { maxSizeMB: 10 })
+    if (estimateBase64Bytes(inputImage.b64) > DEFAULT_IMAGE_INPUT_POLICY.maxSourceBytes) {
+      throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_TOO_LARGE, undefined, { maxSizeMB: 50 })
     }
+  }
+
+  private validatePreparedInputImage(inputImage: ImageInputRef): void {
+    if (!isStandardLlmInputMimeType(inputImage.mimeType)) {
+      throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_NORMALIZATION_FAILED, undefined, {
+        details: `Unsupported normalized MIME type: ${inputImage.mimeType || 'unknown'}`,
+      })
+    }
+    if (estimateBase64Bytes(inputImage.b64) > DEFAULT_IMAGE_INPUT_POLICY.maxOutputBytes) {
+      throw new ImageError(IMAGE_ERROR_CODES.INPUT_IMAGE_NORMALIZATION_FAILED, undefined, {
+        details: 'Normalized image is still larger than 10 MiB',
+      })
+    }
+  }
+
+  private validatePreparedRuntimeRequest(request: ImageRequest): void {
+    if (request.inputImage) {
+      this.validatePreparedInputImage(request.inputImage)
+    }
+    request.inputImages?.forEach((inputImage) => this.validatePreparedInputImage(inputImage))
   }
 
   async generateText2Image(request: Text2ImageRequest): Promise<ImageResult> {
@@ -249,6 +268,7 @@ export class ImageService implements IImageService {
     const adapter = this.registry.getAdapter(config.providerId)
     const runtimeConfig = this.prepareRuntimeConfig(config)
     const runtimeRequest = await this.prepareRuntimeRequest(request, runtimeConfig)
+    this.validatePreparedRuntimeRequest(runtimeRequest)
 
     try {
       // 调用适配器生成
@@ -322,6 +342,7 @@ export class ImageService implements IImageService {
     }
 
     const runtimeRequest = await this.prepareRuntimeRequest(request, runtimeConfig)
+    this.validatePreparedRuntimeRequest(runtimeRequest)
     // 直接调用适配器，绕过 imageModelManager 的存储查找
     try {
       return await adapter.generate(runtimeRequest, runtimeConfig)

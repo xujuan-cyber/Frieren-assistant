@@ -318,8 +318,7 @@ describe('ImageService', () => {
       await expect(imageService.validateRequest(request)).resolves.not.toThrow()
     })
 
-    test('should reject oversized base64 images', async () => {
-      // 创建超过10MB的base64字符串
+    test('should allow images between 10 MiB and the 50 MiB source safety limit', async () => {
       const largeBase64 = 'A'.repeat(Math.ceil((10 * 1024 * 1024 + 1024) * 4 / 3))
 
       const request: ImageRequest = {
@@ -331,9 +330,20 @@ describe('ImageService', () => {
         }
       }
 
+      await expect(imageService.validateRequest(request)).resolves.not.toThrow()
+    })
+
+    test('should reject images above the 50 MiB source safety limit', async () => {
+      const largeBase64 = 'A'.repeat(Math.ceil((50 * 1024 * 1024 + 1024) * 4 / 3))
+      const request: ImageRequest = {
+        prompt: 'test prompt',
+        configId: 'test-image2image-config',
+        inputImage: { b64: largeBase64, mimeType: 'image/png' },
+      }
+
       await expect(imageService.validateRequest(request)).rejects.toMatchObject({
         code: IMAGE_ERROR_CODES.INPUT_IMAGE_TOO_LARGE,
-        params: { maxSizeMB: 10 }
+        params: { maxSizeMB: 50 }
       })
     })
 
@@ -786,7 +796,7 @@ describe('ImageService', () => {
       expect(request.inputImage).toEqual({ b64: 'WEBP_BASE64', mimeType: 'image/webp' })
     })
 
-    test('should canonicalize image/jpg input as image/jpeg without conversion', async () => {
+    test('should normalize a standard image larger than 10 MiB before calling the adapter', async () => {
       const adapterGenerate = vi.fn().mockResolvedValue({
         images: [{ b64: 'aGVsbG8=', mimeType: 'image/png' }],
       })
@@ -800,7 +810,70 @@ describe('ImageService', () => {
         supportsDynamicModels: vi.fn(),
         validateProviderModel: vi.fn(),
       } as unknown as IImageAdapterRegistry
-      const imageInputConverter = vi.fn()
+      const imageInputConverter = vi.fn().mockResolvedValue({
+        b64: 'COMPRESSED_PNG',
+        mimeType: 'image/png',
+      })
+      const compatibleImageService = new ImageService(mockModelManager, registry, { imageInputConverter })
+      const largeBase64 = 'A'.repeat(Math.ceil((10 * 1024 * 1024 + 1024) * 4 / 3))
+
+      await compatibleImageService.generateImage2Image({
+        prompt: 'edit this image',
+        configId: 'test-image2image-config',
+        inputImage: { b64: largeBase64, mimeType: 'image/png' },
+      })
+
+      expect(imageInputConverter).toHaveBeenCalledOnce()
+      expect(adapterGenerate.mock.calls[0][0].inputImage).toEqual({
+        b64: 'COMPRESSED_PNG',
+        mimeType: 'image/png',
+      })
+    })
+
+    test('should reject a converted image that is still larger than 10 MiB', async () => {
+      const adapterGenerate = vi.fn()
+      const registry = {
+        getAdapter: vi.fn().mockReturnValue({ generate: adapterGenerate }),
+        getStaticModels: vi.fn().mockReturnValue([]),
+        getDynamicModels: vi.fn(),
+        getModels: vi.fn(),
+        getAllProviders: vi.fn(),
+        getAllStaticModels: vi.fn(),
+        supportsDynamicModels: vi.fn(),
+        validateProviderModel: vi.fn(),
+      } as unknown as IImageAdapterRegistry
+      const largeBase64 = 'A'.repeat(Math.ceil((10 * 1024 * 1024 + 1024) * 4 / 3))
+      const imageInputConverter = vi.fn().mockResolvedValue({
+        b64: largeBase64,
+        mimeType: 'image/png',
+      })
+      const compatibleImageService = new ImageService(mockModelManager, registry, { imageInputConverter })
+
+      await expect(compatibleImageService.generateImage2Image({
+        prompt: 'edit this image',
+        configId: 'test-image2image-config',
+        inputImage: { b64: largeBase64, mimeType: 'image/png' },
+      })).rejects.toMatchObject({
+        code: IMAGE_ERROR_CODES.INPUT_IMAGE_NORMALIZATION_FAILED,
+      })
+      expect(adapterGenerate).not.toHaveBeenCalled()
+    })
+
+    test('should canonicalize image/jpg before runtime dimension inspection', async () => {
+      const adapterGenerate = vi.fn().mockResolvedValue({
+        images: [{ b64: 'aGVsbG8=', mimeType: 'image/png' }],
+      })
+      const registry = {
+        getAdapter: vi.fn().mockReturnValue({ generate: adapterGenerate }),
+        getStaticModels: vi.fn().mockReturnValue([]),
+        getDynamicModels: vi.fn(),
+        getModels: vi.fn(),
+        getAllProviders: vi.fn(),
+        getAllStaticModels: vi.fn(),
+        supportsDynamicModels: vi.fn(),
+        validateProviderModel: vi.fn(),
+      } as unknown as IImageAdapterRegistry
+      const imageInputConverter = vi.fn().mockImplementation(async (input) => input)
       const compatibleImageService = new ImageService(mockModelManager, registry, { imageInputConverter })
 
       await compatibleImageService.generateImage2Image({
@@ -809,14 +882,17 @@ describe('ImageService', () => {
         inputImage: { b64: 'JPEG_BASE64', mimeType: 'image/jpg' },
       })
 
-      expect(imageInputConverter).not.toHaveBeenCalled()
+      expect(imageInputConverter).toHaveBeenCalledWith({
+        b64: 'JPEG_BASE64',
+        mimeType: 'image/jpeg',
+      })
       expect(adapterGenerate.mock.calls[0][0].inputImage).toEqual({
         b64: 'JPEG_BASE64',
         mimeType: 'image/jpeg',
       })
     })
 
-    test('should keep original image2image input when conversion fails', async () => {
+    test('should stop before the adapter when required normalization fails', async () => {
       const adapterGenerate = vi.fn().mockResolvedValue({
         images: [{ b64: 'aGVsbG8=', mimeType: 'image/png' }],
       })
@@ -833,16 +909,14 @@ describe('ImageService', () => {
       const imageInputConverter = vi.fn().mockRejectedValue(new Error('decode failed'))
       const compatibleImageService = new ImageService(mockModelManager, registry, { imageInputConverter })
 
-      await compatibleImageService.generateImage2Image({
+      await expect(compatibleImageService.generateImage2Image({
         prompt: 'edit this image',
         configId: 'test-image2image-config',
         inputImage: { b64: 'WEBP_BASE64', mimeType: 'image/webp' },
+      })).rejects.toMatchObject({
+        code: IMAGE_ERROR_CODES.INPUT_IMAGE_NORMALIZATION_FAILED,
       })
-
-      expect(adapterGenerate.mock.calls[0][0].inputImage).toEqual({
-        b64: 'WEBP_BASE64',
-        mimeType: 'image/webp',
-      })
+      expect(adapterGenerate).not.toHaveBeenCalled()
     })
 
     test('should normalize multi-image inputs independently', async () => {
@@ -860,9 +934,6 @@ describe('ImageService', () => {
         validateProviderModel: vi.fn(),
       } as unknown as IImageAdapterRegistry
       const imageInputConverter = vi.fn(async (input) => {
-        if (input.b64 === 'FAIL_WEBP') {
-          throw new Error('decode failed')
-        }
         return { b64: `${input.b64}_PNG`, mimeType: 'image/png' }
       })
       const compatibleImageService = new ImageService(mockModelManager, registry, { imageInputConverter })
@@ -873,15 +944,15 @@ describe('ImageService', () => {
         inputImages: [
           { b64: 'OK_WEBP', mimeType: 'image/webp' },
           { b64: 'KEEP_PNG', mimeType: 'image/png' },
-          { b64: 'FAIL_WEBP', mimeType: 'image/webp' },
+          { b64: 'SECOND_WEBP', mimeType: 'image/webp' },
         ],
       })
 
-      expect(imageInputConverter).toHaveBeenCalledTimes(2)
+      expect(imageInputConverter).toHaveBeenCalledTimes(3)
       expect(adapterGenerate.mock.calls[0][0].inputImages).toEqual([
         { b64: 'OK_WEBP_PNG', mimeType: 'image/png' },
-        { b64: 'KEEP_PNG', mimeType: 'image/png' },
-        { b64: 'FAIL_WEBP', mimeType: 'image/webp' },
+        { b64: 'KEEP_PNG_PNG', mimeType: 'image/png' },
+        { b64: 'SECOND_WEBP_PNG', mimeType: 'image/png' },
       ])
     })
   })

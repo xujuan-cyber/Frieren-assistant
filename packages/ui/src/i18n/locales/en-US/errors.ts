@@ -95,6 +95,7 @@ const messages = {
       "input_image_invalid_format": "Invalid input image format",
       "input_image_unsupported_mime": "Only PNG/JPEG is supported (current: {mimeType})",
       "input_image_too_large": "Input image is too large (max {maxSizeMB}MB)",
+      "input_image_normalization_failed": "Image preparation failed: {details}",
       "input_image_too_many": "Too many input images (max {maxCount}, got {actualCount})",
       "model_not_support_text2image": "Model does not support text-to-image: {modelName}",
       "model_not_support_image2image": "Model does not support image-to-image: {modelName}",

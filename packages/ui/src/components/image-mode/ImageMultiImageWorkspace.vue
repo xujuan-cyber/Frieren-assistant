@@ -638,6 +638,7 @@ import {
 import type { AppServices } from '../../types/services'
 import { useImageMultiImageSession, type TestColumnCount, type TestPanelVersionValue, type TestVariantId } from '../../stores/session/useImageMultiImageSession'
 import { useImageGeneration } from '../../composables/image/useImageGeneration'
+import { useImageInputPreparation } from '../../composables/image/useImageInputPreparation'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
@@ -685,6 +686,7 @@ import { EvaluationPanel } from '../evaluation'
 
 const { t } = useI18n()
 const toast = useToast()
+const { prepareInputRefs: prepareImageInputRefs } = useImageInputPreparation()
 const services = inject<Ref<AppServices | null>>('services', ref(null))
 const variableManager = inject<VariableManagerHooks | null>('variableManager', null)
 const session = useImageMultiImageSession()
@@ -1305,16 +1307,6 @@ const draggingImageIndex = ref<number | null>(null)
 const dragOverImageIndex = ref<number | null>(null)
 const dragOverUploadCard = ref(false)
 
-const fileToPayload = async (file: File): Promise<ImageInputRef> => {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result || ''))
-    reader.onerror = () => reject(reader.error || new Error('Failed to read image'))
-    reader.readAsDataURL(file)
-  })
-  return { b64: dataUrl.split(',', 2)[1] || '', mimeType: file.type || 'image/png' }
-}
-
 const triggerUpload = () => fileInputRef.value?.click()
 
 const handleFilesSelected = async (event: Event) => {
@@ -1322,7 +1314,8 @@ const handleFilesSelected = async (event: Event) => {
   const files = Array.from(input.files || [])
   if (files.length === 0) return
   try {
-    const payloads = await Promise.all(files.map(fileToPayload))
+    const payloads = await prepareImageInputRefs(files)
+    if (!payloads) return
     for (const payload of payloads) {
       await session.addInputImage(payload)
     }

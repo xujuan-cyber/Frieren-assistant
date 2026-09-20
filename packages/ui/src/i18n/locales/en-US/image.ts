@@ -85,11 +85,18 @@ const messages = {
     "upload": {
       "title": "Upload Reference Image",
       "dragText": "Click or drag to upload image",
-      "fileRequirements": "Supports PNG/JPEG format, file size not exceed 10MB",
+      "fileRequirements": "Supports PNG/JPEG up to 50MB; large images are prepared automatically",
       "uploadFailed": "Upload failed",
       "uploadSuccess": "Upload success",
+      "preparedSuccess": "Image prepared for model compatibility: {before} → {after}",
+      "preparedBatchSuccess": "Prepared {count} images for model compatibility",
+      "processingFailed": "Image preparation failed. Please try a smaller image.",
+      "confirmTitle": "Confirm image processing",
+      "confirmDescription": "To meet model input limits, {count} image(s) will be resized or re-encoded. The resulting file size may increase slightly.",
+      "confirmItem": "{name}: {beforeSize}, {beforeDimensions} → {afterSize}, {afterDimensions}",
+      "confirmAction": "Process and continue",
       "fileTypeNotSupported": "Only PNG/JPEG is supported",
-      "fileTooLarge": "File size cannot exceed 10MB",
+      "fileTooLarge": "The selected image cannot exceed 50MB",
       "readFailed": "Failed to read file, please try again"
     }
   },
