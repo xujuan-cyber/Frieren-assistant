@@ -1,0 +1,19 @@
+{
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "https://github.com/xujuan-cyber/Frieren-assistant/tree/main/mkdocs/docs/zh",
+      "permanent": true
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "https://github.com/xujuan-cyber/Frieren-assistant/tree/main/mkdocs/docs/zh",
+      "permanent": true
+    }
+  ],
+  "github": {
+    "silent": true
+  }
+}
