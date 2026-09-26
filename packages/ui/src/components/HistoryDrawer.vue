@@ -19,7 +19,7 @@
           clearable
         >
           <template #prefix>
-            <span style="font-size: 14px;">🔍</span>
+            <NIcon :size="14"><Search /></NIcon>
           </template>
         </NInput>
         <NButton
@@ -211,7 +211,7 @@
       
       <NEmpty v-else :description="$t('history.noHistory')">
         <template #icon>
-          <span style="font-size: 48px;">📜</span>
+          <NIcon :size="48"><History /></NIcon>
         </template>
       </NEmpty>
     </NScrollbar>
@@ -224,8 +224,9 @@ import { ref, watch, computed, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NModal, NScrollbar, NSpace, NCard, NText, NTag, NButton, 
-  NDivider, NCollapse, NCollapseItem, NEmpty, NInput
+  NDivider, NCollapse, NCollapseItem, NEmpty, NInput, NIcon
 } from 'naive-ui'
+import { History, Search } from '@vicons/tabler'
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'

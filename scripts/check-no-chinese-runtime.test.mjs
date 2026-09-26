@@ -27,7 +27,7 @@ test('isAllowedPath respects allowlisted content assets', () => {
   assert.equal(isAllowedPath('mkdocs/index.md'), true)
   assert.equal(isAllowedPath('packages/ui/src/i18n/locales/zh-CN.ts'), true)
   assert.equal(isAllowedPath('packages/core/src/services/template/default-templates/demo.ts'), true)
-  assert.equal(isAllowedPath('packages/ui/src/components/FavoriteButton.vue'), false)
+  assert.equal(isAllowedPath('packages/ui/src/components/HistoryDrawer.vue'), false)
 })
 
 test('findChineseViolations reports runtime Chinese string literals in core files', () => {

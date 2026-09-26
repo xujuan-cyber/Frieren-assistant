@@ -184,7 +184,7 @@
                 ? t('contextEditor.editTool')
                 : t('contextEditor.addTool')
         "
-        style="width: 600px"
+        style="width: min(600px, 92vw)"
     >
         <NSpace vertical>
             <!-- 示例提示 -->

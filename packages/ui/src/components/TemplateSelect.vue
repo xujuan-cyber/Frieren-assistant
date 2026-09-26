@@ -20,7 +20,7 @@
           ghost 
         > 
           <template #icon> 
-            <NText>📝</NText> 
+            <NIcon :size="16"><FileText /></NIcon> 
           </template> 
           {{ t('template.configure') }} 
         </NButton>
@@ -33,7 +33,8 @@
 import { ref, computed, watch, inject, type Ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
-import { NSelect, NButton, NSpace, NText } from 'naive-ui'
+import { NSelect, NButton, NSpace, NText, NIcon } from 'naive-ui'
+import { FileText } from '@vicons/tabler'
 import type { OptimizationMode, Template, TemplateMetadata } from '@prompt-optimizer/core'
 import type { AppServices } from '../types/services'
 
@@ -112,7 +113,7 @@ const selectOptions = computed(() => {
   
   // 添加配置按钮选项
   const configOption = {
-    label: '📝' + t('template.configure'),
+    label: t('template.configure'),
     value: '__config__',
     type: 'config'
   }

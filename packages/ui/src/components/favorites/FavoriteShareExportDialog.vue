@@ -196,9 +196,9 @@ const getDefaultShareSections = (): FavoriteShareSections => ({
 })
 
 const sections = reactive<FavoriteShareSections>(getDefaultShareSections())
+// 水印只显示项目名，不含外链（原实现带作者站点地址）
 const PRODUCT_WATERMARK = {
-  projectName: 'Prompt Optimizer',
-  projectUrl: 'https://prompt.always200.com/',
+  projectName: 'Frieren assistant',
 } as const
 const previewFormat = ref<'html' | 'png'>('html')
 const previewHtml = ref('')

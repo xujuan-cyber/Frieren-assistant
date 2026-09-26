@@ -31,12 +31,14 @@
     <NGrid :cols="3" :x-gap="8" :y-gap="8">
       <NGridItem>
         <NButton block :type="currentCategory==='system-optimize' ? 'primary' : 'default'" @click="currentCategory='system-optimize'">
-          {{ `🎯 ${t('templateManager.optimizeTemplates')}` }}
+          <template #icon><NIcon :size="16"><Target /></NIcon></template>
+          {{ t('templateManager.optimizeTemplates') }}
         </NButton>
       </NGridItem>
       <NGridItem>
         <NButton block :type="currentCategory==='user-optimize' ? 'primary' : 'default'" @click="currentCategory='user-optimize'">
-          {{ `👤 ${t('templateManager.userOptimizeTemplates')}` }}
+          <template #icon><NIcon :size="16"><User /></NIcon></template>
+          {{ t('templateManager.userOptimizeTemplates') }}
         </NButton>
       </NGridItem>
       <NGridItem>
@@ -45,42 +47,49 @@
           :type="(currentCategory==='basic-system-iterate' || currentCategory==='basic-user-iterate') ? 'primary' : 'default'"
           @click="currentCategory = props.basicSubMode === 'system' ? 'basic-system-iterate' : 'basic-user-iterate'"
         >
-          {{ `🔄 ${t('templateManager.iterateTemplates')}` }}
+          <template #icon><NIcon :size="16"><Refresh /></NIcon></template>
+          {{ t('templateManager.iterateTemplates') }}
         </NButton>
       </NGridItem>
 
       <NGridItem>
         <NButton block :type="currentCategory==='context-system-optimize' ? 'primary' : 'default'" @click="currentCategory='context-system-optimize'">
-          {{ `🎯 ${t('templateManager.optimizeTemplatesContext')}` }}
+          <template #icon><NIcon :size="16"><Target /></NIcon></template>
+          {{ t('templateManager.optimizeTemplatesContext') }}
         </NButton>
       </NGridItem>
       <NGridItem>
         <NButton block :type="currentCategory==='context-user-optimize' ? 'primary' : 'default'" @click="currentCategory='context-user-optimize'">
-          {{ `👤 ${t('templateManager.userOptimizeTemplatesContext')}` }}
+          <template #icon><NIcon :size="16"><User /></NIcon></template>
+          {{ t('templateManager.userOptimizeTemplatesContext') }}
         </NButton>
       </NGridItem>
       <NGridItem>
         <NButton block :type="currentCategory==='context-iterate' ? 'primary' : 'default'" @click="currentCategory='context-iterate'">
-          {{ `🔄 ${t('templateManager.iterateTemplatesContext')}` }}
+          <template #icon><NIcon :size="16"><Refresh /></NIcon></template>
+          {{ t('templateManager.iterateTemplatesContext') }}
         </NButton>
       </NGridItem>
 
       <!-- 图像 · 文生图 -->
       <NGridItem>
         <NButton block :type="currentCategory==='image-text2image-optimize' ? 'primary' : 'default'" @click="currentCategory='image-text2image-optimize'">
-          {{ `🖼️ ${t('templateManager.imageText2ImageTemplates')}` }}
+          <template #icon><NIcon :size="16"><Photo /></NIcon></template>
+          {{ t('templateManager.imageText2ImageTemplates') }}
         </NButton>
       </NGridItem>
       <!-- 图像 · 图生图 -->
       <NGridItem>
         <NButton block :type="currentCategory==='image-image2image-optimize' ? 'primary' : 'default'" @click="currentCategory='image-image2image-optimize'">
-          {{ `📷 ${t('templateManager.imageImage2ImageTemplates')}` }}
+          <template #icon><NIcon :size="16"><Camera /></NIcon></template>
+          {{ t('templateManager.imageImage2ImageTemplates') }}
         </NButton>
       </NGridItem>
       <!-- 图像 · 迭代 -->
       <NGridItem>
         <NButton block :type="currentCategory==='image-iterate' ? 'primary' : 'default'" @click="currentCategory='image-iterate'">
-          {{ `🌀 ${t('templateManager.imageIterateTemplates')}` }}
+          <template #icon><NIcon :size="16"><Rotate /></NIcon></template>
+          {{ t('templateManager.imageIterateTemplates') }}
         </NButton>
       </NGridItem>
     </NGrid>
@@ -232,10 +241,11 @@
                 :type="TemplateProcessor.isSimpleTemplate(template) ? 'info' : 'warning'"
                 size="small"
               >
-                {{ TemplateProcessor.isSimpleTemplate(template) 
-                  ? `📝 ${t('templateManager.simpleTemplate')}` 
-                  : `⚡ ${t('templateManager.advancedTemplate')}` 
-                }}
+                <NIcon :size="14" style="vertical-align: -2px; margin-right: 4px">
+                  <FileText v-if="TemplateProcessor.isSimpleTemplate(template)" />
+                  <Bolt v-else />
+                </NIcon>
+                {{ TemplateProcessor.isSimpleTemplate(template) ? t('templateManager.simpleTemplate') : t('templateManager.advancedTemplate') }}
               </NTag>
               <NTag
                 v-if="getSelectedTemplateId() === template.id"
@@ -275,9 +285,11 @@
             :type="(viewingTemplate || editingTemplate) && TemplateProcessor.isSimpleTemplate((viewingTemplate || editingTemplate)!) ? 'info' : 'warning'"
             size="small"
           >
-            {{ (viewingTemplate || editingTemplate) && TemplateProcessor.isSimpleTemplate((viewingTemplate || editingTemplate)!) 
-              ? '📝 ' + t('templateManager.simpleTemplate') 
-              : '⚡ ' + t('templateManager.advancedTemplate') }}
+            <NIcon :size="14" style="vertical-align: -2px; margin-right: 4px">
+              <FileText v-if="(viewingTemplate || editingTemplate) && TemplateProcessor.isSimpleTemplate((viewingTemplate || editingTemplate)!)" />
+              <Bolt v-else />
+            </NIcon>
+            {{ (viewingTemplate || editingTemplate) && TemplateProcessor.isSimpleTemplate((viewingTemplate || editingTemplate)!) ? t('templateManager.simpleTemplate') : t('templateManager.advancedTemplate') }}
           </NTag>
           <!-- Template Syntax Guide Toggle -->
           <NButton
@@ -314,14 +326,16 @@
               @click="form.isAdvanced = false"
               class="flex-1"
             >
-              📝 {{ t('templateManager.simpleTemplate') }}
+              <template #icon><NIcon :size="16"><FileText /></NIcon></template>
+              {{ t('templateManager.simpleTemplate') }}
             </NButton>
             <NButton
               :type="form.isAdvanced ? 'primary' : 'default'"
               @click="form.isAdvanced = true"
               class="flex-1"
             >
-              ⚡ {{ t('templateManager.advancedTemplate') }}
+              <template #icon><NIcon :size="16"><Bolt /></NIcon></template>
+              {{ t('templateManager.advancedTemplate') }}
             </NButton>
           </NSpace>
         </div>
@@ -639,9 +653,10 @@ import { useI18n } from 'vue-i18n'
 import {
   NModal, NCard, NButton, NTag, NInput,
   NSelect, NSpace, NText, NH3, NH4, NScrollbar,
-  NCode,
+  NCode, NIcon,
   NGrid, NGridItem, NEl
 } from 'naive-ui'
+import { Bolt, Camera, FileText, Photo, Refresh, Rotate, Target, User } from '@vicons/tabler'
 import { TemplateProcessor, type Template, type MessageTemplate, type ITemplateManager, TemplateLanguageService } from '@prompt-optimizer/core'
 import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'
@@ -1419,7 +1434,7 @@ const close = () => {
 
 .scroll-container::-webkit-scrollbar-thumb {
   background-color: rgba(139, 92, 246, 0.3);
-  border-radius: 3px;
+  border-radius: 6px;
 }
 
 .scroll-container::-webkit-scrollbar-thumb:hover {

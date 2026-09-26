@@ -6,7 +6,7 @@
         preset="dialog"
         :title="t('contextEditor.importTitle')"
         :show-icon="false"
-        style="width: 600px"
+        style="width: min(600px, 92vw)"
         :mask-closable="false"
         @update:show="handleVisibilityChange"
     >
@@ -117,7 +117,7 @@
         preset="dialog"
         :title="t('contextEditor.exportTitle')"
         :show-icon="false"
-        style="width: 600px"
+        style="width: min(600px, 92vw)"
         :mask-closable="false"
         @update:show="handleVisibilityChange"
     >

@@ -110,10 +110,10 @@ const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 
 
 const DEFAULT_FAVORITE_SHARE_LABELS: FavoriteShareLabels = {
   htmlLang: 'en',
-  documentTitleSuffix: 'Prompt Optimizer Favorite',
-  eyebrow: 'Prompt Optimizer Favorite Share',
-  metaPrefix: 'Prompt Optimizer favorite share',
-  headerImportNote: 'Import: open https://prompt.always200.com/ -> Favorites -> Import -> upload this HTML file.',
+  documentTitleSuffix: 'Frieren assistant Favorite',
+  eyebrow: 'Frieren assistant Favorite Share',
+  metaPrefix: 'Frieren assistant favorite share',
+  headerImportNote: 'Import: open the Favorites page in this app -> Import -> upload this HTML file.',
   copyButton: 'Copy',
   copiedButton: 'Copied',
   copyFailedButton: 'Failed',
@@ -128,10 +128,10 @@ const DEFAULT_FAVORITE_SHARE_LABELS: FavoriteShareLabels = {
   outputTitle: 'Output',
   importNoteTitle: 'Import Note',
   currentVersionLabel: 'current',
-  htmlImportNoteBody1: 'Import: open https://prompt.always200.com/ -> Favorites -> Import -> upload this HTML file.',
+  htmlImportNoteBody1: 'Import: open the Favorites page in this app -> Import -> upload this HTML file.',
   htmlImportNoteBody2: 'Use the original HTML file to restore embedded data and images.',
-  pngImportNoteText: 'Import: open https://prompt.always200.com/ -> Favorites -> Import -> upload the original PNG file.\nUse the original image. Screenshots, compression, format conversion, or re-saving may remove import data.',
-  pngHeaderBadge: 'Prompt Optimizer Favorite Share',
+  pngImportNoteText: 'Import: open the Favorites page in this app -> Import -> upload the original PNG file.\nUse the original image. Screenshots, compression, format conversion, or re-saving may remove import data.',
+  pngHeaderBadge: 'Frieren assistant Favorite Share',
   exampleTitle: (index) => `Example ${index}`,
   exampleOutputAlt: (index) => `Example ${index} output`,
   exampleInputAlt: (index) => `Example ${index} input`,
@@ -694,7 +694,7 @@ const renderShareHtmlBody = (
     </section>
   `)
   if (sections.watermark && (payload.branding.projectName || payload.branding.projectUrl)) {
-    blocks.push(`<footer>${escapeHtml(payload.branding.projectName || 'Prompt Optimizer')}${payload.branding.projectUrl ? ` · ${escapeHtml(payload.branding.projectUrl)}` : ''}</footer>`)
+    blocks.push(`<footer>${escapeHtml(payload.branding.projectName || 'Frieren assistant')}${payload.branding.projectUrl ? ` · ${escapeHtml(payload.branding.projectUrl)}` : ''}</footer>`)
   }
 
   return blocks.join('\n')
@@ -1450,7 +1450,7 @@ export const readFavoriteSharePackage = (
     const document = parser.parseFromString(input, 'text/html')
     const script = document.getElementById(FAVORITE_SHARE_HTML_SCRIPT_ID)
     if (!script?.textContent) {
-      throw new Error('This HTML file does not contain Prompt Optimizer favorite share data')
+      throw new Error('This HTML file does not contain Frieren assistant favorite share data')
     }
     return base64ToBytes(parseSharePayload(script.textContent).packageBase64)
   }
@@ -1458,7 +1458,7 @@ export const readFavoriteSharePackage = (
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input)
   const chunk = readPngTextChunk(bytes, FAVORITE_SHARE_PNG_TEXT_KEYWORD)
   if (!chunk) {
-    throw new Error('This PNG file does not contain Prompt Optimizer favorite share data. Use the original exported PNG file; screenshots or compressed images cannot be imported.')
+    throw new Error('This PNG file does not contain Frieren assistant favorite share data. Use the original exported PNG file; screenshots or compressed images cannot be imported.')
   }
   return base64ToBytes(parseSharePayload(chunk).packageBase64)
 }

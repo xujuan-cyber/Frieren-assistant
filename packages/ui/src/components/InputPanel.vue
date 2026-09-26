@@ -166,9 +166,13 @@
         />
 
         <!-- 控制面板 -->
+        <!-- 注意：NGridItem 没有 xs / sm / md 这类响应式 prop，断点必须写进 span
+             （响应式取宽度用 responsive="self" + 数字键，如 span="6 520:24"；按视口则用
+             responsive="screen" + 断点名，如 span="6 s:24"）。当前刻意采用单行布局，
+             不启用窄容器堆叠；如需启用，改 span 写法后一并复核面板高度。 -->
         <NGrid :cols="24" :x-gap="8" responsive="screen">
             <!-- 模型选择 -->
-            <NGridItem :span="6" :xs="24" :sm="6">
+            <NGridItem :span="6">
                 <NSpace vertical :size="8">
                     <NFlex align="center" :size="6" :wrap="false" class="input-panel-label-row">
                         <NText
@@ -183,7 +187,7 @@
             </NGridItem>
 
             <!-- 提示词模板选择 -->
-            <NGridItem v-if="templateLabel" :span="11" :xs="24" :sm="11">
+            <NGridItem v-if="templateLabel" :span="11">
                 <NSpace vertical :size="8">
                     <NText
                         :depth="2"
@@ -195,18 +199,14 @@
             </NGridItem>
 
             <!-- 控制按钮组 -->
-            <NGridItem
-                :span="templateLabel ? 2 : 13"
-                :xs="24"
-                :sm="templateLabel ? 2 : 13"
-            >
+            <NGridItem :span="templateLabel ? 2 : 13">
                 <NSpace vertical :size="8" align="end">
                     <slot name="control-buttons"></slot>
                 </NSpace>
             </NGridItem>
 
             <!-- 提交按钮区域 -->
-            <NGridItem :span="5" :xs="24" :sm="5" class="flex items-end">
+            <NGridItem :span="5" class="flex items-end">
                 <NSpace :size="8" justify="end" style="width: 100%">
                     <!-- 分析按钮（与优化同级） -->
                     <NButton

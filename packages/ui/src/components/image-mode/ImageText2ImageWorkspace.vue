@@ -312,7 +312,7 @@
                     <!-- 控制面板 - 使用网格布局 -->
                     <NGrid :cols="24" :x-gap="8" responsive="screen">
                         <!-- 文本模型选择 -->
-                        <NGridItem :span="7" :xs="24" :sm="7">
+                        <NGridItem :span="7">
                             <NSpace vertical :size="8">
                                 <NFlex align="center" :size="6" :wrap="false">
                                     <NText
@@ -382,7 +382,7 @@
                         </NGridItem>
 
                         <!-- 优化模板选择 -->
-                        <NGridItem :span="11" :xs="24" :sm="11">
+                        <NGridItem :span="11">
                             <NSpace vertical :size="8">
                                 <NText
                                     :depth="2"
@@ -434,7 +434,7 @@
                         </NGridItem>
 
                         <!-- 优化按钮 -->
-                        <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
+                        <NGridItem :span="6" class="flex items-end justify-end">
                             <NSpace :size="8">
                                 <NButton
                                     type="default"

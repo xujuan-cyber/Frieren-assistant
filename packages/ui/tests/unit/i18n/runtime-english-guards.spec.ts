@@ -9,17 +9,6 @@ const readUiSource = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8')
 
 describe('ui runtime english guards', () => {
-  it('localizes favorite list item actions and relative time labels', () => {
-    const source = readUiSource('src/components/FavoriteListItem.vue')
-
-    expect(source).toMatch(/useI18n/)
-    expect(source).toMatch(/favorites\.library\.card\.edit/)
-    expect(source).toMatch(/favorites\.library\.time\.justNow/)
-    expect(source).not.toMatch(/title="复制"/)
-    expect(source).not.toMatch(/label:\s*'编辑'/)
-    expect(source).not.toMatch(/'刚刚'/)
-  })
-
   it('removes hardcoded chinese helper text from the multi-image workspace', () => {
     const source = readUiSource('src/components/image-mode/ImageMultiImageWorkspace.vue')
 

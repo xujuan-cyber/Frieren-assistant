@@ -20,7 +20,7 @@
             @click="emitConfig()"
           >
             <template #icon>
-              <span>⚙️</span>
+              <NIcon :size="16"><Settings /></NIcon>
             </template>
             {{ configText || t('model.select.configure') }}
           </NButton>
@@ -33,7 +33,7 @@
         <div v-if="shouldShowConfigAction" style="padding: 8px 12px;">
           <NButton quaternary size="small" @click="emitConfig()">
             <template #icon>
-              <span>⚙️</span>
+              <NIcon :size="16"><Settings /></NIcon>
             </template>
             {{ configText || t('model.select.configure') }}
           </NButton>
@@ -47,7 +47,8 @@
 import { computed, h, useAttrs, toValue, type ComputedRef, type Ref } from 'vue'
 
 import { useI18n } from 'vue-i18n'
-import { NSelect, NSpace, NButton, NText, type SelectOption as NaiveSelectOption, type SelectFilter } from 'naive-ui'
+import { NSelect, NSpace, NButton, NIcon, NText, type SelectOption as NaiveSelectOption, type SelectFilter } from 'naive-ui'
+import { Settings } from '@vicons/tabler'
 
 import type { SelectOption as StandardSelectOption } from '../types/select-options'
 
@@ -166,18 +167,30 @@ const forwardedAttrs = computed(() => {
     ? (customFilter as SelectFilter)
     : (internalFilter as unknown as SelectFilter)
  
+  // 不再强制 160px 最小宽度：在分栏后的窄容器（如基础模式输入面板的 6/24 栅格列）
+  // 中该下限会撑破所在列，使本组件溢出并被相邻控件覆盖。置 0 后选择框严格贴合列宽，
+  // 超长文案由 naive-ui 的 ellipsis 截断。调用方仍可用 style="min-width: 160px" 主动指定下限。
+  const mergedStyle: Record<string, unknown> = { minWidth: 0, ...(rootStyle as Record<string, unknown> || {}) }
+
   return {
     filterable: true,
     multiple: normalizedMultiple,
     class: mergedRootClass,
-    style: { minWidth: '160px', ...(rootStyle as Record<string, unknown> || {}) },
+    style: mergedStyle,
     menuProps: normalizedMenuProps,
     ...rest,
     filter: resolvedFilter
   }
 })
 
-const normalizedValue = computed(() => props.modelValue)
+// 空串不是合法的"已选中"值：调用方（如 useBasicWorkspaceLogic 的 `|| ''` 兜底）在未配置模型时
+// 会传入空串，naive-ui 据此判定已选中 → 既不渲染 placeholder，render-label 又匹配不到选项 →
+// 选择框整体空白。仅在确无同值选项时归一为 null，让 placeholder 正常显示。
+const normalizedValue = computed(() => {
+  const value = props.modelValue
+  if (value === '' && !mappedOptions.value.some((option) => option.value === '')) return null
+  return value
+})
 
 const onUpdateValue = (val: string | number | Array<string | number> | null) => {
   emit('update:modelValue', val)

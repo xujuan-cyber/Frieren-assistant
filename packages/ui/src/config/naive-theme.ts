@@ -746,9 +746,74 @@ export const currentNaiveTheme = computed<GlobalTheme | null>(() =>
   currentThemeConfig.value.naiveTheme
 )
 
+/**
+ * 统一圆角令牌
+ *
+ * naive-ui 各组件默认圆角为 3px，视觉上偏「方框」。
+ * 这里集中覆盖 radius 相关键，使按钮 / 输入框 / 下拉框 / 卡片 / 标签 / 弹层
+ * 保持一致的圆角阶梯：
+ *   小元素 8px  <  控件 10px  <  卡片与弹层 12px  <  对话框 14px
+ *
+ * 只声明 radius 键，颜色等其余令牌仍由各主题自身的 themeOverrides 决定，
+ * 因此六套主题（含深色）会自动获得同一套圆角。
+ */
+const RADIUS_TOKENS: GlobalThemeOverrides = {
+  common: {
+    borderRadius: '10px',
+    borderRadiusSmall: '8px'
+  },
+  Button: {
+    borderRadiusTiny: '8px',
+    borderRadiusSmall: '8px',
+    borderRadiusMedium: '10px',
+    borderRadiusLarge: '12px'
+  },
+  Input: { borderRadius: '10px' },
+  // 覆盖 NSelect / NDatePicker / NCascader / NTimePicker 等
+  InternalSelection: { borderRadius: '10px' },
+  Card: { borderRadius: '12px' },
+  Tag: { borderRadius: '8px' },
+  Dropdown: { borderRadius: '12px' },
+  Popover: { borderRadius: '12px' },
+  Dialog: { borderRadius: '14px' },
+  Alert: { borderRadius: '10px' },
+  Tooltip: { borderRadius: '8px' },
+  DataTable: { borderRadius: '12px' },
+  Menu: { borderRadius: '10px' }
+}
+
+/**
+ * 轻微阴影令牌
+ *
+ * naive-ui 默认阴影偏「重且散」，这里改为更收敛的分层阴影：
+ * 近处一层极淡的贴合影，远处一层扩散影。浮层（下拉 / 气泡 / 弹窗）
+ * 因此更有层次，同时保持克制，不抢内容。
+ */
+const ELEVATION_TOKENS: GlobalThemeOverrides = {
+  common: {
+    boxShadow1: '0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.05)',
+    boxShadow2: '0 4px 12px rgba(16, 24, 40, 0.06), 0 12px 28px rgba(16, 24, 40, 0.08)',
+    boxShadow3: '0 8px 24px rgba(16, 24, 40, 0.08), 0 20px 48px rgba(16, 24, 40, 0.10)'
+  }
+}
+
+/**
+ * 把设计令牌（圆角 + 阴影）叠加到主题覆盖配置之下。
+ * 主题自身的同名键优先，避免抹掉各主题的既有定制。
+ */
+const applyDesignTokens = (overrides: GlobalThemeOverrides): GlobalThemeOverrides => {
+  const merged: Record<string, unknown> = { ...overrides }
+  for (const tokens of [ELEVATION_TOKENS, RADIUS_TOKENS]) {
+    for (const [key, value] of Object.entries(tokens)) {
+      merged[key] = { ...(value as object), ...(merged[key] as object | undefined) }
+    }
+  }
+  return merged as GlobalThemeOverrides
+}
+
 // 当前主题覆盖配置
-export const currentThemeOverrides = computed<GlobalThemeOverrides>(() => 
-  currentThemeConfig.value.themeOverrides || {}
+export const currentThemeOverrides = computed<GlobalThemeOverrides>(() =>
+  applyDesignTokens(currentThemeConfig.value.themeOverrides || {})
 )
 
 const resolveAppliedThemeId = (selectedThemeId: string): string => {

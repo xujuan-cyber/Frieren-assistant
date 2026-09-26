@@ -8,7 +8,7 @@
 ### 自动更新仓库配置
 
 #### 生产环境构建
-- 默认使用 `package.json` 中的配置：`linshenkx/prompt-optimizer`
+- 默认使用 `package.json` 中的配置：`xujuan-cyber/Frieren-assistant`
 - GitHub 工作流会自动检测当前仓库并更新配置
 - 支持 fork 仓库的自动构建（无需额外配置）
 - 使用 `GH_TOKEN_FOR_UPDATER` 发布到 GitHub Releases
@@ -154,7 +154,7 @@ private: false
    - 不支持私有仓库
 
 4. **兼容性**：
-   - 如果不设置环境变量，使用默认的 `linshenkx/prompt-optimizer`
+   - 如果不设置环境变量，使用默认的 `xujuan-cyber/Frieren-assistant`
    - 向后兼容现有的构建流程
 
 ## 🐛 故障排除

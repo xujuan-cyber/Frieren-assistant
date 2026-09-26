@@ -73,7 +73,7 @@ const getFragmentClass = (type: ChangeType): string => {
 
 .text-fragment {
   position: relative;
-  border-radius: 2px;
+  border-radius: 4px;
   padding: 1px 2px;
 }
 

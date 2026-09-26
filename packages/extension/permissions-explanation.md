@@ -180,4 +180,4 @@ Chrome浏览器的安全机制要求扩展明确声明它需要访问的外部�
 - 不滥用任何授予的权限
 - 保持代码开源，确保透明度
 
-如果您对我们的权限使用有任何疑问，请通过GitHub Issues联系我们：https://github.com/linshenkx/prompt-optimizer/issues 
+如果您对我们的权限使用有任何疑问，请通过GitHub Issues联系我们：https://github.com/xujuan-cyber/Frieren-assistant/issues 

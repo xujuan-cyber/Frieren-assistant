@@ -88,7 +88,7 @@ We may update this privacy policy from time to time. When we make significant ch
 ## Contact Us
 
 If you have any questions or suggestions about this privacy policy, please contact us through:
-- GitHub Issues: https://github.com/linshenkx/prompt-optimizer/issues
+- GitHub Issues: https://github.com/xujuan-cyber/Frieren-assistant/issues
 
 ## Consent
 
@@ -186,7 +186,7 @@ By installing and using this extension, you confirm that you have read and agree
 ## 联系我们
 
 如果您对本隐私政策有任何疑问或建议，请通过以下方式联系我们：
-- 通过GitHub Issues: https://github.com/linshenkx/prompt-optimizer/issues
+- 通过GitHub Issues: https://github.com/xujuan-cyber/Frieren-assistant/issues
 
 ## 同意
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 /*
- * Prompt Optimizer - AI prompt optimization toolkit
+ * Frieren assistant - AI prompt optimization toolkit
  * Copyright (C) 2025 linshenkx
+ * Modified for Frieren assistant (2026): files changed to remove upstream
+ * branding and outbound links.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -18,7 +20,7 @@
  */
 
 /**
- * MCP Server for Prompt Optimizer
+ * MCP Server for Frieren assistant
  *
  * Provides 3 core tools:
  * - optimize-user-prompt: optimize user prompts
@@ -363,7 +365,7 @@ async function main() {
     const transport = args.find(arg => arg.startsWith('--transport='))?.split('=')[1] || 'stdio';
     const port = parseInt(args.find(arg => arg.startsWith('--port='))?.split('=')[1] || config.httpPort.toString());
 
-    logger.info('Starting MCP Server for Prompt Optimizer');
+    logger.info('Starting MCP Server for Frieren assistant');
     logger.info(`Transport: ${transport}, Port: ${port}`);
 
     // 初始化 Core 服务（一次性，用于验证配置）

@@ -206,6 +206,6 @@ const removeImage = () => {
   width: 28px;
   height: 28px;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 </style>

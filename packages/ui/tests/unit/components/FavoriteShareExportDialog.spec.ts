@@ -261,8 +261,7 @@ describe('FavoriteShareExportDialog', () => {
         watermark: true,
       }),
       branding: {
-        projectName: 'Prompt Optimizer',
-        projectUrl: 'https://prompt.always200.com/',
+        projectName: 'Frieren assistant',
       },
     }))
     expect(wrapper.find('[data-testid="favorite-share-preview-html"]').exists()).toBe(true)

@@ -12,7 +12,7 @@
                 <NSpace :size="8" align="center">
                     <!-- 消息数量 -->
                     <NText v-if="messages.length > 0" :depth="3" style="font-size: 13px">
-                        💬 {{ t("conversation.stats.messages") }}: {{ messages.length }}
+                        <NIcon :size="14" class="stat-icon"><Message /></NIcon>{{ t("conversation.stats.messages") }}: {{ messages.length }}
                     </NText>
 
                     <!-- 变量统计 -->
@@ -21,7 +21,7 @@
                         :depth="3"
                         style="font-size: 13px"
                     >
-                        🏷️ {{ t("conversation.stats.variables") }}: {{ allUsedVariables.length }}
+                        <NIcon :size="14" class="stat-icon"><Tag /></NIcon>{{ t("conversation.stats.variables") }}: {{ allUsedVariables.length }}
                     </NText>
 
                     <!-- 缺失变量警告 -->
@@ -30,7 +30,7 @@
                         :depth="3"
                         style="font-size: 13px; color: var(--warning-color)"
                     >
-                        ⚠️ {{ t("conversation.stats.missing") }}: {{ allMissingVariables.length }}
+                        <NIcon :size="14" class="stat-icon"><AlertTriangle /></NIcon>{{ t("conversation.stats.missing") }}: {{ allMissingVariables.length }}
                     </NText>
 
                     <!-- 工具数量标签（可点击） -->
@@ -41,7 +41,7 @@
                         @click="emit('open-tool-manager')"
                         :title="t('contextEditor.toolsTab')"
                     >
-                        🔧 {{ t("conversation.stats.tools") }}: {{ toolCount || 0 }}
+                        <NIcon :size="14" class="stat-icon"><Tool /></NIcon>{{ t("conversation.stats.tools") }}: {{ toolCount || 0 }}
                     </NText>
 
                     <!-- 打开上下文编辑器按钮 -->
@@ -366,7 +366,9 @@ import {
     NList,
     NListItem,
     NDropdown,
+    NIcon,
 } from "naive-ui";
+import { AlertTriangle, Message, Tag, Tool } from "@vicons/tabler";
 import { usePerformanceMonitor } from "../../composables/performance/usePerformanceMonitor";
 import { useDebounceThrottle } from '../../composables/performance/useDebounceThrottle';
 import { useToast } from "../../composables/ui/useToast";
@@ -770,6 +772,12 @@ watch(
 /* Pure Naive UI implementation - no custom theme CSS needed */
 .conversation-manager {
     /* All styling handled by Naive UI components */
+}
+
+/* 统计项内联图标：与 13px 文字视觉居中 */
+.stat-icon {
+    vertical-align: -2px;
+    margin-right: 3px;
 }
 
 .cm-row {

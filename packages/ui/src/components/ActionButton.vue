@@ -16,7 +16,7 @@
         <span class="text-base sm:text-lg">{{ icon }}</span>
       </slot>
     </template>
-    <span class="text-sm max-md:hidden">{{ text }}</span>
+    <span class="text-sm max-md:hidden action-button__label">{{ text }}</span>
   </NButton>
 </template>
 

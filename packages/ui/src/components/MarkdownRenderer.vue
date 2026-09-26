@@ -435,7 +435,7 @@ onMounted(renderMarkdown);
 
 .markdown-content pre::-webkit-scrollbar-thumb {
     background-color: var(--n-scrollbar-color, var(--n-border-color));
-    border-radius: 3px;
+    border-radius: 6px;
 }
 
 .pre-wrapper {

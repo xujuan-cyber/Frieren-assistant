@@ -10,14 +10,15 @@
       <NFlex vertical style="position: fixed; inset: 0; width: 100vw; max-height: 100vh; height: 100vh; min-height: 0;">
       <!-- 顶部导航栏 -->
       <NLayoutHeader class="theme-header nav-header-enhanced">
-        <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="false" :size="[16, 12]">
+        <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="true" :size="[16, 12]">
           <!-- 左侧：Logo + 标题 + 核心导航 -->
           <NFlex align="center" :size="16" :wrap="false">
             <!-- Logo + 标题 -->
+            <!-- 品牌区：纯展示，不承担跳转职责（原实现点击会打开上游作者站点） -->
             <NButton
               text
+              tag="div"
               class="brand-link"
-              @click="openBrandWebsite"
             >
               <NFlex align="center" :size="8" :wrap="false">
                 <AppPreviewImage
@@ -76,7 +77,6 @@ import { NButton, NLayout, NLayoutHeader, NLayoutContent, NFlex, NText } from 'n
 import ToastUI from './Toast.vue'
 import logoImage from '../assets/logo.png'
 import AppPreviewImage from './media/AppPreviewImage.vue'
-import { openExternalUrl } from '../utils/open-external-url'
 
 const { t } = useI18n()
 
@@ -124,10 +124,6 @@ const logoSize = computed(() => {
   }
   return 28 // 默认尺寸
 })
-
-const openBrandWebsite = async () => {
-  await openExternalUrl('https://always200.com', { logPrefix: 'MainLayout' })
-}
 </script>
 
 <style>
@@ -140,6 +136,10 @@ const openBrandWebsite = async () => {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  /* 右侧工作区工具列的预留位：当页面留白不足以容纳浮动按钮时，
+     WorkspaceUtilityMenu 会写入 --workspace-tools-reserve，让内容主动让出宽度，
+     从而保证浮动按钮永不压住内容（留白足够时变量为空，行为与原来完全一致）。 */
+  padding-right: var(--workspace-tools-reserve, 0px);
 }
 
 .main-content-wrapper > * {
@@ -166,29 +166,8 @@ const openBrandWebsite = async () => {
   padding: 6px 10px 6px 6px;
   border-radius: 12px;
   color: inherit;
-  transition:
-    background-color 0.2s ease-in-out,
-    box-shadow 0.2s ease-in-out,
-    transform 0.2s ease-in-out;
-}
-
-.brand-link:hover {
-  background: color-mix(in srgb, var(--n-primary-color) 10%, transparent);
-  transform: translateY(-1px);
-}
-
-.brand-link:hover .logo-image {
-  transform: scale(1.05);
-}
-
-.brand-link:hover .theme-title {
-  opacity: 0.88;
-}
-
-.brand-link:focus-visible {
-  outline: none;
-  background: color-mix(in srgb, var(--n-primary-color) 14%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--n-primary-color) 28%, transparent);
+  /* 品牌区已不再是交互元素：去掉指针样式与所有 hover/focus 反馈 */
+  cursor: default;
 }
 
 /* Logo样式优化 */
@@ -214,12 +193,102 @@ const openBrandWebsite = async () => {
   padding-left: 16px;
   border-left: 1px solid var(--n-border-color);
   min-height: 32px;
+  /* 允许在窄屏下继续收缩，避免顶开右侧操作区 */
+  min-width: 0;
+}
+
+/* ==========================================================================
+ * 头部响应式阶梯
+ *
+ * 背景：头部内容的最小宽度是硬约束，无法靠 flex 收缩化解。
+ *   brand-link 172 + core-navigation 272 + modal-action-group 626 + 内边距 32
+ *   ≈ 1142px
+ * 视口低于该值时，早期版本会把操作按钮组顶出视口，并被根节点
+ * 的 overflow:hidden 裁切（既不可见也不可点击）。
+ *
+ * 处理原则：
+ *   1. .nav-content 允许换行，保证任何宽度下都不出现互相压盖；
+ *   2. 先隐藏按钮文字（降为图标 + title/aria-label），把最小宽度从 626 降到 ~332；
+ *   3. 仍不足时让操作组独占一行；
+ *   4. 最后才让核心导航横向滚动。
+ * ========================================================================== */
+
+/* 各个 flex 子项都允许收缩，否则负剩余空间会转化为溢出 */
+.nav-content > *,
+.nav-content .nav-actions > * {
+  min-width: 0;
+}
+
+/* 断点 1（≤1139px）：隐藏头部按钮文字，最小宽度 626 → 332 */
+@media (max-width: 1139px) {
+  .nav-actions .action-button__label {
+    display: none;
+  }
+}
+
+/* 断点 2（≤879px）：操作组独占一行，避免与品牌/核心导航争抢 */
+@media (max-width: 879px) {
+  .nav-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* 断点 3（≤767px）：移动端——收紧头部内边距并允许核心导航横向滚动 */
+@media (max-width: 767px) {
+  .nav-header-enhanced {
+    min-height: 0 !important;
+    padding: 8px 12px !important;
+  }
+
+  .nav-content {
+    row-gap: 6px;
+  }
+
+  .core-navigation {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .core-navigation::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-actions {
+    justify-content: flex-start;
+  }
+
+  /* 触摸端分隔条无法拖动，单列后也无意义 */
+  .split-divider {
+    display: none !important;
+  }
+
+  /* 分栏改为上下；列宽由组件以行内样式写入，必须 !important 才能覆盖 */
+  .basic-system-split,
+  .basic-user-split,
+  .context-system-split,
+  .context-user-split,
+  .image-image2image-split,
+  .image-multiimage-split,
+  .image-text2image-split {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .variant-deck,
+  .variant-results {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }
 
 /* 响应式优化 */
 @media (max-width: 639px) {
   .logo-image {
-    border-radius: 4px;
+    border-radius: 8px;
   }
 
   .core-navigation {

@@ -221,7 +221,7 @@
                                 type="error"
                                 secondary
                             >
-                                ❌
+                                <NIcon :size="16"><X /></NIcon>
                             </NButton>
                         </NFlex>
                     </NSpace>
@@ -229,7 +229,7 @@
                     <!-- 控制面板 - 使用网格布局 -->
                     <NGrid :cols="24" :x-gap="8" responsive="screen">
                         <!-- 文本模型选择 -->
-                        <NGridItem :span="7" :xs="24" :sm="7">
+                        <NGridItem :span="7">
                             <NSpace vertical :size="8">
                                 <NFlex align="center" :size="6" :wrap="false">
                                     <NText
@@ -299,7 +299,7 @@
                         </NGridItem>
 
                         <!-- 优化模板选择 -->
-                        <NGridItem :span="11" :xs="24" :sm="11">
+                        <NGridItem :span="11">
                             <NSpace vertical :size="8">
                                 <NText
                                     :depth="2"
@@ -352,7 +352,7 @@
                         </NGridItem>
 
                         <!-- 优化按钮 -->
-                        <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
+                        <NGridItem :span="6" class="flex items-end justify-end">
                             <NSpace :size="8">
                                 <NButton
                                     type="default"
@@ -757,8 +757,8 @@
                 >
                     <n-upload-dragger>
                         <div style="padding: 24px; text-align: center">
-                            <div style="font-size: 32px; margin-bottom: 12px">
-                                📁
+                            <div style="font-size: 32px; margin-bottom: 12px" class="upload-dragger-icon">
+                                <NIcon :size="32"><Photo /></NIcon>
                             </div>
                             <n-text style="font-size: 14px">{{
                                 t("imageWorkspace.upload.dragText")
@@ -839,6 +839,7 @@ import {
     NRadioButton,
     type UploadFileInfo,
 } from "naive-ui";
+import { Photo, X } from "@vicons/tabler";
 import { useI18n } from "vue-i18n";
 import PromptPanelUI from "../PromptPanel.vue";
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'

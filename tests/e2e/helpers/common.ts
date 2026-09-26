@@ -17,12 +17,13 @@ export async function navigateToMode(
   mode: 'basic' | 'pro' | 'image',
   subMode: string
 ): Promise<void> {
-  // 模拟真实用户：从 / 进入，由 RootBootstrapRoute 决定初始工作区，
-  // 然后通过顶部 CoreNav 切换到目标模式/子模式。
+  // 模拟真实用户：从 / 进入。根路径现在是「助手选择页」，
+  // fixture 会自动经选择页进入提示词助手（见 tests/e2e/fixtures.ts），
+  // 随后通过顶部 CoreNav 切换到目标模式 / 子模式。
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await waitForAppReady(page)
 
-  // RootBootstrapRoute 会把 / 重定向到某个 workspace；等到 workspace 出现即可。
+  // 等某个工作区出现（fixture 完成自动进入后即成立）
   await expect(page.locator('[data-testid="workspace"]').first()).toBeVisible({ timeout: 20000 })
 
   await switchModeViaUI(page, mode, subMode)

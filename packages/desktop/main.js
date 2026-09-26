@@ -1,6 +1,8 @@
 /*
- * Prompt Optimizer - AI提示词优化工具
+ * Frieren assistant - AI提示词优化工具
  * Copyright (C) 2025 linshenkx
+ * Modified for Frieren assistant (2026): files changed to remove upstream
+ * branding and outbound links.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -446,6 +448,10 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    // 与 UI 头部响应式断点（≤879px 操作组换行、≤1139px 隐藏按钮文字）配合：
+    // 960px 是保证「双栏分栏 + 完整头部」可用的最小宽度。
+    minWidth: 960,
+    minHeight: 600,
     icon: iconPath, // 设置窗口图标
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

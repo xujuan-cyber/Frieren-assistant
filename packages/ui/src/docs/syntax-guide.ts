@@ -34,34 +34,34 @@ export const syntaxGuideContent = {
 
 ## 模板类型说明
 
-### 📝 简单模板
+### 简单模板
 
 **工作原理：** 不使用模板技术，直接将模板内容作为系统提示词，用户输入作为用户消息
 
 **适用场景：** 
-- ✅ 仅限优化场景
-- ✅ 简单易用，易于编辑
-- ✅ 快速创建基础模板
+- 仅限优化场景
+- 简单易用，易于编辑
+- 快速创建基础模板
 
 **处理方式：** 
 1. 模板内容 → 系统消息(system)
 2. 用户输入 → 用户消息(user)
 
 **限制：** 
-- ❌ 不支持变量替换
-- ❌ 不支持迭代场景
-- ❌ 不支持复杂的多轮对话结构
-- ❌ 无法自定义消息角色
+- 不支持变量替换
+- 不支持迭代场景
+- 不支持复杂的多轮对话结构
+- 无法自定义消息角色
 
-### ⚡ 高级模板
+### 高级模板
 
 **工作原理：** 使用消息数组格式和Mustache模板技术，支持变量替换和精确的消息控制
 
 **适用场景：** 
-- ✅ 优化和迭代场景
-- ✅ 复杂对话结构
-- ✅ 角色扮演对话
-- ✅ 多轮对话模拟
+- 优化和迭代场景
+- 复杂对话结构
+- 角色扮演对话
+- 多轮对话模拟
 
 **处理方式：** 
 1. 按照消息数组结构发送
@@ -198,27 +198,27 @@ export const syntaxGuideContent = {
 ## 最佳实践
 
 ### 选择建议
-- 🔸 **新手用户**：推荐从简单模板开始
-- 🔸 **需要变量替换**：必须使用高级模板
-- 🔸 **迭代场景**：强制要求使用高级模板
-- 🔸 **复杂对话**：使用高级模板的多消息结构
+- **新手用户**：推荐从简单模板开始
+- **需要变量替换**：必须使用高级模板
+- **迭代场景**：强制要求使用高级模板
+- **复杂对话**：使用高级模板的多消息结构
 
 ### 编写技巧
-- 🔸 **系统消息**：清晰定义AI的角色、能力和行为规范
-- 🔸 **用户消息**：提供具体的任务内容和要求
-- 🔸 **助手消息**：用于引导对话方向或提供示例回复
-- 🔸 **变量使用**：合理使用变量避免硬编码
+- **系统消息**：清晰定义AI的角色、能力和行为规范
+- **用户消息**：提供具体的任务内容和要求
+- **助手消息**：用于引导对话方向或提供示例回复
+- **变量使用**：合理使用变量避免硬编码
 
 ### 调试方法
-- 🔸 **预览功能**：编辑时查看实时预览效果
-- 🔸 **简单测试**：先用简单内容测试模板是否工作正常
-- 🔸 **逐步完善**：从基础版本开始，逐步添加复杂功能
-- 🔸 **格式转换**：利用升级功能将简单模板转为高级模板
+- **预览功能**：编辑时查看实时预览效果
+- **简单测试**：先用简单内容测试模板是否工作正常
+- **逐步完善**：从基础版本开始，逐步添加复杂功能
+- **格式转换**：利用升级功能将简单模板转为高级模板
 
 ### 性能优化
-- 🔸 **避免过长**：消息内容不宜过长，影响处理速度
-- 🔸 **结构清晰**：保持模板结构清晰易懂
-- 🔸 **避免嵌套**：不要过度复杂的嵌套结构
+- **避免过长**：消息内容不宜过长，影响处理速度
+- **结构清晰**：保持模板结构清晰易懂
+- **避免嵌套**：不要过度复杂的嵌套结构
 `,
 
   'en-US': `# Syntax Guide
@@ -256,34 +256,34 @@ The system currently supports the following 3 predefined variables:
 
 ## Template Type Description
 
-### 📝 Simple Template
+### Simple Template
 
 **Working Principle:** No template technology used, directly uses template content as system prompt, user input as user message
 
 **Usage Scenarios:** 
-- ✅ Optimization scenarios only
-- ✅ Simple and easy to use, easy to edit
-- ✅ Quick creation of basic templates
+- Optimization scenarios only
+- Simple and easy to use, easy to edit
+- Quick creation of basic templates
 
 **Processing Method:** 
 1. Template content → system message
 2. User input → user message
 
 **Limitations:** 
-- ❌ No variable replacement support
-- ❌ Does not support iteration scenarios
-- ❌ Does not support complex multi-turn conversation structures
-- ❌ Cannot customize message roles
+- No variable replacement support
+- Does not support iteration scenarios
+- Does not support complex multi-turn conversation structures
+- Cannot customize message roles
 
-### ⚡ Advanced Template
+### Advanced Template
 
 **Working Principle:** Uses message array format and Mustache template technology, supports variable replacement and precise message control
 
 **Usage Scenarios:** 
-- ✅ Optimization and iteration scenarios
-- ✅ Complex dialogue structures
-- ✅ Role-playing conversations
-- ✅ Multi-turn conversation simulation
+- Optimization and iteration scenarios
+- Complex dialogue structures
+- Role-playing conversations
+- Multi-turn conversation simulation
 
 **Processing Method:** 
 1. Send according to message array structure
@@ -420,26 +420,26 @@ Using variables: \`{{originalPrompt}}\`, \`{{lastOptimizedPrompt}}\`, \`{{iterat
 ## Best Practices
 
 ### Selection Recommendations
-- 🔸 **New Users**: Recommend starting with simple templates
-- 🔸 **Need Variable Replacement**: Must use advanced templates
-- 🔸 **Iteration Scenarios**: Mandatorily require advanced templates
-- 🔸 **Complex Conversations**: Use multi-message structure of advanced templates
+- **New Users**: Recommend starting with simple templates
+- **Need Variable Replacement**: Must use advanced templates
+- **Iteration Scenarios**: Mandatorily require advanced templates
+- **Complex Conversations**: Use multi-message structure of advanced templates
 
 ### Writing Techniques
-- 🔸 **System Messages**: Clearly define AI's role, capabilities, and behavioral norms
-- 🔸 **User Messages**: Provide specific task content and requirements
-- 🔸 **Assistant Messages**: Guide conversation direction or provide example responses
-- 🔸 **Variable Usage**: Use variables reasonably to avoid hard-coding
+- **System Messages**: Clearly define AI's role, capabilities, and behavioral norms
+- **User Messages**: Provide specific task content and requirements
+- **Assistant Messages**: Guide conversation direction or provide example responses
+- **Variable Usage**: Use variables reasonably to avoid hard-coding
 
 ### Debugging Methods
-- 🔸 **Preview Feature**: View real-time preview effects while editing
-- 🔸 **Simple Testing**: Test template with simple content first to ensure it works
-- 🔸 **Gradual Improvement**: Start with basic version, gradually add complex features
-- 🔸 **Format Conversion**: Use upgrade feature to convert simple templates to advanced templates
+- **Preview Feature**: View real-time preview effects while editing
+- **Simple Testing**: Test template with simple content first to ensure it works
+- **Gradual Improvement**: Start with basic version, gradually add complex features
+- **Format Conversion**: Use upgrade feature to convert simple templates to advanced templates
 
 ### Performance Optimization
-- 🔸 **Avoid Excessive Length**: Message content should not be too long, affecting processing speed
-- 🔸 **Clear Structure**: Keep template structure clear and understandable
-- 🔸 **Avoid Nesting**: Don't over-complicate nested structures
+- **Avoid Excessive Length**: Message content should not be too long, affecting processing speed
+- **Clear Structure**: Keep template structure clear and understandable
+- **Avoid Nesting**: Don't over-complicate nested structures
 `
 } 

@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import { beforeRouteSwitch } from './guards'
-import RootBootstrapRoute from './RootBootstrapRoute'
+import AppLauncher from '../components/launcher/AppLauncher.vue'
 import ContextSystemWorkspace from '../components/context-mode/ContextSystemWorkspace.vue'
 import ContextUserWorkspace from '../components/context-mode/ContextUserWorkspace.vue'
 
@@ -16,9 +16,13 @@ import ContextUserWorkspace from '../components/context-mode/ContextUserWorkspac
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    // 根路径重定向由 RootBootstrapRoute 处理：等待 globalSettings 恢复完成后决定初始工作区
+    // 助手选择页（应用启动落地页）。
+    // 改造前此处是 RootBootstrapRoute：等待 globalSettings 恢复后「静默跳转」到上次工作区。
+    // 现改为显式选择 —— 先由用户在 AppLauncher 中选择助手，再决定进入哪个工作区。
+    // 注意：该组件由 PromptOptimizerApp 的「裸布局分支」直接渲染（不套 MainLayout），
+    // 因为头部导航无条件渲染、无开关，走 RouterView 会带上头部，得不到干净的启动页。
     name: 'root',
-    component: RootBootstrapRoute
+    component: AppLauncher
   },
   // ✨ Basic 模式重构：2 个独立路由
   {
@@ -64,6 +68,14 @@ const routes: RouteRecordRaw[] = [
     path: '/favorites',
     name: 'favorites',
     component: () => import('../components/favorites/FavoritesPage.vue')
+  },
+  {
+    path: '/translate',
+    name: 'translate',
+    // 翻译助手：独立于 FunctionMode 体系，不接入会话持久化。
+    // 路由切换器（workspaceRouteSwitch）识别不出工作区键时会直接返回，
+    // 因此本路由不会误触发 session 的保存 / 恢复。
+    component: () => import('../components/translate/TranslateWorkspace.vue')
   }
 ]
 

@@ -27,6 +27,14 @@
             <NSpin size="medium" />
             <NText depth="2">{{ t("log.info.initializing") }}</NText>
         </div>
+        <template v-else-if="isLauncherRoute">
+            <!--
+                助手选择页：裸布局。
+                不套 MainLayout —— 其头部导航无条件渲染、无开关，套上去会得到
+                「带头部导航的选择页」，既冗余又让启动页显得不干净。
+            -->
+            <AppLauncher />
+        </template>
         <template v-else>
             <MainLayoutUI>
                 <!-- Title Slot -->
@@ -54,9 +62,6 @@
                         :favorites-active="isFavoritesRoute"
                         :backup-reminder-due="dataBackupReminderDue"
                         :app-version="appVersion"
-                        @open-website="openOfficialWebsite"
-                        @open-docs="openDocumentationSite"
-                        @open-github="openGithubRepo"
                     />
                 </template>
                 <template #main>
@@ -247,7 +252,6 @@ import {
     resolveWorkspacePathFallback,
 } from '../../router/workspaceRoutes';
 import { createExternalDataLoadingGate } from '../../utils/external-data-loading'
-import { openExternalUrl } from '../../utils/open-external-url'
 import { registerOptionalIntegrations } from '../../integrations/registerOptionalIntegrations';
 import { useI18n } from "vue-i18n";
 import {
@@ -263,6 +267,7 @@ hljs.registerLanguage("json", jsonLang);
 
 // 内部组件导入
 import MainLayoutUI from '../MainLayout.vue'
+import AppLauncher from '../launcher/AppLauncher.vue'
 import ModelManagerUI from '../ModelManager.vue'
 import TemplateManagerUI from '../TemplateManager.vue'
 import HistoryDrawerUI from '../HistoryDrawer.vue'
@@ -486,6 +491,11 @@ const lastWorkspacePath = ref<string | null>(
 )
 
 const isFavoritesRoute = computed(() => routerInstance.currentRoute.value.path === '/favorites')
+
+// 助手选择页（根路径）。命中时走「裸布局分支」，不渲染 MainLayout。
+// 用 route.name 而非 path 判断：hash 模式初次 hydration 时 path 可能短暂为 '/'，
+// 而 name 由路由匹配结果决定，能更准确区分「确实在根路由」与其他情形。
+const isLauncherRoute = computed(() => routerInstance.currentRoute.value.name === 'root')
 
 watch(
   () => routerInstance.currentRoute.value.fullPath,
@@ -851,6 +861,13 @@ const handleToolManagerConfirm = (tools?: ToolDefinition[]) => {
 // 6. 在顶层调用所有 Composables
 const modelSelectRefs = useModelSelectRefs();
 const modelManager = useModelManager(services, modelSelectRefs);
+
+// 供深层组件（翻译助手等）打开模型管理弹窗。
+// 刻意放在这里而非与其它 provide 集中：modelManager 在下方才定义，
+// 集中放置会让注入的闭包在 setup 阶段引用处于 TDZ 的绑定。
+provide("openModelManager", () => {
+    modelManager.showConfig = true;
+});
 
 // ========== Session Store（单一真源：可持久化字段） ==========
 // 注意：这里需要在 optimizer 创建之前初始化，以便把基础模式字段直绑到 session store
@@ -2000,19 +2017,6 @@ watch(
 );
 
 const appVersion = `v${rootPackageJson.version}`;
-
-const openOfficialWebsite = async () => {
-    await openExternalUrl("https://always200.com");
-};
-
-const openDocumentationSite = async () => {
-    await openExternalUrl("https://docs.always200.com");
-};
-
-// 打开GitHub仓库
-const openGithubRepo = async () => {
-    await openExternalUrl("https://github.com/linshenkx/prompt-optimizer");
-};
 
 const normalizeTemplateTypeForManager = (
     templateType: TemplateType | undefined,

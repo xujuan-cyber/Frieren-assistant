@@ -145,6 +145,6 @@ watch(visible, (newValue) => {
   line-height: 1.6;
   padding: 12px;
   background-color: var(--n-color-embedded);
-  border-radius: 4px;
+  border-radius: 8px;
 }
 </style>

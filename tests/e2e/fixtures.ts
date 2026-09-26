@@ -32,7 +32,41 @@ function formatConsoleMessage(msg: ConsoleMessage): string {
  * 3. 通过 init script 注入数据库名称
  * 4. 支持完全并行测试，无需担心测试间状态泄漏
  */
-export const test = base.extend<{ context: BrowserContext; page: Page }>({
+/**
+ * 根路径现在是「助手选择页」，不再自动跳转到工作区。
+ *
+ * 大量既有用例以 `page.goto('/')` 作为「进入应用」的方式（13 个文件、23 处），
+ * 逐处补一次卡片点击既冗长又容易遗漏。这里统一包装 page.goto：
+ * 导航目标是根路径时自动经选择页进入「提示词助手」，
+ * 从而保持既有用例的语义（打开应用 → 到达工作区）不变。
+ *
+ * 需要直接观察选择页本身的用例，用
+ * `test.use({ autoEnterPromptAssistant: false })` 关闭该行为。
+ */
+const isRootNavigation = (url: string): boolean => {
+  const pathPart = url.replace(/^https?:\/\/[^/]+/, '')
+  return pathPart === '' || pathPart === '/' || /^\/#\/?$/.test(pathPart)
+}
+
+const enterPromptAssistantFromLauncher = async (page: Page): Promise<void> => {
+  // 先等应用初始化完成（loading 容器消失），此时选择页已渲染
+  await expect(page.locator('.loading-container')).toHaveCount(0, { timeout: 30000 })
+  const card = page.getByTestId('launcher-card-prompt')
+  // 目标本身已是工作区（例如深链接）时不会出现选择页，此时不干预
+  if ((await card.count()) === 0) return
+  await card.click()
+}
+
+type Fixtures = {
+  context: BrowserContext
+  page: Page
+  /** 为 false 时，page.goto('/') 不再自动经选择页进入提示词助手 */
+  autoEnterPromptAssistant: boolean
+}
+
+export const test = base.extend<Fixtures>({
+  autoEnterPromptAssistant: [true, { option: true }],
+
   // 为每个测试创建独立的 BrowserContext
   context: async ({ browser }, use) => {
     // ✅ 创建新的 BrowserContext，禁用所有存储（避免测试间状态泄漏）
@@ -46,9 +80,21 @@ export const test = base.extend<{ context: BrowserContext; page: Page }>({
   },
 
   // 在独立的 context 中创建 page
-  page: async ({ context }, use, testInfo) => {
+  page: async ({ context, autoEnterPromptAssistant }, use, testInfo) => {
     const page = await context.newPage()
     const problems: string[] = []
+
+    // 见文件顶部说明：默认自动经选择页进入提示词助手，保持既有用例语义
+    if (autoEnterPromptAssistant) {
+      const originalGoto = page.goto.bind(page)
+      page.goto = async (url: string, options?: Parameters<Page['goto']>[1]) => {
+        const response = await originalGoto(url, options)
+        if (isRootNavigation(url)) {
+          await enterPromptAssistantFromLauncher(page)
+        }
+        return response
+      }
+    }
 
     // ✅ Step 1: 为本次测试生成唯一数据库名称
     // 使用 workerIndex + timestamp + random 确保唯一性

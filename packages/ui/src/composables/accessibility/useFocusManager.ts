@@ -350,7 +350,7 @@ export function useFocusManager(options: FocusManagerOptions = {}) {
       indicator.style.cssText = `
         position: absolute;
         border: 2px solid #0066cc;
-        border-radius: 4px;
+        border-radius: 8px;
         pointer-events: none;
         z-index: 10000;
         transition: all 0.15s ease;

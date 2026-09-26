@@ -87,7 +87,7 @@ const manualDelivery = (arch = 'arm64'): UpdateDelivery => ({
   reason: 'macos-unsigned',
   platform: 'darwin',
   arch,
-  fallbackReleaseUrl: 'https://github.com/linshenkx/prompt-optimizer/releases',
+  fallbackReleaseUrl: 'https://github.com/xujuan-cyber/Frieren-assistant/releases',
 })
 
 const inAppDelivery: UpdateDelivery = {
@@ -95,7 +95,7 @@ const inAppDelivery: UpdateDelivery = {
   reason: null,
   platform: 'win32',
   arch: 'x64',
-  fallbackReleaseUrl: 'https://github.com/linshenkx/prompt-optimizer/releases',
+  fallbackReleaseUrl: 'https://github.com/xujuan-cyber/Frieren-assistant/releases',
 }
 
 const createState = (overrides: Record<string, unknown> = {}) => reactive({
@@ -169,7 +169,7 @@ describe('UpdaterModal update delivery actions', () => {
     const updater = createUpdater({
       updateDelivery: manualDelivery('arm64'),
       stableVersion: '2.12.0',
-      stableReleaseUrl: 'https://github.com/linshenkx/prompt-optimizer/releases/tag/v2.12.0',
+      stableReleaseUrl: 'https://github.com/xujuan-cyber/Frieren-assistant/releases/tag/v2.12.0',
       hasStableUpdate: true,
       hasUpdate: true,
     })
@@ -191,7 +191,7 @@ describe('UpdaterModal update delivery actions', () => {
     const updater = createUpdater({
       updateDelivery: manualDelivery('x64'),
       prereleaseVersion: '2.12.0-rc.1',
-      prereleaseReleaseUrl: 'https://github.com/linshenkx/prompt-optimizer/releases/tag/v2.12.0-rc.1',
+      prereleaseReleaseUrl: 'https://github.com/xujuan-cyber/Frieren-assistant/releases/tag/v2.12.0-rc.1',
       hasPrereleaseUpdate: true,
       hasUpdate: true,
     })
@@ -264,9 +264,9 @@ describe('UpdaterModal update delivery actions', () => {
     const updater = createUpdater({
       updateDelivery: inAppDelivery,
       stableVersion: '2.12.0',
-      stableReleaseUrl: 'https://github.com/linshenkx/prompt-optimizer/releases/tag/v2.12.0',
+      stableReleaseUrl: 'https://github.com/xujuan-cyber/Frieren-assistant/releases/tag/v2.12.0',
       prereleaseVersion: '2.13.0-beta.1',
-      prereleaseReleaseUrl: 'https://github.com/linshenkx/prompt-optimizer/releases/tag/v2.13.0-beta.1',
+      prereleaseReleaseUrl: 'https://github.com/xujuan-cyber/Frieren-assistant/releases/tag/v2.13.0-beta.1',
       hasStableUpdate: true,
       hasPrereleaseUpdate: true,
       hasUpdate: true,

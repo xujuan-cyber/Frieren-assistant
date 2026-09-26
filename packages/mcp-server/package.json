@@ -23,7 +23,7 @@
     "llm",
     "ai"
   ],
-  "author": "Prompt Optimizer Team",
+  "author": "xujuan-cyber",
   "license": "AGPL-3.0-only",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

@@ -3,7 +3,7 @@
     v-model:show="visible"
     preset="dialog"
     :title="t('evaluation.variableExtraction.dialogTitle')"
-    style="width: 800px"
+    style="width: min(800px, 92vw)"
     :positive-text="t('evaluation.variableExtraction.batchCreate', { count: selectedKeys.length })"
     :negative-text="t('common.cancel')"
     :positive-button-props="{ disabled: selectedKeys.length === 0 }"

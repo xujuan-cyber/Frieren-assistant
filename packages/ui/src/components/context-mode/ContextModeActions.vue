@@ -9,7 +9,7 @@
       :title="$t('contextMode.actions.tools')"
     >
       <template #icon>
-        <span>🔧</span>
+        <NIcon :size="16"><Tool /></NIcon>
       </template>
       {{ $t('contextMode.actions.tools') }}
     </NButton>
@@ -17,7 +17,8 @@
 </template>
 
 <script setup lang="ts">
-import { NButton, NFlex } from 'naive-ui'
+import { NButton, NFlex, NIcon } from 'naive-ui'
+import { Tool } from '@vicons/tabler'
 
 const emit = defineEmits<{
   'open-tool-manager': []

@@ -504,7 +504,6 @@ Desktop 主存储没有应用层固定大小上限，但有运行时写盘策略
 相关文件：
 
 - `packages/ui/src/stores/session/imageStorageMaintenance.ts`
-- `packages/ui/src/components/FavoriteButton.vue`
 - `packages/ui/src/components/FavoriteManager.vue`
 - `packages/core/src/services/favorite/manager.ts`
 

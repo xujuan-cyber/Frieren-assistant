@@ -145,13 +145,13 @@ While this extension is a pure client-side application, the prompt optimization 
 ## 其他必要信息
 
 ### 网站URL
-https://github.com/linshenkx/prompt-optimizer
+https://github.com/xujuan-cyber/Frieren-assistant
 
 ### 支持页面URL
-https://github.com/linshenkx/prompt-optimizer/issues
+https://github.com/xujuan-cyber/Frieren-assistant/issues
 
 ### 隐私政策URL
-https://github.com/linshenkx/prompt-optimizer/blob/main/packages/extension/privacy-policy.md
+https://github.com/xujuan-cyber/Frieren-assistant/blob/main/packages/extension/privacy-policy.md
 
 ## 提交清单
 

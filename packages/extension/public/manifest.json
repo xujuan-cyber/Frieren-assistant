@@ -22,11 +22,11 @@
     "type": "module"
   },
   "permissions": [],
-  "homepage_url": "https://github.com/linshenkx/prompt-optimizer",
-  "author": "linshenkx",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
   },
+  "homepage_url": "https://github.com/xujuan-cyber/Frieren-assistant",
+  "author": "xujuan-cyber",
   "offline_enabled": true,
   "incognito": "split",
   "short_name": "__MSG_extShortName__",

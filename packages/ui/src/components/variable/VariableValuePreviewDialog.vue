@@ -3,7 +3,7 @@
     v-model:show="visible"
     preset="dialog"
     :title="t('test.variableValueGeneration.dialogTitle')"
-    style="width: 900px"
+    style="width: min(900px, 92vw)"
     :positive-text="t('test.variableValueGeneration.batchApply', { count: selectedKeys.length })"
     :negative-text="t('common.cancel')"
     :positive-button-props="{ disabled: selectedKeys.length === 0 }"

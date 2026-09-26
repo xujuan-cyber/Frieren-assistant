@@ -65,12 +65,7 @@ describe('AppHeaderActions about menu layout hooks', () => {
               'nav.dataManager': 'Data Manager',
               'nav.variableManager': 'Variable Manager',
               'nav.about': 'About',
-              'updater.viewOnGitHub': 'View on GitHub',
-              'about.title': 'Prompt Optimizer',
-              'about.website': 'Website',
-              'about.websiteLabel': 'always200.com',
-              'about.documentation': 'Docs',
-              'about.documentationLabel': 'docs.always200.com',
+              'about.title': 'Frieren assistant',
             }
             return map[key] ?? key
           },
@@ -88,9 +83,12 @@ describe('AppHeaderActions about menu layout hooks', () => {
     expect(wrapper.findAll('.about-chip')).toHaveLength(0)
     expect(wrapper.find('.about-panel').exists()).toBe(true)
     expect(wrapper.find('.about-version-tag').text()).toContain('v2.7.0')
-    expect(wrapper.findAll('.about-link-button')).toHaveLength(2)
-    expect(wrapper.text()).toContain('always200.com')
-    expect(wrapper.text()).toContain('docs.always200.com')
+    // 上游品牌与外链已移除：关于弹窗只保留应用名与版本号，头部不再有 GitHub 入口
+    expect(wrapper.findAll('.about-link-button')).toHaveLength(0)
+    expect(wrapper.text()).toContain('Frieren assistant')
+    expect(wrapper.text()).not.toContain('always200.com')
+    expect(wrapper.text()).not.toContain('docs.always200.com')
+    expect(wrapper.find('[title="updater.viewOnGitHub"]').exists()).toBe(false)
   })
 
   it('separates the favorites page destination from modal actions and marks it active', async () => {
@@ -110,11 +108,6 @@ describe('AppHeaderActions about menu layout hooks', () => {
               'nav.dataManager': 'Data Manager',
               'nav.variableManager': 'Variable Manager',
               'nav.about': 'About',
-              'updater.viewOnGitHub': 'View on GitHub',
-              'about.website': 'Website',
-              'about.websiteLabel': 'always200.com',
-              'about.documentation': 'Docs',
-              'about.documentationLabel': 'docs.always200.com',
             }
             return map[key] ?? key
           },
@@ -179,7 +172,6 @@ describe('AppHeaderActions about menu layout hooks', () => {
               'nav.dataManager': 'Data Manager',
               'nav.variableManager': 'Variable Manager',
               'nav.about': 'About',
-              'updater.viewOnGitHub': 'View on GitHub',
               'dataManager.backupReminder.tooltip': 'No data export in over 10 days. Export a local copy.',
             }
             return map[key] ?? key

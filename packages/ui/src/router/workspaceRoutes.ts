@@ -1,6 +1,13 @@
 import type { SubModeKey } from '../stores/session/useSessionManager'
+import type { GlobalSettingsApi } from '../stores/settings/useGlobalSettings'
 
 export const DEFAULT_WORKSPACE_PATH = '/basic/system'
+
+/** 助手选择页（应用启动落地页）。根路径不再自动重定向到工作区 */
+export const LAUNCHER_PATH = '/'
+
+/** 翻译助手工作区。不属于任何 FunctionMode，也不接入会话体系 */
+export const TRANSLATE_PATH = '/translate'
 
 export const WORKSPACE_SUB_MODE_KEYS: ReadonlyArray<SubModeKey> = [
   'basic-system',
@@ -70,4 +77,30 @@ export const getDefaultSubModeForWorkspaceMode = (mode: WorkspaceMode): string =
   if (mode === 'image') return 'text2image'
   if (mode === 'pro') return 'variable'
   return 'system'
+}
+
+/**
+ * 计算「上次使用的工作区路径」。
+ *
+ * 用途：选择页的「提示词助手」卡片，以及头部助手切换器切回提示词助手时，
+ * 都据此决定落点，保证与改造前的启动行为一致 ——
+ * 首装无记录时落到 /basic/system，用过的用户回到上次的模式与子模式。
+ *
+ * 本函数原先位于 `router/RootBootstrapRoute.ts`。随「助手选择页」方案实施，
+ * 该组件（职责为静默重定向）已被 AppLauncher 取代并移除，故决策函数迁至本模块。
+ * 这也避免了 AppLauncher → RootBootstrapRoute 与路由注册之间形成循环依赖。
+ */
+export const getInitialRouteFromGlobalSettings = (globalSettings: GlobalSettingsApi): string => {
+  const { functionMode, basicSubMode, proSubMode, imageSubMode } = globalSettings.state
+
+  switch (functionMode) {
+    case 'basic':
+      return `/basic/${basicSubMode}`
+    case 'pro':
+      return `/pro/${proSubMode}`
+    case 'image':
+      return `/image/${imageSubMode}`
+    default:
+      return DEFAULT_WORKSPACE_PATH
+  }
 }

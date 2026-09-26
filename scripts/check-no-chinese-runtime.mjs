@@ -45,7 +45,6 @@ const ENFORCED_TARGETS = [
   'packages/ui/src/components/DataManager.vue',
   'packages/ui/src/components/TestResultSection.vue',
   'packages/ui/src/components/evaluation/compare-ui.ts',
-  'packages/ui/src/components/FavoriteListItem.vue',
   'packages/ui/src/components/image-mode/imageText2ImageEvaluation.ts',
   'packages/ui/src/components/image-mode/ImageTokenUsage.vue',
   'packages/ui/src/config/naive-theme.ts',

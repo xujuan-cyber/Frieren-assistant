@@ -226,8 +226,9 @@ describe('favorite share export', () => {
     const html = await blob.text()
     expect(html).toContain('Private image prompt')
     expect(html).toContain('Prompt Optimizer')
-    expect(html).toContain('https://prompt.always200.com/')
-    expect(html).toContain('Favorites -&gt; Import -&gt; upload this HTML file')
+    expect(html).not.toContain('prompt.always200.com')
+    expect(html).toContain('Import: open the Favorites page in this app')
+    expect(html).toContain('Favorites page in this app -&gt; Import -&gt; upload this HTML file')
 
     const packageBytes = readFavoriteSharePackage(html)
     const exported = readFavoritesFromPackageBytes(packageBytes)
@@ -399,7 +400,12 @@ describe('favorite share export', () => {
     expect(exported.favorites[0].metadata.reproducibility.examples).toEqual([])
     expect(fillText).toHaveBeenCalledWith('IMPORT NOTE', expect.any(Number), expect.any(Number))
     expect(fillText).toHaveBeenCalledWith(
-      expect.stringContaining('https://prompt.always200.com/'),
+      expect.stringContaining('Import: open the Favorites page in this app'),
+      expect.any(Number),
+      expect.any(Number),
+    )
+    expect(fillText).not.toHaveBeenCalledWith(
+      expect.stringContaining('prompt.always200.com'),
       expect.any(Number),
       expect.any(Number),
     )

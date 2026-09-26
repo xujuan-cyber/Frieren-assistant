@@ -1,6 +1,6 @@
 const messages = {
   "promptOptimizer": {
-    "title": "提示詞優化器",
+    "title": "Frieren assistant",
     "inputPlaceholder": "請輸入需要優化的prompt...",
     "optimize": "優化",
     "analyze": "分析",

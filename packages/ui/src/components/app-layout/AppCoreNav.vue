@@ -11,8 +11,13 @@
         - 导航操作直接调用 router.push
     -->
     <NSpace :size="12" align="center" data-testid="core-nav">
+        <!-- 助手级切换器（提示词助手 / 翻译助手） -->
+        <AssistantSwitcher />
+
         <!-- 功能模式选择器 -->
+        <!-- 翻译助手下隐藏：basic/pro/image 对翻译没有意义，同时为头部释放宽度 -->
         <FunctionModeSelector
+            v-if="!isTranslateRoute"
             :modelValue="functionMode"
             :allow-reselect="allowWorkspaceReselect"
             @change="handleFunctionModeChange"
@@ -20,7 +25,7 @@
 
         <!-- 子模式选择器 - 基础模式 -->
         <OptimizationModeSelectorUI
-            v-if="functionMode === 'basic'"
+            v-if="!isTranslateRoute && functionMode === 'basic'"
             :modelValue="basicSubMode"
             functionMode="basic"
             :allow-reselect="allowWorkspaceReselect"
@@ -29,7 +34,7 @@
 
         <!-- 子模式选择器 - 上下文模式 -->
         <OptimizationModeSelectorUI
-            v-if="functionMode === 'pro'"
+            v-if="!isTranslateRoute && functionMode === 'pro'"
             :modelValue="proSubMode"
             functionMode="pro"
             :allow-reselect="allowWorkspaceReselect"
@@ -38,7 +43,7 @@
 
         <!-- 子模式选择器 - 图像模式 -->
         <ImageModeSelector
-            v-if="functionMode === 'image'"
+            v-if="!isTranslateRoute && functionMode === 'image'"
             :modelValue="imageSubMode"
             :allow-reselect="allowWorkspaceReselect"
             @change="handleImageSubModeChange"
@@ -64,10 +69,12 @@
  */
 import { computed } from 'vue'
 import { router as routerInstance } from '../../router'
+import { TRANSLATE_PATH } from '../../router/workspaceRoutes'
 import { NSpace } from 'naive-ui'
 import FunctionModeSelector from '../FunctionModeSelector.vue'
 import OptimizationModeSelectorUI from '../OptimizationModeSelector.vue'
 import ImageModeSelector from '../image-mode/ImageModeSelector.vue'
+import AssistantSwitcher from '../launcher/AssistantSwitcher.vue'
 import type { FunctionMode, BasicSubMode, ProSubMode, ImageSubMode } from '@prompt-optimizer/core'
 
 type SubMode = BasicSubMode | ProSubMode
@@ -85,6 +92,18 @@ const props = withDefaults(defineProps<Props>(), {
 // Router（使用 router 单例，避免注入失败/多实例）
 // ========================
 const activeWorkspacePath = computed(() => props.workspacePath || routerInstance.currentRoute.value.path)
+
+// 翻译助手路由：其下隐藏功能模式与子模式选择器
+// （basic/pro/image 对翻译没有意义；同时为窄屏头部释放宽度）
+//
+// 注意：必须读「当前路由」，不可复用上面的 activeWorkspacePath。
+// 后者来自 props.workspacePath（由 PromptOptimizerApp 传入 activeWorkspaceContextPath），
+// 语义是「最后一次所在的工作区」；在 /translate 下它保持上一次的工作区值，
+// 使判断恒为 false，选择器无法隐藏（实测：/translate 下仍渲染 basic 的
+// function-mode-selector 与子模式按钮组，并在 400px 宽度造成头部溢出）。
+const isTranslateRoute = computed(() =>
+    routerInstance.currentRoute.value.path.startsWith(TRANSLATE_PATH)
+)
 
 // 从当前路由计算模式
 const functionMode = computed<FunctionMode>(() => {

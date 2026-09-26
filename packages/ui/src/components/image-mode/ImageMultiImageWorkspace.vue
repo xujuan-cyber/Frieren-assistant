@@ -217,7 +217,7 @@
               </NSpace>
 
               <NGrid :cols="24" :x-gap="8" responsive="screen">
-                <NGridItem :span="7" :xs="24" :sm="7">
+                <NGridItem :span="7">
                   <NSpace vertical :size="8">
                     <NFlex align="center" :size="6" :wrap="false">
                       <NText :depth="2" style="font-size: 14px; font-weight: 500; flex-shrink: 0;">
@@ -249,7 +249,7 @@
                   </NSpace>
                 </NGridItem>
 
-                <NGridItem :span="11" :xs="24" :sm="11">
+                <NGridItem :span="11">
                   <NSpace vertical :size="8">
                     <NText :depth="2" style="font-size: 14px; font-weight: 500;">
                       {{ t('imageWorkspace.input.optimizeTemplate') }}
@@ -273,7 +273,7 @@
                   </NSpace>
                 </NGridItem>
 
-                <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
+                <NGridItem :span="6" class="flex items-end justify-end">
                   <NSpace :size="8">
                     <NButton
                       type="default"

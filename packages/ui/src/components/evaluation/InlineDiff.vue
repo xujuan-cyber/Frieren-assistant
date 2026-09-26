@@ -104,7 +104,7 @@ const getFragmentClass = (type: ChangeType): string => {
 .diff-added {
   background-color: var(--n-success-color-suppl);
   color: var(--n-success-color);
-  border-radius: 2px;
+  border-radius: 4px;
   padding: 0 2px;
 }
 
@@ -112,7 +112,7 @@ const getFragmentClass = (type: ChangeType): string => {
   background-color: var(--n-error-color-suppl);
   color: var(--n-error-color);
   text-decoration: line-through;
-  border-radius: 2px;
+  border-radius: 4px;
   padding: 0 2px;
 }
 

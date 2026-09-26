@@ -286,7 +286,6 @@ export const getCloudflareR2DashboardLinks = (accountId: string): Record<
 const CLOUDFLARE_R2_DEFAULT_CORS_ORIGINS = [
   'http://localhost:18181',
   'http://127.0.0.1:18181',
-  'https://prompt.always200.com',
 ]
 
 export const createCloudflareR2CorsConfig = (origin: string): string => {

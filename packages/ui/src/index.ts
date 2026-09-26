@@ -1,6 +1,8 @@
 /*
- * Prompt Optimizer - AI提示词优化工具
+ * Frieren assistant - AI提示词优化工具
  * Copyright (C) 2025 linshenkx
+ * Modified for Frieren assistant (2026): files changed to remove upstream
+ * branding and outbound links.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published

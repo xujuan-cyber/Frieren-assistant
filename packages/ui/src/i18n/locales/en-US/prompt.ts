@@ -1,6 +1,6 @@
 const messages = {
   "promptOptimizer": {
-    "title": "Prompt Optimizer",
+    "title": "Frieren assistant",
     "inputPlaceholder": "Enter your prompt to optimize...",
     "optimize": "Optimize",
     "analyze": "Analyze",

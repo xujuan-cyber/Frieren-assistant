@@ -139,6 +139,20 @@ const promptGardenImportIntent = ref<'use' | 'favorite'>('use')
 const triggerStyle = ref<CSSProperties>({})
 let placementResizeObserver: ResizeObserver | null = null
 
+// 按钮列尺寸与页面留白的判定常量
+const BUTTON_SIZE = 28
+const EDGE_INSET = 8
+// 内容区需要让出的宽度：按钮列 + 内缩 + 4px 间隙。
+// 由 updateTriggerPlacement 写入 .main-content-wrapper 的 --workspace-tools-reserve，
+// 样式规则见 MainLayout.vue。
+const RESERVE_VAR = '--workspace-tools-reserve'
+const RESERVE_PX = `${BUTTON_SIZE + EDGE_INSET + 4}px`
+
+const applyGutterReserve = (wrapper: HTMLElement, reserve: boolean) => {
+  if (reserve) wrapper.style.setProperty(RESERVE_VAR, RESERVE_PX)
+  else wrapper.style.removeProperty(RESERVE_VAR)
+}
+
 const isPromptGardenEnabled = computed(() => {
   const value = getEnvVar('VITE_ENABLE_PROMPT_GARDEN_IMPORT').trim().toLowerCase()
   return value === '1' || value === 'true'
@@ -159,8 +173,17 @@ const updateTriggerPlacement = () => {
 
   const rect = wrapper.getBoundingClientRect()
   const viewportRightGap = Math.max(0, window.innerWidth - rect.right)
-  const buttonSize = 28
-  const right = Math.max(0, Math.round((viewportRightGap - buttonSize) / 2))
+  const buttonSize = BUTTON_SIZE
+  // 右侧留白（即页面内边距 clamp(16px, 2vw, 48px)）足够容纳按钮时，居中放置于留白区，
+  // 此时内容区不需要让位；不足时（视口 < ~1800px）按钮列只能落在内容区右沿内侧。
+  const gutterFits = viewportRightGap >= BUTTON_SIZE + EDGE_INSET
+  const right = gutterFits
+    ? Math.round((viewportRightGap - buttonSize) / 2)
+    : viewportRightGap + EDGE_INSET
+
+  // 关键：留白不足时让内容主动让出右侧宽度，从结构上保证"浮动按钮永不压住内容"。
+  // 只靠上面算出的 right 偏移不足以保证不重叠 —— 内容区右沿之内是任何内容都可使用的空间。
+  applyGutterReserve(wrapper, !gutterFits)
 
   triggerStyle.value = {
     top: `${Math.round(rect.top + 2)}px`,
@@ -183,6 +206,12 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateTriggerPlacement)
   placementResizeObserver?.disconnect()
   placementResizeObserver = null
+
+  // 释放预留给按钮列的内容区宽度，避免工作区切换后残留
+  const wrapper = document.querySelector('.main-content-wrapper')
+  if (wrapper instanceof HTMLElement && wrapper.style.getPropertyValue(RESERVE_VAR) === RESERVE_PX) {
+    wrapper.style.removeProperty(RESERVE_VAR)
+  }
 })
 
 const menuOptions = computed<DropdownOption[]>(() => [

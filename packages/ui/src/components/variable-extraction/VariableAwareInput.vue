@@ -1023,7 +1023,7 @@ defineExpose({
     height: 24px;
     padding: 0;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     background: transparent;
     color: var(--n-text-color-3);
     display: inline-flex;
