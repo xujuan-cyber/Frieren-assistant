@@ -153,6 +153,39 @@ const logoSize = computed(() => {
   padding: 12px 16px !important;
 }
 
+/* ==========================================================================
+ * Windows 无边框窗口（Electron titleBarStyle: 'hidden' + titleBarOverlay）
+ *
+ * - 页头整体是拖拽热区：空白处、品牌区（纯展示）都能拖动/双击最大化；
+ * - .core-navigation / .nav-actions 两个交互容器及其全部子元素必须 no-drag，
+ *   否则 Electron 会把落在其上的鼠标事件交给窗口拖拽，按钮点不动；
+ *   用「容器 + 后代通配」保证不漏任何一个可点元素（下拉浮层默认 teleport
+ *   到 body，不在页头内，天然不受影响）；
+ * - -webkit-app-region 在普通浏览器中无效果，web / extension 三端安全。
+ * ========================================================================== */
+.nav-header-enhanced {
+  -webkit-app-region: drag;
+}
+
+.nav-header-enhanced .core-navigation,
+.nav-header-enhanced .core-navigation *,
+.nav-header-enhanced .nav-actions,
+.nav-header-enhanced .nav-actions * {
+  -webkit-app-region: no-drag;
+}
+
+/* 系统三键（最小化/最大化/关闭）叠加在窗口右上角的标题栏 overlay 区：
+   宽度 = 视口宽 − 标题栏可用区宽（titlebar-area-x 通常为 0）。
+   页头右侧内边距让出这段距离，保证操作按钮不被系统按钮盖住。
+   display-mode 仅在 Electron overlay 生效时命中，浏览器中整块不生效。 */
+@media (display-mode: window-controls-overlay) {
+  .nav-header-enhanced {
+    padding-right: calc(
+      100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100%) + 16px
+    ) !important;
+  }
+}
+
 .nav-content {
   min-height: 40px;
 }

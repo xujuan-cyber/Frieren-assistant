@@ -3,8 +3,8 @@ const messages = {
     "launcher": {
       "title": "Choose an Assistant",
       "subtitle": "Pick an assistant to start working",
-      "promptTitle": "Prompt Assistant",
-      "promptDescription": "Optimize and iterate your prompts, with basic, context and image modes",
+      "promptTitle": "Solver Prompt Optimization",
+      "promptDescription": "Optimize problem-solving prompts for CTF, programming, forensics and more; basic and context modes supported",
       "promptAction": "Enter",
       "translateTitle": "Translation Assistant",
       "translateDescription": "Focused text translation with language pair and style control",

@@ -3,8 +3,8 @@ const messages = {
     "launcher": {
       "title": "选择助手",
       "subtitle": "选择一个助手开始工作",
-      "promptTitle": "提示词助手",
-      "promptDescription": "优化与迭代你的提示词，支持基础、上下文与图像模式",
+      "promptTitle": "解题提示词优化",
+      "promptDescription": "优化解题类提示词：CTF、编程、取证等，支持基础与上下文模式",
       "promptAction": "进入",
       "translateTitle": "翻译助手",
       "translateDescription": "专注文本翻译，支持语言对选择与风格控制",

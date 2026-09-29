@@ -78,7 +78,7 @@ const messages = {
     "context": "上下文",
     "copySuccess": "复制成功",
     "copyFailed": "复制失败",
-    "appName": "Frieren assistant",
+    "appName": "解题提示词优化器",
     "selectFile": "选择文件",
     "exporting": "导出中...",
     "importing": "导入中...",
@@ -139,7 +139,7 @@ const messages = {
   "nav": {
     "home": "首页",
     "dashboard": "仪表盘",
-    "promptOptimizer": "Frieren assistant",
+    "promptOptimizer": "解题提示词优化器",
     "modelManager": "模型管理",
     "history": "历史记录",
     "templates": "功能提示词",
@@ -153,7 +153,7 @@ const messages = {
     "imageMode": "图像"
   },
   "about": {
-    "title": "Frieren assistant"
+    "title": "解题提示词优化器"
   },
   "settings": {
     "title": "设置",

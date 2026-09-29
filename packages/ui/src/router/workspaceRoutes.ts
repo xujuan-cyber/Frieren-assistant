@@ -91,16 +91,16 @@ export const getDefaultSubModeForWorkspaceMode = (mode: WorkspaceMode): string =
  * 这也避免了 AppLauncher → RootBootstrapRoute 与路由注册之间形成循环依赖。
  */
 export const getInitialRouteFromGlobalSettings = (globalSettings: GlobalSettingsApi): string => {
-  const { functionMode, basicSubMode, proSubMode, imageSubMode } = globalSettings.state
+  const { functionMode, basicSubMode, proSubMode } = globalSettings.state
 
   switch (functionMode) {
-    case 'basic':
-      return `/basic/${basicSubMode}`
     case 'pro':
       return `/pro/${proSubMode}`
+    // 图像模式入口已隐藏（应用定位为解题提示词优化）：
+    // 历史记录里遗留的 image 模式回落到基础模式，不再进入 /image/* 工作区
+    case 'basic':
     case 'image':
-      return `/image/${imageSubMode}`
     default:
-      return DEFAULT_WORKSPACE_PATH
+      return `/basic/${basicSubMode}`
   }
 }

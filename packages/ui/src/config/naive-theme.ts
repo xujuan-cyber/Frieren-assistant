@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { darkTheme, lightTheme, type GlobalThemeOverrides, type GlobalTheme } from 'naive-ui'
 import { pinia } from '../plugins/pinia'
 import { useGlobalSettings } from '../stores/settings/useGlobalSettings'
+import { syncWindowControlsOverlayTheme } from '../utils/window-controls-overlay'
 
 // 当前主题ID
 export const currentThemeId = ref<string>('light')
@@ -835,6 +836,10 @@ const applyThemeId = (selectedThemeId: string): boolean => {
     return false
   }
   currentThemeId.value = applied
+
+  // Windows frameless window: keep the native title-bar overlay colors in
+  // sync with the active theme header. No-op outside Electron desktop.
+  syncWindowControlsOverlayTheme(applied)
 
   // Keep Tailwind's `dark:` variant in sync with the app theme.
   // Tailwind in this repo uses `darkMode: 'class'`, so we must toggle `.dark`.

@@ -1326,6 +1326,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // Window chrome (Windows frameless mode): sync title bar overlay colors
+  // with the in-app theme. Main process no-ops on other platforms.
+  window: {
+    setTitleBarOverlay: async (options) => {
+      const result = await ipcRenderer.invoke('window-set-title-bar-overlay', options);
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
+  },
+
   // App information
   app: {
     getVersion: async () => {

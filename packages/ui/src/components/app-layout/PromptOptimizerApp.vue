@@ -268,6 +268,8 @@ hljs.registerLanguage("json", jsonLang);
 // 内部组件导入
 import MainLayoutUI from '../MainLayout.vue'
 import AppLauncher from '../launcher/AppLauncher.vue'
+import { syncWindowControlsOverlayTheme, isWindowControlsOverlayActive } from '../../utils/window-controls-overlay'
+import { getCurrentThemeId } from '../../config/naive-theme'
 import ModelManagerUI from '../ModelManager.vue'
 import TemplateManagerUI from '../TemplateManager.vue'
 import HistoryDrawerUI from '../HistoryDrawer.vue'
@@ -742,6 +744,20 @@ const { naiveTheme, themeOverrides, initTheme } = useNaiveTheme();
 if (typeof window !== "undefined") {
     initTheme();
 }
+
+// Windows 无边框窗口：标题栏 overlay 的底色要与「紧贴其下的界面」一致。
+// 主布局下是页头（cardColor），助手选择页是页面背景（bodyColor），
+// 因此除主题切换（naive-theme.ts 的 applyThemeId，默认按页头取色）外，
+// 路由在两者之间切换时也要重同步。放在 initTheme() 之后注册，
+// 保证启动时最后一次同步以「当前路由对应的表面」为准。
+watch(
+    [isLauncherRoute, () => getCurrentThemeId()],
+    ([isLauncher]) => {
+        if (!isWindowControlsOverlayActive()) return;
+        syncWindowControlsOverlayTheme(getCurrentThemeId(), isLauncher ? "page" : "header");
+    },
+    { immediate: true },
+);
 
 // 变量管理状态
 const showVariableManager = ref(false);

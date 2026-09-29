@@ -43,10 +43,16 @@ export function useFunctionMode(services: Ref<AppServices | null>): UseFunctionM
       try {
         // 读取 function-mode；若不存在，返回默认 'basic'
         const saved = await getPreference<FunctionMode>(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
-        singleton!.mode.value = (saved === 'pro' || saved === 'image') ? saved : 'basic'
-        // 将默认值持久化（若未设置过）
-        if (saved !== 'pro' && saved !== 'basic' && saved !== 'image') {
+        // 图像模式入口已隐藏（应用定位为解题提示词优化），历史选择回落到基础模式
+        if (saved === 'image') {
+          singleton!.mode.value = 'basic'
           await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
+        } else {
+          singleton!.mode.value = saved === 'pro' ? saved : 'basic'
+          // 将默认值持久化（若未设置过或值非法）
+          if (saved !== 'pro' && saved !== 'basic') {
+            await setPreference(UI_SETTINGS_KEYS.FUNCTION_MODE, 'basic')
+          }
         }
         // ✅ 只在成功时标记为已初始化
         singleton!.initialized = true

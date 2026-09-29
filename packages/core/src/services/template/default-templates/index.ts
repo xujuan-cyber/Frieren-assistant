@@ -11,6 +11,13 @@ import { template as output_format_optimize } from './optimize/output-format-opt
 import { template as output_format_optimize_en } from './optimize/output-format-optimize_en';
 import { template as analytical_optimize } from './optimize/analytical-optimize';
 import { template as analytical_optimize_en } from './optimize/analytical-optimize_en';
+// 解题场景模板（CTF / 编程 / 取证）
+import { template as ctf_solve_optimize } from './optimize/ctf-solve-optimize';
+import { template as ctf_solve_optimize_en } from './optimize/ctf-solve-optimize_en';
+import { template as programming_solve_optimize } from './optimize/programming-solve-optimize';
+import { template as programming_solve_optimize_en } from './optimize/programming-solve-optimize_en';
+import { template as forensics_solve_optimize } from './optimize/forensics-solve-optimize';
+import { template as forensics_solve_optimize_en } from './optimize/forensics-solve-optimize_en';
 import { template as soul_openclaw_compose } from './optimize/soul-openclaw-compose';
 import { template as soul_openclaw_compose_en } from './optimize/soul-openclaw-compose_en';
 import { template as soul_hermes_compose } from './optimize/soul-hermes-compose';
@@ -160,6 +167,12 @@ export const ALL_TEMPLATES = {
   output_format_optimize_en,
   analytical_optimize,
   analytical_optimize_en,
+  ctf_solve_optimize,
+  ctf_solve_optimize_en,
+  programming_solve_optimize,
+  programming_solve_optimize_en,
+  forensics_solve_optimize,
+  forensics_solve_optimize_en,
   soul_openclaw_compose,
   soul_openclaw_compose_en,
   soul_hermes_compose,

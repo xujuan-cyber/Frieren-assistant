@@ -205,5 +205,6 @@ AGENTS.md
 
 # local-only tooling & internal docs
 .audit-tmp/
+.tmp-verify/
 二开方案-*.md
 二次开发指引.md

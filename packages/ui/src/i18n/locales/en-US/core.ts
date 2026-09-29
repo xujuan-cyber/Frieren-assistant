@@ -80,7 +80,7 @@ const messages = {
     "context": "Context",
     "copySuccess": "Copied to clipboard",
     "copyFailed": "Copy Failed",
-    "appName": "Frieren assistant",
+    "appName": "Solver Prompt Optimizer",
     "selectFile": "Select File",
     "exporting": "Exporting...",
     "importing": "Importing...",
@@ -139,7 +139,7 @@ const messages = {
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",
-    "promptOptimizer": "Frieren assistant",
+    "promptOptimizer": "Solver Prompt Optimizer",
     "modelManager": "Model Manager",
     "history": "History",
     "templates": "Templates",
@@ -153,7 +153,7 @@ const messages = {
     "imageMode": "Image"
   },
   "about": {
-    "title": "Frieren assistant"
+    "title": "Solver Prompt Optimizer"
   },
   "settings": {
     "title": "Settings",

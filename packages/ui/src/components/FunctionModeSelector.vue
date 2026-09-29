@@ -22,7 +22,9 @@
     >
       {{ t('nav.contextMode') }}
     </NRadioButton>
+    <!-- 图像模式默认隐藏：本应用定位为解题提示词优化，不提供图像生成入口 -->
     <NRadioButton
+      v-if="showImageMode"
       data-testid="function-mode-image"
       value="image"
       :title="t('nav.imageMode')"
@@ -42,6 +44,8 @@ const { t } = useI18n()
 interface Props {
   modelValue: 'basic' | 'pro' | 'image'
   allowReselect?: boolean
+  /** 是否显示图像模式入口（默认隐藏：应用定位为解题提示词优化） */
+  showImageMode?: boolean
 }
 
 interface Emits {
@@ -51,6 +55,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   allowReselect: false,
+  showImageMode: false,
 })
 const emit = defineEmits<Emits>()
 

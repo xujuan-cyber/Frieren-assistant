@@ -98,6 +98,17 @@ interface ShellAPI {
   showItemInFolder(path: string): Promise<void>
 }
 
+// Windows 无边框窗口的标题栏 overlay API（主进程在非 Windows 平台为 no-op）
+interface TitleBarOverlayOptions {
+  color?: string
+  symbolColor?: string
+  height?: number
+}
+
+interface WindowAPI {
+  setTitleBarOverlay(options: TitleBarOverlayOptions): Promise<boolean>
+}
+
 // 事件监听API
 interface EventAPI {
   on<K extends keyof ElectronEventMap>(channel: K, listener: (...args: ElectronEventMap[K]) => void): void
@@ -224,6 +235,7 @@ interface ElectronAPI {
   context: ContextAPI
   data: DataAPI
   remoteStorage: RemoteStorageIpcApi
+  window: WindowAPI
   on: EventAPI['on']
   off: EventAPI['off']
   once: EventAPI['once']
@@ -282,6 +294,8 @@ export type {
   AppAPI,
   UpdaterAPI,
   ShellAPI,
+  WindowAPI,
+  TitleBarOverlayOptions,
   EventAPI,
   ImageAPI,
   ImageModelAPI,

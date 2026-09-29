@@ -10,6 +10,13 @@
 -->
 <template>
   <div class="launcher" data-testid="assistant-launcher" :style="themeStyle">
+    <!--
+      Windows 无边框窗口的顶部拖拽条：
+      本页是裸布局（无 MainLayout 页头），必须在窗口顶部提供可拖拽热区，
+      否则无边框状态下启动页无法拖动窗口。普通浏览器中
+      -webkit-app-region 无效果，这条透明横条不产生任何影响。
+    -->
+    <div class="launcher__drag-region" aria-hidden="true"></div>
     <div class="launcher__inner">
       <header class="launcher__header">
         <img class="launcher__logo" :src="logoImage" alt="" />
@@ -121,6 +128,24 @@ const cards = computed(() => [
   min-height: 100vh;
   padding: 32px clamp(16px, 4vw, 48px);
   background: var(--ui-color);
+}
+
+/* 顶部拖拽条：贴顶、透明、36px 高（与桌面端标题栏 overlay 同高）。
+   仅 Electron 命中 -webkit-app-region；overlay 模式下右端让出系统三键区域。
+   启动页内容垂直居中，顶部 36px 始终是留白，不会挡住任何交互元素。 */
+.launcher__drag-region {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 36px;
+  -webkit-app-region: drag;
+}
+
+@media (display-mode: window-controls-overlay) {
+  .launcher__drag-region {
+    width: env(titlebar-area-width, 100%);
+  }
 }
 
 .launcher__inner {

@@ -445,6 +445,16 @@ function createWindow() {
     console.warn('[Main Process] Icon file not found:', iconPath);
   }
 
+  // 现代无边框窗口（仅 Windows）：
+  // - titleBarStyle 'hidden' 去掉原生标题栏，由应用页头承担拖拽（见 MainLayout.vue）
+  // - titleBarOverlay 保留右上角原生 最小化/最大化/关闭，初始配色与浅色主题页头一致，
+  //   运行期由渲染进程随主题切换同步（'window-set-title-bar-overlay'）
+  // - autoHideMenuBar 隐藏 File/Edit/View/Window 菜单栏；应用菜单仍通过
+  //   Menu.setApplicationMenu 注册，其快捷键（缩放/刷新/DevTools/全屏）继续生效。
+  //   注意：titleBarStyle 'hidden' 下 Electron 不再渲染菜单条，Alt 无法呼出（已实测），
+  //   但菜单对象与其 accelerator 仍然活跃
+  const isWindowsFrameless = process.platform === 'win32';
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -453,6 +463,17 @@ function createWindow() {
     minWidth: 960,
     minHeight: 600,
     icon: iconPath, // 设置窗口图标
+    ...(isWindowsFrameless
+      ? {
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            color: '#ffffff',
+            symbolColor: '#1f2933',
+            height: 36,
+          },
+          autoHideMenuBar: true,
+        }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -2260,6 +2281,40 @@ function setupIPC() {
       uiLocale = normalizeUiLocale(locale) || 'en-US';
       return createSuccessResponse(null);
     } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // Windows 无边框窗口：标题栏 overlay 配色随应用主题同步。
+  // 仅接受颜色/高度字段，避免渲染进程注入任意 overlay 属性。
+  ipcMain.handle('window-set-title-bar-overlay', (_event, options) => {
+    try {
+      if (process.platform !== 'win32') {
+        return createSuccessResponse(false);
+      }
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        return createSuccessResponse(false);
+      }
+
+      const overlayOptions = {};
+      if (typeof options?.color === 'string' && options.color.length > 0) {
+        overlayOptions.color = options.color;
+      }
+      if (typeof options?.symbolColor === 'string' && options.symbolColor.length > 0) {
+        overlayOptions.symbolColor = options.symbolColor;
+      }
+      if (Number.isFinite(options?.height)) {
+        overlayOptions.height = options.height;
+      }
+
+      if (Object.keys(overlayOptions).length === 0) {
+        return createSuccessResponse(false);
+      }
+
+      mainWindow.setTitleBarOverlay(overlayOptions);
+      return createSuccessResponse(true);
+    } catch (error) {
+      console.warn('[Main Process] Failed to update title bar overlay:', error);
       return createErrorResponse(error);
     }
   });
