@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.11.11] - 2026-09-29
+- EN: This release adds CTF, programming and forensics solver templates, rewrites the core optimization templates into a solver task-brief structure, brings a theme-synced frameless window to the Windows desktop app, hides the image-mode entry, and rebrands the in-app name to Solver Prompt Optimizer. See [Release Notes (EN)](releases/v2.11.11.en.md).
+- 中文：本次发布新增 CTF、编程、取证三类解题模板，将核心优化模板改写为解题任务简报结构，为 Windows 桌面端带来配色随主题同步的无边框窗口，隐藏图像模式入口，并将应用内品牌名更新为「解题提示词优化器」。参见 [版本说明（中文）](releases/v2.11.11.zh-CN.md)。
+
 ## [2.11.10] - 2026-09-10
 - EN: This patch closes an access-password bypass, restores first-use model configuration and model-category tabs, refreshes model and dependency catalogs, preserves restored history order, and completes the Node.js 24 desktop/CI migration. See [Release Notes (EN)](releases/v2.11.10.en.md).
 - 中文：本次补丁修复访问密码绕过问题，恢复首次使用时的模型配置入口与模型分类标签，更新模型和依赖目录，保持历史记录恢复顺序，并完成 Node.js 24 的桌面端与 CI 迁移。参见 [版本说明（中文）](releases/v2.11.10.zh-CN.md)。
