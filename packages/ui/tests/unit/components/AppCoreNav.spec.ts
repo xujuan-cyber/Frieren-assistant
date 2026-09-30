@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 
 vi.mock('naive-ui', async (importOriginal) => {
   const actual = await importOriginal<typeof import('naive-ui')>()
@@ -26,6 +27,14 @@ vi.mock('../../../src/router', () => ({
     },
     push: routerPush,
   },
+}))
+
+// AssistantSwitcher（头部助手切换器）在 setup 阶段调用 vue-router 的
+// useRoute/useRouter；本用例不安装 router 插件，必须 mock 掉，
+// 否则注入失败导致其 <component :is> 收到 undefined，Vue 警告会使用例判负。
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ path: '/favorites' }),
+  useRouter: () => ({ push: routerPush }),
 }))
 
 import AppCoreNav from '../../../src/components/app-layout/AppCoreNav.vue'
@@ -87,6 +96,8 @@ describe('AppCoreNav', () => {
         workspacePath: '/image/multiimage',
       },
       global: {
+        // AssistantSwitcher 依赖 Pinia store（useGlobalSettings），必须安装
+        plugins: [createPinia()],
         stubs,
       },
     })
@@ -103,6 +114,8 @@ describe('AppCoreNav', () => {
         allowWorkspaceReselect: true,
       },
       global: {
+        // AssistantSwitcher 依赖 Pinia store（useGlobalSettings），必须安装
+        plugins: [createPinia()],
         stubs,
       },
     })
@@ -121,6 +134,8 @@ describe('AppCoreNav', () => {
         allowWorkspaceReselect: true,
       },
       global: {
+        // AssistantSwitcher 依赖 Pinia store（useGlobalSettings），必须安装
+        plugins: [createPinia()],
         stubs,
       },
     })
@@ -137,6 +152,8 @@ describe('AppCoreNav', () => {
         allowWorkspaceReselect: true,
       },
       global: {
+        // AssistantSwitcher 依赖 Pinia store（useGlobalSettings），必须安装
+        plugins: [createPinia()],
         stubs,
       },
     })
